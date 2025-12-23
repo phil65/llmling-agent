@@ -17,11 +17,10 @@
     "payload": {
       "content": [
         {
-          "terminalId": "cmd_6bc185e7",
+          "terminalId": "cmd_0001",
           "type": "terminal"
         }
       ],
-      "kind": "execute",
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Running: echo hello",
@@ -33,15 +32,10 @@
     "payload": {
       "content": [
         {
-          "terminalId": "cmd_6bc185e7",
-          "type": "terminal"
-        },
-        {
-          "terminalId": "cmd_6bc185e7",
+          "terminalId": "cmd_0001",
           "type": "terminal"
         }
       ],
-      "kind": "execute",
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "hello\n",
@@ -53,15 +47,7 @@
     "payload": {
       "content": [
         {
-          "terminalId": "cmd_6bc185e7",
-          "type": "terminal"
-        },
-        {
-          "terminalId": "cmd_6bc185e7",
-          "type": "terminal"
-        },
-        {
-          "terminalId": "cmd_6bc185e7",
+          "terminalId": "cmd_0001",
           "type": "terminal"
         },
         {
@@ -72,7 +58,6 @@
           "type": "content"
         }
       ],
-      "kind": "execute",
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Process exited [✓ exit 0]",
@@ -82,28 +67,6 @@
   },
   {
     "payload": {
-      "content": [
-        {
-          "terminalId": "cmd_6bc185e7",
-          "type": "terminal"
-        },
-        {
-          "terminalId": "cmd_6bc185e7",
-          "type": "terminal"
-        },
-        {
-          "terminalId": "cmd_6bc185e7",
-          "type": "terminal"
-        },
-        {
-          "content": {
-            "text": "hello\n",
-            "type": "text"
-          },
-          "type": "content"
-        }
-      ],
-      "kind": "execute",
       "rawOutput": {
         "duration": 0.01,
         "exit_code": 0,
@@ -113,7 +76,6 @@
       },
       "sessionUpdate": "tool_call_update",
       "status": "completed",
-      "title": "Process exited [✓ exit 0]",
       "toolCallId": "pyd_ai_tool_call_id__execute_command"
     },
     "type": "tool_call_update"

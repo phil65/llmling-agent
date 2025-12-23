@@ -15,47 +15,33 @@
   },
   {
     "payload": {
-      "content": [],
-      "kind": "read",
       "locations": [
         {
           "line": 0,
           "path": "/test/hello.txt"
         }
       ],
-      "rawInput": {
-        "path": "/test/hello.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
       "title": "Reading file: /test/hello.txt",
       "toolCallId": "pyd_ai_tool_call_id__read_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   },
   {
     "payload": {
-      "content": [],
-      "kind": "read",
       "locations": [
-        {
-          "line": 0,
-          "path": "/test/hello.txt"
-        },
         {
           "line": 0,
           "path": "/test/hello.txt"
         }
       ],
-      "rawInput": {
-        "path": "/test/hello.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
       "title": "Read: /test/hello.txt",
       "toolCallId": "pyd_ai_tool_call_id__read_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   },
   {
     "payload": {
@@ -68,49 +54,26 @@
           "type": "content"
         }
       ],
-      "kind": "read",
       "locations": [
         {
           "line": 0,
           "path": "/test/hello.txt"
         }
       ],
-      "rawInput": {
-        "path": "/test/hello.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
       "title": "Read: /test/hello.txt",
       "toolCallId": "pyd_ai_tool_call_id__read_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   },
   {
     "payload": {
-      "content": [
-        {
-          "content": {
-            "text": "```/test/hello.txt\nHello, World!\n```",
-            "type": "text"
-          },
-          "type": "content"
-        }
-      ],
-      "kind": "read",
-      "locations": [
-        {
-          "line": 0,
-          "path": "/test/hello.txt"
-        }
-      ],
-      "rawInput": {
-        "path": "/test/hello.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
-      "title": "Read: /test/hello.txt",
+      "rawOutput": "Hello, World!",
+      "sessionUpdate": "tool_call_update",
+      "status": "completed",
       "toolCallId": "pyd_ai_tool_call_id__read_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   }
 ]

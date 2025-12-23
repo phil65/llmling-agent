@@ -16,7 +16,6 @@
   },
   {
     "payload": {
-      "content": [],
       "kind": "edit",
       "locations": [
         {
@@ -24,41 +23,26 @@
           "path": "/test/new_file.txt"
         }
       ],
-      "rawInput": {
-        "content": "New content here",
-        "path": "/test/new_file.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "sessionUpdate": "tool_call_update",
       "title": "Writing file: /test/new_file.txt",
       "toolCallId": "pyd_ai_tool_call_id__write_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   },
   {
     "payload": {
-      "content": [],
-      "kind": "edit",
       "locations": [
-        {
-          "line": 0,
-          "path": "/test/new_file.txt"
-        },
         {
           "line": 0,
           "path": "/test/new_file.txt"
         }
       ],
-      "rawInput": {
-        "content": "New content here",
-        "path": "/test/new_file.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
       "title": "Write: /test/new_file.txt",
       "toolCallId": "pyd_ai_tool_call_id__write_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   },
   {
     "payload": {
@@ -71,26 +55,17 @@
           "type": "content"
         }
       ],
-      "kind": "edit",
-      "locations": [
-        {
-          "line": 0,
-          "path": "/test/new_file.txt"
-        },
-        {
-          "line": 0,
-          "path": "/test/new_file.txt"
-        }
-      ],
-      "rawInput": {
-        "content": "New content here",
-        "path": "/test/new_file.txt"
+      "rawOutput": {
+        "bytes_written": 16,
+        "file_existed": false,
+        "mode": "w",
+        "path": "/test/new_file.txt",
+        "size": 16
       },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
-      "title": "Write: /test/new_file.txt",
+      "sessionUpdate": "tool_call_update",
+      "status": "completed",
       "toolCallId": "pyd_ai_tool_call_id__write_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   }
 ]

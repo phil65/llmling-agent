@@ -1,39 +1,37 @@
-"""Stateful tool call accumulator for ACP.
+"""Stateful tool call tracker for ACP.
 
-This module provides a unified state management approach for tool calls,
-ensuring that rich progress information (diffs, terminals, locations) is
-accumulated rather than overwritten by subsequent notifications.
+This module provides a simple state tracker for tool calls that sends
+only changed fields in updates, following the ACP protocol spec.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
-
-from acp.schema import ContentToolCallContent, TerminalToolCallContent
-from acp.schema.tool_call import ToolCallLocation
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from acp.notifications import ACPNotifications
-    from acp.schema.tool_call import ToolCallContent, ToolCallKind, ToolCallStatus
+    from acp.schema.tool_call import ToolCallContent, ToolCallKind, ToolCallLocation, ToolCallStatus
 
 
 class ToolCallState:
-    """Accumulates tool call state across the execution lifecycle.
+    """Tracks tool call state and sends delta updates.
 
-    Instead of each event handler independently sending notifications that
-    overwrite previous state, all updates go through this accumulator which
-    preserves content, locations, and other rich data across the tool call
-    lifecycle.
+    Instead of accumulating all state and sending everything on each update,
+    this class tracks whether we've started and sends only the fields that
+    are explicitly provided in each update call.
+
+    The ACP protocol spec states:
+    "All fields except toolCallId are optional in updates.
+     Only the fields being changed need to be included."
 
     Example flow:
-        1. Tool call starts → state created with generated title
-        2. ToolCallProgressEvent → state.update(title="Running: ...", content=terminal)
-        3. ToolCallProgressEvent → state.update(content=diff, locations=path)
-        4. Tool completes → state.complete(raw_output=result)
-
-    All accumulated content and locations are preserved in each notification.
+        1. Tool call starts → state.start() sends initial notification
+        2. Progress event → state.update(title="Running...") sends just title
+        3. More progress → state.update(content=[...]) sends just content
+        4. Tool completes → state.complete(raw_output=result) sends status + output
     """
 
     def __init__(
@@ -51,38 +49,39 @@ class ToolCallState:
             notifications: ACPNotifications instance for sending updates
             tool_call_id: Unique identifier for this tool call
             tool_name: Name of the tool being called
-            title: Initial human-readable title (can be updated later)
+            title: Initial human-readable title
             kind: Category of tool (read, edit, execute, etc.)
             raw_input: Input parameters passed to the tool
         """
         self._notifications = notifications
         self.tool_call_id = tool_call_id
         self.tool_name = tool_name
-        self.title = title
-        self.kind: ToolCallKind = kind
-        self.status: ToolCallStatus = "pending"
-        self.content: list[ToolCallContent] = []
-        self.locations: list[ToolCallLocation] = []
-        self.raw_input = raw_input
-        self.raw_output: Any = None
+        self._initial_title = title
+        self._initial_kind = kind
+        self._raw_input = raw_input
         self._started = False
+        self._has_content = False  # Track if content has been sent
+
+    @property
+    def has_content(self) -> bool:
+        """Whether content has been sent for this tool call."""
+        return self._has_content
 
     async def start(self) -> None:
         """Send initial tool_call notification.
 
         This creates the tool call entry in the client UI. Subsequent calls
-        to update() will send tool_call_update notifications.
+        to update() will send tool_call_update notifications with only
+        the changed fields.
         """
         if self._started:
             return
 
         await self._notifications.tool_call_start(
             tool_call_id=self.tool_call_id,
-            title=self.title,
-            kind=self.kind,
-            locations=self.locations or None,
-            content=self.content or None,
-            raw_input=self.raw_input,
+            title=self._initial_title,
+            kind=self._initial_kind,
+            raw_input=self._raw_input,
         )
         self._started = True
 
@@ -92,78 +91,55 @@ class ToolCallState:
         title: str | None = None,
         status: ToolCallStatus | None = None,
         kind: ToolCallKind | None = None,
-        content: ToolCallContent | Sequence[ToolCallContent] | None = None,
+        content: Sequence[ToolCallContent] | None = None,
         locations: Sequence[ToolCallLocation | str] | None = None,
-        replace: bool = False,
         raw_output: Any = None,
     ) -> None:
-        """Update state and send notification with ALL accumulated data.
+        """Send an update with only the provided fields.
 
         Args:
-            title: Override the human-readable title
+            title: Update the human-readable title
             status: Update execution status
             kind: Update tool kind
-            content: Content items (terminals, diffs, text) to add or replace
-            locations: File locations to add or replace
-            replace: If True, replace all content and locations; if False, append
+            content: Content items (terminals, diffs, text) - replaces previous
+            locations: File locations - replaces previous
             raw_output: Update raw output data
+
+        Note:
+            Only fields that are truthy (not None/empty) will be included
+            in the notification. This follows the ACP spec which states
+            that only changed fields need to be sent.
         """
         if not self._started:
             await self.start()
 
-        # Update scalar fields
+        # Build kwargs with only the provided fields
+        from acp.schema.tool_call import ToolCallLocation
+
+        kwargs: dict[str, Any] = {}
+
         if title is not None:
-            self.title = title
+            kwargs["title"] = title
         if status is not None:
-            self.status = status
+            kwargs["status"] = status
         if kind is not None:
-            self.kind = kind
-        if raw_output is not None:
-            self.raw_output = raw_output
-
-        # Handle content: replace or accumulate
-        if content is not None:
-            if replace:
-                if isinstance(content, Sequence):
-                    self.content = list(content)
-                else:
-                    self.content = [content]
-            elif isinstance(content, Sequence):
-                self.content.extend(content)  # ty: ignore[invalid-argument-type]
-            else:
-                self.content.append(content)
-
-        # Handle locations: replace or accumulate (tied to replace)
-        if locations is not None:
-            new_locations: list[ToolCallLocation] = [
+            kwargs["kind"] = kind
+        if content:
+            kwargs["content"] = content
+            self._has_content = True
+        if locations:
+            # Normalize string paths to ToolCallLocation
+            kwargs["locations"] = [
                 ToolCallLocation(path=loc) if isinstance(loc, str) else loc for loc in locations
             ]
-            if replace:
-                self.locations = new_locations
-            else:
-                self.locations.extend(new_locations)
+        if raw_output is not None:
+            kwargs["raw_output"] = raw_output
 
-        # Send update with ALL accumulated data
-        # Use tool_call_start (session_update: "tool_call") when locations are present
-        # to enable clickable file paths in clients (matches Claude Code behavior)
-        if self.locations:
-            await self._notifications.tool_call_start(
+        # Only send if there's something to update
+        if kwargs:
+            await self._notifications.tool_call_update(
                 tool_call_id=self.tool_call_id,
-                title=self.title,
-                kind=self.kind,
-                locations=self.locations,
-                content=self.content or None,
-                raw_input=self.raw_input,
-            )
-        else:
-            await self._notifications.tool_call_progress(
-                tool_call_id=self.tool_call_id,
-                status=self.status,
-                title=self.title,
-                kind=self.kind,
-                locations=None,
-                content=self.content or None,
-                raw_output=self.raw_output,
+                **kwargs,
             )
 
     async def add_terminal(self, terminal_id: str, *, title: str | None = None) -> None:
@@ -173,8 +149,14 @@ class ToolCallState:
             terminal_id: ID of the terminal to embed
             title: Optional title update
         """
+        from acp.schema import TerminalToolCallContent
+
         terminal_content = TerminalToolCallContent(terminal_id=terminal_id)
-        await self.update(content=terminal_content, title=title, status="in_progress")
+        await self.update(
+            content=[terminal_content],
+            title=title,
+            status="in_progress",
+        )
 
     async def add_text(self, text: str) -> None:
         """Add text content to the tool call.
@@ -182,22 +164,31 @@ class ToolCallState:
         Args:
             text: Text to add
         """
+        from acp.schema import ContentToolCallContent
+
         text_content = ContentToolCallContent.text(text=text)
-        await self.update(content=text_content)
+        await self.update(content=[text_content])
 
     async def complete(
         self,
         raw_output: Any = None,
         *,
-        content: ToolCallContent | Sequence[ToolCallContent] | None = None,
+        content: Sequence[ToolCallContent] | None = None,
+        title: str | None = None,
     ) -> None:
         """Mark tool call as completed.
 
         Args:
             raw_output: Final output data
-            content: Optional final content to add
+            content: Optional final content
+            title: Optional final title
         """
-        await self.update(status="completed", raw_output=raw_output, content=content)
+        await self.update(
+            status="completed",
+            raw_output=raw_output,
+            content=content,
+            title=title,
+        )
 
     async def fail(
         self,
@@ -211,7 +202,11 @@ class ToolCallState:
             error: Error message to display
             raw_output: Optional error details
         """
-        error_content = None
+        from acp.schema import ContentToolCallContent
+
+        content = None
         if error:
             error_content = ContentToolCallContent.text(text=f"Error: {error}")
-        await self.update(status="failed", content=error_content, raw_output=raw_output)
+            content = [error_content]
+
+        await self.update(status="failed", content=content, raw_output=raw_output)

@@ -17,11 +17,10 @@
     "payload": {
       "content": [
         {
-          "terminalId": "code_9bb79e6c",
+          "terminalId": "code_0001",
           "type": "terminal"
         }
       ],
-      "kind": "execute",
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Running: python",
@@ -33,15 +32,10 @@
     "payload": {
       "content": [
         {
-          "terminalId": "code_9bb79e6c",
-          "type": "terminal"
-        },
-        {
-          "terminalId": "code_9bb79e6c",
+          "terminalId": "code_0001",
           "type": "terminal"
         }
       ],
-      "kind": "execute",
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "ValueError: test error\n",
@@ -53,15 +47,7 @@
     "payload": {
       "content": [
         {
-          "terminalId": "code_9bb79e6c",
-          "type": "terminal"
-        },
-        {
-          "terminalId": "code_9bb79e6c",
-          "type": "terminal"
-        },
-        {
-          "terminalId": "code_9bb79e6c",
+          "terminalId": "code_0001",
           "type": "terminal"
         },
         {
@@ -72,7 +58,6 @@
           "type": "content"
         }
       ],
-      "kind": "execute",
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Process exited [✗ exit 1]",
@@ -82,28 +67,6 @@
   },
   {
     "payload": {
-      "content": [
-        {
-          "terminalId": "code_9bb79e6c",
-          "type": "terminal"
-        },
-        {
-          "terminalId": "code_9bb79e6c",
-          "type": "terminal"
-        },
-        {
-          "terminalId": "code_9bb79e6c",
-          "type": "terminal"
-        },
-        {
-          "content": {
-            "text": "ValueError: test error",
-            "type": "text"
-          },
-          "type": "content"
-        }
-      ],
-      "kind": "execute",
       "rawOutput": {
         "error": "ValueError: test error",
         "exit_code": 1,
@@ -111,7 +74,6 @@
       },
       "sessionUpdate": "tool_call_update",
       "status": "completed",
-      "title": "Process exited [✗ exit 1]",
       "toolCallId": "pyd_ai_tool_call_id__execute_code"
     },
     "type": "tool_call_update"

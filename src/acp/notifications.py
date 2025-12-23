@@ -268,6 +268,49 @@ class ACPNotifications:
         notification = SessionNotification(session_id=self.id, update=progress)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
+    async def tool_call_update(
+        self,
+        tool_call_id: str,
+        *,
+        title: str | None = None,
+        status: ToolCallStatus | None = None,
+        kind: ToolCallKind | None = None,
+        locations: Sequence[ToolCallLocation] | None = None,
+        content: ContentType | None = None,
+        raw_output: Any | None = None,
+    ) -> None:
+        """Send a tool call update with only the provided fields.
+
+        Unlike tool_call_progress, all fields are optional. Only fields
+        that are explicitly provided (not None) will be included in the
+        notification, following the ACP spec which states that only
+        changed fields need to be sent.
+
+        Args:
+            tool_call_id: Tool call identifier (required)
+            title: Update the human-readable title
+            status: Update execution status
+            kind: Update tool kind
+            locations: Update file locations
+            content: Update content blocks
+            raw_output: Update raw output
+        """
+        update = ToolCallProgress(
+            tool_call_id=tool_call_id,
+            status=status,
+            title=title,
+            raw_output=raw_output,
+            kind=kind,
+            locations=locations,
+            content=[
+                ContentToolCallContent.text(i) if isinstance(i, str) else i for i in content or []
+            ]
+            if content
+            else None,
+        )
+        notification = SessionNotification(session_id=self.id, update=update)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+
     async def file_edit_progress(
         self,
         tool_call_id: str,

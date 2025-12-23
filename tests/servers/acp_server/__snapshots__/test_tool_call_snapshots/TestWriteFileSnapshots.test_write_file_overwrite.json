@@ -17,7 +17,6 @@
   },
   {
     "payload": {
-      "content": [],
       "kind": "edit",
       "locations": [
         {
@@ -25,43 +24,26 @@
           "path": "/test/existing.txt"
         }
       ],
-      "rawInput": {
-        "content": "Updated content",
-        "overwrite": true,
-        "path": "/test/existing.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "sessionUpdate": "tool_call_update",
       "title": "Writing file: /test/existing.txt",
       "toolCallId": "pyd_ai_tool_call_id__write_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   },
   {
     "payload": {
-      "content": [],
-      "kind": "edit",
       "locations": [
-        {
-          "line": 0,
-          "path": "/test/existing.txt"
-        },
         {
           "line": 0,
           "path": "/test/existing.txt"
         }
       ],
-      "rawInput": {
-        "content": "Updated content",
-        "overwrite": true,
-        "path": "/test/existing.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
       "title": "Write: /test/existing.txt",
       "toolCallId": "pyd_ai_tool_call_id__write_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   },
   {
     "payload": {
@@ -74,27 +56,17 @@
           "type": "content"
         }
       ],
-      "kind": "edit",
-      "locations": [
-        {
-          "line": 0,
-          "path": "/test/existing.txt"
-        },
-        {
-          "line": 0,
-          "path": "/test/existing.txt"
-        }
-      ],
-      "rawInput": {
-        "content": "Updated content",
-        "overwrite": true,
-        "path": "/test/existing.txt"
+      "rawOutput": {
+        "bytes_written": 15,
+        "file_existed": true,
+        "mode": "w",
+        "path": "/test/existing.txt",
+        "size": 15
       },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
-      "title": "Write: /test/existing.txt",
+      "sessionUpdate": "tool_call_update",
+      "status": "completed",
       "toolCallId": "pyd_ai_tool_call_id__write_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   }
 ]

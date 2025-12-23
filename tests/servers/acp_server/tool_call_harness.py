@@ -89,7 +89,9 @@ class ToolCallTestHarness:
         session_id: Identifier for the test session
     """
 
-    mock_env: MockExecutionEnvironment = field(default_factory=MockExecutionEnvironment)
+    mock_env: MockExecutionEnvironment = field(
+        default_factory=lambda: MockExecutionEnvironment(deterministic_ids=True)
+    )
     client: RecordingACPClient = field(
         default_factory=lambda: RecordingACPClient(
             allow_file_operations=True,

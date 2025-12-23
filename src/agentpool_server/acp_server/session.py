@@ -506,7 +506,7 @@ class ACPSession:
                 # Complete tool call through state (preserves accumulated content/locations)
                 if complete_state := self._tool_call_states.get(tool_call_id):
                     # Only add return value as content if no content was emitted during execution
-                    if complete_state.content:
+                    if complete_state.has_content:
                         # Content already provided via progress events - just set raw_output
                         await complete_state.complete(raw_output=final_output)
                     else:
@@ -619,7 +619,6 @@ class ACPSession:
                     status="in_progress",
                     content=acp_content if acp_content else None,
                     locations=location_paths if location_paths else None,
-                    replace=replace_content,
                 )
 
             case FinalResultEvent():

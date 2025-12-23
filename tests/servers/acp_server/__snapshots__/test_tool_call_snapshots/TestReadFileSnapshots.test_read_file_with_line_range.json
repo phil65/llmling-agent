@@ -17,51 +17,33 @@
   },
   {
     "payload": {
-      "content": [],
-      "kind": "read",
       "locations": [
         {
           "line": 0,
           "path": "/test/lines.txt"
         }
       ],
-      "rawInput": {
-        "limit": 2,
-        "line": 3,
-        "path": "/test/lines.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
       "title": "Reading file: /test/lines.txt",
       "toolCallId": "pyd_ai_tool_call_id__read_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   },
   {
     "payload": {
-      "content": [],
-      "kind": "read",
       "locations": [
-        {
-          "line": 0,
-          "path": "/test/lines.txt"
-        },
         {
           "line": 0,
           "path": "/test/lines.txt"
         }
       ],
-      "rawInput": {
-        "limit": 2,
-        "line": 3,
-        "path": "/test/lines.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
       "title": "Read: /test/lines.txt",
       "toolCallId": "pyd_ai_tool_call_id__read_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   },
   {
     "payload": {
@@ -74,53 +56,26 @@
           "type": "content"
         }
       ],
-      "kind": "read",
       "locations": [
         {
           "line": 0,
           "path": "/test/lines.txt"
         }
       ],
-      "rawInput": {
-        "limit": 2,
-        "line": 3,
-        "path": "/test/lines.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
       "title": "Read: /test/lines.txt",
       "toolCallId": "pyd_ai_tool_call_id__read_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   },
   {
     "payload": {
-      "content": [
-        {
-          "content": {
-            "text": "```/test/lines.txt\nLine 3\nLine 4\n```",
-            "type": "text"
-          },
-          "type": "content"
-        }
-      ],
-      "kind": "read",
-      "locations": [
-        {
-          "line": 0,
-          "path": "/test/lines.txt"
-        }
-      ],
-      "rawInput": {
-        "limit": 2,
-        "line": 3,
-        "path": "/test/lines.txt"
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
-      "title": "Read: /test/lines.txt",
+      "rawOutput": "Line 3\nLine 4",
+      "sessionUpdate": "tool_call_update",
+      "status": "completed",
       "toolCallId": "pyd_ai_tool_call_id__read_file"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
   }
 ]
