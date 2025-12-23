@@ -87,6 +87,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
             async for event in self.get_env(agent_ctx).stream_code(code):
                 match event:
                     case ProcessStartedEvent(process_id=pid, command=cmd):
+                        process_id = pid  # save for later on.
                         await agent_ctx.events.process_started(pid, cmd, success=True)
                     case OutputEvent(data=data):
                         output_parts.append(data)
