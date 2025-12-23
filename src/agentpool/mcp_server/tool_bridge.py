@@ -315,16 +315,23 @@ class _BridgeTool(FastMCPTool):
         self._tool = tool
         self._bridge = bridge
 
-    async def run(self, arguments: dict[str, Any], context: Context | None = None) -> ToolResult:
+    async def run(self, arguments: dict[str, Any]) -> ToolResult:
         """Execute the wrapped tool with context bridging."""
         from dataclasses import replace
 
+        from fastmcp.server.dependencies import get_context
         from fastmcp.tools.tool import ToolResult
 
-        # Try to get Claude's original tool_call_id from request metadata
-        tool_call_id = _extract_tool_call_id(context)
+        # Get FastMCP context from context variable (not passed as parameter)
+        try:
+            mcp_context: Context | None = get_context()
+        except LookupError:
+            mcp_context = None
 
-        # Create context with tool-specific metadata from node's context
+        # Try to get Claude's original tool_call_id from request metadata
+        tool_call_id = _extract_tool_call_id(mcp_context)
+
+        # Create context with tool-specific metadata from node's context.
         ctx = replace(
             self._bridge.node.get_context(),
             tool_name=self._tool.name,
