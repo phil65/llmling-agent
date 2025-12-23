@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+def json_snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
     """Use JSON serialization for cleaner snapshots."""
     return snapshot.use_extension(JSONSnapshotExtension)
 
@@ -39,7 +39,7 @@ class TestReadFileSnapshots:
     async def test_read_file_basic(
         self,
         harness: ToolCallTestHarness,
-        snapshot: SnapshotAssertion,
+        json_snapshot: SnapshotAssertion,
     ) -> None:
         """Test basic file read produces expected notifications."""
         await harness.mock_env.set_file_content("/test/hello.txt", "Hello, World!")
@@ -50,12 +50,12 @@ class TestReadFileSnapshots:
             toolsets=[FSSpecToolsetConfig()],
         )
 
-        assert messages == snapshot
+        assert messages == json_snapshot
 
     async def test_read_file_with_line_range(
         self,
         harness: ToolCallTestHarness,
-        snapshot: SnapshotAssertion,
+        json_snapshot: SnapshotAssertion,
     ) -> None:
         """Test file read with line/limit produces expected notifications."""
         content = "\n".join(f"Line {i}" for i in range(1, 11))
@@ -67,7 +67,7 @@ class TestReadFileSnapshots:
             toolsets=[FSSpecToolsetConfig()],
         )
 
-        assert messages == snapshot
+        assert messages == json_snapshot
 
 
 class TestWriteFileSnapshots:
@@ -76,7 +76,7 @@ class TestWriteFileSnapshots:
     async def test_write_file_new(
         self,
         harness: ToolCallTestHarness,
-        snapshot: SnapshotAssertion,
+        json_snapshot: SnapshotAssertion,
     ) -> None:
         """Test writing a new file produces expected notifications."""
         messages = await harness.execute_tool(
@@ -85,12 +85,12 @@ class TestWriteFileSnapshots:
             toolsets=[FSSpecToolsetConfig()],
         )
 
-        assert messages == snapshot
+        assert messages == json_snapshot
 
     async def test_write_file_overwrite(
         self,
         harness: ToolCallTestHarness,
-        snapshot: SnapshotAssertion,
+        json_snapshot: SnapshotAssertion,
     ) -> None:
         """Test overwriting existing file produces expected notifications."""
         await harness.mock_env.set_file_content("/test/existing.txt", "Old content")
@@ -105,7 +105,7 @@ class TestWriteFileSnapshots:
             toolsets=[FSSpecToolsetConfig()],
         )
 
-        assert messages == snapshot
+        assert messages == json_snapshot
 
 
 class TestExecuteCodeSnapshots:
@@ -114,7 +114,7 @@ class TestExecuteCodeSnapshots:
     async def test_execute_code_simple(
         self,
         harness: ToolCallTestHarness,
-        snapshot: SnapshotAssertion,
+        json_snapshot: SnapshotAssertion,
     ) -> None:
         """Test simple code execution produces expected notifications."""
         harness.mock_env._code_results["print('hello')"] = ExecutionResult(
@@ -127,12 +127,12 @@ class TestExecuteCodeSnapshots:
             toolsets=[ExecutionEnvironmentToolsetConfig()],
         )
 
-        assert messages == snapshot
+        assert messages == json_snapshot
 
     async def test_execute_code_with_error(
         self,
         harness: ToolCallTestHarness,
-        snapshot: SnapshotAssertion,
+        json_snapshot: SnapshotAssertion,
     ) -> None:
         """Test code execution with error produces expected notifications."""
         harness.mock_env._code_results["raise ValueError('test error')"] = ExecutionResult(
@@ -151,12 +151,12 @@ class TestExecuteCodeSnapshots:
             toolsets=[ExecutionEnvironmentToolsetConfig()],
         )
 
-        assert messages == snapshot
+        assert messages == json_snapshot
 
     async def test_execute_code_multiline(
         self,
         harness: ToolCallTestHarness,
-        snapshot: SnapshotAssertion,
+        json_snapshot: SnapshotAssertion,
     ) -> None:
         """Test multiline code execution produces expected notifications."""
         code = "x = 1\ny = 2\nprint(x + y)"
@@ -170,7 +170,7 @@ class TestExecuteCodeSnapshots:
             toolsets=[ExecutionEnvironmentToolsetConfig()],
         )
 
-        assert messages == snapshot
+        assert messages == json_snapshot
 
 
 class TestExecuteCommandSnapshots:
@@ -179,7 +179,7 @@ class TestExecuteCommandSnapshots:
     async def test_execute_command_simple(
         self,
         harness: ToolCallTestHarness,
-        snapshot: SnapshotAssertion,
+        json_snapshot: SnapshotAssertion,
     ) -> None:
         """Test simple command execution produces expected notifications."""
         harness.mock_env._command_results["echo hello"] = ExecutionResult(
@@ -192,12 +192,12 @@ class TestExecuteCommandSnapshots:
             toolsets=[ExecutionEnvironmentToolsetConfig()],
         )
 
-        assert messages == snapshot
+        assert messages == json_snapshot
 
     async def test_execute_command_with_stderr(
         self,
         harness: ToolCallTestHarness,
-        snapshot: SnapshotAssertion,
+        json_snapshot: SnapshotAssertion,
     ) -> None:
         """Test command with stderr produces expected notifications."""
         harness.mock_env._command_results["ls /nonexistent"] = ExecutionResult(
@@ -216,12 +216,12 @@ class TestExecuteCommandSnapshots:
             toolsets=[ExecutionEnvironmentToolsetConfig()],
         )
 
-        assert messages == snapshot
+        assert messages == json_snapshot
 
     async def test_execute_command_with_output_limit(
         self,
         harness: ToolCallTestHarness,
-        snapshot: SnapshotAssertion,
+        json_snapshot: SnapshotAssertion,
     ) -> None:
         """Test command with output limit produces expected notifications."""
         long_output = "line\n" * 100
@@ -235,7 +235,7 @@ class TestExecuteCommandSnapshots:
             toolsets=[ExecutionEnvironmentToolsetConfig()],
         )
 
-        assert messages == snapshot
+        assert messages == json_snapshot
 
 
 if __name__ == "__main__":

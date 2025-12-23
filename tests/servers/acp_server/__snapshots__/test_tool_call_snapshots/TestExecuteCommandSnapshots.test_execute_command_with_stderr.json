@@ -17,7 +17,7 @@
     "payload": {
       "content": [
         {
-          "terminalId": "cmd_ae3305f5",
+          "terminalId": "cmd_de891b24",
           "type": "terminal"
         }
       ],
@@ -33,11 +33,11 @@
     "payload": {
       "content": [
         {
-          "terminalId": "cmd_ae3305f5",
+          "terminalId": "cmd_de891b24",
           "type": "terminal"
         },
         {
-          "terminalId": "cmd_ae3305f5",
+          "terminalId": "cmd_de891b24",
           "type": "terminal"
         }
       ],
@@ -53,11 +53,11 @@
     "payload": {
       "content": [
         {
-          "terminalId": "cmd_ae3305f5",
+          "terminalId": "cmd_de891b24",
           "type": "terminal"
         },
         {
-          "terminalId": "cmd_ae3305f5",
+          "terminalId": "cmd_de891b24",
           "type": "terminal"
         }
       ],

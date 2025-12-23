@@ -18,7 +18,7 @@
     "payload": {
       "content": [
         {
-          "terminalId": "cmd_e192b2b4",
+          "terminalId": "cmd_c563e252",
           "type": "terminal"
         }
       ],
@@ -34,11 +34,11 @@
     "payload": {
       "content": [
         {
-          "terminalId": "cmd_e192b2b4",
+          "terminalId": "cmd_c563e252",
           "type": "terminal"
         },
         {
-          "terminalId": "cmd_e192b2b4",
+          "terminalId": "cmd_c563e252",
           "type": "terminal"
         }
       ],
@@ -54,15 +54,15 @@
     "payload": {
       "content": [
         {
-          "terminalId": "cmd_e192b2b4",
+          "terminalId": "cmd_c563e252",
           "type": "terminal"
         },
         {
-          "terminalId": "cmd_e192b2b4",
+          "terminalId": "cmd_c563e252",
           "type": "terminal"
         },
         {
-          "terminalId": "cmd_e192b2b4",
+          "terminalId": "cmd_c563e252",
           "type": "terminal"
         },
         {
@@ -85,15 +85,15 @@
     "payload": {
       "content": [
         {
-          "terminalId": "cmd_e192b2b4",
+          "terminalId": "cmd_c563e252",
           "type": "terminal"
         },
         {
-          "terminalId": "cmd_e192b2b4",
+          "terminalId": "cmd_c563e252",
           "type": "terminal"
         },
         {
-          "terminalId": "cmd_e192b2b4",
+          "terminalId": "cmd_c563e252",
           "type": "terminal"
         },
         {
