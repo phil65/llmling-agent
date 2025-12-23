@@ -1,0 +1,78 @@
+[
+  {
+    "payload": {
+      "content": [],
+      "kind": "execute",
+      "rawInput": {
+        "command": "ls /nonexistent"
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Running: ls /nonexistent",
+      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+    },
+    "type": "tool_call"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "cmd_ae3305f5",
+          "type": "terminal"
+        }
+      ],
+      "kind": "execute",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "Running: ls /nonexistent",
+      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "cmd_ae3305f5",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "cmd_ae3305f5",
+          "type": "terminal"
+        }
+      ],
+      "kind": "execute",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "Output: ls: cannot access '/nonexistent': No such file or ...",
+      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "cmd_ae3305f5",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "cmd_ae3305f5",
+          "type": "terminal"
+        }
+      ],
+      "kind": "execute",
+      "rawOutput": {
+        "error": "Command failed",
+        "exit_code": 2,
+        "stderr": "ls: cannot access '/nonexistent': No such file or directory\n",
+        "stdout": ""
+      },
+      "sessionUpdate": "tool_call_update",
+      "status": "completed",
+      "title": "Output: ls: cannot access '/nonexistent': No such file or ...",
+      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+    },
+    "type": "tool_call_update"
+  }
+]

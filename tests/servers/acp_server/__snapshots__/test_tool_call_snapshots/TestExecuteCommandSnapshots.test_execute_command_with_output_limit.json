@@ -1,0 +1,122 @@
+[
+  {
+    "payload": {
+      "content": [],
+      "kind": "execute",
+      "rawInput": {
+        "command": "cat bigfile",
+        "output_limit": 50
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Running: cat bigfile",
+      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+    },
+    "type": "tool_call"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "cmd_e192b2b4",
+          "type": "terminal"
+        }
+      ],
+      "kind": "execute",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "Running: cat bigfile",
+      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "cmd_e192b2b4",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "cmd_e192b2b4",
+          "type": "terminal"
+        }
+      ],
+      "kind": "execute",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "Output: line\nline\nline\nline\nline\nline\nline\nline\nline\nline\n...",
+      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "cmd_e192b2b4",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "cmd_e192b2b4",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "cmd_e192b2b4",
+          "type": "terminal"
+        },
+        {
+          "content": {
+            "text": "line\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\n",
+            "type": "text"
+          },
+          "type": "content"
+        }
+      ],
+      "kind": "execute",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "Process exited [✓ exit 0]",
+      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "cmd_e192b2b4",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "cmd_e192b2b4",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "cmd_e192b2b4",
+          "type": "terminal"
+        },
+        {
+          "content": {
+            "text": "line\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\n",
+            "type": "text"
+          },
+          "type": "content"
+        }
+      ],
+      "kind": "execute",
+      "rawOutput": {
+        "duration": 0.01,
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "...[truncated]\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\n",
+        "truncated": true
+      },
+      "sessionUpdate": "tool_call_update",
+      "status": "completed",
+      "title": "Process exited [✓ exit 0]",
+      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+    },
+    "type": "tool_call_update"
+  }
+]

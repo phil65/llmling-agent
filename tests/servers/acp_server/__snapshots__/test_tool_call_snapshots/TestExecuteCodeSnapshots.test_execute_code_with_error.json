@@ -1,0 +1,119 @@
+[
+  {
+    "payload": {
+      "content": [],
+      "kind": "execute",
+      "rawInput": {
+        "code": "raise ValueError('test error')"
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Executing code",
+      "toolCallId": "pyd_ai_tool_call_id__execute_code"
+    },
+    "type": "tool_call"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "code_2a87037c",
+          "type": "terminal"
+        }
+      ],
+      "kind": "execute",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "Running: python",
+      "toolCallId": "pyd_ai_tool_call_id__execute_code"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "code_2a87037c",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "code_2a87037c",
+          "type": "terminal"
+        }
+      ],
+      "kind": "execute",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "ValueError: test error\n",
+      "toolCallId": "pyd_ai_tool_call_id__execute_code"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "code_2a87037c",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "code_2a87037c",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "code_2a87037c",
+          "type": "terminal"
+        },
+        {
+          "content": {
+            "text": "ValueError: test error",
+            "type": "text"
+          },
+          "type": "content"
+        }
+      ],
+      "kind": "execute",
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "Process exited [✗ exit 1]",
+      "toolCallId": "pyd_ai_tool_call_id__execute_code"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "terminalId": "code_2a87037c",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "code_2a87037c",
+          "type": "terminal"
+        },
+        {
+          "terminalId": "code_2a87037c",
+          "type": "terminal"
+        },
+        {
+          "content": {
+            "text": "ValueError: test error",
+            "type": "text"
+          },
+          "type": "content"
+        }
+      ],
+      "kind": "execute",
+      "rawOutput": {
+        "error": "ValueError: test error",
+        "exit_code": 1,
+        "output": "ValueError: test error\n"
+      },
+      "sessionUpdate": "tool_call_update",
+      "status": "completed",
+      "title": "Process exited [✗ exit 1]",
+      "toolCallId": "pyd_ai_tool_call_id__execute_code"
+    },
+    "type": "tool_call_update"
+  }
+]
