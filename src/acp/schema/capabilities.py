@@ -57,10 +57,8 @@ class ClientCapabilities(AnnotatedObject):
         Returns:
             A new instance of ClientCapabilities.
         """
-        return cls(
-            fs=FileSystemCapability(read_text_file=read_text_file, write_text_file=write_text_file),
-            terminal=terminal,
-        )
+        fs = FileSystemCapability(read_text_file=read_text_file, write_text_file=write_text_file)
+        return cls(fs=fs, terminal=terminal)
 
 
 class PromptCapabilities(AnnotatedObject):
@@ -222,10 +220,7 @@ class AgentCapabilities(AnnotatedObject):
         )
         return cls(
             load_session=load_session,
-            mcp_capabilities=McpCapabilities(
-                http=http_mcp_servers,
-                sse=sse_mcp_servers,
-            ),
+            mcp_capabilities=McpCapabilities(http=http_mcp_servers, sse=sse_mcp_servers),
             prompt_capabilities=PromptCapabilities(
                 audio=audio_prompts,
                 embedded_context=embedded_context_prompts,

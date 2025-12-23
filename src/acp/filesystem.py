@@ -166,26 +166,12 @@ def parse_find_output(output: str, with_stats: bool = False) -> list[AcpInfo]:
                 # Fallback: treat as plain path if parsing fails
                 name = line.rsplit("/", 1)[-1] if "/" in line else line
                 if name not in (".", ".."):
-                    entries.append(
-                        AcpInfo(
-                            name=line,
-                            path=line,
-                            type="file",
-                            size=0,
-                        )
-                    )
+                    entries.append(AcpInfo(name=line, path=line, type="file", size=0))
         else:
             # Plain path output
             name = line.rsplit("/", 1)[-1] if "/" in line else line
             if name not in (".", ".."):
-                entries.append(
-                    AcpInfo(
-                        name=line,
-                        path=line,
-                        type="file",
-                        size=0,
-                    )
-                )
+                entries.append(AcpInfo(name=line, path=line, type="file", size=0))
 
     return entries
 
