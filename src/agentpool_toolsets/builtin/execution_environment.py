@@ -78,7 +78,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
             agent_ctx: Agent execution context
             code: Python code to execute
         """
-        process_id = f"code_{uuid.uuid4().hex[:8]}"
+        process_id: str | None = None
         output_parts: list[str] = []
         exit_code: int | None = None
         error_msg: str | None = None
@@ -86,30 +86,37 @@ class ExecutionEnvironmentTools(ResourceProvider):
         try:
             async for event in self.get_env(agent_ctx).stream_code(code):
                 match event:
-                    case ProcessStartedEvent(command=cmd):
+                    case ProcessStartedEvent(process_id=pid, command=cmd):
+                        process_id = pid
                         await agent_ctx.events.process_started(process_id, cmd, success=True)
                     case OutputEvent(data=data):
                         output_parts.append(data)
-                        await agent_ctx.events.process_output(process_id, data)
+                        if process_id:
+                            await agent_ctx.events.process_output(process_id, data)
                     case ProcessCompletedEvent(exit_code=code_, duration=dur):
                         exit_code = code_
                         duration = dur
                         out = "".join(output_parts)
-                        await agent_ctx.events.process_exit(process_id, exit_code, final_output=out)
+                        if process_id:
+                            await agent_ctx.events.process_exit(
+                                process_id, exit_code, final_output=out
+                            )
                     case ProcessErrorEvent(error=err, exit_code=code_):
                         error_msg = err
                         exit_code = code_
-                        await agent_ctx.events.process_exit(
-                            process_id, exit_code or 1, final_output=err
-                        )
+                        if process_id:
+                            await agent_ctx.events.process_exit(
+                                process_id, exit_code or 1, final_output=err
+                            )
 
             combined_output = "".join(output_parts)
             if error_msg:
                 return {"error": error_msg, "output": combined_output, "exit_code": exit_code}
 
         except Exception as e:  # noqa: BLE001
+            error_id = process_id or f"code_{uuid.uuid4().hex[:8]}"
             await agent_ctx.events.process_started(
-                process_id, "execute_code", success=False, error=str(e)
+                error_id, "execute_code", success=False, error=str(e)
             )
             return {"error": f"Error executing code: {e}"}
         else:
