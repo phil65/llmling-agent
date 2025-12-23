@@ -8,25 +8,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ag_ui.core import (
-    EventType,
-    TextMessageContentEvent,
-    TextMessageEndEvent,
-    TextMessageStartEvent,
-    ToolCallArgsEvent,
-    ToolCallEndEvent,
-    ToolCallStartEvent,
-)
-
 from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:
-    from ag_ui.core import (
-        BaseEvent,
-        TextMessageChunkEvent,
-        ToolCallChunkEvent,
-    )
+    from ag_ui.core import BaseEvent, TextMessageChunkEvent, ToolCallChunkEvent
 
 
 logger = get_logger(__name__)
@@ -59,6 +45,8 @@ class ChunkTransformer:
         Returns:
             List of output events (may be empty, single, or multiple)
         """
+        from ag_ui.core import EventType
+
         match event.type:
             case EventType.TEXT_MESSAGE_CHUNK:
                 return self._handle_text_chunk(event)  # type: ignore[arg-type]
@@ -84,6 +72,8 @@ class ChunkTransformer:
 
     def _handle_text_chunk(self, event: TextMessageChunkEvent) -> list[BaseEvent]:
         """Handle TEXT_MESSAGE_CHUNK event."""
+        from ag_ui.core import EventType, TextMessageContentEvent, TextMessageStartEvent
+
         result: list[BaseEvent] = []
         message_id = event.message_id
         role = event.role or "assistant"
@@ -119,6 +109,8 @@ class ChunkTransformer:
 
     def _handle_tool_chunk(self, event: ToolCallChunkEvent) -> list[BaseEvent]:
         """Handle TOOL_CALL_CHUNK event."""
+        from ag_ui.core import EventType, ToolCallArgsEvent, ToolCallStartEvent
+
         result: list[BaseEvent] = []
         tool_call_id = event.tool_call_id
         tool_name = event.tool_call_name
@@ -156,6 +148,8 @@ class ChunkTransformer:
 
     def _close_text_message(self) -> list[BaseEvent]:
         """Close active text message."""
+        from ag_ui.core import EventType, TextMessageEndEvent
+
         if self._active_text is None:
             return []
 
@@ -171,6 +165,8 @@ class ChunkTransformer:
 
     def _close_tool_call(self) -> list[BaseEvent]:
         """Close active tool call."""
+        from ag_ui.core import EventType, ToolCallEndEvent
+
         if self._active_tool is None:
             return []
 
