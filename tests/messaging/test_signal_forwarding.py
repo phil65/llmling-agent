@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 BASIC_FORWARDING = """\
 agents:
     agent1:
+        type: native
         model: test
         name: TestAgent 1
         connections:
@@ -21,6 +22,7 @@ agents:
               name: agent2
 
     agent2:
+        type: native
         model: test
         name: TestAgent 2
         connections:
@@ -28,6 +30,7 @@ agents:
               name: agent3
 
     agent3:
+        type: native
         model: test
         name: TestAgent 3
 """
@@ -36,6 +39,7 @@ agents:
 INVALID_FORWARD = """\
 agents:
     agent1:
+        type: native
         model: test
         name: TestAgent
         connections:
@@ -47,6 +51,7 @@ agents:
 PARTIAL_FORWARDING = """\
 agents:
     agent1:
+        type: native
         model: test
         name: TestAgent 1
         connections:
@@ -54,6 +59,7 @@ agents:
               name: agent2
 
     agent2:
+        type: native
         model: test
         name: TestAgent 2
 """

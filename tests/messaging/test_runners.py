@@ -47,6 +47,7 @@ responses:
 
 agents:
   test_agent:
+    type: native
     name: Test Agent
     description: Agent for testing conversation flow
     model:

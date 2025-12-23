@@ -27,6 +27,7 @@ responses:
 
 agents:
   test_agent:  # Key is the agent ID
+    type: native
     name: Test Agent
     description: A test agent
     model: test
@@ -60,6 +61,7 @@ responses:
 
 agents:
     test_agent:
+        type: native
         name: test
         model: test
         output_type: BasicResult

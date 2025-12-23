@@ -109,6 +109,7 @@ async def test_agui_server_from_config(tmp_path):
 
     agents:
       test_agent:
+        type: native
         name: test_agent
         environment: test
         model: test

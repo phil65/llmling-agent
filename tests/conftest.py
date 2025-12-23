@@ -73,6 +73,7 @@ responses:
 
 agents:
   support:
+    type: native
     display_name: Support Agent
     model: {default_model}
     output_type: SupportResult
@@ -80,6 +81,7 @@ agents:
       - You are a support agent
       - "Context: {{data}}"
   researcher:
+    type: native
     display_name: Research Agent
     model: {default_model}
     output_type: ResearchResult
