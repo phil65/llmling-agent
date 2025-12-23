@@ -328,8 +328,9 @@ class _BridgeTool(FastMCPTool):
             tool_input=arguments,
         )
 
-        # Invoke with context
-        result = await self._bridge.invoke_tool_with_context(self._tool, ctx, arguments)
+        # Invoke with context - copy arguments since invoke_tool_with_context
+        # modifies kwargs in-place to inject context parameters
+        result = await self._bridge.invoke_tool_with_context(self._tool, ctx, arguments.copy())
         # Convert result to ToolResult
         if isinstance(result, str):
             return ToolResult(content=result)
