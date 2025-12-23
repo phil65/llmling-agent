@@ -879,16 +879,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             yield error_event
             raise
 
-        # Final drain of event queue after stream completes
-        while not self._event_queue.empty():
-            try:
-                queued_event = self._event_queue.get_nowait()
-                for handler in self.event_handler._wrapped_handlers:
-                    await handler(None, queued_event)
-                yield queued_event
-            except asyncio.QueueEmpty:
-                break
-
         # Flush any remaining response parts
         if current_response_parts:
             model_messages.append(ModelResponse(parts=current_response_parts))

@@ -23,7 +23,8 @@ async def merge_queue_into_iterator[T, V](
         secondary_queue: Queue containing secondary events (e.g., progress events)
 
     Yields:
-        Async iterator that yields events from both sources in real-time
+        Async iterator that yields events from both sources in real-time.
+        Secondary queue is fully drained before the iterator completes.
 
     Example:
         ```python
@@ -36,33 +37,41 @@ async def merge_queue_into_iterator[T, V](
     """
     # Create a queue for all merged events
     event_queue: asyncio.Queue[V | T | None] = asyncio.Queue()
-    primary_done = False
+    primary_done = asyncio.Event()
     primary_exception: BaseException | None = None
 
     # Task to read from primary stream and put into merged queue
     async def primary_task() -> None:
-        nonlocal primary_done, primary_exception
+        nonlocal primary_exception
         try:
             async for event in primary_stream:
                 await event_queue.put(event)
         except BaseException as e:  # noqa: BLE001
             primary_exception = e
         finally:
-            primary_done = True
-            # Signal end of primary stream
-            await event_queue.put(None)
+            primary_done.set()
 
     # Task to read from secondary queue and put into merged queue
     async def secondary_task() -> None:
         try:
-            while not primary_done:
+            while not primary_done.is_set():
                 try:
                     secondary_event = await asyncio.wait_for(secondary_queue.get(), timeout=0.1)
                     await event_queue.put(secondary_event)
                 except TimeoutError:
                     continue
+            # Drain any remaining events after primary completes
+            while not secondary_queue.empty():
+                try:
+                    secondary_event = secondary_queue.get_nowait()
+                    await event_queue.put(secondary_event)
+                except asyncio.QueueEmpty:
+                    break
+            # Now signal end of all events
+            await event_queue.put(None)
         except asyncio.CancelledError:
-            pass
+            # Still need to signal completion on cancel
+            await event_queue.put(None)
 
     # Start both tasks
     primary_task_obj = asyncio.create_task(primary_task())
@@ -73,7 +82,7 @@ async def merge_queue_into_iterator[T, V](
         async def merged_events() -> AsyncIterator[V | T]:
             while True:
                 event = await event_queue.get()
-                if event is None:  # End of primary stream
+                if event is None:  # End of all streams
                     break
                 yield event
             # Re-raise any exception from primary stream after draining

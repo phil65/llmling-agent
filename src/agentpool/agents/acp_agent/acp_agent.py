@@ -54,6 +54,7 @@ from agentpool.messaging import ChatMessage
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
 from agentpool.talk.stats import MessageStats
+from agentpool.utils.streams import merge_queue_into_iterator
 
 
 if TYPE_CHECKING:
@@ -536,11 +537,14 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
+        # Capture state for use in nested function (avoids type narrowing issues)
+        state = self._state
+
         conversation = message_history if message_history is not None else self.conversation
         # Prepare user message for history and convert to ACP content blocks
         user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
         run_id = str(uuid.uuid4())
-        self._state.clear()  # Reset state
+        state.clear()  # Reset state
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ...
         # This mirrors pydantic-ai's new_messages() which includes the initial user request.
         model_messages: list[ModelResponse | ModelRequest] = []
@@ -563,30 +567,37 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         final_blocks = [*to_acp_content_blocks(pending_parts), *content_blocks]
         prompt_request = PromptRequest(session_id=self._session_id, prompt=final_blocks)
         self.log.debug("Starting streaming prompt", num_blocks=len(final_blocks))
+
         # Run prompt in background
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
-        last_idx = 0
-        while not prompt_task.done():
-            if self._client_handler:
-                try:  # Wait for new events
-                    await asyncio.wait_for(self._client_handler._update_event.wait(), timeout=0.05)
-                    self._client_handler._update_event.clear()
-                except TimeoutError:
-                    pass
 
-            # Yield new native events and distribute to handlers
-            while last_idx < len(self._state.events):
-                event = self._state.events[last_idx]
-                # Check for queued custom events first
-                while not self._event_queue.empty():
+        # Create async generator that polls ACP events
+        async def poll_acp_events() -> AsyncIterator[RichAgentStreamEvent[str]]:
+            """Poll events from ACP state until prompt completes."""
+            last_idx = 0
+            while not prompt_task.done():
+                if self._client_handler:
                     try:
-                        custom_event = self._event_queue.get_nowait()
-                        for handler in self.event_handler._wrapped_handlers:
-                            await handler(None, custom_event)
-                        yield custom_event
-                    except asyncio.QueueEmpty:
-                        break
+                        await asyncio.wait_for(
+                            self._client_handler._update_event.wait(), timeout=0.05
+                        )
+                        self._client_handler._update_event.clear()
+                    except TimeoutError:
+                        pass
 
+                # Yield new events from state
+                while last_idx < len(state.events):
+                    yield state.events[last_idx]
+                    last_idx += 1
+
+            # Yield remaining events after prompt completes
+            while last_idx < len(state.events):
+                yield state.events[last_idx]
+                last_idx += 1
+
+        # Merge ACP events with custom events from queue
+        async with merge_queue_into_iterator(poll_acp_events(), self._event_queue) as merged_events:
+            async for event in merged_events:
                 # Extract content from events and build parts in arrival order
                 match event:
                     case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
@@ -606,33 +617,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                         ):
                             touched_files.add(file_path)
 
-                for handler in self.event_handler._wrapped_handlers:  # Distribute to handlers
+                # Distribute to handlers
+                for handler in self.event_handler._wrapped_handlers:
                     await handler(None, event)
                 yield event
-                last_idx += 1
 
-        # Yield remaining events after completion
-        while last_idx < len(self._state.events):
-            event = self._state.events[last_idx]
-            # Extract content from events and build parts in arrival order
-            match event:
-                case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
-                    text_chunks.append(delta)
-                    current_response_parts.append(TextPart(content=delta))
-                case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta)) if delta:
-                    current_response_parts.append(ThinkingPart(content=delta))
-                case ToolCallStartEvent(tool_call_id=tc_id, tool_name=tc_name, raw_input=tc_input):
-                    current_response_parts.append(
-                        ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
-                    )
-                    # Track files modified by write/edit tools
-                    if file_path := extract_file_path_from_tool_call(tc_name or "", tc_input or {}):
-                        touched_files.add(file_path)
-
-            for handler in self.event_handler._wrapped_handlers:
-                await handler(None, event)
-            yield event
-            last_idx += 1
         # Ensure we catch any exceptions from the prompt task
         response = await prompt_task
         finish_reason: FinishReason = STOP_REASON_MAP.get(response.stop_reason, "stop")
