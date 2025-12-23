@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import mimetypes
 from pathlib import Path
 import shlex
 from typing import TYPE_CHECKING, Any, Literal, Required, overload
@@ -16,6 +15,7 @@ from upathtools.filesystems.base import BaseAsyncFileSystem, BaseUPath, FileInfo
 
 from acp.acp_requests import ACPRequests
 from acp.notifications import ACPNotifications
+from agentpool.mime_utils import guess_type, is_text_mime
 
 
 class AcpInfo(FileInfo, total=False):
@@ -33,16 +33,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-# MIME types that should be treated as text
-TEXT_MIME_PREFIXES = ("text/", "application/json", "application/xml", "application/javascript")
-
-
-def _is_text_mime(mime_type: str | None) -> bool:
-    """Check if a MIME type represents text content."""
-    if mime_type is None:
-        return True  # Default to text for unknown types
-    return any(mime_type.startswith(prefix) for prefix in TEXT_MIME_PREFIXES)
 
 
 class ACPFile(AbstractBufferedFile):  # type: ignore[misc]
@@ -158,9 +148,9 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             msg = "ACP filesystem does not support byte range reads"
             raise NotImplementedError(msg)
 
-        mime_type = mimetypes.guess_type(path)[0]
+        mime_type = guess_type(path)
 
-        if _is_text_mime(mime_type):
+        if is_text_mime(mime_type):
             # Text file - use read_text_file directly
             try:
                 content = await self.requests.read_text_file(path)

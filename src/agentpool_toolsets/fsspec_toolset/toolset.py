@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from fnmatch import fnmatch
-import mimetypes
 import os
 from pathlib import Path
 import time
@@ -16,6 +15,7 @@ from upathtools import is_directory
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.log import get_logger
+from agentpool.mime_utils import guess_type, is_binary_content, is_binary_mime
 from agentpool.resource_providers import ResourceProvider
 from agentpool_toolsets.builtin.file_edit import replace_content
 from agentpool_toolsets.fsspec_toolset.diagnostics import DiagnosticsManager
@@ -24,8 +24,6 @@ from agentpool_toolsets.fsspec_toolset.helpers import (
     apply_structured_edits,
     format_directory_listing,
     get_changed_line_numbers,
-    is_binary_content,
-    is_definitely_binary_mime,
     truncate_lines,
 )
 
@@ -338,9 +336,9 @@ class FSSpecTools(ResourceProvider):
             items=[LocationContentItem(path=path)],
         )
         try:
-            mime_type = mimetypes.guess_type(path)[0]
+            mime_type = guess_type(path)
             # Fast path: known binary MIME types (images, audio, video, etc.)
-            if is_definitely_binary_mime(mime_type):
+            if is_binary_mime(mime_type):
                 data = await self.get_fs(agent_ctx)._cat_file(path)
                 await agent_ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"

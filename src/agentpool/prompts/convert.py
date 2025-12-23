@@ -33,10 +33,10 @@ async def convert_prompts(
     for p in prompts:
         match p:
             case os.PathLike() | UPath():
-                from mimetypes import guess_type
+                from agentpool.mime_utils import guess_type
 
                 path_obj = to_upath(p)
-                mime_type, _ = guess_type(str(path_obj))
+                mime_type = guess_type(str(path_obj))
 
                 match mime_type:
                     case "application/pdf":

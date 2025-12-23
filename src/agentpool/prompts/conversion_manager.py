@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-import mimetypes
 from typing import TYPE_CHECKING, Any
 
+from agentpool.mime_utils import guess_type
 from agentpool_config.converters import ConversionConfig
 
 
@@ -34,7 +34,7 @@ class ConversionManager:
 
     def supports_file(self, path: JoinablePathLike) -> bool:
         """Check if any converter supports the file."""
-        mime_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+        mime_type = guess_type(str(path)) or "application/octet-stream"
         return any(c.supports_mime_type(mime_type) for c in self._converters)
 
     def supports_content(self, content: Any, mime_type: str | None = None) -> bool:
@@ -49,10 +49,8 @@ class ConversionManager:
 
     async def convert_file(self, path: JoinablePathLike) -> str:
         """Convert file using first supporting converter."""
-        import mimetypes
-
         loop = asyncio.get_running_loop()
-        mime_type = mimetypes.guess_type(str(path))[0] or "text/plain"
+        mime_type = guess_type(str(path)) or "text/plain"
 
         for converter in self._converters:
             # Run support check in thread pool

@@ -121,10 +121,9 @@ class PathResourceLoaderConfig(BaseResourceLoaderConfig):
     @property
     def mime_type(self) -> str:
         """Get MIME type based on file extension."""
-        import mimetypes
+        from agentpool.mime_utils import guess_type
 
-        mime_type, _ = mimetypes.guess_type(str(self.path))
-        return mime_type or "application/octet-stream"
+        return guess_type(str(self.path)) or "application/octet-stream"
 
 
 class TextResourceLoaderConfig(BaseResourceLoaderConfig):
