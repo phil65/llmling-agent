@@ -12,33 +12,6 @@ from __future__ import annotations
 import base64
 from typing import TYPE_CHECKING, Any
 
-from ag_ui.core import (
-    ActivityDeltaEvent,
-    ActivitySnapshotEvent,
-    BinaryInputContent,
-    CustomEvent as AGUICustomEvent,
-    MessagesSnapshotEvent,
-    RawEvent,
-    RunErrorEvent as AGUIRunErrorEvent,
-    RunStartedEvent as AGUIRunStartedEvent,
-    StateDeltaEvent,
-    StateSnapshotEvent,
-    TextInputContent,
-    TextMessageChunkEvent,
-    TextMessageContentEvent,
-    TextMessageEndEvent,
-    TextMessageStartEvent,
-    ThinkingEndEvent,
-    ThinkingStartEvent,
-    ThinkingTextMessageContentEvent,
-    ThinkingTextMessageEndEvent,
-    ThinkingTextMessageStartEvent,
-    ToolCallArgsEvent,
-    ToolCallChunkEvent,
-    ToolCallEndEvent,
-    ToolCallResultEvent,
-    ToolCallStartEvent,
-)
 import anyenv
 from pydantic_ai import (
     AudioUrl,
@@ -82,6 +55,32 @@ def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None: 
     Returns:
         Corresponding native event, or None if no mapping exists
     """
+    from ag_ui.core import (
+        ActivityDeltaEvent,
+        ActivitySnapshotEvent,
+        CustomEvent as AGUICustomEvent,
+        MessagesSnapshotEvent,
+        RawEvent,
+        RunErrorEvent as AGUIRunErrorEvent,
+        RunStartedEvent as AGUIRunStartedEvent,
+        StateDeltaEvent,
+        StateSnapshotEvent,
+        TextMessageChunkEvent,
+        TextMessageContentEvent,
+        TextMessageEndEvent,
+        TextMessageStartEvent,
+        ThinkingEndEvent,
+        ThinkingStartEvent,
+        ThinkingTextMessageContentEvent,
+        ThinkingTextMessageEndEvent,
+        ThinkingTextMessageStartEvent,
+        ToolCallArgsEvent,
+        ToolCallChunkEvent,
+        ToolCallEndEvent,
+        ToolCallResultEvent,
+        ToolCallStartEvent,
+    )
+
     match event:
         # === Lifecycle Events ===
 
@@ -221,6 +220,8 @@ def to_agui_input_content(
     Returns:
         List of AG-UI InputContent items
     """
+    from ag_ui.core import BinaryInputContent, TextInputContent
+
     if parts is None:
         return []
 
