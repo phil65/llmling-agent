@@ -8,7 +8,6 @@ from agentpool.agents.agui_agent.agui_converters import (
     to_agui_tool,
 )
 from agentpool.agents.agui_agent.chunk_transformer import ChunkTransformer
-from agentpool.agents.agui_agent.event_types import Event
 
 __all__ = [
     # Main agent
