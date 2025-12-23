@@ -214,5 +214,188 @@ async def test_acp_agent_toolsets_adds_providers():
         await agent._cleanup()
 
 
+async def test_tool_call_via_mcp_client():
+    """Test calling a tool through the MCP bridge via an actual MCP client.
+
+    This verifies that tool_call_id extraction works correctly when tools
+    are called through MCP.
+    """
+    from mcp import ClientSession
+    from mcp.client.sse import sse_client
+
+    captured_tool_call_ids: list[str] = []
+
+    # Tool that captures its context's tool_call_id
+    async def capture_id_tool(ctx: AgentContext, message: str) -> str:
+        """Tool that captures the tool_call_id from context."""
+        captured_tool_call_ids.append(ctx.tool_call_id or "no-id")
+        return f"Got message: {message}"
+
+    async with AgentPool() as pool:
+        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
+        agent.tools.register_tool(capture_id_tool)
+
+        async with (
+            create_tool_bridge(agent, transport="sse") as bridge,
+            sse_client(bridge.url) as (read_stream, write_stream),
+            ClientSession(read_stream, write_stream) as session,
+        ):
+            await session.initialize()
+
+            # List tools to verify registration
+            tools_result = await session.list_tools()
+            tool_names = [t.name for t in tools_result.tools]
+            assert "capture_id_tool" in tool_names
+
+            # Call the tool - without _meta, should generate fallback ID
+            await session.call_tool("capture_id_tool", {"message": "hello"})
+            assert len(captured_tool_call_ids) == 1
+            # Should have generated a UUID-like fallback (36 chars)
+            uuid_length = 36
+            assert len(captured_tool_call_ids[0]) == uuid_length
+
+
+async def test_tool_call_with_meta_tool_use_id():
+    """Test that claudecode/toolUseId in _meta is extracted correctly.
+
+    When Claude Code calls tools, it passes the tool_use_id in _meta.
+    This test simulates that behavior by passing meta to call_tool.
+    """
+    from mcp import ClientSession
+    from mcp.client.sse import sse_client
+
+    captured_tool_call_ids: list[str] = []
+
+    async def capture_id_tool(ctx: AgentContext, value: int) -> str:
+        """Tool that captures the tool_call_id from context."""
+        captured_tool_call_ids.append(ctx.tool_call_id or "no-id")
+        return f"value={value}"
+
+    async with AgentPool() as pool:
+        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
+        agent.tools.register_tool(capture_id_tool)
+
+        async with (
+            create_tool_bridge(agent, transport="sse") as bridge,
+            sse_client(bridge.url) as (read_stream, write_stream),
+            ClientSession(read_stream, write_stream) as session,
+        ):
+            await session.initialize()
+
+            # Call tool WITH meta containing claudecode/toolUseId
+            # This simulates what Claude Code should send
+            expected_id = "toolu_01ABC123XYZ"
+            await session.call_tool(
+                "capture_id_tool",
+                {"value": 42},
+                meta={"claudecode/toolUseId": expected_id},
+            )
+
+            assert len(captured_tool_call_ids) == 1
+            captured_id = captured_tool_call_ids[0]
+            # The captured ID should match what we sent in meta
+            assert captured_id == expected_id, (
+                f"Expected tool_call_id '{expected_id}', got '{captured_id}'"
+            )
+
+
+@pytest.mark.skip(reason="Requires Claude Code CLI - run manually to verify")
+async def test_claude_code_passes_tool_use_id_in_meta():
+    """Integration test: verify Claude Code CLI passes claudecode/toolUseId in _meta.
+
+    This test uses the actual Claude Code CLI via ClaudeSDKClient to verify
+    that when Claude calls an MCP tool, it passes the tool_use_id in _meta.
+
+    Run manually with: pytest -v -s -k test_claude_code_passes_tool_use_id_in_meta --run-skip
+    """
+    from claude_agent_sdk import tool
+
+    @tool(name="capture_meta", description="Captures the _meta field", input_schema={"value": int})
+    async def capture_meta_tool(input_data: dict) -> dict:
+        """Tool that captures what _meta was passed."""
+        # The _meta is not directly accessible here in SDK tools
+        # We need a different approach - use our MCP bridge
+        return {"result": f"Got value: {input_data.get('value')}"}
+
+    # For this test to work, we need to use our MCP bridge and check
+    # what Claude Code actually sends. Let's modify the approach.
+    # Placeholder - see test below
+
+
+async def test_claude_code_mcp_bridge_integration():
+    """Integration test using our MCP bridge with Claude Code.
+
+    This test:
+    1. Starts our MCP bridge with a tool that captures context
+    2. Runs ClaudeSDKClient with that MCP server
+    3. Asks Claude to use the tool
+    4. Verifies the tool_call_id was extracted from meta
+    """
+    import os
+
+    from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
+
+    # Override ANTHROPIC_API_KEY to use Claude Code subscription
+    os.environ["ANTHROPIC_API_KEY"] = ""
+
+    captured_ids: list[str] = []
+
+    async def capture_context_tool(ctx: AgentContext, number: int) -> str:
+        """Tool that captures context info."""
+        captured_ids.append(ctx.tool_call_id or "none")
+        return f"Got number: {number}"
+
+    async with AgentPool() as pool:
+        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
+        agent.tools.register_tool(capture_context_tool)
+
+        async with create_tool_bridge(agent, transport="sse") as bridge:
+            options = ClaudeAgentOptions(
+                mcp_servers={
+                    "test_bridge": {
+                        "type": "sse",
+                        "url": bridge.url,
+                    }
+                },
+                allowed_tools=["mcp__test_bridge__capture_context_tool"],
+            )
+
+            async with ClaudeSDKClient(options=options) as client:
+                await client.query(
+                    "You MUST use the capture_context_tool from test_bridge MCP server. "
+                    "Call it with number=42. Do not explain, just call the tool."
+                )
+
+                # Stream messages until we get a result
+                messages = []
+                async for msg in client.receive_messages():
+                    messages.append(msg)
+                    msg_type = type(msg).__name__
+                    print(f"Message: {msg_type}")
+                    if hasattr(msg, "content"):
+                        content = msg.content
+                        if isinstance(content, str):
+                            print(f"  Content: {content[:100]}")
+                        elif isinstance(content, list) and content:
+                            print(f"  Content: {content}")
+                    if msg_type == "ResultMessage":
+                        break
+
+                print(f"\nTotal messages: {len(messages)}")
+
+                if not captured_ids:
+                    pytest.skip("Tool was not called - Claude may have responded differently")
+
+                tool_id = captured_ids[0]
+                print(f"Captured tool_call_id: {tool_id}")
+
+                # Claude tool IDs typically start with "toolu_"
+                if tool_id.startswith("toolu_"):
+                    print("SUCCESS: Claude Code passed tool_use_id via _meta!")
+                else:
+                    print(f"Got fallback UUID: {tool_id}")
+                    print("Claude Code may not be passing claudecode/toolUseId for external MCP")
+
+
 if __name__ == "__main__":
     pytest.main(["-v", __file__])

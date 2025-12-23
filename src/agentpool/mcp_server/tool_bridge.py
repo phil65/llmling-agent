@@ -26,7 +26,6 @@ from agentpool.log import get_logger
 from agentpool.utils.signatures import (
     filter_schema_params,
     get_params_matching_predicate,
-    is_context_type,
 )
 
 
@@ -46,9 +45,41 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _is_agent_context_type(annotation: Any) -> bool:
+    """Check if annotation is AgentContext (the only context type we inject).
+
+    RunContext requires pydantic-ai's execution context which isn't available
+    in the MCP bridge.
+    """
+    from typing import get_args, get_origin
+
+    if annotation is None or annotation is inspect.Parameter.empty:
+        return False
+
+    # Handle string annotations (forward references)
+    if isinstance(annotation, str):
+        base_name = annotation.split("[")[0].strip()
+        return base_name == "AgentContext"
+
+    # Check direct class match by name
+    if isinstance(annotation, type) and annotation.__name__ == "AgentContext":
+        return True
+
+    # Check generic origin (e.g., AgentContext[SomeDeps])
+    origin = get_origin(annotation)
+    if origin is not None:
+        if isinstance(origin, type) and origin.__name__ == "AgentContext":
+            return True
+        # Handle Union types (e.g., AgentContext | None)
+        if origin is type(None) or str(origin) in ("typing.Union", "types.UnionType"):
+            return any(_is_agent_context_type(arg) for arg in get_args(annotation))
+
+    return False
+
+
 def _get_context_param_names(fn: Callable[..., Any]) -> set[str]:
-    """Get names of parameters that are context types (to be auto-injected)."""
-    return get_params_matching_predicate(fn, lambda p: is_context_type(p.annotation))
+    """Get parameter names that are AgentContext (to be auto-injected)."""
+    return get_params_matching_predicate(fn, lambda p: _is_agent_context_type(p.annotation))
 
 
 def _extract_tool_call_id(context: Context | None) -> str:
@@ -66,16 +97,14 @@ def _extract_tool_call_id(context: Context | None) -> str:
             if request_ctx and request_ctx.meta:
                 # Access extra fields on the Meta object (extra="allow" in pydantic)
                 meta_dict = request_ctx.meta.model_dump()
-                logger.info("MCP request meta", meta=meta_dict)
                 claude_tool_id = meta_dict.get("claudecode/toolUseId")
                 if isinstance(claude_tool_id, str):
-                    logger.info("Extracted Claude tool_call_id", tool_call_id=claude_tool_id)
+                    logger.debug("Extracted Claude tool_call_id", tool_call_id=claude_tool_id)
                     return claude_tool_id
-        except (AttributeError, LookupError):
-            pass
-    generated_id = str(uuid4())
-    logger.info("Generated fallback tool_call_id", tool_call_id=generated_id)
-    return generated_id
+        except (AttributeError, LookupError) as e:
+            logger.warning("Error extracting tool_call_id from MCP context", error=str(e))
+    # Generate fallback UUID if no tool_call_id found in meta
+    return str(uuid4())
 
 
 @dataclass
