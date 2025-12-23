@@ -300,7 +300,6 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                 filename = Path(path).name
 
                 for item in ls_result:
-                    # After _ls fix, item["name"] is now full path
                     if Path(item["name"]).name == filename:
                         return AcpInfo(
                             name=path,  # fsspec expects full path in 'name'
