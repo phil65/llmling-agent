@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+import sys
 import tempfile
 from typing import TYPE_CHECKING, Any
 
@@ -24,6 +25,9 @@ from agentpool.agents.acp_agent import ACPAgent
 
 if TYPE_CHECKING:
     from syrupy.assertion import SnapshotAssertion
+
+# Skip on Windows due to temp file locking issues with subprocesses
+pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="Windows temp file locking")
 
 
 @pytest.fixture
