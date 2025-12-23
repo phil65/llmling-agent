@@ -66,12 +66,16 @@ def _extract_tool_call_id(context: Context | None) -> str:
             if request_ctx and request_ctx.meta:
                 # Access extra fields on the Meta object (extra="allow" in pydantic)
                 meta_dict = request_ctx.meta.model_dump()
+                logger.info("MCP request meta", meta=meta_dict)
                 claude_tool_id = meta_dict.get("claudecode/toolUseId")
                 if isinstance(claude_tool_id, str):
+                    logger.info("Extracted Claude tool_call_id", tool_call_id=claude_tool_id)
                     return claude_tool_id
         except (AttributeError, LookupError):
             pass
-    return str(uuid4())
+    generated_id = str(uuid4())
+    logger.info("Generated fallback tool_call_id", tool_call_id=generated_id)
+    return generated_id
 
 
 @dataclass
