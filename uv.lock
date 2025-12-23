@@ -426,11 +426,11 @@ wheels = [
 
 [[package]]
 name = "aiosqlite"
-version = "0.22.0"
+version = "0.22.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3a/0d/449c024bdabd0678ae07d804e60ed3b9786facd3add66f51eee67a0fccea/aiosqlite-0.22.0.tar.gz", hash = "sha256:7e9e52d72b319fcdeac727668975056c49720c995176dc57370935e5ba162bb9", size = 14707, upload-time = "2025-12-13T18:32:45.762Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4e/8a/64761f4005f17809769d23e518d915db74e6310474e733e3593cfc854ef1/aiosqlite-0.22.1.tar.gz", hash = "sha256:043e0bd78d32888c0a9ca90fc788b38796843360c855a7262a532813133a0650", size = 14821, upload-time = "2025-12-23T19:25:43.997Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/39/b2181148075272edfbbd6d87e6cd78cc71dca243446fa3b381fd4116950b/aiosqlite-0.22.0-py3-none-any.whl", hash = "sha256:96007fac2ce70eda3ca1bba7a3008c435258a592b8fbf2ee3eeaa36d33971a09", size = 17263, upload-time = "2025-12-13T18:32:44.619Z" },
+    { url = "https://files.pythonhosted.org/packages/00/b7/e3bf5133d697a08128598c8d0abc5e16377b51465a33756de24fa7dee953/aiosqlite-0.22.1-py3-none-any.whl", hash = "sha256:21c002eb13823fad740196c5a2e9d8e62f6243bd9e7e4a1f87fb5e44ecb4fceb", size = 17405, upload-time = "2025-12-23T19:25:42.139Z" },
 ]
 
 [[package]]
@@ -1584,7 +1584,7 @@ wheels = [
 
 [[package]]
 name = "exxec"
-version = "0.1.6"
+version = "0.1.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv" },
@@ -1592,9 +1592,9 @@ dependencies = [
     { name = "schemez" },
     { name = "upathtools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/4c/80a8e0fcf1a77bf9a426eae099614b2d61a89408e3630eb240ae1e25f0ce/exxec-0.1.6.tar.gz", hash = "sha256:3c76714acb982ad50b779234a05fda7fb024d641e4451fef26d8e67a876aab20", size = 69002, upload-time = "2025-12-19T21:38:10.124Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/10/9ee7d4981acad288103796e5018c17a587a713594378a6bc1f923c3c7cf3/exxec-0.1.7.tar.gz", hash = "sha256:26e082bde47798dd1172e55cd8371f56bf6e51da92f8c24c18a8c6aaee002cf2", size = 69438, upload-time = "2025-12-23T19:47:44.801Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/81/a4/44c33d3be293bf0784852955744f12bb57a62e91d5dadbe79b6fb2b1bacb/exxec-0.1.6-py3-none-any.whl", hash = "sha256:c1e275d1c26611857880afd605d55dd4d55c08b1a51bba325b221f068678cbef", size = 94970, upload-time = "2025-12-19T21:38:11.883Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/ed/c01b481448a22219fb304bc868efb74b598fc2e841f19c56075ef795ca56/exxec-0.1.7-py3-none-any.whl", hash = "sha256:26b59e670d0bdaa13a23faf16eb604a25ca05dfc7e866e2354b867fc5d122530", size = 95403, upload-time = "2025-12-23T19:47:45.931Z" },
 ]
 
 [[package]]
@@ -2586,7 +2586,7 @@ wheels = [
 
 [[package]]
 name = "llmling-models"
-version = "1.4.0"
+version = "1.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv", extra = ["httpx"] },
@@ -2595,9 +2595,9 @@ dependencies = [
     { name = "schemez" },
     { name = "tokonomics" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/75/64/750dd32553a6699ea803e98afd6931e3b48da8f92c658b5721df8628862c/llmling_models-1.4.0.tar.gz", hash = "sha256:2662ab7ca3db4575a0a6e9a6aeda320a674fe01753cfa31572ed179fb4464055", size = 61219, upload-time = "2025-12-15T02:14:36.702Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/73/1d0ce1067bccf0b3f75248343d38062710677c6e31d3651ecef90af32bd5/llmling_models-1.4.1.tar.gz", hash = "sha256:894cb15f9c8e07635306c1a36e9f5ac6fa66ae5652a351faa0b7e17c461cecd9", size = 65822, upload-time = "2025-12-23T19:30:48.542Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/64/f2/c3459145dd857fad0e58ee930830ee389c9eef1537ba1b38dbd30acf0592/llmling_models-1.4.0-py3-none-any.whl", hash = "sha256:4ea29977d906436af1d48e5edef1e40c2881175811f0edb1d0c67de7688af9b9", size = 85458, upload-time = "2025-12-15T02:14:35.507Z" },
+    { url = "https://files.pythonhosted.org/packages/43/d3/bfa08b722ebf0b7af04a971e3429c6c2a0755ccfb96ddff8fd14593f7920/llmling_models-1.4.1-py3-none-any.whl", hash = "sha256:0fb5b3fdbd42e2a249cd2823d8dfe30124813734cd741ab12ec48c6ba7c325e0", size = 91079, upload-time = "2025-12-23T19:30:47.129Z" },
 ]
 
 [[package]]
@@ -4343,7 +4343,7 @@ wheels = [
 
 [[package]]
 name = "pydocket"
-version = "0.16.1"
+version = "0.16.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
@@ -4359,9 +4359,9 @@ dependencies = [
     { name = "typer" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2b/ff/87e931e4abc7efb1e8c16adaa55327452931e8c5f460f2ba089447673226/pydocket-0.16.1.tar.gz", hash = "sha256:8663cb6dc801d8b8d703541fb665f4099c84f4d10d8f3fd441e208b080aa4826", size = 289028, upload-time = "2025-12-19T19:43:48.773Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/b6/b9b5af725be7ffb195750e1cbe0ad4aa413858f16af258a49ad84cff82ac/pydocket-0.16.2.tar.gz", hash = "sha256:b48e59ad247cbf23fd7064cd765b75e5b870451a7778afa3b208b3aae6474c1f", size = 295623, upload-time = "2025-12-23T19:24:46.751Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ad/ab/0da7d0397112546309709f464bdf65de4e1697e3caba07556751fc4d8bcd/pydocket-0.16.1-py3-none-any.whl", hash = "sha256:bc6ccf7e91164761def854b4014101abf23c3cc2fb7d0fa2c4e07ea3bf6a1826", size = 63208, upload-time = "2025-12-19T19:43:47.309Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/33/81132e8ca41e11000807cc1f457a391d5a364dd1eeb7de40f2ff971301bc/pydocket-0.16.2-py3-none-any.whl", hash = "sha256:044a74deec2062c305bf1d452a1348a4e3739b3a2cf0a411ca1e11368cef5baf", size = 66812, upload-time = "2025-12-23T19:24:45.643Z" },
 ]
 
 [[package]]
@@ -5378,15 +5378,15 @@ aiosqlite = [
 
 [[package]]
 name = "sqlmodel"
-version = "0.0.27"
+version = "0.0.28"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "sqlalchemy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/90/5a/693d90866233e837d182da76082a6d4c2303f54d3aaaa5c78e1238c5d863/sqlmodel-0.0.27.tar.gz", hash = "sha256:ad1227f2014a03905aef32e21428640848ac09ff793047744a73dfdd077ff620", size = 118053, upload-time = "2025-10-08T16:39:11.938Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/96/72/b99fa6fd51a2297aed50053a31490e390fdfca2155e4eeed37f032b0b6e6/sqlmodel-0.0.28.tar.gz", hash = "sha256:1d63c412b17c64cf39a50f6b2cdfa3d6f6ea854c218d6e3d684b8a37b7ce0039", size = 117992, upload-time = "2025-12-23T16:40:56.612Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8c/92/c35e036151fe53822893979f8a13e6f235ae8191f4164a79ae60a95d66aa/sqlmodel-0.0.27-py3-none-any.whl", hash = "sha256:667fe10aa8ff5438134668228dc7d7a08306f4c5c4c7e6ad3ad68defa0e7aa49", size = 29131, upload-time = "2025-10-08T16:39:10.917Z" },
+    { url = "https://files.pythonhosted.org/packages/76/17/139ec72b4c834b2fe79deb1bb62cbdc3fd81f61a596f9c3f2351e2c0e008/sqlmodel-0.0.28-py3-none-any.whl", hash = "sha256:e387df2a33df2197cacc0020144035fc984addee764be960128c4a0220bd1c64", size = 29129, upload-time = "2025-12-23T16:40:55.252Z" },
 ]
 
 [[package]]
