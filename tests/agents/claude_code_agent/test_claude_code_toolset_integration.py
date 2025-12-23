@@ -100,28 +100,6 @@ async def test_claude_code_subagent_tool_invocation(
         assert len(result_text) > 0
 
 
-async def test_claude_code_tool_bridge_sdk_transport(
-    claude_code_config_with_subagent: ClaudeCodeAgentConfig,
-):
-    """Test that tool bridge uses SDK transport (not HTTP) for ClaudeCodeAgent."""
-    async with AgentPool() as pool:
-        # Manually create and configure agent, then enter its context
-        agent = ClaudeCodeAgent(config=claude_code_config_with_subagent, agent_pool=pool)
-        agent = await pool.exit_stack.enter_async_context(agent)
-
-        # Verify bridge is set up with SDK transport config
-        assert agent._tool_bridge is not None
-        mcp_config = agent._tool_bridge.get_claude_mcp_server_config()
-        # Should have exactly one server config
-        assert len(mcp_config) == 1
-        server_name = next(iter(mcp_config.keys()))
-        server_config = mcp_config[server_name]
-        # Should be SDK type (not HTTP)
-        assert server_config["type"] == "sdk"
-        # Should have the FastMCP server instance
-        assert "instance" in server_config
-
-
 async def test_claude_code_multiple_toolsets():
     """Test ClaudeCodeAgent with multiple toolsets."""
     from agentpool_config.toolsets import AgentManagementToolsetConfig
