@@ -35,6 +35,159 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# =============================================================================
+# Find command helpers for ACP terminal
+# =============================================================================
+#
+# These functions build and parse GNU find commands with -printf for file stats.
+#
+# IMPORTANT: Escape sequence handling for ACP terminal
+# -----------------------------------------------------
+# The ACP terminal executes commands through multiple shell layers:
+#   1. Command string is parsed by shlex.split() in Python
+#   2. Args are JSON-encoded and sent over the wire
+#   3. Remote terminal runs args through /bin/sh
+#   4. find receives the -printf format string
+#
+# For find's -printf to receive "\t" (which it interprets as tab), we need
+# double-escaping in the source:
+#   - Source code: r"'%p\\t...'"  (raw string with \\t)
+#   - After shlex.split(): '%p\\t...'  (string contains backslash-t)
+#   - In JSON: "%p\\t..."  (escaped for JSON)
+#   - After shell processing: %p\t...  (shell converts \\ to \)
+#   - find receives: \t  (which find interprets as tab character)
+#
+# This is different from normal shell usage (e.g., subprocess with shell=True)
+# where single escaping suffices. The anyenv package uses single escaping
+# since it's designed for direct shell execution.
+# =============================================================================
+
+
+def build_find_command(
+    path: str,
+    maxdepth: int | None = None,
+    file_type: Literal["file", "directory", "all"] = "all",
+    with_stats: bool = False,
+) -> str:
+    """Build a find command string for ACP terminal execution.
+
+    This generates a GNU find command with optional -printf for file stats.
+    The escaping is specifically designed for ACP terminal's multi-layer
+    shell processing (see module-level comments for details).
+
+    Args:
+        path: Directory to search in
+        maxdepth: Maximum directory depth to descend
+        file_type: Filter by type - files only, directories only, or all
+        with_stats: If True, use -printf to include file stats
+
+    Returns:
+        The find command string
+    """
+    parts = ["find", shlex.quote(path)]
+
+    if maxdepth is not None:
+        parts.append(f"-maxdepth {maxdepth}")
+
+    if file_type == "file":
+        parts.append("-type f")
+    elif file_type == "directory":
+        parts.append("-type d")
+
+    if with_stats:
+        # Format: path<TAB>size<TAB>mtime<TAB>type<TAB>permissions<NEWLINE>
+        # %p = path, %s = size in bytes, %T@ = mtime as unix timestamp
+        # %y = type (f=file, d=dir, l=link), %M = permissions like ls -l
+        # Double-escape: \\t -> \t after shell, find interprets \t as tab
+        parts.append(r"-printf '%p\\t%s\\t%T@\\t%y\\t%M\\n'")
+
+    return " ".join(parts)
+
+
+def parse_find_output(output: str, with_stats: bool = False) -> list[AcpInfo]:
+    """Parse find command output.
+
+    Args:
+        output: Raw find command output
+        with_stats: Whether output includes -printf stats
+
+    Returns:
+        List of AcpInfo dictionaries
+    """
+    records = output.strip().split("\n")
+
+    if not records or (len(records) == 1 and not records[0]):
+        return []
+
+    entries: list[AcpInfo] = []
+    for line in records:
+        line = line.strip()
+        if not line:
+            continue
+
+        if with_stats:
+            # Parse tab-separated format: path\tsize\ttimestamp\ttype\tpermissions
+            # Parse from the right since path may contain tabs (rare but possible)
+            parts = line.rsplit("\t", 4)
+            if len(parts) == 5:  # noqa: PLR2004
+                path_str, size_str, timestamp_str, type_char, permissions = parts
+
+                # Map find type char to our type
+                type_map = {"f": "file", "d": "directory", "l": "link"}
+                file_type: Literal["file", "directory", "link"] = type_map.get(type_char, "file")
+
+                # Parse size
+                try:
+                    size = int(size_str)
+                except ValueError:
+                    size = 0
+
+                # Extract name from path
+                name = path_str.rsplit("/", 1)[-1] if "/" in path_str else path_str
+
+                # Skip . and ..
+                if name in (".", ".."):
+                    continue
+
+                entries.append(
+                    AcpInfo(
+                        name=path_str,
+                        path=path_str,
+                        type="file" if file_type == "link" else file_type,
+                        size=size,
+                        islink=file_type == "link",
+                        timestamp=timestamp_str,
+                        permissions=permissions,
+                    )
+                )
+            else:
+                # Fallback: treat as plain path if parsing fails
+                name = line.rsplit("/", 1)[-1] if "/" in line else line
+                if name not in (".", ".."):
+                    entries.append(
+                        AcpInfo(
+                            name=line,
+                            path=line,
+                            type="file",
+                            size=0,
+                        )
+                    )
+        else:
+            # Plain path output
+            name = line.rsplit("/", 1)[-1] if "/" in line else line
+            if name not in (".", ".."):
+                entries.append(
+                    AcpInfo(
+                        name=line,
+                        path=line,
+                        type="file",
+                        size=0,
+                    )
+                )
+
+    return entries
+
+
 class ACPFile(AbstractBufferedFile):  # type: ignore[misc]
     """File-like object for ACP filesystem operations."""
 
@@ -495,8 +648,10 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         # Determine file_type filter
         file_type: Literal["file", "directory", "all"] = "all" if withdirs else "file"
 
-        find_cmd = self.command_provider.get_command("find")
-        cmd_str = find_cmd.create_command(search_path, maxdepth=maxdepth, file_type=file_type)
+        # Build find command - use stats when detail is requested
+        cmd_str = build_find_command(
+            search_path, maxdepth=maxdepth, file_type=file_type, with_stats=detail
+        )
 
         try:
             cmd, args = self._parse_command(cmd_str)
@@ -507,22 +662,12 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                 logger.warning("CLI find failed, falling back to walk: %s", output)
                 return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)  # type: ignore[no-any-return]
 
-            entries = find_cmd.parse_command(output, search_path)
+            entries = parse_find_output(output, with_stats=detail)
 
             if detail:
-                # Return dict with basic info from find output
-                return {
-                    entry.path: AcpInfo(
-                        name=entry.path,
-                        path=entry.path,
-                        type=entry.type,
-                        size=entry.size,
-                        timestamp=entry.timestamp,
-                        permissions=entry.permissions,
-                    )
-                    for entry in entries
-                }
-            return [entry.path for entry in entries]
+                # Return dict with info from find output
+                return {entry["path"]: entry for entry in entries}
+            return [entry["path"] for entry in entries]
 
         except Exception as e:  # noqa: BLE001
             logger.warning("CLI find error, falling back to walk: %s", e)
