@@ -65,14 +65,14 @@ logger = get_logger(__name__)
 # Claude Code model definitions - simple IDs that the SDK understands
 CLAUDE_CODE_MODELS: list[ACPModelInfo] = [
     ACPModelInfo(
-        model_id="sonnet",
-        name="Claude Sonnet",
-        description="Claude Sonnet - balanced performance and speed",
-    ),
-    ACPModelInfo(
         model_id="opus",
         name="Claude Opus",
         description="Claude Opus - most capable model",
+    ),
+    ACPModelInfo(
+        model_id="sonnet",
+        name="Claude Sonnet",
+        description="Claude Sonnet - balanced performance and speed",
     ),
     ACPModelInfo(
         model_id="haiku",
