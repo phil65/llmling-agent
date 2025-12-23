@@ -55,6 +55,7 @@ from agentpool.messaging import ChatMessage
 from agentpool.messaging.messages import TokenCost
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
+from agentpool.utils.streams import merge_queue_into_iterator
 
 
 if TYPE_CHECKING:
@@ -606,6 +607,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         from claude_agent_sdk import (
             AssistantMessage,
+            Message,
             ResultMessage,
             TextBlock,
             ThinkingBlock,
@@ -648,55 +650,101 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         try:
             await self._client.query(prompt_text)
-            async for message in self._client.receive_response():
-                # Drain event queue (events emitted by tools via EventEmitter)
-                while not self._event_queue.empty():
-                    try:
-                        queued_event = self._event_queue.get_nowait()
+            # Merge SDK messages with event queue for real-time tool event streaming
+            async with merge_queue_into_iterator(
+                self._client.receive_response(), self._event_queue
+            ) as merged_events:
+                async for event_or_message in merged_events:
+                    # Check if it's a queued event (from tools via EventEmitter)
+                    if not isinstance(event_or_message, Message):
+                        # It's an event from the queue - yield it immediately
                         for handler in self.event_handler._wrapped_handlers:
-                            await handler(None, queued_event)
-                        yield queued_event
-                    except asyncio.QueueEmpty:
-                        break
-                # Process assistant messages - extract parts incrementally
-                if isinstance(message, AssistantMessage):
-                    # Update model name from first assistant message
-                    if message.model:
-                        self._current_model = message.model
-                    for block in message.content:
-                        match block:
-                            case TextBlock(text=text):
-                                text_chunks.append(text)
-                                current_response_parts.append(TextPart(content=text))
-                            case ThinkingBlock(thinking=thinking):
-                                current_response_parts.append(ThinkingPart(content=thinking))
-                            case ToolUseBlockType(id=tc_id, name=name, input=input_data):
-                                pending_tool_calls[tc_id] = block
-                                current_response_parts.append(
-                                    ToolCallPart(
-                                        tool_name=name, args=input_data, tool_call_id=tc_id
-                                    )
-                                )
-                                # Emit ToolCallStartEvent with rich display info
-                                from agentpool.agents.claude_code_agent.converters import (
-                                    derive_rich_tool_info,
-                                )
+                            await handler(None, event_or_message)
+                        yield event_or_message
+                        continue
 
-                                rich_info = derive_rich_tool_info(name, input_data)
-                                tool_start_event = ToolCallStartEvent(
-                                    tool_call_id=tc_id,
-                                    tool_name=name,
-                                    title=rich_info.title,
-                                    kind=rich_info.kind,
-                                    locations=rich_info.locations,
-                                    content=rich_info.content,
-                                    raw_input=input_data,
-                                )
-                                for handler in self.event_handler._wrapped_handlers:
-                                    await handler(None, tool_start_event)
-                                yield tool_start_event
-                            case ToolResultBlock(tool_use_id=tc_id, content=content):
-                                # Tool result received - flush response parts and add request
+                    message = event_or_message
+                    # Process assistant messages - extract parts incrementally
+                    if isinstance(message, AssistantMessage):
+                        # Update model name from first assistant message
+                        if message.model:
+                            self._current_model = message.model
+                        for block in message.content:
+                            match block:
+                                case TextBlock(text=text):
+                                    text_chunks.append(text)
+                                    current_response_parts.append(TextPart(content=text))
+                                case ThinkingBlock(thinking=thinking):
+                                    current_response_parts.append(ThinkingPart(content=thinking))
+                                case ToolUseBlockType(id=tc_id, name=name, input=input_data):
+                                    pending_tool_calls[tc_id] = block
+                                    current_response_parts.append(
+                                        ToolCallPart(
+                                            tool_name=name, args=input_data, tool_call_id=tc_id
+                                        )
+                                    )
+                                    # Emit ToolCallStartEvent with rich display info
+                                    from agentpool.agents.claude_code_agent.converters import (
+                                        derive_rich_tool_info,
+                                    )
+
+                                    rich_info = derive_rich_tool_info(name, input_data)
+                                    tool_start_event = ToolCallStartEvent(
+                                        tool_call_id=tc_id,
+                                        tool_name=name,
+                                        title=rich_info.title,
+                                        kind=rich_info.kind,
+                                        locations=rich_info.locations,
+                                        content=rich_info.content,
+                                        raw_input=input_data,
+                                    )
+                                    for handler in self.event_handler._wrapped_handlers:
+                                        await handler(None, tool_start_event)
+                                    yield tool_start_event
+                                case ToolResultBlock(tool_use_id=tc_id, content=content):
+                                    # Tool result received - flush response parts and add request
+                                    if current_response_parts:
+                                        model_messages.append(
+                                            ModelResponse(parts=current_response_parts)
+                                        )
+                                        current_response_parts = []
+
+                                    # Get tool name from pending calls
+                                    tool_use = pending_tool_calls.pop(tc_id, None)
+                                    tool_name = tool_use.name if tool_use else "unknown"
+                                    tool_input = tool_use.input if tool_use else {}
+
+                                    # Emit ToolCallCompleteEvent
+                                    tool_done_event = ToolCallCompleteEvent(
+                                        tool_name=tool_name,
+                                        tool_call_id=tc_id,
+                                        tool_input=tool_input,
+                                        tool_result=content,
+                                        agent_name=self.name,
+                                        message_id="",
+                                    )
+                                    for handler in self.event_handler._wrapped_handlers:
+                                        await handler(None, tool_done_event)
+                                    yield tool_done_event
+
+                                    # Add tool return as ModelRequest
+                                    part = ToolReturnPart(
+                                        tool_name=tool_name, content=content, tool_call_id=tc_id
+                                    )
+                                    model_messages.append(ModelRequest(parts=[part]))
+
+                    # Process user messages - may contain tool results
+                    elif isinstance(message, UserMessage):
+                        user_content = message.content
+                        user_blocks = (
+                            [user_content] if isinstance(user_content, str) else user_content
+                        )
+                        for user_block in user_blocks:
+                            if isinstance(user_block, ToolResultBlock):
+                                tc_id = user_block.tool_use_id
+                                result_content = user_block.content
+
+                                # Flush response parts
                                 if current_response_parts:
                                     model_messages.append(
                                         ModelResponse(parts=current_response_parts)
@@ -709,158 +757,120 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 tool_input = tool_use.input if tool_use else {}
 
                                 # Emit ToolCallCompleteEvent
-                                tool_done_event = ToolCallCompleteEvent(
+                                tool_complete_event = ToolCallCompleteEvent(
                                     tool_name=tool_name,
                                     tool_call_id=tc_id,
                                     tool_input=tool_input,
-                                    tool_result=content,
+                                    tool_result=result_content,
                                     agent_name=self.name,
                                     message_id="",
                                 )
                                 for handler in self.event_handler._wrapped_handlers:
-                                    await handler(None, tool_done_event)
-                                yield tool_done_event
+                                    await handler(None, tool_complete_event)
+                                yield tool_complete_event
 
                                 # Add tool return as ModelRequest
                                 part = ToolReturnPart(
-                                    tool_name=tool_name, content=content, tool_call_id=tc_id
+                                    tool_name=tool_name,
+                                    content=result_content,
+                                    tool_call_id=tc_id,
                                 )
                                 model_messages.append(ModelRequest(parts=[part]))
 
-                # Process user messages - may contain tool results
-                elif isinstance(message, UserMessage):
-                    user_content = message.content
-                    user_blocks = [user_content] if isinstance(user_content, str) else user_content
-                    for user_block in user_blocks:
-                        if isinstance(user_block, ToolResultBlock):
-                            tc_id = user_block.tool_use_id
-                            result_content = user_block.content
+                    # Handle StreamEvent for real-time streaming
+                    elif isinstance(message, StreamEvent):
+                        event_data = message.event
+                        event_type = event_data.get("type")
+                        index = event_data.get("index", 0)
 
-                            # Flush response parts
-                            if current_response_parts:
-                                model_messages.append(ModelResponse(parts=current_response_parts))
-                                current_response_parts = []
+                        # Handle content_block_start events
+                        if event_type == "content_block_start":
+                            content_block = event_data.get("content_block", {})
+                            block_type = content_block.get("type")
 
-                            # Get tool name from pending calls
-                            tool_use = pending_tool_calls.pop(tc_id, None)
-                            tool_name = tool_use.name if tool_use else "unknown"
-                            tool_input = tool_use.input if tool_use else {}
-
-                            # Emit ToolCallCompleteEvent
-                            tool_complete_event = ToolCallCompleteEvent(
-                                tool_name=tool_name,
-                                tool_call_id=tc_id,
-                                tool_input=tool_input,
-                                tool_result=result_content,
-                                agent_name=self.name,
-                                message_id="",
-                            )
-                            for handler in self.event_handler._wrapped_handlers:
-                                await handler(None, tool_complete_event)
-                            yield tool_complete_event
-
-                            # Add tool return as ModelRequest
-                            part = ToolReturnPart(
-                                tool_name=tool_name,
-                                content=result_content,
-                                tool_call_id=tc_id,
-                            )
-                            model_messages.append(ModelRequest(parts=[part]))
-
-                # Handle StreamEvent for real-time streaming
-                elif isinstance(message, StreamEvent):
-                    event_data = message.event
-                    event_type = event_data.get("type")
-                    index = event_data.get("index", 0)
-
-                    # Handle content_block_start events
-                    if event_type == "content_block_start":
-                        content_block = event_data.get("content_block", {})
-                        block_type = content_block.get("type")
-
-                        if block_type == "text":
-                            start_event = PartStartEvent(
-                                index=index,
-                                part=TextPart(content=""),
-                            )
-                            for handler in self.event_handler._wrapped_handlers:
-                                await handler(None, start_event)
-                            yield start_event
-
-                        elif block_type == "thinking":
-                            start_event = PartStartEvent(
-                                index=index,
-                                part=ThinkingPart(content=""),
-                            )
-                            for handler in self.event_handler._wrapped_handlers:
-                                await handler(None, start_event)
-                            yield start_event
-
-                        elif block_type == "tool_use":
-                            # Tool use start is handled via AssistantMessage ToolUseBlock
-                            pass
-
-                    # Handle content_block_delta events (text streaming)
-                    elif event_type == "content_block_delta":
-                        delta = event_data.get("delta", {})
-                        delta_type = delta.get("type")
-
-                        if delta_type == "text_delta":
-                            text_delta = delta.get("text", "")
-                            if text_delta:
-                                delta_event = PartDeltaEvent(
+                            if block_type == "text":
+                                start_event = PartStartEvent(
                                     index=index,
-                                    delta=TextPartDelta(content_delta=text_delta),
+                                    part=TextPart(content=""),
                                 )
                                 for handler in self.event_handler._wrapped_handlers:
-                                    await handler(None, delta_event)
-                                yield delta_event
+                                    await handler(None, start_event)
+                                yield start_event
 
-                        elif delta_type == "thinking_delta":
-                            thinking_delta = delta.get("thinking", "")
-                            if thinking_delta:
-                                delta_event = PartDeltaEvent(
+                            elif block_type == "thinking":
+                                start_event = PartStartEvent(
                                     index=index,
-                                    delta=ThinkingPartDelta(content_delta=thinking_delta),
+                                    part=ThinkingPart(content=""),
                                 )
                                 for handler in self.event_handler._wrapped_handlers:
-                                    await handler(None, delta_event)
-                                yield delta_event
+                                    await handler(None, start_event)
+                                yield start_event
 
-                    # Handle content_block_stop events
-                    elif event_type == "content_block_stop":
-                        # We don't have the full part content here, emit with empty part
-                        # The actual content was accumulated via deltas
-                        end_event = PartEndEvent(
-                            index=index,
-                            part=TextPart(content=""),  # Content already streamed
+                            elif block_type == "tool_use":
+                                # Tool use start is handled via AssistantMessage ToolUseBlock
+                                pass
+
+                        # Handle content_block_delta events (text streaming)
+                        elif event_type == "content_block_delta":
+                            delta = event_data.get("delta", {})
+                            delta_type = delta.get("type")
+
+                            if delta_type == "text_delta":
+                                text_delta = delta.get("text", "")
+                                if text_delta:
+                                    delta_event = PartDeltaEvent(
+                                        index=index,
+                                        delta=TextPartDelta(content_delta=text_delta),
+                                    )
+                                    for handler in self.event_handler._wrapped_handlers:
+                                        await handler(None, delta_event)
+                                    yield delta_event
+
+                            elif delta_type == "thinking_delta":
+                                thinking_delta = delta.get("thinking", "")
+                                if thinking_delta:
+                                    delta_event = PartDeltaEvent(
+                                        index=index,
+                                        delta=ThinkingPartDelta(content_delta=thinking_delta),
+                                    )
+                                    for handler in self.event_handler._wrapped_handlers:
+                                        await handler(None, delta_event)
+                                    yield delta_event
+
+                        # Handle content_block_stop events
+                        elif event_type == "content_block_stop":
+                            # We don't have the full part content here, emit with empty part
+                            # The actual content was accumulated via deltas
+                            end_event = PartEndEvent(
+                                index=index,
+                                part=TextPart(content=""),  # Content already streamed
+                            )
+                            for handler in self.event_handler._wrapped_handlers:
+                                await handler(None, end_event)
+                            yield end_event
+
+                        # Skip further processing for StreamEvent - don't duplicate
+                        continue
+
+                    # Convert to events and yield
+                    # (skip AssistantMessage - already streamed via StreamEvent)
+                    if not isinstance(message, AssistantMessage):
+                        events = claude_message_to_events(
+                            message,
+                            agent_name=self.name,
+                            pending_tool_calls={},  # Already handled above
                         )
-                        for handler in self.event_handler._wrapped_handlers:
-                            await handler(None, end_event)
-                        yield end_event
+                        for event in events:
+                            for handler in self.event_handler._wrapped_handlers:
+                                await handler(None, event)
+                            yield event
 
-                    # Skip further processing for StreamEvent - don't duplicate
-                    continue
-
-                # Convert to events and yield
-                # (skip AssistantMessage - already streamed via StreamEvent)
-                if not isinstance(message, AssistantMessage):
-                    events = claude_message_to_events(
-                        message,
-                        agent_name=self.name,
-                        pending_tool_calls={},  # Already handled above
-                    )
-                    for event in events:
-                        for handler in self.event_handler._wrapped_handlers:
-                            await handler(None, event)
-                        yield event
-
-                # Check for result (end of response) and capture usage info
-                if isinstance(message, ResultMessage):
-                    result_message = message
-                    break
-            else:
-                result_message = None
+                    # Check for result (end of response) and capture usage info
+                    if isinstance(message, ResultMessage):
+                        result_message = message
+                        break
+                else:
+                    result_message = None
 
         except Exception as e:
             error_event = RunErrorEvent(message=str(e), run_id=run_id, agent_name=self.name)

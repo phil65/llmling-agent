@@ -122,8 +122,8 @@ def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo
         )
 
     # Bash/terminal operations
-    if tool_lower in ("bash", "execute", "run_command"):
-        command = input_data.get("command", "")
+    if tool_lower in ("bash", "execute", "run_command", "execute_command", "execute_code"):
+        command = input_data.get("command") or input_data.get("code", "")
         # Escape backticks in command
         escaped_cmd = command.replace("`", "\\`") if command else ""
         title = f"`{escaped_cmd}`" if escaped_cmd else "Terminal"
