@@ -562,7 +562,6 @@ class ACPSession:
                 title=title,
                 status=status,
                 items=items,
-                replace_content=replace_content,
             ) if tool_call_id and tool_call_id in self._tool_call_states:
                 progress_state = self._tool_call_states[tool_call_id]
                 self.log.debug("Progress event", tool_call_id=tool_call_id, title=title)

@@ -32,7 +32,6 @@ from llmling_models.configs import TestModelConfig
 
 from acp import ClientCapabilities
 from acp.client.implementations import HeadlessACPClient
-from acp.schema import SessionNotification
 from agentpool import AgentsManifest
 from agentpool.delegation import AgentPool
 from agentpool.models.agents import NativeAgentConfig
@@ -40,6 +39,7 @@ from agentpool_server.acp_server.session import ACPSession
 
 
 if TYPE_CHECKING:
+    from acp.schema import SessionNotification
     from agentpool_config.toolsets import ToolsetConfig
 
 
