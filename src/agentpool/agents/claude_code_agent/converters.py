@@ -7,18 +7,183 @@ event types as native agents.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import PartDeltaEvent
 from pydantic_ai.messages import TextPartDelta, ThinkingPartDelta
 
-from agentpool.agents.events import ToolCallCompleteEvent, ToolCallStartEvent
+from agentpool.agents.events import (
+    DiffContentItem,
+    LocationContentItem,
+    ToolCallCompleteEvent,
+    ToolCallStartEvent,
+)
 
 
 if TYPE_CHECKING:
     from claude_agent_sdk import ContentBlock, Message, ToolUseBlock
 
-    from agentpool.agents.events import RichAgentStreamEvent
+    from agentpool.agents.events import RichAgentStreamEvent, ToolCallContentItem
+    from agentpool.tools.base import ToolKind
+
+
+@dataclass
+class RichToolInfo:
+    """Rich display information derived from tool name and input."""
+
+    title: str
+    """Human-readable title for the tool call."""
+    kind: ToolKind = "other"
+    """Category of tool operation."""
+    locations: list[LocationContentItem] = field(default_factory=list)
+    """File locations involved in the operation."""
+    content: list[ToolCallContentItem] = field(default_factory=list)
+    """Rich content items (diffs, text, etc.)."""
+
+
+def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo:  # noqa: PLR0911
+    """Derive rich display info from tool name and input arguments.
+
+    Maps MCP tool names and their inputs to human-readable titles, kinds,
+    and location information for rich UI display. Handles both Claude Code
+    built-in tools and MCP bridge tools.
+
+    Args:
+        name: The tool name (e.g., "Read", "mcp__server__read_file")
+        input_data: The tool input arguments
+
+    Returns:
+        RichToolInfo with derived display information
+    """
+    # Extract the actual tool name if it's an MCP bridge tool
+    # Format: mcp__{server_name}__{tool_name}
+    actual_name = name
+    if name.startswith("mcp__") and "__" in name[5:]:
+        parts = name.split("__")
+        if len(parts) >= 3:
+            actual_name = parts[-1]  # Get the last part (actual tool name)
+
+    # Normalize to lowercase for matching
+    tool_lower = actual_name.lower()
+
+    # Read operations
+    if tool_lower in ("read", "read_file"):
+        path = input_data.get("file_path") or input_data.get("path", "")
+        offset = input_data.get("offset") or input_data.get("line")
+        limit = input_data.get("limit")
+
+        suffix = ""
+        if limit:
+            start = (offset or 0) + 1
+            end = (offset or 0) + limit
+            suffix = f" ({start}-{end})"
+        elif offset:
+            suffix = f" (from line {offset + 1})"
+
+        return RichToolInfo(
+            title=f"Read {path}{suffix}" if path else "Read File",
+            kind="read",
+            locations=[LocationContentItem(path=path, line=offset or 0)] if path else [],
+        )
+
+    # Write operations
+    if tool_lower in ("write", "write_file"):
+        path = input_data.get("file_path") or input_data.get("path", "")
+        content = input_data.get("content", "")
+        return RichToolInfo(
+            title=f"Write {path}" if path else "Write File",
+            kind="edit",
+            locations=[LocationContentItem(path=path)] if path else [],
+            content=[DiffContentItem(path=path, old_text=None, new_text=content)] if path else [],
+        )
+
+    # Edit operations
+    if tool_lower in ("edit", "edit_file"):
+        path = input_data.get("file_path") or input_data.get("path", "")
+        old_string = input_data.get("old_string") or input_data.get("old_text", "")
+        new_string = input_data.get("new_string") or input_data.get("new_text", "")
+        return RichToolInfo(
+            title=f"Edit {path}" if path else "Edit File",
+            kind="edit",
+            locations=[LocationContentItem(path=path)] if path else [],
+            content=[DiffContentItem(path=path, old_text=old_string, new_text=new_string)]
+            if path
+            else [],
+        )
+
+    # Delete operations
+    if tool_lower in ("delete", "delete_path", "delete_file"):
+        path = input_data.get("file_path") or input_data.get("path", "")
+        return RichToolInfo(
+            title=f"Delete {path}" if path else "Delete",
+            kind="delete",
+            locations=[LocationContentItem(path=path)] if path else [],
+        )
+
+    # Bash/terminal operations
+    if tool_lower in ("bash", "execute", "run_command"):
+        command = input_data.get("command", "")
+        # Escape backticks in command
+        escaped_cmd = command.replace("`", "\\`") if command else ""
+        title = f"`{escaped_cmd}`" if escaped_cmd else "Terminal"
+        return RichToolInfo(title=title, kind="execute")
+
+    # Search operations
+    if tool_lower in ("grep", "search", "glob", "find"):
+        pattern = input_data.get("pattern") or input_data.get("query", "")
+        path = input_data.get("path", "")
+        title = f"Search for '{pattern}'" if pattern else "Search"
+        if path:
+            title += f" in {path}"
+        return RichToolInfo(
+            title=title,
+            kind="search",
+            locations=[LocationContentItem(path=path)] if path else [],
+        )
+
+    # List directory
+    if tool_lower in ("ls", "list", "list_directory"):
+        path = input_data.get("path", ".")
+        return RichToolInfo(
+            title=f"List {path}" if path != "." else "List current directory",
+            kind="search",
+            locations=[LocationContentItem(path=path)] if path else [],
+        )
+
+    # Web operations
+    if tool_lower in ("webfetch", "web_fetch", "fetch"):
+        url = input_data.get("url", "")
+        return RichToolInfo(title=f"Fetch {url}" if url else "Web Fetch", kind="fetch")
+
+    if tool_lower in ("websearch", "web_search", "search_web"):
+        query = input_data.get("query", "")
+        return RichToolInfo(title=f"Search: {query}" if query else "Web Search", kind="fetch")
+
+    # Task/subagent operations
+    if tool_lower == "task":
+        description = input_data.get("description", "")
+        return RichToolInfo(title=description if description else "Task", kind="think")
+
+    # Notebook operations
+    if tool_lower in ("notebookread", "notebook_read"):
+        path = input_data.get("notebook_path", "")
+        return RichToolInfo(
+            title=f"Read Notebook {path}" if path else "Read Notebook",
+            kind="read",
+            locations=[LocationContentItem(path=path)] if path else [],
+        )
+
+    if tool_lower in ("notebookedit", "notebook_edit"):
+        path = input_data.get("notebook_path", "")
+        return RichToolInfo(
+            title=f"Edit Notebook {path}" if path else "Edit Notebook",
+            kind="edit",
+            locations=[LocationContentItem(path=path)] if path else [],
+        )
+
+    # Default: use the tool name as title
+    return RichToolInfo(title=actual_name, kind="other")
 
 
 def content_block_to_event(
@@ -42,11 +207,14 @@ def content_block_to_event(
         case ThinkingBlock(thinking=thinking):
             return PartDeltaEvent(index=index, delta=ThinkingPartDelta(content_delta=thinking))
         case ToolUseBlock(id=tool_id, name=name, input=input_data):
+            rich_info = derive_rich_tool_info(name, input_data)
             return ToolCallStartEvent(
                 tool_call_id=tool_id,
                 tool_name=name,
-                title=name,
-                kind="other",
+                title=rich_info.title,
+                kind=rich_info.kind,
+                locations=rich_info.locations,
+                content=rich_info.content,
                 raw_input=input_data,
             )
         case _:

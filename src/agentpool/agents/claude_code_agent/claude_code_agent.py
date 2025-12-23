@@ -675,12 +675,19 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         tool_name=name, args=input_data, tool_call_id=tc_id
                                     )
                                 )
-                                # Emit ToolCallStartEvent
+                                # Emit ToolCallStartEvent with rich display info
+                                from agentpool.agents.claude_code_agent.converters import (
+                                    derive_rich_tool_info,
+                                )
+
+                                rich_info = derive_rich_tool_info(name, input_data)
                                 tool_start_event = ToolCallStartEvent(
                                     tool_call_id=tc_id,
                                     tool_name=name,
-                                    title=name,
-                                    kind="other",
+                                    title=rich_info.title,
+                                    kind=rich_info.kind,
+                                    locations=rich_info.locations,
+                                    content=rich_info.content,
                                     raw_input=input_data,
                                 )
                                 for handler in self.event_handler._wrapped_handlers:
