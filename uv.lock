@@ -507,7 +507,7 @@ wheels = [
 
 [[package]]
 name = "anyenv"
-version = "2.0.5"
+version = "2.0.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aioitertools" },
@@ -515,9 +515,9 @@ dependencies = [
     { name = "appdirs" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f8/6e/ee598d7aa7d53321bef2571b15734369d6b4eab517e0ff4ad5b68a40a999/anyenv-2.0.5.tar.gz", hash = "sha256:772d073c003f611b69711115097994824d155f500027fc6a5a5f0590296ae175", size = 92933, upload-time = "2025-12-19T18:22:29.233Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9d/d7/80d9b84b65c46710dddc2d06652fc3ba96568cb4ee02a3c5eb41f34214fb/anyenv-2.0.8.tar.gz", hash = "sha256:678b0c15976d496b0620309b1ad44124ce3f43b5d4955fc1ecba355137b0159c", size = 95905, upload-time = "2025-12-23T14:28:15.651Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/15/7d/7763fb137faa2303a6913ddb14562696cd0bd896a29070fc8ddf6a148107/anyenv-2.0.5-py3-none-any.whl", hash = "sha256:e04ad1ffaf65df54d147c356c46c927c1a947bb9ed36d2a1dde1771fafd7735b", size = 155183, upload-time = "2025-12-19T18:22:27.592Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/11/dc19c05df226d1c4d6613da8ec0753ba3ff4a3ecfefc88a1ad2239811857/anyenv-2.0.8-py3-none-any.whl", hash = "sha256:92f3b409c52be8c70a571ce69783073a7bbb45c50633d4b817197a26cca0d947", size = 157926, upload-time = "2025-12-23T14:28:16.758Z" },
 ]
 
 [package.optional-dependencies]
