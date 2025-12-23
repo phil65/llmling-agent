@@ -21,7 +21,6 @@ from agentpool.mime_utils import guess_type, is_text_mime
 class AcpInfo(FileInfo, total=False):
     """Info dict for ACP filesystem paths."""
 
-    path: str
     islink: bool
     timestamp: str | None
     permissions: str | None
@@ -154,7 +153,6 @@ def parse_find_output(output: str, with_stats: bool = False) -> list[AcpInfo]:
                 entries.append(
                     AcpInfo(
                         name=path_str,
-                        path=path_str,
                         type="file" if file_type == "link" else file_type,
                         size=size,
                         islink=file_type == "link",
@@ -166,12 +164,12 @@ def parse_find_output(output: str, with_stats: bool = False) -> list[AcpInfo]:
                 # Fallback: treat as plain path if parsing fails
                 name = line.rsplit("/", 1)[-1] if "/" in line else line
                 if name not in (".", ".."):
-                    entries.append(AcpInfo(name=line, path=line, type="file", size=0))
+                    entries.append(AcpInfo(name=line, type="file", size=0))
         else:
             # Plain path output
             name = line.rsplit("/", 1)[-1] if "/" in line else line
             if name not in (".", ".."):
-                entries.append(AcpInfo(name=line, path=line, type="file", size=0))
+                entries.append(AcpInfo(name=line, type="file", size=0))
 
     return entries
 
@@ -387,7 +385,6 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                 return [
                     AcpInfo(
                         name=item.path,  # fsspec expects full path in 'name'
-                        path=item.path,
                         type="file" if item.type == "link" else item.type,
                         size=item.size,
                         islink=item.type == "link",
@@ -425,8 +422,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                 raise FileNotFoundError(f"File not found: {path}")
             file_info = info_cmd.parse_command(output.strip(), path)
             return AcpInfo(
-                name=file_info.path,  # fsspec expects full path in 'name'
-                path=file_info.path,
+                name=file_info.path,
                 type="file" if file_info.type == "link" else file_info.type,
                 size=file_info.size,
                 islink=file_info.type == "link",
@@ -444,7 +440,6 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                     if Path(item["name"]).name == filename:
                         return AcpInfo(
                             name=path,  # fsspec expects full path in 'name'
-                            path=path,
                             type=item["type"],
                             size=item["size"],
                             islink=item.get("islink", False),
@@ -654,8 +649,8 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
             if detail:
                 # Return dict with info from find output
-                return {entry["path"]: entry for entry in entries}
-            return [entry["path"] for entry in entries]
+                return {entry["name"]: entry for entry in entries}
+            return [entry["name"] for entry in entries]
 
         except Exception as e:  # noqa: BLE001
             logger.warning("CLI find error, falling back to walk: %s", e)
