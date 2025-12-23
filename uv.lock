@@ -1584,7 +1584,7 @@ wheels = [
 
 [[package]]
 name = "exxec"
-version = "0.1.9"
+version = "0.1.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv" },
@@ -1592,9 +1592,9 @@ dependencies = [
     { name = "schemez" },
     { name = "upathtools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/78/2ef0151b233306e1b176dc0faa592ef8c2735db6212a905a6494c3f7350e/exxec-0.1.9.tar.gz", hash = "sha256:64e000f2f6a71e5e22a18dde3fe4aa8eb940037a69436569f295e9e53b369b8c", size = 69946, upload-time = "2025-12-23T21:25:37.187Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ec/ed/97381420002981fa567c11ed2b1956f7cc6aec3585e2d557c91c0373dacd/exxec-0.1.10.tar.gz", hash = "sha256:5dee166f9f47310e2d45ef2aeb21e5a71eb9d689117aac89f6f54ef2fa55f9e7", size = 69937, upload-time = "2025-12-23T21:54:36.938Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ed/18/29daaa9338503601ef3b3c1df95bb4ff4d7bc06b8b6ef115aa575801465b/exxec-0.1.9-py3-none-any.whl", hash = "sha256:5b47f31911e160c43487fb0f034ec80de2abd9b1089902d561be1e585f62eb6c", size = 95872, upload-time = "2025-12-23T21:25:39.392Z" },
+    { url = "https://files.pythonhosted.org/packages/19/b5/5635ef104b58d346dcde4a5d869fb8f015028b17653da3d340535d9a5e23/exxec-0.1.10-py3-none-any.whl", hash = "sha256:8a914982e59e4529734fdeedd126b715d3b4f2ff306d8b7f6cb2936d75a2574d", size = 95888, upload-time = "2025-12-23T21:54:32.425Z" },
 ]
 
 [[package]]
