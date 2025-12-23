@@ -186,8 +186,7 @@ class Talk[TTransmittedData = Any]:
 
         if not condition:
             return default_return
-        source_ctx = self.source.get_context()
-        registry = source_ctx.pool.connection_registry if source_ctx and source_ctx.pool else None
+        registry = pool.connection_registry if (pool := self.source.agent_pool) else None
         ctx = EventContext(
             message=message,
             target=target,

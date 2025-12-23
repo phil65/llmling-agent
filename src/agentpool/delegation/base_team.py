@@ -371,12 +371,12 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         team_config: TeamConfig | None = None
 
         for agent in self.iter_agents():
-            agent_ctx = agent.get_context()
-            if agent_ctx.pool:
-                pool_id = id(agent_ctx.pool)
+            pool = agent.agent_pool
+            if pool:
+                pool_id = id(pool)
                 if pool_id not in pool_ids:
                     pool_ids.add(pool_id)
-                    shared_pool = agent_ctx.pool
+                    shared_pool = pool
                     if shared_pool.manifest.teams:
                         team_config = shared_pool.manifest.teams.get(self.name)
         if not team_config:

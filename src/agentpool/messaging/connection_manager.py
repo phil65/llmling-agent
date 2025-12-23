@@ -180,8 +180,7 @@ class ConnectionManager:
         self.node_connected.emit(target)
         self._connections.append(talk)
         self.connection_added.emit(talk)
-        source_ctx = source.get_context()
-        if pool := source_ctx.pool:
+        if pool := source.agent_pool:
             # Always use Talk's name for registration
             if name:
                 pool.connection_registry.register(name, talk)
