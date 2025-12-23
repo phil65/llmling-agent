@@ -2585,54 +2585,6 @@ wheels = [
 ]
 
 [[package]]
-name = "llmling-agent"
-version = "1.17.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyenv", extra = ["httpx"] },
-    { name = "docler" },
-    { name = "docstring-parser" },
-    { name = "epregistry" },
-    { name = "evented" },
-    { name = "exxec" },
-    { name = "fastmcp" },
-    { name = "fsspec" },
-    { name = "httpx" },
-    { name = "jinja2" },
-    { name = "jinjarope" },
-    { name = "llmling-models" },
-    { name = "logfire" },
-    { name = "mcp" },
-    { name = "platformdirs" },
-    { name = "promptantic" },
-    { name = "psygnal" },
-    { name = "pydantic" },
-    { name = "pydantic-ai-slim" },
-    { name = "python-dotenv" },
-    { name = "rich" },
-    { name = "schemez", extra = ["codegen"] },
-    { name = "searchly", extra = ["all"] },
-    { name = "slashed" },
-    { name = "sqlalchemy", extra = ["aiosqlite"] },
-    { name = "sqlmodel" },
-    { name = "structlog" },
-    { name = "tokonomics" },
-    { name = "toprompt" },
-    { name = "typer" },
-    { name = "upathtools" },
-    { name = "yamling" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/45/bc/56cab11cb032a6d679ce324be4469c7e5c06a538053c9acc119ae0ad706e/llmling_agent-1.17.1.tar.gz", hash = "sha256:fc663d9904f7a93be73c6dee6e2678e169eb2f807db1e59a81a5fbfd33016403", size = 548725, upload-time = "2025-12-21T10:53:37.891Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/72/91/183333f79f8fe4f3ce8b88be191139fc6d49c233b17d460f496fef7fef2f/llmling_agent-1.17.1-py3-none-any.whl", hash = "sha256:eade9cf6f91112df85252b93605c1ac8d25b3bfaa8d04b34535b3ba2755c7fe2", size = 770077, upload-time = "2025-12-21T10:53:35.993Z" },
-]
-
-[package.optional-dependencies]
-default = [
-    { name = "pydantic-ai-slim", extra = ["anthropic", "google", "mistral", "openai", "retries"] },
-]
-
-[[package]]
 name = "llmling-models"
 version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2729,7 +2681,7 @@ name = "macholib"
 version = "1.16.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "altgraph", marker = "sys_platform != 'win32'" },
+    { name = "altgraph" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/10/2f/97589876ea967487978071c9042518d28b958d87b17dceb7cdc1d881f963/macholib-1.16.4.tar.gz", hash = "sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362", size = 59427, upload-time = "2025-11-22T08:28:38.373Z" }
 wheels = [
@@ -3162,9 +3114,10 @@ wheels = [
 
 [[package]]
 name = "mknodes"
-version = "2.2.11"
+version = "2.2.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "agentpool", extra = ["default"] },
     { name = "anybadge" },
     { name = "anyenv", extra = ["httpx"] },
     { name = "clinspector" },
@@ -3178,7 +3131,6 @@ dependencies = [
     { name = "griffe" },
     { name = "jinja2" },
     { name = "jinjarope", extra = ["icons"] },
-    { name = "llmling-agent", extra = ["default"] },
     { name = "mkdocstrings", extra = ["python"] },
     { name = "natsort" },
     { name = "pipdeptree" },
@@ -3193,9 +3145,9 @@ dependencies = [
     { name = "yamling" },
     { name = "zensical" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4f/12/6950ad055e533a387e862b09c5641a2085c905e6f439b453992c7b1dce59/mknodes-2.2.11.tar.gz", hash = "sha256:8734208d3846188cb0259290fda64fc40ef40a1b5694439f5028aa90acc68813", size = 340293, upload-time = "2025-12-12T16:08:38.641Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/07/7367af609349fb108f16a4bbab6543feb96f0357eea1f60c4194334c5082/mknodes-2.2.12.tar.gz", hash = "sha256:6fdeca7a763a8f2c0ca7d01400368087d0c47ae5b7fc57a5d44ba32279d3f198", size = 342585, upload-time = "2025-12-23T13:37:50.578Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/37/40/48a9486424d093e5032f88178c068b3865e2951d84e8bcc3714af53416bd/mknodes-2.2.11-py3-none-any.whl", hash = "sha256:c65d8fcbb2407d0841659d497fc7c3dcd2bc739eba22fb52b72d8ed2228a9bbc", size = 470433, upload-time = "2025-12-12T16:08:39.886Z" },
+    { url = "https://files.pythonhosted.org/packages/09/16/635a891ef7727fde37b8a4b10f6f5eafdac1e50951b2d94959a9036dda8d/mknodes-2.2.12-py3-none-any.whl", hash = "sha256:930ec8e5cb3cfec1be4f72536aca718621da634b9288e3b3b2fad705a74f7d3b", size = 472519, upload-time = "2025-12-23T13:37:48.646Z" },
 ]
 
 [[package]]
@@ -5280,8 +5232,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "sys_platform != 'win32'" },
-    { name = "jeepney", marker = "sys_platform != 'win32'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
