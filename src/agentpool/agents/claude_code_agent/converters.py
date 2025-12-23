@@ -61,7 +61,7 @@ def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo
     actual_name = name
     if name.startswith("mcp__") and "__" in name[5:]:
         parts = name.split("__")
-        if len(parts) >= 3:
+        if len(parts) >= 3:  # noqa: PLR2004
             actual_name = parts[-1]  # Get the last part (actual tool name)
 
     # Normalize to lowercase for matching
