@@ -5,18 +5,18 @@
     "kind": "execute",
     "locations": [],
     "raw_input": {
-      "command": "echo hello"
+      "code": "print('hello')"
     },
-    "title": "Running: echo hello",
-    "tool_call_id": "pyd_ai_tool_call_id__execute_command",
-    "tool_name": "Running: echo hello",
+    "title": "Executing code",
+    "tool_call_id": "pyd_ai_tool_call_id__execute_code",
+    "tool_name": "Executing code",
     "type": "ToolCallStartEvent"
   },
   {
     "event_kind": "tool_call_progress",
     "items": [
       {
-        "terminal_id": "cmd_0001",
+        "terminal_id": "code_0001",
         "type": "terminal"
       }
     ],
@@ -24,8 +24,8 @@
     "progress": null,
     "replace_content": false,
     "status": "in_progress",
-    "title": "Running: echo hello",
-    "tool_call_id": "pyd_ai_tool_call_id__execute_command",
+    "title": "Running: python",
+    "tool_call_id": "pyd_ai_tool_call_id__execute_code",
     "tool_input": null,
     "tool_name": null,
     "total": null,
@@ -35,7 +35,7 @@
     "event_kind": "tool_call_progress",
     "items": [
       {
-        "terminal_id": "cmd_0001",
+        "terminal_id": "code_0001",
         "type": "terminal"
       }
     ],
@@ -44,7 +44,7 @@
     "replace_content": false,
     "status": "in_progress",
     "title": "hello\n",
-    "tool_call_id": "pyd_ai_tool_call_id__execute_command",
+    "tool_call_id": "pyd_ai_tool_call_id__execute_code",
     "tool_input": null,
     "tool_name": null,
     "total": null,
@@ -54,7 +54,7 @@
     "event_kind": "tool_call_progress",
     "items": [
       {
-        "terminal_id": "cmd_0001",
+        "terminal_id": "code_0001",
         "type": "terminal"
       },
       {
@@ -67,7 +67,7 @@
     "replace_content": false,
     "status": "in_progress",
     "title": "Process exited [✓ exit 0]",
-    "tool_call_id": "pyd_ai_tool_call_id__execute_command",
+    "tool_call_id": "pyd_ai_tool_call_id__execute_code",
     "tool_input": null,
     "tool_name": null,
     "total": null,
@@ -76,12 +76,12 @@
   {
     "event_kind": "tool_call_progress",
     "items": [],
-    "message": "{'stdout': 'hello\\n', 'stderr': '', 'exit_code': 0, 'duration': 0.01, 'truncated': False}",
+    "message": "{'output': 'hello\\n', 'exit_code': 0, 'duration': 0.01}",
     "progress": null,
     "replace_content": false,
     "status": "completed",
     "title": null,
-    "tool_call_id": "pyd_ai_tool_call_id__execute_command",
+    "tool_call_id": "pyd_ai_tool_call_id__execute_code",
     "tool_input": null,
     "tool_name": null,
     "total": null,
