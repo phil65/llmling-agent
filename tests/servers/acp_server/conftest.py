@@ -53,6 +53,6 @@ def client_capabilities():
 
 
 @pytest.fixture
-def mock_acp_agent(mock_connection, mock_agent_pool, client_capabilities):
+def mock_acp_agent(mock_connection, mock_agent_pool, client_capabilities) -> AgentPoolACPAgent:
     """Create a mock ACP agent for testing."""
     return AgentPoolACPAgent(connection=mock_connection, agent_pool=mock_agent_pool)

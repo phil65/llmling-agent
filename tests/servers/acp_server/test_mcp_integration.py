@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 import tempfile
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -15,6 +16,11 @@ from agentpool.tools.base import Tool
 from agentpool_server.acp_server.converters import convert_acp_mcp_server_to_config
 from agentpool_server.acp_server.session import ACPSession
 from agentpool_server.acp_server.session_manager import ACPSessionManager
+
+
+if TYPE_CHECKING:
+    from acp import ClientCapabilities
+    from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
 
 
 logger = get_logger(__name__)
@@ -39,7 +45,11 @@ async def test_mcp_server_conversion():
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
-async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capabilities):
+async def test_session_with_mcp_servers(
+    test_client,
+    acp_agent: AgentPoolACPAgent,
+    client_capabilities: ClientCapabilities,
+):
     """Test creating an ACP session with MCP servers."""
 
     def simple_callback(message: str) -> str:
@@ -72,7 +82,7 @@ async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capa
         cwd=tempfile.gettempdir(),
         client=test_client,
         mcp_servers=mcp_servers,
-        acp_agent=mock_acp_agent,
+        acp_agent=acp_agent,
         client_capabilities=client_capabilities,
     )
 
@@ -90,7 +100,11 @@ async def test_session_with_mcp_servers(test_client, mock_acp_agent, client_capa
 
 
 @pytest.mark.skipif(sys.platform == "darwin", reason="macOS subprocess handling differs")
-async def test_session_manager_with_mcp(test_client, mock_acp_agent, client_capabilities):
+async def test_session_manager_with_mcp(
+    test_client,
+    acp_agent: AgentPoolACPAgent,
+    client_capabilities: ClientCapabilities,
+):
     """Test session manager creating sessions with MCP servers."""
     agent_pool = AgentPool()  # Create empty pool and register the agent
     session_manager = ACPSessionManager(agent_pool)
@@ -108,7 +122,7 @@ async def test_session_manager_with_mcp(test_client, mock_acp_agent, client_capa
                 cwd=tempfile.gettempdir(),
                 client=test_client,
                 mcp_servers=mcp_servers,
-                acp_agent=mock_acp_agent,
+                acp_agent=acp_agent,
                 client_capabilities=client_capabilities,
             )
 
