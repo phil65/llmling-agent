@@ -61,6 +61,7 @@ dependencies = [
     { name = "psygnal" },
     { name = "pydantic" },
     { name = "pydantic-ai-slim" },
+    { name = "pydocket" },
     { name = "python-dotenv" },
     { name = "rich" },
     { name = "schemez", extra = ["codegen"] },
@@ -225,7 +226,7 @@ requires-dist = [
     { name = "jinjarope" },
     { name = "keyring", marker = "extra == 'oauth'", specifier = ">=25.6.0" },
     { name = "langfuse", marker = "extra == 'langfuse'" },
-    { name = "llmling-models", specifier = ">=0.2.0" },
+    { name = "llmling-models", specifier = "==1.4.1" },
     { name = "logfire" },
     { name = "logfire", extras = ["fastapi"], marker = "extra == 'server'" },
     { name = "markitdown", marker = "python_full_version < '3.14' and extra == 'markitdown'" },
@@ -241,6 +242,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.10.0" },
     { name = "pydantic-ai-slim", specifier = ">=1.0.0" },
     { name = "pydantic-ai-slim", extras = ["openai", "google", "anthropic", "mistral", "retries"], marker = "extra == 'default'", specifier = ">=1.0.0" },
+    { name = "pydocket", specifier = "==0.16.1" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "rich" },
     { name = "rustworkx", marker = "extra == 'coding'", specifier = ">=0.17.1" },
@@ -3901,7 +3903,7 @@ wheels = [
 
 [[package]]
 name = "promptlayer"
-version = "1.0.78"
+version = "1.0.79"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ably" },
@@ -3914,9 +3916,9 @@ dependencies = [
     { name = "requests" },
     { name = "tenacity" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f3/fd/e41edae63882338a0462c270d6bcdd59cd24176038fcfa6a690db367a73f/promptlayer-1.0.78.tar.gz", hash = "sha256:2eef8aabed4ff2db8d671c74cf5c5159562269806240d666ce1c74bf9294edb7", size = 38129, upload-time = "2025-12-01T15:53:32.16Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/5f/e868278f5890dc1d1010c5c94d825b30e0e26bcbe99a591196c9c7f1fb16/promptlayer-1.0.79.tar.gz", hash = "sha256:60c307f2f35912ab77c251fd533b32c831dd8267ff70040332a5f5f40388cf81", size = 38143, upload-time = "2025-12-23T22:27:46.199Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/de/277aa4d71afcdcb4270886e455ab5967d1b6e95cb8ae1093eced82c75510/promptlayer-1.0.78-py3-none-any.whl", hash = "sha256:ddd1618e071f89e0b6fff0f797fcddf7b89d28c2d5a25f1a76386021f3acc586", size = 43356, upload-time = "2025-12-01T15:53:31.171Z" },
+    { url = "https://files.pythonhosted.org/packages/41/66/fdc577d91d4780a668032593b278668a665d03c6eddd705ac71bb6312bff/promptlayer-1.0.79-py3-none-any.whl", hash = "sha256:9510c16f91b6c24a40b2ea880be411dcfdb18aa043c0f333fea2aa123c1ca0cb", size = 43372, upload-time = "2025-12-23T22:27:44.952Z" },
 ]
 
 [[package]]
@@ -4345,7 +4347,7 @@ wheels = [
 
 [[package]]
 name = "pydocket"
-version = "0.16.2"
+version = "0.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cloudpickle" },
@@ -4361,9 +4363,9 @@ dependencies = [
     { name = "typer" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f4/b6/b9b5af725be7ffb195750e1cbe0ad4aa413858f16af258a49ad84cff82ac/pydocket-0.16.2.tar.gz", hash = "sha256:b48e59ad247cbf23fd7064cd765b75e5b870451a7778afa3b208b3aae6474c1f", size = 295623, upload-time = "2025-12-23T19:24:46.751Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2b/ff/87e931e4abc7efb1e8c16adaa55327452931e8c5f460f2ba089447673226/pydocket-0.16.1.tar.gz", hash = "sha256:8663cb6dc801d8b8d703541fb665f4099c84f4d10d8f3fd441e208b080aa4826", size = 289028, upload-time = "2025-12-19T19:43:48.773Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/33/81132e8ca41e11000807cc1f457a391d5a364dd1eeb7de40f2ff971301bc/pydocket-0.16.2-py3-none-any.whl", hash = "sha256:044a74deec2062c305bf1d452a1348a4e3739b3a2cf0a411ca1e11368cef5baf", size = 66812, upload-time = "2025-12-23T19:24:45.643Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/ab/0da7d0397112546309709f464bdf65de4e1697e3caba07556751fc4d8bcd/pydocket-0.16.1-py3-none-any.whl", hash = "sha256:bc6ccf7e91164761def854b4014101abf23c3cc2fb7d0fa2c4e07ea3bf6a1826", size = 63208, upload-time = "2025-12-19T19:43:47.309Z" },
 ]
 
 [[package]]

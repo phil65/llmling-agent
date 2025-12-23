@@ -42,7 +42,7 @@ dependencies = [
   "httpx",
   "jinja2",
   "jinjarope",
-  "llmling-models>=0.2.0",
+  "llmling-models==1.4.1",
   "logfire",
   "mcp>=1.2.0",
   "platformdirs",
@@ -51,6 +51,7 @@ dependencies = [
   "pydantic>=2.10.0",
   "pydantic-ai-slim>=1.0.0",
   # Only add below (Copier)
+  "pydocket==0.16.1",
   "python-dotenv>=1.0.1",
   "rich",
   "schemez[codegen]",
