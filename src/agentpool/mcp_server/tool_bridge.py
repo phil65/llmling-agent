@@ -226,26 +226,29 @@ class ToolManagerBridge:
         """Get Claude Agent SDK-compatible MCP server configuration.
 
         Returns a dict suitable for passing to ClaudeAgentOptions.mcp_servers.
-        Uses the SDK transport type which passes the FastMCP server instance
-        directly, avoiding HTTP overhead.
+        Uses HTTP transport to preserve MCP _meta field which contains
+        claudecode/toolUseId needed for proper tool_call_id correlation.
+
+        Note: SDK transport (passing FastMCP instance directly) would be faster
+        but the Claude Agent SDK's _handle_sdk_mcp_request drops the _meta field,
+        breaking tool_call_id propagation for progress events.
 
         Returns:
-            Dict mapping server name to McpSdkServerConfig
+            Dict mapping server name to McpHttpServerConfig
 
         Raises:
-            RuntimeError: If bridge not started (no FastMCP instance)
+            RuntimeError: If bridge not started (no server running)
         """
-        if not self._mcp:
+        if self._actual_port is None:
             msg = "Bridge not started - call start() first"
             raise RuntimeError(msg)
 
-        # Use SDK transport - passes FastMCP instance directly
-        # This avoids HTTP overhead entirely
+        # Use HTTP transport to preserve _meta field with claudecode/toolUseId
+        # SDK transport drops _meta in Claude Agent SDK's query.py
         return {
             self.config.server_name: {
-                "type": "sdk",
-                "name": self.config.server_name,
-                "instance": self._mcp._mcp_server,  # The underlying mcp.server.Server
+                "type": "http",
+                "url": f"http://{self.config.host}:{self.port}/mcp",
             }
         }
 

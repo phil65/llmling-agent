@@ -342,7 +342,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self.tools.add_provider(provider)
 
         # Auto-create bridge to expose tools via MCP
-        config = BridgeConfig(transport="sse", server_name=f"agentpool-{self.name}-tools")
+        config = BridgeConfig(
+            transport="streamable-http", server_name=f"agentpool-{self.name}-tools"
+        )
         self._tool_bridge = ToolManagerBridge(node=self, config=config)
         await self._tool_bridge.start()
         self._owns_bridge = True

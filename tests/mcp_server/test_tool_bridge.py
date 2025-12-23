@@ -349,11 +349,11 @@ async def test_claude_code_mcp_bridge_integration():
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(capture_context_tool)
 
-        async with create_tool_bridge(agent, transport="sse") as bridge:
+        async with create_tool_bridge(agent, transport="streamable-http") as bridge:
             options = ClaudeAgentOptions(
                 mcp_servers={
                     "test_bridge": {
-                        "type": "sse",
+                        "type": "http",
                         "url": bridge.url,
                     }
                 },
