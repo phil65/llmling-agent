@@ -62,6 +62,8 @@ logger = logging.getLogger(__name__)
 # since it's designed for direct shell execution.
 # =============================================================================
 
+FileType = Literal["file", "directory", "link"]
+
 
 def build_find_command(
     path: str,
@@ -120,8 +122,8 @@ def parse_find_output(output: str, with_stats: bool = False) -> list[AcpInfo]:
         return []
 
     entries: list[AcpInfo] = []
-    for line in records:
-        line = line.strip()
+    for raw_line in records:
+        line = raw_line.strip()
         if not line:
             continue
 
@@ -133,8 +135,8 @@ def parse_find_output(output: str, with_stats: bool = False) -> list[AcpInfo]:
                 path_str, size_str, timestamp_str, type_char, permissions = parts
 
                 # Map find type char to our type
-                type_map = {"f": "file", "d": "directory", "l": "link"}
-                file_type: Literal["file", "directory", "link"] = type_map.get(type_char, "file")
+                type_map: dict[str, FileType] = {"f": "file", "d": "directory", "l": "link"}
+                file_type: FileType = type_map.get(type_char, "file")
 
                 # Parse size
                 try:

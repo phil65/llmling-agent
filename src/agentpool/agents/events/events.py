@@ -26,6 +26,8 @@ from agentpool.messaging import ChatMessage  # noqa: TC001
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from agentpool.resource_providers.plan_provider import PlanEntry
     from agentpool.tools.base import ToolKind
 
@@ -202,7 +204,7 @@ class ToolCallProgressEvent:
     """Human-readable title describing the operation."""
 
     # Rich content items
-    items: list[ToolCallContentItem] = field(default_factory=list)
+    items: Sequence[ToolCallContentItem] = field(default_factory=list)
     """Rich content items (terminals, diffs, locations, text)."""
     replace_content: bool = False
     """If True, items replace existing content instead of appending."""
@@ -277,7 +279,7 @@ class ToolCallProgressEvent:
             output: Process output
             tool_name: Optional tool name
         """
-        items: list[ToolCallContentItem] = [TerminalContentItem(terminal_id=process_id)]
+        items = [TerminalContentItem(terminal_id=process_id)]
         title = f"Output: {output[:50]}..." if len(output) > 50 else output  # noqa: PLR2004
 
         return cls(
@@ -349,7 +351,7 @@ class ToolCallProgressEvent:
             title = f"{title} - {error}"
 
         status: Literal["in_progress", "failed"] = "in_progress" if success else "failed"
-        items: list[ToolCallContentItem] = [TerminalContentItem(terminal_id=process_id)]
+        items = [TerminalContentItem(terminal_id=process_id)]
 
         return cls(
             tool_call_id=tool_call_id,
@@ -387,7 +389,7 @@ class ToolCallProgressEvent:
             title = f"{title} - {error}"
 
         status: Literal["in_progress", "failed"] = "in_progress" if success else "failed"
-        items: list[ToolCallContentItem] = [TerminalContentItem(terminal_id=process_id)]
+        items = [TerminalContentItem(terminal_id=process_id)]
 
         return cls(
             tool_call_id=tool_call_id,
