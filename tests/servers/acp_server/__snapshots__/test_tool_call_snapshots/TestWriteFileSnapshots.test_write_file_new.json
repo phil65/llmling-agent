@@ -1,0 +1,96 @@
+[
+  {
+    "payload": {
+      "content": [],
+      "kind": "edit",
+      "rawInput": {
+        "content": "New content here",
+        "path": "/test/new_file.txt"
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Editing: /test/new_file.txt",
+      "toolCallId": "pyd_ai_tool_call_id__write_file"
+    },
+    "type": "tool_call"
+  },
+  {
+    "payload": {
+      "content": [],
+      "kind": "edit",
+      "locations": [
+        {
+          "line": 0,
+          "path": "/test/new_file.txt"
+        }
+      ],
+      "rawInput": {
+        "content": "New content here",
+        "path": "/test/new_file.txt"
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Writing file: /test/new_file.txt",
+      "toolCallId": "pyd_ai_tool_call_id__write_file"
+    },
+    "type": "tool_call"
+  },
+  {
+    "payload": {
+      "content": [],
+      "kind": "edit",
+      "locations": [
+        {
+          "line": 0,
+          "path": "/test/new_file.txt"
+        },
+        {
+          "line": 0,
+          "path": "/test/new_file.txt"
+        }
+      ],
+      "rawInput": {
+        "content": "New content here",
+        "path": "/test/new_file.txt"
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Write: /test/new_file.txt",
+      "toolCallId": "pyd_ai_tool_call_id__write_file"
+    },
+    "type": "tool_call"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "content": {
+            "text": "{'path': '/test/new_file.txt', 'size': 16, 'mode': 'w', 'file_existed': False, 'bytes_written': 16}",
+            "type": "text"
+          },
+          "type": "content"
+        }
+      ],
+      "kind": "edit",
+      "locations": [
+        {
+          "line": 0,
+          "path": "/test/new_file.txt"
+        },
+        {
+          "line": 0,
+          "path": "/test/new_file.txt"
+        }
+      ],
+      "rawInput": {
+        "content": "New content here",
+        "path": "/test/new_file.txt"
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Write: /test/new_file.txt",
+      "toolCallId": "pyd_ai_tool_call_id__write_file"
+    },
+    "type": "tool_call"
+  }
+]
