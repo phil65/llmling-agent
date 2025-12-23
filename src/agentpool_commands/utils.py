@@ -96,10 +96,6 @@ class EditAgentFileCommand(NodeCommand):
         """Open agent's configuration file."""
         agent = ctx.context.agent
         agent_ctx = agent.get_context()
-        if not agent_ctx:
-            msg = "No agent context available"
-            raise CommandError(msg)
-
         config = agent_ctx.config
         if not config.config_file_path:
             msg = "No configuration file path available"

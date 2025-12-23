@@ -304,7 +304,7 @@ class MessageNode[TDeps, TResult](ABC):
 
         if callable(target):
             target = Agent.from_callback(target)
-            if pool := self.get_context().pool:
+            if pool := self.agent_pool:
                 target.agent_pool = pool
                 pool.register(target.name, target)
         # we are explicit here just to make disctinction clear, we only want sequences
@@ -315,7 +315,7 @@ class MessageNode[TDeps, TResult](ABC):
                 match t:
                     case _ if callable(t):
                         other = Agent.from_callback(t)
-                        if pool := self.get_context().pool:
+                        if pool := self.agent_pool:
                             other.agent_pool = pool
                             pool.register(other.name, other)
                         targets.append(other)

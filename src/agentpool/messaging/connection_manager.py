@@ -181,7 +181,7 @@ class ConnectionManager:
         self._connections.append(talk)
         self.connection_added.emit(talk)
         source_ctx = source.get_context()
-        if source_ctx and (pool := source_ctx.pool):
+        if pool := source_ctx.pool:
             # Always use Talk's name for registration
             if name:
                 pool.connection_registry.register(name, talk)

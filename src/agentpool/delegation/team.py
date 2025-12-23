@@ -260,7 +260,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
             invalid_agents = [
                 agent.name
                 for agent in self.iter_agents()
-                if not isinstance(agent.get_context().data, job.required_dependency)
+                if not issubclass(agent.deps_type, job.required_dependency)
             ]
             if invalid_agents:
                 msg = (

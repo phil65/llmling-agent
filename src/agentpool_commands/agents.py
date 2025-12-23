@@ -113,14 +113,8 @@ class ShowAgentCommand(NodeCommand):
         import yamling
 
         node_ctx = ctx.context.node.get_context()
-        if not node_ctx:
-            await ctx.print("❌ **No node context available**")
-            return
-
-        # Get the agent's config with current overrides
         config = node_ctx.config
-        # Get base config as dict
-        config_dict = config.model_dump(exclude_none=True)
+        config_dict = config.model_dump(exclude_none=True)  # Get base config as dict
         # Format as annotated YAML
         yaml_config = yamling.dump_yaml(
             config_dict,
