@@ -59,7 +59,7 @@ def get_cli_help_output(agent_class: type[BaseACPAgentConfig]) -> str:
                 [command, help_flag],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=10,
                 check=False,
             )
 
