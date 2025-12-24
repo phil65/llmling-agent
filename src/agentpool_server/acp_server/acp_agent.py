@@ -529,10 +529,7 @@ class AgentPoolACPAgent(ACPAgent):
 
         # Auto-recreate session if not found (e.g., after pool swap)
         if not session:
-            logger.info(
-                "Session not found, recreating",
-                session_id=params.session_id,
-            )
+            logger.info("Session not found, recreating", session_id=params.session_id)
             try:
                 # Get default agent name
                 names = list(self.agent_pool.all_agents.keys())
@@ -729,11 +726,8 @@ class AgentPoolACPAgent(ACPAgent):
                 # For native Agent, validate against server's available models
                 available_ids = [m.model_id for m in self.available_models]
                 if params.model_id not in available_ids:
-                    logger.warning(
-                        "Model not in available models",
-                        model_id=params.model_id,
-                        available=available_ids,
-                    )
+                    msg = "Model not in available models"
+                    logger.warning(msg, model_id=params.model_id, available=available_ids)
                     return None
                 session.agent.set_model(params.model_id)
 
@@ -743,11 +737,7 @@ class AgentPoolACPAgent(ACPAgent):
             logger.exception("Failed to set session model", session_id=params.session_id)
             return None
 
-    async def swap_pool(
-        self,
-        config_path: str,
-        agent: str | None = None,
-    ) -> list[str]:
+    async def swap_pool(self, config_path: str, agent: str | None = None) -> list[str]:
         """Swap the agent pool with a new one from configuration.
 
         This coordinates the full pool swap:
@@ -771,18 +761,14 @@ class AgentPoolACPAgent(ACPAgent):
             raise RuntimeError(msg)
 
         logger.info("Swapping pool", config_path=config_path, agent=agent)
-
         # 1. Close all active sessions
         closed_count = await self.session_manager.close_all_sessions()
         logger.info("Closed sessions before pool swap", count=closed_count)
-
         # 2. Delegate to server for pool lifecycle management
         agent_names = await self.server.swap_pool(config_path, agent)
-
         # 3. Update internal references
         self.agent_pool = self.server.pool
         self.session_manager._pool = self.server.pool
         self.default_agent = agent
-
         logger.info("Pool swap complete", agent_names=agent_names)
         return agent_names
