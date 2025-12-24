@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-import contextlib
-import sys
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
@@ -16,23 +13,15 @@ from schemez import Schema
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from anyvoice import TTSMode, TTSStream
     from pydantic_ai import RunContext
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.common_types import IndividualEventHandler
 
-
 StdOutStyle = Literal["simple", "detailed"]
 TTSModel = Literal["tts-1", "tts-1-hd"]
 TTSVoice = Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
-TTSMode = Literal["sync_sentence", "sync_run", "async_queue", "async_cancel"]
-"""TTS synchronization modes.
-
-- sync_sentence: Wait for each sentence's audio before continuing (slowest, most synchronized)
-- sync_run: Stream fast, wait for all audio at run end (default)
-- async_queue: Stream fast, audio plays in background, multiple runs queue up
-- async_cancel: Stream fast, audio plays in background, new run cancels previous audio
-"""
 
 
 class BaseEventHandlerConfig(Schema):
@@ -103,13 +92,10 @@ class CallbackEventHandlerConfig(BaseEventHandlerConfig):
 
 
 class TTSEventHandler:
-    """Text-to-Speech event handler with configurable synchronization modes.
+    """Event handler adapter that bridges pydantic-ai events to anyvoice.
 
-    Modes:
-    - sync_sentence: Wait for each sentence's audio before continuing (most synchronized)
-    - sync_run: Stream fast, wait for all audio at run end (default)
-    - async_queue: Stream fast, audio in background, multiple runs queue up
-    - async_cancel: Stream fast, audio in background, new run cancels previous
+    This is a thin adapter that translates stream events to TTSStream.feed() calls.
+    All TTS logic is delegated to the anyvoice library.
     """
 
     def __init__(
@@ -124,115 +110,43 @@ class TTSEventHandler:
         min_text_length: int = 20,
         mode: TTSMode = "sync_run",
     ) -> None:
-        from openai import AsyncOpenAI
-
-        self._client = AsyncOpenAI(api_key=api_key)
-        self._model = model
-        self._voice = voice
+        self._api_key = api_key
+        self._model: TTSModel = model
+        self._voice: TTSVoice = voice
         self._speed = speed
         self._chunk_size = chunk_size
         self._sample_rate = sample_rate
         self._min_text_length = min_text_length
-        self._mode = mode
+        self._mode: TTSMode = mode
+        self._tts_stream: TTSStream | None = None
 
-        # State
-        self._audio_queue: asyncio.Queue[bytes | None] = asyncio.Queue()
-        self._sentence_queue: asyncio.Queue[str | None] = asyncio.Queue()
-        self._playback_task: asyncio.Task[None] | None = None
-        self._synthesis_task: asyncio.Task[None] | None = None
-        self._text_buffer = ""
-        self._sentence_terminators = frozenset({".", "!", "?", "\n"})
+    async def _ensure_stream(self) -> TTSStream:
+        """Get or create the TTS stream."""
+        if self._tts_stream is None:
+            from anyvoice import OpenAITTSProvider, SoundDeviceSink, TTSStream
 
-    async def _play_audio(self) -> None:
-        """Async audio playback using sounddevice."""
-        import sounddevice as sd  # type: ignore[import-untyped]
-
-        try:
-            stream = sd.RawOutputStream(samplerate=self._sample_rate, channels=1, dtype="int16")
-            stream.start()
-
-            while True:
-                chunk = await self._audio_queue.get()
-                if chunk is None:
-                    break
-                if chunk:
-                    stream.write(chunk)
-
-            stream.stop()
-            stream.close()
-        except Exception as e:  # noqa: BLE001
-            print(f"\n❌ Audio playback error: {e}", file=sys.stderr)
-
-    async def _synthesize_text(self, text: str) -> None:
-        """Synthesize text and queue audio chunks."""
-        if not text.strip():
-            return
-
-        # Ensure playback task is running
-        if self._playback_task is None or self._playback_task.done():
-            self._playback_task = asyncio.create_task(self._play_audio())
-
-        try:
-            async with self._client.audio.speech.with_streaming_response.create(
+            provider = OpenAITTSProvider(api_key=self._api_key)
+            session = provider.session(
                 model=self._model,
                 voice=self._voice,
-                input=text,
-                response_format="pcm",
                 speed=self._speed,
-            ) as response:
-                async for chunk in response.iter_bytes(chunk_size=self._chunk_size):
-                    await self._audio_queue.put(chunk)
-        except Exception as e:  # noqa: BLE001
-            print(f"\n❌ TTS error: {e}", file=sys.stderr)
+                chunk_size=self._chunk_size,
+            )
+            sink = SoundDeviceSink(sample_rate=self._sample_rate)
+            self._tts_stream = TTSStream(
+                session,
+                sink=sink,
+                mode=self._mode,
+                min_text_length=self._min_text_length,
+            )
+            await self._tts_stream.__aenter__()
+        return self._tts_stream
 
-    async def _synthesis_worker(self) -> None:
-        """Worker that processes sentences sequentially from the queue."""
-        while True:
-            sentence = await self._sentence_queue.get()
-            if sentence is None:  # Shutdown signal
-                break
-            await self._synthesize_text(sentence)
-
-    def _schedule_synthesis(self, text: str) -> None:
-        """Queue text for sequential synthesis (non-blocking to caller)."""
-        # Start worker if not running
-        if self._synthesis_task is None or self._synthesis_task.done():
-            self._synthesis_task = asyncio.create_task(self._synthesis_worker())
-        # Queue the sentence - doesn't block
-        self._sentence_queue.put_nowait(text)
-
-    async def _cancel_pending(self) -> None:
-        """Cancel all pending synthesis and playback."""
-        # Cancel synthesis worker
-        if self._synthesis_task and not self._synthesis_task.done():
-            self._synthesis_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._synthesis_task
-            self._synthesis_task = None
-
-        # Clear sentence queue
-        while not self._sentence_queue.empty():
-            try:
-                self._sentence_queue.get_nowait()
-            except asyncio.QueueEmpty:
-                break
-
-        # Cancel playback
-        if self._playback_task and not self._playback_task.done():
-            self._playback_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._playback_task
-            self._playback_task = None
-
-        # Clear audio queue
-        while not self._audio_queue.empty():
-            try:
-                self._audio_queue.get_nowait()
-            except asyncio.QueueEmpty:
-                break
-
-        # Reset text buffer
-        self._text_buffer = ""
+    async def _close_stream(self) -> None:
+        """Close the TTS stream if open."""
+        if self._tts_stream is not None:
+            await self._tts_stream.__aexit__(None, None, None)
+            self._tts_stream = None
 
     async def __call__(self, ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
         """Handle stream events and trigger TTS synthesis."""
@@ -241,66 +155,25 @@ class TTSEventHandler:
         match event:
             case RunStartedEvent():
                 # For async_cancel mode, cancel any pending audio from previous run
-                if self._mode == "async_cancel":
-                    await self._cancel_pending()
+                if self._mode == "async_cancel" and self._tts_stream is not None:
+                    await self._tts_stream.cancel()
 
             case (
                 PartStartEvent(part=TextPart(content=delta))
                 | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
             ):
-                self._text_buffer += delta
-
-                # Check for sentence boundaries
-                if any(term in self._text_buffer for term in self._sentence_terminators):
-                    last_term = max(
-                        (self._text_buffer.rfind(term) for term in self._sentence_terminators),
-                        default=-1,
-                    )
-
-                    if last_term > 0 and last_term >= self._min_text_length:
-                        sentence = self._text_buffer[: last_term + 1].strip()
-                        self._text_buffer = self._text_buffer[last_term + 1 :]
-
-                        if sentence:
-                            if self._mode == "sync_sentence":
-                                await self._synthesize_text(sentence)
-                            else:
-                                self._schedule_synthesis(sentence)
+                stream = await self._ensure_stream()
+                await stream.feed(delta)
 
             case StreamCompleteEvent():
-                # Process remaining text
-                if self._text_buffer.strip():
-                    if self._mode == "sync_sentence":
-                        await self._synthesize_text(self._text_buffer.strip())
-                    else:
-                        self._schedule_synthesis(self._text_buffer.strip())
-                    self._text_buffer = ""
-
-                # For sync modes, wait for everything to finish
-                if self._mode in ("sync_sentence", "sync_run"):
-                    # Wait for synthesis worker to finish
-                    if self._synthesis_task and not self._synthesis_task.done():
-                        await self._sentence_queue.put(None)
-                        await self._synthesis_task
-
-                    # Signal playback to stop and wait for it
-                    await self._audio_queue.put(None)
-                    if self._playback_task and not self._playback_task.done():
-                        await self._playback_task
-                # For async modes, don't wait - let audio continue in background
+                await self._close_stream()
 
 
 class EdgeTTSEventHandler:
-    """Text-to-Speech event handler using Edge TTS (free, no API key required).
+    """Event handler adapter that bridges pydantic-ai events to anyvoice with Edge TTS.
 
-    Uses Microsoft Edge's TTS service via edge-tts library.
-    Outputs MP3 which is decoded to PCM via miniaudio for playback.
-
-    Modes:
-    - sync_sentence: Wait for each sentence's audio before continuing (most synchronized)
-    - sync_run: Stream fast, wait for all audio at run end (default)
-    - async_queue: Stream fast, audio in background, multiple runs queue up
-    - async_cancel: Stream fast, audio in background, new run cancels previous
+    This is a thin adapter that translates stream events to TTSStream.feed() calls.
+    Uses the free Microsoft Edge TTS service (no API key required).
     """
 
     def __init__(
@@ -320,124 +193,36 @@ class EdgeTTSEventHandler:
         self._pitch = pitch
         self._sample_rate = sample_rate
         self._min_text_length = min_text_length
-        self._mode = mode
+        self._mode: TTSMode = mode
+        self._tts_stream: TTSStream | None = None
 
-        # State
-        self._audio_queue: asyncio.Queue[bytes | None] = asyncio.Queue()
-        self._sentence_queue: asyncio.Queue[str | None] = asyncio.Queue()
-        self._playback_task: asyncio.Task[None] | None = None
-        self._synthesis_task: asyncio.Task[None] | None = None
-        self._text_buffer = ""
-        self._sentence_terminators = frozenset({".", "!", "?", "\n"})
+    async def _ensure_stream(self) -> TTSStream:
+        """Get or create the TTS stream."""
+        if self._tts_stream is None:
+            from anyvoice import EdgeTTSProvider, SoundDeviceSink, TTSStream
 
-    async def _play_audio(self) -> None:
-        """Async audio playback using sounddevice."""
-        import sounddevice as sd
-
-        try:
-            stream = sd.RawOutputStream(samplerate=self._sample_rate, channels=1, dtype="int16")
-            stream.start()
-
-            while True:
-                chunk = await self._audio_queue.get()
-                if chunk is None:
-                    break
-                if chunk:
-                    stream.write(chunk)
-
-            stream.stop()
-            stream.close()
-        except Exception as e:  # noqa: BLE001
-            print(f"\n❌ Audio playback error: {e}", file=sys.stderr)
-
-    async def _synthesize_text(self, text: str) -> None:
-        """Synthesize text using edge-tts and queue decoded PCM audio."""
-        import edge_tts
-        import miniaudio  # type: ignore[import-untyped]
-
-        if not text.strip():
-            return
-
-        # Ensure playback task is running
-        if self._playback_task is None or self._playback_task.done():
-            self._playback_task = asyncio.create_task(self._play_audio())
-
-        try:
-            communicate = edge_tts.Communicate(
-                text,
+            provider = EdgeTTSProvider(sample_rate=self._sample_rate)
+            session = provider.session(
                 voice=self._voice,
                 rate=self._rate,
                 volume=self._volume,
                 pitch=self._pitch,
             )
+            sink = SoundDeviceSink(sample_rate=self._sample_rate)
+            self._tts_stream = TTSStream(
+                session,
+                sink=sink,
+                mode=self._mode,
+                min_text_length=self._min_text_length,
+            )
+            await self._tts_stream.__aenter__()
+        return self._tts_stream
 
-            # Collect MP3 chunks and decode to PCM
-            mp3_data = bytearray()
-            async for chunk in communicate.stream():
-                if chunk["type"] == "audio":
-                    mp3_data.extend(chunk["data"])
-
-            if mp3_data:
-                # Decode MP3 to mono 16-bit PCM at our target sample rate
-                decoded = miniaudio.decode(
-                    bytes(mp3_data),
-                    output_format=miniaudio.SampleFormat.SIGNED16,
-                    nchannels=1,
-                    sample_rate=self._sample_rate,
-                )
-                await self._audio_queue.put(decoded.samples.tobytes())
-
-        except Exception as e:  # noqa: BLE001
-            print(f"\n❌ Edge TTS error: {e}", file=sys.stderr)
-
-    async def _synthesis_worker(self) -> None:
-        """Worker that processes sentences sequentially from the queue."""
-        while True:
-            sentence = await self._sentence_queue.get()
-            if sentence is None:  # Shutdown signal
-                break
-            await self._synthesize_text(sentence)
-
-    def _schedule_synthesis(self, text: str) -> None:
-        """Queue text for sequential synthesis (non-blocking to caller)."""
-        # Start worker if not running
-        if self._synthesis_task is None or self._synthesis_task.done():
-            self._synthesis_task = asyncio.create_task(self._synthesis_worker())
-        # Queue the sentence - doesn't block
-        self._sentence_queue.put_nowait(text)
-
-    async def _cancel_pending(self) -> None:
-        """Cancel all pending synthesis and playback."""
-        # Cancel synthesis worker
-        if self._synthesis_task and not self._synthesis_task.done():
-            self._synthesis_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._synthesis_task
-            self._synthesis_task = None
-
-        # Clear sentence queue
-        while not self._sentence_queue.empty():
-            try:
-                self._sentence_queue.get_nowait()
-            except asyncio.QueueEmpty:
-                break
-
-        # Cancel playback
-        if self._playback_task and not self._playback_task.done():
-            self._playback_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._playback_task
-            self._playback_task = None
-
-        # Clear audio queue
-        while not self._audio_queue.empty():
-            try:
-                self._audio_queue.get_nowait()
-            except asyncio.QueueEmpty:
-                break
-
-        # Reset text buffer
-        self._text_buffer = ""
+    async def _close_stream(self) -> None:
+        """Close the TTS stream if open."""
+        if self._tts_stream is not None:
+            await self._tts_stream.__aexit__(None, None, None)
+            self._tts_stream = None
 
     async def __call__(self, ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
         """Handle stream events and trigger TTS synthesis."""
@@ -446,53 +231,18 @@ class EdgeTTSEventHandler:
         match event:
             case RunStartedEvent():
                 # For async_cancel mode, cancel any pending audio from previous run
-                if self._mode == "async_cancel":
-                    await self._cancel_pending()
+                if self._mode == "async_cancel" and self._tts_stream is not None:
+                    await self._tts_stream.cancel()
 
             case (
                 PartStartEvent(part=TextPart(content=delta))
                 | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
             ):
-                self._text_buffer += delta
-
-                # Check for sentence boundaries
-                if any(term in self._text_buffer for term in self._sentence_terminators):
-                    last_term = max(
-                        (self._text_buffer.rfind(term) for term in self._sentence_terminators),
-                        default=-1,
-                    )
-
-                    if last_term > 0 and last_term >= self._min_text_length:
-                        sentence = self._text_buffer[: last_term + 1].strip()
-                        self._text_buffer = self._text_buffer[last_term + 1 :]
-
-                        if sentence:
-                            if self._mode == "sync_sentence":
-                                await self._synthesize_text(sentence)
-                            else:
-                                self._schedule_synthesis(sentence)
+                stream = await self._ensure_stream()
+                await stream.feed(delta)
 
             case StreamCompleteEvent():
-                # Process remaining text
-                if self._text_buffer.strip():
-                    if self._mode == "sync_sentence":
-                        await self._synthesize_text(self._text_buffer.strip())
-                    else:
-                        self._schedule_synthesis(self._text_buffer.strip())
-                    self._text_buffer = ""
-
-                # For sync modes, wait for everything to finish
-                if self._mode in ("sync_sentence", "sync_run"):
-                    # Wait for synthesis worker to finish
-                    if self._synthesis_task and not self._synthesis_task.done():
-                        await self._sentence_queue.put(None)
-                        await self._synthesis_task
-
-                    # Signal playback to stop and wait for it
-                    await self._audio_queue.put(None)
-                    if self._playback_task and not self._playback_task.done():
-                        await self._playback_task
-                # For async modes, don't wait - let audio continue in background
+                await self._close_stream()
 
 
 class TTSEventHandlerConfig(BaseEventHandlerConfig):
@@ -543,7 +293,7 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
     )
     """Minimum text length before synthesizing (in characters)."""
 
-    mode: TTSMode = Field(
+    mode: Literal["sync_sentence", "sync_run", "async_queue", "async_cancel"] = Field(
         default="sync_run",
         examples=["sync_sentence", "sync_run", "async_queue", "async_cancel"],
         title="Synchronization Mode",
@@ -632,7 +382,7 @@ class EdgeTTSEventHandlerConfig(BaseEventHandlerConfig):
     )
     """Minimum text length before synthesizing (in characters)."""
 
-    mode: TTSMode = Field(
+    mode: Literal["sync_sentence", "sync_run", "async_queue", "async_cancel"] = Field(
         default="sync_run",
         examples=["sync_sentence", "sync_run", "async_queue", "async_cancel"],
         title="Synchronization Mode",
