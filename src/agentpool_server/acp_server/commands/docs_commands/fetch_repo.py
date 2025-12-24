@@ -133,10 +133,10 @@ class FetchRepoCommand(NodeCommand):
             staged_part = UserPromptPart(
                 content=f"Repository contents from {display_path}:\n\n{content}"
             )
-            session.add_staged_parts([staged_part])
+            session.staged_content.add([staged_part])
 
             # Send successful result - wrap in code block for proper display
-            staged_count = session.get_staged_parts_count()
+            staged_count = len(session.staged_content)
             await session.notifications.tool_call_progress(
                 tool_call_id=tool_call_id,
                 status="completed",

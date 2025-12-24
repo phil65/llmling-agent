@@ -21,6 +21,7 @@ from pydantic_ai import (
     PartDeltaEvent,
     PartStartEvent,
     RetryPromptPart,
+    SystemPromptPart,
     TextPart,
     TextPartDelta,
     ThinkingPart,
@@ -68,7 +69,7 @@ from agentpool_server.acp_server.input_provider import ACPInputProvider
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from pydantic_ai import SystemPromptPart, UserContent
+    from pydantic_ai import UserContent
     from slashed import CommandContext
 
     from acp import Client, RequestPermissionResponse
@@ -102,6 +103,31 @@ def split_commands(
         else:
             non_command_content.append(item)
     return commands, non_command_content
+
+
+@dataclass
+class StagedContent:
+    """Buffer for prompt parts to be injected into the next agent call.
+
+    This allows commands (like /fetch-repo, /git-diff) to stage content that will
+    be automatically included in the next prompt sent to the agent.
+    """
+
+    _parts: list[SystemPromptPart | UserPromptPart] = field(default_factory=list)
+
+    def add(self, parts: list[SystemPromptPart | UserPromptPart]) -> None:
+        """Add prompt parts to the staging area."""
+        self._parts.extend(parts)
+
+    def consume(self) -> list[SystemPromptPart | UserPromptPart]:
+        """Return all staged parts and clear the buffer."""
+        parts = self._parts.copy()
+        self._parts.clear()
+        return parts
+
+    def __len__(self) -> int:
+        """Return count of staged parts."""
+        return len(self._parts)
 
 
 @dataclass
@@ -167,7 +193,7 @@ class ACPSession:
         self.command_store._initialize_sync()
         self._update_callbacks: list[Callable[[], None]] = []
 
-        self._staged_parts: list[SystemPromptPart | UserPromptPart] = []
+        self.staged_content = StagedContent()
         self.notifications = ACPNotifications(client=self.client, session_id=self.session_id)
         self.requests = ACPRequests(client=self.client, session_id=self.session_id)
         self.input_provider = ACPInputProvider(self)
@@ -337,22 +363,6 @@ class ACPSession:
         """Check if the session is cancelled."""
         return self._cancelled
 
-    def get_staged_parts(self) -> list[SystemPromptPart | UserPromptPart]:
-        """Get copy of currently staged prompt parts."""
-        return self._staged_parts.copy()
-
-    def add_staged_parts(self, parts: list[SystemPromptPart | UserPromptPart]) -> None:
-        """Add prompt parts to staging area."""
-        self._staged_parts.extend(parts)
-
-    def clear_staged_parts(self) -> None:
-        """Clear all staged prompt parts."""
-        self._staged_parts.clear()
-
-    def get_staged_parts_count(self) -> int:
-        """Get count of staged parts."""
-        return len(self._staged_parts)
-
     async def process_prompt(self, content_blocks: Sequence[ContentBlock]) -> StopReason:  # noqa: PLR0911
         """Process a prompt request and stream responses.
 
@@ -379,13 +389,20 @@ class ACPSession:
                 if not non_command_content:
                     return "end_turn"
 
-            self.log.debug("Processing prompt", content_items=len(non_command_content))
+            # Consume any staged content and prepend to the prompt
+            staged = self.staged_content.consume()
+            all_content = [*staged, *non_command_content]
+            self.log.debug(
+                "Processing prompt",
+                content_items=len(non_command_content),
+                staged_items=len(staged),
+            )
             event_count = 0
             self._current_tool_inputs.clear()  # Reset tool inputs for new stream
 
             try:  # Use the session's persistent input provider
                 async for event in self.agent.run_stream(
-                    *non_command_content, input_provider=self.input_provider
+                    *all_content, input_provider=self.input_provider
                 ):
                     if self._cancelled:
                         return "cancelled"
@@ -802,9 +819,9 @@ class ACPSession:
             try:
                 # Get prompt components
                 components = await prompt.get_components(result or None)
-                self.add_staged_parts(components)
+                self.staged_content.add(components)
                 # Send confirmation
-                staged_count = self.get_staged_parts_count()
+                staged_count = len(self.staged_content)
                 await ctx.print(f"✅ Prompt {prompt.name!r} staged ({staged_count} total parts)")
 
             except Exception as e:
@@ -852,9 +869,9 @@ class ACPSession:
                     reference = f"{reference}?{params}"
                 # Get the rendered prompt
                 result = await manager.get(reference)
-                self.add_staged_parts([UserPromptPart(content=result)])
+                self.staged_content.add([UserPromptPart(content=result)])
                 # Send confirmation
-                staged_count = self.get_staged_parts_count()
+                staged_count = len(self.staged_content)
                 await ctx.print(
                     f"✅ Prompt {name!r} from {provider} staged ({staged_count} total parts)"
                 )
