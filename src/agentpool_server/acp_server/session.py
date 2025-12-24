@@ -296,6 +296,10 @@ class ACPSession:
                 agent.acp_permission_callback = permission_callback
         self.log.info("Created ACP session", current_agent=self.current_agent_name)
 
+    async def initialize(self) -> None:
+        """Initialize async resources. Must be called after construction."""
+        await self.acp_env.__aenter__()
+
     def _get_or_create_tool_state(
         self,
         tool_call_id: str,
@@ -709,6 +713,11 @@ class ACPSession:
         """Close the session and cleanup resources."""
         self._current_tool_inputs.clear()
         self._tool_call_states.clear()
+
+        try:
+            await self.acp_env.__aexit__(None, None, None)
+        except Exception:
+            self.log.exception("Error closing acp_env")
 
         try:
             # Remove cwd context callable from all agents

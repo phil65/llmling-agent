@@ -116,6 +116,9 @@ class ACPSessionManager:
             )
             session.register_update_callback(self._on_commands_updated)
 
+            # Initialize async resources
+            await session.initialize()
+
             # Initialize MCP servers if any are provided
             await session.initialize_mcp_servers()
 
@@ -188,6 +191,9 @@ class ACPSessionManager:
                 manager=self,
             )
             session.register_update_callback(self._on_commands_updated)
+
+            # Initialize async resources
+            await session.initialize()
 
             self._active[session_id] = session
             logger.info("Resumed ACP session", session_id=session_id)
