@@ -20,7 +20,7 @@ from uuid import uuid4
 
 from fastmcp import FastMCP
 from fastmcp.tools import Tool as FastMCPTool
-from pydantic import HttpUrl
+from pydantic import BaseModel, HttpUrl
 
 from agentpool.log import get_logger
 from agentpool.utils.signatures import filter_schema_params, get_params_matching_predicate
@@ -76,6 +76,31 @@ def _is_agent_context_type(annotation: Any) -> bool:
 def _get_context_param_names(fn: Callable[..., Any]) -> set[str]:
     """Get parameter names that are AgentContext (to be auto-injected)."""
     return get_params_matching_predicate(fn, lambda p: _is_agent_context_type(p.annotation))
+
+
+def _convert_to_tool_result(result: Any) -> ToolResult:
+    """Convert a tool's return value to a FastMCP ToolResult.
+
+    Handles different result types appropriately:
+    - ToolResult: Pass through unchanged
+    - dict: Use as structured_content (enables programmatic access by clients)
+    - Pydantic models: Serialize to dict for structured_content
+    - Other types: Pass to ToolResult(content=...) which handles conversion internally
+    """
+    from fastmcp.tools.tool import ToolResult
+
+    # Already a ToolResult - pass through
+    if isinstance(result, ToolResult):
+        return result
+    # Dict - use as structured_content (FastMCP auto-populates content as JSON)
+    if isinstance(result, dict):
+        return ToolResult(structured_content=result)
+    # Pydantic model - serialize to dict for structured_content
+    if isinstance(result, BaseModel):
+        return ToolResult(structured_content=result.model_dump(mode="json"))
+    # All other types (str, list, ContentBlock, Image, None, primitives, etc.)
+    # ToolResult's internal _convert_to_content handles these correctly
+    return ToolResult(content=result if result is not None else "")
 
 
 def _extract_tool_call_id(context: Context | None) -> str:
@@ -338,7 +363,6 @@ class _BridgeTool(FastMCPTool):
     async def run(self, arguments: dict[str, Any]) -> ToolResult:
         """Execute the wrapped tool with context bridging."""
         from fastmcp.server.dependencies import get_context
-        from fastmcp.tools.tool import ToolResult
 
         # Get FastMCP context from context variable (not passed as parameter)
         try:
@@ -359,10 +383,7 @@ class _BridgeTool(FastMCPTool):
         # Invoke with context - copy arguments since invoke_tool_with_context
         # modifies kwargs in-place to inject context parameters
         result = await self._bridge.invoke_tool_with_context(self._tool, ctx, arguments.copy())
-        # Convert result to ToolResult
-        if isinstance(result, str):
-            return ToolResult(content=result)
-        return ToolResult(content=str(result))
+        return _convert_to_tool_result(result)
 
 
 @asynccontextmanager
