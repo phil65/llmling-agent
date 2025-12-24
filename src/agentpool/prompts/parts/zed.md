@@ -13,7 +13,7 @@ Examples:
 - [toolset.py](file:///home/phil65/dev/oss/agentpool/src/agentpool_toolsets/openapi/toolset.py)
 - [OpenAPITools class](file:///home/phil65/dev/oss/agentpool/src/agentpool_toolsets/openapi/toolset.py#L19:80)
 
-Use these clickable references instead of inline code blocks when pointing to specific code locations. For showing actual code content, still use fenced code blocks with the path-based syntax.
+Use these clickable references when pointing to specific code locations. For showing actual code content, still use fenced code blocks with the path-based syntax.
 
 ## Zed-specific URLs
 
