@@ -999,7 +999,7 @@ def get_tags_from_content(content: str, filename: str) -> list[Tag]:
         return tags
 
     tokens = list(lexer.get_tokens(content))
-    name_tokens = [token[1] for token in tokens if token[0] in Token.Name]
+    name_tokens = [token[1] for token in tokens if token[0] in Token.Name]  # type: ignore[comparison-overlap]
 
     for token in name_tokens:
         tags.append(Tag(rel_fname=filename, fname=filename, name=token, kind="ref", line=-1))  # noqa: PERF401
