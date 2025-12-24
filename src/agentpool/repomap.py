@@ -1002,12 +1002,12 @@ def get_tags_from_content(content: str, filename: str) -> list[Tag]:
     name_tokens = [token[1] for token in tokens if token[0] in Token.Name]
 
     for token in name_tokens:
-        tags.append(Tag(rel_fname=filename, fname=filename, name=token, kind="ref", line=-1))
+        tags.append(Tag(rel_fname=filename, fname=filename, name=token, kind="ref", line=-1))  # noqa: PERF401
 
     return tags
 
 
-def get_file_map_from_content(
+def get_file_map_from_content(  # noqa: PLR0915
     content: str,
     filename: str,
     max_tokens: int = 2048,
