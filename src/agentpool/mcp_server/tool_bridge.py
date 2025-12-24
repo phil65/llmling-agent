@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager, suppress
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import inspect
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Self, get_args, get_origin
 from uuid import uuid4
 
 from fastmcp import FastMCP
@@ -23,10 +23,7 @@ from fastmcp.tools import Tool as FastMCPTool
 from pydantic import HttpUrl
 
 from agentpool.log import get_logger
-from agentpool.utils.signatures import (
-    filter_schema_params,
-    get_params_matching_predicate,
-)
+from agentpool.utils.signatures import filter_schema_params, get_params_matching_predicate
 
 
 if TYPE_CHECKING:
@@ -52,8 +49,6 @@ def _is_agent_context_type(annotation: Any) -> bool:
     RunContext requires pydantic-ai's execution context which isn't available
     in the MCP bridge.
     """
-    from typing import get_args, get_origin
-
     if annotation is None or annotation is inspect.Parameter.empty:
         return False
 
@@ -216,7 +211,7 @@ class ToolManagerBridge:
 
         Returns config suitable for passing to ACP agent's NewSessionRequest.
         """
-        from acp.schema.mcp import HttpMcpServer, SseMcpServer
+        from acp.schema import HttpMcpServer, SseMcpServer
 
         url = HttpUrl(self.url)
         if self.config.transport == "sse":
@@ -246,12 +241,8 @@ class ToolManagerBridge:
 
         # Use HTTP transport to preserve _meta field with claudecode/toolUseId
         # SDK transport drops _meta in Claude Agent SDK's query.py
-        return {
-            self.config.server_name: {
-                "type": "http",
-                "url": f"http://{self.config.host}:{self.port}/mcp",
-            }
-        }
+        url = f"http://{self.config.host}:{self.port}/mcp"
+        return {self.config.server_name: {"type": "http", "url": url}}
 
     async def _register_tools(self) -> None:
         """Register all node tools with the FastMCP server."""
@@ -282,7 +273,6 @@ class ToolManagerBridge:
         Handles tools that expect AgentContext, RunContext, or neither.
         """
         fn = tool.callable
-
         # Find context parameters and inject them
         context_param_names = _get_context_param_names(fn)
         for param_name in context_param_names:
@@ -294,7 +284,6 @@ class ToolManagerBridge:
         result = fn(**kwargs)
         if inspect.isawaitable(result):
             result = await result
-
         return result
 
     async def _start_server(self) -> None:
@@ -337,11 +326,9 @@ class _BridgeTool(FastMCPTool):
         # Get input schema from our tool
         schema = tool.schema["function"]
         input_schema = schema.get("parameters", {"type": "object", "properties": {}})
-
         # Filter out context parameters - they're auto-injected by the bridge
         context_params = _get_context_param_names(tool.callable)
         filtered_schema = filter_schema_params(input_schema, context_params)
-
         desc = tool.description or "No description"
         super().__init__(name=tool.name, description=desc, parameters=filtered_schema)
         # Set these AFTER super().__init__() to avoid being overwritten
@@ -350,8 +337,6 @@ class _BridgeTool(FastMCPTool):
 
     async def run(self, arguments: dict[str, Any]) -> ToolResult:
         """Execute the wrapped tool with context bridging."""
-        from dataclasses import replace
-
         from fastmcp.server.dependencies import get_context
         from fastmcp.tools.tool import ToolResult
 
@@ -363,7 +348,6 @@ class _BridgeTool(FastMCPTool):
 
         # Try to get Claude's original tool_call_id from request metadata
         tool_call_id = _extract_tool_call_id(mcp_context)
-
         # Create context with tool-specific metadata from node's context.
         ctx = replace(
             self._bridge.node.get_context(),

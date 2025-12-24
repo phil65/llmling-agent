@@ -68,12 +68,12 @@ if TYPE_CHECKING:
     from claude_agent_sdk import (
         ClaudeAgentOptions,
         ClaudeSDKClient,
+        McpServerConfig,
         PermissionMode,
         PermissionResult,
         ToolPermissionContext,
         ToolUseBlock,
     )
-    from claude_agent_sdk.types import McpServerConfig
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
     from toprompt import AnyPromptType
@@ -173,6 +173,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             tool_confirmation_mode: Tool confirmation behavior
             output_type: Type for structured output (uses JSON schema)
         """
+        from agentpool.agents.sys_prompts import SystemPrompts
+
         # Build config from kwargs if not provided
         if config is None:
             config = ClaudeCodeAgentConfig(
@@ -210,12 +212,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             event_handlers=event_handlers,
         )
 
-        # Store config for context property
         self._config = config
-
-        # Extract runtime state from config
-        from agentpool.agents.sys_prompts import SystemPrompts
-
         self._cwd = cwd or config.cwd
         self._allowed_tools = allowed_tools or config.allowed_tools
         self._disallowed_tools = disallowed_tools or config.disallowed_tools
@@ -266,8 +263,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             A new AgentContext instance
         """
-        from agentpool.agents.context import AgentContext
-        from agentpool.models.manifest import AgentsManifest
+        from agentpool.agents import AgentContext
+        from agentpool.models import AgentsManifest
 
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
         return AgentContext(
@@ -280,7 +277,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             Dict mapping server names to SDK-compatible config dicts
         """
-        from claude_agent_sdk.types import McpServerConfig
+        from claude_agent_sdk import McpServerConfig
 
         from agentpool_config.mcp_server import (
             SSEMCPServerConfig,
@@ -512,9 +509,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from claude_agent_sdk import ClaudeSDKClient
 
         await super().__aenter__()
-        # Setup toolsets before building options (they add MCP servers)
-        await self._setup_toolsets()
-        # Format system prompts asynchronously
+        await self._setup_toolsets()  # Setup toolsets before building opts (they add MCP servers)
         formatted_prompt = await self.sys_prompts.format_system_prompt(self)
         options = self._build_options(formatted_system_prompt=formatted_prompt)
         self._client = ClaudeSDKClient(options=options)
@@ -531,7 +526,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Disconnect from Claude Code."""
         # Clean up tool bridge first
         await self._cleanup_bridge()
-
         if self._client:
             try:
                 await self._client.disconnect()
@@ -539,7 +533,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             except Exception:
                 self.log.exception("Error disconnecting Claude Code client")
             self._client = None
-
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
     async def run(
@@ -629,10 +622,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         for handler in self.event_handler._wrapped_handlers:
             await handler(None, run_started)
         yield run_started
-
-        model_messages: list[ModelResponse | ModelRequest] = [
-            ModelRequest(parts=[UserPromptPart(content=prompt_text)])
-        ]
+        request = ModelRequest(parts=[UserPromptPart(content=prompt_text)])
+        model_messages: list[ModelResponse | ModelRequest] = [request]
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         text_chunks: list[str] = []
         pending_tool_calls: dict[str, ToolUseBlock] = {}
@@ -693,17 +684,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 case ToolResultBlock(tool_use_id=tc_id, content=content):
                                     # Tool result received - flush response parts and add request
                                     if current_response_parts:
-                                        model_messages.append(
-                                            ModelResponse(parts=current_response_parts)
-                                        )
+                                        response = ModelResponse(parts=current_response_parts)
+                                        model_messages.append(response)
                                         current_response_parts = []
 
                                     # Get tool name from pending calls
                                     tool_use = pending_tool_calls.pop(tc_id, None)
                                     tool_name = tool_use.name if tool_use else "unknown"
                                     tool_input = tool_use.input if tool_use else {}
-
-                                    # Emit ToolCallCompleteEvent
                                     tool_done_event = ToolCallCompleteEvent(
                                         tool_name=tool_name,
                                         tool_call_id=tc_id,
@@ -744,7 +732,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 tool_use = pending_tool_calls.pop(tc_id, None)
                                 tool_name = tool_use.name if tool_use else "unknown"
                                 tool_input = tool_use.input if tool_use else {}
-
                                 # Emit ToolCallCompleteEvent
                                 tool_complete_event = ToolCallCompleteEvent(
                                     tool_name=tool_name,
@@ -757,7 +744,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 for handler in self.event_handler._wrapped_handlers:
                                     await handler(None, tool_complete_event)
                                 yield tool_complete_event
-
                                 # Add tool return as ModelRequest
                                 part = ToolReturnPart(
                                     tool_name=tool_name,
@@ -778,19 +764,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             block_type = content_block.get("type")
 
                             if block_type == "text":
-                                start_event = PartStartEvent(
-                                    index=index,
-                                    part=TextPart(content=""),
-                                )
+                                start_event = PartStartEvent(index=index, part=TextPart(content=""))
                                 for handler in self.event_handler._wrapped_handlers:
                                     await handler(None, start_event)
                                 yield start_event
 
                             elif block_type == "thinking":
-                                start_event = PartStartEvent(
-                                    index=index,
-                                    part=ThinkingPart(content=""),
-                                )
+                                thinking_part = ThinkingPart(content="")
+                                start_event = PartStartEvent(index=index, part=thinking_part)
                                 for handler in self.event_handler._wrapped_handlers:
                                     await handler(None, start_event)
                                 yield start_event
@@ -807,10 +788,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             if delta_type == "text_delta":
                                 text_delta = delta.get("text", "")
                                 if text_delta:
-                                    delta_event = PartDeltaEvent(
-                                        index=index,
-                                        delta=TextPartDelta(content_delta=text_delta),
-                                    )
+                                    text_part = TextPartDelta(content_delta=text_delta)
+                                    delta_event = PartDeltaEvent(index=index, delta=text_part)
                                     for handler in self.event_handler._wrapped_handlers:
                                         await handler(None, delta_event)
                                     yield delta_event
@@ -818,10 +797,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             elif delta_type == "thinking_delta":
                                 thinking_delta = delta.get("thinking", "")
                                 if thinking_delta:
-                                    delta_event = PartDeltaEvent(
-                                        index=index,
-                                        delta=ThinkingPartDelta(content_delta=thinking_delta),
-                                    )
+                                    delta = ThinkingPartDelta(content_delta=thinking_delta)
+                                    delta_event = PartDeltaEvent(index=index, delta=delta)
                                     for handler in self.event_handler._wrapped_handlers:
                                         await handler(None, delta_event)
                                     yield delta_event
@@ -830,10 +807,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         elif event_type == "content_block_stop":
                             # We don't have the full part content here, emit with empty part
                             # The actual content was accumulated via deltas
-                            end_event = PartEndEvent(
-                                index=index,
-                                part=TextPart(content=""),  # Content already streamed
-                            )
+                            end_event = PartEndEvent(index=index, part=TextPart(content=""))
                             for handler in self.event_handler._wrapped_handlers:
                                 await handler(None, end_event)
                             yield end_event
@@ -909,7 +883,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         for handler in self.event_handler._wrapped_handlers:
             await handler(None, complete_event)
         yield complete_event
-
         # Record to history
         self.message_sent.emit(chat_message)
         conversation.add_chat_messages([user_msg, chat_message])
@@ -973,14 +946,9 @@ if __name__ == "__main__":
 
     async def main() -> None:
         """Demo: Basic call to Claude Code."""
-        async with ClaudeCodeAgent(
-            name="demo",
-            allowed_tools=["Read"],
-            event_handlers=["detailed"],
-        ) as agent:
+        async with ClaudeCodeAgent(name="demo", event_handlers=["detailed"]) as agent:
             print("Response (streaming): ", end="", flush=True)
-            async for event in agent.run_stream("What files are in the current directory?"):
-                print(event, end="", flush=True)
-            print()
+            async for _ in agent.run_stream("What files are in the current directory?"):
+                pass
 
     asyncio.run(main())
