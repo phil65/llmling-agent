@@ -85,10 +85,6 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 SLASH_PATTERN = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
-ACP_COMMANDS = {"list-sessions", "load-session", "save-session", "delete-session"}
-MAX_CMD_OUTPUT_LENGTH = 60
-
-logger = get_logger(__name__)
 
 
 def _is_slash_command(text: str) -> bool:
