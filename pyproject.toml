@@ -42,7 +42,7 @@ dependencies = [
   "httpx",
   "jinja2",
   "jinjarope",
-  "llmling-models==1.4.1",
+  "llmling-models>=1.4.1",
   "logfire",
   "mcp>=1.2.0",
   "platformdirs",
