@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from pathlib import Path
 import shlex
@@ -182,12 +181,14 @@ class ACPFile(AbstractBufferedFile):  # type: ignore[misc]
         super().__init__(fs, path, mode, **kwargs)
         self._content: bytes | None = None
         self.forced = False
+        self.fs = fs  # assign again here just for typing
 
     def _fetch_range(self, start: int | None, end: int | None) -> bytes:
         """Fetch byte range from file (sync wrapper)."""
         if self._content is None:
             # Run the async operation in the event loop
-            self._content = asyncio.run(self.fs._cat_file(self.path))
+            self._content = self.fs.cat_file(self.path)  # pyright: ignore[reportAttributeAccessIssue]
+            assert self._content
 
         if start is None and end is None:
             return self._content
@@ -200,7 +201,7 @@ class ACPFile(AbstractBufferedFile):  # type: ignore[misc]
             if isinstance(content, bytes):
                 content = content.decode("utf-8")
             # Run the async operation in the event loop
-            asyncio.run(self.fs._put_file(self.path, content))
+            self.fs.put_file(self.path, content)
         return True
 
 
