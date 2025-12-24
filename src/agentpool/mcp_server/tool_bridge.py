@@ -32,6 +32,7 @@ from agentpool.utils.signatures import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable
 
+    from claude_agent_sdk.types import McpServerConfig
     from fastmcp import Context
     from fastmcp.tools.tool import ToolResult
     from uvicorn import Server
@@ -222,7 +223,7 @@ class ToolManagerBridge:
             return SseMcpServer(name=self.config.server_name, url=url, headers=[])
         return HttpMcpServer(name=self.config.server_name, url=url, headers=[])
 
-    def get_claude_mcp_server_config(self) -> dict[str, dict[str, Any]]:
+    def get_claude_mcp_server_config(self) -> dict[str, McpServerConfig]:
         """Get Claude Agent SDK-compatible MCP server configuration.
 
         Returns a dict suitable for passing to ClaudeAgentOptions.mcp_servers.

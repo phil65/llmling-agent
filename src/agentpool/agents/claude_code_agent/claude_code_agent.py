@@ -24,13 +24,17 @@ from __future__ import annotations
 
 import asyncio
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, cast
 import uuid
 
-from pydantic_ai import PartDeltaEvent, PartEndEvent, PartStartEvent
-from pydantic_ai.messages import (
+from pydantic import TypeAdapter
+from pydantic_ai import (
     ModelRequest,
     ModelResponse,
+    PartDeltaEvent,
+    PartEndEvent,
+    PartStartEvent,
+    RunUsage,
     TextPart,
     TextPartDelta,
     ThinkingPart,
@@ -39,7 +43,6 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from pydantic_ai.usage import RunUsage
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.claude_code_agent.converters import claude_message_to_events
@@ -70,6 +73,7 @@ if TYPE_CHECKING:
         ToolPermissionContext,
         ToolUseBlock,
     )
+    from claude_agent_sdk.types import McpServerConfig
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
     from toprompt import AnyPromptType
@@ -233,7 +237,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._model = model or config.model
         self._max_turns = max_turns or config.max_turns
         self._max_thinking_tokens = max_thinking_tokens or config.max_thinking_tokens
-        self._permission_mode = permission_mode or config.permission_mode
+        self._permission_mode: PermissionMode | None = permission_mode or config.permission_mode
         self._external_mcp_servers = list(mcp_servers) if mcp_servers else config.get_mcp_servers()
         self._environment = environment or config.env
         self._add_dir = add_dir or config.add_dir
@@ -251,7 +255,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # ToolBridge state for exposing toolsets via MCP
         self._tool_bridge: ToolManagerBridge | None = None
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
-        self._mcp_servers: dict[str, dict[str, Any]] = {}  # Claude SDK MCP server configs
+        self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
 
     def get_context(self, data: Any = None) -> AgentContext:
         """Create a new context for this agent.
@@ -270,19 +274,21 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             node=self, pool=self.agent_pool, config=self._config, definition=defn, data=data
         )
 
-    def _convert_mcp_servers_to_sdk_format(self) -> dict[str, dict[str, Any]]:
+    def _convert_mcp_servers_to_sdk_format(self) -> dict[str, McpServerConfig]:
         """Convert internal MCPServerConfig to Claude SDK format.
 
         Returns:
             Dict mapping server names to SDK-compatible config dicts
         """
+        from claude_agent_sdk.types import McpServerConfig
+
         from agentpool_config.mcp_server import (
             SSEMCPServerConfig,
             StdioMCPServerConfig,
             StreamableHTTPMCPServerConfig,
         )
 
-        result: dict[str, dict[str, Any]] = {}
+        result: dict[str, McpServerConfig] = {}
 
         for idx, server in enumerate(self._external_mcp_servers):
             # Determine server name
@@ -315,7 +321,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     if server.headers:
                         config["headers"] = server.headers
 
-            result[name] = config
+            result[name] = cast(McpServerConfig, config)
 
         return result
 
@@ -394,66 +400,57 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             formatted_system_prompt: Pre-formatted system prompt from SystemPrompts manager
         """
         from claude_agent_sdk import ClaudeAgentOptions
+        from claude_agent_sdk.types import SystemPromptPreset
 
-        options_kwargs: dict[str, Any] = {}
-
-        if self._cwd:
-            options_kwargs["cwd"] = self._cwd
-        if self._allowed_tools:
-            options_kwargs["allowed_tools"] = self._allowed_tools
-        if self._disallowed_tools:
-            options_kwargs["disallowed_tools"] = self._disallowed_tools
+        # Build system prompt value
+        system_prompt: str | SystemPromptPreset | None = None
         if formatted_system_prompt:
             if self._include_builtin_system_prompt:
                 # Use SystemPromptPreset to append to builtin prompt
-                options_kwargs["system_prompt"] = {
-                    "type": "preset",
-                    "preset": "claude_code",
-                    "append": formatted_system_prompt,
-                }
+                system_prompt = SystemPromptPreset(
+                    type="preset",
+                    preset="claude_code",
+                    append=formatted_system_prompt,
+                )
             else:
-                options_kwargs["system_prompt"] = formatted_system_prompt
-        if self._model:
-            options_kwargs["model"] = self._model
-        if self._max_turns:
-            options_kwargs["max_turns"] = self._max_turns
-        if self._max_thinking_tokens:
-            options_kwargs["max_thinking_tokens"] = self._max_thinking_tokens
-        if self._permission_mode:
-            options_kwargs["permission_mode"] = self._permission_mode
-        if self._environment:
-            options_kwargs["env"] = self._environment
-        if self._add_dir:
-            options_kwargs["add_dirs"] = self._add_dir
-        if self._builtin_tools is not None:
-            options_kwargs["tools"] = self._builtin_tools
-        if self._fallback_model:
-            options_kwargs["fallback_model"] = self._fallback_model
-        # dangerously_skip_permissions is handled via permission_mode="bypassPermissions"
-        if self._dangerously_skip_permissions and not self._permission_mode:
-            options_kwargs["permission_mode"] = "bypassPermissions"
+                system_prompt = formatted_system_prompt
 
-        # Add tool permission callback if not in bypass mode
-        bypass = self._permission_mode == "bypassPermissions" or self._dangerously_skip_permissions
-        if self.tool_confirmation_mode != "never" and not bypass:
-            options_kwargs["can_use_tool"] = self._can_use_tool
+        # Determine effective permission mode
+        permission_mode = self._permission_mode
+        if self._dangerously_skip_permissions and not permission_mode:
+            permission_mode = "bypassPermissions"
 
-        # Add structured output schema if output_type is not str
+        # Determine can_use_tool callback
+        bypass = permission_mode == "bypassPermissions" or self._dangerously_skip_permissions
+        can_use_tool = (
+            self._can_use_tool if self.tool_confirmation_mode != "never" and not bypass else None
+        )
+
+        # Build structured output format if needed
+        output_format: dict[str, Any] | None = None
         if self._output_type is not str:
-            from pydantic import TypeAdapter
-
             adapter = TypeAdapter(self._output_type)
             schema = adapter.json_schema()
-            options_kwargs["output_format"] = {"type": "json_schema", "schema": schema}
+            output_format = {"type": "json_schema", "schema": schema}
 
-        # Add MCP servers from tool bridges (uses SDK transport for direct instance passing)
-        if self._mcp_servers:
-            options_kwargs["mcp_servers"] = self._mcp_servers
-
-        # Enable partial message streaming for real-time text deltas
-        options_kwargs["include_partial_messages"] = True
-
-        return ClaudeAgentOptions(**options_kwargs)
+        return ClaudeAgentOptions(
+            cwd=self._cwd,
+            allowed_tools=self._allowed_tools or [],
+            disallowed_tools=self._disallowed_tools or [],
+            system_prompt=system_prompt,
+            model=self._model,
+            max_turns=self._max_turns,
+            max_thinking_tokens=self._max_thinking_tokens,
+            permission_mode=permission_mode,
+            env=self._environment or {},
+            add_dirs=self._add_dir or [],  # type: ignore[arg-type]  # SDK uses list not Sequence
+            tools=self._builtin_tools,
+            fallback_model=self._fallback_model,
+            can_use_tool=can_use_tool,
+            output_format=output_format,
+            mcp_servers=self._mcp_servers or {},
+            include_partial_messages=True,
+        )
 
     async def _can_use_tool(  # noqa: PLR0911
         self,
@@ -473,6 +470,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
 
+        from agentpool.tools.base import Tool
+
         # Auto-grant if confirmation mode is "never"
         if self.tool_confirmation_mode == "never":
             return PermissionResultAllow()
@@ -486,15 +485,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Use input provider if available
         if self._input_provider:
-            from agentpool.tools.base import Tool
-
             # Create a dummy Tool for the confirmation dialog
-            tool = Tool(
-                callable=lambda: None,
-                name=tool_name,
-                description=f"Claude Code tool: {tool_name}",
-            )
-
+            desc = f"Claude Code tool: {tool_name}"
+            tool = Tool(callable=lambda: None, name=tool_name, description=desc)
             result = await self._input_provider.get_tool_confirmation(
                 context=self.get_context(),
                 tool=tool,
@@ -516,21 +509,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
     async def __aenter__(self) -> Self:
         """Connect to Claude Code."""
-        await super().__aenter__()
-
-        # Setup toolsets before building options (they add MCP servers)
-        await self._setup_toolsets()
-
-        # Format system prompts asynchronously
-        formatted_prompt = await self.sys_prompts.format_system_prompt(self)
-
         from claude_agent_sdk import ClaudeSDKClient
 
+        await super().__aenter__()
+        # Setup toolsets before building options (they add MCP servers)
+        await self._setup_toolsets()
+        # Format system prompts asynchronously
+        formatted_prompt = await self.sys_prompts.format_system_prompt(self)
         options = self._build_options(formatted_system_prompt=formatted_prompt)
         self._client = ClaudeSDKClient(options=options)
         await self._client.connect()
         self.log.info("Claude Code client connected")
-
         return self
 
     async def __aexit__(
@@ -883,17 +872,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if current_response_parts:
             model_messages.append(ModelResponse(parts=current_response_parts))
 
-        text_content = "".join(text_chunks)
-
         # Determine final content - use structured output if available
-        final_content: TResult
-        if self._output_type is not str and result_message and result_message.structured_output:
-            final_content = result_message.structured_output
-        else:
-            final_content = text_content  # type: ignore[assignment]
+        final_content: TResult = (
+            result_message.structured_output  # type: ignore[assignment]
+            if self._output_type is not str and result_message and result_message.structured_output
+            else "".join(text_chunks)
+        )
 
         # Build cost_info from ResultMessage if available
-        cost_info = None
+        cost_info: TokenCost | None = None
         if result_message and result_message.usage:
             usage = result_message.usage
             run_usage = RunUsage(
@@ -902,10 +889,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 cache_read_tokens=usage.get("cache_read_input_tokens", 0),
                 cache_write_tokens=usage.get("cache_creation_input_tokens", 0),
             )
-            cost_info = TokenCost(
-                token_usage=run_usage,
-                total_cost=Decimal(str(result_message.total_cost_usd or 0)),
-            )
+            total_cost = Decimal(str(result_message.total_cost_usd or 0))
+            cost_info = TokenCost(token_usage=run_usage, total_cost=total_cost)
 
         chat_message = ChatMessage[TResult](
             content=final_content,
