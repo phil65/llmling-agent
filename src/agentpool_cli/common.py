@@ -30,9 +30,8 @@ LOG_DIR = Path(platformdirs.user_log_dir("agentpool", "agentpool"))
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
 LOG_FILE = LOG_DIR / f"agentpool_{TIMESTAMP}.log"
 
-# Maximum log file size in bytes (10MB)
-MAX_LOG_SIZE = 10 * 1024 * 1024
-# Number of backup files to keep
+MAX_LOG_SIZE = 10 * 1024 * 1024  # (10MB)
+
 BACKUP_COUNT = 5
 
 
@@ -53,12 +52,8 @@ def setup_logging(
     """
     logger = logging.getLogger("agentpool")
     logger.setLevel(logging.DEBUG)
-
-    if not format_string:
-        format_string = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-
+    format_string = format_string or "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     formatter = logging.Formatter(format_string)
-
     if not handlers:
         handlers = []
         # Add stdout handler with user-specified level
@@ -66,7 +61,6 @@ def setup_logging(
         stdout_handler.setFormatter(formatter)
         stdout_handler.setLevel(level)
         handlers.append(stdout_handler)
-
         # Add file handler if requested (always DEBUG level)
         if log_to_file:
             try:
@@ -123,24 +117,18 @@ output_format_opt = t.Option(
 verbose_opt = t.Option(False, *VERBOSE_CMDS, help=VERBOSE_HELP, callback=verbose_callback)
 
 
-def format_output(
-    result: Any,
-    output_format: OutputFormat = "text",
-) -> None:
+def format_output(result: Any, output_format: OutputFormat = "text") -> None:
     """Format and print data in the requested format using TypeAdapter.
 
     Args:
         result: Any object to format
         output_format: One of: text, json, yaml
     """
-    # Use TypeAdapter for consistent serialization
     from pydantic import TypeAdapter
+    from rich.console import Console
 
     adapter = TypeAdapter(type(result))
     data = adapter.dump_python(result)
-
-    from rich.console import Console
-
     console = Console()
     match output_format:
         case "json":
