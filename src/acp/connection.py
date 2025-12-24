@@ -143,7 +143,7 @@ class Connection:
     async def _receive_loop(self) -> None:
         try:
             while True:
-                line = await self._reader.readline()
+                line = await self._read_line()
                 if not line:
                     break
                 if line in (b"null\n", b"\n"):
@@ -159,6 +159,31 @@ class Connection:
                     await self._process_message(message)
         except asyncio.CancelledError:
             return
+
+    async def _read_line(self) -> bytes:
+        """Read a newline-delimited line without size limit.
+
+        The default StreamReader.readline() has a 64KB limit which breaks
+        when tool results contain large content (e.g., big file reads).
+        This method reads in chunks until a newline is found.
+        """
+        chunks: list[bytes] = []
+        while True:
+            try:
+                # Try readline first - it's more efficient for small messages
+                chunk = await self._reader.readline()
+                chunks.append(chunk)
+                # readline returns data ending with \n, or partial data at EOF
+                if chunk.endswith(b"\n") or not chunk:
+                    return b"".join(chunks)
+            except ValueError:
+                # LimitOverrunError is raised as ValueError with message about limit
+                # Read whatever is available and continue
+                chunk = await self._reader.read(1024 * 1024)  # Read up to 1MB
+                if not chunk:
+                    # EOF reached
+                    return b"".join(chunks)
+                chunks.append(chunk)
 
     async def _process_message(self, message: dict[str, Any]) -> None:
         method = message.get("method")
