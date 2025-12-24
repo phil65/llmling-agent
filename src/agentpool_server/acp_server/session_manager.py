@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from acp import Client
-    from acp.schema import McpServer
+    from acp.schema import Implementation, McpServer
     from agentpool import AgentPool
     from agentpool.sessions import SessionManager
     from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
@@ -60,6 +60,7 @@ class ACPSessionManager:
         mcp_servers: Sequence[McpServer] | None = None,
         session_id: str | None = None,
         client_capabilities: ClientCapabilities | None = None,
+        client_info: Implementation | None = None,
     ) -> str:
         """Create a new ACP session.
 
@@ -71,6 +72,7 @@ class ACPSessionManager:
             mcp_servers: Optional MCP server configurations
             session_id: Optional specific session ID (generated if None)
             client_capabilities: Client capabilities for tool registration
+            client_info: Client implementation info (name, version)
 
         Returns:
             Session ID for the created session
@@ -109,6 +111,7 @@ class ACPSessionManager:
                 mcp_servers=mcp_servers,
                 acp_agent=acp_agent,
                 client_capabilities=client_capabilities or ClientCapabilities(),
+                client_info=client_info,
                 manager=self,
             )
             session.register_update_callback(self._on_commands_updated)
@@ -137,6 +140,7 @@ class ACPSessionManager:
         client: Client,
         acp_agent: AgentPoolACPAgent,
         client_capabilities: ClientCapabilities | None = None,
+        client_info: Implementation | None = None,
     ) -> ACPSession | None:
         """Resume a session from storage.
 
@@ -145,6 +149,7 @@ class ACPSessionManager:
             client: ACP client connection
             acp_agent: ACP agent instance
             client_capabilities: Client capabilities
+            client_info: Client implementation info (name, version)
 
         Returns:
             Resumed ACPSession if found, None otherwise
@@ -179,6 +184,7 @@ class ACPSessionManager:
                 mcp_servers=None,  # MCP servers would need to be re-provided
                 acp_agent=acp_agent,
                 client_capabilities=client_capabilities or ClientCapabilities(),
+                client_info=client_info,
                 manager=self,
             )
             session.register_update_callback(self._on_commands_updated)

@@ -46,6 +46,7 @@ if TYPE_CHECKING:
         CancelNotification,
         ClientCapabilities,
         ForkSessionRequest,
+        Implementation,
         InitializeRequest,
         ListSessionsRequest,
         LoadSessionRequest,
@@ -161,6 +162,7 @@ class AgentPoolACPAgent(ACPAgent):
         """Initialize derived attributes and setup after field assignment."""
         self.client: Client = self.connection
         self.client_capabilities: ClientCapabilities | None = None
+        self.client_info: Implementation | None = None
         self.session_manager = ACPSessionManager(pool=self.agent_pool)
         self.tasks = TaskManager()
         self._initialized = False
@@ -177,7 +179,12 @@ class AgentPoolACPAgent(ACPAgent):
         logger.info("Initializing ACP agent implementation")
         version = min(params.protocol_version, self.PROTOCOL_VERSION)
         self.client_capabilities = params.client_capabilities
-        logger.info("Client capabilities", capabilities=self.client_capabilities)
+        self.client_info = params.client_info
+        logger.info(
+            "Client capabilities",
+            capabilities=self.client_capabilities,
+            client_info=self.client_info,
+        )
         self._initialized = True
         response = InitializeResponse.create(
             protocol_version=version,
@@ -220,6 +227,7 @@ class AgentPoolACPAgent(ACPAgent):
                 acp_agent=self,
                 mcp_servers=params.mcp_servers,
                 client_capabilities=self.client_capabilities,
+                client_info=self.client_info,
             )
 
             # Get mode information - pass through from ACPAgent or use our confirmation modes
@@ -306,6 +314,7 @@ class AgentPoolACPAgent(ACPAgent):
                     client=self.client,
                     acp_agent=self,
                     client_capabilities=self.client_capabilities,
+                    client_info=self.client_info,
                 )
 
             if not session:
@@ -487,6 +496,7 @@ class AgentPoolACPAgent(ACPAgent):
             mcp_servers=params.mcp_servers,
             session_id=None,  # Let it generate a new ID
             client_capabilities=self.client_capabilities,
+            client_info=self.client_info,
         )
         return ForkSessionResponse(session_id=session_id)
 
@@ -507,6 +517,7 @@ class AgentPoolACPAgent(ACPAgent):
                 client=self.client,
                 acp_agent=self,
                 client_capabilities=self.client_capabilities,
+                client_info=self.client_info,
             )
             if not session:
                 logger.warning("Session not found", session_id=params.session_id)
@@ -562,6 +573,7 @@ class AgentPoolACPAgent(ACPAgent):
                     acp_agent=self,
                     session_id=params.session_id,
                     client_capabilities=self.client_capabilities,
+                    client_info=self.client_info,
                 )
                 session = self.session_manager.get_session(params.session_id)
                 if session:

@@ -21,7 +21,6 @@ from pydantic_ai import (
     PartDeltaEvent,
     PartStartEvent,
     RetryPromptPart,
-    SystemPromptPart,
     TextPart,
     TextPartDelta,
     ThinkingPart,
@@ -69,11 +68,19 @@ from agentpool_server.acp_server.input_provider import ACPInputProvider
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from pydantic_ai import UserContent
+    from pydantic_ai import (
+        SystemPromptPart,
+        UserContent,
+    )
     from slashed import CommandContext
 
     from acp import Client, RequestPermissionResponse
-    from acp.schema import ContentBlock, McpServer, StopReason
+    from acp.schema import (
+        ContentBlock,
+        Implementation,
+        McpServer,
+        StopReason,
+    )
     from agentpool import AgentPool
     from agentpool.agents import AGUIAgent
     from agentpool.agents.claude_code_agent import ClaudeCodeAgent
@@ -85,6 +92,34 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 SLASH_PATTERN = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
+
+# Zed-specific instructions for code references
+ZED_CLIENT_PROMPT = """\
+## Code References
+
+When referencing code locations in responses, use markdown links with `file://` URLs:
+
+- **File**: `[filename](file:///absolute/path/to/file.py)`
+- **Line range**: `[filename#L10-25](file:///absolute/path/to/file.py#L10:25)`
+- **Single line**: `[filename#L10](file:///absolute/path/to/file.py#L10:10)`
+- **Directory**: `[dirname/](file:///absolute/path/to/dir/)`
+
+Line range format is `#L<start>:<end>` (1-based, inclusive).
+
+Use these clickable references instead of inline code blocks when pointing to specific \
+code locations. For showing actual code content, still use fenced code blocks.
+
+## Zed-specific URLs
+
+In addition to `file://` URLs, these `zed://` URLs work in the agent context:
+
+- **File reference**: `[text](zed:///agent/file?path=/absolute/path/to/file.py)`
+- **Selection**: `[text](zed:///agent/selection?path=/absolute/path/to/file.py#L10:25)`
+- **Symbol**: `[text](zed:///agent/symbol/function_name?path=/absolute/path/to/file.py#L10:25)`
+- **Directory**: `[text](zed:///agent/directory?path=/absolute/path/to/dir)`
+
+Query params must be URL-encoded (spaces → `%20`). Paths must be absolute.
+"""
 
 
 def _is_slash_command(text: str) -> bool:
@@ -119,11 +154,27 @@ class StagedContent:
         """Add prompt parts to the staging area."""
         self._parts.extend(parts)
 
+    def add_text(self, content: str) -> None:
+        """Add text content to the staging area as a UserPromptPart."""
+        self._parts.append(UserPromptPart(content=content))
+
     def consume(self) -> list[SystemPromptPart | UserPromptPart]:
         """Return all staged parts and clear the buffer."""
         parts = self._parts.copy()
         self._parts.clear()
         return parts
+
+    def consume_as_text(self) -> str | None:
+        """Return all staged content as a single string and clear the buffer.
+
+        Returns:
+            Combined text content, or None if nothing staged.
+        """
+        if not self._parts:
+            return None
+        texts = [part.content for part in self._parts if isinstance(part.content, str)]
+        self._parts.clear()
+        return "\n\n".join(texts) if texts else None
 
     def __len__(self) -> int:
         """Return count of staged parts."""
@@ -166,6 +217,9 @@ class ACPSession:
     client_capabilities: ClientCapabilities = field(default_factory=ClientCapabilities)
     """Client capabilities for tool registration"""
 
+    client_info: Implementation | None = None
+    """Client implementation info (name, version, title)"""
+
     manager: ACPSessionManager | None = None
     """Session manager for managing sessions. Used for session management commands."""
 
@@ -194,6 +248,9 @@ class ACPSession:
         self._update_callbacks: list[Callable[[], None]] = []
 
         self.staged_content = StagedContent()
+        # Inject Zed-specific instructions if client is Zed
+        if self.client_info and self.client_info.name and "zed" in self.client_info.name.lower():
+            self.staged_content.add_text(ZED_CLIENT_PROMPT)
         self.notifications = ACPNotifications(client=self.client, session_id=self.session_id)
         self.requests = ACPRequests(client=self.client, session_id=self.session_id)
         self.input_provider = ACPInputProvider(self)
@@ -390,12 +447,12 @@ class ACPSession:
                     return "end_turn"
 
             # Consume any staged content and prepend to the prompt
-            staged = self.staged_content.consume()
-            all_content = [*staged, *non_command_content]
+            staged = self.staged_content.consume_as_text()
+            all_content = [staged, *non_command_content] if staged else list(non_command_content)
             self.log.debug(
                 "Processing prompt",
                 content_items=len(non_command_content),
-                staged_items=len(staged),
+                has_staged=staged is not None,
             )
             event_count = 0
             self._current_tool_inputs.clear()  # Reset tool inputs for new stream
