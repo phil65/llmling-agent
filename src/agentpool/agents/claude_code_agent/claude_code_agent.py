@@ -610,8 +610,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         conversation = message_history if message_history is not None else self.conversation
         # Prepare prompts
         user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
-        # Join prompts into single string for Claude SDK
-        prompt_text = " ".join(str(p) for p in processed_prompts)
+        # Get pending parts from conversation (staged content)
+        pending_parts = conversation.get_pending_parts()
+        # Combine pending parts with new prompts, then join into single string for Claude SDK
+        all_parts = [*pending_parts, *processed_prompts]
+        prompt_text = " ".join(str(p) for p in all_parts)
         run_id = str(uuid.uuid4())
         # Emit run started
         run_started = RunStartedEvent(
