@@ -41,7 +41,7 @@ class RichToolInfo:
     """Rich content items (diffs, text, etc.)."""
 
 
-def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo:  # noqa: PLR0911
+def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo:  # noqa: PLR0911, PLR0915
     """Derive rich display info from tool name and input arguments.
 
     Maps MCP tool names and their inputs to human-readable titles, kinds,
@@ -65,7 +65,6 @@ def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo
 
     # Normalize to lowercase for matching
     tool_lower = actual_name.lower()
-
     # Read operations
     if tool_lower in ("read", "read_file"):
         path = input_data.get("file_path") or input_data.get("path", "")
@@ -79,12 +78,9 @@ def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo
             suffix = f" ({start}-{end})"
         elif offset:
             suffix = f" (from line {offset + 1})"
-
-        return RichToolInfo(
-            title=f"Read {path}{suffix}" if path else "Read File",
-            kind="read",
-            locations=[LocationContentItem(path=path, line=offset or 0)] if path else [],
-        )
+        title = f"Read {path}{suffix}" if path else "Read File"
+        locations = [LocationContentItem(path=path, line=offset or 0)] if path else []
+        return RichToolInfo(title=title, kind="read", locations=locations)
 
     # Write operations
     if tool_lower in ("write", "write_file"):
@@ -96,7 +92,6 @@ def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo
             locations=[LocationContentItem(path=path)] if path else [],
             content=[DiffContentItem(path=path, old_text=None, new_text=content)] if path else [],
         )
-
     # Edit operations
     if tool_lower in ("edit", "edit_file"):
         path = input_data.get("file_path") or input_data.get("path", "")
@@ -110,16 +105,12 @@ def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo
             if path
             else [],
         )
-
     # Delete operations
     if tool_lower in ("delete", "delete_path", "delete_file"):
         path = input_data.get("file_path") or input_data.get("path", "")
-        return RichToolInfo(
-            title=f"Delete {path}" if path else "Delete",
-            kind="delete",
-            locations=[LocationContentItem(path=path)] if path else [],
-        )
-
+        locations = [LocationContentItem(path=path)] if path else []
+        title = f"Delete {path}" if path else "Delete"
+        return RichToolInfo(title=title, kind="delete", locations=locations)
     # Bash/terminal operations
     if tool_lower in ("bash", "execute", "run_command", "execute_command", "execute_code"):
         command = input_data.get("command") or input_data.get("code", "")
@@ -127,7 +118,6 @@ def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo
         escaped_cmd = command.replace("`", "\\`") if command else ""
         title = f"`{escaped_cmd}`" if escaped_cmd else "Terminal"
         return RichToolInfo(title=title, kind="execute")
-
     # Search operations
     if tool_lower in ("grep", "search", "glob", "find"):
         pattern = input_data.get("pattern") or input_data.get("query", "")
@@ -135,52 +125,36 @@ def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo
         title = f"Search for '{pattern}'" if pattern else "Search"
         if path:
             title += f" in {path}"
-        return RichToolInfo(
-            title=title,
-            kind="search",
-            locations=[LocationContentItem(path=path)] if path else [],
-        )
-
+        locations = [LocationContentItem(path=path)] if path else []
+        return RichToolInfo(title=title, kind="search", locations=locations)
     # List directory
     if tool_lower in ("ls", "list", "list_directory"):
         path = input_data.get("path", ".")
-        return RichToolInfo(
-            title=f"List {path}" if path != "." else "List current directory",
-            kind="search",
-            locations=[LocationContentItem(path=path)] if path else [],
-        )
-
+        title = f"List {path}" if path != "." else "List current directory"
+        locations = [LocationContentItem(path=path)] if path else []
+        return RichToolInfo(title=title, kind="search", locations=locations)
     # Web operations
     if tool_lower in ("webfetch", "web_fetch", "fetch"):
         url = input_data.get("url", "")
         return RichToolInfo(title=f"Fetch {url}" if url else "Web Fetch", kind="fetch")
-
     if tool_lower in ("websearch", "web_search", "search_web"):
         query = input_data.get("query", "")
         return RichToolInfo(title=f"Search: {query}" if query else "Web Search", kind="fetch")
-
     # Task/subagent operations
     if tool_lower == "task":
         description = input_data.get("description", "")
         return RichToolInfo(title=description if description else "Task", kind="think")
-
     # Notebook operations
     if tool_lower in ("notebookread", "notebook_read"):
         path = input_data.get("notebook_path", "")
-        return RichToolInfo(
-            title=f"Read Notebook {path}" if path else "Read Notebook",
-            kind="read",
-            locations=[LocationContentItem(path=path)] if path else [],
-        )
-
+        title = f"Read Notebook {path}" if path else "Read Notebook"
+        locations = [LocationContentItem(path=path)] if path else []
+        return RichToolInfo(title=title, kind="read", locations=locations)
     if tool_lower in ("notebookedit", "notebook_edit"):
         path = input_data.get("notebook_path", "")
-        return RichToolInfo(
-            title=f"Edit Notebook {path}" if path else "Edit Notebook",
-            kind="edit",
-            locations=[LocationContentItem(path=path)] if path else [],
-        )
-
+        title = f"Edit Notebook {path}" if path else "Edit Notebook"
+        locations = [LocationContentItem(path=path)] if path else []
+        return RichToolInfo(title=title, kind="edit", locations=locations)
     # Default: use the tool name as title
     return RichToolInfo(title=actual_name, kind="other")
 
@@ -247,7 +221,7 @@ def claude_message_to_events(
                 if isinstance(block, ToolResultBlock) and pending_tool_calls is not None:
                     tool_use = pending_tool_calls.pop(block.tool_use_id, None)
                     if tool_use:
-                        event = ToolCallCompleteEvent(
+                        complete_event = ToolCallCompleteEvent(
                             tool_name=tool_use.name,
                             tool_call_id=block.tool_use_id,
                             tool_input=tool_use.input,
@@ -255,7 +229,7 @@ def claude_message_to_events(
                             agent_name=agent_name,
                             message_id="",
                         )
-                        events.append(event)
+                        events.append(complete_event)
                     continue
 
                 # Convert other blocks to events

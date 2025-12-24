@@ -57,7 +57,7 @@ class ToolCallState:
         self.tool_call_id = tool_call_id
         self.tool_name = tool_name
         self._initial_title = title
-        self._initial_kind = kind
+        self._initial_kind: ToolCallKind = kind
         self._raw_input = raw_input
         self._started = False
         self._has_content = False  # Track if content has been sent
@@ -110,14 +110,12 @@ class ToolCallState:
             in the notification. This follows the ACP spec which states
             that only changed fields need to be sent.
         """
-        if not self._started:
-            await self.start()
-
-        # Build kwargs with only the provided fields
         from acp.schema.tool_call import ToolCallLocation
 
+        if not self._started:
+            await self.start()
+        # Build kwargs with only the provided fields
         kwargs: dict[str, Any] = {}
-
         if title is not None:
             kwargs["title"] = title
         if status is not None:
@@ -142,33 +140,6 @@ class ToolCallState:
                 **kwargs,
             )
 
-    async def add_terminal(self, terminal_id: str, *, title: str | None = None) -> None:
-        """Add terminal content to the tool call.
-
-        Args:
-            terminal_id: ID of the terminal to embed
-            title: Optional title update
-        """
-        from acp.schema import TerminalToolCallContent
-
-        terminal_content = TerminalToolCallContent(terminal_id=terminal_id)
-        await self.update(
-            content=[terminal_content],
-            title=title,
-            status="in_progress",
-        )
-
-    async def add_text(self, text: str) -> None:
-        """Add text content to the tool call.
-
-        Args:
-            text: Text to add
-        """
-        from acp.schema import ContentToolCallContent
-
-        text_content = ContentToolCallContent.text(text=text)
-        await self.update(content=[text_content])
-
     async def complete(
         self,
         raw_output: Any = None,
@@ -190,12 +161,7 @@ class ToolCallState:
             title=title,
         )
 
-    async def fail(
-        self,
-        error: str | None = None,
-        *,
-        raw_output: Any = None,
-    ) -> None:
+    async def fail(self, error: str | None = None, *, raw_output: Any = None) -> None:
         """Mark tool call as failed.
 
         Args:
