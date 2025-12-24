@@ -24,7 +24,7 @@ agents:
     event_handlers:
       - type: builtin
         handler: simple
-      - type: tts
+      - type: tts-openai
         voice: alloy
         mode: sync_sentence
         min_text_length: 15
@@ -40,7 +40,7 @@ agents:
     event_handlers:
       - type: builtin
         handler: simple
-      - type: tts
+      - type: tts-openai
         voice: echo
         mode: sync_run
         min_text_length: 15
@@ -56,7 +56,7 @@ agents:
     event_handlers:
       - type: builtin
         handler: simple
-      - type: tts
+      - type: tts-openai
         voice: fable
         mode: async_queue
         min_text_length: 15
@@ -72,7 +72,7 @@ agents:
     event_handlers:
       - type: builtin
         handler: simple
-      - type: tts
+      - type: tts-openai
         voice: nova
         mode: async_cancel
         min_text_length: 15

@@ -216,8 +216,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -301,6 +301,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -330,6 +331,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -389,6 +393,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -418,6 +423,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -861,8 +869,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -1493,8 +1501,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -1578,6 +1586,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -1607,6 +1616,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -1666,6 +1678,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -1695,6 +1708,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -1888,6 +1904,16 @@
             "anthropic:claude-3-sonnet"
           ],
           "title": "Model identifier",
+          "type": "string"
+        },
+        "auth_method": {
+          "default": "api_key",
+          "description": "Use 'oauth' for Claude Max/Pro subscription authentication",
+          "enum": [
+            "api_key",
+            "oauth"
+          ],
+          "title": "Authentication method",
           "type": "string"
         },
         "max_tokens": {
@@ -2693,8 +2719,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -2778,6 +2804,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -2807,6 +2834,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -2866,6 +2896,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -2895,6 +2926,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -5671,8 +5705,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -5756,6 +5790,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -5785,6 +5820,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -5844,6 +5882,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -5873,6 +5912,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -6803,8 +6845,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -6888,6 +6930,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -6917,6 +6960,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -6976,6 +7022,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -7005,6 +7052,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -7764,8 +7814,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -8652,6 +8702,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -8681,6 +8732,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -8926,8 +8980,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -9011,6 +9065,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -9040,6 +9095,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -9099,6 +9157,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -9128,6 +9187,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -9943,8 +10005,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -10028,6 +10090,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -10057,6 +10120,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -10116,6 +10182,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -10145,6 +10212,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -14300,8 +14370,8 @@
       "description": "Configuration for Edge TTS event handler (free, no API key required).\n\nUses Microsoft Edge's TTS service via edge-tts library.\nSupports many voices and languages without requiring an API key.",
       "properties": {
         "type": {
-          "const": "edge-tts",
-          "default": "edge-tts",
+          "const": "tts-edge",
+          "default": "tts-edge",
           "description": "Edge TTS event handler.",
           "title": "Type",
           "type": "string"
@@ -14325,41 +14395,47 @@
           "title": "Voice name",
           "type": "string"
         },
-        "rate": {
-          "default": "+0%",
-          "description": "Speaking rate adjustment (e.g., '+25%', '-10%').",
+        "speed": {
+          "default": 1.0,
+          "description": "Speed of speech (0.25 to 4.0, default 1.0).",
           "examples": [
-            "-50%",
-            "+0%",
-            "+25%",
-            "+50%"
+            0.5,
+            1.0,
+            1.5,
+            2.0
           ],
-          "title": "Speech rate",
-          "type": "string"
+          "maximum": 4.0,
+          "minimum": 0.25,
+          "title": "Speed of speech",
+          "type": "number"
         },
         "volume": {
-          "default": "+0%",
-          "description": "Volume adjustment (e.g., '+10%', '-20%').",
+          "default": 1.0,
+          "description": "Volume level (0.0 to 2.0, default 1.0 = normal).",
           "examples": [
-            "-50%",
-            "+0%",
-            "+25%",
-            "+50%"
+            0.5,
+            1.0,
+            1.5,
+            2.0
           ],
+          "maximum": 2.0,
+          "minimum": 0.0,
           "title": "Volume",
-          "type": "string"
+          "type": "number"
         },
         "pitch": {
-          "default": "+0Hz",
-          "description": "Pitch adjustment in Hz (e.g., '+10Hz', '-5Hz').",
+          "default": 0.0,
+          "description": "Pitch adjustment in Hz (default 0.0 = no change).",
           "examples": [
-            "-50Hz",
-            "+0Hz",
-            "+25Hz",
-            "+50Hz"
+            -50.0,
+            0.0,
+            25.0,
+            50.0
           ],
+          "maximum": 100.0,
+          "minimum": -100.0,
           "title": "Pitch",
-          "type": "string"
+          "type": "number"
         },
         "sample_rate": {
           "default": 24000,
@@ -14691,6 +14767,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -14720,6 +14797,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -18326,8 +18406,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -18411,6 +18491,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -18440,6 +18521,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -18499,6 +18583,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -18528,6 +18613,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -20096,8 +20184,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -20181,6 +20269,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -20210,6 +20299,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -20269,6 +20361,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -20298,6 +20391,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -21748,8 +21844,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -21833,6 +21929,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -21862,6 +21959,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -21921,6 +22021,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -21950,6 +22051,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -23710,8 +23814,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -23795,6 +23899,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -23824,6 +23929,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -23883,6 +23991,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -23912,6 +24021,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -26428,8 +26540,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -26513,6 +26625,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -26542,6 +26655,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -26601,6 +26717,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -26630,6 +26747,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -26809,6 +26929,163 @@
       },
       "title": "MistralConfig",
       "type": "object"
+    },
+    "MockExecutionEnvironmentConfig": {
+      "additionalProperties": false,
+      "description": "Mock execution environment configuration.\n\nFor testing purposes. Uses an in-memory filesystem and configurable results.\nDicts are passed as **kwargs to ExecutionResult/ProcessOutput constructors.",
+      "properties": {
+        "type": {
+          "const": "mock",
+          "default": "mock",
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of packages to install (pip for Python, npm for JS/TS).",
+          "examples": [
+            "numpy",
+            "pandas"
+          ],
+          "title": "Dependencies"
+        },
+        "timeout": {
+          "default": 60.0,
+          "description": "Execution timeout in seconds.",
+          "examples": [
+            120.0,
+            300.0
+          ],
+          "exclusiveMinimum": 0.0,
+          "title": "Execution Timeout",
+          "type": "number"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for the environment (None means use default/auto).",
+          "examples": [
+            "/home/user/project",
+            "/tmp/workspace"
+          ],
+          "title": "Working Directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "code_results": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Map of code string to ExecutionResult kwargs dict.",
+          "examples": [
+            {
+              "print('hello')": {
+                "stdout": "hello",
+                "success": true
+              }
+            }
+          ],
+          "title": "Code Results"
+        },
+        "command_results": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Map of command string to ExecutionResult kwargs dict.",
+          "examples": [
+            {
+              "ls": {
+                "stdout": "file1.txt",
+                "success": true
+              }
+            }
+          ],
+          "title": "Command Results"
+        },
+        "default_result": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Default ExecutionResult kwargs when no specific match is found.",
+          "examples": [
+            {
+              "stdout": "",
+              "success": true
+            }
+          ],
+          "title": "Default Result"
+        },
+        "deterministic_ids": {
+          "default": false,
+          "description": "Use sequential IDs instead of UUIDs for processes (useful for snapshot testing).",
+          "title": "Deterministic IDs",
+          "type": "boolean"
+        },
+        "files": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Map of file paths to contents to pre-populate in the in-memory filesystem.",
+          "examples": [
+            {
+              "/data/config.json": "{\"key\": \"value\"}",
+              "/test/hello.txt": "Hello, World!"
+            }
+          ],
+          "title": "Files"
+        }
+      },
+      "title": "MockExecutionEnvironmentConfig",
+      "type": "object",
+      "x-doc-title": "Mock Execution Environment"
     },
     "ModalExecutionEnvironmentConfig": {
       "additionalProperties": false,
@@ -27316,8 +27593,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -29180,6 +29457,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -29209,6 +29487,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -30549,8 +30830,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -30634,6 +30915,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -30663,6 +30945,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -30722,6 +31007,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -30751,6 +31037,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -31118,8 +31407,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -31203,6 +31492,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -31232,6 +31522,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -31291,6 +31584,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -31320,6 +31614,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -33471,6 +33768,7 @@
               "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
               "local": "#/$defs/LocalExecutionEnvironmentConfig",
               "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+              "mock": "#/$defs/MockExecutionEnvironmentConfig",
               "modal": "#/$defs/ModalExecutionEnvironmentConfig",
               "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
               "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -33500,6 +33798,9 @@
             },
             {
               "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+            },
+            {
+              "$ref": "#/$defs/MockExecutionEnvironmentConfig"
             },
             {
               "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -37451,8 +37752,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -37536,6 +37837,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -37565,6 +37867,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -37624,6 +37929,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -37653,6 +37959,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -41577,9 +41886,9 @@
       "description": "Configuration for Text-to-Speech event handler with OpenAI streaming.",
       "properties": {
         "type": {
-          "const": "tts",
-          "default": "tts",
-          "description": "TTS event handler.",
+          "const": "tts-openai",
+          "default": "tts-openai",
+          "description": "OpenAI TTS event handler.",
           "title": "Type",
           "type": "string"
         },
@@ -42094,8 +42403,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -42247,6 +42556,36 @@
             ]
           ],
           "title": "Available tools"
+        },
+        "tool_args": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional mapping of tool_name -> args to use instead of generated args.",
+          "examples": [
+            {
+              "read_file": {
+                "path": "/test/file.txt"
+              }
+            }
+          ],
+          "title": "Fixed tool arguments"
+        },
+        "seed": {
+          "default": 0,
+          "description": "Seed for generating random tool arguments (when tool_args not specified).",
+          "title": "Random seed",
+          "type": "integer"
         }
       },
       "title": "TestModelConfig",
@@ -44688,8 +45027,8 @@
               "mapping": {
                 "builtin": "#/$defs/StdoutEventHandlerConfig",
                 "callback": "#/$defs/CallbackEventHandlerConfig",
-                "edge-tts": "#/$defs/EdgeTTSEventHandlerConfig",
-                "tts": "#/$defs/TTSEventHandlerConfig"
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
               },
               "propertyName": "type"
             },
@@ -44773,6 +45112,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -44802,6 +45142,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
@@ -44861,6 +45204,7 @@
                   "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
                   "local": "#/$defs/LocalExecutionEnvironmentConfig",
                   "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
                   "modal": "#/$defs/ModalExecutionEnvironmentConfig",
                   "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
                   "srt": "#/$defs/SRTExecutionEnvironmentConfig",
@@ -44890,6 +45234,9 @@
                 },
                 {
                   "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
                 },
                 {
                   "$ref": "#/$defs/ModalExecutionEnvironmentConfig"

@@ -2,21 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import ConfigDict, Field
 from pydantic.types import SecretStr
-from pydantic_ai import PartDeltaEvent, PartStartEvent, TextPart, TextPartDelta
 from schemez import Schema
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from anyvoice import TTSMode, TTSStream
-    from pydantic_ai import RunContext
-
-    from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.common_types import IndividualEventHandler
 
 StdOutStyle = Literal["simple", "detailed"]
@@ -91,167 +86,13 @@ class CallbackEventHandlerConfig(BaseEventHandlerConfig):
         return import_callable(self.import_path)
 
 
-class TTSEventHandler:
-    """Event handler adapter that bridges pydantic-ai events to anyvoice.
-
-    This is a thin adapter that translates stream events to TTSStream.feed() calls.
-    All TTS logic is delegated to the anyvoice library.
-    """
-
-    def __init__(
-        self,
-        *,
-        api_key: str | None = None,
-        model: TTSModel = "tts-1",
-        voice: TTSVoice = "alloy",
-        speed: float = 1.0,
-        chunk_size: int = 1024,
-        sample_rate: int = 24000,
-        min_text_length: int = 20,
-        mode: TTSMode = "sync_run",
-    ) -> None:
-        self._api_key = api_key
-        self._model: TTSModel = model
-        self._voice: TTSVoice = voice
-        self._speed = speed
-        self._chunk_size = chunk_size
-        self._sample_rate = sample_rate
-        self._min_text_length = min_text_length
-        self._mode: TTSMode = mode
-        self._tts_stream: TTSStream | None = None
-
-    async def _ensure_stream(self) -> TTSStream:
-        """Get or create the TTS stream."""
-        if self._tts_stream is None:
-            from anyvoice import OpenAITTSProvider, SoundDeviceSink, TTSStream
-
-            provider = OpenAITTSProvider(api_key=self._api_key)
-            session = provider.session(
-                model=self._model,
-                voice=self._voice,
-                speed=self._speed,
-                chunk_size=self._chunk_size,
-            )
-            sink = SoundDeviceSink(sample_rate=self._sample_rate)
-            self._tts_stream = TTSStream(
-                session,
-                sink=sink,
-                mode=self._mode,
-                min_text_length=self._min_text_length,
-            )
-            await self._tts_stream.__aenter__()
-        return self._tts_stream
-
-    async def _close_stream(self) -> None:
-        """Close the TTS stream if open."""
-        if self._tts_stream is not None:
-            await self._tts_stream.__aexit__(None, None, None)
-            self._tts_stream = None
-
-    async def __call__(self, ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
-        """Handle stream events and trigger TTS synthesis."""
-        from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
-
-        match event:
-            case RunStartedEvent():
-                # For async_cancel mode, cancel any pending audio from previous run
-                if self._mode == "async_cancel" and self._tts_stream is not None:
-                    await self._tts_stream.cancel()
-
-            case (
-                PartStartEvent(part=TextPart(content=delta))
-                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
-            ):
-                stream = await self._ensure_stream()
-                await stream.feed(delta)
-
-            case StreamCompleteEvent():
-                await self._close_stream()
-
-
-class EdgeTTSEventHandler:
-    """Event handler adapter that bridges pydantic-ai events to anyvoice with Edge TTS.
-
-    This is a thin adapter that translates stream events to TTSStream.feed() calls.
-    Uses the free Microsoft Edge TTS service (no API key required).
-    """
-
-    def __init__(
-        self,
-        *,
-        voice: str = "en-US-AriaNeural",
-        rate: str = "+0%",
-        volume: str = "+0%",
-        pitch: str = "+0Hz",
-        sample_rate: int = 24000,
-        min_text_length: int = 20,
-        mode: TTSMode = "sync_run",
-    ) -> None:
-        self._voice = voice
-        self._rate = rate
-        self._volume = volume
-        self._pitch = pitch
-        self._sample_rate = sample_rate
-        self._min_text_length = min_text_length
-        self._mode: TTSMode = mode
-        self._tts_stream: TTSStream | None = None
-
-    async def _ensure_stream(self) -> TTSStream:
-        """Get or create the TTS stream."""
-        if self._tts_stream is None:
-            from anyvoice import EdgeTTSProvider, SoundDeviceSink, TTSStream
-
-            provider = EdgeTTSProvider(sample_rate=self._sample_rate)
-            session = provider.session(
-                voice=self._voice,
-                rate=self._rate,
-                volume=self._volume,
-                pitch=self._pitch,
-            )
-            sink = SoundDeviceSink(sample_rate=self._sample_rate)
-            self._tts_stream = TTSStream(
-                session,
-                sink=sink,
-                mode=self._mode,
-                min_text_length=self._min_text_length,
-            )
-            await self._tts_stream.__aenter__()
-        return self._tts_stream
-
-    async def _close_stream(self) -> None:
-        """Close the TTS stream if open."""
-        if self._tts_stream is not None:
-            await self._tts_stream.__aexit__(None, None, None)
-            self._tts_stream = None
-
-    async def __call__(self, ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
-        """Handle stream events and trigger TTS synthesis."""
-        from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
-
-        match event:
-            case RunStartedEvent():
-                # For async_cancel mode, cancel any pending audio from previous run
-                if self._mode == "async_cancel" and self._tts_stream is not None:
-                    await self._tts_stream.cancel()
-
-            case (
-                PartStartEvent(part=TextPart(content=delta))
-                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
-            ):
-                stream = await self._ensure_stream()
-                await stream.feed(delta)
-
-            case StreamCompleteEvent():
-                await self._close_stream()
-
-
 class TTSEventHandlerConfig(BaseEventHandlerConfig):
     """Configuration for Text-to-Speech event handler with OpenAI streaming."""
 
     model_config = ConfigDict(title="Text-to-Speech Event Handler")
 
-    type: Literal["tts"] = Field("tts", init=False)
-    """TTS event handler."""
+    type: Literal["tts-openai"] = Field("tts-openai", init=False)
+    """OpenAI TTS event handler."""
 
     api_key: SecretStr | None = Field(default=None, examples=["sk-..."], title="OpenAI API Key")
     """OpenAI API key. If not provided, uses OPENAI_API_KEY env var."""
@@ -308,8 +149,10 @@ class TTSEventHandlerConfig(BaseEventHandlerConfig):
 
     def get_handler(self) -> IndividualEventHandler:
         """Get the TTS event handler."""
+        from agentpool.agents.events.tts_handlers import OpenAITTSEventHandler
+
         key = self.api_key.get_secret_value() if self.api_key else None
-        return TTSEventHandler(
+        return OpenAITTSEventHandler(
             api_key=key,
             model=self.model,
             voice=self.voice,
@@ -330,7 +173,7 @@ class EdgeTTSEventHandlerConfig(BaseEventHandlerConfig):
 
     model_config = ConfigDict(title="Edge TTS Event Handler")
 
-    type: Literal["edge-tts"] = Field("edge-tts", init=False)
+    type: Literal["tts-edge"] = Field("tts-edge", init=False)
     """Edge TTS event handler."""
 
     voice: str = Field(
@@ -350,26 +193,32 @@ class EdgeTTSEventHandlerConfig(BaseEventHandlerConfig):
     Format: {locale}-{Name}Neural (e.g., en-US-AriaNeural)
     """
 
-    rate: str = Field(
-        default="+0%",
-        examples=["-50%", "+0%", "+25%", "+50%"],
-        title="Speech rate",
+    speed: float = Field(
+        default=1.0,
+        ge=0.25,
+        le=4.0,
+        examples=[0.5, 1.0, 1.5, 2.0],
+        title="Speed of speech",
     )
-    """Speaking rate adjustment (e.g., '+25%', '-10%')."""
+    """Speed of speech (0.25 to 4.0, default 1.0)."""
 
-    volume: str = Field(
-        default="+0%",
-        examples=["-50%", "+0%", "+25%", "+50%"],
+    volume: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=2.0,
+        examples=[0.5, 1.0, 1.5, 2.0],
         title="Volume",
     )
-    """Volume adjustment (e.g., '+10%', '-20%')."""
+    """Volume level (0.0 to 2.0, default 1.0 = normal)."""
 
-    pitch: str = Field(
-        default="+0Hz",
-        examples=["-50Hz", "+0Hz", "+25Hz", "+50Hz"],
+    pitch: float = Field(
+        default=0.0,
+        ge=-100.0,
+        le=100.0,
+        examples=[-50.0, 0.0, 25.0, 50.0],
         title="Pitch",
     )
-    """Pitch adjustment in Hz (e.g., '+10Hz', '-5Hz')."""
+    """Pitch adjustment in Hz (default 0.0 = no change)."""
 
     sample_rate: int = Field(default=24000, examples=[16000, 24000, 44100], title="Sample Rate")
     """Audio sample rate in Hz for playback."""
@@ -397,11 +246,21 @@ class EdgeTTSEventHandlerConfig(BaseEventHandlerConfig):
 
     def get_handler(self) -> IndividualEventHandler:
         """Get the Edge TTS event handler."""
+        from agentpool.agents.events.tts_handlers import EdgeTTSEventHandler
+
+        # Convert to Edge TTS string formats
+        # speed: 1.0 -> "+0%", 1.5 -> "+50%", 0.5 -> "-50%"
+        # volume: 1.0 -> "+0%", 1.5 -> "+50%", 0.5 -> "-50%"
+        # pitch: 0.0 -> "+0Hz", 50.0 -> "+50Hz", -25.0 -> "-25Hz"
+        rate = f"{round((self.speed - 1.0) * 100):+d}%"
+        volume = f"{round((self.volume - 1.0) * 100):+d}%"
+        pitch = f"{round(self.pitch):+d}Hz"
+
         return EdgeTTSEventHandler(
             voice=self.voice,
-            rate=self.rate,
-            volume=self.volume,
-            pitch=self.pitch,
+            rate=rate,
+            volume=volume,
+            pitch=pitch,
             sample_rate=self.sample_rate,
             mode=self.mode,
             min_text_length=self.min_text_length,

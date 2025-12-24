@@ -26,14 +26,22 @@ from .builtin_handlers import (
     simple_print_handler,
     resolve_event_handlers,
 )
+from .tts_handlers import (
+    BaseTTSEventHandler,
+    EdgeTTSEventHandler,
+    OpenAITTSEventHandler,
+)
 
 __all__ = [
+    "BaseTTSEventHandler",
     "CommandCompleteEvent",
     "CommandOutputEvent",
     "CustomEvent",
     "DiffContentItem",
+    "EdgeTTSEventHandler",
     "FileContentItem",
     "LocationContentItem",
+    "OpenAITTSEventHandler",
     "PlanUpdateEvent",
     "RichAgentStreamEvent",
     "RunErrorEvent",
