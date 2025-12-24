@@ -17,13 +17,15 @@ from pydantic_ai import (
     AudioUrl,
     BinaryContent,
     BinaryImage,
+    CachePoint,
     DocumentUrl,
     FileUrl,
     ImageUrl,
     PartDeltaEvent,
+    TextPartDelta,
+    ThinkingPartDelta,
     VideoUrl,
 )
-from pydantic_ai.messages import CachePoint, TextPartDelta, ThinkingPartDelta
 
 from agentpool.agents.events import (
     CustomEvent,

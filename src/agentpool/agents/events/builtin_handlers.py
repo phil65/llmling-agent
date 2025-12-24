@@ -10,8 +10,6 @@ from pydantic_ai import (
     FunctionToolResultEvent,
     PartDeltaEvent,
     PartStartEvent,
-)
-from pydantic_ai.messages import (
     TextPart,
     TextPartDelta,
     ThinkingPart,

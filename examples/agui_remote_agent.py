@@ -7,8 +7,7 @@ from __future__ import annotations
 
 import asyncio
 
-from pydantic_ai import PartDeltaEvent
-from pydantic_ai.messages import TextPartDelta
+from pydantic_ai import PartDeltaEvent, TextPartDelta
 
 from agentpool.agents import AGUIAgent
 

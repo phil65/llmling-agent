@@ -10,8 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import PartDeltaEvent
-from pydantic_ai.messages import TextPartDelta, ThinkingPartDelta
+from pydantic_ai import PartDeltaEvent, TextPartDelta, ThinkingPartDelta
 
 from agentpool.agents.events import (
     DiffContentItem,

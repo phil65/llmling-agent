@@ -53,12 +53,15 @@ from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, cast
 
 from pydantic import BaseModel, Field
-from pydantic_ai.messages import (
+from pydantic_ai import (
+    Agent,
+    BinaryContent,
     ModelRequest,
     ModelResponse,
     RetryPromptPart,
     TextPart,
     ThinkingPart,
+    ToolCallPart,
     ToolReturnPart,
     UserPromptPart,
 )
@@ -67,8 +70,7 @@ from pydantic_ai.messages import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pydantic_ai import Agent, ModelRequestPart
-    from pydantic_ai.messages import ModelResponsePart
+    from pydantic_ai import ModelRequestPart, ModelResponsePart
     from tokonomics import ModelName
 
 # Type aliases
@@ -191,8 +193,6 @@ class FilterBinaryContent(CompactionStep):
     """If True, replace binary with a placeholder text describing what was there."""
 
     async def apply(self, messages: MessageSequence) -> list[ModelMessage]:
-        from pydantic_ai.messages import BinaryContent
-
         result: list[ModelMessage] = []
         for msg in messages:
             match msg:
@@ -236,7 +236,6 @@ class FilterToolCalls(CompactionStep):
     """If set, only keep these tools (overrides exclude_tools)."""
 
     async def apply(self, messages: MessageSequence) -> list[ModelMessage]:
-        from pydantic_ai.messages import ToolCallPart
 
         def should_keep(tool_name: str) -> bool:
             if self.include_only is not None:
@@ -589,8 +588,6 @@ class Summarize(CompactionStep):
     async def _get_agent(self) -> Agent[None, str]:
         """Get or create the summarization agent."""
         if self._agent is None:
-            from pydantic_ai import Agent
-
             self._agent = Agent(model=self.model, output_type=str)
         return self._agent
 

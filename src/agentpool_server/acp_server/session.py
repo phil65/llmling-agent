@@ -68,8 +68,7 @@ from agentpool_server.acp_server.input_provider import ACPInputProvider
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from pydantic_ai import UserContent
-    from pydantic_ai.messages import SystemPromptPart
+    from pydantic_ai import SystemPromptPart, UserContent
     from slashed import CommandContext
 
     from acp import Client, RequestPermissionResponse

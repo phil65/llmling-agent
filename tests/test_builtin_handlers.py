@@ -5,8 +5,14 @@ from __future__ import annotations
 from io import StringIO
 import sys
 
-from pydantic_ai import FunctionToolCallEvent, FunctionToolResultEvent, PartStartEvent
-from pydantic_ai.messages import TextPart, ToolCallPart, ToolReturnPart
+from pydantic_ai import (
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    PartStartEvent,
+    TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+)
 import pytest
 
 from agentpool.agents.events import (

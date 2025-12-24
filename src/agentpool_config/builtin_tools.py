@@ -9,6 +9,7 @@ from pydantic_ai import (
     CodeExecutionTool,
     ImageGenerationTool,
     MCPServerTool,
+    MemoryTool,
     WebFetchTool,
     WebSearchTool,
 )
@@ -18,7 +19,7 @@ from agentpool_config.tools import BaseToolConfig
 
 
 if TYPE_CHECKING:
-    from pydantic_ai.builtin_tools import AbstractBuiltinTool, MemoryTool
+    from pydantic_ai.builtin_tools import AbstractBuiltinTool
 
 
 class BaseBuiltinToolConfig(BaseToolConfig):
@@ -192,8 +193,6 @@ class MemoryToolConfig(BaseBuiltinToolConfig):
 
     def get_builtin_tool(self) -> MemoryTool:
         """Convert config to MemoryTool instance."""
-        from pydantic_ai import MemoryTool
-
         return MemoryTool()
 
 

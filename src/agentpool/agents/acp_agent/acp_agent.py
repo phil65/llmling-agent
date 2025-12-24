@@ -32,10 +32,10 @@ from typing import TYPE_CHECKING, Any, Self, overload
 import uuid
 
 from anyenv import create_process
-from pydantic_ai import PartDeltaEvent
-from pydantic_ai.messages import (
+from pydantic_ai import (
     ModelRequest,
     ModelResponse,
+    PartDeltaEvent,
     TextPart,
     TextPartDelta,
     ThinkingPart,

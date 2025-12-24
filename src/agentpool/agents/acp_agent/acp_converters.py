@@ -18,9 +18,10 @@ from pydantic_ai import (
     DocumentUrl,
     ImageUrl,
     PartDeltaEvent,
+    TextPartDelta,
+    ThinkingPartDelta,
     VideoUrl,
 )
-from pydantic_ai.messages import TextPartDelta, ThinkingPartDelta
 
 from acp.schema import (
     AgentMessageChunk,

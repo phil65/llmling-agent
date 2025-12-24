@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from anyenv.processes import hard_kill
 import httpx
-from pydantic_ai.messages import (
+from pydantic_ai import (
     ModelRequest,
     ModelResponse,
     TextPart,

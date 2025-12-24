@@ -10,8 +10,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, assert_never
 
 from mcp.types import Prompt as MCPPrompt, PromptArgument
 from pydantic import ConfigDict, Field
-from pydantic_ai import BinaryContent, SystemPromptPart, UserPromptPart
-from pydantic_ai.messages import ImageUrl
+from pydantic_ai import BinaryContent, ImageUrl, SystemPromptPart, UserPromptPart
 from schemez import Schema
 from upathtools import UPath, to_upath
 

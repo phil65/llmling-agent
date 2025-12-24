@@ -47,8 +47,7 @@ def vercel_command(  # noqa: PLR0915
     """
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
-    from pydantic_ai import PartDeltaEvent, PartStartEvent
-    from pydantic_ai.messages import TextPart, TextPartDelta
+    from pydantic_ai import PartDeltaEvent, PartStartEvent, TextPart, TextPartDelta
     from starlette.requests import Request
     from starlette.responses import JSONResponse, Response, StreamingResponse
     import uvicorn
