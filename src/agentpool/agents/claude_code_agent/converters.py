@@ -185,10 +185,7 @@ def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo
     return RichToolInfo(title=actual_name, kind="other")
 
 
-def content_block_to_event(
-    block: ContentBlock,
-    index: int = 0,
-) -> RichAgentStreamEvent[Any] | None:
+def content_block_to_event(block: ContentBlock, index: int = 0) -> RichAgentStreamEvent[Any] | None:
     """Convert a Claude SDK ContentBlock to a streaming event.
 
     Args:
@@ -250,16 +247,15 @@ def claude_message_to_events(
                 if isinstance(block, ToolResultBlock) and pending_tool_calls is not None:
                     tool_use = pending_tool_calls.pop(block.tool_use_id, None)
                     if tool_use:
-                        events.append(
-                            ToolCallCompleteEvent(
-                                tool_name=tool_use.name,
-                                tool_call_id=block.tool_use_id,
-                                tool_input=tool_use.input,
-                                tool_result=block.content,
-                                agent_name=agent_name,
-                                message_id="",
-                            )
+                        event = ToolCallCompleteEvent(
+                            tool_name=tool_use.name,
+                            tool_call_id=block.tool_use_id,
+                            tool_input=tool_use.input,
+                            tool_result=block.content,
+                            agent_name=agent_name,
+                            message_id="",
                         )
+                        events.append(event)
                     continue
 
                 # Convert other blocks to events
@@ -271,19 +267,3 @@ def claude_message_to_events(
             pass
 
     return events
-
-
-def extract_text_from_message(message: Message) -> str:
-    """Extract text content from a Claude SDK message.
-
-    Args:
-        message: Claude SDK message
-
-    Returns:
-        Concatenated text content from all text blocks
-    """
-    from claude_agent_sdk import AssistantMessage, TextBlock
-
-    if not isinstance(message, AssistantMessage):
-        return ""
-    return "".join(b.text for b in message.content if isinstance(b, TextBlock))
