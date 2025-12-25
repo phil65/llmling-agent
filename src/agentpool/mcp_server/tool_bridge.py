@@ -329,7 +329,7 @@ class ToolManagerBridge:
                 port = s.getsockname()[1]
         self._actual_port = port
         # Create the ASGI app
-        app = self._mcp.http_app(transport=self.config.transport)  # type: ignore[arg-type]
+        app = self._mcp.http_app(transport=self.config.transport)
         # Configure uvicorn
         cfg = uvicorn.Config(app=app, host=self.config.host, port=port, log_level="warning")
         self._server = uvicorn.Server(cfg)

@@ -108,69 +108,69 @@ class TestWriteFileSnapshots:
         assert messages == json_snapshot
 
 
-# class TestExecuteCodeSnapshots:
-#     """Snapshot tests for execute_code tool."""
+class TestExecuteCodeSnapshots:
+    """Snapshot tests for execute_code tool."""
 
-#     async def test_execute_code_simple(
-#         self,
-#         harness: ToolCallTestHarness,
-#         json_snapshot: SnapshotAssertion,
-#     ) -> None:
-#         """Test simple code execution produces expected notifications."""
-#         harness.mock_env._code_results["print('hello')"] = ExecutionResult(
-#             result=None, duration=0.01, success=True, stdout="hello\n", exit_code=0
-#         )
+    async def test_execute_code_simple(
+        self,
+        harness: ToolCallTestHarness,
+        json_snapshot: SnapshotAssertion,
+    ) -> None:
+        """Test simple code execution produces expected notifications."""
+        harness.mock_env._code_results["print('hello')"] = ExecutionResult(
+            result=None, duration=0.01, success=True, stdout="hello\n", exit_code=0
+        )
 
-#         messages = await harness.execute_tool(
-#             tool_name="execute_code",
-#             tool_args={"code": "print('hello')"},
-#             toolsets=[ExecutionEnvironmentToolsetConfig()],
-#         )
+        messages = await harness.execute_tool(
+            tool_name="execute_code",
+            tool_args={"code": "print('hello')"},
+            toolsets=[ExecutionEnvironmentToolsetConfig()],
+        )
 
-#         assert messages == json_snapshot
+        assert messages == json_snapshot
 
-#     async def test_execute_code_with_error(
-#         self,
-#         harness: ToolCallTestHarness,
-#         json_snapshot: SnapshotAssertion,
-#     ) -> None:
-#         """Test code execution with error produces expected notifications."""
-#         harness.mock_env._code_results["raise ValueError('test error')"] = ExecutionResult(
-#             result=None,
-#             duration=0.01,
-#             success=False,
-#             stderr="ValueError: test error\n",
-#             exit_code=1,
-#             error="ValueError: test error",
-#             error_type="ValueError",
-#         )
+    async def test_execute_code_with_error(
+        self,
+        harness: ToolCallTestHarness,
+        json_snapshot: SnapshotAssertion,
+    ) -> None:
+        """Test code execution with error produces expected notifications."""
+        harness.mock_env._code_results["raise ValueError('test error')"] = ExecutionResult(
+            result=None,
+            duration=0.01,
+            success=False,
+            stderr="ValueError: test error\n",
+            exit_code=1,
+            error="ValueError: test error",
+            error_type="ValueError",
+        )
 
-#         messages = await harness.execute_tool(
-#             tool_name="execute_code",
-#             tool_args={"code": "raise ValueError('test error')"},
-#             toolsets=[ExecutionEnvironmentToolsetConfig()],
-#         )
+        messages = await harness.execute_tool(
+            tool_name="execute_code",
+            tool_args={"code": "raise ValueError('test error')"},
+            toolsets=[ExecutionEnvironmentToolsetConfig()],
+        )
 
-#         assert messages == json_snapshot
+        assert messages == json_snapshot
 
-#     async def test_execute_code_multiline(
-#         self,
-#         harness: ToolCallTestHarness,
-#         json_snapshot: SnapshotAssertion,
-#     ) -> None:
-#         """Test multiline code execution produces expected notifications."""
-#         code = "x = 1\ny = 2\nprint(x + y)"
-#         harness.mock_env._code_results[code] = ExecutionResult(
-#             result=None, duration=0.01, success=True, stdout="3\n", exit_code=0
-#         )
+    async def test_execute_code_multiline(
+        self,
+        harness: ToolCallTestHarness,
+        json_snapshot: SnapshotAssertion,
+    ) -> None:
+        """Test multiline code execution produces expected notifications."""
+        code = "x = 1\ny = 2\nprint(x + y)"
+        harness.mock_env._code_results[code] = ExecutionResult(
+            result=None, duration=0.01, success=True, stdout="3\n", exit_code=0
+        )
 
-#         messages = await harness.execute_tool(
-#             tool_name="execute_code",
-#             tool_args={"code": code},
-#             toolsets=[ExecutionEnvironmentToolsetConfig()],
-#         )
+        messages = await harness.execute_tool(
+            tool_name="execute_code",
+            tool_args={"code": code},
+            toolsets=[ExecutionEnvironmentToolsetConfig()],
+        )
 
-#         assert messages == json_snapshot
+        assert messages == json_snapshot
 
 
 class TestExecuteCommandSnapshots:

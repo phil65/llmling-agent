@@ -54,7 +54,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
     async def get_tools(self) -> list[Tool]:
         return [
             # Code execution tools
-            # self.create_tool(self.execute_code, category="execute"),
+            self.create_tool(self.execute_code, category="execute"),
             self.create_tool(self.execute_command, category="execute", open_world=True),
             # Process management tools
             self.create_tool(self.start_process, category="execute", open_world=True),

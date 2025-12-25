@@ -178,41 +178,44 @@ class TestExecuteCommandViaACP:
         assert tool_events == json_snapshot
 
 
-# class TestExecuteCodeViaACP:
-#     """Test execute_code tool through ACP subprocess."""
+class TestExecuteCodeViaACP:
+    """Test execute_code tool through ACP subprocess."""
 
-# #     async def test_execute_code_simple(
-#         self,
-#         harness: ACPViaACPHarness,
-#         json_snapshot: SnapshotAssertion,
-#     ):
-#         """Test simple code execution via ACP with mock environment."""
-#         mock_env = MockExecutionEnvironmentConfig(
-#             deterministic_ids=True,
-#             code_results={
-#                 "print('hello')": {
-#                     "stdout": "hello\n",
-#                     "stderr": "",
-#                     "success": True,
-#                     "exit_code": 0,
-#                     "duration": 0.01,
-#                 }
-#             },
-#         )
-#         toolset = ExecutionEnvironmentToolsetConfig(environment=mock_env)
+    async def test_execute_code_simple(
+        self,
+        harness: ACPViaACPHarness,
+        json_snapshot: SnapshotAssertion,
+    ):
+        """Test simple code execution via ACP with mock environment."""
+        mock_env = MockExecutionEnvironmentConfig(
+            deterministic_ids=True,
+            code_results={
+                "print('hello')": asdict(
+                    ExecutionResult(
+                        result=None,
+                        stdout="hello\n",
+                        stderr="",
+                        success=True,
+                        exit_code=0,
+                        duration=0.01,
+                    )
+                )
+            },
+        )
+        toolset = ExecutionEnvironmentToolsetConfig(environment=mock_env)
 
-#         events = await harness.execute_tool(
-#             tool_name="execute_code",
-#             tool_args={"code": "print('hello')"},
-#             toolsets=[toolset],
-#         )
+        events = await harness.execute_tool(
+            tool_name="execute_code",
+            tool_args={"code": "print('hello')"},
+            toolsets=[toolset],
+        )
 
-#         # Filter to tool call messages for stable comparison
-#         tool_events = [
-#             e for e in events if e["type"] in ("ToolCallStartEvent", "ToolCallProgressEvent")
-#         ]
+        # Filter to tool call messages for stable comparison
+        tool_events = [
+            e for e in events if e["type"] in ("ToolCallStartEvent", "ToolCallProgressEvent")
+        ]
 
-#         assert tool_events == json_snapshot
+        assert tool_events == json_snapshot
 
 
 if __name__ == "__main__":
