@@ -967,6 +967,42 @@ class PlanToolsetConfig(BaseToolsetConfig):
         return provider
 
 
+class DebugToolsetConfig(BaseToolsetConfig):
+    """Configuration for debug/introspection toolset.
+
+    Provides tools for agent self-inspection and runtime debugging:
+    - Code execution with access to runtime context (ctx, run_ctx, me)
+    - In-memory log inspection and management
+    - Platform path discovery
+    - Agent and pool state inspection
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:bug-16",
+            "x-doc-title": "Debug Toolset",
+        }
+    )
+
+    type: Literal["debug"] = Field("debug", init=False)
+    """Debug toolset."""
+
+    install_log_handler: bool = Field(
+        default=True,
+        title="Install log handler",
+    )
+    """Whether to install the memory log handler for log inspection."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create debug tools provider."""
+        from agentpool_toolsets.builtin.debug import DebugTools
+
+        return DebugTools(
+            name=self.namespace or "debug",
+            install_log_handler=self.install_log_handler,
+        )
+
+
 ToolsetConfig = Annotated[
     OpenAPIToolsetConfig
     | EntryPointToolsetConfig
@@ -991,6 +1027,7 @@ ToolsetConfig = Annotated[
     | ConfigCreationToolsetConfig
     | ImportToolsToolsetConfig
     | PlanToolsetConfig
+    | DebugToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]

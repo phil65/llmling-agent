@@ -6,6 +6,7 @@ from __future__ import annotations
 # Import provider classes
 from agentpool_toolsets.builtin.agent_management import AgentManagementTools
 from agentpool_toolsets.builtin.code import CodeTools
+from agentpool_toolsets.builtin.debug import DebugTools
 from agentpool_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
 from agentpool_toolsets.builtin.history import HistoryTools
 from agentpool_toolsets.builtin.integration import IntegrationTools
@@ -20,6 +21,7 @@ __all__ = [
     # Provider classes
     "AgentManagementTools",
     "CodeTools",
+    "DebugTools",
     "ExecutionEnvironmentTools",
     "HistoryTools",
     "IntegrationTools",
