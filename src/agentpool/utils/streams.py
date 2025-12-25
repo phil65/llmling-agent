@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 @asynccontextmanager
-async def merge_queue_into_iterator[T, V](
+async def merge_queue_into_iterator[T, V](  # noqa: PLR0915
     primary_stream: AsyncIterator[T],
     secondary_queue: asyncio.Queue[V],
 ) -> AsyncIterator[AsyncIterator[T | V]]:
@@ -39,13 +39,22 @@ async def merge_queue_into_iterator[T, V](
     event_queue: asyncio.Queue[V | T | None] = asyncio.Queue()
     primary_done = asyncio.Event()
     primary_exception: BaseException | None = None
+    # Track if we've signaled the end of streams
+    end_signaled = False
 
     # Task to read from primary stream and put into merged queue
     async def primary_task() -> None:
-        nonlocal primary_exception
+        nonlocal primary_exception, end_signaled
         try:
             async for event in primary_stream:
                 await event_queue.put(event)
+        except asyncio.CancelledError:
+            # Signal completion and unblock merged_events before re-raising
+            primary_done.set()
+            if not end_signaled:
+                end_signaled = True
+                await event_queue.put(None)
+            raise
         except BaseException as e:  # noqa: BLE001
             primary_exception = e
         finally:
@@ -53,6 +62,7 @@ async def merge_queue_into_iterator[T, V](
 
     # Task to read from secondary queue and put into merged queue
     async def secondary_task() -> None:
+        nonlocal end_signaled
         try:
             while not primary_done.is_set():
                 try:
@@ -67,11 +77,15 @@ async def merge_queue_into_iterator[T, V](
                     await event_queue.put(secondary_event)
                 except asyncio.QueueEmpty:
                     break
-            # Now signal end of all events
-            await event_queue.put(None)
+            # Now signal end of all events (only if not already signaled)
+            if not end_signaled:
+                end_signaled = True
+                await event_queue.put(None)
         except asyncio.CancelledError:
-            # Still need to signal completion on cancel
-            await event_queue.put(None)
+            # Still need to signal completion on cancel (only if not already signaled)
+            if not end_signaled:
+                end_signaled = True
+                await event_queue.put(None)
 
     # Start both tasks
     primary_task_obj = asyncio.create_task(primary_task())
@@ -92,6 +106,7 @@ async def merge_queue_into_iterator[T, V](
         yield merged_events()
 
     finally:
-        # Clean up tasks
+        # Clean up tasks - cancel BOTH tasks
+        primary_task_obj.cancel()
         secondary_task_obj.cancel()
         await asyncio.gather(primary_task_obj, secondary_task_obj, return_exceptions=True)

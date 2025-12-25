@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Callable
-from contextlib import AsyncExitStack, asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager, suppress
 from dataclasses import dataclass, field, replace
 import time
 from typing import TYPE_CHECKING, Any, Self, TypedDict, TypeVar, overload
@@ -1019,7 +1019,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             count = 0
             self.log.debug("Starting continuous run", max_count=max_count, interval=interval)
             latest = None
-            while max_count is None or count < max_count:
+            while (max_count is None or count < max_count) and not self._cancelled:
                 try:
                     agent_ctx = self.get_context()
                     current_prompts = [
@@ -1036,6 +1036,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     self.log.debug("Continuous run cancelled")
                     break
                 except Exception:
+                    # Check if we were cancelled (may surface as other exceptions)
+                    if self._cancelled:
+                        self.log.debug("Continuous run cancelled via flag")
+                        break
                     count += 1
                     self.log.exception("Background run failed")
                     await asyncio.sleep(interval)
@@ -1043,6 +1047,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             return latest  # type: ignore[return-value]
 
         await self.stop()  # Cancel any existing background task
+        self._cancelled = False  # Reset cancellation flag for new run
         task = asyncio.create_task(_continuous(), name=f"background_{self.name}")
         self.log.debug("Started background task", task_name=task.get_name())
         self._background_task = task
@@ -1050,9 +1055,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
     async def stop(self) -> None:
         """Stop continuous execution if running."""
+        self._cancelled = True  # Signal cancellation via flag
         if self._background_task and not self._background_task.done():
             self._background_task.cancel()
-            await self._background_task
+            with suppress(asyncio.CancelledError):  # Expected when we cancel the task
+                await self._background_task
             self._background_task = None
 
     async def wait(self) -> ChatMessage[OutputDataT]:
