@@ -138,7 +138,7 @@ class BridgeConfig:
     port: int = 0
     """Port to bind to (0 = auto-select available port)."""
 
-    transport: str = "sse"
+    transport: Literal["sse", "streamable-http"] = "sse"
     """Transport protocol: 'sse' or 'streamable-http'."""
 
     server_name: str = "agentpool-toolmanager"

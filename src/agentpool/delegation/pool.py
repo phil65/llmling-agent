@@ -7,7 +7,7 @@ from asyncio import Lock
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self, Unpack, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, Unpack, overload
 
 from anyenv import ProcessManager
 from upathtools import UPath
@@ -236,7 +236,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str = "pool_tools",
         host: str = "127.0.0.1",
         port: int = 0,
-        transport: str = "sse",
+        transport: Literal["sse", "streamable-http"] = "sse",
     ) -> ToolManagerBridge:
         """Create and start a tool bridge for exposing tools to external agents.
 
