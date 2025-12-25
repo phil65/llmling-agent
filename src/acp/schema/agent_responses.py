@@ -132,6 +132,10 @@ class SetSessionModeResponse(Response):
     """Response to `session/set_mode` method."""
 
 
+class SetSessionConfigOptionResponse(Response):
+    """Response to `session/set_config_option` method."""
+
+
 class PromptResponse(Response):
     """Response from processing a user prompt.
 
@@ -245,6 +249,7 @@ AgentResponse = (
     | ResumeSessionResponse
     | ListSessionsResponse
     | SetSessionModeResponse
+    | SetSessionConfigOptionResponse
     | PromptResponse
     | SetSessionModelResponse
     | CustomResponse

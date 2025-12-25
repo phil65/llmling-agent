@@ -164,6 +164,22 @@ class SetSessionModelRequest(Request):
     """The ID of the session to set the model for."""
 
 
+class SetSessionConfigOptionRequest(Request):
+    """Request parameters for setting a session configuration option.
+
+    See protocol docs: [Session Config Options](https://agentclientprotocol.com/protocol/session-config-options)
+    """
+
+    config_id: str
+    """The ID of the configuration option to set."""
+
+    session_id: str
+    """The ID of the session to set the config option for."""
+
+    value_id: str
+    """The ID of the value to set for this configuration option."""
+
+
 class InitializeRequest(Request):
     """Request parameters for the initialize method.
 
@@ -224,6 +240,7 @@ ClientRequest = (
     | ForkSessionRequest
     | ResumeSessionRequest
     | SetSessionModeRequest
+    | SetSessionConfigOptionRequest
     | PromptRequest
     | SetSessionModelRequest
     | CustomRequest

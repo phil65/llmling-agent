@@ -348,6 +348,23 @@ class CurrentModelUpdate(AnnotatedObject):
     )
 
 
+class ConfigOptionUpdate(AnnotatedObject):
+    """A session configuration option value has changed.
+
+    See protocol docs: [Session Config Options](https://agentclientprotocol.com/protocol/session-config-options)
+    """
+
+    session_update: Literal["config_option_update"] = Field(
+        default="config_option_update", init=False
+    )
+
+    config_id: str
+    """The ID of the configuration option that changed."""
+
+    value_id: str
+    """The new value ID for this configuration option."""
+
+
 class ToolCallStart(AnnotatedObject):
     """Notification that a new tool call has been initiated."""
 
@@ -396,6 +413,7 @@ SessionUpdate = Annotated[
         | AgentPlanUpdate
         | CurrentModeUpdate
         | CurrentModelUpdate
+        | ConfigOptionUpdate
     ),
     Field(discriminator="session_update"),
 ]

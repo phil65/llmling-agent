@@ -2,9 +2,23 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence  # noqa: TC003
+from collections.abc import Sequence
+from typing import Annotated, Literal
+
+from pydantic import Field
 
 from acp.schema.base import AnnotatedObject
+
+
+# Type aliases for config option identifiers
+SessionConfigId = str
+"""Unique identifier for a configuration option."""
+
+SessionConfigValueId = str
+"""Unique identifier for a possible value within a configuration option."""
+
+SessionConfigGroupId = str
+"""Unique identifier for a group of values within a configuration option."""
 
 
 class ModelInfo(AnnotatedObject):
@@ -79,3 +93,68 @@ class SessionInfo(AnnotatedObject):
 
     updated_at: str | None = None
     """ISO 8601 timestamp of last activity."""
+
+
+class SessionConfigSelectOption(AnnotatedObject):
+    """A possible value for a configuration selector."""
+
+    id: SessionConfigValueId
+    """Unique identifier for this value."""
+
+    label: str
+    """Human-readable label for this value."""
+
+    description: str | None = None
+    """Optional description explaining this value."""
+
+
+class SessionConfigSelectGroup(AnnotatedObject):
+    """A group of possible values for a configuration selector."""
+
+    id: SessionConfigGroupId
+    """Unique identifier for this group."""
+
+    label: str
+    """Human-readable label for this group."""
+
+    options: Sequence[SessionConfigSelectOption]
+    """The options within this group."""
+
+
+SessionConfigSelectOptions = Sequence[SessionConfigSelectOption | SessionConfigSelectGroup]
+"""The possible values for a configuration selector, optionally organized into groups."""
+
+
+class SessionConfigSelect(AnnotatedObject):
+    """A configuration option that allows selecting a single value from a list.
+
+    Similar to a dropdown/select UI element.
+    """
+
+    type: Literal["select"] = Field(default="select", init=False)
+    """Discriminator for the config option type."""
+
+    id: SessionConfigId
+    """Unique identifier for this configuration option."""
+
+    label: str
+    """Human-readable label for this option."""
+
+    description: str | None = None
+    """Optional description explaining this option."""
+
+    options: SessionConfigSelectOptions
+    """The possible values for this option."""
+
+    value: SessionConfigValueId
+    """The currently selected value ID."""
+
+
+SessionConfigOption = Annotated[
+    SessionConfigSelect,
+    Field(discriminator="type"),
+]
+"""A session configuration option.
+
+Currently only supports select-type options, but designed for extensibility.
+"""
