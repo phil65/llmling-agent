@@ -71,11 +71,10 @@ class ExecutionEnvironmentTools(ResourceProvider):
             ),
         ]
 
-    async def execute_code(self, agent_ctx: AgentContext, code: str) -> dict[str, Any]:
+    async def execute_code(self, agent_ctx: AgentContext, code: str) -> dict[str, Any]:  # noqa: D417
         """Execute Python code and return the result.
 
         Args:
-            agent_ctx: Agent execution context
             code: Python code to execute
         """
         process_id: str | None = None
@@ -122,7 +121,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
         else:
             return {"output": combined_output, "exit_code": exit_code, "duration": duration}
 
-    async def execute_command(  # noqa: PLR0915
+    async def execute_command(  # noqa: PLR0915, D417
         self,
         agent_ctx: AgentContext,
         command: str,
@@ -131,7 +130,6 @@ class ExecutionEnvironmentTools(ResourceProvider):
         """Execute a shell command and return the output.
 
         Args:
-            agent_ctx: Agent execution context
             command: Shell command to execute
             output_limit: Maximum bytes of output to return
         """
@@ -209,7 +207,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 "truncated": truncated,
             }
 
-    async def start_process(
+    async def start_process(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         command: str,
@@ -221,7 +219,6 @@ class ExecutionEnvironmentTools(ResourceProvider):
         """Start a command in the background and return process ID.
 
         Args:
-            agent_ctx: Agent execution context
             command: Command to execute
             args: Command arguments
             cwd: Working directory
@@ -251,11 +248,10 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 "status": "started",
             }
 
-    async def get_process_output(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
+    async def get_process_output(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:  # noqa: D417
         """Get current output from a background process.
 
         Args:
-            agent_ctx: Agent execution context
             process_id: Process identifier from start_process
         """
         manager = self.get_env(agent_ctx).process_manager
@@ -281,11 +277,10 @@ class ExecutionEnvironmentTools(ResourceProvider):
         else:
             return result
 
-    async def wait_for_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
+    async def wait_for_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:  # noqa: D417
         """Wait for background process to complete and return final output.
 
         Args:
-            agent_ctx: Agent execution context
             process_id: Process identifier from start_process
         """
         manager = self.get_env(agent_ctx).process_manager
@@ -309,11 +304,10 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 "truncated": output.truncated,
             }
 
-    async def kill_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
+    async def kill_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:  # noqa: D417
         """Terminate a background process.
 
         Args:
-            agent_ctx: Agent execution context
             process_id: Process identifier from start_process
         """
         try:
@@ -332,11 +326,10 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 "message": f"Process {process_id} has been terminated",
             }
 
-    async def release_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:
+    async def release_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:  # noqa: D417
         """Release resources for a background process.
 
         Args:
-            agent_ctx: Agent execution context
             process_id: Process identifier from start_process
         """
         try:
@@ -357,11 +350,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
             }
 
     async def list_processes(self, agent_ctx: AgentContext) -> dict[str, Any]:
-        """List all active background processes.
-
-        Args:
-            agent_ctx: Agent execution context
-        """
+        """List all active background processes."""
         env = self.get_env(agent_ctx)
         try:
             process_ids = await env.process_manager.list_processes()

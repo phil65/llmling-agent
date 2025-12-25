@@ -145,13 +145,12 @@ class CodeTools(ResourceProvider):
         )
         return self._tools
 
-    async def format_code(
+    async def format_code(  # noqa: D417
         self, agent_ctx: AgentContext, path: str, language: str | None = None
     ) -> str:
         """Format and lint a code file, returning a concise summary.
 
         Args:
-            agent_ctx: Agent context for path resolution.
             path: Path to the file to format
             language: Programming language (auto-detected from extension if not provided)
 
@@ -208,7 +207,7 @@ class CodeTools(ResourceProvider):
         except Exception as e:  # noqa: BLE001
             return f"❌ Error: {type(e).__name__}: {e}"
 
-    async def ast_grep(
+    async def ast_grep(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         path: str,
@@ -222,7 +221,6 @@ class CodeTools(ResourceProvider):
         syntax trees. More precise than regex - understands code structure.
 
         Args:
-            agent_ctx: Agent context for path resolution.
             path: Path to the file to analyze
             rule: AST matching rule dict (see examples below)
             fix: Optional replacement pattern using $METAVARS from the rule
@@ -325,14 +323,13 @@ class CodeTools(ResourceProvider):
 
         return result
 
-    async def run_diagnostics(self, agent_ctx: AgentContext, path: str) -> str:  # noqa: PLR0911
+    async def run_diagnostics(self, agent_ctx: AgentContext, path: str) -> str:  # noqa: PLR0911, D417
         """Run LSP diagnostics (type checking, linting) on files.
 
         Uses available CLI diagnostic tools (pyright, mypy, ty, oxlint, biome, etc.)
         to check code for errors, warnings, and style issues.
 
         Args:
-            agent_ctx: Agent context for path resolution.
             path: Path to file or directory to check. For directories, checks all
                   supported files recursively.
 

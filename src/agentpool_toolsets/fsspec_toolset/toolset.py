@@ -210,7 +210,7 @@ class FSSpecTools(ResourceProvider):
 
         return self._tools
 
-    async def list_directory(
+    async def list_directory(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         path: str,
@@ -222,7 +222,6 @@ class FSSpecTools(ResourceProvider):
         """List files in a directory with filtering support.
 
         Args:
-            agent_ctx: Agent execution context
             path: Base directory to list
             pattern: Glob pattern to match files against. Use "*.py" to match Python
                 files in current directory only, or "**/*.py" to match recursively.
@@ -310,7 +309,7 @@ class FSSpecTools(ResourceProvider):
         else:
             return result
 
-    async def read_file(
+    async def read_file(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         path: str,
@@ -321,7 +320,6 @@ class FSSpecTools(ResourceProvider):
         """Read the context of a text file, or use vision capabilites to read images or documents.
 
         Args:
-            agent_ctx: Agent execution context
             path: File path to read
             encoding: Text encoding to use for text files (default: utf-8)
             line: Optional line number to start reading from (1-based, text files only)
@@ -396,11 +394,10 @@ class FSSpecTools(ResourceProvider):
             # Return raw content for agent
             return content
 
-    async def read_as_markdown(self, agent_ctx: AgentContext, path: str) -> str | dict[str, Any]:
+    async def read_as_markdown(self, agent_ctx: AgentContext, path: str) -> str | dict[str, Any]:  # noqa: D417
         """Read file and convert to markdown text representation.
 
         Args:
-            agent_ctx: Agent execution context
             path: Path to read
 
         Returns:
@@ -428,7 +425,7 @@ class FSSpecTools(ResourceProvider):
         else:
             return content
 
-    async def write_file(
+    async def write_file(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         path: str,
@@ -439,7 +436,6 @@ class FSSpecTools(ResourceProvider):
         """Write content to a file.
 
         Args:
-            agent_ctx: Agent execution context
             path: File path to write
             content: Content to write
             mode: Write mode ('w' for overwrite, 'a' for append)
@@ -517,13 +513,12 @@ class FSSpecTools(ResourceProvider):
         else:
             return result
 
-    async def delete_path(
+    async def delete_path(  # noqa: D417
         self, agent_ctx: AgentContext, path: str, recursive: bool = False
     ) -> dict[str, Any]:
         """Delete a file or directory.
 
         Args:
-            agent_ctx: Agent execution context
             path: Path to delete
             recursive: Whether to delete directories recursively
 
@@ -649,7 +644,7 @@ class FSSpecTools(ResourceProvider):
         else:
             return success_msg
 
-    async def grep(
+    async def grep(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         pattern: str,
@@ -663,7 +658,6 @@ class FSSpecTools(ResourceProvider):
         """Search file contents for a pattern.
 
         Args:
-            agent_ctx: Agent execution context
             pattern: Regex pattern to search for
             path: Base directory to search in
             file_pattern: Glob pattern to filter files (e.g. "**/*.py")
@@ -789,7 +783,7 @@ class FSSpecTools(ResourceProvider):
             content = content.encode()
         await self.get_fs(agent_ctx)._pipe_file(path, content)
 
-    async def download_file(
+    async def download_file(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         url: str,
@@ -799,7 +793,6 @@ class FSSpecTools(ResourceProvider):
         """Download a file from URL to the toolset's filesystem.
 
         Args:
-            agent_ctx: Agent execution context
             url: URL to download from
             target_dir: Directory to save the file (relative to cwd if set)
             chunk_size: Size of chunks to download
