@@ -17,6 +17,16 @@ agents:
       - type: tool_management
 ```
 
+## Available Tools
+
+```python exec="true"
+from agentpool_toolsets.builtin.tool_management import ToolManagementTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = ToolManagementTools()
+print(generate_tool_docs(toolset))
+```
+
 ## Use Cases
 
 - Temporarily disable destructive tools
@@ -26,5 +36,5 @@ agents:
 ## Configuration Reference
 
 /// mknodes
-{{ "agentpool_config.toolsets.ToolManagementToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.ToolManagementToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets", header_level=3) }}
 ///

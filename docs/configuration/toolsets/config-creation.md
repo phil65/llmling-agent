@@ -17,6 +17,16 @@ agents:
       - type: config_creation
 ```
 
+## Available Tools
+
+```python exec="true"
+from agentpool_toolsets.config_creation import ConfigCreationTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = ConfigCreationTools()
+print(generate_tool_docs(toolset))
+```
+
 ## Use Cases
 
 - Generate agent configs from templates
@@ -26,5 +36,5 @@ agents:
 ## Configuration Reference
 
 /// mknodes
-{{ "agentpool_config.toolsets.ConfigCreationToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.ConfigCreationToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets", header_level=3) }}
 ///

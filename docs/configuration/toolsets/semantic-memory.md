@@ -17,6 +17,16 @@ agents:
       - type: semantic_memory
 ```
 
+## Available Tools
+
+```python exec="true"
+from agentpool_toolsets.semantic_memory_toolset import SemanticMemoryTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = SemanticMemoryTools()
+print(generate_tool_docs(toolset))
+```
+
 ## Features
 
 - Store information with semantic embeddings
@@ -26,5 +36,5 @@ agents:
 ## Configuration Reference
 
 /// mknodes
-{{ "agentpool_config.toolsets.SemanticMemoryToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.SemanticMemoryToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets", header_level=3) }}
 ///

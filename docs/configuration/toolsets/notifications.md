@@ -22,6 +22,16 @@ agents:
           password: ${EMAIL_PASS}
 ```
 
+## Available Tools
+
+```python exec="true"
+from agentpool_toolsets.notifications import NotificationsTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = NotificationsTools()
+print(generate_tool_docs(toolset))
+```
+
 ## Supported Channels
 
 - Email (SMTP)
@@ -32,5 +42,5 @@ agents:
 ## Configuration Reference
 
 /// mknodes
-{{ "agentpool_config.toolsets.NotificationsToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.NotificationsToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets", header_level=3) }}
 ///

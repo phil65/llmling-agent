@@ -37,5 +37,5 @@ class MyCustomToolset(ResourceProvider):
 ## Configuration Reference
 
 /// mknodes
-{{ "agentpool_config.toolsets.CustomToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.CustomToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets", header_level=3) }}
 ///

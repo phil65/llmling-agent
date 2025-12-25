@@ -66,10 +66,20 @@ toolsets:
     news_api_key: ${NEWSAPI_KEY}
 ```
 
+## Available Tools
+
+```python exec="true"
+from agentpool_toolsets.search_toolset import SearchTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = SearchTools()
+print(generate_tool_docs(toolset))
+```
+
 ## Configuration Reference
 
 /// mknodes
-{{ "agentpool_config.toolsets.SearchToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.SearchToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets", header_level=3) }}
 ///
 
 ## Environment Variables

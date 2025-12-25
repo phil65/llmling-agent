@@ -61,7 +61,7 @@ vfs_read("code/src", recursive=True)
 ## Configuration Reference
 
 /// mknodes
-{{ "agentpool_config.toolsets.VFSToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets") }}
+{{ "agentpool_config.toolsets.VFSToolsetConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", wrapped_in="toolsets", header_level=3) }}
 ///
 
 ## When to Use VFS vs File Access
