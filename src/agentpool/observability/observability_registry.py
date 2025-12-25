@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import os
 from typing import TYPE_CHECKING
 
@@ -50,7 +49,7 @@ class ObservabilityRegistry:
             send_to_logfire=(config.type == "logfire"),
         )
         logfire.instrument_pydantic_ai()
-        logging.basicConfig(handlers=[logfire.LogfireLoggingHandler()])
+        # Note: structlog logs are captured via StructlogProcessor in log.py
 
         self._configured = True
         logger.info("Configured observability", provider=config.type)

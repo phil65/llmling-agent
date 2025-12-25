@@ -8,6 +8,7 @@ from logging.handlers import RotatingFileHandler
 import sys
 from typing import TYPE_CHECKING, Any
 
+import logfire
 import structlog
 
 
@@ -85,6 +86,7 @@ def _configure_file_logging(level: LogLevel, log_file: str, max_lines: int = 500
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
+        logfire.StructlogProcessor(),  # Capture logs for observability
         structlog.dev.ConsoleRenderer(
             colors=False, exception_formatter=structlog.dev.plain_traceback
         ),
@@ -131,6 +133,9 @@ def _configure_console_logging(
         processors.insert(1, structlog.stdlib.add_logger_name)
         processors.append(structlog.processors.format_exc_info)
 
+    # Add logfire processor before final renderer to capture logs for observability
+    processors.append(logfire.StructlogProcessor())
+
     # Add final renderer
     if use_console_renderer:
         processors.append(structlog.dev.ConsoleRenderer(colors=colors))
@@ -164,6 +169,7 @@ def get_logger(name: str, log_level: LogLevel | None = None) -> structlog.stdlib
                 structlog.stdlib.filter_by_level,
                 structlog.stdlib.add_log_level,
                 structlog.processors.StackInfoRenderer(),
+                logfire.StructlogProcessor(),
                 structlog.dev.ConsoleRenderer(colors=False),
             ],
             wrapper_class=structlog.stdlib.BoundLogger,
