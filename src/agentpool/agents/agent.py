@@ -22,8 +22,11 @@ from pydantic_ai import (
     BaseToolCallPart,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
+    PartDeltaEvent,
     PartStartEvent,
     RunContext,
+    TextPart,
+    TextPartDelta,
     ToolReturnPart,
 )
 from pydantic_ai.models import Model
@@ -746,6 +749,13 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         history_list = conversation.get_history()
         pending_parts = conversation.get_pending_parts()
 
+        # Reset cancellation state and track current task
+        self._cancelled = False
+        self._current_stream_task = asyncio.current_task()
+
+        # Track accumulated content for partial message on cancellation
+        accumulated_text: list[str] = []
+
         # Execute pre-run hooks
         if self.hooks:
             pre_run_result = await self.hooks.run_pre_run_hooks(
@@ -786,43 +796,78 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             async with merge_queue_into_iterator(stream_events, self._event_queue) as events:
                 # Track tool call starts to combine with results later
                 pending_tcs: dict[str, BaseToolCallPart] = {}
-                async for event in events:  # Call event handlers for all events
-                    for handler in self.event_handler._wrapped_handlers:
-                        await handler(None, event)
+                try:
+                    async for event in events:
+                        # Check for cancellation
+                        if self._cancelled:
+                            self.log.info("Stream cancelled by user")
+                            break
 
-                    yield event  # type: ignore[misc]
-                    match event:
-                        case (
-                            PartStartEvent(part=BaseToolCallPart() as tool_part)
-                            | FunctionToolCallEvent(part=tool_part)
-                        ):
-                            # Store tool call start info for later combination with result
-                            pending_tcs[tool_part.tool_call_id] = tool_part
-                        case FunctionToolResultEvent(tool_call_id=call_id) as result_event:
-                            # Check if we have a pending tool call to combine with
-                            if call_info := pending_tcs.pop(call_id, None):
-                                # Create and yield combined event
-                                combined_event = ToolCallCompleteEvent(
-                                    tool_name=call_info.tool_name,
-                                    tool_call_id=call_id,
-                                    tool_input=call_info.args_as_dict(),
-                                    tool_result=result_event.result.content
-                                    if isinstance(result_event.result, ToolReturnPart)
-                                    else result_event.result,
+                        # Call event handlers for all events
+                        for handler in self.event_handler._wrapped_handlers:
+                            await handler(None, event)
+
+                        yield event  # type: ignore[misc]
+
+                        # Accumulate text content for partial message
+                        match event:
+                            case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                                accumulated_text.append(delta)
+                            case PartStartEvent(part=TextPart(content=text)) if text:
+                                accumulated_text.append(text)
+
+                        match event:
+                            case (
+                                PartStartEvent(part=BaseToolCallPart() as tool_part)
+                                | FunctionToolCallEvent(part=tool_part)
+                            ):
+                                # Store tool call start info for later combination with result
+                                pending_tcs[tool_part.tool_call_id] = tool_part
+                            case FunctionToolResultEvent(tool_call_id=call_id) as result_event:
+                                # Check if we have a pending tool call to combine with
+                                if call_info := pending_tcs.pop(call_id, None):
+                                    # Create and yield combined event
+                                    combined_event = ToolCallCompleteEvent(
+                                        tool_name=call_info.tool_name,
+                                        tool_call_id=call_id,
+                                        tool_input=call_info.args_as_dict(),
+                                        tool_result=result_event.result.content
+                                        if isinstance(result_event.result, ToolReturnPart)
+                                        else result_event.result,
+                                        agent_name=self.name,
+                                        message_id=message_id,
+                                    )
+                                    yield combined_event
+                            case AgentRunResultEvent():
+                                # Capture final result data, Build final response message
+                                response_time = time.perf_counter() - start_time
+                                response_msg = await ChatMessage.from_run_result(
+                                    event.result,
                                     agent_name=self.name,
                                     message_id=message_id,
+                                    conversation_id=conversation_id or user_msg.conversation_id,
+                                    response_time=response_time,
                                 )
-                                yield combined_event
-                        case AgentRunResultEvent():
-                            # Capture final result data, Build final response message
-                            response_time = time.perf_counter() - start_time
-                            response_msg = await ChatMessage.from_run_result(
-                                event.result,
-                                agent_name=self.name,
-                                message_id=message_id,
-                                conversation_id=conversation_id or user_msg.conversation_id,
-                                response_time=response_time,
-                            )
+                except asyncio.CancelledError:
+                    self.log.info("Stream cancelled via task cancellation")
+                    self._cancelled = True
+
+            # Handle cancellation - emit partial message
+            if self._cancelled:
+                response_time = time.perf_counter() - start_time
+                partial_content = "".join(accumulated_text)
+                response_msg = ChatMessage(
+                    content=partial_content,
+                    role="assistant",
+                    name=self.name,
+                    message_id=message_id,
+                    conversation_id=conversation_id or user_msg.conversation_id,
+                    response_time=response_time,
+                    finish_reason="stop",
+                )
+                yield StreamCompleteEvent(message=response_msg)
+                self._current_stream_task = None
+                return
 
             # Only finalize if we got a result (stream may exit early on error)
             if response_msg is None:
@@ -856,6 +901,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             self.log.exception("Agent stream failed")
             self.run_failed.emit("Agent stream failed", e)
             raise
+        finally:
+            self._current_stream_task = None
 
     async def run_iter(
         self,

@@ -388,6 +388,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
+        # Reset cancellation state
+        self._cancelled = False
+        self._current_stream_task = asyncio.current_task()
+
         conversation = message_history if message_history is not None else self.conversation
         user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
         self._run_id = str(uuid4())  # New run ID for each run
@@ -428,132 +432,174 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         pending_tool_results: list[ToolMessage] = []
         self.log.debug("Sending prompt to AG-UI agent", tool_names=[t.name for t in agui_tools])
         # Loop to handle tool calls - agent may request multiple rounds
-        while True:
-            request_data = RunAgentInput(
-                thread_id=self._thread_id or self.conversation_id,
-                run_id=self._run_id,
-                state={},
-                messages=messages,
-                tools=agui_tools,
-                context=[],
-                forwarded_props={},
-            )
+        try:
+            while True:
+                # Check for cancellation at start of each iteration
+                if self._cancelled:
+                    self.log.info("Stream cancelled by user")
+                    break
 
-            data = request_data.model_dump(by_alias=True)
-            tool_calls_pending: list[tuple[str, str, dict[str, Any]]] = []
+                request_data = RunAgentInput(
+                    thread_id=self._thread_id or self.conversation_id,
+                    run_id=self._run_id,
+                    state={},
+                    messages=messages,
+                    tools=agui_tools,
+                    context=[],
+                    forwarded_props={},
+                )
 
-            try:
-                async with self._client.stream("POST", self.endpoint, json=data) as response:
-                    response.raise_for_status()
-                    async for raw_event in parse_sse_stream(response):
-                        # Transform chunks to proper START/CONTENT/END sequences
-                        transformed_events = self._chunk_transformer.transform(raw_event)
+                data = request_data.model_dump(by_alias=True)
+                tool_calls_pending: list[tuple[str, str, dict[str, Any]]] = []
 
-                        for event in transformed_events:
-                            # Handle events for accumulation and tool calls
-                            match event:
-                                case TextMessageContentEvent(delta=delta):
-                                    text_chunks.append(delta)
-                                    current_response_parts.append(TextPart(content=delta))
-                                case TextMessageChunkEvent(delta=delta) if delta:
-                                    text_chunks.append(delta)
-                                    current_response_parts.append(TextPart(content=delta))
-                                case ThinkingTextMessageContentEvent(delta=delta):
-                                    current_response_parts.append(ThinkingPart(content=delta))
-                                case AGUIToolCallStartEvent(
-                                    tool_call_id=tc_id, tool_call_name=name
-                                ) if name:
-                                    tool_accumulator.start(tc_id, name)
-                                    self.log.debug(
-                                        "Tool call started",
-                                        tool_call_id=tc_id,
-                                        tool=name,
-                                    )
+                try:
+                    async with self._client.stream("POST", self.endpoint, json=data) as response:
+                        response.raise_for_status()
+                        async for raw_event in parse_sse_stream(response):
+                            # Check for cancellation during streaming
+                            if self._cancelled:
+                                self.log.info("Stream cancelled during event processing")
+                                break
 
-                                case AGUIToolCallArgsEvent(tool_call_id=tc_id, delta=delta):
-                                    tool_accumulator.add_args(tc_id, delta)
+                            # Transform chunks to proper START/CONTENT/END sequences
+                            transformed_events = self._chunk_transformer.transform(raw_event)
 
-                                case AGUIToolCallEndEvent(tool_call_id=tc_id):
-                                    if result := tool_accumulator.complete(tc_id):
-                                        tool_name, args = result
-                                        tool_calls_pending.append((tc_id, tool_name, args))
-                                        current_response_parts.append(
-                                            ToolCallPart(
-                                                tool_name=tool_name,
-                                                args=args,
-                                                tool_call_id=tc_id,
-                                            )
-                                        )
+                            for event in transformed_events:
+                                # Handle events for accumulation and tool calls
+                                match event:
+                                    case TextMessageContentEvent(delta=delta):
+                                        text_chunks.append(delta)
+                                        current_response_parts.append(TextPart(content=delta))
+                                    case TextMessageChunkEvent(delta=delta) if delta:
+                                        text_chunks.append(delta)
+                                        current_response_parts.append(TextPart(content=delta))
+                                    case ThinkingTextMessageContentEvent(delta=delta):
+                                        current_response_parts.append(ThinkingPart(content=delta))
+                                    case AGUIToolCallStartEvent(
+                                        tool_call_id=tc_id, tool_call_name=name
+                                    ) if name:
+                                        tool_accumulator.start(tc_id, name)
                                         self.log.debug(
-                                            "Tool call completed",
+                                            "Tool call started",
                                             tool_call_id=tc_id,
-                                            tool=tool_name,
-                                            args=args,
+                                            tool=name,
                                         )
 
-                            # Convert to native event and distribute to handlers
+                                    case AGUIToolCallArgsEvent(tool_call_id=tc_id, delta=delta):
+                                        tool_accumulator.add_args(tc_id, delta)
+
+                                    case AGUIToolCallEndEvent(tool_call_id=tc_id):
+                                        if result := tool_accumulator.complete(tc_id):
+                                            tool_name, args = result
+                                            tool_calls_pending.append((tc_id, tool_name, args))
+                                            current_response_parts.append(
+                                                ToolCallPart(
+                                                    tool_name=tool_name,
+                                                    args=args,
+                                                    tool_call_id=tc_id,
+                                                )
+                                            )
+                                            self.log.debug(
+                                                "Tool call completed",
+                                                tool_call_id=tc_id,
+                                                tool=tool_name,
+                                                args=args,
+                                            )
+
+                                # Convert to native event and distribute to handlers
+                                if native_event := agui_to_native_event(event):
+                                    # Check for queued custom events first
+                                    while not self._event_queue.empty():
+                                        try:
+                                            custom_event = self._event_queue.get_nowait()
+                                            for handler in self.event_handler._wrapped_handlers:
+                                                await handler(None, custom_event)
+                                            yield custom_event
+                                        except asyncio.QueueEmpty:
+                                            break
+                                    # Distribute to handlers
+                                    for handler in self.event_handler._wrapped_handlers:
+                                        await handler(None, native_event)
+                                    yield native_event
+
+                        # Flush any pending chunk events at end of stream
+                        for event in self._chunk_transformer.flush():
                             if native_event := agui_to_native_event(event):
-                                # Check for queued custom events first
-                                while not self._event_queue.empty():
-                                    try:
-                                        custom_event = self._event_queue.get_nowait()
-                                        for handler in self.event_handler._wrapped_handlers:
-                                            await handler(None, custom_event)
-                                        yield custom_event
-                                    except asyncio.QueueEmpty:
-                                        break
-                                # Distribute to handlers
                                 for handler in self.event_handler._wrapped_handlers:
                                     await handler(None, native_event)
                                 yield native_event
 
-                    # Flush any pending chunk events at end of stream
-                    for event in self._chunk_transformer.flush():
-                        if native_event := agui_to_native_event(event):
-                            for handler in self.event_handler._wrapped_handlers:
-                                await handler(None, native_event)
-                            yield native_event
+                except httpx.HTTPError:
+                    self.log.exception("HTTP error during AG-UI run")
+                    raise
 
-            except httpx.HTTPError:
-                self.log.exception("HTTP error during AG-UI run")
-                raise
+                # If cancelled, break out of the while loop
+                if self._cancelled:
+                    break
 
-            # If no tool calls pending, we're done
-            if not tool_calls_pending:
-                break
+                # If no tool calls pending, we're done
+                if not tool_calls_pending:
+                    break
 
-            # Execute pending tool calls locally and collect results
-            pending_tool_results = await execute_tool_calls(
-                tool_calls_pending,
-                tools_by_name,
-                confirmation_mode=self.tool_confirmation_mode,
-                input_provider=self._input_provider,
-                context=self.get_context(),
-            )
-            # If no results (all tools were server-side), we're done
-            if not pending_tool_results:
-                break
+                # Execute pending tool calls locally and collect results
+                pending_tool_results = await execute_tool_calls(
+                    tool_calls_pending,
+                    tools_by_name,
+                    confirmation_mode=self.tool_confirmation_mode,
+                    input_provider=self._input_provider,
+                    context=self.get_context(),
+                )
+                # If no results (all tools were server-side), we're done
+                if not pending_tool_results:
+                    break
 
-            # Flush current response parts to model_messages
+                # Flush current response parts to model_messages
+                if current_response_parts:
+                    model_messages.append(ModelResponse(parts=current_response_parts))
+                    current_response_parts = []
+
+                # Create ModelRequest with tool return parts
+                tc_id_to_name = {tc_id: name for tc_id, name, _ in tool_calls_pending}
+                tool_return_parts: list[ToolReturnPart] = [
+                    ToolReturnPart(
+                        tool_name=tc_id_to_name.get(r.tool_call_id, "unknown"),
+                        content=r.content,
+                        tool_call_id=r.tool_call_id,
+                    )
+                    for r in pending_tool_results
+                ]
+                model_messages.append(ModelRequest(parts=tool_return_parts))
+
+                # Add tool results to messages for next iteration
+                messages = [*pending_tool_results]
+                self.log.debug("Continuing with tool results", count=len(pending_tool_results))
+
+        except asyncio.CancelledError:
+            self.log.info("Stream cancelled via task cancellation")
+            self._cancelled = True
+
+        # Handle cancellation - emit partial message
+        if self._cancelled:
+            # Flush any remaining response parts
             if current_response_parts:
                 model_messages.append(ModelResponse(parts=current_response_parts))
-                current_response_parts = []
 
-            # Create ModelRequest with tool return parts
-            tc_id_to_name = {tc_id: name for tc_id, name, _ in tool_calls_pending}
-            tool_return_parts: list[ToolReturnPart] = [
-                ToolReturnPart(
-                    tool_name=tc_id_to_name.get(r.tool_call_id, "unknown"),
-                    content=r.content,
-                    tool_call_id=r.tool_call_id,
-                )
-                for r in pending_tool_results
-            ]
-            model_messages.append(ModelRequest(parts=tool_return_parts))
-
-            # Add tool results to messages for next iteration
-            messages = [*pending_tool_results]
-            self.log.debug("Continuing with tool results", count=len(pending_tool_results))
+            text_content = "".join(text_chunks)
+            final_message = ChatMessage[str](
+                content=text_content,
+                role="assistant",
+                name=self.name,
+                message_id=message_id or str(uuid4()),
+                conversation_id=self.conversation_id,
+                messages=model_messages,
+                finish_reason="stop",
+            )
+            complete_event = StreamCompleteEvent(message=final_message)
+            for handler in self.event_handler._wrapped_handlers:
+                await handler(None, complete_event)
+            yield complete_event
+            self._current_stream_task = None
+            return
 
         # Flush any remaining response parts
         if current_response_parts:

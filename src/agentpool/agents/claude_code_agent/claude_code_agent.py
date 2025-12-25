@@ -599,6 +599,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
         from claude_agent_sdk.types import StreamEvent
 
+        # Reset cancellation state
+        self._cancelled = False
+        self._current_stream_task = asyncio.current_task()
+
         # Update input provider if provided
         if input_provider is not None:
             self._input_provider = input_provider
@@ -835,8 +839,47 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     if isinstance(message, ResultMessage):
                         result_message = message
                         break
+
+                    # Check for cancellation
+                    if self._cancelled:
+                        self.log.info("Stream cancelled by user")
+                        # Emit partial response
+                        response_msg = ChatMessage[TResult](
+                            content="".join(text_chunks),  # type: ignore[arg-type]
+                            role="assistant",
+                            name=self.name,
+                            message_id=message_id or str(uuid.uuid4()),
+                            conversation_id=self.conversation_id,
+                            model_name=self.model_name,
+                            messages=model_messages,
+                            finish_reason="stop",
+                        )
+                        complete_event = StreamCompleteEvent(message=response_msg)
+                        for handler in self.event_handler._wrapped_handlers:
+                            await handler(None, complete_event)
+                        yield complete_event
+                        return
                 else:
                     result_message = None
+
+        except asyncio.CancelledError:
+            self.log.info("Stream cancelled via CancelledError")
+            # Emit partial response on cancellation
+            response_msg = ChatMessage[TResult](
+                content="".join(text_chunks),  # type: ignore[arg-type]
+                role="assistant",
+                name=self.name,
+                message_id=message_id or str(uuid.uuid4()),
+                conversation_id=self.conversation_id,
+                model_name=self.model_name,
+                messages=model_messages,
+                finish_reason="stop",
+            )
+            complete_event = StreamCompleteEvent(message=response_msg)
+            for handler in self.event_handler._wrapped_handlers:
+                await handler(None, complete_event)
+            yield complete_event
+            return
 
         except Exception as e:
             error_event = RunErrorEvent(message=str(e), run_id=run_id, agent_name=self.name)
@@ -882,7 +925,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
 
         # Emit stream complete
-        complete_event: StreamCompleteEvent[TResult] = StreamCompleteEvent(message=chat_message)
+        complete_event = StreamCompleteEvent[TResult](message=chat_message)
         for handler in self.event_handler._wrapped_handlers:
             await handler(None, complete_event)
         yield complete_event
@@ -905,6 +948,26 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         for prompts in prompt_groups:
             response = await self.run(*prompts)
             yield response
+
+    async def interrupt(self) -> None:
+        """Interrupt the currently running stream.
+
+        Calls the Claude SDK's native interrupt() method to stop the query,
+        then cancels the local stream task.
+        """
+        self._cancelled = True
+
+        # Use Claude SDK's native interrupt
+        if self._client:
+            try:
+                await self._client.interrupt()
+                self.log.info("Claude Code client interrupted")
+            except Exception:
+                self.log.exception("Failed to interrupt Claude Code client")
+
+        # Also cancel the current stream task
+        if self._current_stream_task and not self._current_stream_task.done():
+            self._current_stream_task.cancel()
 
     async def set_model(self, model: str) -> None:
         """Set the model for future requests.

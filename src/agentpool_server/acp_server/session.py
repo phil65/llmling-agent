@@ -415,10 +415,21 @@ class ACPSession:
 
         await self.send_available_commands_update()
 
-    def cancel(self) -> None:
-        """Cancel the current prompt turn."""
+    async def cancel(self) -> None:
+        """Cancel the current prompt turn.
+
+        This actively interrupts the running agent by calling its interrupt() method,
+        which handles protocol-specific cancellation (e.g., sending CancelNotification
+        for ACP agents, calling SDK interrupt for ClaudeCodeAgent, etc.).
+        """
         self._cancelled = True
-        self.log.info("Session cancelled")
+        self.log.info("Session cancelled, interrupting agent")
+
+        # Actively interrupt the agent's stream
+        try:
+            await self.agent.interrupt()
+        except Exception:
+            self.log.exception("Failed to interrupt agent")
 
     def is_cancelled(self) -> bool:
         """Check if the session is cancelled."""

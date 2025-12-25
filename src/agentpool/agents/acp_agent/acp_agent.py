@@ -270,6 +270,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
         # Client execution environment (for subprocess requests) - falls back to env
         self._client_env: ExecutionEnvironment | None = config.get_client_execution_environment()
+        # Track the prompt task for cancellation
+        self._prompt_task: asyncio.Task[Any] | None = None
 
     @property
     def client_env(self) -> ExecutionEnvironment:
@@ -568,8 +570,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         prompt_request = PromptRequest(session_id=self._session_id, prompt=final_blocks)
         self.log.debug("Starting streaming prompt", num_blocks=len(final_blocks))
 
+        # Reset cancellation state
+        self._cancelled = False
+        self._current_stream_task = asyncio.current_task()
+
         # Run prompt in background
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
+        self._prompt_task = prompt_task
 
         # Create async generator that polls ACP events
         async def poll_acp_events() -> AsyncIterator[RichAgentStreamEvent[str]]:
@@ -596,31 +603,67 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 last_idx += 1
 
         # Merge ACP events with custom events from queue
-        async with merge_queue_into_iterator(poll_acp_events(), self._event_queue) as merged_events:
-            async for event in merged_events:
-                # Extract content from events and build parts in arrival order
-                match event:
-                    case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
-                        text_chunks.append(delta)
-                        current_response_parts.append(TextPart(content=delta))
-                    case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta)) if delta:
-                        current_response_parts.append(ThinkingPart(content=delta))
-                    case ToolCallStartEvent(
-                        tool_call_id=tc_id, tool_name=tc_name, raw_input=tc_input
-                    ):
-                        current_response_parts.append(
-                            ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
-                        )
-                        # Track files modified by write/edit tools
-                        if file_path := extract_file_path_from_tool_call(
-                            tc_name or "", tc_input or {}
-                        ):
-                            touched_files.add(file_path)
+        try:
+            async with merge_queue_into_iterator(
+                poll_acp_events(), self._event_queue
+            ) as merged_events:
+                async for event in merged_events:
+                    # Check for cancellation
+                    if self._cancelled:
+                        self.log.info("Stream cancelled by user")
+                        break
 
-                # Distribute to handlers
-                for handler in self.event_handler._wrapped_handlers:
-                    await handler(None, event)
-                yield event
+                    # Extract content from events and build parts in arrival order
+                    match event:
+                        case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
+                            text_chunks.append(delta)
+                            current_response_parts.append(TextPart(content=delta))
+                        case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta)) if delta:
+                            current_response_parts.append(ThinkingPart(content=delta))
+                        case ToolCallStartEvent(
+                            tool_call_id=tc_id, tool_name=tc_name, raw_input=tc_input
+                        ):
+                            current_response_parts.append(
+                                ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
+                            )
+                            # Track files modified by write/edit tools
+                            if file_path := extract_file_path_from_tool_call(
+                                tc_name or "", tc_input or {}
+                            ):
+                                touched_files.add(file_path)
+
+                    # Distribute to handlers
+                    for handler in self.event_handler._wrapped_handlers:
+                        await handler(None, event)
+                    yield event
+        except asyncio.CancelledError:
+            self.log.info("Stream cancelled via task cancellation")
+            self._cancelled = True
+
+        # Handle cancellation - emit partial message
+        if self._cancelled:
+            text_content = "".join(text_chunks)
+            metadata: SimpleJsonType = {}
+            if touched_files:
+                metadata["touched_files"] = sorted(touched_files)
+            message = ChatMessage[str](
+                content=text_content,
+                role="assistant",
+                name=self.name,
+                message_id=message_id or str(uuid.uuid4()),
+                conversation_id=self.conversation_id,
+                model_name=self.model_name,
+                messages=model_messages,
+                metadata=metadata,
+                finish_reason="stop",
+            )
+            complete_event = StreamCompleteEvent(message=message)
+            for handler in self.event_handler._wrapped_handlers:
+                await handler(None, complete_event)
+            yield complete_event
+            self._current_stream_task = None
+            self._prompt_task = None
+            return
 
         # Ensure we catch any exceptions from the prompt task
         response = await prompt_task
@@ -631,7 +674,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         text_content = "".join(text_chunks)
         # Build metadata with touched files if any
-        metadata: SimpleJsonType = {}
+        metadata = {}
         if touched_files:
             metadata["touched_files"] = sorted(touched_files)
         message = ChatMessage[str](
@@ -748,6 +791,34 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     async def get_stats(self) -> MessageStats:
         """Get message statistics."""
         return MessageStats(messages=list(self.conversation.chat_messages))
+
+    async def interrupt(self) -> None:
+        """Interrupt the currently running stream.
+
+        Sends a CancelNotification to the remote ACP server and cancels
+        the local prompt task.
+        """
+        from acp.schema import CancelNotification
+
+        self._cancelled = True
+
+        # Send cancel notification to the remote ACP server
+        if self._connection and self._session_id:
+            try:
+                cancel_notification = CancelNotification(session_id=self._session_id)
+                await self._connection.cancel(cancel_notification)
+                self.log.info("Sent cancel notification to ACP server")
+            except Exception:
+                self.log.exception("Failed to send cancel notification to ACP server")
+
+        # Cancel the local prompt task
+        if self._prompt_task and not self._prompt_task.done():
+            self._prompt_task.cancel()
+            self.log.info("Cancelled prompt task")
+
+        # Also cancel current stream task (from base class)
+        if self._current_stream_task and not self._current_stream_task.done():
+            self._current_stream_task.cancel()
 
 
 if __name__ == "__main__":

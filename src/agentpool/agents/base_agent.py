@@ -104,6 +104,10 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             resolved_handlers
         )
 
+        # Cancellation infrastructure
+        self._cancelled = False
+        self._current_stream_task: asyncio.Task[Any] | None = None
+
     @abstractmethod
     def get_context(self, data: Any = None) -> AgentContext[Any]:
         """Create a new context for this agent.
@@ -146,3 +150,28 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             mode: Confirmation mode - "always", "never", or "per_tool"
         """
         self.tool_confirmation_mode = mode
+
+    def is_cancelled(self) -> bool:
+        """Check if the agent has been cancelled.
+
+        Returns:
+            True if cancellation was requested
+        """
+        return self._cancelled
+
+    async def interrupt(self) -> None:
+        """Interrupt the currently running stream.
+
+        This method is called when cancellation is requested. The default
+        implementation sets the cancelled flag and cancels the current stream task.
+
+        Subclasses may override to add protocol-specific cancellation:
+        - ACPAgent: Send CancelNotification to remote server
+        - ClaudeCodeAgent: Call client.interrupt()
+
+        The cancelled flag should be checked in run_stream loops to exit early.
+        """
+        self._cancelled = True
+        if self._current_stream_task and not self._current_stream_task.done():
+            self._current_stream_task.cancel()
+            logger.info("Interrupted agent stream", agent=self.name)

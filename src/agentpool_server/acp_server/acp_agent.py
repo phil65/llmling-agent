@@ -609,7 +609,7 @@ class AgentPoolACPAgent(ACPAgent):
         try:
             # Get session and cancel it
             if session := self.session_manager.get_session(params.session_id):
-                session.cancel()
+                await session.cancel()
                 logger.info("Cancelled operations", session_id=params.session_id)
             else:
                 msg = "Session not found for cancellation"
