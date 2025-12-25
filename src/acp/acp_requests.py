@@ -125,19 +125,19 @@ class ACPRequests:
         """Create a new terminal session.
 
         Args:
-            command: Command to run in terminal
-            args: Command arguments
+            command: Command to run. For shell commands (pipes, redirects, etc.),
+                pass the full command string and omit args.
+            args: Command arguments, appended to command.
             cwd: Working directory for terminal
             env: Environment variables for terminal
             output_byte_limit: Maximum bytes to capture from output
-
-        Returns:
-            Terminal handle for managing the terminal session
         """
         request = CreateTerminalRequest(
             session_id=self.id,
             command=command,
-            args=args,
+            # Only include args if non-empty, following claude-code-acp pattern.
+            # When args is None/empty, ACP clients interpret command as a shell command.
+            args=args or None,
             cwd=cwd,
             env=[EnvVariable(name=k, value=v) for k, v in (env or {}).items()],
             output_byte_limit=output_byte_limit,
