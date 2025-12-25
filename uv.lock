@@ -499,7 +499,7 @@ wheels = [
 
 [[package]]
 name = "anyenv"
-version = "2.0.9"
+version = "2.0.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aioitertools" },
@@ -507,9 +507,9 @@ dependencies = [
     { name = "appdirs" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/08/ea/f45f720a288f6d69e29a4c488f842c9c9771bf65d2b84fcb46664a9c1f0c/anyenv-2.0.9.tar.gz", hash = "sha256:a0470e63a486364739aee1dab73b27c4d95d3ea1bf70c2726bae58154a7d6804", size = 96901, upload-time = "2025-12-24T13:24:19.484Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/97/21/fff5ebdc6a5ff184410fedf5b381ad68b025f00e67b274d057f911d8ffe2/anyenv-2.0.10.tar.gz", hash = "sha256:30dacb13a09df599928b0635524a2b7ba9f13de0ac8630a11d6bf65b38777d19", size = 96408, upload-time = "2025-12-25T13:59:05.268Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f5/ed/1a22e602857cfd7c6b779dd76a38d23317ec0a70d1a3e8e9fcbcf4943a7c/anyenv-2.0.9-py3-none-any.whl", hash = "sha256:731266598d353e63411dcf59ac976aac5acd0fcd88861e87ba54a239c56f8c61", size = 158956, upload-time = "2025-12-24T13:24:21.351Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/37/6007f51d7a5611a97f1e300b5e8ef5f71f00f134879fbdb44e7a403dbd39/anyenv-2.0.10-py3-none-any.whl", hash = "sha256:439483f0254a48a189c68b39f6badca2f34a0bd607014657e446f41fa0914310", size = 158939, upload-time = "2025-12-25T13:59:03.893Z" },
 ]
 
 [package.optional-dependencies]
@@ -2697,7 +2697,7 @@ name = "macholib"
 version = "1.16.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "altgraph", marker = "sys_platform != 'win32'" },
+    { name = "altgraph" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/10/2f/97589876ea967487978071c9042518d28b958d87b17dceb7cdc1d881f963/macholib-1.16.4.tar.gz", hash = "sha256:f408c93ab2e995cd2c46e34fe328b130404be143469e41bc366c807448979362", size = 59427, upload-time = "2025-11-22T08:28:38.373Z" }
 wheels = [
@@ -5263,8 +5263,8 @@ name = "secretstorage"
 version = "3.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography", marker = "sys_platform != 'win32'" },
-    { name = "jeepney", marker = "sys_platform != 'win32'" },
+    { name = "cryptography" },
+    { name = "jeepney" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1c/03/e834bcd866f2f8a49a85eaff47340affa3bfa391ee9912a952a1faa68c7b/secretstorage-3.5.0.tar.gz", hash = "sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be", size = 19884, upload-time = "2025-11-23T19:02:53.191Z" }
 wheels = [
