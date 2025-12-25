@@ -856,6 +856,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             if self._cancelled:
                 response_time = time.perf_counter() - start_time
                 partial_content = "".join(accumulated_text)
+                if partial_content:
+                    partial_content += "\n\n"
+                partial_content += "[Request interrupted by user]"
                 response_msg = ChatMessage(
                     content=partial_content,
                     role="assistant",
