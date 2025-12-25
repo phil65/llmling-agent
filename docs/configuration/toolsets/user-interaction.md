@@ -19,11 +19,13 @@ agents:
 
 ## Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `ask_user` | Ask the user a question |
-| `show_message` | Display a message to the user |
-| `confirm` | Request user confirmation |
+```python exec="true"
+from agentpool_toolsets.builtin import UserInteractionTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = UserInteractionTools()
+print(generate_tool_docs(toolset))
+```
 
 ## Configuration Reference
 

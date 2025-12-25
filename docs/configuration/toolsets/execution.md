@@ -55,14 +55,13 @@ Execute on remote machines via SSH or other protocols.
 
 ## Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `execute_code` | Execute code in a specific language |
-| `execute_command` | Run shell commands |
-| `start_process` | Start a background process |
-| `get_process_output` | Get output from a running process |
-| `wait_for_process` | Wait for process completion |
-| `kill_process` | Terminate a running process |
+```python exec="true"
+from agentpool_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = ExecutionEnvironmentTools()
+print(generate_tool_docs(toolset))
+```
 
 ## Tool Selection
 

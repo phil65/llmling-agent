@@ -61,18 +61,13 @@ toolsets:
 
 ## Available Tools
 
-The toolset provides these tools to agents:
+```python exec="true"
+from agentpool_toolsets.fsspec_toolset import FSSpecTools
+from agentpool.docs.utils import generate_tool_docs
 
-| Tool | Description |
-|------|-------------|
-| `list_directory` | List files with glob patterns and filtering |
-| `read_file` | Read file contents (text or binary/images) |
-| `write_file` | Write content to files |
-| `edit_file` | Smart find-and-replace editing |
-| `delete_path` | Delete files or directories |
-| `grep` | Search file contents with regex |
-| `agentic_edit` | AI-powered file editing |
-| `download_file` | Download files from URLs |
+toolset = FSSpecTools()
+print(generate_tool_docs(toolset))
+```
 
 ## Configuration Reference
 

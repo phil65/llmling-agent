@@ -19,12 +19,13 @@ agents:
 
 ## Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `create_worker_agent` | Create a new worker agent |
-| `add_agent` | Add an agent to the pool |
-| `add_team` | Create a new team |
-| `connect_nodes` | Connect agents in the pool |
+```python exec="true"
+from agentpool_toolsets.builtin import AgentManagementTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = AgentManagementTools()
+print(generate_tool_docs(toolset))
+```
 
 ## Tool Selection
 

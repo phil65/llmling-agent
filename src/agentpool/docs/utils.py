@@ -232,6 +232,41 @@ def check_docs_for_union(
     return missing_docs, extra_docs
 
 
+def _strip_docstring_sections(description: str) -> str:
+    """Strip Args/Returns/Raises sections from a docstring, keeping only the summary.
+
+    Args:
+        description: The full docstring
+
+    Returns:
+        Just the summary/description part without parameter documentation
+    """
+    lines = description.split("\n")
+    result = []
+    in_section = False
+
+    for line in lines:
+        stripped = line.strip()
+        # Check if we're entering a standard docstring section
+        if stripped in ("Args:", "Arguments:", "Returns:", "Raises:", "Yields:", "Note:"):
+            in_section = True
+            continue
+        # Check if we're in a section (indented content after section header)
+        if in_section:
+            # If line is empty or still indented, skip it
+            if not stripped or line.startswith("    ") or line.startswith("\t"):
+                continue
+            # Non-indented non-empty line means new content
+            in_section = False
+        result.append(line)
+
+    # Clean up trailing empty lines
+    while result and not result[-1].strip():
+        result.pop()
+
+    return "\n".join(result)
+
+
 def tool_to_markdown(tool: Tool) -> str:
     """Generate markdown documentation for a single tool.
 
@@ -244,8 +279,11 @@ def tool_to_markdown(tool: Tool) -> str:
     lines = [f"### `{tool.name}`", ""]
 
     if tool.description:
-        lines.append(tool.description)
-        lines.append("")
+        # Strip Args/Returns sections since we have a parameters table
+        desc = _strip_docstring_sections(tool.description)
+        if desc:
+            lines.append(desc)
+            lines.append("")
 
     # Get parameters from schema
     schema = tool.schema["function"]

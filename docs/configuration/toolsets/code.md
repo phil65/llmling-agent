@@ -17,6 +17,16 @@ agents:
       - type: code
 ```
 
+## Available Tools
+
+```python exec="true"
+from agentpool_toolsets.builtin.code import CodeTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = CodeTools()
+print(generate_tool_docs(toolset))
+```
+
 ## Configuration Reference
 
 /// mknodes

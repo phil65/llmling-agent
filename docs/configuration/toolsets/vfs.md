@@ -32,11 +32,13 @@ agents:
 
 ## Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `vfs_list` | List contents of a resource path |
-| `vfs_read` | Read content from a resource |
-| `vfs_info` | Get information about configured resources |
+```python exec="true"
+from agentpool_toolsets.vfs_toolset import VFSTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = VFSTools()
+print(generate_tool_docs(toolset))
+```
 
 ## Usage Examples
 

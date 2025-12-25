@@ -19,11 +19,13 @@ agents:
 
 ## Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `list_available_nodes` | List agents available for delegation |
-| `delegate_to` | Delegate a task to another agent |
-| `ask_agent` | Ask another agent a question |
+```python exec="true"
+from agentpool_toolsets.builtin.subagent_tools import SubagentTools
+from agentpool.docs.utils import generate_tool_docs
+
+toolset = SubagentTools()
+print(generate_tool_docs(toolset))
+```
 
 ## Configuration Reference
 
