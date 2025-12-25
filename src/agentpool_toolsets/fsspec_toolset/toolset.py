@@ -224,9 +224,12 @@ class FSSpecTools(ResourceProvider):
         Args:
             agent_ctx: Agent execution context
             path: Base directory to list
-            pattern: Glob pattern to match files against (e.g. "*.py" for Python files)
+            pattern: Glob pattern to match files against. Use "*.py" to match Python
+                files in current directory only, or "**/*.py" to match recursively.
+                The max_depth parameter limits how deep "**" patterns search.
             exclude: List of patterns to exclude (uses fnmatch against relative paths)
-            max_depth: Maximum directory depth to search (default: 1 = current dir only)
+            max_depth: Maximum directory depth to search (default: 1 = current dir only).
+                Only affects recursive "**" patterns.
 
         Returns:
             Markdown-formatted directory listing
