@@ -49,6 +49,7 @@ class ObservabilityRegistry:
             send_to_logfire=(config.type == "logfire"),
         )
         logfire.instrument_pydantic_ai()
+        logfire.instrument_mcp()
         # Note: structlog logs are captured via StructlogProcessor in log.py
 
         self._configured = True
