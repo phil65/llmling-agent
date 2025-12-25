@@ -2,13 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.resource_providers import StaticResourceProvider
-
-
-if TYPE_CHECKING:
-    from agentpool.agents.context import AgentContext
 
 
 async def vfs_list(  # noqa: D417
@@ -120,9 +115,10 @@ class VFSTools(StaticResourceProvider):
     """Provider for VFS registry filesystem tools."""
 
     def __init__(self, name: str = "vfs") -> None:
-        tools = [
+        super().__init__(name=name, tools=[])
+        for tool in [
             self.create_tool(vfs_list, category="search", read_only=True, idempotent=True),
             self.create_tool(vfs_read, category="read", read_only=True, idempotent=True),
             self.create_tool(vfs_info, category="read", read_only=True, idempotent=True),
-        ]
-        super().__init__(name=name, tools=tools)
+        ]:
+            self.add_tool(tool)
