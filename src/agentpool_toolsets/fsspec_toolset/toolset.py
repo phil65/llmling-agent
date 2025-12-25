@@ -481,6 +481,16 @@ class FSSpecTools(ResourceProvider):
                 await agent_ctx.events.file_operation("write", path=path, success=False, error=msg)
                 return {"error": msg}
 
+            # Handle append mode: read existing content and prepend it
+            if mode == "a" and file_exists:
+                try:
+                    existing_content = await self._read(agent_ctx, path)
+                    if isinstance(existing_content, bytes):
+                        existing_content = existing_content.decode("utf-8")
+                    content = existing_content + content
+                except Exception:  # noqa: BLE001
+                    pass  # If we can't read, just write new content
+
             await self._write(agent_ctx, path, content)
 
             try:
