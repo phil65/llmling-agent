@@ -94,6 +94,7 @@ async def grep_with_subprocess(
     max_output_bytes: int = DEFAULT_MAX_SIZE,
     exclude_patterns: list[str] | None = None,
     use_gitignore: bool = True,
+    context_lines: int = 0,
     timeout: int = 60,
 ) -> dict[str, Any]:
     """Execute grep using ExecutionEnvironment (ripgrep or GNU grep).
@@ -108,6 +109,7 @@ async def grep_with_subprocess(
         max_output_bytes: Maximum total output bytes
         exclude_patterns: Patterns to exclude from search
         use_gitignore: Whether to respect .gitignore files
+        context_lines: Number of context lines before/after match
         timeout: Command timeout in seconds
 
     Returns:
@@ -124,10 +126,12 @@ async def grep_with_subprocess(
 
     if backend == GrepBackend.RIPGREP:
         cmd_list = _build_ripgrep_command(
-            pattern, path, case_sensitive, max_matches, exclude, use_gitignore
+            pattern, path, case_sensitive, max_matches, exclude, use_gitignore, context_lines
         )
     else:
-        cmd_list = _build_gnu_grep_command(pattern, path, case_sensitive, max_matches, exclude)
+        cmd_list = _build_gnu_grep_command(
+            pattern, path, case_sensitive, max_matches, exclude, context_lines
+        )
 
     # Convert list to shell command string
     import shlex
@@ -166,6 +170,7 @@ def _build_ripgrep_command(
     max_matches: int,
     exclude_patterns: list[str],
     use_gitignore: bool,
+    context_lines: int = 0,
 ) -> list[str]:
     """Build ripgrep command."""
     cmd = [
@@ -183,6 +188,10 @@ def _build_ripgrep_command(
     if not use_gitignore:
         cmd.append("--no-ignore")
 
+    # Add context lines if requested
+    if context_lines > 0:
+        cmd.extend(["--context", str(context_lines)])
+
     for pattern_exclude in exclude_patterns:
         cmd.extend(["--glob", f"!{pattern_exclude}"])
 
@@ -192,7 +201,12 @@ def _build_ripgrep_command(
 
 
 def _build_gnu_grep_command(
-    pattern: str, path: str, case_sensitive: bool, max_matches: int, exclude_patterns: list[str]
+    pattern: str,
+    path: str,
+    case_sensitive: bool,
+    max_matches: int,
+    exclude_patterns: list[str],
+    context_lines: int = 0,
 ) -> list[str]:
     """Build GNU grep command."""
     cmd = [
@@ -206,6 +220,10 @@ def _build_gnu_grep_command(
 
     if not case_sensitive and pattern.islower():
         cmd.append("-i")
+
+    # Add context lines if requested
+    if context_lines > 0:
+        cmd.append(f"--context={context_lines}")
 
     for pattern_exclude in exclude_patterns:
         if pattern_exclude.endswith("/"):
