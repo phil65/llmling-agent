@@ -190,8 +190,9 @@ async def test_error_handling_invalid_command(process_manifest, caplog: pytest.L
     async with AgentPool(process_manifest) as pool:
         pm = pool.process_manager
         # Try to start non-existent command
+        # Must provide args to trigger direct exec (without args, uses shell which starts OK)
         with pytest.raises(OSError, match="Failed to start process"):
-            await pm.start_process("nonexistent_command_12345")
+            await pm.start_process("nonexistent_command_12345", args=["arg"])
 
 
 async def test_process_info_retrieval(process_manifest):
