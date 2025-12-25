@@ -32,9 +32,11 @@ from llmling_models.configs import TestModelConfig
 
 from acp import ClientCapabilities
 from acp.client.implementations import HeadlessACPClient
+from acp.schema import TextContentBlock
 from agentpool import AgentsManifest
 from agentpool.delegation import AgentPool
 from agentpool.models.agents import NativeAgentConfig
+from agentpool.utils.tasks import TaskManager
 from agentpool_server.acp_server.session import ACPSession
 
 
@@ -99,12 +101,9 @@ class ToolCallTestHarness:
         )
     )
     session_id: str = "tool-call-test-session"
-
     _mock_acp_agent: Any = field(default=None, init=False)
 
     def __post_init__(self) -> None:
-        from agentpool.utils.tasks import TaskManager
-
         self._mock_acp_agent = AsyncMock()
         self._mock_acp_agent.tasks = TaskManager()
 
@@ -127,42 +126,34 @@ class ToolCallTestHarness:
             List of tool call notification messages in wire format
         """
         # Create manifest with model configured to call the specific tool
-        model_config = TestModelConfig(
-            call_tools=[tool_name],
-            tool_args={tool_name: tool_args},
-        )
+
+        model_config = TestModelConfig(call_tools=[tool_name], tool_args={tool_name: tool_args})
         agent_config = NativeAgentConfig(
             name="harness_test_agent",
             model=model_config,
             toolsets=toolsets,
         )
         manifest = AgentsManifest(agents={"harness_test_agent": agent_config})
-
         # Create pool and session
-        pool = AgentPool(manifest)
-        capabilities = ClientCapabilities(fs=None, terminal=False)
-        session = ACPSession(
-            session_id=self.session_id,
-            agent_pool=pool,
-            current_agent_name="harness_test_agent",
-            cwd=tempfile.gettempdir(),
-            client=self.client,
-            acp_agent=self._mock_acp_agent,
-            client_capabilities=capabilities,
-        )
-
-        # Override agent.env AFTER session creation
-        for agent in pool.agents.values():
-            agent.env = self.mock_env
-
-        # Clear and execute
-        self.client.clear()
-        from acp.schema import TextContentBlock
-
-        content_blocks = [TextContentBlock(type="text", text=prompt)]
-        await session.process_prompt(content_blocks)
-
-        return self.client.get_tool_call_messages()
+        async with AgentPool(manifest) as pool:
+            capabilities = ClientCapabilities(fs=None, terminal=False)
+            session = ACPSession(
+                session_id=self.session_id,
+                agent_pool=pool,
+                current_agent_name="harness_test_agent",
+                cwd=tempfile.gettempdir(),
+                client=self.client,
+                acp_agent=self._mock_acp_agent,
+                client_capabilities=capabilities,
+            )
+            # Override agent.env AFTER session creation
+            for agent in pool.agents.values():
+                agent.env = self.mock_env
+            # Clear and execute
+            self.client.clear()
+            content_blocks = [TextContentBlock(text=prompt)]
+            await session.process_prompt(content_blocks)
+            return self.client.get_tool_call_messages()
 
     async def execute_tools(
         self,
@@ -181,18 +172,13 @@ class ToolCallTestHarness:
             List of tool call notification messages in wire format
         """
         tool_names = list(tools.keys())
-
-        model_config = TestModelConfig(
-            call_tools=tool_names,
-            tool_args=tools,
-        )
+        model_config = TestModelConfig(call_tools=tool_names, tool_args=tools)
         agent_config = NativeAgentConfig(
             name="harness_test_agent",
             model=model_config,
             toolsets=toolsets,
         )
         manifest = AgentsManifest(agents={"harness_test_agent": agent_config})
-
         pool = AgentPool(manifest)
         capabilities = ClientCapabilities(fs=None, terminal=False)
         session = ACPSession(
@@ -207,11 +193,7 @@ class ToolCallTestHarness:
 
         for agent in pool.agents.values():
             agent.env = self.mock_env
-
         self.client.clear()
-        from acp.schema import TextContentBlock
-
-        content_blocks = [TextContentBlock(type="text", text=prompt)]
+        content_blocks = [TextContentBlock(text=prompt)]
         await session.process_prompt(content_blocks)
-
         return self.client.get_tool_call_messages()

@@ -452,4 +452,5 @@ source-exclude = [
 ]
 
 # [tool.uv.sources]
+# exxec = { path = "../exxec", editable = true }
 # schemez = { path = "../schemez", editable = true }

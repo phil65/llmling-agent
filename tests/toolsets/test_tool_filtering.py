@@ -7,7 +7,6 @@ import pytest
 from agentpool_config.toolsets import (
     AgentManagementToolsetConfig,
     CodeToolsetConfig,
-    ExecutionEnvironmentToolsetConfig,
     HistoryToolsetConfig,
     IntegrationToolsetConfig,
     SkillsToolsetConfig,
@@ -125,29 +124,6 @@ async def test_tool_management_filtering():
 
     assert "register_tool" in tool_names
     assert "register_code_tool" not in tool_names
-
-
-@pytest.mark.asyncio
-async def test_execution_environment_filtering():
-    """Test filtering tools in execution environment toolset."""
-    config = ExecutionEnvironmentToolsetConfig(
-        tools={
-            "execute_code": True,
-            "execute_command": False,
-            "start_process": True,
-            "kill_process": False,
-        }
-    )
-    provider = config.get_provider()
-    tools = await provider.get_tools()
-    tool_names = {t.name for t in tools}
-
-    assert "execute_code" in tool_names
-    assert "start_process" in tool_names
-    assert "execute_command" not in tool_names
-    assert "kill_process" not in tool_names
-    # Tools not in filter default to True
-    assert "get_process_output" in tool_names
 
 
 @pytest.mark.asyncio

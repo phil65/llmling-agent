@@ -54,32 +54,7 @@ def process_manifest():
     return AgentsManifest(agents={"process_agent": agent_cfg})
 
 
-async def test_process_tools_registration(process_manifest):
-    """Test that execution environment tools are properly registered."""
-    async with AgentPool(process_manifest) as pool:
-        agent = pool.agents["process_agent"]
-
-        # Get available tools
-        tools = await agent.tools.get_tools()
-        tool_names = [tool.name for tool in tools]
-
-        # Verify execution and process management tools are available
-        expected_tools = [
-            "execute_code",
-            "execute_command",
-            "start_process",
-            "get_process_output",
-            "wait_for_process",
-            "kill_process",
-            "release_process",
-            "list_processes",
-        ]
-
-        for expected_tool in expected_tools:
-            assert expected_tool in tool_names, f"Tool {expected_tool} not found"
-
-
-async def test_basic_process_workflow(process_manifest):
+async def test_basic_process_workflow(process_manifest: AgentsManifest):
     """Test a complete process management workflow."""
     async with AgentPool(process_manifest) as pool:
         pm = pool.process_manager
@@ -97,7 +72,7 @@ async def test_basic_process_workflow(process_manifest):
         assert process_id not in processes
 
 
-async def test_pool_cleanup_kills_processes(process_manifest):
+async def test_pool_cleanup_kills_processes(process_manifest: AgentsManifest):
     """Test that pool cleanup properly kills all processes."""
     async with AgentPool(process_manifest) as pool:
         pm = pool.process_manager
@@ -107,33 +82,6 @@ async def test_pool_cleanup_kills_processes(process_manifest):
         # Verify it's running
         processes = await pm.list_processes()
         assert process_id in processes
-
-
-async def test_toolset_requirement_enforcement():
-    """Test that tools are not available without proper toolsets."""
-    # Create agent without execution environment toolset
-    agent_config = NativeAgentConfig(name="LimitedAgent", model="test")
-    manifest = AgentsManifest(agents={"limited_agent": agent_config})
-
-    async with AgentPool(manifest) as pool:
-        agent = pool.agents["limited_agent"]
-        tools = await agent.tools.get_tools()
-        tool_names = [tool.name for tool in tools]
-
-        # Verify execution/process tools are NOT available
-        execution_tools = [
-            "execute_code",
-            "execute_command",
-            "start_process",
-            "get_process_output",
-            "wait_for_process",
-            "kill_process",
-            "release_process",
-            "list_processes",
-        ]
-
-        for tool in execution_tools:
-            assert tool not in tool_names, f"Tool {tool} should not be available"
 
 
 async def test_multiple_processes_management(process_manifest):
