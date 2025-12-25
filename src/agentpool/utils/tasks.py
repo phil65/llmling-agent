@@ -8,6 +8,7 @@ import heapq
 from typing import TYPE_CHECKING, Any
 
 from agentpool.log import get_logger
+from agentpool.utils.inspection import get_fn_name
 from agentpool.utils.now import get_now
 
 
@@ -56,11 +57,12 @@ class TaskManager:
 
         Args:
             coro: Coroutine to run
-            name: Optional name for the task
+            name: Optional name for the task (defaults to coroutine function name)
             priority: Priority (lower = higher priority, default 0)
             delay: Optional delay before execution
         """
-        task = asyncio.create_task(coro, name=name)
+        task_name = name or get_fn_name(coro)
+        task = asyncio.create_task(coro, name=task_name)
         logger.debug("Created task", name=task.get_name(), priority=priority, delay=delay)
 
         def _done_callback(t: asyncio.Task[Any]) -> None:
