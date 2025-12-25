@@ -12,6 +12,9 @@ from typing import TYPE_CHECKING, Annotated, Any, Self, Union, get_args, get_ori
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Iterator
 
+    from agentpool.resource_providers import ResourceProvider
+    from agentpool.tools.base import Tool
+
 
 EXAMPLES_DIR = Path("src/agentpool_docs/examples")
 
@@ -227,6 +230,95 @@ def check_docs_for_union(
     extra_docs = doc_files - set(expected_files.keys())
 
     return missing_docs, extra_docs
+
+
+def tool_to_markdown(tool: Tool) -> str:
+    """Generate markdown documentation for a single tool.
+
+    Args:
+        tool: The tool to document
+
+    Returns:
+        Markdown formatted documentation string
+    """
+    lines = [f"### `{tool.name}`", ""]
+
+    if tool.description:
+        lines.append(tool.description)
+        lines.append("")
+
+    # Get parameters from schema
+    schema = tool.schema["function"]
+    params_schema = schema.get("parameters", {})
+    properties = params_schema.get("properties", {})
+    required = params_schema.get("required", [])
+
+    if properties:
+        lines.append("**Parameters:**")
+        lines.append("")
+        lines.append("| Name | Type | Required | Description |")
+        lines.append("|------|------|----------|-------------|")
+        for name, details in properties.items():
+            req = "✓" if name in required else ""
+            type_info = details.get("type", "-")
+            desc = details.get("description", "-")
+            # Escape pipe characters in description
+            desc = desc.replace("|", "\\|").replace("\n", " ")
+            lines.append(f"| `{name}` | {type_info} | {req} | {desc} |")
+        lines.append("")
+
+    # Add hints if any are set
+    hints = []
+    if tool.hints.read_only:
+        hints.append("read-only")
+    if tool.hints.destructive:
+        hints.append("destructive")
+    if tool.hints.idempotent:
+        hints.append("idempotent")
+    if tool.hints.open_world:
+        hints.append("open-world")
+
+    if hints:
+        lines.append(f"**Hints:** {', '.join(hints)}")
+        lines.append("")
+
+    if tool.category:
+        lines.append(f"**Category:** {tool.category}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def generate_tool_docs(toolset: ResourceProvider) -> str:
+    """Generate markdown documentation for all tools in a toolset.
+
+    Args:
+        toolset: A ResourceProvider that provides tools
+
+    Returns:
+        Markdown formatted documentation for all tools
+
+    Example:
+        ```python exec="true"
+        from agentpool_toolsets.builtin.code import CodeTools
+        from agentpool.docs.utils import generate_tool_docs
+
+        toolset = CodeTools()
+        print(generate_tool_docs(toolset))
+        ```
+    """
+    # Get tools (handle async)
+    tools = run(toolset.get_tools())
+
+    if not tools:
+        return "*No tools available.*"
+
+    lines = [f"## {toolset.name.replace('_', ' ').title()} Tools", ""]
+
+    for tool in tools:
+        lines.append(tool_to_markdown(tool))
+
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
