@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-import shlex
 from typing import TYPE_CHECKING, Any, Literal, Required, overload
 
 from anyenv import get_os_command_provider
@@ -31,146 +30,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Find command helpers for ACP terminal
-# =============================================================================
-#
-# These functions build and parse GNU find commands with -printf for file stats.
-#
-# IMPORTANT: Escape sequence handling for ACP terminal
-# -----------------------------------------------------
-# The ACP terminal executes commands through multiple shell layers:
-#   1. Command string is parsed by shlex.split() in Python
-#   2. Args are JSON-encoded and sent over the wire
-#   3. Remote terminal runs args through /bin/sh
-#   4. find receives the -printf format string
-#
-# For find's -printf to receive "\t" (which it interprets as tab), we need
-# double-escaping in the source:
-#   - Source code: r"'%p\\t...'"  (raw string with \\t)
-#   - After shlex.split(): '%p\\t...'  (string contains backslash-t)
-#   - In JSON: "%p\\t..."  (escaped for JSON)
-#   - After shell processing: %p\t...  (shell converts \\ to \)
-#   - find receives: \t  (which find interprets as tab character)
-#
-# This is different from normal shell usage (e.g., subprocess with shell=True)
-# where single escaping suffices. The anyenv package uses single escaping
-# since it's designed for direct shell execution.
-# =============================================================================
-
-FileType = Literal["file", "directory", "link"]
-
-
-def build_find_command(
-    path: str,
-    maxdepth: int | None = None,
-    file_type: Literal["file", "directory", "all"] = "all",
-    with_stats: bool = False,
-) -> str:
-    """Build a find command string for ACP terminal execution.
-
-    This generates a GNU find command with optional -printf for file stats.
-    The escaping is specifically designed for ACP terminal's multi-layer
-    shell processing (see module-level comments for details).
-
-    Args:
-        path: Directory to search in
-        maxdepth: Maximum directory depth to descend
-        file_type: Filter by type - files only, directories only, or all
-        with_stats: If True, use -printf to include file stats
-
-    Returns:
-        The find command string
-    """
-    parts = ["find", shlex.quote(path)]
-
-    if maxdepth is not None:
-        parts.append(f"-maxdepth {maxdepth}")
-
-    if file_type == "file":
-        parts.append("-type f")
-    elif file_type == "directory":
-        parts.append("-type d")
-
-    if with_stats:
-        # Format: path<TAB>size<TAB>mtime<TAB>type<TAB>permissions<NEWLINE>
-        # %p = path, %s = size in bytes, %T@ = mtime as unix timestamp
-        # %y = type (f=file, d=dir, l=link), %M = permissions like ls -l
-        # Double-escape: \\t -> \t after shell, find interprets \t as tab
-        parts.append(r"-printf '%p\\t%s\\t%T@\\t%y\\t%M\\n'")
-
-    return " ".join(parts)
-
-
-def parse_find_output(output: str, with_stats: bool = False) -> list[AcpInfo]:
-    """Parse find command output.
-
-    Args:
-        output: Raw find command output
-        with_stats: Whether output includes -printf stats
-
-    Returns:
-        List of AcpInfo dictionaries
-    """
-    records = output.strip().split("\n")
-
-    if not records or (len(records) == 1 and not records[0]):
-        return []
-
-    entries: list[AcpInfo] = []
-    for raw_line in records:
-        line = raw_line.strip()
-        if not line:
-            continue
-
-        if with_stats:
-            # Parse tab-separated format: path\tsize\ttimestamp\ttype\tpermissions
-            # Parse from the right since path may contain tabs (rare but possible)
-            parts = line.rsplit("\t", 4)
-            if len(parts) == 5:  # noqa: PLR2004
-                path_str, size_str, timestamp_str, type_char, permissions = parts
-
-                # Map find type char to our type
-                type_map: dict[str, FileType] = {"f": "file", "d": "directory", "l": "link"}
-                file_type: FileType = type_map.get(type_char, "file")
-
-                # Parse size
-                try:
-                    size = int(size_str)
-                except ValueError:
-                    size = 0
-
-                # Extract name from path
-                name = path_str.rsplit("/", 1)[-1] if "/" in path_str else path_str
-
-                # Skip . and ..
-                if name in (".", ".."):
-                    continue
-
-                entries.append(
-                    AcpInfo(
-                        name=path_str,
-                        type="file" if file_type == "link" else file_type,
-                        size=size,
-                        islink=file_type == "link",
-                        timestamp=timestamp_str,
-                        permissions=permissions,
-                    )
-                )
-            else:
-                # Fallback: treat as plain path if parsing fails
-                name = line.rsplit("/", 1)[-1] if "/" in line else line
-                if name not in (".", ".."):
-                    entries.append(AcpInfo(name=line, type="file", size=0))
-        else:
-            # Plain path output
-            name = line.rsplit("/", 1)[-1] if "/" in line else line
-            if name not in (".", ".."):
-                entries.append(AcpInfo(name=line, type="file", size=0))
-
-    return entries
 
 
 class ACPFile(AbstractBufferedFile):  # type: ignore[misc]
@@ -245,27 +104,6 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         self.command_provider = get_os_command_provider()
         self.use_cli_find = use_cli_find
 
-    def _parse_command(self, command_str: str) -> tuple[str, list[str]]:
-        """Parse a shell command string into command and arguments.
-
-        Args:
-            command_str: Shell command string to parse
-
-        Returns:
-            Tuple of (command, args_list)
-        """
-        try:
-            parts = shlex.split(command_str)
-            if not parts:
-                raise ValueError("Empty command string")  # noqa: TRY301
-            return parts[0], parts[1:]
-        except ValueError as e:
-            # Fallback for problematic shell strings
-            parts = command_str.split()
-            if not parts:
-                raise ValueError("Empty command string") from e
-            return parts[0], parts[1:]
-
     async def _cat_file(
         self, path: str, start: int | None = None, end: int | None = None, **kwargs: Any
     ) -> bytes:
@@ -302,8 +140,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         try:
             b64_cmd = self.command_provider.get_command("base64_encode")
             cmd_str = b64_cmd.create_command(path)
-            cmd, args = self._parse_command(cmd_str)
-            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=30)
+            output, exit_code = await self.requests.run_command(cmd_str, timeout_seconds=30)
 
             if exit_code != 0:
                 msg = f"Could not read binary file {path}: {output}"
@@ -374,8 +211,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         ls_cmd = list_cmd.create_command(path)
 
         try:
-            cmd, args = self._parse_command(ls_cmd)
-            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=10)
+            output, exit_code = await self.requests.run_command(ls_cmd, timeout_seconds=10)
 
             if exit_code != 0:
                 msg = f"Error listing directory {path!r}: {output}"
@@ -416,8 +252,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         stat_cmd = info_cmd.create_command(path)
 
         try:
-            cmd, args = self._parse_command(stat_cmd)
-            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
+            output, exit_code = await self.requests.run_command(stat_cmd, timeout_seconds=5)
 
             if exit_code != 0:
                 raise FileNotFoundError(f"File not found: {path}")
@@ -469,8 +304,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         test_cmd = exists_cmd.create_command(path)
 
         try:
-            cmd, args = self._parse_command(test_cmd)
-            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
+            output, exit_code = await self.requests.run_command(test_cmd, timeout_seconds=5)
         except (OSError, ValueError):
             return False
         else:
@@ -492,8 +326,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         test_cmd = isdir_cmd.create_command(path)
 
         try:
-            cmd, args = self._parse_command(test_cmd)
-            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
+            output, exit_code = await self.requests.run_command(test_cmd, timeout_seconds=5)
         except (OSError, ValueError):
             return False
         else:
@@ -515,8 +348,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         test_cmd = isfile_cmd.create_command(path)
 
         try:
-            cmd, args = self._parse_command(test_cmd)
-            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
+            output, exit_code = await self.requests.run_command(test_cmd, timeout_seconds=5)
         except (OSError, ValueError):
             return False
         else:
@@ -536,8 +368,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         mkdir_cmd = create_cmd.create_command(path, parents=exist_ok)
 
         try:
-            cmd, args = self._parse_command(mkdir_cmd)
-            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=5)
+            output, exit_code = await self.requests.run_command(mkdir_cmd, timeout_seconds=5)
             success = create_cmd.parse_command(output, exit_code if exit_code is not None else 1)
             if not success:
                 msg = f"Error creating directory {path}: {output}"
@@ -563,8 +394,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         cmd_str = copy_cmd.create_command(path1, path2, recursive=False)
 
         try:
-            cmd, args = self._parse_command(cmd_str)
-            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=30)
+            output, exit_code = await self.requests.run_command(cmd_str, timeout_seconds=30)
             success = copy_cmd.parse_command(output, exit_code if exit_code is not None else 1)
             if not success:
                 msg = f"Error copying {path1} to {path2}: {output}"
@@ -587,8 +417,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         rm_cmd = remove_cmd.create_command(path, recursive=recursive)
 
         try:
-            cmd, args = self._parse_command(rm_cmd)
-            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=10)
+            output, exit_code = await self.requests.run_command(rm_cmd, timeout_seconds=10)
             success = remove_cmd.parse_command(output, exit_code if exit_code is not None else 1)
             if not success:
                 msg = f"Error removing {path}: {output}"
@@ -632,26 +461,37 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         # Determine file_type filter
         file_type: Literal["file", "directory", "all"] = "all" if withdirs else "file"
 
-        # Build find command - use stats when detail is requested
-        cmd_str = build_find_command(
+        # Use anyenv find command
+        find_cmd = self.command_provider.get_command("find")
+        cmd_str = find_cmd.create_command(
             search_path, maxdepth=maxdepth, file_type=file_type, with_stats=detail
         )
 
         try:
-            cmd, args = self._parse_command(cmd_str)
-            output, exit_code = await self.requests.run_command(cmd, args=args, timeout_seconds=60)
+            output, exit_code = await self.requests.run_command(cmd_str, timeout_seconds=60)
 
             if exit_code != 0:
                 # If find fails, fall back to default implementation
                 logger.warning("CLI find failed, falling back to walk: %s", output)
                 return await super()._find(path, maxdepth=maxdepth, withdirs=withdirs, **kwargs)  # type: ignore[no-any-return]
 
-            entries = parse_find_output(output, with_stats=detail)
+            entries = find_cmd.parse_command(output, search_path)
 
             if detail:
                 # Return dict with info from find output
-                return {entry["name"]: entry for entry in entries}
-            return [entry["name"] for entry in entries]
+                return {
+                    entry.path: AcpInfo(
+                        name=entry.path,
+                        type="file" if entry.type == "link" else entry.type,
+                        size=entry.size,
+                        islink=entry.type == "link",
+                        timestamp=entry.timestamp,
+                        permissions=entry.permissions,
+                    )
+                    for entry in entries
+                    if entry.name not in (".", "..")
+                }
+            return [entry.path for entry in entries if entry.name not in (".", "..")]
 
         except Exception as e:  # noqa: BLE001
             logger.warning("CLI find error, falling back to walk: %s", e)
