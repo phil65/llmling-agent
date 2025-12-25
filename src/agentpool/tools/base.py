@@ -103,10 +103,15 @@ class Tool[TOutputType = Any]:
     @property
     def schema_obj(self) -> FunctionSchema:
         """Get the OpenAI function schema for the tool."""
+        from pydantic_ai import RunContext
+
+        from agentpool.agents.context import AgentContext
+
         return schemez.create_schema(
             self.callable,
             name_override=self.name,
             description_override=self.description,
+            exclude_types=[AgentContext, RunContext],
         )
 
     @property
