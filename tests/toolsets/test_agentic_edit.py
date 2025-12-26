@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import tempfile
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -11,8 +12,11 @@ from agentpool import Agent
 from agentpool_toolsets.fsspec_toolset import FSSpecTools
 
 
-# Use a real model for this test - claude-haiku-4.5 via OpenRouter
-EDIT_MODEL = "anthropic-max:claude-haiku-4-5"
+if TYPE_CHECKING:
+    from tokonomics.model_names import ModelId
+
+pytestmark = [pytest.mark.integration]
+EDIT_MODEL: ModelId = "openrouter:minimax/minimax-m2.1"
 
 
 @pytest.fixture
