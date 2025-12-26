@@ -29,7 +29,6 @@ from pydantic_ai import (
     TextPartDelta,
     ToolReturnPart,
 )
-from pydantic_ai.models import Model
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import (
@@ -264,7 +263,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             session_config=memory_cfg,
             resources=resources,
         )
-        self._model = model
+        self._model = infer_model(model) if isinstance(model, str) else model
         self._retries = retries
         self._end_strategy: EndStrategy = end_strategy
         self._output_retries = output_retries
@@ -485,7 +484,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format (provider:model_name)."""
-        if isinstance(self._model, Model):
+        if self._model:
             # Construct full model ID with provider prefix (e.g., "anthropic:claude-haiku-4-5")
             return f"{self._model.system}:{self._model.model_name}"
         return self._model
@@ -1136,7 +1135,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             model: New model to use (name or instance)
 
         """
-        self._model = model
+        self._model = infer_model(model) if isinstance(model, str) else model
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set the tool confirmation mode for this agent.
