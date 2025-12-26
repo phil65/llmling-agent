@@ -12,7 +12,7 @@ from agentpool_toolsets.fsspec_toolset import FSSpecTools
 
 
 # Use a real model for this test - claude-haiku-4.5 via OpenRouter
-EDIT_MODEL = "openrouter:anthropic/claude-haiku-4.5"
+EDIT_MODEL = "anthropic-max:claude-haiku-4-5"
 
 
 @pytest.fixture
