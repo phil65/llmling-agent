@@ -16,7 +16,7 @@ from searchly.config import (
     WebSearchProviderName,
     get_config_class,
 )
-from tokonomics import ModelName
+from tokonomics.model_names import ModelId
 from upathtools import UPath
 from upathtools.configs import FilesystemConfigType
 from upathtools.configs.base import FileSystemConfig
@@ -544,7 +544,7 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     - Composed filesystems: {"type": "union", "filesystems": {...}}
     """
 
-    model: str | ModelName | AnyModelConfig | None = Field(
+    model: str | ModelId | AnyModelConfig | None = Field(
         default=None,
         examples=["openai:gpt-5-nano"],
         title="Model for edit sub-agent",
@@ -760,7 +760,7 @@ class SemanticMemoryToolsetConfig(BaseToolsetConfig):
     type: Literal["semantic_memory"] = Field("semantic_memory", init=False)
     """Semantic memory toolset using TypeAgent's KnowPro."""
 
-    model: str | ModelName | AnyModelConfig | None = Field(
+    model: str | ModelId | AnyModelConfig | None = Field(
         default=None,
         examples=["openai:gpt-4o", "anthropic:claude-sonnet-4-20250514"],
         title="Model for LLM sampling",

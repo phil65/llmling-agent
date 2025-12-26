@@ -12,7 +12,7 @@ from llmling_models.configs import AnyModelConfig  # noqa: TC002
 from pydantic import ConfigDict, Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
-from tokonomics.model_names import ModelName  # noqa: TC002
+from tokonomics.model_names import ModelId  # noqa: TC002
 from toprompt import render_prompt
 
 from agentpool import log
@@ -64,7 +64,7 @@ class NativeAgentConfig(BaseAgentConfig):
     inherits: str | None = Field(default=None, title="Inheritance source")
     """Name of agent config to inherit from"""
 
-    model: AnyModelConfig | ModelName | str | None = Field(
+    model: AnyModelConfig | ModelId | str | None = Field(
         default=None,
         examples=["openai:gpt-5-nano"],
         title="Model configuration or name",

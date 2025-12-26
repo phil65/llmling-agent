@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from pydantic_ai.output import OutputSpec
-    from tokonomics import ModelName
+    from tokonomics.model_names import ModelId
     from upathtools import JoinablePathLike
 
     from agentpool.agents.acp_agent import ACPAgent
@@ -635,7 +635,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         agent: AgentName | Agent[Any, str],
         *,
         return_type: type[TResult] = str,  # type: ignore
-        model_override: ModelName | str | None = None,
+        model_override: ModelId | str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[TPoolDeps, TResult]: ...
 
@@ -646,7 +646,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         *,
         deps_type: type[TCustomDeps],
         return_type: type[TResult] = str,  # type: ignore
-        model_override: ModelName | str | None = None,
+        model_override: ModelId | str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[TCustomDeps, TResult]: ...
 
@@ -656,7 +656,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         *,
         deps_type: Any | None = None,
         return_type: Any = str,
-        model_override: ModelName | str | None = None,
+        model_override: ModelId | str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[Any, Any]:
         """Get or configure an agent from the pool.

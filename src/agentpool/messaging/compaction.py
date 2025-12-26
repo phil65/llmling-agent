@@ -71,7 +71,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pydantic_ai import ModelRequestPart, ModelResponsePart
-    from tokonomics import ModelName
+    from tokonomics.model_names import ModelId
 
 # Type aliases
 ModelMessage = ModelRequest | ModelResponse
@@ -858,7 +858,7 @@ def balanced_context() -> CompactionPipeline:
     )
 
 
-def summarizing_context(model: ModelName | str = "openai:gpt-4o-mini") -> CompactionPipeline:
+def summarizing_context(model: ModelId | str = "openai:gpt-4o-mini") -> CompactionPipeline:
     """Create a pipeline that summarizes older messages.
 
     Best for long conversations where context needs to be preserved.

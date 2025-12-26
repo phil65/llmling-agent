@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Annotated, Final, Literal
 from platformdirs import user_data_dir
 from pydantic import ConfigDict, Field
 from schemez import Schema
-from tokonomics import ModelName
+from tokonomics.model_names import ModelId
 from yamling import FormatType
 
 
@@ -236,7 +236,7 @@ class StorageConfig(Schema):
     log_context: bool = Field(default=True, title="Log context")
     """Whether to log additions to the context."""
 
-    title_generation_model: ModelName | str | None = Field(
+    title_generation_model: ModelId | str | None = Field(
         default="google-gla:gemini-2.5-flash-lite",
         examples=["google-gla:gemini-2.5-flash-lite", None],
         title="Title generation model",

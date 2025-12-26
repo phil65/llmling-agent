@@ -54,9 +54,9 @@ def get_model_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
     """
     # Get models directly from the Literal type
     from llmling_models import AllModels
-    from tokonomics.model_names import ModelName
+    from tokonomics.model_names import ModelId
 
-    known_models = list(get_args(ModelName)) + list(get_args(AllModels))
+    known_models = list(get_args(ModelId)) + list(get_args(AllModels))
 
     agent = ctx.command_context.context.agent
     agent_ctx = agent.get_context()
