@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from fnmatch import fnmatch
 import os
 from pathlib import Path
@@ -10,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 from exxec.base import ExecutionEnvironment
-from pydantic_ai import Agent as PydanticAgent, BinaryContent
+from pydantic_ai import BinaryContent, PartDeltaEvent, TextPartDelta
 from upathtools import is_directory
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
@@ -18,21 +19,31 @@ from agentpool.log import get_logger
 from agentpool.mime_utils import guess_type, is_binary_content, is_binary_mime
 from agentpool.resource_providers import ResourceProvider
 from agentpool_toolsets.builtin.file_edit import replace_content
+from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import (
+    StreamingFuzzyMatcher,
+)
 from agentpool_toolsets.fsspec_toolset.diagnostics import DiagnosticsManager
 from agentpool_toolsets.fsspec_toolset.grep import GrepBackend
 from agentpool_toolsets.fsspec_toolset.helpers import (
-    apply_structured_edits,
     format_directory_listing,
     get_changed_line_numbers,
     truncate_lines,
+)
+from agentpool_toolsets.fsspec_toolset.streaming_diff_parser import (
+    NewTextChunk,
+    OldTextChunk,
+    StreamingDiffParser,
 )
 
 
 if TYPE_CHECKING:
     import fsspec
     from fsspec.asyn import AsyncFileSystem
+    from pydantic_ai.messages import ModelResponse
 
+    from agentpool.agents.base_agent import BaseAgent
     from agentpool.common_types import ModelType
+    from agentpool.messaging import MessageHistory
     from agentpool.prompts.conversion_manager import ConversionManager
     from agentpool.repomap import RepoMap
     from agentpool.tools.base import Tool
@@ -880,117 +891,119 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation("read", path=url, success=False, error=error_msg)
             return {"error": error_msg}
 
-    async def agentic_edit(  # noqa: D417, PLR0915
+    async def agentic_edit(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         path: str,
         display_description: str,
         mode: str = "edit",
+        matcher: str = "default",
     ) -> str:
-        r"""Edit a file using AI agent with natural language instructions.
+        r"""Edit or create a file with streaming support.
 
-        Creates a new agent that processes the file based on the instructions.
-        Shows real-time progress and diffs as the agent works.
+        Use this tool for file modifications. Describe what changes you want
+        and the tool will apply them progressively as they're generated.
 
         Args:
             path: File path (absolute or relative to session cwd)
-            display_description: Natural language description of the edits to make
-            mode: Edit mode - 'edit', 'create', or 'overwrite' (default: 'edit')
+            display_description: What edits to make - be specific about the changes.
+                Examples: "Add error handling to the parse function",
+                "Rename the 'foo' variable to 'bar' throughout",
+                "Add a docstring to the MyClass class"
+            mode: How to modify the file:
+                - 'edit': Modify specific parts of existing file (default)
+                - 'create': Create a new file (fails if file exists)
+                - 'overwrite': Replace entire file content
+            matcher: Internal matching algorithm - leave as default unless
+                you have a reason to change it.
 
         Returns:
             Success message with edit summary
-
-        Example:
-            agentic_edit('src/main.py', 'Add error handling to the main function') ->
-            'Successfully edited main.py using AI agent'
         """
+        from pydantic_ai.messages import CachePoint, ModelRequest
+
+        from agentpool.messaging import ChatMessage, MessageHistory
+
         path = self._resolve_path(path, agent_ctx)
         title = f"AI editing file: {path}"
         await agent_ctx.events.tool_call_start(title=title, kind="edit", locations=[path])
-        # Send initial pending notification
         await agent_ctx.events.file_operation("edit", path=path, success=True)
 
         try:
-            if mode == "create":  # For create mode, don't read existing file
+            # Read original content for diff purposes
+            if mode == "create":
                 original_content = ""
-                prompt = _build_create_prompt(path, display_description)
-                sys_prompt = "You are a code generator. Create the requested file content."
-            elif mode == "overwrite":
-                # For overwrite mode, don't read file - agent
-                # already read it via system prompt requirement
-                original_content = ""  # Will be set later for diff purposes
-                prompt = _build_overwrite_prompt(path, display_description)
-                sys_prompt = "You are a code editor. Output ONLY the complete new file content."
-            else:  # For edit mode, use structured editing approach
+            else:
                 original_content = await self._read(agent_ctx, path)
-
-                # Ensure content is string
                 if isinstance(original_content, bytes):
                     original_content = original_content.decode()
-                prompt = _build_edit_prompt(path, display_description)
-                sys_prompt = (
-                    "You are a code editor. Output ONLY structured edits "
-                    "using the specified format."
-                )
-            # Create the editor agent using the same model
-            model = self.edit_model or agent_ctx.agent.model_name
-            editor_agent = PydanticAgent(model=model, system_prompt=sys_prompt)
-            if mode == "edit":
-                # For structured editing, get the full response and parse the edits
-                edit = await editor_agent.run(prompt)
-                new_content = await apply_structured_edits(original_content, edit.output)
+
+            # Build the edit prompt based on mode
+            if mode == "create":
+                prompt = _build_create_prompt(path, display_description)
+            elif mode == "overwrite":
+                prompt = _build_overwrite_prompt(path, display_description, original_content)
             else:
-                # For overwrite mode we need to read the current content for diff purposes
-                if mode == "overwrite":
-                    original_content = await self._read(agent_ctx, path)
-                    # Ensure content is string
-                    if isinstance(original_content, bytes):
-                        original_content = original_content.decode("utf-8")
-                # For create/overwrite modes, stream the complete content
-                new_content_parts = []
-                async with editor_agent.run_stream(prompt) as response:
-                    async for chunk in response.stream_text(delta=True):
-                        chunk_str = str(chunk)
-                        new_content_parts.append(chunk_str)
-                        # Build partial content for progress updates
-                        partial_content = "".join(new_content_parts)
-                        try:  # Send progress update with current diff
-                            if len(partial_content.strip()) > 0:
-                                # Get line numbers for streaming progress
-                                get_changed_line_numbers(original_content, partial_content)
-                                await agent_ctx.events.file_edit_progress(
-                                    path=path,
-                                    old_text=original_content,
-                                    new_text=partial_content,
-                                    status="in_progress",
-                                )
-                        except Exception:  # noqa: BLE001
-                            pass  # Continue on progress update errors
+                prompt = _build_edit_prompt(path, display_description, original_content)
 
-                new_content = "".join(new_content_parts).strip()
+            # Get the current agent and its conversation history
+            agent = agent_ctx.native_agent
 
-            if not new_content:
-                error_msg = "AI agent produced no output"
-                await agent_ctx.events.file_operation(
-                    "edit", path=path, success=False, error=error_msg
+            # Create forked message history from current conversation
+            # This preserves full context while isolating the edit's messages
+            current_history = agent.conversation.get_history()
+
+            # Inject CachePoint into history to cache everything up to this point
+            # This ensures the fork benefits from caching the full conversation
+            if current_history:
+                # Get pydantic-ai messages and inject cache point
+                all_messages: list[ModelRequest | ModelResponse] = []
+                for msg in current_history:
+                    all_messages.extend(msg.to_pydantic_ai())
+
+                # Add CachePoint at the end of history
+                if all_messages:
+                    cache_request: ModelRequest = ModelRequest(parts=[CachePoint()])  # type: ignore[list-item]
+                    all_messages.append(cache_request)
+
+                # Wrap in a single ChatMessage for the forked history
+                fork_history = MessageHistory(
+                    messages=[ChatMessage(messages=all_messages, role="user", content="")]
                 )
-                return error_msg
+            else:
+                fork_history = MessageHistory()
+
+            # Stream the edit using the same agent but with forked history
+            if mode == "edit" and matcher == "zed":
+                # TRUE STREAMING with Zed-style DP fuzzy matcher
+                new_content = await self._stream_edit_with_matcher(
+                    agent, prompt, fork_history, original_content, path, agent_ctx
+                )
+            elif mode == "edit":
+                # TRUE STREAMING with our 9-strategy replace_content (default)
+                new_content = await self._stream_edit_with_replace(
+                    agent, prompt, fork_history, original_content, path, agent_ctx
+                )
+            else:
+                # CREATE/OVERWRITE: Stream raw content directly
+                new_content = await self._stream_raw_content(
+                    agent, prompt, fork_history, original_content, path, agent_ctx
+                )
 
             # Write the new content to file
-            new_content = await self._read(agent_ctx, path)
+            await self._write(agent_ctx, path, new_content)
+
+            # Build success message
             original_lines = len(original_content.splitlines()) if original_content else 0
             new_lines = len(new_content.splitlines())
 
             if mode == "create":
-                path = Path(path).name
-                success_msg = f"Successfully created {path} ({new_lines} lines)"
+                success_msg = f"Successfully created {Path(path).name} ({new_lines} lines)"
             else:
                 success_msg = f"Successfully edited {Path(path).name} using AI agent"
                 success_msg += f" ({original_lines} → {new_lines} lines)"
 
-            # Get changed line numbers for precise UI highlighting
-            get_changed_line_numbers(original_content, new_content)
-            # Send final completion update with complete diff and line numbers
+            # Send final completion update
             await agent_ctx.events.file_edit_progress(
                 path=path,
                 old_text=original_content,
@@ -1005,6 +1018,264 @@ class FSSpecTools(ResourceProvider):
         else:
             return success_msg
 
+    async def _stream_edit_with_matcher(  # noqa: PLR0915
+        self,
+        agent: BaseAgent,
+        prompt: str,
+        fork_history: MessageHistory,
+        original_content: str,
+        path: str,
+        agent_ctx: AgentContext,
+    ) -> str:
+        """TRUE streaming edit using StreamingDiffParser + StreamingFuzzyMatcher.
+
+        Parses diff incrementally, uses DP matcher to find locations as old_text
+        streams, and applies new_text edits as they arrive.
+        """
+        parser = StreamingDiffParser()
+        matcher = StreamingFuzzyMatcher(original_content)
+
+        # Track current state
+        edited_content = original_content
+        pending_old_text: list[str] = []  # Track old text for prefix/suffix calculation
+        pending_new_text: list[str] = []
+        current_match_range = None
+
+        async for node in agent.run_stream(
+            prompt,
+            message_history=fork_history,
+            store_history=False,
+        ):
+            match node:
+                case PartDeltaEvent(delta=TextPartDelta(content_delta=chunk)):
+                    # Parse diff chunk and process events
+                    for event in parser.push(chunk):
+                        if isinstance(event, OldTextChunk):
+                            if not event.done:
+                                # Track old text for later prefix/suffix calculation
+                                pending_old_text.append(event.chunk)
+                                # Push to matcher for location resolution
+                                match_result = matcher.push(event.chunk, line_hint=event.line_hint)
+                                if match_result:
+                                    current_match_range = match_result
+                            else:
+                                # Old text done - finalize location
+                                matches = matcher.finish()
+                                if matches:
+                                    current_match_range = matches[0]
+                                # Reset matcher for next hunk
+                                matcher = StreamingFuzzyMatcher(edited_content)
+
+                        elif isinstance(event, NewTextChunk):
+                            if not event.done:
+                                pending_new_text.append(event.chunk)
+                            else:
+                                # New text done - apply the edit if we have a location
+                                if current_match_range and pending_new_text:
+                                    new_text = "".join(pending_new_text)
+                                    old_text = "".join(pending_old_text)
+
+                                    # The matcher may find a larger range than our old_text
+                                    # We need to preserve any prefix/suffix not in old_text
+                                    matched_text = edited_content[
+                                        current_match_range.start : current_match_range.end
+                                    ]
+
+                                    # Find where old_text appears in matched_text
+                                    old_text_stripped = old_text.strip("\n")
+                                    match_idx = matched_text.find(old_text_stripped)
+
+                                    if match_idx >= 0:
+                                        # Preserve prefix (e.g., blank lines before)
+                                        prefix = matched_text[:match_idx]
+                                        # Preserve suffix after old_text
+                                        suffix_start = match_idx + len(old_text_stripped)
+                                        suffix = matched_text[suffix_start:]
+                                        # Build replacement with preserved prefix/suffix
+                                        replacement = prefix + new_text.strip("\n") + suffix
+                                    else:
+                                        # Fallback: direct replacement
+                                        replacement = new_text
+
+                                    # Apply edit to content
+                                    edited_content = (
+                                        edited_content[: current_match_range.start]
+                                        + replacement
+                                        + edited_content[current_match_range.end :]
+                                    )
+                                    # Emit progress update
+                                    await agent_ctx.events.file_edit_progress(
+                                        path=path,
+                                        old_text=original_content,
+                                        new_text=edited_content,
+                                        status="in_progress",
+                                    )
+
+                                # Reset for next hunk
+                                pending_old_text = []
+                                pending_new_text = []
+                                current_match_range = None
+
+        # Process any remaining content
+        for event in parser.finish():
+            if isinstance(event, OldTextChunk):
+                if not event.done:
+                    pending_old_text.append(event.chunk)
+                    matcher.push(event.chunk, line_hint=event.line_hint)
+                else:
+                    matches = matcher.finish()
+                    if matches:
+                        current_match_range = matches[0]
+            elif isinstance(event, NewTextChunk):
+                if not event.done:
+                    pending_new_text.append(event.chunk)
+                elif current_match_range and pending_new_text:
+                    new_text = "".join(pending_new_text)
+                    old_text = "".join(pending_old_text)
+                    matched_text = edited_content[
+                        current_match_range.start : current_match_range.end
+                    ]
+                    old_text_stripped = old_text.strip("\n")
+                    match_idx = matched_text.find(old_text_stripped)
+                    if match_idx >= 0:
+                        prefix = matched_text[:match_idx]
+                        suffix_start = match_idx + len(old_text_stripped)
+                        suffix = matched_text[suffix_start:]
+                        replacement = prefix + new_text.strip("\n") + suffix
+                    else:
+                        replacement = new_text
+                    edited_content = (
+                        edited_content[: current_match_range.start]
+                        + replacement
+                        + edited_content[current_match_range.end :]
+                    )
+
+        return edited_content
+
+    async def _stream_edit_with_replace(
+        self,
+        agent: BaseAgent,
+        prompt: str,
+        fork_history: MessageHistory,
+        original_content: str,
+        path: str,
+        agent_ctx: AgentContext,
+    ) -> str:
+        """TRUE streaming edit using StreamingDiffParser + replace_content().
+
+        Parses diff incrementally, uses our 9-strategy replace_content() to
+        find locations and apply edits as each hunk completes.
+        """
+        parser = StreamingDiffParser()
+
+        # Track current state
+        edited_content = original_content
+        pending_old_text: list[str] = []
+        pending_new_text: list[str] = []
+
+        async for node in agent.run_stream(
+            prompt,
+            message_history=fork_history,
+            store_history=False,
+        ):
+            match node:
+                case PartDeltaEvent(delta=TextPartDelta(content_delta=chunk)):
+                    # Parse diff chunk and process events
+                    for event in parser.push(chunk):
+                        if isinstance(event, OldTextChunk):
+                            if not event.done:
+                                pending_old_text.append(event.chunk)
+                            # When old_text is done, we just wait for new_text
+
+                        elif isinstance(event, NewTextChunk):
+                            if not event.done:
+                                pending_new_text.append(event.chunk)
+                            else:
+                                # Hunk complete - apply using replace_content
+                                if pending_old_text and pending_new_text:
+                                    old_text = "".join(pending_old_text)
+                                    new_text = "".join(pending_new_text)
+
+                                    try:
+                                        edited_content = replace_content(
+                                            edited_content,
+                                            old_text,
+                                            new_text,
+                                            replace_all=False,
+                                        )
+                                        # Emit progress update
+                                        await agent_ctx.events.file_edit_progress(
+                                            path=path,
+                                            old_text=original_content,
+                                            new_text=edited_content,
+                                            status="in_progress",
+                                        )
+                                    except ValueError as e:
+                                        # Log but continue - some hunks may fail
+                                        logger.warning(
+                                            "Streaming hunk failed",
+                                            error=str(e),
+                                            old_text=old_text[:50],
+                                        )
+
+                                # Reset for next hunk
+                                pending_old_text = []
+                                pending_new_text = []
+
+        # Process any remaining content
+        for event in parser.finish():
+            if isinstance(event, OldTextChunk) and not event.done:
+                pending_old_text.append(event.chunk)
+            elif isinstance(event, NewTextChunk):
+                if not event.done:
+                    pending_new_text.append(event.chunk)
+                elif pending_old_text and pending_new_text:
+                    old_text = "".join(pending_old_text)
+                    new_text = "".join(pending_new_text)
+                    with contextlib.suppress(ValueError):
+                        edited_content = replace_content(
+                            edited_content,
+                            old_text,
+                            new_text,
+                            replace_all=False,
+                        )
+
+        return edited_content
+
+    async def _stream_raw_content(
+        self,
+        agent: BaseAgent,
+        prompt: str,
+        fork_history: MessageHistory,
+        original_content: str,
+        path: str,
+        agent_ctx: AgentContext,
+    ) -> str:
+        """Stream raw content for create/overwrite modes.
+
+        Emits progress updates as content streams in.
+        """
+        streamed_content = ""
+
+        async for node in agent.run_stream(
+            prompt,
+            message_history=fork_history,
+            store_history=False,
+        ):
+            match node:
+                case PartDeltaEvent(delta=TextPartDelta(content_delta=chunk)):
+                    streamed_content += chunk
+
+                    # Emit periodic progress updates
+                    await agent_ctx.events.file_edit_progress(
+                        path=path,
+                        old_text=original_content,
+                        new_text=streamed_content,
+                        status="in_progress",
+                    )
+
+        return streamed_content
+
 
 def _build_create_prompt(path: str, description: str) -> str:
     """Build prompt for create mode."""
@@ -1012,68 +1283,62 @@ def _build_create_prompt(path: str, description: str) -> str:
 
 {description}
 
-Output only the complete file content, no explanations or markdown formatting."""
+Output ONLY the complete file content. No explanations, no markdown code blocks, no formatting."""
 
 
-def _build_overwrite_prompt(path: str, description: str) -> str:
+def _build_overwrite_prompt(path: str, description: str, current_content: str) -> str:
     """Build prompt for overwrite mode."""
     return f"""Rewrite the file {path} according to this description:
 
 {description}
 
-Output only the complete new file content, no explanations or markdown formatting."""
+<current_file_content>
+{current_content}
+</current_file_content>
+
+Output ONLY the complete new file content. No explanations, no code blocks, no formatting."""
 
 
-def _build_edit_prompt(path: str, description: str) -> str:
-    """Build prompt for structured edit mode."""
+def _build_edit_prompt(path: str, description: str, current_content: str) -> str:
+    """Build prompt for diff-based edit mode."""
     return f"""\
-You MUST respond with a series of edits to a file, using the following format:
+You MUST respond with edits in unified diff format. Output your changes inside <diff> tags.
 
-```
-<edits>
+# Diff Format Instructions
 
-<old_text line=10>
-OLD TEXT 1 HERE
-</old_text>
-<new_text>
-NEW TEXT 1 HERE
-</new_text>
+Use standard unified diff format with context lines:
+- Lines starting with a space are context (unchanged)
+- Lines starting with `-` are removed
+- Lines starting with `+` are added
+- Include 2-3 lines of context before and after each change
+- Do NOT include line numbers or @@ headers - locations are matched by context
 
-<old_text line=456>
-OLD TEXT 2 HERE
-</old_text>
-<new_text>
-NEW TEXT 2 HERE
-</new_text>
+Example:
+<diff>
+ def existing_function():
+-    old_implementation()
++    new_implementation()
+     return result
+</diff>
 
-</edits>
-```
+# Rules
 
-# File Editing Instructions
+- Context lines MUST exactly match the file content (including indentation)
+- Include enough context to uniquely identify the location
+- For multiple separate changes, include all hunks within a single <diff> block
+- Separate hunks with a blank line
+- Do not escape quotes or special characters
+- Preserve exact indentation from the original file
 
-- Use `<old_text>` and `<new_text>` tags to replace content
-- `<old_text>` must exactly match existing file content, including indentation
-- `<old_text>` must come from the actual file, not an outline
-- `<old_text>` cannot be empty
-- `line` should be a starting line number for the text to be replaced
-- Be minimal with replacements:
-- For unique lines, include only those lines
-- For non-unique lines, include enough context to identify them
-- Do not escape quotes, newlines, or other characters within tags
-- For multiple occurrences, repeat the same tag pair for each instance
-- Edits are sequential - each assumes previous edits are already applied
-- Only edit the specified file
-- Always close all tags properly
-
-<file_to_edit>
-{path}
+<file_to_edit path="{path}">
+{current_content}
 </file_to_edit>
 
 <edit_description>
 {description}
 </edit_description>
 
-Tool calls have been disabled. You MUST start your response with <edits>."""
+You MUST wrap your response in <diff>...</diff> tags."""
 
 
 if __name__ == "__main__":
