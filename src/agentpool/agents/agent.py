@@ -1219,7 +1219,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 await stack.enter_async_context(self.connections.paused_routing())
 
             elif model is not None:  # Model
-                self._model = model
+                self._model = infer_model(model) if isinstance(model, str) else model
 
             try:
                 yield self
