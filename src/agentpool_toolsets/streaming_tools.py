@@ -196,7 +196,7 @@ def _create_forked_history(agent: BaseAgent) -> MessageHistory:
     The fork preserves full context for cache benefits while isolating
     new messages from the main conversation.
     """
-    from pydantic_ai.messages import CachePoint, ModelRequest
+    from pydantic_ai.messages import ModelRequest
 
     from agentpool.messaging import ChatMessage, MessageHistory
 
@@ -209,9 +209,9 @@ def _create_forked_history(agent: BaseAgent) -> MessageHistory:
             all_messages.extend(msg.to_pydantic_ai())
 
         # Add CachePoint at the end to cache everything up to this point
-        if all_messages:
-            cache_request: ModelRequest = ModelRequest(parts=[CachePoint()])  # type: ignore[list-item]
-            all_messages.append(cache_request)
+        # if all_messages and isinstance(agent, Agent):
+        #     cache_request: ModelRequest = ModelRequest(parts=[CachePoint()])  # type: ignore[list-item]
+        #     all_messages.append(cache_request)
 
         # Wrap in a single ChatMessage for the forked history
         return MessageHistory(
