@@ -20,8 +20,11 @@ from uuid import uuid4
 
 from fastmcp import FastMCP
 from fastmcp.tools import Tool as FastMCPTool
+from llmling_models.models.helpers import infer_model
 from pydantic import BaseModel, HttpUrl
 
+from agentpool.agents import Agent, ClaudeCodeAgent
+from agentpool.agents.acp_agent.acp_agent import ACPAgent
 from agentpool.log import get_logger
 from agentpool.utils.signatures import filter_schema_params, get_params_matching_predicate
 
@@ -32,6 +35,7 @@ if TYPE_CHECKING:
     from claude_agent_sdk.types import McpServerConfig
     from fastmcp import Context
     from fastmcp.tools.tool import ToolResult
+    from pydantic_ai import RunContext
     from uvicorn import Server
 
     from acp.schema.mcp import HttpMcpServer, SseMcpServer
@@ -44,11 +48,7 @@ logger = get_logger(__name__)
 
 
 def _is_agent_context_type(annotation: Any) -> bool:
-    """Check if annotation is AgentContext (the only context type we inject).
-
-    RunContext requires pydantic-ai's execution context which isn't available
-    in the MCP bridge.
-    """
+    """Check if annotation is AgentContext."""
     if annotation is None or annotation is inspect.Parameter.empty:
         return False
 
@@ -76,6 +76,76 @@ def _is_agent_context_type(annotation: Any) -> bool:
 def _get_context_param_names(fn: Callable[..., Any]) -> set[str]:
     """Get parameter names that are AgentContext (to be auto-injected)."""
     return get_params_matching_predicate(fn, lambda p: _is_agent_context_type(p.annotation))
+
+
+def _is_run_context_type(annotation: Any) -> bool:
+    """Check if annotation is pydantic-ai RunContext."""
+    if annotation is None or annotation is inspect.Parameter.empty:
+        return False
+
+    # Handle string annotations (forward references)
+    if isinstance(annotation, str):
+        base_name = annotation.split("[")[0].strip()
+        return base_name == "RunContext"
+
+    # Check direct class match by name
+    if isinstance(annotation, type) and annotation.__name__ == "RunContext":
+        return True
+
+    # Check generic origin (e.g., RunContext[SomeDeps])
+    origin = get_origin(annotation)
+    if origin is not None:
+        if isinstance(origin, type) and origin.__name__ == "RunContext":
+            return True
+        # Handle Union types (e.g., RunContext | None)
+        if origin is type(None) or str(origin) in ("typing.Union", "types.UnionType"):
+            return any(_is_run_context_type(arg) for arg in get_args(annotation))
+
+    return False
+
+
+def _get_run_context_param_names(fn: Callable[..., Any]) -> set[str]:
+    """Get parameter names that are RunContext (to be auto-injected)."""
+    return get_params_matching_predicate(fn, lambda p: _is_run_context_type(p.annotation))
+
+
+def _create_stub_run_context(ctx: AgentContext[Any]) -> RunContext[Any]:
+    """Create a stub RunContext from AgentContext for MCP bridge tool invocations.
+
+    This provides a best-effort RunContext for tools that require it when
+    invoked via MCP bridge. Not all fields can be populated accurately since
+    we're outside of pydantic-ai's normal execution flow.
+
+    Args:
+        ctx: The AgentContext available in the bridge
+
+    Returns:
+        A RunContext with available information populated
+    """
+    from pydantic_ai import RunContext
+    from pydantic_ai.models.test import TestModel
+    from pydantic_ai.usage import RunUsage
+
+    match ctx.agent:
+        case Agent():
+            model = ctx.agent._model or TestModel()
+        case ACPAgent() | ClaudeCodeAgent():
+            try:
+                model = infer_model(ctx.agent.model_name or "test")
+            except Exception:  # noqa: BLE001
+                model = TestModel()
+        case _:
+            model = TestModel()
+    # Create a minimal usage object
+    return RunContext(
+        deps=ctx.data,
+        model=model,
+        usage=RunUsage(),
+        prompt=None,
+        messages=[],
+        tool_name=ctx.tool_name,
+        tool_call_id=ctx.tool_call_id,
+    )
 
 
 def _convert_to_tool_result(result: Any) -> ToolResult:
@@ -298,12 +368,20 @@ class ToolManagerBridge:
         Handles tools that expect AgentContext, RunContext, or neither.
         """
         fn = tool.callable
-        # Find context parameters and inject them
+
+        # Inject AgentContext parameters
         context_param_names = _get_context_param_names(fn)
         for param_name in context_param_names:
-            # Don't override if caller somehow provided it (shouldn't happen)
             if param_name not in kwargs:
                 kwargs[param_name] = ctx
+
+        # Inject RunContext parameters (as stub since we're outside pydantic-ai)
+        run_context_param_names = _get_run_context_param_names(fn)
+        if run_context_param_names:
+            stub_run_ctx = _create_stub_run_context(ctx)
+            for param_name in run_context_param_names:
+                if param_name not in kwargs:
+                    kwargs[param_name] = stub_run_ctx
 
         # Execute the tool
         result = fn(**kwargs)
@@ -353,7 +431,9 @@ class _BridgeTool(FastMCPTool):
         input_schema = schema.get("parameters", {"type": "object", "properties": {}})
         # Filter out context parameters - they're auto-injected by the bridge
         context_params = _get_context_param_names(tool.callable)
-        filtered_schema = filter_schema_params(input_schema, context_params)
+        run_context_params = _get_run_context_param_names(tool.callable)
+        all_context_params = context_params | run_context_params
+        filtered_schema = filter_schema_params(input_schema, all_context_params)
         desc = tool.description or "No description"
         super().__init__(name=tool.name, description=desc, parameters=filtered_schema)
         # Set these AFTER super().__init__() to avoid being overwritten
