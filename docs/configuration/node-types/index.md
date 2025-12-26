@@ -11,23 +11,22 @@ Nodes are the core building blocks of AgentPool. This section covers the differe
 
 ## Agents
 
-### Standard Agents
+### Native Agents
 
-[Standard agents](agent.md) are the primary node type in AgentPool. They are fully configured within your manifest and support:
-
-- Model selection and configuration
-- System prompts and knowledge sources
-- Tools and toolsets
-- Workers for task delegation
-- Event handlers and connections
+[Native agents](agent.md) are the using regular client APIs of AI model providers and are backed by `Pydantic-AI`.
 
 ### ACP Agents
 
-[ACP (Agent Communication Protocol) agents](acp-agents.md) integrate external coding agents like Claude Code, Gemini CLI, Codex, and many others. These run as separate processes and communicate via the ACP protocol.
+[ACP (Agent Communication Protocol) agents](acp-agents.md) integrate external coding agents like Claude Code, Gemini CLI, Codex, and many others. These run as separate processes and communicate via the ACP protocol. This means that AgentHub can act as a ACP bridge: ACP-Agents are connected to the AgentPool via ACP, can use some of its extended featureset and then also be controlled by the User via a UI ACP client such as `Zed` or `Toad`.
 
 ### AG-UI Agents
 
 [AG-UI agents](agui-agents.md) connect to remote HTTP endpoints implementing the AG-UI protocol, enabling integration with any AG-UI compatible server.
+
+### Claude Code Agents
+
+[Claude Code agents](claude-code-agents.md) provide native integration with the Claude Agent SDK. While Claude Code can also be used via the ACP bridge, this direct integration offers lower latency, tighter integration, and the ability to expose AgentPool's internal toolsets to Claude Code via MCP.
+
 
 ## Teams
 
@@ -39,10 +38,10 @@ Nodes are the core building blocks of AgentPool. This section covers the differe
 
 ## Quick Comparison
 
-| Feature | Standard Agent | ACP Agent | AG-UI Agent | Team |
-|---------|---------------|-----------|-------------|------|
-| Runs in-process | Yes | No | No | Yes |
-| Full configuration | Yes | Limited | Limited | Yes |
-| External tools | Via toolsets | Built-in | Via server | Via members |
-| Streaming | Yes | Yes | Yes | Yes |
-| Use case | Primary agents | Coding tasks | Remote services | Coordination |
+| Feature | Standard Agent | Claude Code Agent | ACP Agent | AG-UI Agent | Team |
+|---------|---------------|-------------------|-----------|-------------|------|
+| Runs in-process | Yes | Yes (SDK) | No | No | Yes |
+| Full configuration | Yes | Yes | Limited | Limited | Yes |
+| External tools | Via toolsets | Built-in + MCP bridge | Built-in | Via server | Via members |
+| Streaming | Yes | Yes | Yes | Yes | Yes |
+| Use case | Primary agents | Coding tasks | External agents | Remote services | Coordination |

@@ -5,8 +5,8 @@ icon: material/file-code
 order: 2
 ---
 
-The agent manifest is a YAML file that defines your complete agent setup at the top level.
-The config part is powered by [Pydantic](https://docs.pydantic.dev/latest/) and provides excellent validation
+The agent manifest is a YAML file that defines your complete agent setup.
+The configuration is powered by [Pydantic](https://docs.pydantic.dev/latest/) and provides excellent validation
 and IDE support for YAML linters by providing an extensive, detailed schema.
 
 ## Top-Level Structure
@@ -23,7 +23,7 @@ Here's the complete manifest structure with all available top-level sections:
 
 Dictionary of individual agent configurations. Each key is an agent identifier, and the value is the complete agent configuration.
 
-See [Agent Configuration](./node-types/agent.md) for detailed agent setup options.
+See [Agent Configuration](./node-types/index.md) for detailed agent setup options.
 
 ### `teams`  
 
