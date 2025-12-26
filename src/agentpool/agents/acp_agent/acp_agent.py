@@ -28,10 +28,11 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
+import subprocess
 from typing import TYPE_CHECKING, Any, Self, overload
 import uuid
 
-from anyenv import create_process
+import anyio
 from pydantic_ai import (
     ModelRequest,
     ModelResponse,
@@ -58,10 +59,10 @@ from agentpool.utils.streams import merge_queue_into_iterator
 
 
 if TYPE_CHECKING:
-    from asyncio.subprocess import Process
     from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
     from types import TracebackType
 
+    from anyio.abc import Process
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import FinishReason
@@ -348,13 +349,14 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         args = await self.config.get_args(prompt_manager)
         cmd = [self.config.get_command(), *args]
         self.log.info("Starting ACP subprocess", command=cmd)
-        self._process = await create_process(
-            *cmd,
-            stdin="pipe",
-            stdout="pipe",
-            stderr="pipe",
+
+        self._process = await anyio.open_process(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             env={**os.environ, **self.config.env},
-            cwd=self.config.cwd,
+            cwd=str(self.config.cwd) if self.config.cwd else None,
         )
         if not self._process.stdin or not self._process.stdout:
             msg = "Failed to create subprocess pipes"

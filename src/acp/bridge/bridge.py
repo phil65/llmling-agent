@@ -37,10 +37,10 @@ from acp.transports import spawn_stdio_transport
 
 
 if TYPE_CHECKING:
-    import asyncio
     from collections.abc import Mapping
     from pathlib import Path
 
+    import anyio
     from starlette.requests import Request
 
     from acp.schema import AgentMethod
@@ -76,7 +76,7 @@ class ACPBridge:
         self.cwd = cwd
         self.settings = settings or BridgeSettings()
         self._connection: ClientSideConnection | None = None
-        self._process: asyncio.subprocess.Process | None = None
+        self._process: anyio.abc.Process | None = None
 
     async def _handle_acp_request(self, request: Request) -> Response:
         """Handle incoming ACP JSON-RPC requests."""

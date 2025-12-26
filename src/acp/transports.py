@@ -1,20 +1,19 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 from contextlib import asynccontextmanager
 import os
+import subprocess
 from typing import TYPE_CHECKING
 
-from anyenv import create_process
+import anyio
 
 
 if TYPE_CHECKING:
-    import asyncio.subprocess as aio_subprocess
     from collections.abc import AsyncIterator, Mapping
     from pathlib import Path
 
-    from anyenv.processes import Mode
+    from anyio.abc import ByteReceiveStream, ByteSendStream, Process
 
 
 DEFAULT_INHERITED_ENV_VARS = (
@@ -57,10 +56,10 @@ async def spawn_stdio_transport(
     *args: str,
     env: Mapping[str, str] | None = None,
     cwd: str | Path | None = None,
-    stderr: Mode | None = "pipe",
+    stderr: int | None = subprocess.PIPE,
     shutdown_timeout: float = 2.0,
-) -> AsyncIterator[tuple[asyncio.StreamReader, asyncio.StreamWriter, aio_subprocess.Process]]:
-    """Launch a subprocess and expose its stdio streams as asyncio transports.
+) -> AsyncIterator[tuple[ByteReceiveStream, ByteSendStream, Process]]:
+    """Launch a subprocess and expose its stdio streams as anyio streams.
 
     This mirrors the defensive shutdown behaviour used by the MCP Python SDK:
     close stdin first, wait for graceful exit, then escalate to terminate/kill.
@@ -69,11 +68,10 @@ async def spawn_stdio_transport(
     if env:
         merged_env.update(env)
 
-    process = await create_process(
-        command,
-        *args,
-        stdin="pipe",
-        stdout="pipe",
+    process = await anyio.open_process(
+        [command, *args],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
         stderr=stderr,
         env=merged_env,
         cwd=str(cwd) if cwd is not None else None,
@@ -82,7 +80,7 @@ async def spawn_stdio_transport(
     if process.stdout is None or process.stdin is None:
         process.kill()
         await process.wait()
-        msg = "spawn_stdio_transport requires stdout/stderr pipes"
+        msg = "spawn_stdio_transport requires stdout/stdin pipes"
         raise RuntimeError(msg)
 
     try:
@@ -90,23 +88,17 @@ async def spawn_stdio_transport(
     finally:
         # Attempt graceful stdin shutdown first
         if process.stdin is not None:
-            try:
-                process.stdin.write_eof()
-            except (AttributeError, OSError, RuntimeError):
-                process.stdin.close()
             with contextlib.suppress(Exception):
-                await process.stdin.drain()
-            with contextlib.suppress(Exception):
-                process.stdin.close()
-            with contextlib.suppress(Exception):
-                await process.stdin.wait_closed()
+                await process.stdin.aclose()
 
         try:
-            await asyncio.wait_for(process.wait(), timeout=shutdown_timeout)
+            with anyio.fail_after(shutdown_timeout):
+                await process.wait()
         except TimeoutError:
             process.terminate()
             try:
-                await asyncio.wait_for(process.wait(), timeout=shutdown_timeout)
+                with anyio.fail_after(shutdown_timeout):
+                    await process.wait()
             except TimeoutError:
                 process.kill()
                 await process.wait()

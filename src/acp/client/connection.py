@@ -11,6 +11,8 @@ import logfire
 if TYPE_CHECKING:
     from types import TracebackType
 
+    from anyio.abc import ByteReceiveStream, ByteSendStream
+
     from acp.client.protocol import Client
     from acp.connection import StreamObserver
     from acp.schema import (
@@ -63,7 +65,6 @@ from acp.schema import (
 
 
 if TYPE_CHECKING:
-    import asyncio
     from collections.abc import Callable
 
 
@@ -74,15 +75,15 @@ class ClientSideConnection(Agent):
 
     Args:
       to_client: factory that receives this connection and returns your Client
-      input: asyncio.StreamWriter (local -> peer)
-      output: asyncio.StreamReader (peer -> local)
+      input: ByteSendStream (local -> peer)
+      output: ByteReceiveStream (peer -> local)
     """
 
     def __init__(
         self,
         to_client: Callable[[Agent], Client],
-        input_stream: asyncio.StreamWriter,
-        output_stream: asyncio.StreamReader,
+        input_stream: ByteSendStream,
+        output_stream: ByteReceiveStream,
         observers: list[StreamObserver] | None = None,
     ) -> None:
         # Build client first so handler can delegate

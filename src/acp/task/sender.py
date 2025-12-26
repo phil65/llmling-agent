@@ -10,13 +10,16 @@ import json
 import logging
 from typing import Any
 
+import anyio
+from anyio.abc import ByteSendStream
+
 from acp.task.supervisor import TaskSupervisor
 
 
 __all__ = ["MessageSender", "SenderFactory"]
 
 
-SenderFactory = Callable[[asyncio.StreamWriter, TaskSupervisor], "MessageSender"]
+SenderFactory = Callable[[ByteSendStream, TaskSupervisor], "MessageSender"]
 
 
 @dataclass(slots=True)
@@ -30,7 +33,7 @@ class MessageSender:
 
     def __init__(
         self,
-        writer: asyncio.StreamWriter,
+        writer: ByteSendStream,
         supervisor: TaskSupervisor,
     ) -> None:
         self._writer = writer
@@ -62,8 +65,7 @@ class MessageSender:
                 if item is None:
                     return
                 try:
-                    self._writer.write(item.payload)
-                    await self._writer.drain()
+                    await self._writer.send(item.payload)
                 except Exception as exc:
                     if not item.future.done():
                         item.future.set_exception(exc)
@@ -72,6 +74,8 @@ class MessageSender:
                     if not item.future.done():
                         item.future.set_result(None)
         except asyncio.CancelledError:
+            return
+        except anyio.ClosedResourceError:
             return
 
     def _on_error(self, task: asyncio.Task[Any], exc: BaseException) -> None:

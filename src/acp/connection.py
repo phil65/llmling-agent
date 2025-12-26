@@ -12,6 +12,8 @@ import logging
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 import anyenv
+import anyio
+from anyio.streams.text import TextReceiveStream
 from pydantic import BaseModel, ValidationError
 
 from acp.exceptions import RequestError
@@ -33,6 +35,8 @@ from agentpool import log
 
 
 if TYPE_CHECKING:
+    from anyio.abc import ByteReceiveStream, ByteSendStream
+
     from acp.task.sender import SenderFactory
 
 
@@ -65,7 +69,7 @@ StreamObserver = Callable[[StreamEvent], Coroutine[Any, Any, None] | None]
 class Connection:
     """Minimal JSON-RPC 2.0 connection over newline-delimited JSON frames.
 
-    Using asyncio streams. KISS: only supports StreamReader/StreamWriter.
+    Using anyio streams for cross-platform compatibility.
 
     - Outgoing messages always include {"jsonrpc": "2.0"}
     - Requests and notifications are dispatched to a single async handler
@@ -75,8 +79,8 @@ class Connection:
     def __init__(
         self,
         handler: MethodHandler,
-        writer: asyncio.StreamWriter,
-        reader: asyncio.StreamReader,
+        writer: ByteSendStream,
+        reader: ByteReceiveStream,
         *,
         queue: MessageQueue | None = None,
         state_store: MessageStateStore | None = None,
@@ -87,6 +91,7 @@ class Connection:
         self._handler = handler
         self._writer = writer
         self._reader = reader
+        self._text_reader = TextReceiveStream(reader)
         self._next_request_id = 0
         self._state = state_store or InMemoryMessageStateStore()
         self._tasks = TaskSupervisor(source="acp.Connection")
@@ -141,23 +146,34 @@ class Connection:
         self._notify_observers("outgoing", payload)
 
     async def _receive_loop(self) -> None:
+        """Read newline-delimited JSON messages using anyio TextReceiveStream.
+
+        This approach has no 64KB line limit unlike asyncio's readline().
+        Pattern follows MCP SDK's stdio client implementation.
+        """
         try:
-            while True:
-                line = await self._reader.readline()
-                if not line:
-                    break
-                if line in (b"null\n", b"\n"):
-                    continue
-                try:
-                    message = anyenv.load_json(line, return_type=dict)
-                except Exception:
-                    # Align with Rust/TS: on parse error, just skip instead of response
-                    logger.exception("Error parsing JSON-RPC message", line=line)
-                    continue
-                else:
-                    self._notify_observers("incoming", message)
-                    await self._process_message(message)
+            buffer = ""
+            async for chunk in self._text_reader:
+                lines = (buffer + chunk).split("\n")
+                buffer = lines.pop()  # Keep incomplete line in buffer
+
+                for line in lines:
+                    if not line or line == "null":
+                        continue
+                    try:
+                        message = anyenv.load_json(line, return_type=dict)
+                    except Exception:
+                        # Align with Rust/TS: on parse error, just skip instead of response
+                        logger.exception("Error parsing JSON-RPC message", line=line)
+                        continue
+                    else:
+                        self._notify_observers("incoming", message)
+                        await self._process_message(message)
         except asyncio.CancelledError:
+            return
+        except anyio.ClosedResourceError:
+            return
+        except anyio.EndOfStream:
             return
 
     async def _process_message(self, message: dict[str, Any]) -> None:

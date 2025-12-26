@@ -5,6 +5,8 @@ import contextlib
 from typing import TYPE_CHECKING
 
 import anyenv
+import anyio
+from anyio.abc import ByteReceiveStream, ByteSendStream
 import pytest
 
 from acp import (
@@ -33,6 +35,38 @@ from acp import (
 if TYPE_CHECKING:
     from acp import DefaultACPClient
     from acp.agent.implementations.testing import TestAgent
+
+
+class AsyncioReaderAdapter(ByteReceiveStream):
+    """Adapts asyncio.StreamReader to anyio's ByteReceiveStream interface."""
+
+    def __init__(self, reader: asyncio.StreamReader) -> None:
+        self._reader = reader
+
+    async def receive(self, max_bytes: int = 65536) -> bytes:
+        data = await self._reader.read(max_bytes)
+        if not data:
+            raise anyio.EndOfStream
+        return data
+
+    async def aclose(self) -> None:
+        pass  # StreamReader doesn't need explicit close
+
+
+class AsyncioWriterAdapter(ByteSendStream):
+    """Adapts asyncio.StreamWriter to anyio's ByteSendStream interface."""
+
+    def __init__(self, writer: asyncio.StreamWriter) -> None:
+        self._writer = writer
+
+    async def send(self, item: bytes) -> None:
+        self._writer.write(item)
+        await self._writer.drain()
+
+    async def aclose(self) -> None:
+        self._writer.close()
+        with contextlib.suppress(Exception):
+            await self._writer.wait_closed()
 
 
 class _Server:
@@ -84,11 +118,16 @@ async def test_initialize_and_new_session(
         assert s.server_writer is not None
         assert s.server_reader is not None
         # server side is agent; client side is client
+        # Wrap asyncio streams with anyio adapters
         agent_conn = ClientSideConnection(
-            lambda _conn: test_client, s.client_writer, s.client_reader
+            lambda _conn: test_client,
+            AsyncioWriterAdapter(s.client_writer),
+            AsyncioReaderAdapter(s.client_reader),
         )
         _client_conn = AgentSideConnection(
-            lambda _conn: test_agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent,
+            AsyncioWriterAdapter(s.server_writer),
+            AsyncioReaderAdapter(s.server_reader),
         )
 
         resp = await agent_conn.initialize(InitializeRequest(protocol_version=1))
@@ -125,8 +164,16 @@ async def test_bidirectional_file_ops(test_agent: TestAgent, test_client: Defaul
         agent = test_agent
         client = test_client
         client.files["/test/file.txt"] = "Hello, World!"
-        _agent_conn = ClientSideConnection(lambda _conn: client, s.client_writer, s.client_reader)
-        client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
+        _agent_conn = ClientSideConnection(
+            lambda _conn: client,
+            AsyncioWriterAdapter(s.client_writer),
+            AsyncioReaderAdapter(s.client_reader),
+        )
+        client_conn = AgentSideConnection(
+            lambda _conn: agent,
+            AsyncioWriterAdapter(s.server_writer),
+            AsyncioReaderAdapter(s.server_reader),
+        )
 
         # Agent asks client to read
         read_request = ReadTextFileRequest(session_id="sess", path="/test/file.txt")
@@ -150,8 +197,16 @@ async def test_cancel_notification_and_capture_wire(
         # Build only agent-side (server) connection. Client side: reader to inspect wire
         agent = test_agent
         client = test_client
-        agent_conn = ClientSideConnection(lambda _conn: client, s.client_writer, s.client_reader)
-        _client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
+        agent_conn = ClientSideConnection(
+            lambda _conn: client,
+            AsyncioWriterAdapter(s.client_writer),
+            AsyncioReaderAdapter(s.client_reader),
+        )
+        _client_conn = AgentSideConnection(
+            lambda _conn: agent,
+            AsyncioWriterAdapter(s.server_writer),
+            AsyncioReaderAdapter(s.server_reader),
+        )
 
         # Send cancel notification from client-side connection to agent
         await agent_conn.cancel(CancelNotification(session_id="test-123"))
@@ -174,10 +229,14 @@ async def test_session_notifications_flow(
         assert s.server_writer is not None
         assert s.server_reader is not None
         _agent_conn = ClientSideConnection(
-            lambda _conn: test_client, s.client_writer, s.client_reader
+            lambda _conn: test_client,
+            AsyncioWriterAdapter(s.client_writer),
+            AsyncioReaderAdapter(s.client_reader),
         )
         client_conn = AgentSideConnection(
-            lambda _conn: test_agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent,
+            AsyncioWriterAdapter(s.server_writer),
+            AsyncioReaderAdapter(s.server_reader),
         )
 
         # Agent -> Client notifications
@@ -206,10 +265,14 @@ async def test_concurrent_reads(test_agent: TestAgent, test_client: DefaultACPCl
         for i in range(5):
             test_client.files[f"/test/file{i}.txt"] = f"Content {i}"
         _agent_conn = ClientSideConnection(
-            lambda _conn: test_client, s.client_writer, s.client_reader
+            lambda _conn: test_client,
+            AsyncioWriterAdapter(s.client_writer),
+            AsyncioReaderAdapter(s.client_reader),
         )
         client_conn = AgentSideConnection(
-            lambda _conn: test_agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent,
+            AsyncioWriterAdapter(s.server_writer),
+            AsyncioReaderAdapter(s.server_reader),
         )
 
         async def read_one(i: int):
@@ -232,7 +295,9 @@ async def test_invalid_params_results_in_error_response(
         assert s.server_writer is not None
         assert s.server_reader is not None
         _server_conn = AgentSideConnection(
-            lambda _conn: test_agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent,
+            AsyncioWriterAdapter(s.server_writer),
+            AsyncioReaderAdapter(s.server_reader),
         )
 
         # Send initialize with wrong param type (protocolVersion should be int)
@@ -264,7 +329,9 @@ async def test_method_not_found_results_in_error_response(
         assert s.server_writer is not None
         assert s.server_reader is not None
         _server_conn = AgentSideConnection(
-            lambda _conn: test_agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent,
+            AsyncioWriterAdapter(s.server_writer),
+            AsyncioReaderAdapter(s.server_reader),
         )
 
         req = {"jsonrpc": "2.0", "id": 2, "method": "unknown/method", "params": {}}
@@ -288,8 +355,16 @@ async def test_set_session_mode_and_extensions(
         assert s.server_reader is not None
         agent = test_agent
         client = test_client
-        agent_conn = ClientSideConnection(lambda _conn: client, s.client_writer, s.client_reader)
-        _client_conn = AgentSideConnection(lambda _conn: agent, s.server_writer, s.server_reader)
+        agent_conn = ClientSideConnection(
+            lambda _conn: client,
+            AsyncioWriterAdapter(s.client_writer),
+            AsyncioReaderAdapter(s.client_reader),
+        )
+        _client_conn = AgentSideConnection(
+            lambda _conn: agent,
+            AsyncioWriterAdapter(s.server_writer),
+            AsyncioReaderAdapter(s.server_reader),
+        )
 
         # set_session_mode
         request = SetSessionModeRequest(session_id="sess", mode_id="yolo")
@@ -316,7 +391,9 @@ async def test_ignore_invalid_messages(test_agent: TestAgent):
         assert s.server_writer is not None
         assert s.server_reader is not None
         _server_conn = AgentSideConnection(
-            lambda _conn: test_agent, s.server_writer, s.server_reader
+            lambda _conn: test_agent,
+            AsyncioWriterAdapter(s.server_writer),
+            AsyncioReaderAdapter(s.server_reader),
         )
 
         # Message without id and method

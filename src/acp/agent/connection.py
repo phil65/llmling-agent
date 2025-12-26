@@ -43,8 +43,9 @@ from acp.task import DebuggingMessageStateStore
 
 
 if TYPE_CHECKING:
-    import asyncio
     from collections.abc import Callable
+
+    from anyio.abc import ByteReceiveStream, ByteSendStream
 
     from acp.agent.protocol import Agent
     from acp.connection import StreamObserver
@@ -74,15 +75,15 @@ class AgentSideConnection(Client):
 
     Args:
         to_agent: factory that receives this connection and returns your Agent
-        input: asyncio.StreamWriter (local -> peer)
-        output: asyncio.StreamReader (peer -> local)
+        input: ByteSendStream (local -> peer)
+        output: ByteReceiveStream (peer -> local)
     """
 
     def __init__(
         self,
         to_agent: Callable[[AgentSideConnection], Agent],
-        input_stream: asyncio.StreamWriter,
-        output_stream: asyncio.StreamReader,
+        input_stream: ByteSendStream,
+        output_stream: ByteReceiveStream,
         observers: list[StreamObserver] | None = None,
         *,
         debug_file: str | None = None,
@@ -91,8 +92,8 @@ class AgentSideConnection(Client):
 
         Args:
             to_agent: factory that receives this connection and returns your Agent
-            input_stream: asyncio.StreamWriter (local -> peer)
-            output_stream: asyncio.StreamReader (peer -> local)
+            input_stream: ByteSendStream (local -> peer)
+            output_stream: ByteReceiveStream (peer -> local)
             observers: list of StreamObserver instances to observe the connection
             debug_file: path to a file to write debug information to
         """
