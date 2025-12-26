@@ -43,7 +43,6 @@ def mock_sse_response():
     return _create_response
 
 
-@pytest.mark.asyncio
 async def test_agui_agent_initialization():
     """Test AGUIAgent initialization."""
     agent = AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent")
@@ -54,7 +53,6 @@ async def test_agui_agent_initialization():
     assert agent._thread_id is None
 
 
-@pytest.mark.asyncio
 async def test_agui_agent_context_manager():
     """Test AGUIAgent context manager."""
     async with AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent") as agent:
@@ -66,7 +64,6 @@ async def test_agui_agent_context_manager():
     assert agent._thread_id is None
 
 
-@pytest.mark.asyncio
 async def test_agui_agent_run_stream(mock_sse_response):
     """Test AGUIAgent streaming execution."""
     # Create mock SSE events
@@ -97,7 +94,6 @@ async def test_agui_agent_run_stream(mock_sse_response):
             assert final_event.message.content == "Hello world"
 
 
-@pytest.mark.asyncio
 async def test_agui_agent_run(mock_sse_response):
     """Test AGUIAgent non-streaming execution."""
     events = [
@@ -142,7 +138,6 @@ def test_agui_to_native_event_tool_call():
     assert native.tool_name == "test_tool"
 
 
-@pytest.mark.asyncio
 async def test_agui_agent_to_tool():
     """Test converting AGUIAgent to a tool."""
     events = [
@@ -178,7 +173,6 @@ async def test_agui_agent_to_tool():
             assert result == "Answer"
 
 
-@pytest.mark.asyncio
 async def test_agui_agent_get_stats():
     """Test getting agent statistics."""
     async with AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent") as agent:
@@ -188,7 +182,6 @@ async def test_agui_agent_get_stats():
         assert isinstance(stats.messages, list)
 
 
-@pytest.mark.asyncio
 @pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_error_handling(mock_sse_response):
     """Test error handling in AGUIAgent."""
@@ -215,7 +208,6 @@ async def test_agui_agent_error_handling(mock_sse_response):
                     pass
 
 
-@pytest.mark.asyncio
 async def test_agui_agent_with_tools(mock_sse_response):
     """Test AGUIAgent with client-side tool execution."""
 
@@ -281,7 +273,6 @@ async def test_agui_agent_with_tools(mock_sse_response):
             assert "8" in result.content
 
 
-@pytest.mark.asyncio
 async def test_agui_agent_register_tool():
     """Test registering tools dynamically."""
 
@@ -300,7 +291,6 @@ async def test_agui_agent_register_tool():
         assert tools[0].name == "my_tool"
 
 
-@pytest.mark.asyncio
 async def test_agui_tool_execution_error(mock_sse_response):
     """Test handling tool execution errors."""
 
@@ -449,7 +439,6 @@ def test_to_agui_tool():
     assert "count" in agui_tool.parameters["properties"]
 
 
-@pytest.mark.asyncio
 @pytest.mark.skip(reason="Server shutdown hangs in CI - run manually")
 async def test_agui_server_and_client_e2e():
     """End-to-end test: Our AGUIServer serving an agent, AGUIAgent as client.
@@ -500,7 +489,6 @@ async def test_agui_server_and_client_e2e():
                 assert result.content == "Hello from AG-UI server!"
 
 
-@pytest.mark.asyncio
 @pytest.mark.skip(reason="Server shutdown hangs in CI - run manually")
 async def test_agui_server_and_client_with_tools():
     """End-to-end test: AGUIServer with tools, AGUIAgent as client.

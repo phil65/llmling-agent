@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from agentpool_config.toolsets import (
     AgentManagementToolsetConfig,
     CodeToolsetConfig,
@@ -16,7 +14,6 @@ from agentpool_config.toolsets import (
 )
 
 
-@pytest.mark.asyncio
 async def test_agent_management_tool_filtering():
     """Test filtering tools in agent management toolset."""
     config = AgentManagementToolsetConfig(
@@ -37,7 +34,6 @@ async def test_agent_management_tool_filtering():
     assert "connect_nodes" not in tool_names
 
 
-@pytest.mark.asyncio
 async def test_agent_management_no_filter():
     """Test that all tools are enabled when no filter is specified."""
     config = AgentManagementToolsetConfig()
@@ -51,7 +47,6 @@ async def test_agent_management_no_filter():
     assert "connect_nodes" in tool_names
 
 
-@pytest.mark.asyncio
 async def test_subagent_tool_filtering():
     """Test filtering tools in subagent toolset."""
     config = SubagentToolsetConfig(tools={"delegate_to": True, "ask_agent": False})
@@ -64,7 +59,6 @@ async def test_subagent_tool_filtering():
     assert "ask_agent" not in tool_names
 
 
-@pytest.mark.asyncio
 async def test_user_interaction_tool_filtering():
     """Test filtering tools in user interaction toolset."""
     config = UserInteractionToolsetConfig(tools={"ask_user": False})
@@ -76,7 +70,6 @@ async def test_user_interaction_tool_filtering():
     assert len(tool_names) == 0
 
 
-@pytest.mark.asyncio
 async def test_history_tool_filtering():
     """Test filtering tools in history toolset."""
     config = HistoryToolsetConfig(tools={"search_history": True, "show_statistics": False})
@@ -88,7 +81,6 @@ async def test_history_tool_filtering():
     assert "show_statistics" not in tool_names
 
 
-@pytest.mark.asyncio
 async def test_skills_tool_filtering():
     """Test filtering tools in skills toolset."""
     config = SkillsToolsetConfig(tools={"load_skill": False})
@@ -100,7 +92,6 @@ async def test_skills_tool_filtering():
     assert "list_skills" in tool_names
 
 
-@pytest.mark.asyncio
 async def test_integration_tool_filtering():
     """Test filtering tools in integration toolset."""
     config = IntegrationToolsetConfig(
@@ -114,7 +105,6 @@ async def test_integration_tool_filtering():
     assert "add_remote_mcp_server" not in tool_names
 
 
-@pytest.mark.asyncio
 async def test_tool_management_filtering():
     """Test filtering tools in tool management toolset."""
     config = ToolManagementToolsetConfig(tools={"register_tool": True, "register_code_tool": False})
@@ -126,7 +116,6 @@ async def test_tool_management_filtering():
     assert "register_code_tool" not in tool_names
 
 
-@pytest.mark.asyncio
 async def test_code_toolset_filtering():
     """Test filtering tools in code toolset."""
     config = CodeToolsetConfig(tools={"format_code": True, "ast_grep": False})
@@ -138,7 +127,6 @@ async def test_code_toolset_filtering():
     assert "ast_grep" not in tool_names
 
 
-@pytest.mark.asyncio
 async def test_filtering_provider_delegates_attributes():
     """Test that FilteringResourceProvider delegates attributes correctly."""
     config = AgentManagementToolsetConfig(tools={"create_worker_agent": True})

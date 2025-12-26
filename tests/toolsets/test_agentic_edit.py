@@ -39,7 +39,6 @@ if __name__ == "__main__":
     Path(f.name).unlink(missing_ok=True)
 
 
-@pytest.mark.asyncio
 async def test_agentic_edit_basic(temp_file: Path):
     """Test basic agentic edit with forked context.
 
@@ -79,7 +78,6 @@ Please use agentic_edit to make this change."""
         assert "Hello" in modified_content
 
 
-@pytest.mark.asyncio
 async def test_agentic_edit_preserves_main_history(temp_file: Path):
     """Test that agentic_edit doesn't pollute the main conversation history."""
     fsspec_tools = FSSpecTools()
@@ -118,7 +116,6 @@ async def test_agentic_edit_preserves_main_history(temp_file: Path):
         )
 
 
-@pytest.mark.asyncio
 async def test_agentic_edit_create_mode(temp_file: Path):
     """Test agentic_edit in create mode."""
     fsspec_tools = FSSpecTools()
@@ -149,7 +146,6 @@ Use agentic_edit with mode='create'."""
         new_file.unlink(missing_ok=True)
 
 
-@pytest.mark.asyncio
 async def test_agentic_edit_diff_mode(temp_file: Path):
     """Test agentic_edit in diff-based edit mode (default)."""
     fsspec_tools = FSSpecTools()

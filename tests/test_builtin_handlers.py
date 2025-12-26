@@ -37,7 +37,6 @@ def mock_run_context():
     return MockRunContext()
 
 
-@pytest.mark.asyncio
 async def test_simple_print_handler_text(mock_run_context):
     """Test simple handler prints text content."""
     output = StringIO()
@@ -52,7 +51,6 @@ async def test_simple_print_handler_text(mock_run_context):
         sys.stderr = sys.__stderr__
 
 
-@pytest.mark.asyncio
 async def test_simple_print_handler_tool_call(mock_run_context):
     """Test simple handler prints tool call."""
     output = StringIO()
@@ -68,7 +66,6 @@ async def test_simple_print_handler_tool_call(mock_run_context):
         sys.stderr = sys.__stderr__
 
 
-@pytest.mark.asyncio
 async def test_simple_print_handler_error(mock_run_context):
     """Test simple handler prints errors."""
     output = StringIO()
@@ -85,7 +82,6 @@ async def test_simple_print_handler_error(mock_run_context):
         sys.stderr = sys.__stderr__
 
 
-@pytest.mark.asyncio
 async def test_detailed_print_handler_tool_call(mock_run_context):
     """Test detailed handler prints tool call with inputs."""
     output = StringIO()
@@ -105,7 +101,6 @@ async def test_detailed_print_handler_tool_call(mock_run_context):
         sys.stderr = sys.__stderr__
 
 
-@pytest.mark.asyncio
 async def test_detailed_print_handler_tool_result(mock_run_context):
     """Test detailed handler prints tool results."""
     output = StringIO()
@@ -126,7 +121,6 @@ async def test_detailed_print_handler_tool_result(mock_run_context):
         sys.stderr = sys.__stderr__
 
 
-@pytest.mark.asyncio
 async def test_detailed_print_handler_truncates_long_output(mock_run_context):
     """Test detailed handler truncates long outputs."""
     output = StringIO()
@@ -147,7 +141,6 @@ async def test_detailed_print_handler_truncates_long_output(mock_run_context):
         sys.stderr = sys.__stderr__
 
 
-@pytest.mark.asyncio
 async def test_stream_complete_adds_newline(mock_run_context):
     """Test both handlers add final newline on stream complete."""
     from agentpool.messaging import ChatMessage

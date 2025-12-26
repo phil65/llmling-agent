@@ -9,9 +9,6 @@ import pytest
 from agentpool.agents.agui_agent import AGUIAgent
 
 
-pytestmark = pytest.mark.asyncio
-
-
 @pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
 async def test_agui_agent_with_managed_server():
     """Test AGUIAgent with automatic server lifecycle management."""

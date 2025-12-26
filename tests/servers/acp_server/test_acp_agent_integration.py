@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 # Mark all tests in this module as slow/integration
-pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
+pytestmark = [pytest.mark.integration]
 
 
 @pytest.fixture

@@ -25,7 +25,7 @@ from agentpool_config.toolsets import SubagentToolsetConfig
 if not shutil.which("claude"):
     pytest.skip("claude CLI not available", allow_module_level=True)
 
-pytestmark = [pytest.mark.asyncio, pytest.mark.integration]
+pytestmark = [pytest.mark.integration]
 
 
 @pytest.fixture
