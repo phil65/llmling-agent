@@ -27,6 +27,15 @@ class LogRecord:
     extra: dict[str, Any] = field(default_factory=dict)
 
 
+LEVEL_PRIORITY = {
+    "DEBUG": 10,
+    "INFO": 20,
+    "WARNING": 30,
+    "ERROR": 40,
+    "CRITICAL": 50,
+}
+
+
 class MemoryLogHandler(logging.Handler):
     """A logging handler that stores records in memory for later retrieval."""
 
@@ -63,18 +72,10 @@ class MemoryLogHandler(logging.Handler):
         Returns:
             List of matching log records
         """
-        level_priority = {
-            "DEBUG": 10,
-            "INFO": 20,
-            "WARNING": 30,
-            "ERROR": 40,
-            "CRITICAL": 50,
-        }
-        min_level = level_priority.get(level, 0) if level else 0
-
+        min_level = LEVEL_PRIORITY.get(level, 0) if level else 0
         filtered = []
         for record in reversed(self.records):
-            if level_priority.get(record.level, 0) < min_level:
+            if LEVEL_PRIORITY.get(record.level, 0) < min_level:
                 continue
             if logger_filter and logger_filter not in record.logger:
                 continue
@@ -256,83 +257,6 @@ async def get_platform_paths() -> str:
 
 
 # =============================================================================
-# State Inspection Tools
-# =============================================================================
-
-
-async def dump_agent_state(ctx: AgentContext) -> str:
-    """Dump current agent's state and configuration.
-
-    Returns:
-        Formatted agent state
-    """
-    agent = ctx.agent
-
-    lines = [
-        f"Agent: {agent.name}",
-        f"Model: {agent.model_name or 'unknown'}",
-    ]
-
-    # sys_prompts is available on Agent and ClaudeCodeAgent, not ACPAgent
-    from agentpool import Agent
-    from agentpool.agents.claude_code_agent import ClaudeCodeAgent
-
-    if isinstance(agent, (Agent, ClaudeCodeAgent)):
-        formatted_prompt = await agent.sys_prompts.format_system_prompt(agent)
-        lines.append(f"System prompt length: {len(formatted_prompt)} chars")
-
-    lines.extend(["", "Tools:"])
-
-    tools_status = await agent.tools.list_tools()
-    for tool_name, enabled in tools_status.items():
-        status = "enabled" if enabled else "disabled"
-        lines.append(f"  - {tool_name} [{status}]")
-
-    if ctx.pool:
-        lines.extend([
-            "",
-            f"Pool agents: {len(ctx.pool.all_agents)}",
-            f"Other agents: {[n for n in ctx.pool.all_agents if n != agent.name]}",
-        ])
-
-    return "\n".join(lines)
-
-
-async def dump_pool_state(ctx: AgentContext) -> str:
-    """Dump the agent pool state.
-
-    Returns:
-        Formatted pool state
-    """
-    if not ctx.pool:
-        return "No agent pool available"
-
-    pool = ctx.pool
-    lines = [
-        f"Agents: {len(pool.all_agents)}",
-        f"Teams: {len(pool.teams)}",
-        "",
-    ]
-
-    if pool.all_agents:
-        lines.append("Agents:")
-        for name, agent in pool.all_agents.items():
-            agent_type = type(agent).__name__
-            tools_status = await agent.tools.list_tools()
-            lines.append(f"  {name} ({agent_type}):")
-            lines.append(f"    model: {agent.model_name or 'unknown'}")
-            lines.append(f"    tools: {len(tools_status)}")
-
-    if pool.teams:
-        lines.extend(["", "Teams:"])
-        for name, team in pool.teams.items():
-            team_type = type(team).__name__
-            lines.append(f"  {name} ({team_type})")
-
-    return "\n".join(lines)
-
-
-# =============================================================================
 # Toolset Class
 # =============================================================================
 
@@ -344,7 +268,6 @@ class DebugTools(StaticResourceProvider):
     - Self-introspection via code execution with runtime context access
     - Log inspection and management
     - Platform path discovery
-    - Agent and pool state inspection
     """
 
     def __init__(self, name: str = "debug", install_log_handler: bool = True) -> None:
@@ -359,20 +282,10 @@ class DebugTools(StaticResourceProvider):
         if install_log_handler:
             install_memory_handler()
 
-        introspection_desc = (execute_introspection.__doc__ or "") + "\n\n" + INTROSPECTION_USAGE
+        desc = (execute_introspection.__doc__ or "") + "\n\n" + INTROSPECTION_USAGE
         self._tools = [
-            # Introspection
-            self.create_tool(
-                execute_introspection,
-                category="other",
-                description_override=introspection_desc,
-            ),
-            # Logs
+            self.create_tool(execute_introspection, category="other", description_override=desc),
             self.create_tool(get_logs, category="other", read_only=True, idempotent=True),
             self.create_tool(clear_logs, category="other"),
-            # Paths
             self.create_tool(get_platform_paths, category="other", read_only=True, idempotent=True),
-            # State inspection
-            self.create_tool(dump_agent_state, category="other", read_only=True, idempotent=True),
-            self.create_tool(dump_pool_state, category="other", read_only=True, idempotent=True),
         ]
