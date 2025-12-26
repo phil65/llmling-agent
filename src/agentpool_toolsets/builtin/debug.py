@@ -158,11 +158,7 @@ async def main():
 """
 
 
-async def execute_introspection(  # noqa: D417
-    ctx: AgentContext,
-    run_ctx: RunContext[Any],
-    code: str,
-) -> str:
+async def execute_introspection(ctx: AgentContext, run_ctx: RunContext[Any], code: str) -> str:  # noqa: D417
     """Execute Python code with access to your own runtime context.
 
     This is a debugging/development tool that gives you full access to
@@ -175,12 +171,7 @@ async def execute_introspection(  # noqa: D417
         Result of execution or error message
     """
     # Build namespace with runtime context
-    namespace: dict[str, Any] = {
-        "ctx": ctx,
-        "run_ctx": run_ctx,
-        "me": ctx.agent,
-    }
-
+    namespace: dict[str, Any] = {"ctx": ctx, "run_ctx": run_ctx, "me": ctx.agent}
     try:
         exec(code, namespace)
         if "main" not in namespace:
@@ -234,42 +225,6 @@ async def clear_logs() -> str:
     count = len(handler.records)
     handler.clear()
     return f"Cleared {count} log entries"
-
-
-async def get_log_stats() -> str:
-    """Get statistics about captured logs.
-
-    Returns:
-        Log statistics summary
-    """
-    handler = get_memory_handler()
-
-    if not handler.records:
-        return "No log entries captured"
-
-    level_counts: dict[str, int] = {}
-    logger_counts: dict[str, int] = {}
-
-    for record in handler.records:
-        level_counts[record.level] = level_counts.get(record.level, 0) + 1
-        # Get top-level logger name
-        top_logger = record.logger.split(".")[0]
-        logger_counts[top_logger] = logger_counts.get(top_logger, 0) + 1
-
-    lines = [
-        f"Total entries: {len(handler.records)} / {handler.max_records} max",
-        "",
-        "By level:",
-    ]
-    for level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
-        if level in level_counts:
-            lines.append(f"  {level}: {level_counts[level]}")  # noqa: PERF401
-
-    lines.extend(["", "Top loggers:"])
-    for logger, count in sorted(logger_counts.items(), key=lambda x: -x[1])[:10]:
-        lines.append(f"  {logger}: {count}")
-
-    return "\n".join(lines)
 
 
 # =============================================================================
@@ -415,7 +370,6 @@ class DebugTools(StaticResourceProvider):
             # Logs
             self.create_tool(get_logs, category="other", read_only=True, idempotent=True),
             self.create_tool(clear_logs, category="other"),
-            self.create_tool(get_log_stats, category="other", read_only=True, idempotent=True),
             # Paths
             self.create_tool(get_platform_paths, category="other", read_only=True, idempotent=True),
             # State inspection
