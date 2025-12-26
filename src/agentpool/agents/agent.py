@@ -66,9 +66,7 @@ if TYPE_CHECKING:
     from upathtools import JoinablePathLike
 
     from agentpool.agents import AgentContext
-    from agentpool.agents.events import (
-        RichAgentStreamEvent,
-    )
+    from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.common_types import (
         AgentName,
         BuiltinEventHandlerType,
