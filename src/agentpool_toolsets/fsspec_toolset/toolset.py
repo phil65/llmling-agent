@@ -11,7 +11,14 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 from exxec.base import ExecutionEnvironment
-from pydantic_ai import BinaryContent, PartDeltaEvent, TextPartDelta
+from pydantic_ai import (
+    BinaryContent,
+    PartDeltaEvent,
+    PartStartEvent,
+    RunContext,  # noqa: TC002
+    TextPart,
+    TextPartDelta,
+)
 from upathtools import is_directory
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
@@ -19,9 +26,7 @@ from agentpool.log import get_logger
 from agentpool.mime_utils import guess_type, is_binary_content, is_binary_mime
 from agentpool.resource_providers import ResourceProvider
 from agentpool_toolsets.builtin.file_edit import replace_content
-from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import (
-    StreamingFuzzyMatcher,
-)
+from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import StreamingFuzzyMatcher
 from agentpool_toolsets.fsspec_toolset.diagnostics import DiagnosticsManager
 from agentpool_toolsets.fsspec_toolset.grep import GrepBackend
 from agentpool_toolsets.fsspec_toolset.helpers import (
@@ -891,8 +896,9 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation("read", path=url, success=False, error=error_msg)
             return {"error": error_msg}
 
-    async def agentic_edit(  # noqa: D417
+    async def agentic_edit(  # noqa: D417, PLR0915
         self,
+        run_ctx: RunContext,
         agent_ctx: AgentContext,
         path: str,
         display_description: str,
@@ -951,20 +957,40 @@ class FSSpecTools(ResourceProvider):
 
             # Create forked message history from current conversation
             # This preserves full context while isolating the edit's messages
-            current_history = agent.conversation.get_history()
+            # We need BOTH:
+            # 1. Stored history (previous runs) from agent.conversation
+            # 2. Current run messages from run_ctx.messages (not yet stored)
+            stored_history = agent.conversation.get_history()
 
-            # Inject CachePoint into history to cache everything up to this point
-            # This ensures the fork benefits from caching the full conversation
-            if current_history:
-                # Get pydantic-ai messages and inject cache point
-                all_messages: list[ModelRequest | ModelResponse] = []
-                for msg in current_history:
-                    all_messages.extend(msg.to_pydantic_ai())
+            # Build complete message list
+            all_messages: list[ModelRequest | ModelResponse] = []
 
-                # Add CachePoint at the end of history
-                if all_messages:
-                    cache_request: ModelRequest = ModelRequest(parts=[CachePoint()])  # type: ignore[list-item]
-                    all_messages.append(cache_request)
+            # Add stored history from previous runs
+            for chat_msg in stored_history:
+                all_messages.extend(chat_msg.to_pydantic_ai())
+
+            # Add current run's messages (not yet in stored history)
+            # But exclude the last message if it contains the current agentic_edit tool call
+            # to avoid the sub-agent seeing "I'm calling agentic_edit" in its context
+            from pydantic_ai.messages import ModelResponse, ToolCallPart
+
+            for msg in run_ctx.messages:
+                if isinstance(msg, ModelResponse):
+                    # Filter out the agentic_edit tool call from the last response
+                    filtered_parts = [
+                        p
+                        for p in msg.parts
+                        if not (isinstance(p, ToolCallPart) and p.tool_name == "agentic_edit")
+                    ]
+                    if filtered_parts:
+                        all_messages.append(ModelResponse(parts=filtered_parts))
+                else:
+                    all_messages.append(msg)
+
+            # Inject CachePoint to cache everything up to this point
+            if all_messages:
+                cache_request: ModelRequest = ModelRequest(parts=[CachePoint()])  # type: ignore[list-item]
+                all_messages.append(cache_request)
 
                 # Wrap in a single ChatMessage for the forked history
                 fork_history = MessageHistory(
@@ -1047,7 +1073,10 @@ class FSSpecTools(ResourceProvider):
             store_history=False,
         ):
             match node:
-                case PartDeltaEvent(delta=TextPartDelta(content_delta=chunk)):
+                case (
+                    PartStartEvent(part=TextPart(content=chunk))
+                    | PartDeltaEvent(delta=TextPartDelta(content_delta=chunk))
+                ):
                     # Parse diff chunk and process events
                     for event in parser.push(chunk):
                         if isinstance(event, OldTextChunk):
@@ -1179,7 +1208,10 @@ class FSSpecTools(ResourceProvider):
             store_history=False,
         ):
             match node:
-                case PartDeltaEvent(delta=TextPartDelta(content_delta=chunk)):
+                case (
+                    PartStartEvent(part=TextPart(content=chunk))
+                    | PartDeltaEvent(delta=TextPartDelta(content_delta=chunk))
+                ):
                     # Parse diff chunk and process events
                     for event in parser.push(chunk):
                         if isinstance(event, OldTextChunk):
@@ -1263,7 +1295,10 @@ class FSSpecTools(ResourceProvider):
             store_history=False,
         ):
             match node:
-                case PartDeltaEvent(delta=TextPartDelta(content_delta=chunk)):
+                case (
+                    PartStartEvent(part=TextPart(content=chunk))
+                    | PartDeltaEvent(delta=TextPartDelta(content_delta=chunk))
+                ):
                     streamed_content += chunk
 
                     # Emit periodic progress updates
@@ -1283,7 +1318,8 @@ def _build_create_prompt(path: str, description: str) -> str:
 
 {description}
 
-Output ONLY the complete file content. No explanations, no markdown code blocks, no formatting."""
+Output ONLY the complete file content. No explanations, no markdown code blocks, no formatting.
+DO NOT use any tools. Just output the file content directly."""
 
 
 def _build_overwrite_prompt(path: str, description: str, current_content: str) -> str:
@@ -1296,7 +1332,8 @@ def _build_overwrite_prompt(path: str, description: str, current_content: str) -
 {current_content}
 </current_file_content>
 
-Output ONLY the complete new file content. No explanations, no code blocks, no formatting."""
+Output ONLY the complete new file content. No explanations, no code blocks, no formatting.
+DO NOT use any tools. Just output the file content directly."""
 
 
 def _build_edit_prompt(path: str, description: str, current_content: str) -> str:
@@ -1338,7 +1375,8 @@ Example:
 {description}
 </edit_description>
 
-You MUST wrap your response in <diff>...</diff> tags."""
+You MUST wrap your response in <diff>...</diff> tags.
+DO NOT use any tools. Just output the diff directly."""
 
 
 if __name__ == "__main__":
@@ -1346,15 +1384,22 @@ if __name__ == "__main__":
 
     async def main() -> None:
         import fsspec
+        from pydantic_ai import RunContext as PyAiContext, RunUsage
+        from pydantic_ai.models.test import TestModel
 
         from agentpool import AgentPool
 
         fs = fsspec.filesystem("file")
         tools = FSSpecTools(fs, name="local_fs")
         async with AgentPool() as pool:
-            agent = await pool.add_agent("test", model="openai:gpt-5-nano")
-            ctx = agent.get_context()
-            result = await tools.list_directory(ctx, path="/")
+            agent = await pool.add_agent("test", model="anthropic-max:claude-haiku-4-5")
+            agent_ctx = agent.get_context()
+            result = await tools.agentic_edit(
+                PyAiContext(deps=None, model=TestModel(), usage=RunUsage()),
+                agent_ctx,
+                path="/home/phil65/dev/oss/agentpool/src/agentpool_toolsets/fsspec_toolset/toolset.py",
+                display_description="Append a poem",
+            )
             print(result)
 
     asyncio.run(main())
