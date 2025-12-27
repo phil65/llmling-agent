@@ -42,6 +42,7 @@ from agentpool.tools import Tool, ToolManager
 from agentpool.tools.exceptions import ToolError
 from agentpool.utils.inspection import call_with_context, get_argument_key
 from agentpool.utils.now import get_now
+from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool.utils.result_utils import to_type
 from agentpool.utils.streams import FileTracker, merge_queue_into_iterator
 
@@ -824,17 +825,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                             case FunctionToolResultEvent(tool_call_id=call_id) as result_event:
                                 # Check if we have a pending tool call to combine with
                                 if call_info := pending_tcs.pop(call_id, None):
-                                    # Try to parse tool args, fallback if malformed JSON
-                                    try:
-                                        tool_input = call_info.args_as_dict()
-                                    except ValueError:
-                                        # Model returned malformed JSON for tool args
-                                        tool_input = {"_raw_args": call_info.args}
                                     # Create and yield combined event
                                     combined_event = ToolCallCompleteEvent(
                                         tool_name=call_info.tool_name,
                                         tool_call_id=call_id,
-                                        tool_input=tool_input,
+                                        tool_input=safe_args_as_dict(call_info),
                                         tool_result=result_event.result.content
                                         if isinstance(result_event.result, ToolReturnPart)
                                         else result_event.result,

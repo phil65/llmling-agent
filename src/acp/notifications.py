@@ -34,6 +34,7 @@ from acp.schema.tool_call import ToolCallLocation
 from acp.tool_call_reporter import ToolCallReporter
 from acp.utils import generate_tool_title, infer_tool_kind, to_acp_content_blocks
 from agentpool.log import get_logger
+from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 
 
 if TYPE_CHECKING:
@@ -703,7 +704,7 @@ class ACPNotifications:
 
                 case ToolCallPart(tool_call_id=tool_call_id):
                     # Store tool call inputs for later use with ToolReturnPart
-                    tool_input = part.args_as_dict()
+                    tool_input = safe_args_as_dict(part)
                     self._tool_call_inputs[tool_call_id] = tool_input
                     # Skip sending notification - ACP protocol overrides previous
                     # tool call state

@@ -30,6 +30,7 @@ from agentpool.common_types import MessageRole, SimpleJsonType  # noqa: TC001
 from agentpool.log import get_logger
 from agentpool.utils.inspection import dataclasses_no_defaults_repr
 from agentpool.utils.now import get_now
+from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 
 
 if TYPE_CHECKING:
@@ -512,7 +513,7 @@ class ChatMessage[TContent]:
                 call_part = call_parts[part.tool_call_id]
                 tool_info = ToolCallInfo(
                     tool_name=call_part.tool_name,
-                    args=call_part.args_as_dict(),
+                    args=safe_args_as_dict(call_part),
                     agent_name=agent_name or "UNSET",
                     result=part.content,
                     tool_call_id=call_part.tool_call_id or str(uuid4()),

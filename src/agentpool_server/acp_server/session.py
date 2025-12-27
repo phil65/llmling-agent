@@ -56,6 +56,7 @@ from agentpool.agents.events import (
     ToolCallStartEvent,
 )
 from agentpool.log import get_logger
+from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool_commands import get_commands
 from agentpool_commands.base import NodeCommand
 from agentpool_server.acp_server.converters import (
@@ -551,14 +552,7 @@ class ACPSession:
             # Tool call started - create/update state and start notification
             case FunctionToolCallEvent(part=part):
                 tool_call_id = part.tool_call_id
-                try:
-                    tool_input = part.args_as_dict()
-                except ValueError as e:
-                    # Args might be malformed - use empty dict and log
-                    self.log.warning(
-                        "Failed to parse tool args", tool_name=part.tool_name, error=str(e)
-                    )
-                    tool_input = {}
+                tool_input = safe_args_as_dict(part, default={})
                 self._current_tool_inputs[tool_call_id] = tool_input
                 # Create state and send initial notification
                 state = self._get_or_create_tool_state(

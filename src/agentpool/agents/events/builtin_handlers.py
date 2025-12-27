@@ -24,6 +24,7 @@ from agentpool.agents.events import (
     ToolCallProgressEvent,
     ToolCallStartEvent,
 )
+from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 
 
 if TYPE_CHECKING:
@@ -52,7 +53,7 @@ async def simple_print_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]
             print(delta, end="", flush=True, file=sys.stderr)
 
         case FunctionToolCallEvent(part=ToolCallPart() as part):
-            kwargs_str = ", ".join(f"{k}={v!r}" for k, v in part.args_as_dict().items())
+            kwargs_str = ", ".join(f"{k}={v!r}" for k, v in safe_args_as_dict(part).items())
             print(f"\n🔧 {part.tool_name}({kwargs_str})", flush=True, file=sys.stderr)
 
         case FunctionToolResultEvent(result=ToolReturnPart() as return_part):
