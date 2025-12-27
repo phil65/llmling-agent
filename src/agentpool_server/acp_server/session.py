@@ -744,6 +744,8 @@ class ACPSession:
                                 status=status,
                                 changed_lines=[],
                             )
+                            # Mark content as sent so completion doesn't override
+                            progress_state._has_content = True
                         case LocationContentItem(path=loc_path):
                             location_paths.append(loc_path)
 

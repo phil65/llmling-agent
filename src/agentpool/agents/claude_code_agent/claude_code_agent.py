@@ -29,6 +29,7 @@ import uuid
 
 import anyio
 from pydantic_ai import (
+    FunctionToolResultEvent,
     ModelRequest,
     ModelResponse,
     PartDeltaEvent,
@@ -572,6 +573,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         text_chunks: list[str] = []
         pending_tool_calls: dict[str, ToolUseBlock] = {}
+        # Track tool calls that already had ToolCallStartEvent emitted (via StreamEvent)
+        emitted_tool_starts: set[str] = set()
+
+        # Accumulator for streaming tool arguments
+        from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
+
+        tool_accumulator = ToolCallAccumulator()
 
         # Track files modified during this run
         file_tracker = FileTracker()
@@ -609,30 +617,58 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     current_response_parts.append(ThinkingPart(content=thinking))
                                 case ToolUseBlockType(id=tc_id, name=name, input=input_data):
                                     pending_tool_calls[tc_id] = block
-                                    current_response_parts.append(
-                                        ToolCallPart(
-                                            tool_name=name, args=input_data, tool_call_id=tc_id
-                                        )
+                                    tool_call_part = ToolCallPart(
+                                        tool_name=name, args=input_data, tool_call_id=tc_id
                                     )
-                                    # Emit ToolCallStartEvent with rich display info
-                                    from agentpool.agents.claude_code_agent.converters import (
-                                        derive_rich_tool_info,
-                                    )
+                                    current_response_parts.append(tool_call_part)
 
-                                    rich_info = derive_rich_tool_info(name, input_data)
-                                    tool_start_event = ToolCallStartEvent(
-                                        tool_call_id=tc_id,
-                                        tool_name=name,
-                                        title=rich_info.title,
-                                        kind=rich_info.kind,
-                                        locations=rich_info.locations,
-                                        content=rich_info.content,
-                                        raw_input=input_data,
-                                    )
-                                    # Track file modifications
-                                    file_tracker.process_event(tool_start_event)
-                                    await self.event_handler(None, tool_start_event)
-                                    yield tool_start_event
+                                    # Emit FunctionToolCallEvent (triggers UI notification)
+                                    # func_tool_event = FunctionToolCallEvent(part=tool_call_part)
+                                    # await self.event_handler(None, func_tool_event)
+                                    # yield func_tool_event
+
+                                    # Only emit ToolCallStartEvent if not already emitted
+                                    # via streaming (emits early with partial info)
+                                    if tc_id not in emitted_tool_starts:
+                                        from agentpool.agents.claude_code_agent.converters import (
+                                            derive_rich_tool_info,
+                                        )
+
+                                        rich_info = derive_rich_tool_info(name, input_data)
+                                        tool_start_event = ToolCallStartEvent(
+                                            tool_call_id=tc_id,
+                                            tool_name=name,
+                                            title=rich_info.title,
+                                            kind=rich_info.kind,
+                                            locations=rich_info.locations,
+                                            content=rich_info.content,
+                                            raw_input=input_data,
+                                        )
+                                        # Track file modifications
+                                        file_tracker.process_event(tool_start_event)
+                                        await self.event_handler(None, tool_start_event)
+                                        yield tool_start_event
+                                    else:
+                                        # Already emitted early - update with full args
+                                        from agentpool.agents.claude_code_agent.converters import (
+                                            derive_rich_tool_info,
+                                        )
+
+                                        rich_info = derive_rich_tool_info(name, input_data)
+                                        # Track file modifications using derived info
+                                        file_tracker.process_event(
+                                            ToolCallStartEvent(
+                                                tool_call_id=tc_id,
+                                                tool_name=name,
+                                                title=rich_info.title,
+                                                kind=rich_info.kind,
+                                                locations=rich_info.locations,
+                                                content=rich_info.content,
+                                                raw_input=input_data,
+                                            )
+                                        )
+                                    # Clean up from accumulator
+                                    tool_accumulator.complete(tc_id)
                                 case ToolResultBlock(tool_use_id=tc_id, content=content):
                                     # Tool result received - flush response parts and add request
                                     if current_response_parts:
@@ -644,6 +680,20 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     tool_use = pending_tool_calls.pop(tc_id, None)
                                     tool_name = tool_use.name if tool_use else "unknown"
                                     tool_input = tool_use.input if tool_use else {}
+
+                                    # Create ToolReturnPart for the result
+                                    tool_return_part = ToolReturnPart(
+                                        tool_name=tool_name, content=content, tool_call_id=tc_id
+                                    )
+
+                                    # Emit FunctionToolResultEvent (for session.py to complete UI)
+                                    func_result_event = FunctionToolResultEvent(
+                                        result=tool_return_part
+                                    )
+                                    await self.event_handler(None, func_result_event)
+                                    yield func_result_event
+
+                                    # Also emit ToolCallCompleteEvent for consumers that expect it
                                     tool_done_event = ToolCallCompleteEvent(
                                         tool_name=tool_name,
                                         tool_call_id=tc_id,
@@ -656,10 +706,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     yield tool_done_event
 
                                     # Add tool return as ModelRequest
-                                    part = ToolReturnPart(
-                                        tool_name=tool_name, content=content, tool_call_id=tc_id
-                                    )
-                                    model_messages.append(ModelRequest(parts=[part]))
+                                    model_messages.append(ModelRequest(parts=[tool_return_part]))
 
                     # Process user messages - may contain tool results
                     elif isinstance(message, UserMessage):
@@ -683,7 +730,20 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 tool_use = pending_tool_calls.pop(tc_id, None)
                                 tool_name = tool_use.name if tool_use else "unknown"
                                 tool_input = tool_use.input if tool_use else {}
-                                # Emit ToolCallCompleteEvent
+
+                                # Create ToolReturnPart for the result
+                                tool_return_part = ToolReturnPart(
+                                    tool_name=tool_name,
+                                    content=result_content,
+                                    tool_call_id=tc_id,
+                                )
+
+                                # Emit FunctionToolResultEvent (for session.py to complete UI)
+                                func_result_event = FunctionToolResultEvent(result=tool_return_part)
+                                await self.event_handler(None, func_result_event)
+                                yield func_result_event
+
+                                # Also emit ToolCallCompleteEvent for consumers that expect it
                                 tool_complete_event = ToolCallCompleteEvent(
                                     tool_name=tool_name,
                                     tool_call_id=tc_id,
@@ -694,13 +754,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 )
                                 await self.event_handler(None, tool_complete_event)
                                 yield tool_complete_event
+
                                 # Add tool return as ModelRequest
-                                part = ToolReturnPart(
-                                    tool_name=tool_name,
-                                    content=result_content,
-                                    tool_call_id=tc_id,
-                                )
-                                model_messages.append(ModelRequest(parts=[part]))
+                                model_messages.append(ModelRequest(parts=[tool_return_part]))
 
                     # Handle StreamEvent for real-time streaming
                     elif isinstance(message, StreamEvent):
@@ -725,8 +781,29 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 yield start_event
 
                             elif block_type == "tool_use":
-                                # Tool use start is handled via AssistantMessage ToolUseBlock
-                                pass
+                                # Emit ToolCallStartEvent early (args still streaming)
+                                tc_id = content_block.get("id", "")
+                                tool_name = content_block.get("name", "")
+                                tool_accumulator.start(tc_id, tool_name)
+
+                                # Derive rich info with empty args for now
+                                from agentpool.agents.claude_code_agent.converters import (
+                                    derive_rich_tool_info,
+                                )
+
+                                rich_info = derive_rich_tool_info(tool_name, {})
+                                tool_start_event = ToolCallStartEvent(
+                                    tool_call_id=tc_id,
+                                    tool_name=tool_name,
+                                    title=rich_info.title,
+                                    kind=rich_info.kind,
+                                    locations=[],  # No locations yet, args not complete
+                                    content=rich_info.content,
+                                    raw_input={},  # Empty, will be filled when complete
+                                )
+                                emitted_tool_starts.add(tc_id)
+                                await self.event_handler(None, tool_start_event)
+                                yield tool_start_event
 
                         # Handle content_block_delta events (text streaming)
                         elif event_type == "content_block_delta":
@@ -744,10 +821,23 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             elif delta_type == "thinking_delta":
                                 thinking_delta = delta.get("thinking", "")
                                 if thinking_delta:
-                                    delta = ThinkingPartDelta(content_delta=thinking_delta)
-                                    delta_event = PartDeltaEvent(index=index, delta=delta)
+                                    thinking_part_delta = ThinkingPartDelta(
+                                        content_delta=thinking_delta
+                                    )
+                                    delta_event = PartDeltaEvent(
+                                        index=index, delta=thinking_part_delta
+                                    )
                                     await self.event_handler(None, delta_event)
                                     yield delta_event
+
+                            elif delta_type == "input_json_delta":
+                                # Accumulate tool argument JSON fragments
+                                partial_json = delta.get("partial_json", "")
+                                # Find which tool call this belongs to by index
+                                # The index corresponds to the content block index
+                                for tc_id in tool_accumulator._calls:
+                                    tool_accumulator.add_args(tc_id, partial_json)
+                                    break  # Only one tool call streams at a time
 
                         # Handle content_block_stop events
                         elif event_type == "content_block_stop":

@@ -379,11 +379,11 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
 
         from agentpool.agents.agui_agent.agui_converters import (
-            ToolCallAccumulator,
             agui_to_native_event,
             to_agui_input_content,
             to_agui_tool,
         )
+        from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
         if not self._client or not self._thread_id:
             msg = "Agent not initialized - use async context manager"

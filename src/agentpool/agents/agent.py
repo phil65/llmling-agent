@@ -565,7 +565,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         final_type = to_type(output_type) if output_type not in [None, str] else self._output_type
         actual_model = model or self._model
         model_ = infer_model(actual_model) if isinstance(actual_model, str) else actual_model
-        agent = PydanticAgent(  # type: ignore[misc]
+        agent = PydanticAgent(
             name=self.name,
             model=model_,
             model_settings=self.model_settings,
@@ -575,7 +575,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             output_retries=self._output_retries,
             deps_type=self.deps_type or NoneType,
             output_type=final_type,
-            builtin_tools=self._builtin_tools or None,  # type: ignore[arg-type]
+            builtin_tools=self._builtin_tools,
         )
 
         base_context = self.get_context()

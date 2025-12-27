@@ -530,7 +530,16 @@ class FSSpecTools(ResourceProvider):
                 "file_existed": file_exists,
                 "bytes_written": content_bytes,
             }
-            await agent_ctx.events.file_operation("write", path=path, success=True)
+            # Emit file operation with content for UI display
+            from agentpool.agents.events import FileContentItem, LocationContentItem
+
+            await agent_ctx.events.tool_call_progress(
+                title=f"Wrote: {path}",
+                items=[
+                    LocationContentItem(path=path),
+                    FileContentItem(content=content, path=path),
+                ],
+            )
 
             # Run diagnostics if enabled
             if diagnostics_output := await self._run_diagnostics(agent_ctx, path):
