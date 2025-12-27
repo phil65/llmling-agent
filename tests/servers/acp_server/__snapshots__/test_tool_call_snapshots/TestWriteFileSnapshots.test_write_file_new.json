@@ -31,7 +31,20 @@
   },
   {
     "payload": {
+      "content": [
+        {
+          "content": {
+            "text": "```/test/new_file.txt\nNew content here\n```",
+            "type": "text"
+          },
+          "type": "content"
+        }
+      ],
       "locations": [
+        {
+          "line": 0,
+          "path": "/test/new_file.txt"
+        },
         {
           "line": 0,
           "path": "/test/new_file.txt"
@@ -39,22 +52,13 @@
       ],
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
-      "title": "Write: /test/new_file.txt",
+      "title": "Wrote: /test/new_file.txt",
       "toolCallId": "pyd_ai_tool_call_id__write_file"
     },
     "type": "tool_call_update"
   },
   {
     "payload": {
-      "content": [
-        {
-          "content": {
-            "text": "{'path': '/test/new_file.txt', 'size': 16, 'mode': 'w', 'file_existed': False, 'bytes_written': 16}",
-            "type": "text"
-          },
-          "type": "content"
-        }
-      ],
       "rawOutput": {
         "bytes_written": 16,
         "file_existed": false,
