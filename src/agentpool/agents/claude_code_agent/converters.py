@@ -8,7 +8,7 @@ event types as native agents.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic_ai import PartDeltaEvent, TextPartDelta, ThinkingPartDelta
 
@@ -21,10 +21,11 @@ from agentpool.agents.events import (
 
 
 if TYPE_CHECKING:
-    from claude_agent_sdk import ContentBlock, Message, ToolUseBlock
+    from claude_agent_sdk import ContentBlock, McpServerConfig, Message, ToolUseBlock
 
     from agentpool.agents.events import RichAgentStreamEvent, ToolCallContentItem
     from agentpool.tools.base import ToolKind
+    from agentpool_config.mcp_server import MCPServerConfig as NativeMCPServerConfig
 
 
 @dataclass
@@ -241,3 +242,57 @@ def claude_message_to_events(
             pass
 
     return events
+
+
+def convert_mcp_servers_to_sdk_format(
+    mcp_servers: list[NativeMCPServerConfig],
+) -> dict[str, McpServerConfig]:
+    """Convert internal MCPServerConfig to Claude SDK format.
+
+    Returns:
+        Dict mapping server names to SDK-compatible config dicts
+    """
+    from claude_agent_sdk import McpServerConfig
+
+    from agentpool_config.mcp_server import (
+        SSEMCPServerConfig,
+        StdioMCPServerConfig,
+        StreamableHTTPMCPServerConfig,
+    )
+
+    result: dict[str, McpServerConfig] = {}
+
+    for idx, server in enumerate(mcp_servers):
+        # Determine server name
+        if server.name:
+            name = server.name
+        elif isinstance(server, StdioMCPServerConfig) and server.args:
+            name = server.args[-1].split("/")[-1].split("@")[0]
+        elif isinstance(server, StdioMCPServerConfig):
+            name = server.command
+        elif isinstance(server, SSEMCPServerConfig | StreamableHTTPMCPServerConfig):
+            from urllib.parse import urlparse
+
+            name = urlparse(str(server.url)).hostname or f"server_{idx}"
+        else:
+            name = f"server_{idx}"
+
+        # Build SDK-compatible config
+        config: dict[str, Any]
+        match server:
+            case StdioMCPServerConfig(command=command, args=args):
+                config = {"type": "stdio", "command": command, "args": args}
+                if server.env:
+                    config["env"] = server.get_env_vars()
+            case SSEMCPServerConfig(url=url):
+                config = {"type": "sse", "url": str(url)}
+                if server.headers:
+                    config["headers"] = server.headers
+            case StreamableHTTPMCPServerConfig(url=url):
+                config = {"type": "http", "url": str(url)}
+                if server.headers:
+                    config["headers"] = server.headers
+
+        result[name] = cast(McpServerConfig, config)
+
+    return result

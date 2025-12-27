@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import asyncio
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Self, cast
+from typing import TYPE_CHECKING, Any, Self
 import uuid
 
 import anyio
@@ -272,57 +272,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             node=self, pool=self.agent_pool, config=self._config, definition=defn, data=data
         )
 
-    def _convert_mcp_servers_to_sdk_format(self) -> dict[str, McpServerConfig]:
-        """Convert internal MCPServerConfig to Claude SDK format.
-
-        Returns:
-            Dict mapping server names to SDK-compatible config dicts
-        """
-        from claude_agent_sdk import McpServerConfig
-
-        from agentpool_config.mcp_server import (
-            SSEMCPServerConfig,
-            StdioMCPServerConfig,
-            StreamableHTTPMCPServerConfig,
-        )
-
-        result: dict[str, McpServerConfig] = {}
-
-        for idx, server in enumerate(self._external_mcp_servers):
-            # Determine server name
-            if server.name:
-                name = server.name
-            elif isinstance(server, StdioMCPServerConfig) and server.args:
-                name = server.args[-1].split("/")[-1].split("@")[0]
-            elif isinstance(server, StdioMCPServerConfig):
-                name = server.command
-            elif isinstance(server, SSEMCPServerConfig | StreamableHTTPMCPServerConfig):
-                from urllib.parse import urlparse
-
-                name = urlparse(str(server.url)).hostname or f"server_{idx}"
-            else:
-                name = f"server_{idx}"
-
-            # Build SDK-compatible config
-            config: dict[str, Any]
-            match server:
-                case StdioMCPServerConfig(command=command, args=args):
-                    config = {"type": "stdio", "command": command, "args": args}
-                    if server.env:
-                        config["env"] = server.get_env_vars()
-                case SSEMCPServerConfig(url=url):
-                    config = {"type": "sse", "url": str(url)}
-                    if server.headers:
-                        config["headers"] = server.headers
-                case StreamableHTTPMCPServerConfig(url=url):
-                    config = {"type": "http", "url": str(url)}
-                    if server.headers:
-                        config["headers"] = server.headers
-
-            result[name] = cast(McpServerConfig, config)
-
-        return result
-
     async def _setup_toolsets(self) -> None:
         """Initialize toolsets from config and create bridge if needed.
 
@@ -330,11 +279,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         and starts an MCP bridge to expose them to Claude Code via the SDK's
         native MCP support. Also converts external MCP servers to SDK format.
         """
+        from agentpool.agents.claude_code_agent.converters import convert_mcp_servers_to_sdk_format
         from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
 
         # Convert external MCP servers to SDK format first
         if self._external_mcp_servers:
-            external_configs = self._convert_mcp_servers_to_sdk_format()
+            external_configs = convert_mcp_servers_to_sdk_format(self._external_mcp_servers)
             self._mcp_servers.update(external_configs)
             self.log.info("External MCP servers configured", server_count=len(external_configs))
 
