@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 logger = log.get_logger(__name__)
 
 
-def acp_command(  # noqa: PLR0915
+def acp_command(
     config: Annotated[str | None, t.Argument(help="Path to agent configuration (optional)")] = None,
     file_access: Annotated[
         bool,
@@ -182,12 +182,6 @@ def acp_command(  # noqa: PLR0915
             load_skills=load_skills,
             transport=transport_config,
         )
-    # Configure agent capabilities
-    agent_count = len(acp_server.pool.all_agents)
-    if agent_count == 0:
-        logger.error("No agents found in configuration")
-        raise t.Exit(1)
-    logger.info("Configured agents for ACP protocol", count=agent_count)
     if show_messages:
         logger.info("Message activity logging enabled")
     if debug_messages:

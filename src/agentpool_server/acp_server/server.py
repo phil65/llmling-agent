@@ -110,7 +110,7 @@ class ACPServer(BaseServer):
         self.agent = agent
         self.load_skills = load_skills
         self.config_path = config_path
-        self.transport = transport
+        self.transport: Transport = transport
 
         self._available_models: list[ACPModelInfo] = []
         self._models_initialized = False
@@ -176,13 +176,11 @@ class ACPServer(BaseServer):
 
     async def _start_async(self) -> None:
         """Start the ACP server (blocking async - runs until stopped)."""
-        agent_names = list(self.pool.agents.keys())
         transport_name = (
             type(self.transport).__name__ if not isinstance(self.transport, str) else self.transport
         )
-        self.log.info("Starting ACP server", transport=transport_name, agent_names=agent_names)
+        self.log.info("Starting ACP server", transport=transport_name)
         await self._initialize_models()  # Initialize models on first run
-
         create_acp_agent = functools.partial(
             AgentPoolACPAgent,
             agent_pool=self.pool,

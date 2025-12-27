@@ -15,6 +15,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from pydantic import HttpUrl
+
 from agentpool.log import get_logger
 from agentpool.mcp_server.client import MCPClient
 from agentpool.mcp_server.registries.official_registry_client import (
@@ -171,9 +173,9 @@ class MCPDiscoveryToolset(ResourceProvider):
         # Find a usable remote endpoint
         for remote in server.remotes:
             if remote.type == "sse":
-                return SSEMCPServerConfig(url=remote.url)
+                return SSEMCPServerConfig(url=HttpUrl(remote.url))
             if remote.type in ("streamable-http", "http"):
-                return StreamableHTTPMCPServerConfig(url=remote.url)
+                return StreamableHTTPMCPServerConfig(url=HttpUrl(remote.url))
 
         msg = f"No supported remote transport for server {server_name!r}"
         raise MCPRegistryError(msg)
