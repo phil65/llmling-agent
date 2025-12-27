@@ -1003,6 +1003,55 @@ class DebugToolsetConfig(BaseToolsetConfig):
         )
 
 
+class MCPDiscoveryToolsetConfig(BaseToolsetConfig):
+    """Configuration for MCP discovery toolset.
+
+    Enables dynamic discovery and use of MCP servers without preloading tools.
+    Uses semantic search over 1000+ indexed servers for intelligent matching.
+
+    Requires the `mcp-discovery` extra: `pip install agentpool[mcp-discovery]`
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:search-16",
+            "x-doc-title": "MCP Discovery Toolset",
+        }
+    )
+
+    type: Literal["mcp_discovery"] = Field("mcp_discovery", init=False)
+    """MCP discovery toolset."""
+
+    registry_url: str = Field(
+        default="https://registry.modelcontextprotocol.io",
+        title="Registry URL",
+    )
+    """Base URL for the MCP registry API."""
+
+    allowed_servers: list[str] | None = Field(
+        default=None,
+        title="Allowed servers",
+    )
+    """If set, only these server names can be used."""
+
+    blocked_servers: list[str] | None = Field(
+        default=None,
+        title="Blocked servers",
+    )
+    """Server names that cannot be used."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create MCP discovery tools provider."""
+        from agentpool_toolsets.mcp_discovery.toolset import MCPDiscoveryToolset
+
+        return MCPDiscoveryToolset(
+            name=self.namespace or "mcp_discovery",
+            registry_url=self.registry_url,
+            allowed_servers=self.allowed_servers,
+            blocked_servers=self.blocked_servers,
+        )
+
+
 ToolsetConfig = Annotated[
     OpenAPIToolsetConfig
     | EntryPointToolsetConfig
@@ -1028,6 +1077,7 @@ ToolsetConfig = Annotated[
     | ImportToolsToolsetConfig
     | PlanToolsetConfig
     | DebugToolsetConfig
+    | MCPDiscoveryToolsetConfig
     | CustomToolsetConfig,
     Field(discriminator="type"),
 ]
