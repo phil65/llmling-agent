@@ -34,7 +34,6 @@ from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.processing import prepare_prompts
-from agentpool.talk.stats import MessageStats
 from agentpool.tools import ToolManager
 
 
@@ -656,10 +655,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
     def model_name(self) -> str | None:
         """Get model name (AG-UI doesn't expose this)."""
         return None
-
-    async def get_stats(self) -> MessageStats:
-        """Get message statistics for this node."""
-        return MessageStats()
 
 
 if __name__ == "__main__":

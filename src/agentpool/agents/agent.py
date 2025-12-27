@@ -38,7 +38,6 @@ from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.prompts.convert import convert_prompts
 from agentpool.storage import StorageManager
-from agentpool.talk.stats import MessageStats
 from agentpool.tools import Tool, ToolManager
 from agentpool.tools.exceptions import ToolError
 from agentpool.utils.inspection import call_with_context, get_argument_key
@@ -1165,11 +1164,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             new_tools=new_tools,
         )
         self.agent_reset.emit(event)
-
-    async def get_stats(self) -> MessageStats:
-        """Get message statistics (async version)."""
-        messages = await self.get_message_history()
-        return MessageStats(messages=messages)
 
     @asynccontextmanager
     async def temporary_state[T](

@@ -54,7 +54,6 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
-from agentpool.talk.stats import MessageStats
 from agentpool.utils.streams import merge_queue_into_iterator
 
 
@@ -789,10 +788,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 self.log.exception("Failed to forward mode change to remote ACP server")
         else:
             self.log.info("Tool confirmation mode changed (local only)", mode=mode)
-
-    async def get_stats(self) -> MessageStats:
-        """Get message statistics."""
-        return MessageStats(messages=list(self.conversation.chat_messages))
 
     async def interrupt(self) -> None:
         """Interrupt the currently running stream.

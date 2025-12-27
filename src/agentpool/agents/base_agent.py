@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation import AgentPool
+    from agentpool.talk.stats import MessageStats
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
 
@@ -175,3 +176,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         if self._current_stream_task and not self._current_stream_task.done():
             self._current_stream_task.cancel()
             logger.info("Interrupted agent stream", agent=self.name)
+
+    async def get_stats(self) -> MessageStats:
+        """Get message statistics."""
+        from agentpool.talk.stats import MessageStats
+
+        return MessageStats(messages=list(self.conversation.chat_messages))

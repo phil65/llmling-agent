@@ -88,7 +88,6 @@ if TYPE_CHECKING:
     from agentpool.delegation import AgentPool
     from agentpool.mcp_server.tool_bridge import ToolManagerBridge
     from agentpool.messaging import MessageHistory
-    from agentpool.talk.stats import MessageStats
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
@@ -935,12 +934,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             await self._client.set_permission_mode("bypassPermissions")
         elif self._client and mode == "always":
             await self._client.set_permission_mode("default")
-
-    async def get_stats(self) -> MessageStats:
-        """Get message statistics."""
-        from agentpool.talk.stats import MessageStats
-
-        return MessageStats(messages=list(self.conversation.chat_messages))
 
 
 if __name__ == "__main__":
