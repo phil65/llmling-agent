@@ -433,6 +433,10 @@ class ACPSession:
         self._cancelled = True
         self.log.info("Session cancelled, interrupting agent")
 
+        # Clear pending tool call states to avoid stale data on next prompt
+        self._tool_call_states.clear()
+        self._current_tool_inputs.clear()
+
         # Actively interrupt the agent's stream
         try:
             await self.agent.interrupt()
@@ -485,12 +489,19 @@ class ACPSession:
                     *all_content, input_provider=self.input_provider, deps=self
                 ):
                     if self._cancelled:
+                        self.log.info("Cancelled during event loop")
                         return "cancelled"
 
                     event_count += 1
                     await self.handle_event(event)
                 self.log.info("Streaming finished", events_processed=event_count)
 
+            except asyncio.CancelledError:
+                # Task was cancelled (e.g., via interrupt()) - return proper stop reason
+                # This is critical: CancelledError doesn't inherit from Exception,
+                # so we must catch it explicitly to send the PromptResponse
+                self.log.info("Stream cancelled via CancelledError")
+                return "cancelled"
             except UsageLimitExceeded as e:
                 self.log.info("Usage limit exceeded", error=str(e))
                 error_msg = str(e)  # Determine which limit was hit based on error
@@ -515,12 +526,18 @@ class ACPSession:
 
     async def _send_error_notification(self, message: str) -> None:
         """Send error notification, with exception handling."""
+        if self._cancelled:
+            return
         try:
             await self.notifications.send_agent_text(message)
         except Exception:
             self.log.exception("Failed to send error notification")
 
     async def handle_event(self, event: RichAgentStreamEvent[Any]) -> None:  # noqa: PLR0915
+        # Don't send notifications after cancellation to avoid stale updates
+        if self._cancelled:
+            return
+
         match event:
             case (
                 PartStartEvent(part=TextPart(content=delta))

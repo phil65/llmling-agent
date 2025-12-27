@@ -892,22 +892,20 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     async def interrupt(self) -> None:
         """Interrupt the currently running stream.
 
-        Calls the Claude SDK's native interrupt() method to stop the query,
-        then cancels the local stream task.
+        Sets the cancelled flag and calls the Claude SDK's native interrupt()
+        method to stop the query. The stream loop checks the flag and returns
+        gracefully - we don't cancel the task ourselves to avoid CancelledError
+        propagation issues.
         """
         self._cancelled = True
 
-        # Use Claude SDK's native interrupt
+        # Use Claude SDK's native interrupt - this causes the SDK to stop yielding
         if self._client:
             try:
                 await self._client.interrupt()
                 self.log.info("Claude Code client interrupted")
             except Exception:
                 self.log.exception("Failed to interrupt Claude Code client")
-
-        # Also cancel the current stream task
-        if self._current_stream_task and not self._current_stream_task.done():
-            self._current_stream_task.cancel()
 
     async def set_model(self, model: str) -> None:
         """Set the model for future requests.
