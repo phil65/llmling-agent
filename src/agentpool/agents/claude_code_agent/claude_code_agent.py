@@ -517,6 +517,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Stream events from Claude Code execution.
 
@@ -526,6 +527,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             input_provider: Optional input provider for permission requests
             message_history: Optional MessageHistory to use instead of agent's own
             deps: Optional dependencies accessible via ctx.data in tools
+            event_handlers: Optional event handlers for this run (overrides agent's handlers)
 
         Yields:
             RichAgentStreamEvent instances during execution
@@ -552,6 +554,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             raise RuntimeError("Agent not initialized - use async context manager")
 
         conversation = message_history if message_history is not None else self.conversation
+        # Use provided event handlers or fall back to agent's handlers
+        if event_handlers is not None:
+            from anyenv import MultiEventHandler
+
+            from agentpool.agents.events import resolve_event_handlers
+
+            handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
+                resolve_event_handlers(event_handlers)
+            )
+        else:
+            handler = self.event_handler
         # Prepare prompts
         user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
         # Get pending parts from conversation (staged content)
@@ -566,7 +579,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             run_id=run_id,
             agent_name=self.name,
         )
-        await self.event_handler(None, run_started)
+        await handler(None, run_started)
         yield run_started
         request = ModelRequest(parts=[UserPromptPart(content=prompt_text)])
         model_messages: list[ModelResponse | ModelRequest] = [request]
@@ -598,7 +611,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     # Check if it's a queued event (from tools via EventEmitter)
                     if not isinstance(event_or_message, Message):
                         # It's an event from the queue - yield it immediately
-                        await self.event_handler(None, event_or_message)
+                        await handler(None, event_or_message)
                         yield event_or_message
                         continue
 
@@ -624,7 +637,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                                     # Emit FunctionToolCallEvent (triggers UI notification)
                                     # func_tool_event = FunctionToolCallEvent(part=tool_call_part)
-                                    # await self.event_handler(None, func_tool_event)
+                                    # await handler(None, func_tool_event)
                                     # yield func_tool_event
 
                                     # Only emit ToolCallStartEvent if not already emitted
@@ -646,7 +659,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         )
                                         # Track file modifications
                                         file_tracker.process_event(tool_start_event)
-                                        await self.event_handler(None, tool_start_event)
+                                        await handler(None, tool_start_event)
                                         yield tool_start_event
                                     else:
                                         # Already emitted early - update with full args
@@ -690,7 +703,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     func_result_event = FunctionToolResultEvent(
                                         result=tool_return_part
                                     )
-                                    await self.event_handler(None, func_result_event)
+                                    await handler(None, func_result_event)
                                     yield func_result_event
 
                                     # Also emit ToolCallCompleteEvent for consumers that expect it
@@ -702,7 +715,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         agent_name=self.name,
                                         message_id="",
                                     )
-                                    await self.event_handler(None, tool_done_event)
+                                    await handler(None, tool_done_event)
                                     yield tool_done_event
 
                                     # Add tool return as ModelRequest
@@ -740,7 +753,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                                 # Emit FunctionToolResultEvent (for session.py to complete UI)
                                 func_result_event = FunctionToolResultEvent(result=tool_return_part)
-                                await self.event_handler(None, func_result_event)
+                                await handler(None, func_result_event)
                                 yield func_result_event
 
                                 # Also emit ToolCallCompleteEvent for consumers that expect it
@@ -752,7 +765,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     agent_name=self.name,
                                     message_id="",
                                 )
-                                await self.event_handler(None, tool_complete_event)
+                                await handler(None, tool_complete_event)
                                 yield tool_complete_event
 
                                 # Add tool return as ModelRequest
@@ -771,13 +784,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                             if block_type == "text":
                                 start_event = PartStartEvent(index=index, part=TextPart(content=""))
-                                await self.event_handler(None, start_event)
+                                await handler(None, start_event)
                                 yield start_event
 
                             elif block_type == "thinking":
                                 thinking_part = ThinkingPart(content="")
                                 start_event = PartStartEvent(index=index, part=thinking_part)
-                                await self.event_handler(None, start_event)
+                                await handler(None, start_event)
                                 yield start_event
 
                             elif block_type == "tool_use":
@@ -802,7 +815,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     raw_input={},  # Empty, will be filled when complete
                                 )
                                 emitted_tool_starts.add(tc_id)
-                                await self.event_handler(None, tool_start_event)
+                                await handler(None, tool_start_event)
                                 yield tool_start_event
 
                         # Handle content_block_delta events (text streaming)
@@ -815,7 +828,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 if text_delta:
                                     text_part = TextPartDelta(content_delta=text_delta)
                                     delta_event = PartDeltaEvent(index=index, delta=text_part)
-                                    await self.event_handler(None, delta_event)
+                                    await handler(None, delta_event)
                                     yield delta_event
 
                             elif delta_type == "thinking_delta":
@@ -827,7 +840,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     delta_event = PartDeltaEvent(
                                         index=index, delta=thinking_part_delta
                                     )
-                                    await self.event_handler(None, delta_event)
+                                    await handler(None, delta_event)
                                     yield delta_event
 
                             elif delta_type == "input_json_delta":
@@ -844,7 +857,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             # We don't have the full part content here, emit with empty part
                             # The actual content was accumulated via deltas
                             end_event = PartEndEvent(index=index, part=TextPart(content=""))
-                            await self.event_handler(None, end_event)
+                            await handler(None, end_event)
                             yield end_event
 
                         # Skip further processing for StreamEvent - don't duplicate
@@ -859,7 +872,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             pending_tool_calls={},  # Already handled above
                         )
                         for event in events:
-                            await self.event_handler(None, event)
+                            await handler(None, event)
                             yield event
 
                     # Check for result (end of response) and capture usage info
@@ -883,7 +896,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             metadata=file_tracker.get_metadata(),
                         )
                         complete_event = StreamCompleteEvent(message=response_msg)
-                        await self.event_handler(None, complete_event)
+                        await handler(None, complete_event)
                         yield complete_event
                         return
                 else:
@@ -904,13 +917,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 metadata=file_tracker.get_metadata(),
             )
             complete_event = StreamCompleteEvent(message=response_msg)
-            await self.event_handler(None, complete_event)
+            await handler(None, complete_event)
             yield complete_event
             return
 
         except Exception as e:
             error_event = RunErrorEvent(message=str(e), run_id=run_id, agent_name=self.name)
-            await self.event_handler(None, error_event)
+            await handler(None, error_event)
             yield error_event
             raise
 
@@ -957,7 +970,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Emit stream complete
         complete_event = StreamCompleteEvent[TResult](message=chat_message)
-        await self.event_handler(None, complete_event)
+        await handler(None, complete_event)
         yield complete_event
         # Record to history
         self.message_sent.emit(chat_message)

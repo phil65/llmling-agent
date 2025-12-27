@@ -717,6 +717,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         wait_for_connections: bool | None = None,
         deps: TDeps | None = None,
         instructions: str | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
         """Run agent with prompt and get a streaming response.
 
@@ -736,6 +737,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             wait_for_connections: Whether to wait for connected agents to complete
             deps: Optional dependencies for the agent
             instructions: Optional instructions to override the agent's system prompt
+            event_handlers: Optional event handlers for this run (overrides agent's handlers)
+
         Returns:
             An async iterator yielding streaming events with final message embedded.
 
@@ -743,6 +746,17 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         conversation = message_history if message_history is not None else self.conversation
+        # Use provided event handlers or fall back to agent's handlers
+        if event_handlers is not None:
+            from anyenv import MultiEventHandler
+
+            from agentpool.agents.events import resolve_event_handlers
+
+            handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
+                resolve_event_handlers(event_handlers)
+            )
+        else:
+            handler = self.event_handler
         message_id = message_id or str(uuid4())
         run_id = str(uuid4())
         user_msg, prompts, original_message = await prepare_prompts(*prompt)
@@ -801,7 +815,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                             break
 
                         # Call event handlers for all events
-                        await self.event_handler(None, event)
+                        await handler(None, event)
                         yield event  # type: ignore[misc]
 
                         # Accumulate text content for partial message

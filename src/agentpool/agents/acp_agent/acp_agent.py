@@ -498,6 +498,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Stream native events as they arrive from ACP agent.
 
@@ -507,6 +508,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             input_provider: Optional input provider for permission requests
             message_history: Optional MessageHistory to use instead of agent's own
             deps: Optional dependencies accessible via ctx.data in tools
+            event_handlers: Optional event handlers for this run (overrides agent's handlers)
 
         Yields:
             RichAgentStreamEvent instances converted from ACP session updates
@@ -524,6 +526,17 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             raise RuntimeError(msg)
 
         conversation = message_history if message_history is not None else self.conversation
+        # Use provided event handlers or fall back to agent's handlers
+        if event_handlers is not None:
+            from anyenv import MultiEventHandler
+
+            from agentpool.agents.events import resolve_event_handlers
+
+            handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
+                resolve_event_handlers(event_handlers)
+            )
+        else:
+            handler = self.event_handler
         # Prepare user message for history and convert to ACP content blocks
         user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
         run_id = str(uuid.uuid4())
@@ -542,7 +555,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             run_id=run_id,
             agent_name=self.name,
         )
-        await self.event_handler(None, run_started)
+        await handler(None, run_started)
         yield run_started
         content_blocks = convert_to_acp_content(processed_prompts)
         pending_parts = conversation.get_pending_parts()
@@ -611,7 +624,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                                 ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
                             )
 
-                    await self.event_handler(None, event)
+                    await handler(None, event)
                     yield event
         except asyncio.CancelledError:
             self.log.info("Stream cancelled via task cancellation")
@@ -636,7 +649,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 finish_reason="stop",
             )
             complete_event = StreamCompleteEvent(message=message)
-            await self.event_handler(None, complete_event)
+            await handler(None, complete_event)
             yield complete_event
             self._current_stream_task = None
             self._prompt_task = None
@@ -670,7 +683,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             finish_reason=finish_reason,
         )
         complete_event = StreamCompleteEvent(message=message)
-        await self.event_handler(None, complete_event)
+        await handler(None, complete_event)
         yield complete_event  # Emit final StreamCompleteEvent with aggregated message
         self.message_sent.emit(message)
         conversation.add_chat_messages([user_msg, message])  # Record to conversation history
