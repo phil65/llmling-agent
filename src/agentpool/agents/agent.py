@@ -57,6 +57,7 @@ if TYPE_CHECKING:
 
     from exxec import ExecutionEnvironment
     from pydantic_ai import UsageLimits
+    from pydantic_ai.builtin_tools import AbstractBuiltinTool
     from pydantic_ai.output import OutputSpec
     from pydantic_ai.settings import ModelSettings
     from toprompt import AnyPromptType
@@ -166,6 +167,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         env: ExecutionEnvironment | None = None,
         hooks: AgentHooks | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
+        builtin_tools: Sequence[AbstractBuiltinTool] | None = None,
     ) -> None:
         """Initialize agent.
 
@@ -207,6 +209,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             env: Execution environment for code/command execution and filesystem access
             hooks: AgentHooks instance for intercepting agent behavior at run and tool events
             tool_confirmation_mode: Tool confirmation mode
+            builtin_tools: PydanticAI builtin tools (WebSearchTool, CodeExecutionTool, etc.)
         """
         from agentpool.agents.interactions import Interactions
         from agentpool.agents.sys_prompts import SystemPrompts
@@ -243,6 +246,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Store config for context creation
         self._agent_config = agent_config or NativeAgentConfig(name=name)
+
+        # Store builtin tools for pydantic-ai
+        self._builtin_tools = list(builtin_tools) if builtin_tools else []
 
         # Override tools with Agent-specific ToolManager (with tools and tool_mode)
         all_tools = list(tools or [])
@@ -559,7 +565,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         final_type = to_type(output_type) if output_type not in [None, str] else self._output_type
         actual_model = model or self._model
         model_ = infer_model(actual_model) if isinstance(actual_model, str) else actual_model
-        agent = PydanticAgent(
+        agent = PydanticAgent(  # type: ignore[misc]
             name=self.name,
             model=model_,
             model_settings=self.model_settings,
@@ -569,6 +575,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             output_retries=self._output_retries,
             deps_type=self.deps_type or NoneType,
             output_type=final_type,
+            builtin_tools=self._builtin_tools or None,  # type: ignore[arg-type]
         )
 
         base_context = self.get_context()
