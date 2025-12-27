@@ -2,11 +2,47 @@
 
 from __future__ import annotations
 
+from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
 from agentpool.log import get_logger
 from agentpool.messaging.context import NodeContext
+
+
+# ContextVar for passing deps through async call boundaries (e.g., MCP tool bridge)
+# This allows run_stream() to set deps that are accessible in tool invocations
+_current_deps: ContextVar[Any] = ContextVar("current_deps", default=None)
+
+
+def set_current_deps(deps: Any) -> Token[Any]:
+    """Set the current deps for the running context.
+
+    Args:
+        deps: Dependencies to set
+
+    Returns:
+        Token to reset the deps when done
+    """
+    return _current_deps.set(deps)
+
+
+def get_current_deps() -> Any:
+    """Get the current deps from the running context.
+
+    Returns:
+        Current deps or None if not set
+    """
+    return _current_deps.get()
+
+
+def reset_current_deps(token: Token[Any]) -> None:
+    """Reset deps to previous value.
+
+    Args:
+        token: Token from set_current_deps
+    """
+    _current_deps.reset(token)
 
 
 if TYPE_CHECKING:

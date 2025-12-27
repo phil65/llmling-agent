@@ -515,6 +515,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         message_id: str | None = None,
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
+        deps: TDeps | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Stream events from Claude Code execution.
 
@@ -523,6 +524,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             message_id: Optional message ID for the final message
             input_provider: Optional input provider for permission requests
             message_history: Optional MessageHistory to use instead of agent's own
+            deps: Optional dependencies accessible via ctx.data in tools
 
         Yields:
             RichAgentStreamEvent instances during execution
@@ -574,6 +576,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Track files modified during this run
         file_tracker = FileTracker()
 
+        # Set deps in ContextVar for access in tool bridge
+        from agentpool.agents.context import reset_current_deps, set_current_deps
+
+        deps_token = set_current_deps(deps)
         try:
             await self._client.query(prompt_text)
             # Merge SDK messages with event queue for real-time tool event streaming
@@ -817,6 +823,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             await self.event_handler(None, error_event)
             yield error_event
             raise
+
+        finally:
+            # Reset deps ContextVar
+            reset_current_deps(deps_token)
 
         # Flush any remaining response parts
         if current_response_parts:

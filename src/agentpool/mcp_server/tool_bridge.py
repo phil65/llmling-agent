@@ -445,6 +445,8 @@ class _BridgeTool(FastMCPTool):
         """Execute the wrapped tool with context bridging."""
         from fastmcp.server.dependencies import get_context
 
+        from agentpool.agents.context import get_current_deps
+
         # Get FastMCP context from context variable (not passed as parameter)
         try:
             mcp_context: Context | None = get_context()
@@ -453,9 +455,13 @@ class _BridgeTool(FastMCPTool):
 
         # Try to get Claude's original tool_call_id from request metadata
         tool_call_id = _extract_tool_call_id(mcp_context)
+
+        # Get deps from ContextVar (set by run_stream)
+        current_deps = get_current_deps()
+
         # Create context with tool-specific metadata from node's context.
         ctx = replace(
-            self._bridge.node.get_context(),
+            self._bridge.node.get_context(data=current_deps),
             tool_name=self._tool.name,
             tool_call_id=tool_call_id,
             tool_input=arguments,

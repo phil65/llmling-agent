@@ -500,6 +500,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         message_id: str | None = None,
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
+        deps: TDeps | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Stream native events as they arrive from ACP agent.
 
@@ -508,6 +509,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             message_id: Optional message id for the final message
             input_provider: Optional input provider for permission requests
             message_history: Optional MessageHistory to use instead of agent's own
+            deps: Optional dependencies accessible via ctx.data in tools
 
         Yields:
             RichAgentStreamEvent instances converted from ACP session updates
@@ -582,6 +584,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 yield self._state.events[last_idx]
                 last_idx += 1
 
+        # Set deps in ContextVar for access in tool bridge
+        from agentpool.agents.context import set_current_deps
+
+        deps_token = set_current_deps(deps)
+
         # Merge ACP events with custom events from queue
         try:
             async with merge_queue_into_iterator(
@@ -612,6 +619,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         except asyncio.CancelledError:
             self.log.info("Stream cancelled via task cancellation")
             self._cancelled = True
+        finally:
+            # Reset deps ContextVar
+            reset_current_deps(deps_token)
 
         # Handle cancellation - emit partial message
         if self._cancelled:
