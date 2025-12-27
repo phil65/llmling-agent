@@ -305,7 +305,7 @@ def to_output_format(output_type: type) -> dict[str, Any] | None:
     # Build structured output format if needed
     output_format: dict[str, Any] | None = None
     if output_type is not str:
-        adapter = TypeAdapter(output_type)
+        adapter = TypeAdapter[Any](output_type)
         schema = adapter.json_schema()
         output_format = {"type": "json_schema", "schema": schema}
     return output_format
