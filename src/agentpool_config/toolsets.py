@@ -607,6 +607,12 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     )
     """Maximum tokens for structure map output when reading large files."""
 
+    edit_tool: Literal["simple", "batch"] = Field(
+        default="simple",
+        title="Edit tool variant",
+    )
+    """Which edit_file variant to expose: "simple" (single replacement) or "batch" (multiple)."""
+
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
         import fsspec
@@ -641,6 +647,7 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
             enable_diagnostics=self.enable_diagnostics,
             large_file_tokens=self.large_file_tokens,
             map_max_tokens=self.map_max_tokens,
+            edit_tool=self.edit_tool,
         )
 
 

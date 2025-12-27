@@ -7,7 +7,7 @@ from fnmatch import fnmatch
 import os
 from pathlib import Path
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import urlparse
 
 import anyio
@@ -82,6 +82,7 @@ class FSSpecTools(ResourceProvider):
         enable_diagnostics: bool = False,
         large_file_tokens: int = 12_000,
         map_max_tokens: int = 2048,
+        edit_tool: Literal["simple", "batch"] = "simple",
     ) -> None:
         """Initialize with an fsspec filesystem or execution environment.
 
@@ -98,6 +99,7 @@ class FSSpecTools(ResourceProvider):
             enable_diagnostics: Run LSP CLI diagnostics after file writes (default: False)
             large_file_tokens: Token threshold for switching to structure map (default: 12000)
             map_max_tokens: Maximum tokens for structure map output (default: 2048)
+            edit_tool: Which edit_file variant to expose ("simple" or "batch")
         """
         from fsspec.asyn import AsyncFileSystem
         from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
@@ -128,6 +130,7 @@ class FSSpecTools(ResourceProvider):
         self._large_file_tokens = large_file_tokens
         self._map_max_tokens = map_max_tokens
         self._repomap: RepoMap | None = None
+        self._edit_tool = edit_tool
 
     def get_fs(self, agent_ctx: AgentContext) -> AsyncFileSystem:
         """Get filesystem, falling back to agent's env if not set.
@@ -215,13 +218,14 @@ class FSSpecTools(ResourceProvider):
         if self._tools is not None:
             return self._tools
 
+        edit_fn = self.edit_file_batch if self._edit_tool == "batch" else self.edit_file
         self._tools = [
             self.create_tool(self.list_directory, category="read", read_only=True, idempotent=True),
             self.create_tool(self.read_file, category="read", read_only=True, idempotent=True),
             self.create_tool(self.grep, category="search", read_only=True, idempotent=True),
             self.create_tool(self.write_file, category="edit"),
             self.create_tool(self.delete_path, category="delete", destructive=True),
-            self.create_tool(self.edit_file, category="edit"),
+            self.create_tool(edit_fn, category="edit", name_override="edit_file"),
             self.create_tool(self.agentic_edit, category="edit"),
             self.create_tool(self.download_file, category="read", open_world=True),
         ]
@@ -686,6 +690,82 @@ class FSSpecTools(ResourceProvider):
         else:
             return success_msg
 
+    async def edit_file_batch(  # noqa: D417
+        self,
+        agent_ctx: AgentContext,
+        path: str,
+        replacements: list[tuple[str, str]],
+        description: str,
+        replace_all: bool = False,
+    ) -> str:
+        r"""Edit a file by applying multiple replacements in one operation.
+
+        Uses sophisticated matching strategies to handle whitespace, indentation,
+        and other variations. Shows the changes as a diff in the UI.
+
+        Args:
+            path: File path (absolute or relative to session cwd)
+            replacements: List of (old_string, new_string) tuples to apply sequentially
+            description: Human-readable description of what the edit accomplishes
+            replace_all: Whether to replace all occurrences of each pattern (default: False)
+
+        Returns:
+            Success message with edit summary
+        """
+        path = self._resolve_path(path, agent_ctx)
+        msg = f"Editing file: {path}"
+        await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
+
+        if not replacements:
+            return "Error: replacements list cannot be empty"
+
+        for old_str, new_str in replacements:
+            if old_str == new_str:
+                return f"Error: old_string and new_string must be different: {old_str!r}"
+
+        # Send initial pending notification
+        await agent_ctx.events.file_operation("edit", path=path, success=True)
+
+        try:  # Read current file content
+            original_content = await self._read(agent_ctx, path)
+            if isinstance(original_content, bytes):
+                original_content = original_content.decode("utf-8")
+
+            # Apply all replacements sequentially
+            new_content = original_content
+            for old_str, new_str in replacements:
+                try:
+                    new_content = replace_content(new_content, old_str, new_str, replace_all)
+                except ValueError as e:
+                    error_msg = f"Edit failed on replacement {old_str!r}: {e}"
+                    await agent_ctx.events.file_operation(
+                        "edit", path=path, success=False, error=error_msg
+                    )
+                    return error_msg
+
+            await self._write(agent_ctx, path, new_content)
+            success_msg = f"Successfully edited {Path(path).name}: {description}"
+            changed_line_numbers = get_changed_line_numbers(original_content, new_content)
+            if lines_changed := len(changed_line_numbers):
+                success_msg += f" ({lines_changed} lines changed)"
+
+            await agent_ctx.events.file_edit_progress(
+                path=path,
+                old_text=original_content,
+                new_text=new_content,
+                status="completed",
+            )
+
+            # Run diagnostics if enabled
+            if diagnostics_output := await self._run_diagnostics(agent_ctx, path):
+                success_msg += f"\n\nDiagnostics:\n{diagnostics_output}"
+        except Exception as e:  # noqa: BLE001
+            error_msg = f"Error editing file: {e}"
+            await agent_ctx.events.file_operation("edit", path=path, success=False, error=error_msg)
+            return error_msg
+        else:
+            return success_msg
+
     async def grep(  # noqa: D417
         self,
         agent_ctx: AgentContext,
@@ -923,7 +1003,7 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Success message with edit summary
         """
-        from pydantic_ai.messages import CachePoint, ModelRequest
+        from pydantic_ai.messages import ModelRequest
 
         from agentpool.messaging import ChatMessage, MessageHistory
 
@@ -984,17 +1064,16 @@ class FSSpecTools(ResourceProvider):
                 else:
                     all_messages.append(msg)
 
-            # Inject CachePoint to cache everything up to this point
-            if all_messages:
-                cache_request: ModelRequest = ModelRequest(parts=[CachePoint()])  # type: ignore[list-item]
-                all_messages.append(cache_request)
+                # Inject CachePoint to cache everything up to this point
+                # if all_messages:
+                #     cache_request: ModelRequest = ModelRequest(parts=[CachePoint()])
+                #     all_messages.append(cache_request)
 
                 # Wrap in a single ChatMessage for the forked history
                 fork_history = MessageHistory(
                     messages=[ChatMessage(messages=all_messages, role="user", content="")]
                 )
-            else:
-                fork_history = MessageHistory()
+            fork_history = MessageHistory()
 
             # Stream the edit using the same agent but with forked history
             if mode == "edit" and matcher == "zed":
