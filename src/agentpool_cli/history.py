@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated
 
@@ -105,7 +104,7 @@ def show_history(
                 )
                 format_output(results, output_format)
 
-        asyncio.run(main())
+        anyio.run(main)
 
     except Exception as e:
         logger.exception("Failed to show history")
@@ -134,6 +133,8 @@ def show_stats(
         # Show model usage for last week
         agentpool history stats --period 1w --group-by model
     """
+    import anyio
+
     from agentpool.utils.parse_time import parse_time_period
     from agentpool_storage.formatters import format_stats
     from agentpool_storage.models import StatsFilters
@@ -153,7 +154,7 @@ def show_stats(
             formatted = format_stats(stats, period, group_by)
             format_output(formatted, output_format)
 
-        asyncio.run(main())
+        anyio.run(main)
 
     except Exception as e:
         logger.exception("Failed to show stats")
@@ -186,6 +187,8 @@ def reset_history(
         # Drop and recreate tables (for schema changes)
         agentpool history reset --hard --confirm
     """
+    import anyio
+
     try:
         # Resolve config and get provider
         config_path = resolve_agent_config(config)
@@ -205,7 +208,7 @@ def reset_history(
                 what = f" for {agent_name}" if agent_name else ""
                 print(f"Deleted {conv_count} conversations and {msg_count} messages{what}.")
 
-        asyncio.run(main())
+        anyio.run(main)
 
     except Exception as e:
         logger.exception("Failed to reset history")

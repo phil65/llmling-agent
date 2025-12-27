@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 from agentpool import Agent
@@ -42,4 +41,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import anyio
+
+    anyio.run(main)

@@ -175,9 +175,9 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
 
 
 if __name__ == "__main__":
-    import asyncio
     import os
 
+    import anyio
     from upathtools import UPath
 
     from agentpool.log import configure_logging
@@ -207,4 +207,4 @@ if __name__ == "__main__":
         for name, skill in reg.items():
             print(f"  - {name}: {skill.description[:60]}...")
 
-    asyncio.run(main())
+    anyio.run(main)

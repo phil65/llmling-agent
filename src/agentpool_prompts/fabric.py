@@ -56,7 +56,7 @@ class FabricPromptHub(BasePromptProvider):
 
 
 if __name__ == "__main__":
-    import asyncio
+    import anyio
 
     from agentpool_config.prompt_hubs import FabricConfig
 
@@ -72,4 +72,4 @@ if __name__ == "__main__":
         prompt = await hub.get_prompt("summarize")
         print(f"\n{prompt[:200]}...")  # Show first 200 chars
 
-    asyncio.run(main())
+    anyio.run(main)

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
+import time
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 
+import anyio
 import pytest
 
 from acp import ClientCapabilities
@@ -84,9 +85,9 @@ async def test_immediate_send_with_slow_command():
     # Create a command that outputs multiple lines with delays
     async def slow_command_func(ctx, args, kwargs):
         await ctx.print("Starting task...")
-        await asyncio.sleep(0.01)  # Small delay
+        await anyio.sleep(0.01)  # Small delay
         await ctx.print("Processing...")
-        await asyncio.sleep(0.01)  # Small delay
+        await anyio.sleep(0.01)  # Small delay
         await ctx.print("Completed!")
 
     # Add the command to the session's command store
@@ -96,10 +97,10 @@ async def test_immediate_send_with_slow_command():
 
     # Collect messages with timestamps to verify immediate sending
     messages_with_time = []
-    start_time = asyncio.get_event_loop().time()
+    start_time = time.perf_counter()
 
     async def capture_with_time(message):
-        current_time = asyncio.get_event_loop().time()
+        current_time = time.perf_counter()
         messages_with_time.append((message, current_time - start_time))
 
     session.notifications.send_agent_text = capture_with_time  # type: ignore[method-assign, assignment]
@@ -131,13 +132,15 @@ async def test_immediate_send_error_handling(caplog: pytest.LogCaptureFixture):
     agent_pool.register("test_agent", agent)
     mock_client = AsyncMock()
 
-    # Track created tasks to wait for them
-    created_tasks = []
+    # Track created task groups to wait for them
+    task_results: list[BaseException | None] = []
 
-    def mock_create_task(coro, *, name=None):
-        task = asyncio.create_task(coro, name=name)
-        created_tasks.append(task)
-        return task
+    async def mock_create_task(coro, *, name=None):
+        try:
+            await coro
+            task_results.append(None)
+        except BaseException as e:
+            task_results.append(e)
 
     mock_acp_agent = AsyncMock()
     mock_acp_agent.tasks.create_task = mock_create_task
@@ -176,10 +179,6 @@ async def test_immediate_send_error_handling(caplog: pytest.LogCaptureFixture):
     session.notifications.send_agent_text = capture_message  # type: ignore[method-assign]
     # Execute failing command
     await session.execute_slash_command("/fail")
-
-    # Wait for any async error notification tasks to complete
-    if created_tasks:
-        await asyncio.gather(*created_tasks, return_exceptions=True)
 
     # Should get the initial output plus error message
     min_expected_messages = 2

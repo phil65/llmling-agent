@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 import uuid
+
+import anyio
 
 from acp.client.protocol import Client
 from acp.schema import (
@@ -72,7 +73,7 @@ class ACPClientHandler(Client):
         self._agent = agent
         self.state = state
         self._input_provider = input_provider
-        self._update_event = asyncio.Event()
+        self._update_event = anyio.Event()
         # Map ACP terminal IDs to process manager IDs
         self._terminal_to_process: dict[str, str] = {}
         # Copy tool confirmation mode from agent (can be updated via set_tool_confirmation_mode)
@@ -312,4 +313,4 @@ if __name__ == "__main__":
             async for chunk in agent.run_stream("Say hello briefly."):
                 print(chunk, end="", flush=True)
 
-    asyncio.run(main())
+    anyio.run(main)

@@ -10,6 +10,7 @@ import time
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
+import anyio
 from exxec.base import ExecutionEnvironment
 from pydantic_ai import (
     BinaryContent,
@@ -220,7 +221,10 @@ class FSSpecTools(ResourceProvider):
         if self.converter:  # Only add read_as_markdown if converter is available
             self._tools.append(
                 self.create_tool(
-                    self.read_as_markdown, category="read", read_only=True, idempotent=True
+                    self.read_as_markdown,
+                    category="read",
+                    read_only=True,
+                    idempotent=True,
                 )
             )
 
@@ -410,7 +414,7 @@ class FSSpecTools(ResourceProvider):
             # Return raw content for agent
             return content
 
-    async def read_as_markdown(self, agent_ctx: AgentContext, path: str) -> str | dict[str, Any]:  # noqa: D417
+    async def read_as_markdown(self, agent_ctx: AgentContext, path: str) -> str | dict[str, Any]:
         """Read file and convert to markdown text representation.
 
         Args:
@@ -586,7 +590,12 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation("delete", path=path, success=False, error=str(e))
             return {"error": f"Failed to delete {path}: {e}"}
         else:
-            result = {"path": path, "deleted": True, "type": path_type, "recursive": recursive}
+            result = {
+                "path": path,
+                "deleted": True,
+                "type": path_type,
+                "recursive": recursive,
+            }
             await agent_ctx.events.file_operation("delete", path=path, success=True)
             return result
 
@@ -789,8 +798,6 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Status information about the download
         """
-        import asyncio
-
         import httpx
 
         start_time = time.time()
@@ -833,7 +840,7 @@ class FSSpecTools(ResourceProvider):
                         speed_mbps = (size / 1_048_576) / (time.time() - start_time)
                         progress_msg = f"\r{filename}: {progress:.1f}% ({speed_mbps:.1f} MB/s)"
                         await agent_ctx.events.progress(progress, 100, progress_msg)
-                        await asyncio.sleep(0)
+                        await anyio.sleep(0)
 
                 # Write to filesystem
                 await self._write(agent_ctx, full_path, bytes(data))
@@ -1353,7 +1360,6 @@ DO NOT use any tools. Just output the diff directly."""
 
 
 if __name__ == "__main__":
-    import asyncio
 
     async def main() -> None:
         import fsspec
@@ -1375,4 +1381,4 @@ if __name__ == "__main__":
             )
             print(result)
 
-    asyncio.run(main())
+    anyio.run(main)

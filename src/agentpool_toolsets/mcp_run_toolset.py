@@ -51,11 +51,11 @@ class McpRunTools(ResourceProvider):
 
 
 if __name__ == "__main__":
-    import asyncio
+    import anyio
 
     async def main() -> None:
         tools = McpRunTools("default")
         fns = await tools.get_tools()
         print(fns)
 
-    asyncio.run(main())
+    anyio.run(main)

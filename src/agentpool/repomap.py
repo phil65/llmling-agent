@@ -17,6 +17,7 @@ from pathlib import Path, PurePosixPath
 import random
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, cast
 
+import anyio
 from fsspec.asyn import AsyncFileSystem
 from upathtools import is_directory
 
@@ -1202,7 +1203,6 @@ async def find_src_files(fs: AbstractFileSystem, directory: str) -> list[str]:
 
 
 if __name__ == "__main__":
-    import asyncio
 
     async def main() -> None:
         from fsspec.implementations.github import GithubFileSystem
@@ -1227,4 +1227,4 @@ if __name__ == "__main__":
         else:
             print("No repository map generated")
 
-    asyncio.run(main())
+    anyio.run(main)

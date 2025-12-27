@@ -1,9 +1,9 @@
 """Compact FastMCP server demonstrating sampling and elicitation in one workflow."""
 
-import asyncio
 from pathlib import Path
 from typing import Any, Literal
 
+import anyio
 from fastmcp import Context, FastMCP
 from fastmcp.tools.tool import ToolResult
 from fastmcp.utilities.types import Audio, File, Image
@@ -38,11 +38,11 @@ async def test_elicitation(ctx: Context, message: str):
 async def test_progress(ctx: Context, message: str) -> str:
     """Test progress reporting with the given message."""
     await ctx.report_progress(0, 100, "first step")
-    await asyncio.sleep(0.5)
+    await anyio.sleep(0.5)
     await ctx.report_progress(50, 100, "second step")
-    await asyncio.sleep(0.5)
+    await anyio.sleep(0.5)
     await ctx.report_progress(99, 100, "third step")
-    await asyncio.sleep(0.5)
+    await anyio.sleep(0.5)
     return f"Progress test completed with message: {message}"
 
 

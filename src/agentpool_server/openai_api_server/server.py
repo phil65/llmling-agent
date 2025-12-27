@@ -175,8 +175,7 @@ class OpenAIAPIServer(BaseServer):
 
 
 if __name__ == "__main__":
-    import asyncio
-
+    import anyio
     import httpx
 
     from agentpool import AgentPool
@@ -234,10 +233,10 @@ if __name__ == "__main__":
             OpenAIAPIServer(pool, host="0.0.0.0", port=8000) as server,
             server.run_context(),
         ):
-            await asyncio.sleep(1)  # Wait for server to start
+            await anyio.sleep(1)  # Wait for server to start
             print("Testing completions endpoint...")
             await test_completions()
             print("\nTesting responses endpoint...")
             await test_responses()
 
-    asyncio.run(main())
+    anyio.run(main)

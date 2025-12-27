@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Self, TypedDict, TypeVar, overload
 from uuid import uuid4
 
 from anyenv import method_spawner
+import anyio
 from llmling_models import function_to_model, infer_model
 import logfire
 from psygnal import Signal
@@ -29,7 +30,6 @@ from pydantic_ai import (
     TextPartDelta,
     ToolReturnPart,
 )
-from pydantic_ai.settings import ModelSettings
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallCompleteEvent
@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
     from pydantic_ai import UsageLimits
     from pydantic_ai.output import OutputSpec
+    from pydantic_ai.settings import ModelSettings
     from toprompt import AnyPromptType
     from upathtools import JoinablePathLike
 
@@ -1030,7 +1031,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     self.log.debug("Run continuous result", iteration=count)
 
                     count += 1
-                    await asyncio.sleep(interval)
+                    await anyio.sleep(interval)
                 except asyncio.CancelledError:
                     self.log.debug("Continuous run cancelled")
                     break
@@ -1041,7 +1042,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                         break
                     count += 1
                     self.log.exception("Background run failed")
-                    await asyncio.sleep(interval)
+                    await anyio.sleep(interval)
             self.log.debug("Continuous run completed", iterations=count)
             return latest  # type: ignore[return-value]
 

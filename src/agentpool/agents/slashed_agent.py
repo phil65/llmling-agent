@@ -6,6 +6,7 @@ import asyncio
 import re
 from typing import TYPE_CHECKING, Any, cast
 
+import anyio
 from slashed.events import (
     CommandExecutedEvent,
     CommandOutputEvent as SlashedCommandOutputEvent,
@@ -233,11 +234,11 @@ if __name__ == "__main__":
             await ctx.print("Starting streaming test...")
             for i in range(3):
                 await ctx.print(f"Output line {i + 1}")
-                await asyncio.sleep(0.1)  # Small delay to simulate work
+                await anyio.sleep(0.1)  # Small delay to simulate work
             await ctx.print("Streaming test complete!")
 
         print("Testing SlashedAgent streaming:")
         async for event in slashed.run_stream("/test-streaming"):
             print(f"Event: {event}")
 
-    asyncio.run(main())
+    anyio.run(main)

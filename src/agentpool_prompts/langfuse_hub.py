@@ -65,8 +65,7 @@ class LangfusePromptHub(BasePromptProvider):
 
 
 if __name__ == "__main__":
-    import asyncio
-
+    import anyio
     from pydantic import SecretStr
 
     from agentpool_config.prompt_hubs import LangfuseConfig
@@ -77,4 +76,4 @@ if __name__ == "__main__":
     async def main() -> None:
         print(await prompt_hub.list_prompts())
 
-    asyncio.run(main())
+    anyio.run(main)

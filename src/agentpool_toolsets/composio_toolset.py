@@ -82,7 +82,7 @@ class ComposioTools(ResourceProvider):
 
 
 if __name__ == "__main__":
-    import asyncio
+    import anyio
 
     async def main() -> None:
         from agentpool import Agent
@@ -93,4 +93,4 @@ if __name__ == "__main__":
         result = await agent.run("tell me the tools at your disposal")
         print(result)
 
-    asyncio.run(main())
+    anyio.run(main)

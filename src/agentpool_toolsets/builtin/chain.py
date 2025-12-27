@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Literal, assert_never
 
+import anyio
 from pydantic import Field
 from pydantic_ai import ModelRetry
 from schemez import Schema
@@ -158,7 +159,7 @@ async def _execute_step(
                 case ErrorStrategy.RETRY:
                     retries += 1
                     if retries <= step.max_retries:
-                        await asyncio.sleep(step.retry_delay)
+                        await anyio.sleep(step.retry_delay)
                         continue
                     raise  # Max retries exceeded
 
@@ -183,7 +184,7 @@ async def _execute_parallel(ctx: AgentContext, pipeline: Pipeline, results: Step
             # Wait for dependencies
             for dep in step.depends_on:
                 while dep not in results:
-                    await asyncio.sleep(0.1)
+                    await anyio.sleep(0.1)
 
             # Get input from dependency or pipeline input
             input_value = results[step.depends_on[-1]].result if step.depends_on else pipeline.input

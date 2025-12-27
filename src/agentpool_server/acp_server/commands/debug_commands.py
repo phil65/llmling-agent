@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 
 import anyenv
+import anyio
 from pydantic import TypeAdapter
 from slashed import CommandContext  # noqa: TC002
 
@@ -208,7 +208,7 @@ class DebugReplaySequenceCommand(NodeCommand):
                     await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
                     count += 1
                     if delay_ms:
-                        await asyncio.sleep(delay_ms / 1000)
+                        await anyio.sleep(delay_ms / 1000)
 
                 except Exception as e:  # noqa: BLE001
                     logger.warning("Failed to replay notification", error=e)

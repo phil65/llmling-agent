@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
+import anyio
 from pydantic_ai import ModelRetry
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
@@ -236,4 +236,4 @@ if __name__ == "__main__":
             result = await agent.run("Which tools does it have?")
             print(result)
 
-    asyncio.run(main())
+    anyio.run(main)

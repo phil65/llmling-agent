@@ -214,7 +214,7 @@ class BraintrustPromptHub(BasePromptProvider):
 
 
 if __name__ == "__main__":
-    import asyncio
+    import anyio
 
     from agentpool_config.prompt_hubs import BraintrustConfig
 
@@ -232,4 +232,4 @@ if __name__ == "__main__":
         except Exception as e:  # noqa: BLE001
             print(f"Error listing prompts: {e}")
 
-    asyncio.run(main())
+    anyio.run(main)

@@ -45,6 +45,7 @@ class PromptLayerProvider(BasePromptProvider):
 
 
 if __name__ == "__main__":
+    import anyio
     from pydantic import SecretStr
 
     from agentpool_config.prompt_hubs import PromptLayerConfig
@@ -55,6 +56,4 @@ if __name__ == "__main__":
         prompt = await provider.list_prompts()
         print(prompt)
 
-    import asyncio
-
-    asyncio.run(main())
+    anyio.run(main)

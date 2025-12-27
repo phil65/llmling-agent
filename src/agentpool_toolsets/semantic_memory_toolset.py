@@ -526,11 +526,11 @@ class SemanticMemoryTools(ResourceProvider):
 
 
 if __name__ == "__main__":
-    import asyncio
+    import anyio
 
     async def main() -> None:
         async with SemanticMemoryTools(model="openai:gpt-4o-mini") as tools:
             fns = await tools.get_tools()
             print(f"Available tools: {[t.name for t in fns]}")
 
-    asyncio.run(main())
+    anyio.run(main)

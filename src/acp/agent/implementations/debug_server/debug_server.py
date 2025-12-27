@@ -11,16 +11,17 @@ the ACP schema through a web interface.
 
 from __future__ import annotations
 
-import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 import logging
 from pathlib import Path
 import sys
 import threading
+import time
 from typing import TYPE_CHECKING, Any
 import uuid
 
+import anyio
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
@@ -140,7 +141,7 @@ class MockAgent(Agent):
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         """Create new debug session."""
         session_id = str(uuid.uuid4())
-        created = asyncio.get_event_loop().time()
+        created = time.perf_counter()
         session = DebugSession(session_id=session_id, created_at=created, cwd=params.cwd)
         self.debug_state.sessions[session_id] = session
         self.debug_state.active_session_id = session_id
@@ -211,7 +212,7 @@ class MockAgent(Agent):
             old_session = self.debug_state.sessions[params.session_id]
             new_session = DebugSession(
                 session_id=new_session_id,
-                created_at=asyncio.get_event_loop().time(),
+                created_at=time.perf_counter(),
                 cwd=old_session.cwd,
             )
             self.debug_state.sessions[new_session_id] = new_session
@@ -296,7 +297,7 @@ async def send_notification(request: NotificationRequest) -> dict[str, Any]:
         record = NotificationRecord(
             notification_type=request.notification_type,
             session_id=request.session_id,
-            timestamp=asyncio.get_event_loop().time(),
+            timestamp=time.perf_counter(),
         )
         state.notifications_sent.append(record)
         logger.info(
@@ -389,7 +390,7 @@ class ACPDebugServer:
         self.debug_state = DebugState()
         self.agent = MockAgent(self.debug_state)
         self._running = False
-        self._shutdown_event: asyncio.Event | None = None
+        self._shutdown_event: anyio.Event | None = None
         self._fastapi_thread: threading.Thread | None = None
         # Set global reference for FastAPI endpoints
         _set_debug_state(self.debug_state)
@@ -400,7 +401,7 @@ class ACPDebugServer:
             raise RuntimeError("Server already running")
 
         self._running = True
-        self._shutdown_event = asyncio.Event()
+        self._shutdown_event = anyio.Event()
         logger.info("Starting ACP Debug Server")
 
         try:
@@ -492,4 +493,4 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    anyio.run(main)

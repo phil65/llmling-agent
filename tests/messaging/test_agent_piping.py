@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 
+import anyio
 import pytest
 
 from agentpool import Agent
@@ -36,7 +36,7 @@ async def test_agent_piping_with_monitoring():
     agent1 = Agent.from_callback(callback, name="agent1")
 
     async def transform(text: str) -> str:
-        await asyncio.sleep(0.1)  # Add a delay to ensure monitoring catches it
+        await anyio.sleep(0.1)  # Add a delay to ensure monitoring catches it
         return f"transform: {text}"
 
     pipeline = agent1 | transform
@@ -48,7 +48,7 @@ async def test_agent_piping_with_monitoring():
     updates = []
     while pipeline.is_running:
         updates.append(len(stats))  # Track number of active connections
-        await asyncio.sleep(0.01)
+        await anyio.sleep(0.01)
 
     _result = await pipeline.wait()
     assert updates  # Last update should show no active agents

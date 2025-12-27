@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 
 from anyenv.processes import hard_kill
+import anyio
 import httpx
 from pydantic_ai import (
     ModelRequest,
@@ -276,7 +277,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             start_new_session=True,  # Create new process group
         )
         self.log.debug("Waiting for server startup", delay=self._startup_delay)
-        await asyncio.sleep(self._startup_delay)
+        await anyio.sleep(self._startup_delay)
         # Check if process is still running
         if self._startup_process.returncode is not None:
             stderr = ""
@@ -673,4 +674,4 @@ if __name__ == "__main__":
             async for event in agent.run_stream("Tell me a short joke"):
                 print(f"Event: {event}")
 
-    asyncio.run(main())
+    anyio.run(main)

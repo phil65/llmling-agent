@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 import heapq
 from typing import TYPE_CHECKING, Any
 
+import anyio
+
 from agentpool.log import get_logger
 from agentpool.utils.inspection import get_fn_name
 from agentpool.utils.now import get_now
@@ -105,7 +107,7 @@ class TaskManager:
                     new_task.add_done_callback(self._pending_tasks.discard)
                 else:
                     # Wait until next task is due
-                    await asyncio.sleep((next_task.execute_at - now).total_seconds())
+                    await anyio.sleep((next_task.execute_at - now).total_seconds())
 
         except Exception:
             logger.exception("Task scheduler error")

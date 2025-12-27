@@ -9,6 +9,8 @@ from pathlib import Path
 import sys
 from typing import TYPE_CHECKING, Any, get_type_hints
 
+import anyio
+
 from agentpool.log import get_logger
 from agentpool.running import with_nodes
 
@@ -272,7 +274,7 @@ async def execute_functions(
             logger.debug("Group complete", num=i + 1)
             # Add small delay between groups to ensure timing separation
             if i < len(groups) - 1:
-                await asyncio.sleep(0.02)  # 20ms between groups
+                await anyio.sleep(0.02)  # 20ms between groups
     else:
         # Execute sequentially
         for func in sorted_funcs:

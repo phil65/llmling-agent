@@ -90,7 +90,7 @@ class _Server:
         for _ in range(100):
             if self.server_reader and self.server_writer:
                 break
-            await asyncio.sleep(0.01)
+            await anyio.sleep(0.01)
         assert self.server_reader
         assert self.server_writer
         return self
@@ -216,7 +216,7 @@ async def test_cancel_notification_and_capture_wire(
         for _ in range(50):
             if agent.cancellations:
                 break
-            await asyncio.sleep(0.01)
+            await anyio.sleep(0.01)
         assert agent.cancellations == ["test-123"]
 
 
@@ -251,7 +251,7 @@ async def test_session_notifications_flow(
         for _ in range(50):
             if len(test_client.notifications) >= 2:  # noqa: PLR2004
                 break
-            await asyncio.sleep(0.01)
+            await anyio.sleep(0.01)
         assert len(test_client.notifications) >= 2  # noqa: PLR2004
         assert test_client.notifications[0].session_id == "sess"
 
@@ -379,7 +379,7 @@ async def test_set_session_mode_and_extensions(
         # ext_notification
         await agent_conn.ext_notification("note", {"y": 2})
         # allow dispatch
-        await asyncio.sleep(0.05)
+        await anyio.sleep(0.05)
         assert agent.ext_notes
         assert agent.ext_notes[-1][0] == "note"
 

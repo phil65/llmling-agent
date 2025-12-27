@@ -9,10 +9,10 @@ Requires:
 
 from __future__ import annotations
 
-import asyncio
 import time
 from typing import TYPE_CHECKING, Any, Literal
 
+import anyio
 from pydantic_ai import PartDeltaEvent, PartStartEvent, TextPart, TextPartDelta
 
 from agentpool import Agent
@@ -138,7 +138,7 @@ async def compare_all_modes(provider: TTSProvider = "openai") -> None:
     for mode in ("sync_sentence", "sync_run", "async_queue", "async_cancel"):
         input(f"\nPress Enter to test mode: {mode}")
         results[mode] = await run_single(mode, provider)  # type: ignore
-        await asyncio.sleep(2)
+        await anyio.sleep(2)
 
     print("\n" + "=" * 60)
     print("RESULTS")
@@ -156,7 +156,7 @@ async def compare_providers() -> None:
 
     input("\nPress Enter to test OpenAI TTS...")
     openai_time = await run_single(mode, "openai")
-    await asyncio.sleep(2)
+    await anyio.sleep(2)
 
     input("\nPress Enter to test Edge TTS...")
     edge_time = await run_single(mode, "edge")
@@ -221,4 +221,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    anyio.run(main)

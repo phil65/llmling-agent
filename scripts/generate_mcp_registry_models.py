@@ -9,7 +9,6 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
 import keyword
 from pathlib import Path
@@ -17,6 +16,7 @@ import re
 import sys
 from typing import Any
 
+import anyio
 import httpx
 
 
@@ -542,4 +542,4 @@ async def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
+    sys.exit(anyio.run(main))

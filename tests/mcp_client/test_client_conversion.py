@@ -6,9 +6,9 @@ to PydanticAI-compatible return types without mocks.
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
+import anyio
 from llmling_models import infer_model
 from pydantic_ai import BinaryContent, RunContext, RunUsage, ToolReturn
 import pytest
@@ -31,7 +31,7 @@ async def mcp_client():
     client = MCPClient(config)
     async with client:
         # Wait for server to be ready
-        await asyncio.sleep(0.5)
+        await anyio.sleep(0.5)
         yield client
 
 

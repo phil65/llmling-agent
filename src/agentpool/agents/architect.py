@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pathlib
 
+import anyio
 from schemez import YAMLCode
 from upathtools import read_folder_as_text, read_path
 
@@ -61,11 +62,10 @@ async def create_architect_agent_2(
 
 
 if __name__ == "__main__":
-    import asyncio
 
     async def main() -> None:
         agent = await create_architect_agent_2()
         cfg = await agent.run("write an AgentManifest with a GIT expert")
         print(cfg.content.code)
 
-    print(asyncio.run(main()))
+    print(anyio.run(main))

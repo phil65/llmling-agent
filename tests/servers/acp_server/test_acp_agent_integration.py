@@ -9,10 +9,10 @@ Run with: pytest tests/servers/acp_server/test_acp_agent_integration.py -v
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import anyio
 from exxec import LocalExecutionEnvironment
 from exxec.configs import LocalExecutionEnvironmentConfig
 import pytest
@@ -73,7 +73,8 @@ async def test_acp_agent_basic_prompt(acp_agent_config: ACPAgentConfig, test_con
         print(f"\nConfig file: {test_config_file}")
         print(f"Config file exists: {test_config_file.exists()}")
         async with ACPAgent(config=acp_agent_config) as agent:
-            result = await asyncio.wait_for(agent.run("Hi"), timeout=15.0)
+            with anyio.fail_after(15.0):
+                result = await agent.run("Hi")
 
             assert result is not None
             assert result.content is not None
@@ -88,11 +89,9 @@ async def test_acp_agent_streaming(acp_agent_config: ACPAgentConfig):
         async with ACPAgent(config=acp_agent_config) as agent:
             chunks: list[RichAgentStreamEvent[Any]] = []
 
-            async def collect_chunks():
+            with anyio.fail_after(15.0):
                 async for chunk in agent.run_stream("Hi"):
                     chunks.append(chunk)  # noqa: PERF401
-
-            await asyncio.wait_for(collect_chunks(), timeout=15.0)
 
             assert len(chunks) > 2  # noqa: PLR2004
     except TimeoutError:
@@ -103,10 +102,12 @@ async def test_acp_agent_multiple_prompts(acp_agent_config: ACPAgentConfig):
     """Test multiple sequential prompts in same session."""
     try:
         async with ACPAgent(config=acp_agent_config) as agent:
-            result1 = await asyncio.wait_for(agent.run("One"), timeout=15.0)
+            with anyio.fail_after(15.0):
+                result1 = await agent.run("One")
             assert result1.content is not None
 
-            result2 = await asyncio.wait_for(agent.run("Two"), timeout=15.0)
+            with anyio.fail_after(15.0):
+                result2 = await agent.run("Two")
             assert result2.content is not None
     except TimeoutError:
         pytest.skip("ACP server took too long to respond")
@@ -215,7 +216,7 @@ async def test_acp_agent_cleanup_on_error(acp_agent_config: ACPAgentConfig):
     # Process should be terminated
     assert agent._process is None
     # Give it a moment to fully terminate
-    await asyncio.sleep(0.1)
+    await anyio.sleep(0.1)
     assert process.returncode is not None
 
 
@@ -223,7 +224,8 @@ async def test_acp_agent_stats(acp_agent_config: ACPAgentConfig):
     """Test that agent stats are collected."""
     try:
         async with ACPAgent(config=acp_agent_config) as agent:
-            await asyncio.wait_for(agent.run("Test"), timeout=15.0)
+            with anyio.fail_after(15.0):
+                await agent.run("Test")
             stats = await agent.get_stats()
 
             assert stats is not None
@@ -246,7 +248,8 @@ async def test_acp_agent_with_input_provider(acp_agent_config: ACPAgentConfig):
 
             # Test updating input_provider in run method
             new_provider = StdlibInputProvider()
-            await asyncio.wait_for(agent.run("Test", input_provider=new_provider), timeout=15.0)
+            with anyio.fail_after(15.0):
+                await agent.run("Test", input_provider=new_provider)
             assert agent._input_provider is new_provider
             assert agent._client_handler._input_provider is new_provider
 
@@ -264,11 +267,9 @@ async def test_acp_agent_input_provider_in_run_stream(acp_agent_config: ACPAgent
         async with ACPAgent(config=acp_agent_config) as agent:
             chunks: list[RichAgentStreamEvent[Any]] = []
 
-            async def collect_chunks():
+            with anyio.fail_after(15.0):
                 async for chunk in agent.run_stream("Hi", input_provider=input_provider):
                     chunks.append(chunk)  # noqa: PERF401
-
-            await asyncio.wait_for(collect_chunks(), timeout=15.0)
 
             # Verify input provider was set
             assert agent._input_provider is input_provider

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Self
 
@@ -103,6 +102,7 @@ class RemoteMCPExecutor:
 
 
 if __name__ == "__main__":
+    import anyio
     from exxec.configs import LocalExecutionEnvironmentConfig
 
     from agentpool.tools.base import Tool
@@ -140,4 +140,4 @@ print(f"Addition: {result1}, Multiplication: {result2}")
             result = await provider.execute_code(code)
             print(f"Result: {result.result}")
 
-    asyncio.run(main())
+    anyio.run(main)

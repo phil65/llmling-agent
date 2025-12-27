@@ -138,6 +138,7 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
 if __name__ == "__main__":
     import webbrowser
 
+    import anyio
     from exxec.configs import LocalExecutionEnvironmentConfig
 
     from agentpool import Agent, log
@@ -167,4 +168,4 @@ if __name__ == "__main__":
             result = await agent.run("open google.com in the browser.")
             print(f"Result: {result}")
 
-    asyncio.run(main())
+    anyio.run(main)

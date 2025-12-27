@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from ag_ui.core import TextMessageContentEvent, ToolCallStartEvent
+import anyio
 import httpx
 from pydantic_ai import PartDeltaEvent
 import pytest
@@ -446,7 +447,6 @@ async def test_agui_server_and_client_e2e():
     This tests both our AG-UI server implementation and client together,
     verifying the full round-trip works.
     """
-    import asyncio
     import socket
 
     from pydantic_ai.models.test import TestModel
@@ -472,7 +472,7 @@ async def test_agui_server_and_client_e2e():
         server = AGUIServer(server_pool, host="127.0.0.1", port=port)
         async with server, server.run_context():
             # Give server time to start
-            await asyncio.sleep(0.5)
+            await anyio.sleep(0.5)
 
             # Create AGUIAgent client directly (not from config)
             client_agent = AGUIAgent(
@@ -496,7 +496,6 @@ async def test_agui_server_and_client_with_tools():
     Tests that server-side tool execution works correctly - the server
     executes its tools and the client receives the result.
     """
-    import asyncio
     import socket
 
     from pydantic_ai.models.test import TestModel
@@ -525,7 +524,7 @@ async def test_agui_server_and_client_with_tools():
         server = AGUIServer(server_pool, host="127.0.0.1", port=port)
         async with server, server.run_context():
             # Give server time to start
-            await asyncio.sleep(0.5)
+            await anyio.sleep(0.5)
 
             # Create AGUIAgent client directly (not from config)
             client_agent = AGUIAgent(

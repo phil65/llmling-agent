@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import asyncio
 import functools
 from typing import Any
 
+import anyio
 from llmling_models import function_to_model
 import pytest
 
@@ -13,7 +13,7 @@ from agentpool.utils.now import get_now
 
 async def delayed_processor(msg: str, delay: float = 0.1) -> str:
     """Test processor that simulates work with a delay."""
-    await asyncio.sleep(delay)
+    await anyio.sleep(delay)
     return f"Processed: {msg}"
 
 
@@ -65,7 +65,7 @@ async def test_single_execution():
 #         execution_count = 0
 #         while agent1.is_busy():
 #             print(agent1._background_task)
-#             await asyncio.sleep(0.1)
+#             await anyio.sleep(0.1)
 #             # execution_count = len(stats[0].stats.messages)
 
 #         # Wait should return last message
@@ -81,7 +81,7 @@ async def test_error_handling(caplog: pytest.LogCaptureFixture):
     caplog.set_level("CRITICAL")
 
     async def failing_processor(msg: str) -> str:
-        await asyncio.sleep(0.1)
+        await anyio.sleep(0.1)
         msg = "Test error"
         raise ValueError(msg)
 
@@ -91,7 +91,7 @@ async def test_error_handling(caplog: pytest.LogCaptureFixture):
 
         run = agent
         _stats = await run.run_in_background("test", max_count=1)
-        # await asyncio.sleep(1)
+        # await anyio.sleep(1)
         # Should return None if execution failed
         result = await run.wait()
         assert result is None
@@ -112,7 +112,7 @@ async def test_cancellation():
         )
 
         # Let it run briefly
-        await asyncio.sleep(0.1)
+        await anyio.sleep(0.1)
 
         # Cancel execution
         await run.stop()

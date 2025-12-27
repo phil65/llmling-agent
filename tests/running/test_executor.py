@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import asyncio
+import time
 from typing import Any
 
+import anyio
 import pytest
 
 from agentpool import Agent  # noqa: TC001
@@ -99,23 +100,23 @@ async def test_parallel_execution(pool):
 
     @node_function
     async def first(agent1: Agent[None]):
-        start_times["first"] = asyncio.get_event_loop().time()
-        await asyncio.sleep(0.1)
-        end_times["first"] = asyncio.get_event_loop().time()
+        start_times["first"] = time.perf_counter()
+        await anyio.sleep(0.1)
+        end_times["first"] = time.perf_counter()
         return "first"
 
     @node_function(depends_on="first")
     async def second_a(agent1: Agent[None], first: str):
-        start_times["second_a"] = asyncio.get_event_loop().time()
-        await asyncio.sleep(0.1)
-        end_times["second_a"] = asyncio.get_event_loop().time()
+        start_times["second_a"] = time.perf_counter()
+        await anyio.sleep(0.1)
+        end_times["second_a"] = time.perf_counter()
         return "second_a"
 
     @node_function(depends_on="first")
     async def second_b(agent1: Agent[None], first: str):
-        start_times["second_b"] = asyncio.get_event_loop().time()
-        await asyncio.sleep(0.1)
-        end_times["second_b"] = asyncio.get_event_loop().time()
+        start_times["second_b"] = time.perf_counter()
+        await anyio.sleep(0.1)
+        end_times["second_b"] = time.perf_counter()
         return "second_b"
 
     funcs = [f._node_function for f in [first, second_a, second_b]]

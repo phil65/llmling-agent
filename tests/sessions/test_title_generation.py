@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING
 
+import anyio
 from pydantic_ai.models.test import TestModel
 import pytest
 
@@ -255,7 +255,7 @@ class TestClientSessionTitleGeneration:
             assert session._title_generation_triggered
 
             # Wait briefly for background task
-            await asyncio.sleep(0.1)
+            await anyio.sleep(0.1)
 
     async def test_title_generation_flag_stays_true(
         self,

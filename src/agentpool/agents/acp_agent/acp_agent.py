@@ -330,7 +330,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         await self._start_process()
         await self._initialize()
         await self._create_session()
-        await asyncio.sleep(0.3)  # Small delay to let subprocess fully initialize
+        await anyio.sleep(0.3)  # Small delay to let subprocess fully initialize
         return self
 
     async def __aexit__(
@@ -834,4 +834,4 @@ if __name__ == "__main__":
             async for chunk in agent.run_stream("Say hello briefly."):
                 print(chunk, end="", flush=True)
 
-    asyncio.run(main())
+    anyio.run(main)

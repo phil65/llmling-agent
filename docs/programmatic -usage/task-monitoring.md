@@ -52,7 +52,7 @@ while run.is_running:
     print(f"Active connections: {len(stats)}")
     print(f"Messages processed: {len(stats.messages)}")
     print(f"Errors: {len(stats.errors)}")
-    await asyncio.sleep(0.5)
+    await anyio.sleep(0.5)
 
 # Wait for completion and get results
 result = await run.wait()
@@ -117,7 +117,7 @@ async def main():
             print(f"Processed messages: {stats.message_count}")
             print(f"Active connections: {len(stats)}")
             print(f"Errors: {len(stats.error_log)}")
-            await asyncio.sleep(0.5)
+            await anyio.sleep(0.5)
 
         # Wait for completion
         result = await run.wait()

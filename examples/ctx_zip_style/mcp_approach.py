@@ -5,13 +5,10 @@ to make tools available in sandbox environments, especially useful for
 cloud sandboxes like E2B that can't reach localhost.
 """
 
-import asyncio
-
+import anyio
 from exxec.configs import LocalExecutionEnvironmentConfig
 
-from agentpool.resource_providers.codemode.remote_mcp_execution import (
-    RemoteMCPExecutor,
-)
+from agentpool.resource_providers.codemode.remote_mcp_execution import RemoteMCPExecutor
 from agentpool.tools.base import Tool
 
 
@@ -129,4 +126,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    anyio.run(main)

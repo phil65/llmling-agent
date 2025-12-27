@@ -49,7 +49,7 @@ stats = await agent.run_in_background(
 # Monitor execution
 while agent.is_running:
     print(f"Messages processed: {stats.message_count}")
-    await asyncio.sleep(1)
+    await anyio.sleep(1)
 
 # Cancel if needed
 await agent.cancel()

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Self, Unpack, overload
 
 from anyenv import ProcessManager
+import anyio
 from llmling_models.configs.model_configs import BaseModelConfig
 from upathtools import UPath
 
@@ -484,7 +485,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         print("Active nodes: ", ", ".join(list(self.nodes.keys())))
         print("Press Ctrl+C to stop")
 
-        shutdown_event = asyncio.Event()
+        shutdown_event = anyio.Event()
         with suppress(KeyboardInterrupt):
             await shutdown_event.wait()
 
@@ -1123,4 +1124,4 @@ if __name__ == "__main__":
             agent = pool.get_agent("overseer")
             print(agent)
 
-    asyncio.run(main())
+    anyio.run(main)
