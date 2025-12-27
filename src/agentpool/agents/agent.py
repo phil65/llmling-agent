@@ -29,13 +29,10 @@ from pydantic_ai import (
     TextPartDelta,
     ToolReturnPart,
 )
+from pydantic_ai.settings import ModelSettings
 
 from agentpool.agents.base_agent import BaseAgent
-from agentpool.agents.events import (
-    RunStartedEvent,
-    StreamCompleteEvent,
-    ToolCallCompleteEvent,
-)
+from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallCompleteEvent
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
 from agentpool.messaging.processing import prepare_prompts
@@ -115,6 +112,7 @@ class AgentKwargs(TypedDict, total=False):
     env: ExecutionEnvironment | None
     auto_cache: AutoCache
     hooks: AgentHooks | None
+    model_settings: ModelSettings | None
 
 
 class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
@@ -158,6 +156,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         end_strategy: EndStrategy = "early",
         input_provider: InputProvider | None = None,
         parallel_init: bool = True,
+        model_settings: ModelSettings | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         tool_mode: ToolMode | None = None,
@@ -199,6 +198,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                           a final result
             input_provider: Provider for human input (tool confirmation / HumanProviders)
             parallel_init: Whether to initialize resources in parallel
+            model_settings: Settings for the AI model
             event_handlers: Sequence of event handlers to register with the agent
             agent_pool: AgentPool instance for managing agent resources
             tool_mode: Tool execution mode (None or "codemode")
@@ -217,6 +217,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         self._infinite = False
         self.deps_type = deps_type
+        self.model_settings = model_settings
         memory_cfg = (
             session if isinstance(session, MemoryConfig) else MemoryConfig.from_value(session)
         )
@@ -565,6 +566,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         agent = PydanticAgent(
             name=self.name,
             model=model_,
+            model_settings=self.model_settings,
             instructions=await self.sys_prompts.format_system_prompt(self),
             retries=self._retries,
             end_strategy=self._end_strategy,
