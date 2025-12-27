@@ -361,6 +361,7 @@ class ChatMessage[TContent]:
         message_id: str | None = None,
         conversation_id: str | None = None,
         response_time: float,
+        metadata: SimpleJsonType | None = None,
     ) -> ChatMessage[OutputDataT]:
         """Create a ChatMessage from a PydanticAI run result.
 
@@ -370,6 +371,7 @@ class ChatMessage[TContent]:
             message_id: Unique message identifier
             conversation_id: Conversation identifier
             response_time: Total time taken for the response
+            metadata: Optional metadata to attach to the message
 
         Returns:
             A ChatMessage with all fields populated from the result
@@ -398,6 +400,7 @@ class ChatMessage[TContent]:
             cost_info=cost_info,
             response_time=response_time,
             provider_details={},
+            metadata=metadata or {},
         )
 
     def forwarded(self, previous_message: ChatMessage[Any]) -> Self:

@@ -58,7 +58,7 @@ from agentpool.messaging import ChatMessage
 from agentpool.messaging.messages import TokenCost
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
-from agentpool.utils.streams import merge_queue_into_iterator
+from agentpool.utils.streams import FileTracker, merge_queue_into_iterator
 
 
 if TYPE_CHECKING:
@@ -571,6 +571,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         text_chunks: list[str] = []
         pending_tool_calls: dict[str, ToolUseBlock] = {}
 
+        # Track files modified during this run
+        file_tracker = FileTracker()
+
         try:
             await self._client.query(prompt_text)
             # Merge SDK messages with event queue for real-time tool event streaming
@@ -620,6 +623,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         content=rich_info.content,
                                         raw_input=input_data,
                                     )
+                                    # Track file modifications
+                                    file_tracker.process_event(tool_start_event)
                                     await self.event_handler(None, tool_start_event)
                                     yield tool_start_event
                                 case ToolResultBlock(tool_use_id=tc_id, content=content):
@@ -779,6 +784,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             model_name=self.model_name,
                             messages=model_messages,
                             finish_reason="stop",
+                            metadata=file_tracker.get_metadata(),
                         )
                         complete_event = StreamCompleteEvent(message=response_msg)
                         await self.event_handler(None, complete_event)
@@ -799,6 +805,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 model_name=self.model_name,
                 messages=model_messages,
                 finish_reason="stop",
+                metadata=file_tracker.get_metadata(),
             )
             complete_event = StreamCompleteEvent(message=response_msg)
             await self.event_handler(None, complete_event)
@@ -845,6 +852,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             messages=model_messages,
             cost_info=cost_info,
             response_time=result_message.duration_ms / 1000 if result_message else None,
+            metadata=file_tracker.get_metadata(),
         )
 
         # Emit stream complete

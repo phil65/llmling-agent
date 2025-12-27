@@ -43,7 +43,7 @@ from agentpool.tools.exceptions import ToolError
 from agentpool.utils.inspection import call_with_context, get_argument_key
 from agentpool.utils.now import get_now
 from agentpool.utils.result_utils import to_type
-from agentpool.utils.streams import merge_queue_into_iterator
+from agentpool.utils.streams import FileTracker, merge_queue_into_iterator
 
 
 TResult = TypeVar("TResult")
@@ -792,11 +792,12 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             )
 
             # Stream events through merge_queue for progress events
+            file_tracker = FileTracker()
             async with merge_queue_into_iterator(stream_events, self._event_queue) as events:
                 # Track tool call starts to combine with results later
                 pending_tcs: dict[str, BaseToolCallPart] = {}
                 try:
-                    async for event in events:
+                    async for event in file_tracker.track(events):
                         # Check for cancellation
                         if self._cancelled:
                             self.log.info("Stream cancelled by user")
@@ -844,6 +845,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                     message_id=message_id,
                                     conversation_id=conversation_id or user_msg.conversation_id,
                                     response_time=response_time,
+                                    metadata=file_tracker.get_metadata(),
                                 )
                 except asyncio.CancelledError:
                     self.log.info("Stream cancelled via task cancellation")

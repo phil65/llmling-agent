@@ -35,6 +35,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.tools import ToolManager
+from agentpool.utils.streams import FileTracker
 
 
 if TYPE_CHECKING:
@@ -430,6 +431,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         tool_accumulator = ToolCallAccumulator()
         pending_tool_results: list[ToolMessage] = []
         self.log.debug("Sending prompt to AG-UI agent", tool_names=[t.name for t in agui_tools])
+        # Track files modified during this run
+        file_tracker = FileTracker()
         # Loop to handle tool calls - agent may request multiple rounds
         try:
             while True:
@@ -507,6 +510,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
                                 # Convert to native event and distribute to handlers
                                 if native_event := agui_to_native_event(event):
+                                    # Track file modifications
+                                    file_tracker.process_event(native_event)
                                     # Check for queued custom events first
                                     while not self._event_queue.empty():
                                         try:
@@ -589,6 +594,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 conversation_id=self.conversation_id,
                 messages=model_messages,
                 finish_reason="stop",
+                metadata=file_tracker.get_metadata(),
             )
             complete_event = StreamCompleteEvent(message=final_message)
             await self.event_handler(None, complete_event)
@@ -617,6 +623,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             message_id=message_id or str(uuid4()),
             conversation_id=self.conversation_id,
             messages=model_messages,
+            metadata=file_tracker.get_metadata(),
         )
         complete_event = StreamCompleteEvent(message=final_message)
         await self.event_handler(None, complete_event)

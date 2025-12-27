@@ -54,7 +54,10 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
-from agentpool.utils.streams import merge_queue_into_iterator
+from agentpool.utils.streams import (
+    FileTracker,
+    merge_queue_into_iterator,
+)
 from agentpool.utils.subprocess_utils import SubprocessError, monitor_process
 
 
@@ -104,34 +107,6 @@ STOP_REASON_MAP: dict[StopReason, FinishReason] = {
     "refusal": "content_filter",
     "cancelled": "error",
 }
-
-
-def extract_file_path_from_tool_call(tool_name: str, raw_input: dict[str, Any]) -> str | None:
-    """Extract file path from a tool call if it's a file-writing tool.
-
-    Uses simple heuristics by default:
-    - Tool name contains 'write' or 'edit' (case-insensitive)
-    - Input contains 'path' or 'file_path' key
-
-    Override in subclasses for agent-specific tool naming conventions.
-
-    Args:
-        tool_name: Name of the tool being called
-        raw_input: Tool call arguments
-
-    Returns:
-        File path if this is a file-writing tool, None otherwise
-    """
-    name_lower = tool_name.lower()
-    if "write" not in name_lower and "edit" not in name_lower:
-        return None
-
-    # Try common path argument names
-    for key in ("file_path", "path", "filepath", "filename", "file"):
-        if key in raw_input and isinstance(val := raw_input[key], str):
-            return val
-
-    return None
 
 
 class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
@@ -434,10 +409,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         model = self._state.current_model_id if self._state else None
         self.log.info("ACP session created", session_id=self._session_id, model=model)
 
-    def add_mcp_server(self, server: McpServer) -> None:
-        """Add an MCP server to be passed to the next session."""
-        self._extra_mcp_servers.append(server)
-
     async def add_tool_bridge(self, bridge: ToolManagerBridge) -> None:
         """Add an external tool bridge to expose its tools via MCP.
 
@@ -566,7 +537,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         model_messages.append(initial_request)
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         text_chunks: list[str] = []  # For final content string
-        touched_files: set[str] = set()  # Track files modified by tool calls
+        file_tracker = FileTracker()  # Track files modified by tool calls
         run_started = RunStartedEvent(
             thread_id=self.conversation_id,
             run_id=run_id,
@@ -616,7 +587,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             async with merge_queue_into_iterator(
                 poll_acp_events(), self._event_queue
             ) as merged_events:
-                async for event in merged_events:
+                async for event in file_tracker.track(merged_events):
                     # Check for cancellation
                     if self._cancelled:
                         self.log.info("Stream cancelled by user")
@@ -635,11 +606,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                             current_response_parts.append(
                                 ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
                             )
-                            # Track files modified by write/edit tools
-                            if file_path := extract_file_path_from_tool_call(
-                                tc_name or "", tc_input or {}
-                            ):
-                                touched_files.add(file_path)
 
                     await self.event_handler(None, event)
                     yield event
@@ -650,9 +616,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Handle cancellation - emit partial message
         if self._cancelled:
             text_content = "".join(text_chunks)
-            metadata: SimpleJsonType = {}
-            if touched_files:
-                metadata["touched_files"] = sorted(touched_files)
+            metadata: SimpleJsonType = file_tracker.get_metadata()
             message = ChatMessage[str](
                 content=text_content,
                 role="assistant",
@@ -686,10 +650,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             )
 
         text_content = "".join(text_chunks)
-        # Build metadata with touched files if any
-        metadata = {}
-        if touched_files:
-            metadata["touched_files"] = sorted(touched_files)
+        metadata = file_tracker.get_metadata()
         message = ChatMessage[str](
             content=text_content,
             role="assistant",
