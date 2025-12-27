@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from pydantic_ai.messages import BaseToolCallPart
+
 
 if TYPE_CHECKING:
-    from pydantic_ai.messages import BaseToolCallPart, ToolCallPartDelta
+    from pydantic_ai.messages import ToolCallPartDelta
 
 
 def safe_args_as_dict(
@@ -28,6 +30,12 @@ def safe_args_as_dict(
     Returns:
         The parsed arguments dict, or a fallback on parse failure.
     """
+    if not isinstance(part, BaseToolCallPart):
+        # ToolCallPartDelta doesn't have args_as_dict
+        if default is not None:
+            return default
+        raw = getattr(part, "args", None)
+        return {"_raw_args": raw} if raw else {}
     try:
         return part.args_as_dict()
     except ValueError:
@@ -35,5 +43,4 @@ def safe_args_as_dict(
         if default is not None:
             return default
         # Preserve raw args for debugging/inspection
-        raw = getattr(part, "args", None)
-        return {"_raw_args": raw} if raw else {}
+        return {"_raw_args": part.args} if part.args else {}

@@ -378,7 +378,14 @@ class ACPSession:
             self.log.exception("Failed to discover client-side skills", error=e)
 
     @property
-    def agent(self) -> Agent[ACPSession, str] | ACPAgent | AGUIAgent | ClaudeCodeAgent:
+    def agent(
+        self,
+    ) -> (
+        Agent[ACPSession, str]
+        | ACPAgent[ACPSession]
+        | AGUIAgent[ACPSession]
+        | ClaudeCodeAgent[ACPSession]
+    ):
         """Get the currently active agent."""
         if self.current_agent_name in self.agent_pool.agents:
             return self.agent_pool.get_agent(self.current_agent_name, deps_type=ACPSession)
