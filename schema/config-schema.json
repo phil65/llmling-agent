@@ -935,6 +935,39 @@
           "items": {
             "discriminator": {
               "mapping": {
+                "builtin": {
+                  "discriminator": {
+                    "mapping": {
+                      "code_execution": "#/$defs/CodeExecutionToolConfig",
+                      "image_generation": "#/$defs/ImageGenerationToolConfig",
+                      "mcp_server": "#/$defs/MCPServerToolConfig",
+                      "memory": "#/$defs/MemoryToolConfig",
+                      "web_fetch": "#/$defs/WebFetchToolConfig",
+                      "web_search": "#/$defs/WebSearchToolConfig"
+                    },
+                    "propertyName": "builtin_type"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/WebSearchToolConfig"
+                    },
+                    {
+                      "$ref": "#/$defs/CodeExecutionToolConfig"
+                    },
+                    {
+                      "$ref": "#/$defs/WebFetchToolConfig"
+                    },
+                    {
+                      "$ref": "#/$defs/ImageGenerationToolConfig"
+                    },
+                    {
+                      "$ref": "#/$defs/MemoryToolConfig"
+                    },
+                    {
+                      "$ref": "#/$defs/MCPServerToolConfig"
+                    }
+                  ]
+                },
                 "import": "#/$defs/ImportToolConfig"
               },
               "propertyName": "type"
@@ -942,6 +975,39 @@
             "oneOf": [
               {
                 "$ref": "#/$defs/ImportToolConfig"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "code_execution": "#/$defs/CodeExecutionToolConfig",
+                    "image_generation": "#/$defs/ImageGenerationToolConfig",
+                    "mcp_server": "#/$defs/MCPServerToolConfig",
+                    "memory": "#/$defs/MemoryToolConfig",
+                    "web_fetch": "#/$defs/WebFetchToolConfig",
+                    "web_search": "#/$defs/WebSearchToolConfig"
+                  },
+                  "propertyName": "builtin_type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/WebSearchToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/CodeExecutionToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/WebFetchToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ImageGenerationToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/MemoryToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/MCPServerToolConfig"
+                  }
+                ]
               }
             ]
           },
@@ -3040,6 +3106,7 @@
                 "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
+                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "plan": "#/$defs/PlanToolsetConfig",
@@ -3127,6 +3194,9 @@
               },
               {
                 "$ref": "#/$defs/DebugToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -6655,6 +6725,7 @@
                 "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
+                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "plan": "#/$defs/PlanToolsetConfig",
@@ -6742,6 +6813,9 @@
               },
               {
                 "$ref": "#/$defs/DebugToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -7666,6 +7740,7 @@
                 "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
+                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "plan": "#/$defs/PlanToolsetConfig",
@@ -7753,6 +7828,9 @@
               },
               {
                 "$ref": "#/$defs/DebugToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -7968,6 +8046,110 @@
       "title": "CLI Configuration",
       "type": "object"
     },
+    "CodeExecutionToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for PydanticAI code execution builtin tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: builtin\n        builtin_type: code_execution\n    ```",
+      "properties": {
+        "type": {
+          "const": "builtin",
+          "default": "builtin",
+          "description": "Top-level discriminator - always 'builtin' for builtin tools.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "examples": [
+            {
+              "category": "web",
+              "version": "1.0"
+            },
+            {
+              "author": "system",
+              "tags": "search,utility"
+            },
+            {
+              "environment": "production",
+              "priority": "high"
+            }
+          ],
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "hints": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolHints"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints for tool execution.",
+          "examples": [
+            {
+              "destructive": false,
+              "idempotent": false,
+              "open_world": true,
+              "read_only": true
+            }
+          ],
+          "title": "Execution hints"
+        },
+        "builtin_type": {
+          "const": "code_execution",
+          "default": "code_execution",
+          "description": "Code execution builtin tool.",
+          "title": "Builtin Type",
+          "type": "string"
+        }
+      },
+      "title": "Code Execution Tool",
+      "type": "object"
+    },
     "CodeModeToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for code mode tools.",
@@ -8010,6 +8192,7 @@
                 "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
+                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "plan": "#/$defs/PlanToolsetConfig",
@@ -8097,6 +8280,9 @@
               },
               {
                 "$ref": "#/$defs/DebugToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -14879,6 +15065,16 @@
           "minimum": 256,
           "title": "Structure map max tokens",
           "type": "integer"
+        },
+        "edit_tool": {
+          "default": "simple",
+          "description": "Which edit_file variant to expose: \"simple\" (single replacement) or \"batch\" (multiple).",
+          "enum": [
+            "simple",
+            "batch"
+          ],
+          "title": "Edit tool variant",
+          "type": "string"
         }
       },
       "title": "FSSpecToolsetConfig",
@@ -16460,6 +16656,7 @@
                 "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
+                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "plan": "#/$defs/PlanToolsetConfig",
@@ -16547,6 +16744,9 @@
               },
               {
                 "$ref": "#/$defs/DebugToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -18246,6 +18446,7 @@
                 "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
+                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "plan": "#/$defs/PlanToolsetConfig",
@@ -18333,6 +18534,9 @@
               },
               {
                 "$ref": "#/$defs/DebugToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -20470,6 +20674,245 @@
       "title": "HuggingFace Hub Configuration",
       "type": "object"
     },
+    "ImageGenerationToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for PydanticAI image generation builtin tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: builtin\n        builtin_type: image_generation\n        quality: high\n        size: 1024x1024\n    ```",
+      "properties": {
+        "type": {
+          "const": "builtin",
+          "default": "builtin",
+          "description": "Top-level discriminator - always 'builtin' for builtin tools.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "examples": [
+            {
+              "category": "web",
+              "version": "1.0"
+            },
+            {
+              "author": "system",
+              "tags": "search,utility"
+            },
+            {
+              "environment": "production",
+              "priority": "high"
+            }
+          ],
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "hints": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolHints"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints for tool execution.",
+          "examples": [
+            {
+              "destructive": false,
+              "idempotent": false,
+              "open_world": true,
+              "read_only": true
+            }
+          ],
+          "title": "Execution hints"
+        },
+        "builtin_type": {
+          "const": "image_generation",
+          "default": "image_generation",
+          "description": "Image generation builtin tool.",
+          "title": "Builtin Type",
+          "type": "string"
+        },
+        "background": {
+          "default": "auto",
+          "description": "Background type for the generated image.",
+          "enum": [
+            "transparent",
+            "opaque",
+            "auto"
+          ],
+          "examples": [
+            "transparent",
+            "opaque",
+            "auto"
+          ],
+          "title": "Background type",
+          "type": "string"
+        },
+        "input_fidelity": {
+          "anyOf": [
+            {
+              "enum": [
+                "high",
+                "low"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Control how much effort the model will exert to match input image features.",
+          "examples": [
+            "high",
+            "low"
+          ],
+          "title": "Input fidelity"
+        },
+        "moderation": {
+          "default": "auto",
+          "description": "Moderation level for the generated image.",
+          "enum": [
+            "auto",
+            "low"
+          ],
+          "examples": [
+            "auto",
+            "low"
+          ],
+          "title": "Moderation level",
+          "type": "string"
+        },
+        "output_compression": {
+          "default": 100,
+          "description": "Compression level for the output image.",
+          "examples": [
+            80,
+            90,
+            100
+          ],
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Output compression",
+          "type": "integer"
+        },
+        "output_format": {
+          "anyOf": [
+            {
+              "enum": [
+                "png",
+                "webp",
+                "jpeg"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The output format of the generated image.",
+          "examples": [
+            "png",
+            "webp",
+            "jpeg"
+          ],
+          "title": "Output format"
+        },
+        "partial_images": {
+          "default": 0,
+          "description": "Number of partial images to generate in streaming mode.",
+          "examples": [
+            0,
+            2,
+            4
+          ],
+          "minimum": 0,
+          "title": "Partial images count",
+          "type": "integer"
+        },
+        "quality": {
+          "default": "auto",
+          "description": "The quality of the generated image.",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "auto"
+          ],
+          "examples": [
+            "low",
+            "medium",
+            "high",
+            "auto"
+          ],
+          "title": "Image quality",
+          "type": "string"
+        },
+        "size": {
+          "default": "auto",
+          "description": "The size of the generated image.",
+          "enum": [
+            "1024x1024",
+            "1024x1536",
+            "1536x1024",
+            "auto"
+          ],
+          "examples": [
+            "1024x1024",
+            "1024x1536",
+            "1536x1024",
+            "auto"
+          ],
+          "title": "Image size",
+          "type": "string"
+        }
+      },
+      "title": "Image Generation Tool",
+      "type": "object"
+    },
     "ImportModelConfig": {
       "additionalProperties": false,
       "description": "Configuration for importing external models.",
@@ -21889,6 +22332,7 @@
                 "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
+                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "plan": "#/$defs/PlanToolsetConfig",
@@ -21976,6 +22420,9 @@
               },
               {
                 "$ref": "#/$defs/DebugToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -23006,6 +23453,74 @@
       "type": "object",
       "x-doc-title": "Logfire"
     },
+    "MCPDiscoveryToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for MCP discovery toolset.\n\nEnables dynamic discovery and use of MCP servers without preloading tools.\nUses semantic search over 1000+ indexed servers for intelligent matching.\n\nRequires the `mcp-discovery` extra: `pip install agentpool[mcp-discovery]`",
+      "properties": {
+        "namespace": {
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "examples": [
+            "web",
+            "files"
+          ],
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "const": "mcp_discovery",
+          "default": "mcp_discovery",
+          "description": "MCP discovery toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "registry_url": {
+          "default": "https://registry.modelcontextprotocol.io",
+          "description": "Base URL for the MCP registry API.",
+          "title": "Registry URL",
+          "type": "string"
+        },
+        "allowed_servers": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "If set, only these server names can be used.",
+          "title": "Allowed servers"
+        },
+        "blocked_servers": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Server names that cannot be used.",
+          "title": "Blocked servers"
+        }
+      },
+      "title": "MCPDiscoveryToolsetConfig",
+      "type": "object",
+      "x-doc-title": "MCP Discovery Toolset",
+      "x-icon": "octicon:search-16"
+    },
     "MCPPoolServerConfig": {
       "additionalProperties": false,
       "description": "Configuration for pool-based MCP server.",
@@ -23213,6 +23728,188 @@
         }
       },
       "title": "MCPServerAuthSettings",
+      "type": "object"
+    },
+    "MCPServerToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for PydanticAI MCP server builtin tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: builtin\n        builtin_type: mcp_server\n        id: my_server\n        url: https://api.example.com/mcp\n    ```",
+      "properties": {
+        "type": {
+          "const": "builtin",
+          "default": "builtin",
+          "description": "Top-level discriminator - always 'builtin' for builtin tools.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "examples": [
+            {
+              "category": "web",
+              "version": "1.0"
+            },
+            {
+              "author": "system",
+              "tags": "search,utility"
+            },
+            {
+              "environment": "production",
+              "priority": "high"
+            }
+          ],
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "hints": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolHints"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints for tool execution.",
+          "examples": [
+            {
+              "destructive": false,
+              "idempotent": false,
+              "open_world": true,
+              "read_only": true
+            }
+          ],
+          "title": "Execution hints"
+        },
+        "builtin_type": {
+          "const": "mcp_server",
+          "default": "mcp_server",
+          "description": "MCP server builtin tool.",
+          "title": "Builtin Type",
+          "type": "string"
+        },
+        "id": {
+          "description": "A unique identifier for the MCP server.",
+          "examples": [
+            "my_mcp_server",
+            "code_tools",
+            "web_api"
+          ],
+          "title": "Server ID",
+          "type": "string"
+        },
+        "url": {
+          "description": "The URL of the MCP server to use.",
+          "examples": [
+            "https://api.example.com/mcp",
+            "http://localhost:8080"
+          ],
+          "title": "Server URL",
+          "type": "string"
+        },
+        "authorization_token": {
+          "default": null,
+          "description": "Authorization header to use when making requests to the MCP server.",
+          "examples": [
+            "Bearer token123",
+            "api_key_abc"
+          ],
+          "title": "Authorization token",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "allowed_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A list of tools that the MCP server can use.",
+          "examples": [
+            [
+              "search",
+              "fetch"
+            ],
+            [
+              "execute",
+              "compile"
+            ]
+          ],
+          "title": "Allowed tools"
+        },
+        "headers": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional HTTP headers to send to the MCP server.",
+          "title": "HTTP headers"
+        }
+      },
+      "required": [
+        "id",
+        "url"
+      ],
+      "title": "MCP Server Tool",
       "type": "object"
     },
     "MarkItDownConfig": {
@@ -23716,6 +24413,110 @@
       "title": "MemoryStorageConfig",
       "type": "object",
       "x-doc-title": "Memory Storage"
+    },
+    "MemoryToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for PydanticAI memory builtin tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: builtin\n        builtin_type: memory\n    ```",
+      "properties": {
+        "type": {
+          "const": "builtin",
+          "default": "builtin",
+          "description": "Top-level discriminator - always 'builtin' for builtin tools.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "examples": [
+            {
+              "category": "web",
+              "version": "1.0"
+            },
+            {
+              "author": "system",
+              "tags": "search,utility"
+            },
+            {
+              "environment": "production",
+              "priority": "high"
+            }
+          ],
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "hints": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolHints"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints for tool execution.",
+          "examples": [
+            {
+              "destructive": false,
+              "idempotent": false,
+              "open_world": true,
+              "read_only": true
+            }
+          ],
+          "title": "Execution hints"
+        },
+        "builtin_type": {
+          "const": "memory",
+          "default": "memory",
+          "description": "Memory builtin tool.",
+          "title": "Builtin Type",
+          "type": "string"
+        }
+      },
+      "title": "Memory Tool",
+      "type": "object"
     },
     "MessageContent": {
       "additionalProperties": false,
@@ -26377,6 +27178,39 @@
               {
                 "discriminator": {
                   "mapping": {
+                    "builtin": {
+                      "discriminator": {
+                        "mapping": {
+                          "code_execution": "#/$defs/CodeExecutionToolConfig",
+                          "image_generation": "#/$defs/ImageGenerationToolConfig",
+                          "mcp_server": "#/$defs/MCPServerToolConfig",
+                          "memory": "#/$defs/MemoryToolConfig",
+                          "web_fetch": "#/$defs/WebFetchToolConfig",
+                          "web_search": "#/$defs/WebSearchToolConfig"
+                        },
+                        "propertyName": "builtin_type"
+                      },
+                      "oneOf": [
+                        {
+                          "$ref": "#/$defs/WebSearchToolConfig"
+                        },
+                        {
+                          "$ref": "#/$defs/CodeExecutionToolConfig"
+                        },
+                        {
+                          "$ref": "#/$defs/WebFetchToolConfig"
+                        },
+                        {
+                          "$ref": "#/$defs/ImageGenerationToolConfig"
+                        },
+                        {
+                          "$ref": "#/$defs/MemoryToolConfig"
+                        },
+                        {
+                          "$ref": "#/$defs/MCPServerToolConfig"
+                        }
+                      ]
+                    },
                     "import": "#/$defs/ImportToolConfig"
                   },
                   "propertyName": "type"
@@ -26384,6 +27218,39 @@
                 "oneOf": [
                   {
                     "$ref": "#/$defs/ImportToolConfig"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "code_execution": "#/$defs/CodeExecutionToolConfig",
+                        "image_generation": "#/$defs/ImageGenerationToolConfig",
+                        "mcp_server": "#/$defs/MCPServerToolConfig",
+                        "memory": "#/$defs/MemoryToolConfig",
+                        "web_fetch": "#/$defs/WebFetchToolConfig",
+                        "web_search": "#/$defs/WebSearchToolConfig"
+                      },
+                      "propertyName": "builtin_type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/WebSearchToolConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/CodeExecutionToolConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/WebFetchToolConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/ImageGenerationToolConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/MemoryToolConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/MCPServerToolConfig"
+                      }
+                    ]
                   }
                 ]
               },
@@ -26434,6 +27301,7 @@
                 "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
+                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "plan": "#/$defs/PlanToolsetConfig",
@@ -26521,6 +27389,9 @@
               },
               {
                 "$ref": "#/$defs/DebugToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -30600,6 +31471,7 @@
                 "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "integrations": "#/$defs/IntegrationToolsetConfig",
+                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
                 "plan": "#/$defs/PlanToolsetConfig",
@@ -30687,6 +31559,9 @@
               },
               {
                 "$ref": "#/$defs/DebugToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CustomToolsetConfig"
@@ -40447,6 +41322,110 @@
       "title": "Vercel Configuration",
       "type": "object"
     },
+    "WebFetchToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for PydanticAI web fetch builtin tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: builtin\n        builtin_type: web_fetch\n    ```",
+      "properties": {
+        "type": {
+          "const": "builtin",
+          "default": "builtin",
+          "description": "Top-level discriminator - always 'builtin' for builtin tools.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "examples": [
+            {
+              "category": "web",
+              "version": "1.0"
+            },
+            {
+              "author": "system",
+              "tags": "search,utility"
+            },
+            {
+              "environment": "production",
+              "priority": "high"
+            }
+          ],
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "hints": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolHints"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints for tool execution.",
+          "examples": [
+            {
+              "destructive": false,
+              "idempotent": false,
+              "open_world": true,
+              "read_only": true
+            }
+          ],
+          "title": "Execution hints"
+        },
+        "builtin_type": {
+          "const": "web_fetch",
+          "default": "web_fetch",
+          "description": "Web fetch builtin tool.",
+          "title": "Builtin Type",
+          "type": "string"
+        }
+      },
+      "title": "Web Fetch Tool",
+      "type": "object"
+    },
     "WebHDFSFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for WebHDFS filesystem.",
@@ -40567,6 +41546,231 @@
         "host"
       ],
       "title": "WebHDFS Configuration",
+      "type": "object"
+    },
+    "WebSearchToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for PydanticAI web search builtin tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: builtin\n        builtin_type: web_search\n        search_context_size: high\n        blocked_domains: [\"spam.com\"]\n    ```",
+      "properties": {
+        "type": {
+          "const": "builtin",
+          "default": "builtin",
+          "description": "Top-level discriminator - always 'builtin' for builtin tools.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "examples": [
+            {
+              "category": "web",
+              "version": "1.0"
+            },
+            {
+              "author": "system",
+              "tags": "search,utility"
+            },
+            {
+              "environment": "production",
+              "priority": "high"
+            }
+          ],
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "hints": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ToolHints"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hints for tool execution.",
+          "examples": [
+            {
+              "destructive": false,
+              "idempotent": false,
+              "open_world": true,
+              "read_only": true
+            }
+          ],
+          "title": "Execution hints"
+        },
+        "builtin_type": {
+          "const": "web_search",
+          "default": "web_search",
+          "description": "Web search builtin tool.",
+          "title": "Builtin Type",
+          "type": "string"
+        },
+        "search_context_size": {
+          "default": "medium",
+          "description": "The search context size parameter controls how much context is retrieved.",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "examples": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Search context size",
+          "type": "string"
+        },
+        "user_location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WebSearchUserLocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "User location for localizing search results (city, country, region, timezone).",
+          "title": "User location"
+        },
+        "blocked_domains": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Domains that will never appear in results.",
+          "examples": [
+            [
+              "spam.com",
+              "ads.example.com"
+            ],
+            [
+              "blocked.site"
+            ]
+          ],
+          "title": "Blocked domains"
+        },
+        "allowed_domains": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Only these domains will be included in results.",
+          "examples": [
+            [
+              "wikipedia.org",
+              "github.com"
+            ],
+            [
+              "trusted.site"
+            ]
+          ],
+          "title": "Allowed domains"
+        },
+        "max_uses": {
+          "default": null,
+          "description": "Maximum number of times the tool can be used.",
+          "examples": [
+            5,
+            10,
+            20
+          ],
+          "title": "Maximum uses",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "title": "Web Search Tool",
+      "type": "object"
+    },
+    "WebSearchUserLocation": {
+      "additionalProperties": false,
+      "description": "Allows you to localize search results based on a user's location.\n\nSupported by:\n\n* Anthropic\n* OpenAI Responses",
+      "properties": {
+        "city": {
+          "description": "The city where the user is located.",
+          "title": "City",
+          "type": "string"
+        },
+        "country": {
+          "description": "The country where the user is located. For OpenAI, this must be a 2-letter country code (e.g., 'US', 'GB').",
+          "title": "Country",
+          "type": "string"
+        },
+        "region": {
+          "description": "The region or state where the user is located.",
+          "title": "Region",
+          "type": "string"
+        },
+        "timezone": {
+          "description": "The timezone of the user's location.",
+          "title": "Timezone",
+          "type": "string"
+        }
+      },
+      "title": "WebSearchUserLocation",
       "type": "object"
     },
     "WebdavFilesystemConfig": {
