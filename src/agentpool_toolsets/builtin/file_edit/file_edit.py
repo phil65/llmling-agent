@@ -528,11 +528,9 @@ def replace_content(
         error_msg = _build_not_found_error(content, old_string)
         raise ValueError(error_msg)
 
-    msg = (
-        "old_string found multiple times and requires more code context "
-        "to uniquely identify the intended match"
-    )
-    raise ValueError(msg)
+    # Multiple matches found - provide helpful error with locations
+    error_msg = _build_multiple_matches_error(content, old_string)
+    raise ValueError(error_msg)
 
 
 def _find_best_fuzzy_match(
@@ -612,6 +610,61 @@ def _create_unified_diff(text1: str, text2: str) -> str:
         result = result[:max_chars] + "\n...(diff truncated)"
 
     return result.rstrip()
+
+
+def _find_all_match_locations(content: str, search_text: str) -> list[int]:
+    """Find all line numbers where search_text starts.
+
+    Returns 1-based line numbers for each occurrence.
+    """
+    lines = content.split("\n")
+    locations: list[int] = []
+
+    # For single-line search, find direct matches
+    search_lines = search_text.split("\n")
+    first_search_line = search_lines[0] if search_lines else search_text
+
+    for i, line in enumerate(lines):
+        if first_search_line in line:
+            # Verify full match if multi-line
+            if len(search_lines) > 1:
+                window = "\n".join(lines[i : i + len(search_lines)])
+                if search_text in window:
+                    locations.append(i + 1)  # 1-based
+            else:
+                locations.append(i + 1)  # 1-based
+
+    return locations
+
+
+def _build_multiple_matches_error(content: str, old_string: str) -> str:
+    """Build a helpful error message when old_string matches multiple locations."""
+    locations = _find_all_match_locations(content, old_string)
+
+    if not locations:
+        # Fallback - shouldn't happen but be safe
+        return (
+            "old_string found multiple times and requires more code context "
+            "to uniquely identify the intended match"
+        )
+
+    # Show first few lines of the search text for context
+    search_preview = old_string.split("\n")[0][:60]
+    if len(old_string.split("\n")[0]) > 60:
+        search_preview += "..."
+
+    location_str = ", ".join(str(loc) for loc in locations[:5])
+    if len(locations) > 5:
+        location_str += f", ... ({len(locations)} total)"
+
+    error_parts = [
+        f"Pattern found at multiple locations (lines: {location_str}).",
+        f"\nSearch text starts with: {search_preview!r}",
+        "\n\nTo fix, include more surrounding context in old_string to uniquely identify "
+        "the target location, or use replace_all=True to replace all occurrences.",
+    ]
+
+    return "".join(error_parts)
 
 
 def _build_not_found_error(content: str, old_string: str) -> str:

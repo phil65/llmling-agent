@@ -703,14 +703,27 @@ class FSSpecTools(ResourceProvider):
         Uses sophisticated matching strategies to handle whitespace, indentation,
         and other variations. Shows the changes as a diff in the UI.
 
+        Replacements are applied sequentially, so later replacements see the result
+        of earlier ones. Each old_string must uniquely match one location (unless
+        replace_all=True). If a pattern matches multiple locations, include more
+        surrounding context to disambiguate.
+
         Args:
             path: File path (absolute or relative to session cwd)
-            replacements: List of (old_string, new_string) tuples to apply sequentially
+            replacements: List of (old_string, new_string) tuples to apply sequentially.
+                Each old_string should include enough context to uniquely identify
+                the target location. For multi-line edits, include the full block.
             description: Human-readable description of what the edit accomplishes
             replace_all: Whether to replace all occurrences of each pattern (default: False)
 
         Returns:
             Success message with edit summary
+
+        Example:
+            replacements=[
+                ("def old_name(", "def new_name("),
+                ("old_name()", "new_name()"),  # Update call sites
+            ]
         """
         path = self._resolve_path(path, agent_ctx)
         msg = f"Editing file: {path}"
