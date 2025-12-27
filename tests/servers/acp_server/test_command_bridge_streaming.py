@@ -139,7 +139,7 @@ async def test_immediate_send_error_handling(caplog: pytest.LogCaptureFixture):
         try:
             await coro
             task_results.append(None)
-        except BaseException as e:
+        except BaseException as e:  # noqa: BLE001
             task_results.append(e)
 
     mock_acp_agent = AsyncMock()

@@ -414,7 +414,7 @@ class FSSpecTools(ResourceProvider):
             # Return raw content for agent
             return content
 
-    async def read_as_markdown(self, agent_ctx: AgentContext, path: str) -> str | dict[str, Any]:
+    async def read_as_markdown(self, agent_ctx: AgentContext, path: str) -> str | dict[str, Any]:  # noqa: D417
         """Read file and convert to markdown text representation.
 
         Args:

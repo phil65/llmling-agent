@@ -85,6 +85,8 @@ def show_history(
         # Compact view of recent conversations
         agentpool history show --period 1d --compact
     """
+    import anyio
+
     try:
         # Resolve config and get provider
         config_path = resolve_agent_config(config)
