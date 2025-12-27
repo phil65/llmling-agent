@@ -121,6 +121,11 @@ langfuse = ["langfuse"]  # Langfuse Prompt Hub
 markitdown = [
   "markitdown; python_version < '3.14'"
 ]  # MarkItDown Media Converter
+mcp-discovery = [
+  "fastembed>=0.7.4",
+  "lancedb>=0.26.0",
+  "pyarrow>=19.0.0",
+]  # MCP Discovery Toolset with semantic search
 mcp_run = ["mcpx-py>=0.7.0"]  # MCP.run Toolset
 memory = ["typeagent>=0.3.3"]  # TypeAgent semantic knowledge DB
 notifications = ["apprise>=1.9.5"]  # Notification Toolset
@@ -142,6 +147,8 @@ dev = [
   "alembic>=1.16.5",
   "check-jsonschema>=0.35.0",
   "devtools",
+  "fastembed>=0.7.4",
+  "lancedb>=0.26.0",
   "openapi_spec_validator",
   "pyinstaller>=6.17.0",
   "pyreadline3",

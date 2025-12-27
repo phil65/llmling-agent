@@ -5,13 +5,14 @@ on-demand without needing to preload all tools upfront. This preserves prompt ca
 stability while enabling access to the entire MCP ecosystem.
 
 The toolset exposes three main capabilities:
-1. search_mcp_servers - Find servers by keyword (no connection needed)
+1. search_mcp_servers - Semantic search over 1000+ servers (uses pre-built index)
 2. list_mcp_tools - Get tools from a specific server (connects on-demand)
 3. call_mcp_tool - Execute a tool on any server (reuses connections)
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from agentpool.log import get_logger
@@ -31,6 +32,9 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+# Path to the pre-built semantic search index (parquet file loaded into LanceDB at runtime)
+PARQUET_PATH = Path(__file__).parent / "data" / "mcp_servers.parquet"
 
 
 class MCPDiscoveryToolset(ResourceProvider):
@@ -69,12 +73,66 @@ class MCPDiscoveryToolset(ResourceProvider):
         self._allowed_servers = set(allowed_servers) if allowed_servers else None
         self._blocked_servers = set(blocked_servers) if blocked_servers else set()
         self._tools: list[Tool] | None = None
+        # Lazy-loaded semantic search components
+        self._db: Any = None
+        self._table: Any = None
+        self._embed_model: Any = None
+        self._tmpdir: str | None = None
 
     def _get_registry(self) -> MCPRegistryClient:
         """Get or create the registry client."""
         if self._registry is None:
             self._registry = MCPRegistryClient(base_url=self._registry_url)
         return self._registry
+
+    def _get_search_index(self) -> Any:
+        """Get or create the LanceDB search index from parquet file."""
+        if self._table is not None:
+            return self._table
+
+        import tempfile
+
+        import lancedb  # type: ignore[import-untyped]
+        import pyarrow as pa  # type: ignore[import-untyped]
+        import pyarrow.parquet as pq  # type: ignore[import-untyped]
+
+        if not PARQUET_PATH.exists():
+            msg = f"MCP registry index not found at {PARQUET_PATH}. Run build_mcp_registry_index.py"
+            raise FileNotFoundError(msg)
+
+        # Load parquet
+        arrow_table = pq.read_table(PARQUET_PATH)
+
+        # Convert vector column to fixed-size list for LanceDB vector search
+        # LanceDB requires fixed-size vectors, not variable-length lists
+        vectors = arrow_table.column("vector").to_pylist()
+        if vectors:
+            vec_dim = len(vectors[0])
+            fixed_vectors = pa.FixedSizeListArray.from_arrays(
+                pa.array([v for vec in vectors for v in vec], type=pa.float32()),
+                list_size=vec_dim,
+            )
+            # Replace the vector column
+            col_idx = arrow_table.schema.get_field_index("vector")
+            arrow_table = arrow_table.set_column(col_idx, "vector", fixed_vectors)
+
+        # Use a temp directory for LanceDB (it needs a path but we're loading from parquet)
+        if self._db is None:
+            self._tmpdir = tempfile.mkdtemp(prefix="mcp_discovery_")
+            self._db = lancedb.connect(self._tmpdir)
+
+        self._table = self._db.create_table("servers", arrow_table, mode="overwrite")
+        return self._table
+
+    def _get_embed_model(self) -> Any:
+        """Get or create the FastEmbed model for query embedding."""
+        if self._embed_model is not None:
+            return self._embed_model
+
+        from fastembed import TextEmbedding
+
+        self._embed_model = TextEmbedding("BAAI/bge-small-en-v1.5")
+        return self._embed_model
 
     def _is_server_allowed(self, server_name: str) -> bool:
         """Check if a server is allowed to be used."""
@@ -92,28 +150,30 @@ class MCPDiscoveryToolset(ResourceProvider):
         )
 
         # Check cache first
+        server: RegistryServer
         if server_name in self._server_cache:
             server = self._server_cache[server_name]
         else:
             # Use list_servers and find by name - more reliable than get_server
             registry = self._get_registry()
             all_servers = await registry.list_servers()
-            server = None
+            found_server: RegistryServer | None = None
             for s in all_servers:
                 if s.name == server_name:
-                    server = s
+                    found_server = s
                     break
-            if server is None:
+            if found_server is None:
                 msg = f"Server {server_name!r} not found in registry"
                 raise MCPRegistryError(msg)
+            server = found_server
             self._server_cache[server_name] = server
 
         # Find a usable remote endpoint
         for remote in server.remotes:
             if remote.type == "sse":
-                return SSEMCPServerConfig(url=remote.url)  # type: ignore[arg-type]
+                return SSEMCPServerConfig(url=remote.url)
             if remote.type in ("streamable-http", "http"):
-                return StreamableHTTPMCPServerConfig(url=remote.url)  # type: ignore[arg-type]
+                return StreamableHTTPMCPServerConfig(url=remote.url)
 
         msg = f"No supported remote transport for server {server_name!r}"
         raise MCPRegistryError(msg)
@@ -178,11 +238,11 @@ class MCPDiscoveryToolset(ResourceProvider):
     ) -> str:
         """Search the MCP registry for servers matching a query.
 
-        Use this to discover what MCP servers are available. The search looks at
-        server names and descriptions. No connection is made to the servers.
+        Uses semantic search over 1000+ indexed MCP servers. The search understands
+        meaning, not just keywords - e.g., "web scraping" finds crawlers too.
 
         Args:
-            query: Search term (e.g., "github", "filesystem", "database")
+            query: Search term (e.g., "github issues", "database sql", "file system")
             max_results: Maximum number of results to return
 
         Returns:
@@ -194,35 +254,50 @@ class MCPDiscoveryToolset(ResourceProvider):
         )
 
         try:
-            registry = self._get_registry()
-            servers = await registry.list_servers(search=query)
+            # Get embedding for query
+            model = self._get_embed_model()
+            query_embedding = next(iter(model.embed([query]))).tolist()
 
-            # Filter by allowed/blocked
-            servers = [s for s in servers if self._is_server_allowed(s.name)]
+            # Search the index
+            table = self._get_search_index()
+            results = table.search(query_embedding).limit(max_results * 2).to_arrow()
 
-            # Limit results
-            servers = servers[:max_results]
-
-            if not servers:
+            if len(results) == 0:
                 return f"No MCP servers found matching '{query}'"
 
-            # Format results
-            lines = [f"Found {len(servers)} MCP servers matching '{query}':\n"]
-            for server in servers:
-                lines.append(f"**{server.name}** (v{server.version})")
-                lines.append(f"  {server.description}")
-                # Show available transports
-                transports = []
-                if server.remotes:
-                    transports.extend(r.type for r in server.remotes)
-                if transports:
-                    lines.append(f"  Transports: {', '.join(transports)}")
+            # Format results, filtering by allowed/blocked
+            lines = [f"Found MCP servers matching '{query}':\n"]
+            count = 0
+            for i in range(len(results)):
+                name = results["name"][i].as_py()
+
+                # Filter by allowed/blocked
+                if not self._is_server_allowed(name):
+                    continue
+
+                desc = results["description"][i].as_py()
+                version = results["version"][i].as_py()
+                has_remote = results["has_remote"][i].as_py()
+                remote_types = results["remote_types"][i].as_py()
+
+                lines.append(f"**{name}** (v{version})")
+                lines.append(f"  {desc}")
+                if has_remote and remote_types:
+                    lines.append(f"  Transports: {remote_types}")
                 lines.append("")
 
+                count += 1
+                if count >= max_results:
+                    break
+
+            if count == 0:
+                return f"No MCP servers found matching '{query}'"
+
+            lines[0] = f"Found {count} MCP servers matching '{query}':\n"
             return "\n".join(lines)
 
-        except MCPRegistryError as e:
-            return f"Error searching registry: {e}"
+        except FileNotFoundError as e:
+            return f"Error: {e}"
         except Exception as e:
             logger.exception("Error searching MCP servers")
             return f"Error searching MCP servers: {e}"
@@ -291,12 +366,12 @@ class MCPDiscoveryToolset(ResourceProvider):
 
             # Format output
             lines = [f"Tools available on **{server_name}** ({len(tools_data)} tools):\n"]
-            for tool in tools_data:
-                lines.append(f"### {tool['name']}")
-                lines.append(f"{tool['description']}")
-                if "parameters" in tool:
+            for tool_info in tools_data:
+                lines.append(f"### {tool_info['name']}")
+                lines.append(f"{tool_info['description']}")
+                if "parameters" in tool_info:
                     lines.append("Parameters:")
-                    lines.extend(f"  - {param}" for param in tool["parameters"])
+                    lines.extend(f"  - {param}" for param in tool_info["parameters"])
                 lines.append("")
 
             return "\n".join(lines)
@@ -366,3 +441,11 @@ class MCPDiscoveryToolset(ResourceProvider):
         if self._registry:
             await self._registry.close()
             self._registry = None
+        # Clean up temp directory used for LanceDB
+        if self._tmpdir:
+            import shutil
+
+            shutil.rmtree(self._tmpdir, ignore_errors=True)
+            self._tmpdir = None
+        self._db = None
+        self._table = None

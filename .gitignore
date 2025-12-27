@@ -51,3 +51,8 @@ test_configs/
 
 # Stakpak session files
 .stakpak/session*
+
+# LanceDB internal files (keep data/, ignore versioning)
+**/_transactions/
+**/_versions/
+
