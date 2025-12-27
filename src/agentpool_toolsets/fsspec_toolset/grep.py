@@ -238,18 +238,28 @@ def _build_gnu_grep_command(
 
 
 def _parse_grep_output(stdout: str, max_output_bytes: int) -> dict[str, Any]:
-    """Parse grep output and apply size limits."""
+    """Parse grep output and apply size limits.
+
+    Ripgrep/grep output format:
+    - Match lines: `file:linenum:content` (colon after line number)
+    - Context lines: `file-linenum-content` (dash after line number)
+    - Group separators: `--`
+    """
     if not stdout:
         return {"matches": "", "match_count": 0, "was_truncated": False}
-
-    output_lines = stdout.splitlines()
 
     # Truncate to max bytes
     truncated_output = stdout[:max_output_bytes]
     was_truncated = len(stdout) > max_output_bytes
 
-    # Count actual matches (lines with results)
-    match_count = len(output_lines)
+    # Count actual matches (lines with `:` after line number, not context lines with `-`)
+    # Ripgrep/grep output formats:
+    #   With filepath: "path/file.py:123:content" (match) vs "path/file.py-120-content" (context)
+    #   Single file:   "123:content" (match) vs "120-content" (context)
+    #   Windows:       "C:\path\file.py:123:content"
+    # Pattern matches: starts with digits followed by colon, OR contains colon-digits-colon
+    match_line_pattern = re.compile(r"^\d+:|:\d+:")
+    match_count = sum(1 for line in stdout.splitlines() if match_line_pattern.search(line))
 
     return {
         "matches": truncated_output,
