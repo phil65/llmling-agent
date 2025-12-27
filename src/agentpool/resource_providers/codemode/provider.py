@@ -118,7 +118,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
 
 
 if __name__ == "__main__":
-    import asyncio
+    import anyio
 
     from agentpool import Agent
     from agentpool.delegation.pool import AgentPool
@@ -147,4 +147,4 @@ if __name__ == "__main__":
                 result = await agent.run(prompt)
                 print(f"Result: {result}")
 
-    asyncio.run(main())
+    anyio.run(main)

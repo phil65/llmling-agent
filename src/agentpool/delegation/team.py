@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from anyenv.async_run import as_generated
+import anyio
 from toprompt import to_prompt
 
 from agentpool.common_types import SupportsRunStream
@@ -321,4 +322,4 @@ if __name__ == "__main__":
         async for node, event in outer_team.run_stream("test"):
             print(f"{node.name}: {type(event).__name__}")
 
-    asyncio.run(main())
+    anyio.run(main)

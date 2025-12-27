@@ -7,6 +7,7 @@ import base64
 from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Any, Self, cast
 
+import anyio
 from pydantic_ai import BinaryContent, BinaryImage, UsageLimits
 
 from agentpool.log import get_logger
@@ -228,4 +229,4 @@ if __name__ == "__main__":
                 comp_type = type(component).__name__
                 print(f"  {i + 1}. {comp_type}: {component.content}")
 
-    asyncio.run(main())
+    anyio.run(main)

@@ -57,7 +57,7 @@ async def main():
         await team.run("Process this task...")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    anyio.run(main)
 ```
 
 ## Adding Agents to a Pool

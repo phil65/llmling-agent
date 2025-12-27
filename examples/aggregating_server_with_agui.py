@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import asyncio
 
+import anyio
+
 from agentpool import Agent, AgentPool
 from agentpool_server import A2AServer, AggregatingServer, AGUIServer
 
@@ -110,4 +112,4 @@ if __name__ == "__main__":
     - Easy to expose same agents via multiple protocols
     - Simpler error handling and cleanup
     """
-    asyncio.run(main())
+    anyio.run(main)

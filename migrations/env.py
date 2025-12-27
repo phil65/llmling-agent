@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 from logging.config import fileConfig
 import os
 from typing import TYPE_CHECKING
 
 from alembic import context
+import anyio
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlmodel import SQLModel
@@ -98,7 +98,7 @@ def run_migrations_online() -> None:
     # Check if we're using an async engine
     url = config.get_main_option("sqlalchemy.url")
     if url and ("sqlite+aiosqlite" in url or "postgresql+asyncpg" in url):
-        asyncio.run(run_async_migrations())
+        anyio.run(run_async_migrations)
     else:
         # Synchronous migration
         from sqlalchemy import engine_from_config

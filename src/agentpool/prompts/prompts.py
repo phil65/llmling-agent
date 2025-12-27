@@ -576,6 +576,6 @@ if __name__ == "__main__":
         result = await prompt.format()
         print(result)
 
-    import asyncio
+    import anyio
 
-    asyncio.run(main())
+    anyio.run(main)

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
 from itertools import pairwise
 from time import perf_counter
 from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import uuid4
 
+import anyio
 from pydantic_ai import PartDeltaEvent, TextPartDelta
 
 from agentpool.common_types import SupportsRunStream
@@ -340,4 +340,4 @@ if __name__ == "__main__":
         except Exception as e:  # noqa: BLE001
             print(f"Error: {e}")
 
-    asyncio.run(main())
+    anyio.run(main)

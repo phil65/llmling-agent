@@ -11,6 +11,7 @@ import logging
 import time
 from typing import Any, Literal, Self
 
+import anyio
 import httpx
 from pydantic import Field
 from schemez import Schema
@@ -315,7 +316,6 @@ class MCPRegistryError(Exception):
 
 
 if __name__ == "__main__":
-    import asyncio
 
     async def main() -> None:
         """Test the MCP registry client with caching and transport resolution."""
@@ -342,4 +342,4 @@ if __name__ == "__main__":
 
                 print(server)
 
-    asyncio.run(main())
+    anyio.run(main)

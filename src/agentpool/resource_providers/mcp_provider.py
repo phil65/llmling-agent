@@ -206,6 +206,8 @@ class MCPResourceProvider(ResourceProvider):
 
 
 if __name__ == "__main__":
+    import anyio
+
     from agentpool_config.mcp_server import StdioMCPServerConfig
 
     cfg = StdioMCPServerConfig(
@@ -241,4 +243,4 @@ if __name__ == "__main__":
                 comp_type = type(component).__name__
                 print(f"  {i + 1}. {comp_type}: {component.content}")
 
-    asyncio.run(main())
+    anyio.run(main)

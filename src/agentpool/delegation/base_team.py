@@ -8,6 +8,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Self, overload
 
+import anyio
 from psygnal.containers import EventedList
 
 from agentpool.log import get_logger
@@ -284,7 +285,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                     last_message = result[-1].message if result else None
                     count += 1
                     if max_count is None or count < max_count:
-                        await asyncio.sleep(interval)
+                        await anyio.sleep(interval)
                 except asyncio.CancelledError:
                     logger.debug("Background execution cancelled")
                     break
@@ -500,4 +501,4 @@ if __name__ == "__main__":
         async with team:
             print(await agent.tools.get_tools())
 
-    asyncio.run(main())
+    anyio.run(main)

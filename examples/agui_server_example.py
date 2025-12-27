@@ -8,7 +8,7 @@ This example shows how to:
 
 from __future__ import annotations
 
-import asyncio
+import anyio
 
 from agentpool import Agent, AgentPool
 from agentpool_server.agui_server import AGUIServer
@@ -44,7 +44,7 @@ async def main() -> None:
 
         try:
             # Keep server running
-            await asyncio.Event().wait()
+            await anyio.Event().wait()
         except KeyboardInterrupt:
             print("\nShutting down server...")
 
@@ -71,4 +71,4 @@ if __name__ == "__main__":
       -H "Content-Type: application/json" \
       -d '{"messages": [{"role": "user", "content": "Write a haiku"}]}'
     """
-    asyncio.run(main())
+    anyio.run(main)

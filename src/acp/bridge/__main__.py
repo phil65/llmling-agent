@@ -8,10 +8,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import asyncio
 import contextlib
 import logging
 import sys
+
+import anyio
 
 
 def main() -> None:
@@ -83,7 +84,7 @@ def main() -> None:
 
     bridge = ACPBridge(command=parsed.command, args=parsed.args, cwd=parsed.cwd, settings=settings)
     with contextlib.suppress(KeyboardInterrupt):
-        asyncio.run(bridge.run())
+        anyio.run(bridge.run)
 
 
 if __name__ == "__main__":

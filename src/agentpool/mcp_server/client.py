@@ -19,6 +19,7 @@ from importlib.metadata import version
 import logging
 from typing import TYPE_CHECKING, Any, Self, assert_never
 
+import anyio
 from pydantic_ai import RunContext, ToolReturn
 from schemez import FunctionSchema
 
@@ -412,8 +413,6 @@ class MCPClient:
 
 
 if __name__ == "__main__":
-    import asyncio
-
     path = "/home/phil65/dev/oss/agentpool/tests/mcp_server/server.py"
     # path = Path(__file__).parent / "test_mcp_server.py"
     config = StdioMCPServerConfig(
@@ -427,4 +426,4 @@ if __name__ == "__main__":
             fs = mcp_client.get_resource_fs()
             print(await fs._ls(""))
 
-    asyncio.run(main())
+    anyio.run(main)

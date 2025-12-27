@@ -5,9 +5,10 @@ ACP protocol server with FastAPI web interface for testing.
 """
 
 import argparse
-import asyncio
 import logging
 import sys
+
+import anyio
 
 
 def main() -> None:
@@ -66,7 +67,7 @@ Examples:
     server = ACPDebugServer(fastapi_port=args.port, fastapi_host=args.host)
 
     try:
-        asyncio.run(server.run())
+        anyio.run(server.run)
     except KeyboardInterrupt:
         print("\nDebug server interrupted", file=sys.stderr)
     except Exception as e:  # noqa: BLE001

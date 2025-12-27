@@ -5,8 +5,6 @@ to make tools available in sandbox environments, especially useful for
 cloud sandboxes like E2B that can't reach localhost.
 """
 
-import asyncio
-
 from exxec.configs import LocalExecutionEnvironmentConfig
 
 from agentpool import Agent
@@ -67,4 +65,6 @@ async def demo_http_server_approach():
 
 
 if __name__ == "__main__":
-    asyncio.run(demo_http_server_approach())
+    import anyio
+
+    anyio.run(demo_http_server_approach)

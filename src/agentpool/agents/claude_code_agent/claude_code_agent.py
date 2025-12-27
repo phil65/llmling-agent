@@ -27,6 +27,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Self, cast
 import uuid
 
+import anyio
 from pydantic import TypeAdapter
 from pydantic_ai import (
     ModelRequest,
@@ -1017,4 +1018,4 @@ if __name__ == "__main__":
             async for _ in agent.run_stream("What files are in the current directory?"):
                 pass
 
-    asyncio.run(main())
+    anyio.run(main)

@@ -27,7 +27,7 @@ from acp.bridge import ACPBridge, BridgeSettings
 ### Programmatic Usage
 
 ```python
-import asyncio
+import anyio
 from acp.bridge import ACPBridge, BridgeSettings
 
 settings = BridgeSettings(
@@ -43,7 +43,7 @@ bridge = ACPBridge(
     settings=settings,
 )
 
-asyncio.run(bridge.run())
+anyio.run(bridge.run)
 ```
 
 ### Command Line Usage

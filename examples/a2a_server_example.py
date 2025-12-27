@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import asyncio
 
+import anyio
+
 from agentpool import Agent, AgentPool
 from agentpool_server.a2a_server import A2AServer
 
@@ -151,4 +153,4 @@ if __name__ == "__main__":
         }
       }'
     """
-    asyncio.run(main())
+    anyio.run(main)

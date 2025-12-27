@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
@@ -485,6 +486,6 @@ if __name__ == "__main__":
             await agent.conversation.add_context_from_path("E:/mcp_zed.yml")
             print(agent.conversation.get_history())
 
-    import asyncio
+    import anyio
 
-    asyncio.run(main())
+    anyio.run(main)
