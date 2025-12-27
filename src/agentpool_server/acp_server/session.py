@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING, Any
 from exxec.acp_provider import ACPExecutionEnvironment
 import logfire
 from pydantic_ai import (
+    BuiltinToolCallPart,
+    BuiltinToolReturnPart,
     FinalResultEvent,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
@@ -550,6 +552,36 @@ class ACPSession:
                 | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
             ):
                 await self.notifications.send_agent_thought(delta or "\n")
+
+            # Builtin tool call started (e.g., WebSearchTool, CodeExecutionTool)
+            case PartStartEvent(part=BuiltinToolCallPart() as part):
+                tool_call_id = part.tool_call_id
+                tool_input = safe_args_as_dict(part, default={})
+                self._current_tool_inputs[tool_call_id] = tool_input
+                state = self._get_or_create_tool_state(
+                    tool_call_id=tool_call_id,
+                    tool_name=part.tool_name,
+                    tool_input=tool_input,
+                )
+                await state.start()
+
+            # Builtin tool completed
+            case PartStartEvent(part=BuiltinToolReturnPart() as part):
+                tool_call_id = part.tool_call_id
+                if complete_state := self._tool_call_states.get(tool_call_id):
+                    final_output = part.content
+                    if complete_state.has_content:
+                        await complete_state.complete(raw_output=final_output)
+                    else:
+                        converted_blocks = to_acp_content_blocks(final_output)
+                        content_items = [
+                            ContentToolCallContent(content=block) for block in converted_blocks
+                        ]
+                        await complete_state.complete(
+                            raw_output=final_output,
+                            content=content_items,
+                        )
+                self._cleanup_tool_state(tool_call_id)
 
             case PartStartEvent(part=part):
                 self.log.debug("Received unhandled PartStartEvent", part=part)
