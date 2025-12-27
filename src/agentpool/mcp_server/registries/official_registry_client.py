@@ -98,6 +98,19 @@ class RegistryRemote(Schema):
     """Request headers."""
 
 
+class RegistryIcon(Schema):
+    """Icon configuration for a server."""
+
+    src: str
+    """Icon source URL."""
+
+    theme: str | None = None
+    """Theme variant (light, dark)."""
+
+    mime_type: str | None = Field(None, alias="mimeType")
+    """MIME type of the icon (e.g., image/png)."""
+
+
 class RegistryServer(Schema):
     """MCP server entry from the registry."""
 
@@ -121,6 +134,18 @@ class RegistryServer(Schema):
 
     schema_: str | None = Field(None, alias="$schema")
     """JSON schema URL."""
+
+    title: str | None = None
+    """Human-readable display title."""
+
+    website_url: str | None = Field(None, alias="websiteUrl")
+    """Website URL for documentation."""
+
+    icons: list[RegistryIcon] = Field(default_factory=list)
+    """Server icons for different themes."""
+
+    meta: dict[str, Any] = Field(default_factory=dict, alias="_meta")
+    """Internal metadata (can appear at server level too)."""
 
     def get_preferred_transport(self) -> TransportType:
         """Select optimal transport method based on availability and performance."""
