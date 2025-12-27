@@ -14,6 +14,8 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from pydantic_ai import ModelRequest, ModelResponse
+
 from pydantic import BaseModel, Field
 
 
@@ -139,12 +141,16 @@ class ClaudeCodeSummary(BaseModel):
     parent_uuid: str | None = Field(default=None, alias="parentUuid")
     session_id: str = Field(alias="sessionId")
     timestamp: datetime
+    is_sidechain: bool = Field(default=False, alias="isSidechain")
 
 
 ClaudeCodeEntry = Annotated[
     ClaudeCodeUserEntry | ClaudeCodeAssistantEntry | ClaudeCodeQueueOperation | ClaudeCodeSummary,
     Field(discriminator="type"),
 ]
+
+# Message entries that have uuid and parent_uuid (excludes queue operations)
+ClaudeCodeMessageEntry = ClaudeCodeUserEntry | ClaudeCodeAssistantEntry | ClaudeCodeSummary
 
 
 def parse_entry(line: str) -> ClaudeCodeEntry | None:
@@ -193,7 +199,7 @@ def get_main_conversation(
     entries: list[ClaudeCodeEntry],
     *,
     include_sidechains: bool = False,
-) -> list[ClaudeCodeEntry]:
+) -> list[ClaudeCodeMessageEntry]:
     """Extract the main conversation thread from entries.
 
     Claude Code supports forking conversations via parentUuid. This function
@@ -209,7 +215,7 @@ def get_main_conversation(
         Entries in conversation order, following the parent chain
     """
     # Filter to message entries (not queue operations)
-    message_entries = [
+    message_entries: list[ClaudeCodeMessageEntry] = [
         e
         for e in entries
         if isinstance(e, ClaudeCodeUserEntry | ClaudeCodeAssistantEntry | ClaudeCodeSummary)
@@ -219,7 +225,7 @@ def get_main_conversation(
         return []
 
     # Build children lookup
-    children: dict[str | None, list[ClaudeCodeEntry]] = {}
+    children: dict[str | None, list[ClaudeCodeMessageEntry]] = {}
     for entry in message_entries:
         parent = entry.parent_uuid
         children.setdefault(parent, []).append(entry)
@@ -231,22 +237,20 @@ def get_main_conversation(
         # No roots found, fall back to file order
         if include_sidechains:
             return message_entries
-        return [e for e in message_entries if not getattr(e, "is_sidechain", False)]
+        return [e for e in message_entries if not e.is_sidechain]
 
     # Walk the tree, preferring non-sidechain entries
-    result: list[ClaudeCodeEntry] = []
+    result: list[ClaudeCodeMessageEntry] = []
 
-    def walk(entry: ClaudeCodeEntry) -> None:
-        is_sidechain = getattr(entry, "is_sidechain", False)
-
-        if include_sidechains or not is_sidechain:
+    def walk(entry: ClaudeCodeMessageEntry) -> None:
+        if include_sidechains or not entry.is_sidechain:
             result.append(entry)
 
         # Get children of this entry
         entry_children = children.get(entry.uuid, [])
 
         # Sort children: non-sidechains first, then by timestamp
-        entry_children.sort(key=lambda e: (getattr(e, "is_sidechain", False), e.timestamp))
+        entry_children.sort(key=lambda e: (e.is_sidechain, e.timestamp))
 
         for child in entry_children:
             walk(child)
@@ -313,7 +317,7 @@ def convert_to_pydantic_ai(
     *,
     include_sidechains: bool = False,
     follow_parent_chain: bool = True,
-) -> list:
+) -> list[ModelRequest | ModelResponse]:
     """Convert Claude Code entries to pydantic-ai message format.
 
     Args:
@@ -325,10 +329,14 @@ def convert_to_pydantic_ai(
     Returns:
         List of ModelRequest and ModelResponse objects
     """
-    # Optionally reconstruct proper conversation order
-    if follow_parent_chain:
-        entries = get_main_conversation(entries, include_sidechains=include_sidechains)
     from pydantic_ai import ModelRequest, ModelResponse
+
+    # Optionally reconstruct proper conversation order
+    conversation: list[ClaudeCodeEntry] | list[ClaudeCodeMessageEntry]
+    if follow_parent_chain:
+        conversation = get_main_conversation(entries, include_sidechains=include_sidechains)
+    else:
+        conversation = entries
     from pydantic_ai.messages import (
         TextPart,
         ThinkingPart,
@@ -339,7 +347,7 @@ def convert_to_pydantic_ai(
 
     messages: list[ModelRequest | ModelResponse] = []
 
-    for entry in entries:
+    for entry in conversation:
         match entry:
             case ClaudeCodeUserEntry():
                 parts: list[Any] = []
@@ -440,7 +448,7 @@ def convert_to_pydantic_ai(
     return messages
 
 
-def load_session_as_pydantic_ai(session_path: Path) -> list:
+def load_session_as_pydantic_ai(session_path: Path) -> list[ModelRequest | ModelResponse]:
     """Load a Claude Code session and convert to pydantic-ai format.
 
     Args:
