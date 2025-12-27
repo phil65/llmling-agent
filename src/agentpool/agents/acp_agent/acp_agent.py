@@ -55,6 +55,7 @@ from agentpool.messaging import ChatMessage
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
 from agentpool.utils.streams import merge_queue_into_iterator
+from agentpool.utils.subprocess_utils import SubprocessError, monitor_process
 
 
 if TYPE_CHECKING:
@@ -326,9 +327,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Start subprocess and initialize ACP connection."""
         await super().__aenter__()
         await self._setup_toolsets()  # Setup toolsets before session creation
-        await self._start_process()
-        await self._initialize()
-        await self._create_session()
+        process = await self._start_process()
+        try:
+            async with monitor_process(process, context="ACP initialization"):
+                await self._initialize()
+                await self._create_session()
+        except SubprocessError as e:
+            raise RuntimeError(str(e)) from e
         await anyio.sleep(0.3)  # Small delay to let subprocess fully initialize
         return self
 
@@ -342,8 +347,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         await self._cleanup()
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
-    async def _start_process(self) -> None:
-        """Start the ACP server subprocess."""
+    async def _start_process(self) -> Process:
+        """Start the ACP server subprocess.
+
+        Returns:
+            The started Process instance
+        """
         prompt_manager = self.agent_pool.manifest.prompt_manager if self.agent_pool else None
         args = await self.config.get_args(prompt_manager)
         cmd = [self.config.get_command(), *args]
@@ -360,6 +369,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if not self._process.stdin or not self._process.stdout:
             msg = "Failed to create subprocess pipes"
             raise RuntimeError(msg)
+        return self._process
 
     async def _initialize(self) -> None:
         """Initialize the ACP connection."""
