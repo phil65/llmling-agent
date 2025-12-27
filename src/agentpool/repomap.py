@@ -928,8 +928,9 @@ def get_tags_from_content(content: str, filename: str) -> list[Tag]:
     from pygments.lexers import guess_lexer_for_filename
     from pygments.token import Token
     from tree_sitter import Query, QueryCursor
+    from tree_sitter_language_pack import SupportedLanguage
 
-    lang = filename_to_lang(filename)
+    lang = cast(SupportedLanguage, filename_to_lang(filename))
     if not lang:
         return []
 

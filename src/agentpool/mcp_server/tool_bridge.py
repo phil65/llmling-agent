@@ -18,6 +18,7 @@ import inspect
 from typing import TYPE_CHECKING, Any, Literal, Self, get_args, get_origin
 from uuid import uuid4
 
+import anyio
 from fastmcp import FastMCP
 from fastmcp.tools import Tool as FastMCPTool
 from llmling_models.models.helpers import infer_model
@@ -414,7 +415,7 @@ class ToolManagerBridge:
         # Start server in background task
         name = f"mcp-bridge-{self.config.server_name}"
         self._server_task = asyncio.create_task(self._server.serve(), name=name)
-        await asyncio.sleep(0.1)  # Wait briefly for server to start
+        await anyio.sleep(0.1)  # Wait briefly for server to start
         msg = "ToolManagerBridge started"
         logger.info(msg, url=self.url, transport=self.config.transport)
 

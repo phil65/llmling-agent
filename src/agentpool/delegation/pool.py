@@ -37,6 +37,8 @@ if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
     from types import TracebackType
 
+    from pydantic_ai import ModelSettings
+    from pydantic_ai.models import Model
     from pydantic_ai.output import OutputSpec
     from tokonomics.model_names import ModelId
     from upathtools import JoinablePathLike
@@ -977,8 +979,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         ]
         match config.model:
             case str():
-                model = config.model
-                model_settings = None
+                model: Model | str | None = config.model
+                model_settings: ModelSettings | None = None
             case BaseModelConfig():
                 model = config.model.get_model()
                 model_settings = config.model.get_model_settings()

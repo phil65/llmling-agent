@@ -513,7 +513,7 @@ async def test_agui_server_and_client_with_tools():
     test_model = TestModel(call_tools=["get_info"])
     server_agent = Agent(name="tool_agent", model=test_model)
 
-    @server_agent.tool_plain
+    @server_agent.tools.tool
     def get_info(topic: str) -> str:
         """Get information about a topic."""
         return f"Info about {topic}: This is test data."

@@ -489,7 +489,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         if self._model:
             # Construct full model ID with provider prefix (e.g., "anthropic:claude-haiku-4-5")
             return f"{self._model.system}:{self._model.model_name}"
-        return self._model
+        return None
 
     def to_tool(
         self,

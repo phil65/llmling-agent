@@ -102,8 +102,8 @@ async def main():
         print(response.data)
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    import anyio
+    anyio.run(main)
 ```
 
 ## Functional Interface

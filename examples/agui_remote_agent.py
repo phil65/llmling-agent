@@ -5,8 +5,7 @@ This example shows how to connect to and use a remote AG-UI protocol server.
 
 from __future__ import annotations
 
-import asyncio
-
+import anyio
 from pydantic_ai import PartDeltaEvent, TextPartDelta
 
 from agentpool.agents import AGUIAgent
@@ -79,8 +78,8 @@ async def main():
             await example_func()
         except (OSError, TimeoutError, RuntimeError) as e:
             print(f"Example '{name}' failed: {e}\n")
-        await asyncio.sleep(0.5)
+        await anyio.sleep(0.5)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    anyio.run(main)

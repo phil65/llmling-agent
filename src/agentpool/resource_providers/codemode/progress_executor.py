@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import ast
-import asyncio
 from dataclasses import dataclass
 import inspect
 import time
 from typing import TYPE_CHECKING, Any
+
+import anyio
 
 
 if TYPE_CHECKING:
@@ -105,7 +106,7 @@ class ProgressTrackingExecutor:
 
                 # Small delay for async behavior
                 if self.step_delay > 0:
-                    await asyncio.sleep(self.step_delay)
+                    await anyio.sleep(self.step_delay)
 
             # Try to get result from main() function or return success
             if "main" in self.locals and callable(self.locals["main"]):
@@ -170,7 +171,7 @@ class ProgressTrackingExecutor:
             yield statement_code, metadata
 
             if self.step_delay > 0:
-                await asyncio.sleep(self.step_delay)
+                await anyio.sleep(self.step_delay)
 
 
 if __name__ == "__main__":
@@ -208,4 +209,4 @@ for i in range(3):
             async for event in agent.run_stream("Run run_me and show progress."):
                 print(f"Event: {event}")
 
-    asyncio.run(main())
+    anyio.run(main)

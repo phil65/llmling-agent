@@ -20,12 +20,10 @@ from agentpool_config.event_handlers import EdgeTTSEventHandlerConfig, TTSEventH
 
 
 if TYPE_CHECKING:
+    from anyvoice import TTSMode
     from pydantic_ai import RunContext
 
     from agentpool.agents.events import RichAgentStreamEvent
-    from agentpool_config.event_handlers import (
-        TTSMode,
-    )
 
 
 TTSProvider = Literal["openai", "edge"]
