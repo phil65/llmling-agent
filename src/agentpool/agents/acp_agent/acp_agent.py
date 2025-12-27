@@ -553,14 +553,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
-        # Capture state for use in nested function (avoids type narrowing issues)
-        state = self._state
-
         conversation = message_history if message_history is not None else self.conversation
         # Prepare user message for history and convert to ACP content blocks
         user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
         run_id = str(uuid.uuid4())
-        state.clear()  # Reset state
+        self._state.clear()  # Reset state
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ...
         # This mirrors pydantic-ai's new_messages() which includes the initial user request.
         model_messages: list[ModelResponse | ModelRequest] = []
@@ -582,11 +579,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         final_blocks = [*to_acp_content_blocks(pending_parts), *content_blocks]
         prompt_request = PromptRequest(session_id=self._session_id, prompt=final_blocks)
         self.log.debug("Starting streaming prompt", num_blocks=len(final_blocks))
-
         # Reset cancellation state
         self._cancelled = False
         self._current_stream_task = asyncio.current_task()
-
         # Run prompt in background
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
         self._prompt_task = prompt_task
@@ -595,6 +590,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         async def poll_acp_events() -> AsyncIterator[RichAgentStreamEvent[str]]:
             """Poll events from ACP state until prompt completes."""
             last_idx = 0
+            assert self._state
             while not prompt_task.done():
                 if self._client_handler:
                     try:
@@ -606,13 +602,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                         pass
 
                 # Yield new events from state
-                while last_idx < len(state.events):
-                    yield state.events[last_idx]
+                while last_idx < len(self._state.events):
+                    yield self._state.events[last_idx]
                     last_idx += 1
 
             # Yield remaining events after prompt completes
-            while last_idx < len(state.events):
-                yield state.events[last_idx]
+            while last_idx < len(self._state.events):
+                yield self._state.events[last_idx]
                 last_idx += 1
 
         # Merge ACP events with custom events from queue
