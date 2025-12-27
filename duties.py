@@ -155,13 +155,68 @@ def version(
 
 @duty(capture=False)
 def ui(ctx, *args: str):
-    """Launch Textual UI."""
+    """Launch Textual UI.
+
+    Usage:
+        duty ui                # Direct stdio (toad spawns agentpool)
+        duty ui --websocket    # Via WebSocket bridge
+    """
+    use_websocket = "--websocket" in args
+    args = tuple(a for a in args if a != "--websocket")
     args_str = " " + " ".join(args) if args else ""
-    cmd_parts = [
-        "uvx --from batrachian-toad@latest toad acp",
-        f'"uv run --python 3.13 agentpool serve-acp --model-provider openai{args_str}"',
-    ]
-    ctx.run(" ".join(cmd_parts))
+
+    if use_websocket:
+        import signal
+        import subprocess
+        import time
+
+        port = 8765
+
+        # Start WebSocket bridge server in background
+        ws_server_cmd = [
+            "uv",
+            "run",
+            "-m",
+            "acp.bridge",
+            "-t",
+            "ws",
+            "-p",
+            str(port),
+            "--",
+            "uv",
+            "run",
+            "agentpool",
+            "serve-acp",
+            "--model-provider",
+            "openai",
+        ]
+        if args_str.strip():
+            ws_server_cmd.extend(args_str.split())
+
+        print(f"Starting WebSocket bridge on ws://localhost:{port}...")
+        ws_server = subprocess.Popen(ws_server_cmd)
+
+        try:
+            # Wait for server to be ready
+            time.sleep(1.5)
+
+            # Run toad with mcp-ws client
+            toad_cmd = (
+                f'uvx --from batrachian-toad@latest toad acp "uvx mcp-ws ws://localhost:{port}"'
+            )
+            ctx.run(toad_cmd)
+        finally:
+            # Clean up WebSocket server
+            print("Shutting down WebSocket bridge...")
+            ws_server.send_signal(signal.SIGTERM)
+            ws_server.wait(timeout=5)
+    else:
+        # Direct stdio - toad spawns agentpool directly
+        cmd_parts = [
+            "uvx --from batrachian-toad@latest toad acp",
+            f'"uv run --python 3.13 agentpool serve-acp --model-provider openai{args_str}"',
+        ]
+        ctx.run(" ".join(cmd_parts))
 
 
 @duty(capture=False)
