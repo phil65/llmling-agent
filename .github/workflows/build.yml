@@ -49,6 +49,7 @@ jobs:
 
       - name: Run tests
         env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: uv run --no-group docs pytest --cov-report=xml --cov=src/agentpool/ --cov-report=term-missing
 
