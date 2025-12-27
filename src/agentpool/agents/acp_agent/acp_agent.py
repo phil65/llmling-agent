@@ -562,8 +562,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             run_id=run_id,
             agent_name=self.name,
         )
-        for handler in self.event_handler._wrapped_handlers:
-            await handler(None, run_started)
+        await self.event_handler(None, run_started)
         yield run_started
         content_blocks = convert_to_acp_content(processed_prompts)
         pending_parts = conversation.get_pending_parts()
@@ -633,9 +632,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                             ):
                                 touched_files.add(file_path)
 
-                    # Distribute to handlers
-                    for handler in self.event_handler._wrapped_handlers:
-                        await handler(None, event)
+                    await self.event_handler(None, event)
                     yield event
         except asyncio.CancelledError:
             self.log.info("Stream cancelled via task cancellation")
@@ -659,8 +656,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 finish_reason="stop",
             )
             complete_event = StreamCompleteEvent(message=message)
-            for handler in self.event_handler._wrapped_handlers:
-                await handler(None, complete_event)
+            await self.event_handler(None, complete_event)
             yield complete_event
             self._current_stream_task = None
             self._prompt_task = None
@@ -690,8 +686,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             finish_reason=finish_reason,
         )
         complete_event = StreamCompleteEvent(message=message)
-        for handler in self.event_handler._wrapped_handlers:
-            await handler(None, complete_event)
+        await self.event_handler(None, complete_event)
         yield complete_event  # Emit final StreamCompleteEvent with aggregated message
         self.message_sent.emit(message)
         conversation.add_chat_messages([user_msg, message])  # Record to conversation history

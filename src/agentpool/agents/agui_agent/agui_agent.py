@@ -410,10 +410,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             run_id=self._run_id or str(uuid4()),
             agent_name=self.name,
         )
-        for handler in self.event_handler._wrapped_handlers:
-            await handler(None, run_started)
-        yield run_started
 
+        await self.event_handler(None, run_started)
+        yield run_started
         # Get pending parts from conversation and convert them
         pending_parts = conversation.get_pending_parts()
         pending_content = to_agui_input_content(pending_parts)
@@ -512,21 +511,18 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                     while not self._event_queue.empty():
                                         try:
                                             custom_event = self._event_queue.get_nowait()
-                                            for handler in self.event_handler._wrapped_handlers:
-                                                await handler(None, custom_event)
+                                            await self.event_handler(None, custom_event)
                                             yield custom_event
                                         except asyncio.QueueEmpty:
                                             break
                                     # Distribute to handlers
-                                    for handler in self.event_handler._wrapped_handlers:
-                                        await handler(None, native_event)
+                                    await self.event_handler(None, native_event)
                                     yield native_event
 
                         # Flush any pending chunk events at end of stream
                         for event in self._chunk_transformer.flush():
                             if native_event := agui_to_native_event(event):
-                                for handler in self.event_handler._wrapped_handlers:
-                                    await handler(None, native_event)
+                                await self.event_handler(None, native_event)
                                 yield native_event
 
                 except httpx.HTTPError:
@@ -595,8 +591,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 finish_reason="stop",
             )
             complete_event = StreamCompleteEvent(message=final_message)
-            for handler in self.event_handler._wrapped_handlers:
-                await handler(None, complete_event)
+            await self.event_handler(None, complete_event)
             yield complete_event
             self._current_stream_task = None
             return
@@ -609,8 +604,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         while not self._event_queue.empty():
             try:
                 queued_event = self._event_queue.get_nowait()
-                for handler in self.event_handler._wrapped_handlers:
-                    await handler(None, queued_event)
+                await self.event_handler(None, queued_event)
                 yield queued_event
             except asyncio.QueueEmpty:
                 break
@@ -625,8 +619,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             messages=model_messages,
         )
         complete_event = StreamCompleteEvent(message=final_message)
-        for handler in self.event_handler._wrapped_handlers:
-            await handler(None, complete_event)
+        await self.event_handler(None, complete_event)
         yield complete_event
         # Record to conversation history
         conversation.add_chat_messages([user_msg, final_message])

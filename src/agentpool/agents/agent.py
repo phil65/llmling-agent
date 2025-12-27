@@ -803,9 +803,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                             break
 
                         # Call event handlers for all events
-                        for handler in self.event_handler._wrapped_handlers:
-                            await handler(None, event)
-
+                        await self.event_handler(None, event)
                         yield event  # type: ignore[misc]
 
                         # Accumulate text content for partial message

@@ -563,8 +563,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             run_id=run_id,
             agent_name=self.name,
         )
-        for handler in self.event_handler._wrapped_handlers:
-            await handler(None, run_started)
+        await self.event_handler(None, run_started)
         yield run_started
         request = ModelRequest(parts=[UserPromptPart(content=prompt_text)])
         model_messages: list[ModelResponse | ModelRequest] = [request]
@@ -582,8 +581,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     # Check if it's a queued event (from tools via EventEmitter)
                     if not isinstance(event_or_message, Message):
                         # It's an event from the queue - yield it immediately
-                        for handler in self.event_handler._wrapped_handlers:
-                            await handler(None, event_or_message)
+                        await self.event_handler(None, event_or_message)
                         yield event_or_message
                         continue
 
@@ -622,8 +620,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         content=rich_info.content,
                                         raw_input=input_data,
                                     )
-                                    for handler in self.event_handler._wrapped_handlers:
-                                        await handler(None, tool_start_event)
+                                    await self.event_handler(None, tool_start_event)
                                     yield tool_start_event
                                 case ToolResultBlock(tool_use_id=tc_id, content=content):
                                     # Tool result received - flush response parts and add request
@@ -644,8 +641,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         agent_name=self.name,
                                         message_id="",
                                     )
-                                    for handler in self.event_handler._wrapped_handlers:
-                                        await handler(None, tool_done_event)
+                                    await self.event_handler(None, tool_done_event)
                                     yield tool_done_event
 
                                     # Add tool return as ModelRequest
@@ -685,8 +681,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     agent_name=self.name,
                                     message_id="",
                                 )
-                                for handler in self.event_handler._wrapped_handlers:
-                                    await handler(None, tool_complete_event)
+                                await self.event_handler(None, tool_complete_event)
                                 yield tool_complete_event
                                 # Add tool return as ModelRequest
                                 part = ToolReturnPart(
@@ -709,15 +704,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                             if block_type == "text":
                                 start_event = PartStartEvent(index=index, part=TextPart(content=""))
-                                for handler in self.event_handler._wrapped_handlers:
-                                    await handler(None, start_event)
+                                await self.event_handler(None, start_event)
                                 yield start_event
 
                             elif block_type == "thinking":
                                 thinking_part = ThinkingPart(content="")
                                 start_event = PartStartEvent(index=index, part=thinking_part)
-                                for handler in self.event_handler._wrapped_handlers:
-                                    await handler(None, start_event)
+                                await self.event_handler(None, start_event)
                                 yield start_event
 
                             elif block_type == "tool_use":
@@ -734,8 +727,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 if text_delta:
                                     text_part = TextPartDelta(content_delta=text_delta)
                                     delta_event = PartDeltaEvent(index=index, delta=text_part)
-                                    for handler in self.event_handler._wrapped_handlers:
-                                        await handler(None, delta_event)
+                                    await self.event_handler(None, delta_event)
                                     yield delta_event
 
                             elif delta_type == "thinking_delta":
@@ -743,8 +735,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 if thinking_delta:
                                     delta = ThinkingPartDelta(content_delta=thinking_delta)
                                     delta_event = PartDeltaEvent(index=index, delta=delta)
-                                    for handler in self.event_handler._wrapped_handlers:
-                                        await handler(None, delta_event)
+                                    await self.event_handler(None, delta_event)
                                     yield delta_event
 
                         # Handle content_block_stop events
@@ -752,8 +743,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             # We don't have the full part content here, emit with empty part
                             # The actual content was accumulated via deltas
                             end_event = PartEndEvent(index=index, part=TextPart(content=""))
-                            for handler in self.event_handler._wrapped_handlers:
-                                await handler(None, end_event)
+                            await self.event_handler(None, end_event)
                             yield end_event
 
                         # Skip further processing for StreamEvent - don't duplicate
@@ -768,8 +758,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             pending_tool_calls={},  # Already handled above
                         )
                         for event in events:
-                            for handler in self.event_handler._wrapped_handlers:
-                                await handler(None, event)
+                            await self.event_handler(None, event)
                             yield event
 
                     # Check for result (end of response) and capture usage info
@@ -792,8 +781,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             finish_reason="stop",
                         )
                         complete_event = StreamCompleteEvent(message=response_msg)
-                        for handler in self.event_handler._wrapped_handlers:
-                            await handler(None, complete_event)
+                        await self.event_handler(None, complete_event)
                         yield complete_event
                         return
                 else:
@@ -813,15 +801,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 finish_reason="stop",
             )
             complete_event = StreamCompleteEvent(message=response_msg)
-            for handler in self.event_handler._wrapped_handlers:
-                await handler(None, complete_event)
+            await self.event_handler(None, complete_event)
             yield complete_event
             return
 
         except Exception as e:
             error_event = RunErrorEvent(message=str(e), run_id=run_id, agent_name=self.name)
-            for handler in self.event_handler._wrapped_handlers:
-                await handler(None, error_event)
+            await self.event_handler(None, error_event)
             yield error_event
             raise
 
@@ -863,8 +849,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Emit stream complete
         complete_event = StreamCompleteEvent[TResult](message=chat_message)
-        for handler in self.event_handler._wrapped_handlers:
-            await handler(None, complete_event)
+        await self.event_handler(None, complete_event)
         yield complete_event
         # Record to history
         self.message_sent.emit(chat_message)
