@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Self, Unpack, overload
 
 from anyenv import ProcessManager
+from llmling_models.configs.model_configs import BaseModelConfig
 from upathtools import UPath
 
 from agentpool.agents import Agent
@@ -973,11 +974,20 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             *config_handlers,
             *(event_handlers or []),
         ]
+        match config.model:
+            case str():
+                model = config.model
+                model_settings = None
+            case BaseModelConfig():
+                model = config.model.get_model()
+                model_settings = config.model.get_model_settings()
+            case _:
+                model = None
+                model_settings = None
         return Agent(
             # context=context,
-            model=config.model
-            if isinstance(config.model, str) or config.model is None
-            else config.model.get_model(),
+            model=model,
+            model_settings=model_settings,
             system_prompt=sys_prompts,
             name=name,
             display_name=config.display_name,
