@@ -28,7 +28,6 @@ from typing import TYPE_CHECKING, Any, Self
 import uuid
 
 import anyio
-from pydantic import TypeAdapter
 from pydantic_ai import (
     ModelRequest,
     ModelResponse,
@@ -296,14 +295,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             provider = toolset_config.get_provider()
             self.tools.add_provider(provider)
 
-        # Auto-create bridge to expose tools via MCP
-        config = BridgeConfig(
-            transport="streamable-http", server_name=f"agentpool-{self.name}-tools"
-        )
+        server_name = f"agentpool-{self.name}-tools"
+        config = BridgeConfig(transport="streamable-http", server_name=server_name)
         self._tool_bridge = ToolManagerBridge(node=self, config=config)
         await self._tool_bridge.start()
         self._owns_bridge = True
-
         # Get Claude SDK-compatible MCP config and merge into our servers dict
         mcp_config = self._tool_bridge.get_claude_mcp_server_config()
         self._mcp_servers.update(mcp_config)
@@ -322,7 +318,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         if self._tool_bridge is None:  # Don't replace our own bridge
             self._tool_bridge = bridge
-
         # Get Claude SDK-compatible config and merge
         mcp_config = bridge.get_claude_mcp_server_config()
         self._mcp_servers.update(mcp_config)
@@ -350,6 +345,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from claude_agent_sdk import ClaudeAgentOptions
         from claude_agent_sdk.types import SystemPromptPreset
 
+        from agentpool.agents.claude_code_agent.converters import to_output_format
+
         # Build system prompt value
         system_prompt: str | SystemPromptPreset | None = None
         if formatted_system_prompt:
@@ -374,13 +371,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self._can_use_tool if self.tool_confirmation_mode != "never" and not bypass else None
         )
 
-        # Build structured output format if needed
-        output_format: dict[str, Any] | None = None
-        if self._output_type is not str:
-            adapter = TypeAdapter(self._output_type)
-            schema = adapter.json_schema()
-            output_format = {"type": "json_schema", "schema": schema}
-
         return ClaudeAgentOptions(
             cwd=self._cwd,
             allowed_tools=self._allowed_tools or [],
@@ -395,7 +385,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             tools=self._builtin_tools,
             fallback_model=self._fallback_model,
             can_use_tool=can_use_tool,
-            output_format=output_format,
+            output_format=to_output_format(self._output_type),
             mcp_servers=self._mcp_servers or {},
             include_partial_messages=True,
         )
@@ -553,14 +543,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Reset cancellation state
         self._cancelled = False
         self._current_stream_task = asyncio.current_task()
-
         # Update input provider if provided
         if input_provider is not None:
             self._input_provider = input_provider
-
         if not self._client:
-            msg = "Agent not initialized - use async context manager"
-            raise RuntimeError(msg)
+            raise RuntimeError("Agent not initialized - use async context manager")
 
         conversation = message_history if message_history is not None else self.conversation
         # Prepare prompts
