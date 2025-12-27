@@ -9,12 +9,16 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from platformdirs import user_log_path
 import typer as t
 
 from agentpool_cli import log, resolve_agent_config
+
+
+if TYPE_CHECKING:
+    from acp import Transport
 
 
 logger = log.get_logger(__name__)
@@ -127,7 +131,7 @@ def acp_command(  # noqa: PLR0915
 
     # Build transport config
     if transport == "websocket":
-        transport_config = WebSocketTransport(host=ws_host, port=ws_port)
+        transport_config: Transport = WebSocketTransport(host=ws_host, port=ws_port)
     elif transport == "stdio":
         transport_config = StdioTransport()
     else:

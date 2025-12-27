@@ -285,7 +285,7 @@ class _WebSocketReadStream(anyio.abc.ByteReceiveStream):
             if not message.endswith(b"\n"):
                 message += b"\n"
             self._buffer = message[max_bytes:]
-            return message[:max_bytes]
+            return message[:max_bytes]  # type: ignore[no-any-return]
         except Exception as e:
             raise anyio.EndOfStream from e
 
