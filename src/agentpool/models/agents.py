@@ -19,6 +19,7 @@ from agentpool import log
 from agentpool.common_types import EndStrategy  # noqa: TC001
 from agentpool.prompts.prompts import PromptMessage, StaticPrompt
 from agentpool.resource_providers import StaticResourceProvider
+from agentpool_config.builtin_tools import BaseBuiltinToolConfig
 from agentpool_config.hooks import HooksConfig  # noqa: TC001
 from agentpool_config.knowledge import Knowledge  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
@@ -300,7 +301,7 @@ class NativeAgentConfig(BaseAgentConfig):
         return providers
 
     def get_tool_provider(self) -> ResourceProvider | None:
-        """Get tool provider for this agent."""
+        """Get tool provider for this agent (excludes builtin tools)."""
         from agentpool.tools.base import Tool
 
         # Create provider for static tools
@@ -308,6 +309,9 @@ class NativeAgentConfig(BaseAgentConfig):
             return None
         static_tools: list[Tool] = []
         for tool_config in self.tools:
+            # Skip builtin tools - they're handled via get_builtin_tools()
+            if isinstance(tool_config, BaseBuiltinToolConfig):
+                continue
             try:
                 match tool_config:
                     case str():
@@ -319,7 +323,24 @@ class NativeAgentConfig(BaseAgentConfig):
                 logger.exception("Failed to load tool", config=tool_config)
                 continue
 
+        if not static_tools:
+            return None
         return StaticResourceProvider(name="builtin", tools=static_tools)
+
+    def get_builtin_tools(self) -> list[Any]:
+        """Get pydantic-ai builtin tools from config.
+
+        Returns:
+            List of AbstractBuiltinTool instances (WebSearchTool, etc.)
+        """
+        builtin_tools: list[Any] = []
+        for tool_config in self.tools:
+            if isinstance(tool_config, BaseBuiltinToolConfig):
+                try:
+                    builtin_tools.append(tool_config.get_builtin_tool())
+                except Exception:
+                    logger.exception("Failed to load builtin tool", config=tool_config)
+        return builtin_tools
 
     def get_session_config(self) -> MemoryConfig:
         """Get resolved memory configuration."""

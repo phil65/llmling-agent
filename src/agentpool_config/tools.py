@@ -109,4 +109,10 @@ class ImportToolConfig(BaseToolConfig):
         )
 
 
-ToolConfig = Annotated[ImportToolConfig, Field(discriminator="type")]
+from agentpool_config.builtin_tools import BuiltinToolConfig  # noqa: E402
+
+
+ToolConfig = Annotated[
+    ImportToolConfig | BuiltinToolConfig,
+    Field(discriminator="type"),
+]

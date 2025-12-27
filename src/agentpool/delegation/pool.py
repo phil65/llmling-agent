@@ -987,6 +987,9 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             case _:
                 model = None
                 model_settings = None
+        # Extract pydantic-ai builtin tools from config
+        builtin_tools = config.get_builtin_tools()
+
         return Agent(
             # context=context,
             model=model,
@@ -1011,6 +1014,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             toolsets=toolsets_list,
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
             tool_confirmation_mode=config.requires_tool_confirmation,
+            builtin_tools=builtin_tools or None,
         )
 
     def create_acp_agent[TDeps](

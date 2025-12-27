@@ -25,17 +25,33 @@ if TYPE_CHECKING:
 class BaseBuiltinToolConfig(BaseToolConfig):
     """Base configuration for PydanticAI builtin tools."""
 
+    type: Literal["builtin"] = Field("builtin", init=False)
+    """Top-level discriminator - always 'builtin' for builtin tools."""
+
+    builtin_type: str = Field(init=False)
+    """Sub-discriminator for specific builtin tool type."""
+
     def get_builtin_tool(self) -> AbstractBuiltinTool:
         """Convert config to PydanticAI builtin tool instance."""
         raise NotImplementedError
 
 
 class WebSearchToolConfig(BaseBuiltinToolConfig):
-    """Configuration for PydanticAI web search builtin tool."""
+    """Configuration for PydanticAI web search builtin tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: builtin
+            builtin_type: web_search
+            search_context_size: high
+            blocked_domains: ["spam.com"]
+        ```
+    """
 
     model_config = ConfigDict(title="Web Search Tool")
 
-    type: Literal["web_search"] = Field("web_search", init=False)
+    builtin_type: Literal["web_search"] = Field("web_search", init=False)
     """Web search builtin tool."""
 
     search_context_size: Literal["low", "medium", "high"] = Field(
@@ -77,11 +93,19 @@ class WebSearchToolConfig(BaseBuiltinToolConfig):
 
 
 class CodeExecutionToolConfig(BaseBuiltinToolConfig):
-    """Configuration for PydanticAI code execution builtin tool."""
+    """Configuration for PydanticAI code execution builtin tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: builtin
+            builtin_type: code_execution
+        ```
+    """
 
     model_config = ConfigDict(title="Code Execution Tool")
 
-    type: Literal["code_execution"] = Field("code_execution", init=False)
+    builtin_type: Literal["code_execution"] = Field("code_execution", init=False)
     """Code execution builtin tool."""
 
     def get_builtin_tool(self) -> CodeExecutionTool:
@@ -90,12 +114,20 @@ class CodeExecutionToolConfig(BaseBuiltinToolConfig):
 
 
 class WebFetchToolConfig(BaseBuiltinToolConfig):
-    """Configuration for PydanticAI URL context builtin tool."""
+    """Configuration for PydanticAI web fetch builtin tool.
 
-    model_config = ConfigDict(title="Url Context Tool")
+    Example:
+        ```yaml
+        tools:
+          - type: builtin
+            builtin_type: web_fetch
+        ```
+    """
 
-    type: Literal["web_fetch"] = Field("web_fetch", init=False)
-    """URL context builtin tool."""
+    model_config = ConfigDict(title="Web Fetch Tool")
+
+    builtin_type: Literal["web_fetch"] = Field("web_fetch", init=False)
+    """Web fetch builtin tool."""
 
     def get_builtin_tool(self) -> WebFetchTool:
         """Convert config to WebFetchTool instance."""
@@ -103,11 +135,21 @@ class WebFetchToolConfig(BaseBuiltinToolConfig):
 
 
 class ImageGenerationToolConfig(BaseBuiltinToolConfig):
-    """Configuration for PydanticAI image generation builtin tool."""
+    """Configuration for PydanticAI image generation builtin tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: builtin
+            builtin_type: image_generation
+            quality: high
+            size: 1024x1024
+        ```
+    """
 
     model_config = ConfigDict(title="Image Generation Tool")
 
-    type: Literal["image_generation"] = Field("image_generation", init=False)
+    builtin_type: Literal["image_generation"] = Field("image_generation", init=False)
     """Image generation builtin tool."""
 
     background: Literal["transparent", "opaque", "auto"] = Field(
@@ -184,11 +226,19 @@ class ImageGenerationToolConfig(BaseBuiltinToolConfig):
 
 
 class MemoryToolConfig(BaseBuiltinToolConfig):
-    """Configuration for PydanticAI memory builtin tool."""
+    """Configuration for PydanticAI memory builtin tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: builtin
+            builtin_type: memory
+        ```
+    """
 
     model_config = ConfigDict(title="Memory Tool")
 
-    type: Literal["memory"] = Field("memory", init=False)
+    builtin_type: Literal["memory"] = Field("memory", init=False)
     """Memory builtin tool."""
 
     def get_builtin_tool(self) -> MemoryTool:
@@ -197,11 +247,21 @@ class MemoryToolConfig(BaseBuiltinToolConfig):
 
 
 class MCPServerToolConfig(BaseBuiltinToolConfig):
-    """Configuration for PydanticAI MCP server builtin tool."""
+    """Configuration for PydanticAI MCP server builtin tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: builtin
+            builtin_type: mcp_server
+            id: my_server
+            url: https://api.example.com/mcp
+        ```
+    """
 
     model_config = ConfigDict(title="MCP Server Tool")
 
-    type: Literal["mcp_server"] = Field("mcp_server", init=False)
+    builtin_type: Literal["mcp_server"] = Field("mcp_server", init=False)
     """MCP server builtin tool."""
 
     server_id: str = Field(
@@ -224,12 +284,7 @@ class MCPServerToolConfig(BaseBuiltinToolConfig):
     )
     """Authorization header to use when making requests to the MCP server."""
 
-    description: str | None = Field(
-        default=None,
-        examples=["External API tools", "Code execution server"],
-        title="Server description",
-    )
-    """A description of the MCP server."""
+    # description is inherited from BaseToolConfig
 
     allowed_tools: list[str] | None = Field(
         default=None,
@@ -253,7 +308,7 @@ class MCPServerToolConfig(BaseBuiltinToolConfig):
         )
 
 
-# Union type for builtin tool configs
+# Union type for builtin tool configs (sub-discriminated by builtin_type)
 BuiltinToolConfig = Annotated[
     WebSearchToolConfig
     | CodeExecutionToolConfig
@@ -261,5 +316,5 @@ BuiltinToolConfig = Annotated[
     | ImageGenerationToolConfig
     | MemoryToolConfig
     | MCPServerToolConfig,
-    Field(discriminator="type"),
+    Field(discriminator="builtin_type"),
 ]
