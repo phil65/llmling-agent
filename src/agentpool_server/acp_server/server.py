@@ -13,8 +13,7 @@ from typing import TYPE_CHECKING, Any, Self
 
 import logfire
 
-from acp import AgentSideConnection
-from acp.stdio import stdio_streams
+from acp import serve
 from agentpool import AgentPool
 from agentpool.log import get_logger
 from agentpool.models.manifest import AgentsManifest
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery.model_info import ModelInfo
     from upathtools import JoinablePathLike
 
+    from acp import Transport
     from acp.schema import ModelInfo as ACPModelInfo
 
 
@@ -82,6 +82,7 @@ class ACPServer(BaseServer):
         agent: str | None = None,
         load_skills: bool = True,
         config_path: str | None = None,
+        transport: Transport = "stdio",
     ) -> None:
         """Initialize ACP server with configuration.
 
@@ -97,6 +98,7 @@ class ACPServer(BaseServer):
             agent: Optional specific agent name to use (defaults to first agent)
             load_skills: Whether to load client-side skills from .claude/skills
             config_path: Path to the configuration file (for tracking/hot-switching)
+            transport: Transport configuration ("stdio", "websocket", or transport object)
         """
         super().__init__(pool, name=name, raise_exceptions=True)
         self.file_access = file_access
@@ -108,6 +110,7 @@ class ACPServer(BaseServer):
         self.agent = agent
         self.load_skills = load_skills
         self.config_path = config_path
+        self.transport = transport
 
         self._available_models: list[ACPModelInfo] = []
         self._models_initialized = False
@@ -125,6 +128,7 @@ class ACPServer(BaseServer):
         debug_commands: bool = False,
         agent: str | None = None,
         load_skills: bool = True,
+        transport: Transport = "stdio",
     ) -> Self:
         """Create ACP server from existing agentpool configuration.
 
@@ -138,6 +142,7 @@ class ACPServer(BaseServer):
             debug_commands: Enable debug slash commands for testing
             agent: Optional specific agent name to use (defaults to first agent)
             load_skills: Whether to load client-side skills from .claude/skills
+            transport: Transport configuration ("stdio", "websocket", or transport object)
 
         Returns:
             Configured ACP server instance with agent pool from config
@@ -155,6 +160,7 @@ class ACPServer(BaseServer):
             agent=agent,
             load_skills=load_skills,
             config_path=str(config_path),
+            transport=transport,
         )
         agent_names = list(server.pool.agents.keys())
 
@@ -171,8 +177,12 @@ class ACPServer(BaseServer):
     async def _start_async(self) -> None:
         """Start the ACP server (blocking async - runs until stopped)."""
         agent_names = list(self.pool.agents.keys())
-        self.log.info("Starting ACP server on stdio", agent_names=agent_names)
+        transport_name = (
+            type(self.transport).__name__ if not isinstance(self.transport, str) else self.transport
+        )
+        self.log.info("Starting ACP server", transport=transport_name, agent_names=agent_names)
         await self._initialize_models()  # Initialize models on first run
+
         create_acp_agent = functools.partial(
             AgentPoolACPAgent,
             agent_pool=self.pool,
@@ -184,21 +194,24 @@ class ACPServer(BaseServer):
             load_skills=self.load_skills,
             server=self,
         )
-        reader, writer = await stdio_streams()
-        file = self.debug_file if self.debug_messages else None
-        conn = AgentSideConnection(create_acp_agent, writer, reader, debug_file=file)
+
+        debug_file = self.debug_file if self.debug_messages else None
         self.log.info("ACP server started", file=self.file_access, terminal=self.terminal_access)
-        try:  # Keep the connection alive until shutdown
-            await self._shutdown_event.wait()
+
+        try:
+            await serve(
+                create_acp_agent,
+                transport=self.transport,
+                shutdown_event=self._shutdown_event,
+                debug_file=debug_file,
+            )
         except asyncio.CancelledError:
             self.log.info("ACP server shutdown requested")
             raise
         except KeyboardInterrupt:
             self.log.info("ACP server shutdown requested")
         except Exception:
-            self.log.exception("Connection receive task failed")
-        finally:
-            await conn.close()
+            self.log.exception("ACP server error")
 
     async def swap_pool(
         self,

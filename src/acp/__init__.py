@@ -73,6 +73,13 @@ from acp.schema import (
     ToolCall,
 )
 from acp.stdio import stdio_streams, run_agent, connect_to_agent
+from acp.transports import (
+    serve,
+    StdioTransport,
+    WebSocketTransport,
+    StreamTransport,
+    Transport,
+)
 from acp.exceptions import RequestError
 
 __version__ = "0.0.1"
@@ -169,4 +176,10 @@ __all__ = [  # noqa: RUF022
     # filesystem
     "ACPFileSystem",
     "ACPPath",
+    # transport
+    "serve",
+    "StdioTransport",
+    "WebSocketTransport",
+    "StreamTransport",
+    "Transport",
 ]

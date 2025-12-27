@@ -159,7 +159,7 @@ def ui(ctx, *args: str):
 
     Usage:
         duty ui                # Direct stdio (toad spawns agentpool)
-        duty ui --websocket    # Via WebSocket bridge
+        duty ui --websocket    # Via WebSocket (native transport)
     """
     use_websocket = "--websocket" in args
     args = tuple(a for a in args if a != "--websocket")
@@ -172,28 +172,23 @@ def ui(ctx, *args: str):
 
         port = 8765
 
-        # Start WebSocket bridge server in background
+        # Start ACP server with WebSocket transport directly (no bridge needed!)
         ws_server_cmd = [
-            "uv",
-            "run",
-            "-m",
-            "acp.bridge",
-            "-t",
-            "ws",
-            "-p",
-            str(port),
-            "--",
             "uv",
             "run",
             "agentpool",
             "serve-acp",
+            "--transport",
+            "websocket",
+            "--ws-port",
+            str(port),
             "--model-provider",
             "openai",
         ]
         if args_str.strip():
             ws_server_cmd.extend(args_str.split())
 
-        print(f"Starting WebSocket bridge on ws://localhost:{port}...")
+        print(f"Starting ACP server with WebSocket transport on ws://localhost:{port}...")
         ws_server = subprocess.Popen(ws_server_cmd)
 
         try:
@@ -207,7 +202,7 @@ def ui(ctx, *args: str):
             ctx.run(toad_cmd)
         finally:
             # Clean up WebSocket server
-            print("Shutting down WebSocket bridge...")
+            print("Shutting down WebSocket server...")
             ws_server.send_signal(signal.SIGTERM)
             ws_server.wait(timeout=5)
     else:

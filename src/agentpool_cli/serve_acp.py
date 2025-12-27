@@ -20,7 +20,7 @@ from agentpool_cli import log, resolve_agent_config
 logger = log.get_logger(__name__)
 
 
-def acp_command(
+def acp_command(  # noqa: PLR0915
     config: Annotated[str | None, t.Argument(help="Path to agent configuration (optional)")] = None,
     file_access: Annotated[
         bool,
@@ -77,6 +77,28 @@ def acp_command(
             help="Load client-side skills from .claude/skills directory",
         ),
     ] = True,
+    transport: Annotated[
+        str,
+        t.Option(
+            "--transport",
+            "-t",
+            help="Transport type: stdio (default) or websocket",
+        ),
+    ] = "stdio",
+    ws_host: Annotated[
+        str,
+        t.Option(
+            "--ws-host",
+            help="WebSocket host (only used with --transport websocket)",
+        ),
+    ] = "localhost",
+    ws_port: Annotated[
+        int,
+        t.Option(
+            "--ws-port",
+            help="WebSocket port (only used with --transport websocket)",
+        ),
+    ] = 8765,
 ) -> None:
     r"""Run agents as an ACP (Agent Client Protocol) server.
 
@@ -99,8 +121,17 @@ def acp_command(
     allowing users to switch between agents mid-conversation. Each agent appears
     as a different "mode" with its own name and capabilities.
     """
+    from acp import StdioTransport, WebSocketTransport
     from agentpool import log
     from agentpool_server.acp_server import ACPServer
+
+    # Build transport config
+    if transport == "websocket":
+        transport_config = WebSocketTransport(host=ws_host, port=ws_port)
+    elif transport == "stdio":
+        transport_config = StdioTransport()
+    else:
+        raise t.BadParameter(f"Unknown transport: {transport}. Use 'stdio' or 'websocket'.")
 
     # Always log to file with rollover
     log_dir = user_log_path("agentpool", appauthor=False)
@@ -117,7 +148,7 @@ def acp_command(
             msg = str(e)
             raise t.BadParameter(msg) from e
 
-        logger.info("Starting ACP server", config_path=config_path)
+        logger.info("Starting ACP server", config_path=config_path, transport=transport)
         acp_server = ACPServer.from_config(
             config_path,
             file_access=file_access,
@@ -128,12 +159,13 @@ def acp_command(
             debug_commands=debug_commands,
             agent=agent,
             load_skills=load_skills,
+            transport=transport_config,
         )
     else:
         # Use default ACP assistant config
         from agentpool.config_resources import ACP_ASSISTANT
 
-        logger.info("Starting ACP server with default configuration")
+        logger.info("Starting ACP server with default configuration", transport=transport)
         acp_server = ACPServer.from_config(
             ACP_ASSISTANT,
             file_access=file_access,
@@ -144,6 +176,7 @@ def acp_command(
             debug_commands=debug_commands,
             agent=agent,
             load_skills=load_skills,
+            transport=transport_config,
         )
     # Configure agent capabilities
     agent_count = len(acp_server.pool.all_agents)

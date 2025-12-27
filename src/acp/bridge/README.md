@@ -1,10 +1,23 @@
 # ACP Bridge
 
-A stdio-to-HTTP bridge for ACP (Agent Client Protocol) agents.
+Bridges for exposing **external** stdio-based ACP agents over network transports.
+
+## When to Use
+
+**Use the bridge** when you need to expose an **external** stdio-based ACP agent (one you don't control) over HTTP or WebSocket.
+
+**Use native transports** when building your own agent with the `acp` library. The `acp.serve()` function supports multiple transports directly:
+
+```python
+from acp import serve, WebSocketTransport
+
+# Native WebSocket transport (no bridge needed)
+await serve(my_agent, WebSocketTransport(host="0.0.0.0", port=8765))
+```
 
 ## Overview
 
-The ACP Bridge allows you to expose stdio-based ACP agents via a streamable HTTP endpoint. This is useful when you want to run an agent as a subprocess but communicate with it over HTTP instead of stdio.
+The ACP Bridge allows you to expose stdio-based ACP agents via HTTP or WebSocket endpoints. This is useful when you want to run an external agent as a subprocess but communicate with it over the network instead of stdio.
 
 ## Features
 
