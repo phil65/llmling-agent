@@ -824,11 +824,17 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                             case FunctionToolResultEvent(tool_call_id=call_id) as result_event:
                                 # Check if we have a pending tool call to combine with
                                 if call_info := pending_tcs.pop(call_id, None):
+                                    # Try to parse tool args, fallback if malformed JSON
+                                    try:
+                                        tool_input = call_info.args_as_dict()
+                                    except ValueError:
+                                        # Model returned malformed JSON for tool args
+                                        tool_input = {"_raw_args": call_info.args}
                                     # Create and yield combined event
                                     combined_event = ToolCallCompleteEvent(
                                         tool_name=call_info.tool_name,
                                         tool_call_id=call_id,
-                                        tool_input=call_info.args_as_dict(),
+                                        tool_input=tool_input,
                                         tool_result=result_event.result.content
                                         if isinstance(result_event.result, ToolReturnPart)
                                         else result_event.result,
