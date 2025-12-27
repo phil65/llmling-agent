@@ -764,8 +764,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if self._process:  # Clean up existing process if any
             await self._cleanup()
         self.config = new_config  # Update config and restart
-        await self._start_process()
-        await self._initialize()
+        process = await self._start_process()
+        async with monitor_process(process, context="ACP initialization"):
+            await self._initialize()
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set the tool confirmation mode for this agent.
