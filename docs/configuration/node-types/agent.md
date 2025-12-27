@@ -98,7 +98,6 @@ agents:
 | [`environment`](execution-environments.md) | Execution environment configuration for this agent |
 | [`usage_limits`](agent.md#usage-limits) | Usage limits for this agent |
 | [`tool_mode`](agent.md#tool-mode) | Tool execution mode (None/codemode) |
-| [`auto_cache`](agent.md#auto-cache) | Automatic prompt caching configuration |
 
 
 ## Related Configuration

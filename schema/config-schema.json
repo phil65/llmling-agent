@@ -578,49 +578,6 @@
           },
           "title": "Arguments",
           "type": "array"
-        },
-        "providers": {
-          "description": "Model providers this agent can use.",
-          "examples": [
-            [
-              "openai",
-              "anthropic"
-            ],
-            [
-              "gemini"
-            ]
-          ],
-          "items": {
-            "enum": [
-              "anthropic",
-              "groq",
-              "mistral",
-              "openai",
-              "openrouter",
-              "github",
-              "copilot",
-              "cerebras",
-              "gemini",
-              "cohere",
-              "deepseek",
-              "requesty",
-              "xai",
-              "comet",
-              "novita",
-              "vercel-gateway",
-              "chutes",
-              "cortecs",
-              "azure",
-              "fireworks-ai",
-              "ollama",
-              "moonshotai",
-              "zai",
-              "claude-code"
-            ],
-            "type": "string"
-          },
-          "title": "Providers",
-          "type": "array"
         }
       },
       "required": [
@@ -26881,22 +26838,6 @@
             "codemode"
           ],
           "title": "Tool execution mode"
-        },
-        "auto_cache": {
-          "default": "off",
-          "description": "Automatic prompt caching configuration:\n- \"off\": No automatic caching\n- \"5m\": Add cache point with 5 minute TTL\n- \"1h\": Add cache point with 1 hour TTL",
-          "enum": [
-            "off",
-            "5m",
-            "1h"
-          ],
-          "examples": [
-            "off",
-            "5m",
-            "1h"
-          ],
-          "title": "Automatic caching",
-          "type": "string"
         },
         "hooks": {
           "anyOf": [

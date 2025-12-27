@@ -77,7 +77,7 @@ if TYPE_CHECKING:
     )
     from agentpool.delegation import AgentPool, Team, TeamRun
     from agentpool.hooks import AgentHooks
-    from agentpool.models.agents import AutoCache, NativeAgentConfig, ToolMode
+    from agentpool.models.agents import NativeAgentConfig, ToolMode
     from agentpool.prompts.prompts import PromptType
     from agentpool.resource_providers import ResourceProvider
     from agentpool.ui.base import InputProvider
@@ -111,7 +111,7 @@ class AgentKwargs(TypedDict, total=False):
     input_provider: InputProvider | None
     event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None
     env: ExecutionEnvironment | None
-    auto_cache: AutoCache
+
     hooks: AgentHooks | None
     model_settings: ModelSettings | None
 
@@ -164,7 +164,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         knowledge: Knowledge | None = None,
         agent_config: NativeAgentConfig | None = None,
         env: ExecutionEnvironment | None = None,
-        auto_cache: AutoCache = "off",
         hooks: AgentHooks | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
     ) -> None:
@@ -206,7 +205,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             knowledge: Knowledge sources for this agent
             agent_config: Agent configuration
             env: Execution environment for code/command execution and filesystem access
-            auto_cache: Automatic caching configuration ("off", "5m", or "1h")
             hooks: AgentHooks instance for intercepting agent behavior at run and tool events
             tool_confirmation_mode: Tool confirmation mode
         """
@@ -283,9 +281,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Store hooks
         self.hooks = hooks
-
-        # Store auto_cache setting
-        self._auto_cache: AutoCache = auto_cache
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
@@ -778,12 +773,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             # Prepend pending context parts (content is already pydantic-ai format)
             converted = [*pending_parts, *content]
 
-            # Add CachePoint if auto_cache is enabled
-            if self._auto_cache != "off":
-                from pydantic_ai.messages import CachePoint
-
-                cache_point = CachePoint(ttl=self._auto_cache)
-                converted.append(cache_point)
             stream_events = agentlet.run_stream_events(
                 converted,
                 deps=deps,  # type: ignore[arg-type]
