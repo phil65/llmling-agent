@@ -373,6 +373,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _initialize(self) -> None:
         """Initialize the ACP connection."""
+        from importlib.metadata import metadata
+
         from acp.client.connection import ClientSideConnection
         from acp.schema import InitializeRequest
 
@@ -391,9 +393,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             input_stream=self._process.stdin,
             output_stream=self._process.stdout,
         )
+        pkg_meta = metadata("agentpool")
         init_request = InitializeRequest.create(
-            title="AgentPool",
-            version="0.1.0",
+            title=pkg_meta["Name"],
+            version=pkg_meta["Version"],
             name="agentpool",
             protocol_version=PROTOCOL_VERSION,
             terminal=self.config.allow_terminal,
