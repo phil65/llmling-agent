@@ -185,6 +185,12 @@ async def execute_introspection(ctx: AgentContext, run_ctx: RunContext[Any], cod
         if "main" not in namespace:
             return "Error: Code must define an async main() function"
         result = await namespace["main"]()
+        await ctx.events.tool_call_progress(
+            title="Executed introspection code successfully",
+            status="in_progress",
+            items=[f"```python\n{code}\n```\n\n```terminal\n{result}\n```"],
+        )
+
         return str(result) if result is not None else "Code executed successfully (no return value)"
     except Exception as e:  # noqa: BLE001
         return f"Error executing code: {type(e).__name__}: {e}"
