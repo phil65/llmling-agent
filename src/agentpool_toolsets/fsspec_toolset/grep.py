@@ -6,6 +6,8 @@ from enum import StrEnum, auto
 import re
 from typing import TYPE_CHECKING, Any
 
+import anyenv
+
 from agentpool.log import get_logger
 from agentpool_toolsets.fsspec_toolset.helpers import DEFAULT_MAX_SIZE
 
@@ -151,7 +153,10 @@ async def grep_with_subprocess(
                 "was_truncated": False,
             }
 
-        return _parse_grep_output(result.stdout or "", max_output_bytes)
+        # Use appropriate parser based on backend
+        if backend == GrepBackend.RIPGREP:
+            return _parse_ripgrep_json_output(result.stdout or "", max_output_bytes)
+        return _parse_gnu_grep_output(result.stdout or "", max_output_bytes)
 
     except Exception as e:
         logger.exception("Error running grep command")
@@ -172,11 +177,10 @@ def _build_ripgrep_command(
     use_gitignore: bool,
     context_lines: int = 0,
 ) -> list[str]:
-    """Build ripgrep command."""
+    """Build ripgrep command with JSON output."""
     cmd = [
         "rg",
-        "--line-number",
-        "--no-heading",
+        "--json",  # Use JSON output for robust parsing
         "--no-binary",
         "--max-count",
         str(max_matches + 1),  # Request one extra to detect truncation
@@ -237,33 +241,107 @@ def _build_gnu_grep_command(
     return cmd
 
 
-def _parse_grep_output(stdout: str, max_output_bytes: int) -> dict[str, Any]:
-    """Parse grep output and apply size limits.
+def _parse_ripgrep_json_output(stdout: str, max_output_bytes: int) -> dict[str, Any]:
+    """Parse ripgrep JSON output and format as markdown table.
 
-    Ripgrep/grep output format:
-    - Match lines: `file:linenum:content` (colon after line number)
-    - Context lines: `file-linenum-content` (dash after line number)
-    - Group separators: `--`
+    Ripgrep --json outputs one JSON object per line with type field:
+    - "match": actual match with path, line_number, lines.text
+    - "context": context lines around matches
+    - "begin"/"end": file boundaries
+    - "summary": final statistics
     """
     if not stdout:
         return {"matches": "", "match_count": 0, "was_truncated": False}
 
-    # Truncate to max bytes
-    truncated_output = stdout[:max_output_bytes]
-    was_truncated = len(stdout) > max_output_bytes
+    matches: list[dict[str, Any]] = []
+    total_bytes = 0
+    was_truncated = False
 
-    # Count actual matches (lines with `:` after line number, not context lines with `-`)
-    # Ripgrep/grep output formats:
-    #   With filepath: "path/file.py:123:content" (match) vs "path/file.py-120-content" (context)
-    #   Single file:   "123:content" (match) vs "120-content" (context)
-    #   Windows:       "C:\path\file.py:123:content"
-    # Pattern matches: starts with digits followed by colon, OR contains colon-digits-colon
-    match_line_pattern = re.compile(r"^\d+:|:\d+:")
-    match_count = sum(1 for line in stdout.splitlines() if match_line_pattern.search(line))
+    for line in stdout.splitlines():
+        if not line.strip():
+            continue
+        try:
+            data = anyenv.load_json(line, return_type=dict)
+            if data.get("type") == "match":
+                match_data = data.get("data", {})
+                path = match_data.get("path", {}).get("text", "")
+                line_num = match_data.get("line_number", 0)
+                content = match_data.get("lines", {}).get("text", "").rstrip("\n")
+
+                match_entry = {"path": path, "line": line_num, "content": content}
+                entry_size = len(path) + len(str(line_num)) + len(content) + 10
+
+                if total_bytes + entry_size > max_output_bytes:
+                    was_truncated = True
+                    break
+
+                matches.append(match_entry)
+                total_bytes += entry_size
+        except anyenv.JsonLoadError:
+            continue
+
+    # Format as markdown table
+    if not matches:
+        return {"matches": "", "match_count": 0, "was_truncated": False}
+
+    table_lines = ["| File | Line | Content |", "|------|------|---------|"]
+    for m in matches:
+        # Escape pipe characters in content for markdown table
+        content = m["content"].replace("|", "\\|")
+        # Truncate long lines for readability
+        if len(content) > 100:
+            content = content[:97] + "..."
+        table_lines.append(f"| {m['path']} | {m['line']} | {content} |")
 
     return {
-        "matches": truncated_output,
-        "match_count": match_count,
+        "matches": "\n".join(table_lines),
+        "match_count": len(matches),
+        "was_truncated": was_truncated,
+    }
+
+
+def _parse_gnu_grep_output(stdout: str, max_output_bytes: int) -> dict[str, Any]:
+    """Parse GNU grep output and format as markdown table.
+
+    GNU grep output format: `file:linenum:content`
+    """
+    if not stdout:
+        return {"matches": "", "match_count": 0, "was_truncated": False}
+
+    matches: list[dict[str, Any]] = []
+    total_bytes = 0
+    was_truncated = False
+    # Pattern: path:line_number:content (handles most cases)
+    line_pattern = re.compile(r"^(.+?):(\d+):(.*)$")
+
+    for line in stdout.splitlines():
+        if not line.strip() or line == "--":
+            continue
+        match = line_pattern.match(line)
+        if match:
+            path, line_num, content = match.groups()
+            entry_size = len(path) + len(line_num) + len(content) + 10
+
+            if total_bytes + entry_size > max_output_bytes:
+                was_truncated = True
+                break
+
+            matches.append({"path": path, "line": int(line_num), "content": content})
+            total_bytes += entry_size
+
+    if not matches:
+        return {"matches": "", "match_count": 0, "was_truncated": False}
+
+    table_lines = ["| File | Line | Content |", "|------|------|---------|"]
+    for m in matches:
+        content = m["content"].replace("|", "\\|")
+        if len(content) > 100:
+            content = content[:97] + "..."
+        table_lines.append(f"| {m['path']} | {m['line']} | {content} |")
+
+    return {
+        "matches": "\n".join(table_lines),
+        "match_count": len(matches),
         "was_truncated": was_truncated,
     }
 
@@ -292,7 +370,7 @@ async def grep_with_fsspec(
         context_lines: Number of context lines before/after match
 
     Returns:
-        Dictionary with matches grouped by file
+        Dictionary with matches as markdown table
     """
     try:
         flags = 0 if case_sensitive else re.IGNORECASE
@@ -304,12 +382,13 @@ async def grep_with_fsspec(
         glob_path = f"{path.rstrip('/')}/{file_pattern}"
         file_paths = await fs._glob(glob_path)
 
-        matches: dict[str, list[dict[str, Any]]] = {}
-        total_matches = 0
+        matches: list[dict[str, Any]] = []
         total_bytes = 0
+        was_truncated = False
 
         for file_path in file_paths:
-            if total_matches >= max_matches or total_bytes >= max_output_bytes:
+            if len(matches) >= max_matches or total_bytes >= max_output_bytes:
+                was_truncated = True
                 break
 
             # Skip directories
@@ -325,41 +404,47 @@ async def grep_with_fsspec(
                 text = content.decode("utf-8", errors="replace")
                 lines = text.splitlines()
 
-                file_matches: list[dict[str, Any]] = []
                 for line_num, line in enumerate(lines, 1):
-                    if total_matches >= max_matches or total_bytes >= max_output_bytes:
+                    if len(matches) >= max_matches or total_bytes >= max_output_bytes:
+                        was_truncated = True
                         break
 
                     if regex.search(line):
-                        match_info: dict[str, Any] = {
-                            "line_number": line_num,
-                            "content": line.rstrip(),
-                        }
+                        line_content = line.rstrip()
+                        entry_size = len(file_path) + len(str(line_num)) + len(line_content) + 10
 
-                        if context_lines > 0:
-                            start = max(0, line_num - 1 - context_lines)
-                            end = min(len(lines), line_num + context_lines)
-                            match_info["context_before"] = lines[start : line_num - 1]
-                            match_info["context_after"] = lines[line_num:end]
+                        if total_bytes + entry_size > max_output_bytes:
+                            was_truncated = True
+                            break
 
-                        file_matches.append(match_info)
-                        total_matches += 1
-                        total_bytes += len(line.encode("utf-8"))
-
-                if file_matches:
-                    matches[file_path] = file_matches  # pyright: ignore[reportArgumentType]
+                        matches.append({
+                            "path": file_path,
+                            "line": line_num,
+                            "content": line_content,
+                        })
+                        total_bytes += entry_size
 
             except Exception as e:  # noqa: BLE001
                 logger.debug("Error reading file during grep", file=file_path, error=str(e))
                 continue
 
-        was_truncated = total_matches >= max_matches or total_bytes >= max_output_bytes
     except Exception as e:
         logger.exception("Error in fsspec grep")
         return {"error": f"Grep failed: {e}"}
-    else:
-        return {
-            "matches": matches,
-            "match_count": total_matches,
-            "was_truncated": was_truncated,
-        }
+
+    # Format as markdown table
+    if not matches:
+        return {"matches": "", "match_count": 0, "was_truncated": False}
+
+    table_lines = ["| File | Line | Content |", "|------|------|---------|"]
+    for m in matches:
+        content = m["content"].replace("|", "\\|")
+        if len(content) > 100:
+            content = content[:97] + "..."
+        table_lines.append(f"| {m['path']} | {m['line']} | {content} |")
+
+    return {
+        "matches": "\n".join(table_lines),
+        "match_count": len(matches),
+        "was_truncated": was_truncated,
+    }

@@ -745,33 +745,6 @@ class FSSpecTools(ResourceProvider):
             if not matches:
                 output = f"No matches found for pattern '{pattern}'"
             else:
-                # Format matches based on type (string from subprocess, dict from fsspec)
-                if isinstance(matches, dict):
-                    # Format fsspec dict results with context support
-                    formatted_lines = []
-                    for file_path, file_matches in matches.items():
-                        for match in file_matches:
-                            line_num = match.get("line_number", 0)
-                            content = match.get("content", "")
-                            # Add context before if present
-                            if context_before := match.get("context_before"):
-                                for i, ctx_line in enumerate(context_before):
-                                    ctx_line_num = line_num - len(context_before) + i
-                                    formatted_lines.append(f"{file_path}:{ctx_line_num}-{ctx_line}")
-                            # Add the matching line
-                            formatted_lines.append(f"{file_path}:{line_num}:{content}")
-                            # Add context after if present
-                            if context_after := match.get("context_after"):
-                                for i, ctx_line in enumerate(context_after):
-                                    ctx_line_num = line_num + 1 + i
-                                    formatted_lines.append(f"{file_path}:{ctx_line_num}-{ctx_line}")
-                            # Add separator between matches with context
-                            if context_before or context_after:
-                                formatted_lines.append("--")
-                    # Remove trailing separator
-                    if formatted_lines and formatted_lines[-1] == "--":
-                        formatted_lines.pop()
-                    matches = "\n".join(formatted_lines)
                 output = f"Found {match_count} matches:\n\n{matches}"
                 if was_truncated:
                     output += "\n\n[Results truncated]"
