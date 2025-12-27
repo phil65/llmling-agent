@@ -272,6 +272,7 @@ minversion = "9.0"
 python_files = ["test_*.py"]
 pythonpath = ["src"]
 testpaths = ["tests"]
+timeout = "60"
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "auto"
 
