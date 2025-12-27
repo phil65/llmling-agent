@@ -8,12 +8,15 @@ from agentpool.agents.events import (
     CustomEvent,
     LocationContentItem,
     PlanUpdateEvent,
+    TextContentItem,
     ToolCallProgressEvent,
     ToolCallStartEvent,
 )
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent, ToolCallContentItem
     from agentpool.resource_providers.plan_provider import PlanEntry
@@ -78,7 +81,7 @@ class StreamEventEmitter:
         title: str,
         *,
         status: Literal["pending", "in_progress", "completed", "failed"] = "in_progress",
-        items: list[ToolCallContentItem] | None = None,
+        items: Sequence[ToolCallContentItem | str] | None = None,
         replace_content: bool = False,
     ) -> None:
         """Emit a progress event.
@@ -94,7 +97,7 @@ class StreamEventEmitter:
             tool_name=self._context.tool_name,
             status=status,
             title=title,
-            items=items or [],
+            items=[TextContentItem(text=i) if isinstance(i, str) else i for i in items or []],
             replace_content=replace_content,
         )
         await self._emit(event)
