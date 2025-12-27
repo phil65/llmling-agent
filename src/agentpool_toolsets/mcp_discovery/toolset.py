@@ -1,0 +1,368 @@
+"""MCP Discovery Toolset - dynamic MCP server exploration and tool execution.
+
+This toolset provides a stable interface for agents to discover and use MCP servers
+on-demand without needing to preload all tools upfront. This preserves prompt cache
+stability while enabling access to the entire MCP ecosystem.
+
+The toolset exposes three main capabilities:
+1. search_mcp_servers - Find servers by keyword (no connection needed)
+2. list_mcp_tools - Get tools from a specific server (connects on-demand)
+3. call_mcp_tool - Execute a tool on any server (reuses connections)
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+from agentpool.log import get_logger
+from agentpool.mcp_server.client import MCPClient
+from agentpool.mcp_server.registries.official_registry_client import (
+    MCPRegistryClient,
+    MCPRegistryError,
+)
+from agentpool.resource_providers import ResourceProvider
+
+
+if TYPE_CHECKING:
+    from agentpool.agents.context import AgentContext
+    from agentpool.mcp_server.registries.official_registry_client import RegistryServer
+    from agentpool.tools.base import Tool
+    from agentpool_config.mcp_server import MCPServerConfig
+
+
+logger = get_logger(__name__)
+
+
+class MCPDiscoveryToolset(ResourceProvider):
+    """Toolset for dynamic MCP server discovery and tool execution.
+
+    This toolset allows agents to:
+    - Search the MCP registry for servers by keyword
+    - List tools available on a specific server
+    - Call tools on any server without preloading
+
+    Connections are managed lazily - servers are only connected when needed,
+    and connections are kept alive for the session duration.
+    """
+
+    def __init__(
+        self,
+        name: str = "mcp_discovery",
+        registry_url: str = "https://registry.modelcontextprotocol.io",
+        allowed_servers: list[str] | None = None,
+        blocked_servers: list[str] | None = None,
+    ) -> None:
+        """Initialize the MCP Discovery toolset.
+
+        Args:
+            name: Name for this toolset provider
+            registry_url: Base URL for the MCP registry API
+            allowed_servers: If set, only these server names can be used
+            blocked_servers: Server names that cannot be used
+        """
+        super().__init__(name=name)
+        self._registry_url = registry_url
+        self._registry: MCPRegistryClient | None = None
+        self._connections: dict[str, MCPClient] = {}
+        self._server_cache: dict[str, RegistryServer] = {}
+        self._tools_cache: dict[str, list[dict[str, Any]]] = {}
+        self._allowed_servers = set(allowed_servers) if allowed_servers else None
+        self._blocked_servers = set(blocked_servers) if blocked_servers else set()
+        self._tools: list[Tool] | None = None
+
+    def _get_registry(self) -> MCPRegistryClient:
+        """Get or create the registry client."""
+        if self._registry is None:
+            self._registry = MCPRegistryClient(base_url=self._registry_url)
+        return self._registry
+
+    def _is_server_allowed(self, server_name: str) -> bool:
+        """Check if a server is allowed to be used."""
+        if server_name in self._blocked_servers:
+            return False
+        if self._allowed_servers is not None:
+            return server_name in self._allowed_servers
+        return True
+
+    async def _get_server_config(self, server_name: str) -> MCPServerConfig:
+        """Get connection config for a server from the registry."""
+        from agentpool_config.mcp_server import (
+            SSEMCPServerConfig,
+            StreamableHTTPMCPServerConfig,
+        )
+
+        # Check cache first
+        if server_name in self._server_cache:
+            server = self._server_cache[server_name]
+        else:
+            # Use list_servers and find by name - more reliable than get_server
+            registry = self._get_registry()
+            all_servers = await registry.list_servers()
+            server = None
+            for s in all_servers:
+                if s.name == server_name:
+                    server = s
+                    break
+            if server is None:
+                msg = f"Server {server_name!r} not found in registry"
+                raise MCPRegistryError(msg)
+            self._server_cache[server_name] = server
+
+        # Find a usable remote endpoint
+        for remote in server.remotes:
+            if remote.type == "sse":
+                return SSEMCPServerConfig(url=remote.url)  # type: ignore[arg-type]
+            if remote.type in ("streamable-http", "http"):
+                return StreamableHTTPMCPServerConfig(url=remote.url)  # type: ignore[arg-type]
+
+        msg = f"No supported remote transport for server {server_name!r}"
+        raise MCPRegistryError(msg)
+
+    async def _get_connection(self, server_name: str) -> MCPClient:
+        """Get or create a connection to a server."""
+        if server_name in self._connections:
+            client = self._connections[server_name]
+            if client.connected:
+                return client
+            # Connection dropped, remove and reconnect
+            del self._connections[server_name]
+
+        config = await self._get_server_config(server_name)
+        client = MCPClient(config=config)
+        await client.__aenter__()
+        self._connections[server_name] = client
+        logger.info("Connected to MCP server", server=server_name)
+        return client
+
+    async def _close_connections(self) -> None:
+        """Close all active connections."""
+        for name, client in list(self._connections.items()):
+            try:
+                await client.__aexit__(None, None, None)
+                logger.debug("Closed connection", server=name)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Error closing connection", server=name, error=e)
+        self._connections.clear()
+
+    async def get_tools(self) -> list[Tool]:
+        """Get the discovery tools."""
+        if self._tools is not None:
+            return self._tools
+
+        self._tools = [
+            self.create_tool(
+                self.search_mcp_servers,
+                category="search",
+                read_only=True,
+                idempotent=True,
+            ),
+            self.create_tool(
+                self.list_mcp_tools,
+                category="search",
+                read_only=True,
+                idempotent=True,
+            ),
+            self.create_tool(
+                self.call_mcp_tool,
+                category="execute",
+                open_world=True,
+            ),
+        ]
+        return self._tools
+
+    async def search_mcp_servers(  # noqa: D417
+        self,
+        agent_ctx: AgentContext,
+        query: str,
+        max_results: int = 10,
+    ) -> str:
+        """Search the MCP registry for servers matching a query.
+
+        Use this to discover what MCP servers are available. The search looks at
+        server names and descriptions. No connection is made to the servers.
+
+        Args:
+            query: Search term (e.g., "github", "filesystem", "database")
+            max_results: Maximum number of results to return
+
+        Returns:
+            List of matching servers with names and descriptions
+        """
+        await agent_ctx.events.tool_call_start(
+            title=f"Searching MCP servers: {query}",
+            kind="search",
+        )
+
+        try:
+            registry = self._get_registry()
+            servers = await registry.list_servers(search=query)
+
+            # Filter by allowed/blocked
+            servers = [s for s in servers if self._is_server_allowed(s.name)]
+
+            # Limit results
+            servers = servers[:max_results]
+
+            if not servers:
+                return f"No MCP servers found matching '{query}'"
+
+            # Format results
+            lines = [f"Found {len(servers)} MCP servers matching '{query}':\n"]
+            for server in servers:
+                lines.append(f"**{server.name}** (v{server.version})")
+                lines.append(f"  {server.description}")
+                # Show available transports
+                transports = []
+                if server.remotes:
+                    transports.extend(r.type for r in server.remotes)
+                if transports:
+                    lines.append(f"  Transports: {', '.join(transports)}")
+                lines.append("")
+
+            return "\n".join(lines)
+
+        except MCPRegistryError as e:
+            return f"Error searching registry: {e}"
+        except Exception as e:
+            logger.exception("Error searching MCP servers")
+            return f"Error searching MCP servers: {e}"
+
+    async def list_mcp_tools(  # noqa: D417
+        self,
+        agent_ctx: AgentContext,
+        server_name: str,
+    ) -> str:
+        """List all tools available on a specific MCP server.
+
+        This connects to the server (if not already connected) and retrieves
+        the list of available tools with their descriptions and parameters.
+
+        Args:
+            server_name: Name of the MCP server (e.g., "com.github/github")
+
+        Returns:
+            List of tools with names, descriptions, and parameter schemas
+        """
+        await agent_ctx.events.tool_call_start(
+            title=f"Listing tools from: {server_name}",
+            kind="search",
+        )
+
+        if not self._is_server_allowed(server_name):
+            return f"Error: Server '{server_name}' is not allowed"
+
+        try:
+            # Check tools cache first
+            if server_name in self._tools_cache:
+                tools_data = self._tools_cache[server_name]
+            else:
+                client = await self._get_connection(server_name)
+                mcp_tools = await client.list_tools()
+
+                # Convert to serializable format and cache
+                tools_data = []
+                for tool in mcp_tools:
+                    tool_info: dict[str, Any] = {
+                        "name": tool.name,
+                        "description": tool.description or "No description",
+                    }
+                    # Include parameter info
+                    if tool.inputSchema:
+                        props = tool.inputSchema.get("properties", {})
+                        required = set(tool.inputSchema.get("required", []))
+                        params = []
+                        for pname, pschema in props.items():
+                            param_str = pname
+                            if pname in required:
+                                param_str += " (required)"
+                            if "type" in pschema:
+                                param_str += f": {pschema['type']}"
+                            if "description" in pschema:
+                                param_str += f" - {pschema['description']}"
+                            params.append(param_str)
+                        if params:
+                            tool_info["parameters"] = params
+                    tools_data.append(tool_info)
+
+                self._tools_cache[server_name] = tools_data
+
+            if not tools_data:
+                return f"No tools found on server '{server_name}'"
+
+            # Format output
+            lines = [f"Tools available on **{server_name}** ({len(tools_data)} tools):\n"]
+            for tool in tools_data:
+                lines.append(f"### {tool['name']}")
+                lines.append(f"{tool['description']}")
+                if "parameters" in tool:
+                    lines.append("Parameters:")
+                    lines.extend(f"  - {param}" for param in tool["parameters"])
+                lines.append("")
+
+            return "\n".join(lines)
+
+        except MCPRegistryError as e:
+            return f"Error: {e}"
+        except Exception as e:
+            logger.exception("Error listing MCP tools", server=server_name)
+            return f"Error listing tools from '{server_name}': {e}"
+
+    async def call_mcp_tool(  # noqa: D417
+        self,
+        agent_ctx: AgentContext,
+        server_name: str,
+        tool_name: str,
+        arguments: dict[str, Any] | None = None,
+    ) -> str | Any:
+        """Call a tool on an MCP server.
+
+        Use this to execute a specific tool on an MCP server. The server
+        connection is reused if already established.
+
+        Args:
+            server_name: Name of the MCP server (e.g., "com.github/github")
+            tool_name: Name of the tool to call
+            arguments: Arguments to pass to the tool
+
+        Returns:
+            The result from the tool execution
+        """
+        await agent_ctx.events.tool_call_start(
+            title=f"Calling {tool_name} on {server_name}",
+            kind="execute",
+        )
+
+        if not self._is_server_allowed(server_name):
+            return f"Error: Server '{server_name}' is not allowed"
+
+        try:
+            client = await self._get_connection(server_name)
+
+            # Extract text content from result
+            from mcp.types import TextContent
+
+            result = await client._client.call_tool(tool_name, arguments or {})
+
+            # Process result content
+            text_parts = [
+                content.text for content in result.content if isinstance(content, TextContent)
+            ]
+
+            if text_parts:
+                return "\n".join(text_parts)
+
+            # Return raw result if no text content
+            return str(result)
+
+        except MCPRegistryError as e:
+            return f"Error: {e}"
+        except Exception as e:
+            logger.exception("Error calling MCP tool", server=server_name, tool=tool_name)
+            return f"Error calling '{tool_name}' on '{server_name}': {e}"
+
+    async def cleanup(self) -> None:
+        """Clean up resources."""
+        await self._close_connections()
+        if self._registry:
+            await self._registry.close()
+            self._registry = None
