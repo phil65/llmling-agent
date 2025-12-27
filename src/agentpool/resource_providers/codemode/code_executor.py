@@ -7,6 +7,8 @@ import contextlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Self
 
+import anyio
+
 from agentpool.log import get_logger
 
 
@@ -151,13 +153,13 @@ class ToolServerLifecycleHandler:
         # Start server in background with our socket
         self._server_task = asyncio.create_task(self.server.serve([self._socket]))
         logger.info("Started tool server", host=self.host, port=self.port)
-        await asyncio.sleep(0.1)  # Wait for server to start properly
+        await anyio.sleep(0.1)  # Wait for server to start properly
         # Verify server is running
         max_retries = 10
         for _ in range(max_retries):
             if self.server.started:
                 break
-            await asyncio.sleep(0.1)
+            await anyio.sleep(0.1)
 
         return ServerInfo(url=f"http://{self.host}:{self.port}", port=self.port)
 
@@ -210,4 +212,4 @@ if __name__ == "__main__":
             result = await provider.execute_code("_result = await add_numbers(5, 3)")
             print(f"Result: {result.result}")
 
-    asyncio.run(main())
+    anyio.run(main)
