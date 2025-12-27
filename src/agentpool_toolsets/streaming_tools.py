@@ -51,7 +51,7 @@ from pydantic_ai import PartDeltaEvent, TextPartDelta
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable
 
-    from pydantic_ai.messages import ModelResponse
+    from pydantic_ai.messages import ModelRequest, ModelResponse
 
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.context import AgentContext
@@ -196,8 +196,6 @@ def _create_forked_history(agent: BaseAgent) -> MessageHistory:
     The fork preserves full context for cache benefits while isolating
     new messages from the main conversation.
     """
-    from pydantic_ai.messages import ModelRequest
-
     from agentpool.messaging import ChatMessage, MessageHistory
 
     current_history = agent.conversation.get_history()
@@ -207,11 +205,6 @@ def _create_forked_history(agent: BaseAgent) -> MessageHistory:
         all_messages: list[ModelRequest | ModelResponse] = []
         for msg in current_history:
             all_messages.extend(msg.to_pydantic_ai())
-
-        # Add CachePoint at the end to cache everything up to this point
-        # if all_messages and isinstance(agent, Agent):
-        #     cache_request: ModelRequest = ModelRequest(parts=[CachePoint()])  # type: ignore[list-item]
-        #     all_messages.append(cache_request)
 
         # Wrap in a single ChatMessage for the forked history
         return MessageHistory(
@@ -229,19 +222,9 @@ async def _create_chunk_stream(stream: Any) -> AsyncIterator[StreamChunk]:
         match node:
             case PartDeltaEvent(delta=TextPartDelta(content_delta=text)):
                 accumulated += text
+                yield StreamChunk(text=text, accumulated=accumulated, is_complete=False)
 
-                yield StreamChunk(
-                    text=text,
-                    accumulated=accumulated,
-                    is_complete=False,
-                )
-
-    # Final chunk
-    yield StreamChunk(
-        text="",
-        accumulated=accumulated,
-        is_complete=True,
-    )
+    yield StreamChunk(text="", accumulated=accumulated, is_complete=True)
 
 
 def _build_default_prompt(description: str, **kwargs: Any) -> str:

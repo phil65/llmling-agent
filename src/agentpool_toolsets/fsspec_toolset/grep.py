@@ -289,7 +289,7 @@ def _parse_ripgrep_json_output(stdout: str, max_output_bytes: int) -> dict[str, 
         # Escape pipe characters in content for markdown table
         content = m["content"].replace("|", "\\|")
         # Truncate long lines for readability
-        if len(content) > 100:
+        if len(content) > 100:  # noqa: PLR2004
             content = content[:97] + "..."
         table_lines.append(f"| {m['path']} | {m['line']} | {content} |")
 
@@ -335,7 +335,7 @@ def _parse_gnu_grep_output(stdout: str, max_output_bytes: int) -> dict[str, Any]
     table_lines = ["| File | Line | Content |", "|------|------|---------|"]
     for m in matches:
         content = m["content"].replace("|", "\\|")
-        if len(content) > 100:
+        if len(content) > 100:  # noqa: PLR2004
             content = content[:97] + "..."
         table_lines.append(f"| {m['path']} | {m['line']} | {content} |")
 
@@ -439,7 +439,7 @@ async def grep_with_fsspec(
     table_lines = ["| File | Line | Content |", "|------|------|---------|"]
     for m in matches:
         content = m["content"].replace("|", "\\|")
-        if len(content) > 100:
+        if len(content) > 100:  # noqa: PLR2004
             content = content[:97] + "..."
         table_lines.append(f"| {m['path']} | {m['line']} | {content} |")
 
