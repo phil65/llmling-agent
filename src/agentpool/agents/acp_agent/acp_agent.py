@@ -676,7 +676,14 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         finish_reason: FinishReason = STOP_REASON_MAP.get(response.stop_reason, "stop")
         # Flush response parts to model_messages
         if current_response_parts:
-            model_messages.append(ModelResponse(parts=current_response_parts))
+            model_messages.append(
+                ModelResponse(
+                    parts=current_response_parts,
+                    finish_reason=finish_reason,
+                    model_name=self.model_name,
+                    provider_name=self.config.type,
+                )
+            )
 
         text_content = "".join(text_chunks)
         # Build metadata with touched files if any
