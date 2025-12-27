@@ -393,6 +393,11 @@ class CodeTools(ResourceProvider):
                 return f"No issues found in {len(file_paths)} files"
 
             formatted = diagnostics.format_diagnostics(all_diagnostics)
+            await agent_ctx.events.tool_call_progress(
+                f"Diagnostics finished. {len(all_diagnostics)} issues",
+                status="in_progress",
+                items=[formatted],
+            )
             return f"Found {len(all_diagnostics)} issues:\n{formatted}"
         # Single file
         try:
