@@ -49,6 +49,7 @@ from agentpool.agents.acp_agent.acp_converters import convert_to_acp_content, mc
 from agentpool.agents.acp_agent.client_handler import ACPClientHandler
 from agentpool.agents.acp_agent.session_state import ACPSessionState
 from agentpool.agents.base_agent import BaseAgent
+from agentpool.agents.context import reset_current_deps
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallStartEvent
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage

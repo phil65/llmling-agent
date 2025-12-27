@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from contextvars import ContextVar, Token
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
 from agentpool.log import get_logger
 from agentpool.messaging.context import NodeContext
+
+
+if TYPE_CHECKING:
+    from contextvars import Token
 
 
 # ContextVar for passing deps through async call boundaries (e.g., MCP tool bridge)

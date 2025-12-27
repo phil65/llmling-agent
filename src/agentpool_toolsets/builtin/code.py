@@ -19,9 +19,9 @@ from agentpool_toolsets.fsspec_toolset.diagnostics import DiagnosticsManager
 if TYPE_CHECKING:
     from anyenv.lsp_servers import Diagnostic
     from exxec.base import ExecutionEnvironment
+    from fsspec.asyn import AsyncFileSystem
 
     from agentpool.tools.base import Tool
-
 
 logger = get_logger(__name__)
 
