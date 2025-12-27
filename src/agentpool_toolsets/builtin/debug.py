@@ -171,6 +171,13 @@ async def execute_introspection(ctx: AgentContext, run_ctx: RunContext[Any], cod
     Returns:
         Result of execution or error message
     """
+    # Emit progress with the code being executed
+    await ctx.events.tool_call_progress(
+        title="Executing introspection code",
+        status="in_progress",
+        items=[f"```python\n{code}\n```"],
+    )
+
     # Build namespace with runtime context
     namespace: dict[str, Any] = {"ctx": ctx, "run_ctx": run_ctx, "me": ctx.agent}
     try:
