@@ -13,15 +13,21 @@ from upathtools import is_directory
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.log import get_logger
 from agentpool.resource_providers import ResourceProvider
-from agentpool_toolsets.fsspec_toolset.diagnostics import DiagnosticsManager
+from agentpool_toolsets.fsspec_toolset.diagnostics import (
+    DiagnosticsManager,
+    format_diagnostics_table,
+    format_run_summary,
+)
 
 
 if TYPE_CHECKING:
-    from anyenv.lsp_servers import Diagnostic
     from exxec.base import ExecutionEnvironment
     from fsspec.asyn import AsyncFileSystem
 
     from agentpool.tools.base import Tool
+    from agentpool_toolsets.fsspec_toolset.diagnostics import (
+        DiagnosticsConfig,
+    )
 
 logger = get_logger(__name__)
 
@@ -87,6 +93,7 @@ class CodeTools(ResourceProvider):
         env: ExecutionEnvironment | None = None,
         name: str = "code",
         cwd: str | None = None,
+        diagnostics_config: DiagnosticsConfig | None = None,
     ) -> None:
         """Initialize with an optional execution environment.
 
@@ -94,11 +101,13 @@ class CodeTools(ResourceProvider):
             env: Execution environment to operate on. If None, falls back to agent.env
             name: Name for this toolset provider
             cwd: Optional cwd to resolve relative paths against (falls back to env.cwd)
+            diagnostics_config: Configuration for diagnostic tools (server selection, etc.)
         """
         super().__init__(name=name)
 
         self._explicit_env = env
         self._explicit_cwd = cwd
+        self._diagnostics_config = diagnostics_config
         self._tools: list[Tool] | None = None
 
     def _get_env(self, agent_ctx: AgentContext) -> ExecutionEnvironment | None:
@@ -357,10 +366,28 @@ class CodeTools(ResourceProvider):
         fs = self._get_fs(agent_ctx)
         env = self._get_env(agent_ctx)
 
-        # Create diagnostics manager with current env
         if not env:
             return "Diagnostics unavailable: no execution environment configured"
-        diagnostics = DiagnosticsManager(env)
+
+        # Create diagnostics manager with config
+        manager = DiagnosticsManager(env, config=self._diagnostics_config)
+
+        # Progress callback that emits tool_call_progress events
+        async def progress_callback(
+            message: str,
+            *,
+            server_id: str | None = None,
+            command: str | None = None,
+            status: str = "running",
+        ) -> None:
+            items = []
+            if command:
+                items.append(f"```bash\n{command}\n```")
+            await agent_ctx.events.tool_call_progress(
+                message,
+                status="in_progress",
+                items=items if items else None,
+            )
 
         # Check if path is directory or file
         try:
@@ -372,11 +399,10 @@ class CodeTools(ResourceProvider):
             # Collect all files in directory
             try:
                 files = await fs._find(resolved, detail=True)
-                # Filter to only include files (not directories)
                 file_paths = [
-                    path
-                    for path, info in files.items()  # pyright: ignore[reportAttributeAccessIssue]
-                    if not await is_directory(fs, path, entry_type=info["type"])
+                    p
+                    for p, info in files.items()  # pyright: ignore[reportAttributeAccessIssue]
+                    if not await is_directory(fs, p, entry_type=info["type"])
                 ]
             except Exception as e:  # noqa: BLE001
                 return f"Error scanning directory: {e}"
@@ -384,31 +410,28 @@ class CodeTools(ResourceProvider):
             if not file_paths:
                 return f"No files found in: {path}"
 
-            all_diagnostics: list[Diagnostic] = []
-            for file_path in file_paths:
-                file_diagnostics = await diagnostics.run_for_file(file_path)
-                all_diagnostics.extend(file_diagnostics)
+            result = await manager.run_for_files(file_paths, progress=progress_callback)
+        else:
+            # Single file
+            try:
+                result = await manager.run_for_file(resolved, progress=progress_callback)
+            except FileNotFoundError:
+                return f"File not found: {path}"
+            except Exception as e:  # noqa: BLE001
+                return f"Error running diagnostics: {e}"
 
-            if not all_diagnostics:
-                return f"No issues found in {len(file_paths)} files"
+        # Format output
+        if not result.diagnostics:
+            summary = format_run_summary(result)
+            return f"No issues found. {summary}"
 
-            formatted = diagnostics.format_diagnostics(all_diagnostics)
-            await agent_ctx.events.tool_call_progress(
-                f"Diagnostics finished. {len(all_diagnostics)} issues",
-                status="in_progress",
-                items=[formatted],
-            )
-            return f"Found {len(all_diagnostics)} issues:\n{formatted}"
-        # Single file
-        try:
-            file_diagnostics = await diagnostics.run_for_file(resolved)
-        except FileNotFoundError:
-            return f"File not found: {path}"
-        except Exception as e:  # noqa: BLE001
-            return f"Error running diagnostics: {e}"
+        formatted = format_diagnostics_table(result.diagnostics)
+        summary = format_run_summary(result)
 
-        if not file_diagnostics:
-            return f"No issues found in: {path}"
+        await agent_ctx.events.tool_call_progress(
+            summary,
+            status="in_progress",
+            items=[formatted],
+        )
 
-        formatted = diagnostics.format_diagnostics(file_diagnostics)
-        return f"Found {len(file_diagnostics)} issues:\n{formatted}"
+        return f"{summary}\n\n{formatted}"

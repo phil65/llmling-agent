@@ -28,7 +28,11 @@ from agentpool.mime_utils import guess_type, is_binary_content, is_binary_mime
 from agentpool.resource_providers import ResourceProvider
 from agentpool_toolsets.builtin.file_edit import replace_content
 from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import StreamingFuzzyMatcher
-from agentpool_toolsets.fsspec_toolset.diagnostics import DiagnosticsManager
+from agentpool_toolsets.fsspec_toolset.diagnostics import (
+    DiagnosticsConfig,
+    DiagnosticsManager,
+    format_diagnostics_table,
+)
 from agentpool_toolsets.fsspec_toolset.grep import GrepBackend
 from agentpool_toolsets.fsspec_toolset.helpers import (
     format_directory_listing,
@@ -139,11 +143,15 @@ class FSSpecTools(ResourceProvider):
         fs = agent_ctx.agent.env.get_fs()
         return fs if isinstance(fs, AsyncFileSystem) else AsyncFileSystemWrapper(fs)
 
-    def _get_diagnostics_manager(self, agent_ctx: AgentContext) -> DiagnosticsManager:
+    def _get_diagnostics_manager(self, agent_ctx: AgentContext) -> DiagnosticsManager | None:
         """Get or create the diagnostics manager."""
+        if not self._enable_diagnostics:
+            return None
         if self._diagnostics is None:
             env = self.execution_env or agent_ctx.agent.env
-            self._diagnostics = DiagnosticsManager(env if self._enable_diagnostics else None)
+            # Default to rust-only for fast feedback after edits
+            config = DiagnosticsConfig(rust_only=True, max_servers_per_language=1)
+            self._diagnostics = DiagnosticsManager(env, config=config)
         return self._diagnostics
 
     async def _run_diagnostics(self, agent_ctx: AgentContext, path: str) -> str | None:
@@ -151,12 +159,12 @@ class FSSpecTools(ResourceProvider):
 
         Returns formatted diagnostics string if issues found, None otherwise.
         """
-        if not self._enable_diagnostics:
-            return None
         mgr = self._get_diagnostics_manager(agent_ctx)
-        diagnostics = await mgr.run_for_file(path)
-        if diagnostics:
-            return mgr.format_diagnostics(diagnostics)
+        if mgr is None:
+            return None
+        result = await mgr.run_for_file(path)
+        if result.diagnostics:
+            return format_diagnostics_table(result.diagnostics)
         return None
 
     async def _get_file_map(self, path: str, agent_ctx: AgentContext) -> str | None:
