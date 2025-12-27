@@ -13,7 +13,6 @@ from exxec.configs import (
     ExecutionEnvironmentConfig,  # noqa: TC002
 )
 from pydantic import ConfigDict, Field
-from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
 from agentpool_config.nodes import NodeConfig
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
@@ -239,15 +238,6 @@ class BaseACPAgentConfig(NodeConfig):
             return get_environment(self.client_execution_environment)
         return self.client_execution_environment.get_provider()
 
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Return the model providers used by this ACP agent.
-
-        Override in subclasses to specify which providers the agent uses.
-        Used for intelligent model discovery and fallback configuration.
-        """
-        return []
-
 
 class ACPAgentConfig(BaseACPAgentConfig):
     """Configuration for a custom ACP agent with explicit command.
@@ -285,18 +275,6 @@ class ACPAgentConfig(BaseACPAgentConfig):
         examples=[["--mode", "coding"], ["--debug", "--verbose"]],
     )
     """Arguments to pass to the command."""
-
-    providers: list[ProviderType] = Field(
-        default_factory=list,
-        title="Providers",
-        examples=[["openai", "anthropic"], ["gemini"]],
-    )
-    """Model providers this agent can use."""
-
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Return configured providers for custom ACP agents."""
-        return list(self.providers)
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""

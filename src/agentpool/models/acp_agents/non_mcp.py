@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
-from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
 from agentpool.models.acp_agents.base import BaseACPAgentConfig
 
@@ -85,11 +84,6 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "npx"
 
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Codex uses OpenAI models."""
-        return ["openai"]
-
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
         args: list[str] = ["@zed-industries/codex-acp"]
@@ -142,11 +136,6 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
             args.extend(["--cwd", self.cwd])
         return args
 
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """OpenCode supports multiple providers."""
-        return ["openai", "anthropic", "gemini", "openrouter"]
-
 
 class GooseACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Goose via ACP.
@@ -176,11 +165,6 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
         """Build command arguments from settings."""
         return ["acp"]
 
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Goose supports multiple providers."""
-        return ["openai", "anthropic", "gemini", "openrouter"]
-
 
 class MistralACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Mistral Agent via ACP.
@@ -207,11 +191,6 @@ class MistralACPAgentConfig(BaseACPAgentConfig):
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
         return []
-
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Goose supports multiple providers."""
-        return ["mistral"]
 
 
 class OpenHandsACPAgentConfig(BaseACPAgentConfig):
@@ -241,11 +220,6 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
         return ["acp"]
-
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """OpenHands supports multiple providers."""
-        return ["openai", "anthropic", "gemini", "openrouter"]
 
 
 class AmpACPAgentConfig(BaseACPAgentConfig):
@@ -291,11 +265,6 @@ class AmpACPAgentConfig(BaseACPAgentConfig):
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments for amp-acp bridge."""
         return ["-y", "amp-acp"]
-
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Amp supports multiple providers."""
-        return ["openai", "anthropic", "gemini"]
 
 
 class CagentACPAgentConfig(BaseACPAgentConfig):
@@ -392,11 +361,6 @@ class CagentACPAgentConfig(BaseACPAgentConfig):
             args.extend(["--log-file", self.log_file])
 
         return args
-
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Cagent supports multiple providers via MCP."""
-        return ["openai", "anthropic", "gemini"]
 
 
 class StakpakACPAgentConfig(BaseACPAgentConfig):
@@ -537,11 +501,6 @@ class StakpakACPAgentConfig(BaseACPAgentConfig):
             args.extend(["--config", self.config])
 
         return args
-
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Stakpak supports multiple providers."""
-        return ["openai", "anthropic", "gemini"]
 
 
 class VTCodeACPAgentConfig(BaseACPAgentConfig):
@@ -691,11 +650,6 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
 
         return args
 
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """VT Code supports multiple providers."""
-        return ["openai", "anthropic", "gemini"]
-
 
 class CursorACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Cursor via ACP.
@@ -748,25 +702,13 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
     )
     """Session storage directory (default: ~/.cursor-sessions)."""
 
-    timeout: int | None = Field(
-        default=None,
-        title="Timeout",
-        examples=[30000, 60000],
-    )
+    timeout: int | None = Field(default=None, title="Timeout", examples=[30000, 60000])
     """Cursor-agent timeout in milliseconds (default: 30000)."""
 
-    retries: int | None = Field(
-        default=None,
-        title="Retries",
-        examples=[3, 5],
-    )
+    retries: int | None = Field(default=None, title="Retries", examples=[3, 5])
     """Number of retries for cursor-agent commands (default: 3)."""
 
-    max_sessions: int | None = Field(
-        default=None,
-        title="Max Sessions",
-        examples=[100, 200],
-    )
+    max_sessions: int | None = Field(default=None, title="Max Sessions", examples=[100, 200])
     """Maximum number of concurrent sessions (default: 100)."""
 
     session_timeout: int | None = Field(
@@ -782,11 +724,7 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
     no_terminal: bool = Field(default=False, title="No Terminal")
     """Disable terminal tools."""
 
-    max_processes: int | None = Field(
-        default=None,
-        title="Max Processes",
-        examples=[5, 10],
-    )
+    max_processes: int | None = Field(default=None, title="Max Processes", examples=[5, 10])
     """Maximum number of terminal processes (default: 5)."""
 
     def get_command(self) -> str:
@@ -820,11 +758,6 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
         if self.max_processes is not None:
             args.extend(["--max-processes", str(self.max_processes)])
         return args
-
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Cursor supports multiple providers."""
-        return ["openai", "anthropic", "gemini", "openrouter"]
 
 
 # Union of all ACP agent config types

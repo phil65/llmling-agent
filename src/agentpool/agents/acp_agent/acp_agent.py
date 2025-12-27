@@ -70,7 +70,6 @@ if TYPE_CHECKING:
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import FinishReason
-    from tokonomics.model_discovery import ProviderType
 
     from acp.agent.protocol import Agent as ACPAgentProtocol
     from acp.client.connection import ClientSideConnection
@@ -166,7 +165,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         env: ExecutionEnvironment | None = None,
         allow_file_operations: bool = True,
         allow_terminal: bool = True,
-        providers: list[ProviderType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
@@ -189,7 +187,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         env: ExecutionEnvironment | None = None,
         allow_file_operations: bool = True,
         allow_terminal: bool = True,
-        providers: list[ProviderType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
@@ -213,7 +210,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 allow_file_operations=allow_file_operations,
                 allow_terminal=allow_terminal,
                 requires_tool_confirmation=tool_confirmation_mode,
-                providers=list(providers) if providers else [],
             )
 
         super().__init__(

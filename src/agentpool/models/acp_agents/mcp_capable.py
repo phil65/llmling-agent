@@ -6,7 +6,6 @@ import json
 from typing import TYPE_CHECKING, Any, Literal, assert_never, cast
 
 from pydantic import BaseModel, ConfigDict, Field
-from tokonomics.model_discovery import ProviderType  # noqa: TC002
 
 from agentpool.models.acp_agents.base import BaseACPAgentConfig
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
@@ -288,11 +287,6 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
         model_cls = cast(type[BaseModel], self.output_type.response_schema.get_schema())
         return json.dumps(model_cls.model_json_schema())
 
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Claude Code uses Anthropic models."""
-        return ["anthropic"]
-
 
 class GeminiACPAgentConfig(MCPCapableACPAgentConfig):
     """Configuration for Gemini CLI via ACP.
@@ -378,11 +372,6 @@ class GeminiACPAgentConfig(MCPCapableACPAgentConfig):
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
         return "gemini"
-
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Gemini CLI uses Google Gemini models."""
-        return ["gemini"]
 
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
@@ -512,11 +501,6 @@ class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
             args.extend(["--auth", self.auth])
 
         return args
-
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """fast-agent supports multiple providers."""
-        return ["openai", "anthropic", "gemini", "openrouter"]
 
 
 class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
@@ -681,11 +665,6 @@ class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
 
         return args
 
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Auggie uses Augment Code's models."""
-        return []
-
 
 class KimiACPAgentConfig(MCPCapableACPAgentConfig):
     """Configuration for Kimi CLI via ACP.
@@ -773,11 +752,6 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
             args.append("--thinking")
 
         return args
-
-    @property
-    def model_providers(self) -> list[ProviderType]:
-        """Kimi uses Moonshot AI's models."""
-        return []
 
 
 # Union of all ACP agent config types
