@@ -27,8 +27,31 @@ else:
 @duty(capture=False)
 def build(ctx, *args: str):
     """Build documentation."""
+    import subprocess
+
     args_str = " " + " ".join(args) if args else ""
-    ctx.run(f"uv run zensical build{args_str}")
+    result = subprocess.run(
+        f"uv run zensical build{args_str}",
+        check=False,
+        shell=True,
+        capture_output=True,
+        text=True,
+    )
+    # Print output
+    if result.stdout:
+        print(result.stdout)
+    if result.stderr:
+        print(result.stderr)
+    # Check for errors in output (mkdocs may exit 0 even with template errors)
+    error_patterns = ["Error:", "error:", "template not found"]
+    combined_output = (result.stdout or "") + (result.stderr or "")
+    for pattern in error_patterns:
+        if pattern in combined_output:
+            msg = f"Build failed: found '{pattern}' in output"
+            raise RuntimeError(msg)
+    if result.returncode != 0:
+        msg = f"Build failed with exit code {result.returncode}"
+        raise RuntimeError(msg)
     ctx.run("uv run python scripts/reorder_nav.py")
 
 
