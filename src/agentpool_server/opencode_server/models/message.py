@@ -124,3 +124,21 @@ class MessageRequest(OpenCodeBaseModel):
     no_reply: bool | None = Field(default=None, alias="noReply")
     system: str | None = None
     tools: dict[str, bool] | None = None
+
+
+class ShellRequest(OpenCodeBaseModel):
+    """Request body for running a shell command."""
+
+    agent: str
+    command: str
+    model: MessageModelInfo | None = None
+
+
+class CommandRequest(OpenCodeBaseModel):
+    """Request body for executing a slash command."""
+
+    command: str
+    arguments: str | None = None
+    agent: str | None = None
+    model: str | None = None  # Format: "providerID/modelID"
+    message_id: str | None = Field(default=None, alias="messageID")

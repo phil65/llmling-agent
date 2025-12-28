@@ -40,12 +40,14 @@ from agentpool_server.opencode_server.models.session import (
 )
 from agentpool_server.opencode_server.models.message import (
     AssistantMessage,
+    CommandRequest,
     FilePartInput,
     MessagePath,
     MessageRequest,
     MessageTime,
     MessageWithParts,
     PartInput,
+    ShellRequest,
     TextPartInput,
     Tokens,
     TokensCache,
@@ -109,6 +111,7 @@ __all__ = [
     # Message
     "AssistantMessage",
     "Command",
+    "CommandRequest",
     # Config
     "Config",
     # Events
@@ -165,6 +168,7 @@ __all__ = [
     "SessionStatusProperties",
     "SessionUpdateRequest",
     "SessionUpdatedEvent",
+    "ShellRequest",
     "StepFinishPart",
     "StepStartPart",
     "Symbol",

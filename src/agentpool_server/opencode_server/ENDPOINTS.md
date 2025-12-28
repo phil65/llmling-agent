@@ -93,7 +93,7 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | [x] | GET | `/session/{id}/message/{messageID}` | Get message details |
 | [ ] | POST | `/session/{id}/prompt_async` | Send message async (no wait) |
 | [ ] | POST | `/session/{id}/command` | Execute slash command |
-| [ ] | POST | `/session/{id}/shell` | Run shell command |
+| [x] | POST | `/session/{id}/shell` | Run shell command |
 
 ---
 
@@ -109,12 +109,12 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 
 | Status | Method | Path | Description |
 |--------|--------|------|-------------|
-| [ ] | GET | `/find?pattern=` | Search for text in files |
-| [ ] | GET | `/find/file?query=` | Find files by name |
-| [ ] | GET | `/find/symbol?query=` | Find workspace symbols |
+| [x] | GET | `/find?pattern=` | Search for text in files |
+| [x] | GET | `/find/file?query=` | Find files by name |
+| [~] | GET | `/find/symbol?query=` | Find workspace symbols |
 | [x] | GET | `/file?path=` | List files and directories |
 | [x] | GET | `/file/content?path=` | Read a file |
-| [ ] | GET | `/file/status` | Get status for tracked files |
+| [~] | GET | `/file/status` | Get status for tracked files |
 
 ---
 
