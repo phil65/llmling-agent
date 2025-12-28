@@ -164,7 +164,7 @@ class OpenCodeServer:
         """Run the server asynchronously."""
         import uvicorn
 
-        config = uvicorn.Config(self.app, host=self.host, port=self.port, ws="wsproto")
+        config = uvicorn.Config(self.app, host=self.host, port=self.port, ws="websockets-sansio")
         server = uvicorn.Server(config)
         await server.serve()
 
