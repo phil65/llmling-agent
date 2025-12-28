@@ -75,10 +75,10 @@ async def _event_generator(
 @router.get("/global/event")
 async def get_global_events(state: StateDep) -> EventSourceResponse:
     """Get global events as SSE stream (uses payload wrapper)."""
-    return EventSourceResponse(_event_generator(state, wrap_payload=True))
+    return EventSourceResponse(_event_generator(state, wrap_payload=True), sep="\n")
 
 
 @router.get("/event")
 async def get_events(state: StateDep) -> EventSourceResponse:
     """Get events as SSE stream (no payload wrapper)."""
-    return EventSourceResponse(_event_generator(state, wrap_payload=False))
+    return EventSourceResponse(_event_generator(state, wrap_payload=False), sep="\n")
