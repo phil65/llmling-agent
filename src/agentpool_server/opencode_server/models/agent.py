@@ -1,14 +1,49 @@
 """Agent and command models."""
 
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import Field
+
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 
 
-class Agent(OpenCodeBaseModel):
-    """Agent information."""
+class AgentPermission(OpenCodeBaseModel):
+    """Agent permission settings."""
 
-    id: str
+    edit: Literal["ask", "allow", "deny"] = "ask"
+    bash: dict[str, Literal["ask", "allow", "deny"]] = Field(default_factory=dict)
+    skill: dict[str, Literal["ask", "allow", "deny"]] = Field(default_factory=dict)
+    webfetch: Literal["ask", "allow", "deny"] | None = None
+    doom_loop: Literal["ask", "allow", "deny"] | None = None
+    external_directory: Literal["ask", "allow", "deny"] | None = None
+
+
+class AgentModel(OpenCodeBaseModel):
+    """Agent model configuration."""
+
+    model_id: str = Field(alias="modelID")
+    provider_id: str = Field(alias="providerID")
+
+
+class Agent(OpenCodeBaseModel):
+    """Agent information matching SDK type."""
+
     name: str
-    description: str = ""
+    description: str | None = None
+    mode: Literal["subagent", "primary", "all"] = "primary"
+    native: bool | None = None
+    hidden: bool | None = None
+    default: bool | None = None
+    top_p: float | None = Field(default=None, alias="topP")
+    temperature: float | None = None
+    color: str | None = None
+    permission: AgentPermission = Field(default_factory=AgentPermission)
+    model: AgentModel | None = None
+    prompt: str | None = None
+    tools: dict[str, bool] = Field(default_factory=dict)
+    options: dict[str, str] = Field(default_factory=dict)
 
 
 class Command(OpenCodeBaseModel):

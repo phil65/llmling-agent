@@ -27,9 +27,10 @@ async def list_agents(state: StateDep) -> list[Agent]:
     _ = state  # unused for now
     return [
         Agent(
-            id="default",
-            name="Default Agent",
+            name="default",
             description="Default AgentPool agent",
+            mode="primary",
+            default=True,
         )
     ]
 
