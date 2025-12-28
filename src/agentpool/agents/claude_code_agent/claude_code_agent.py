@@ -157,6 +157,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             include_builtin_system_prompt: If True, the builtin system prompt is included.
             model: Model to use (e.g., "claude-sonnet-4-5")
             max_turns: Maximum conversation turns
+            max_budget_usd: Maximum budget to consume in dollars
             max_thinking_tokens: Max tokens for extended thinking
             permission_mode: Permission mode ("default", "acceptEdits", "plan", "bypassPermissions")
             mcp_servers: External MCP servers to connect to (internal format, converted at runtime)
