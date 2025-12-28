@@ -75,14 +75,15 @@ async def get_mcp_status(state: StateDep) -> dict[str, MCPStatus]:
         status_dict = provider.get_status()
         status_type = status_dict.get("status", "disabled")
         if status_type == "connected":
-            result[provider.name] = MCPStatus(status="connected")
+            result[provider.name] = MCPStatus(name=provider.name, status="connected")
         elif status_type == "failed":
             result[provider.name] = MCPStatus(
-                status="failed",
+                name=provider.name,
+                status="error",
                 error=status_dict.get("error", "Unknown error"),
             )
         else:
-            result[provider.name] = MCPStatus(status="disabled")
+            result[provider.name] = MCPStatus(name=provider.name, status="disabled")
 
     result: dict[str, MCPStatus] = {}
     try:

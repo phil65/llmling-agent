@@ -43,7 +43,7 @@ def _get_fs(state: StateDep) -> tuple[AsyncFileSystem, str] | None:
             fs = state.agent.env.get_fs()
             # Use env's root_path/cwd if set, otherwise use state.working_dir
             env = state.agent.env
-            base_path = env.root_path or env.cwd or state.working_dir
+            base_path = env.cwd or state.working_dir
         except NotImplementedError:
             return None
         else:
@@ -96,13 +96,13 @@ async def list_files(
     else:
         # Fallback to local Path operations
         working_path = Path(state.working_dir)
-        target = working_path / path if path else working_path
+        target_p = working_path / path if path else working_path
 
-        if not target.is_dir():
+        if not target_p.is_dir():
             raise HTTPException(status_code=404, detail="Directory not found")
 
         nodes = []
-        for entry in target.iterdir():
+        for entry in target_p.iterdir():
             node_type = "directory" if entry.is_dir() else "file"
             size = entry.stat().st_size if entry.is_file() else None
             nodes.append(
