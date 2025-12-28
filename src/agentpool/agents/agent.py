@@ -212,6 +212,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             hooks: AgentHooks instance for intercepting agent behavior at run and tool events
             tool_confirmation_mode: Tool confirmation mode
             builtin_tools: PydanticAI builtin tools (WebSearchTool, CodeExecutionTool, etc.)
+            usage_limits: Usage limits for the agent
         """
         from agentpool.agents.interactions import Interactions
         from agentpool.agents.sys_prompts import SystemPrompts
