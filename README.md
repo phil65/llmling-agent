@@ -38,10 +38,12 @@ flowchart TB
     end
     
     interface --> acp_server[ACP Server]
+    interface --> opencode_server[OpenCode Server]
     interface --> agui_server[AG-UI Server]
     
     acp_server --> clients1[Zed, Toad, ACP Clients]
-    agui_server --> clients2[AG-UI Clients]
+    opencode_server --> clients2[OpenCode TUI/Desktop]
+    agui_server --> clients3[AG-UI Clients]
 ```
 
 ## Quick Start
@@ -162,11 +164,19 @@ agents:
           words: [error, warning]
 ```
 
-### Protocol Support
+### Server Protocols
 
-- **MCP**: Full support including elicitation, sampling, progress reporting
-- **ACP**: Serve agents to Zed, Toad, and other ACP clients
-- **AG-UI**: Expose agents through AG-UI protocol
+AgentPool can expose your agents through multiple server protocols:
+
+| Server | Command | Use Case |
+|--------|---------|----------|
+| **ACP** | `agentpool serve-acp` | IDE integration (Zed, Toad) - bidirectional communication with tool confirmations |
+| **OpenCode** | `agentpool serve-opencode` | OpenCode TUI/Desktop - supports remote filesystems via fsspec |
+| **MCP** | `agentpool serve-mcp` | Expose tools to other agents |
+| AG-UI | `agentpool serve-agui` | AG-UI compatible frontends |
+| OpenAI API | `agentpool serve-api` | Drop-in OpenAI API replacement |
+
+The **ACP server** is ideal for IDE integration - it provides real-time tool confirmations and session management. The **OpenCode server** enables the OpenCode TUI to control AgentPool agents, including agents operating on remote environments (Docker, SSH, cloud sandboxes).
 
 ### Additional Capabilities
 
@@ -182,7 +192,9 @@ agents:
 
 ```bash
 agentpool run agent_name "prompt"           # Single run
-agentpool serve-acp config.yml              # Start ACP server
+agentpool serve-acp config.yml              # ACP server for IDEs
+agentpool serve-opencode config.yml         # OpenCode TUI server
+agentpool serve-mcp config.yml              # MCP server
 agentpool watch --config agents.yml         # React to triggers
 agentpool history stats --group-by model    # View analytics
 ```

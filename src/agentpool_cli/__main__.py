@@ -10,6 +10,7 @@ from agentpool_cli.cli_types import LogLevel  # noqa: TC001
 from agentpool_cli.history import history_cli
 from agentpool_cli.run import run_command
 from agentpool_cli.serve_acp import acp_command
+from agentpool_cli.serve_agui import agui_command
 from agentpool_cli.serve_api import api_command
 from agentpool_cli.serve_mcp import serve_command
 from agentpool_cli.serve_opencode import opencode_command
@@ -55,6 +56,7 @@ cli.command(name="list-configs")(list_configs)
 cli.command(name="set")(set_active_file)
 cli.command(name="watch")(watch_command)
 cli.command(name="serve-acp")(acp_command)
+cli.command(name="serve-agui")(agui_command)
 cli.command(name="serve-mcp")(serve_command)
 cli.command(name="serve-api")(api_command)
 cli.command(name="serve-opencode")(opencode_command)

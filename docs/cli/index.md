@@ -42,9 +42,11 @@ Most commands will use the currently active agent file by default, but can be ov
 
 | Command | Description |
 |---------|-------------|
-| `serve-mcp` | Run agents as an MCP (Model Context Protocol) server |
-| `serve-acp` | Run agents as an ACP (Agent Client Protocol) server |
-| `serve-api` | Run agents as an OpenAI-compatible completions API server |
+| `serve-acp` | Run agents as an ACP server for IDE integration (Zed, Toad) |
+| `serve-opencode` | Run agents as an OpenCode server for OpenCode TUI/Desktop |
+| `serve-mcp` | Run agents as an MCP server to expose tools |
+| `serve-agui` | Run agents as an AG-UI server |
+| `serve-api` | Run agents as an OpenAI-compatible API server |
 
 ### History Management
 
@@ -103,16 +105,22 @@ agentpool task docs write_api_docs --prompt "Include code examples"
 ### Server Commands
 
 ```bash
-# Run as MCP server (stdio transport)
-agentpool serve-mcp config.yml
-
-# Run as MCP server with SSE transport
-agentpool serve-mcp config.yml --transport sse --port 3001
-
-# Run as ACP server for desktop integration
+# ACP server for IDE integration (Zed, Toad)
 agentpool serve-acp config.yml
 
-# Run as OpenAI-compatible API server
+# OpenCode server for OpenCode TUI/Desktop
+agentpool serve-opencode config.yml --port 4096
+
+# MCP server (stdio transport)
+agentpool serve-mcp config.yml
+
+# MCP server with SSE transport
+agentpool serve-mcp config.yml --transport sse --port 3001
+
+# AG-UI server
+agentpool serve-agui config.yml --port 8002
+
+# OpenAI-compatible API server
 agentpool serve-api config.yml --port 8000
 ```
 
