@@ -52,23 +52,23 @@ async def _event_generator(
     queue: asyncio.Queue[Event] = asyncio.Queue()
     state.event_subscribers.append(queue)
     subscriber_count = len(state.event_subscribers)
-    logger.info(f"SSE: New client connected (total subscribers: {subscriber_count})")
+    logger.info("SSE: New client connected (total subscribers: %s)", subscriber_count)
     try:
         # Send initial connected event
         connected = ServerConnectedEvent()
         data = _serialize_event(connected, wrap_payload=wrap_payload)
-        logger.info(f"SSE: Sending connected event: {data}")
+        logger.info("SSE: Sending connected event: %s", data)
         yield {"data": data}
         # Stream events
         while True:
             event = await queue.get()
             data = _serialize_event(event, wrap_payload=wrap_payload)
-            logger.info(f"SSE: Sending event: {event.type} -> {data[:200]}...")
+            logger.info("SSE: Sending event: %s", event.type)
             yield {"data": data}
     finally:
         state.event_subscribers.remove(queue)
         logger.info(
-            f"SSE: Client disconnected (remaining subscribers: {len(state.event_subscribers)})"
+            "SSE: Client disconnected (remaining subscribers: %s)", len(state.event_subscribers)
         )
 
 

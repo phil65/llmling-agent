@@ -8,6 +8,7 @@ from agentpool_server.opencode_server import identifier
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
     AssistantMessage,
+    CommandRequest,
     MessagePath,
     MessageTime,
     MessageUpdatedEvent,
@@ -316,7 +317,7 @@ async def run_shell_command(
 
 
 @router.post("/{session_id}/command")
-async def execute_command(
+async def execute_command(  # noqa: PLR0915
     session_id: str,
     request: CommandRequest,
     state: StateDep,

@@ -214,9 +214,10 @@ class MCPResourceProvider(ResourceProvider):
         try:
             if self.client.connected:
                 return {"status": "connected"}
-            return {"status": "disabled"}
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             return {"status": "failed", "error": str(e)}
+        else:
+            return {"status": "disabled"}
 
 
 if __name__ == "__main__":

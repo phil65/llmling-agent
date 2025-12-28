@@ -44,9 +44,11 @@ def _get_fs(state: StateDep) -> tuple[AsyncFileSystem, str] | None:
             # Use env's root_path/cwd if set, otherwise use state.working_dir
             env = state.agent.env
             base_path = env.root_path or env.cwd or state.working_dir
-            return (fs, base_path)
         except NotImplementedError:
             return None
+        else:
+            return (fs, base_path)
+
     return None
 
 

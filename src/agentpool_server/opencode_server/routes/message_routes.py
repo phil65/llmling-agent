@@ -15,7 +15,6 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     MessageUpdatedEvent,
     MessageUpdatedEventProperties,
     MessageWithParts,
-    Part,
     PartUpdatedEvent,
     PartUpdatedEventProperties,
     SessionStatus,
@@ -86,18 +85,16 @@ async def send_message(  # noqa: PLR0915
     )
 
     # Create parts from request
-    user_parts: list[Part] = []
-    for part in request.parts:
-        if part.type == "text":
-            user_parts.append(
-                TextPart(
-                    id=identifier.ascending("part"),
-                    message_id=user_msg_id,
-                    session_id=session_id,
-                    text=part.text,
-                )
-            )
-
+    user_parts = [
+        TextPart(
+            id=identifier.ascending("part"),
+            message_id=user_msg_id,
+            session_id=session_id,
+            text=part.text,
+        )
+        for part in request.parts
+        if part.type == "text"
+    ]
     user_msg_with_parts = MessageWithParts(info=user_message, parts=user_parts)
     state.messages[session_id].append(user_msg_with_parts)
 
