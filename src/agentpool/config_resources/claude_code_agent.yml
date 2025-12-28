@@ -7,6 +7,8 @@ agents:
     type: claude_code
     display_name: "AI Assistant"
     builtin_tools: []
+    env:
+      ANTHROPIC_API_KEY: ""
     description: "Claude code agent with enhanced tools"
     toolsets:
       - type: execution
