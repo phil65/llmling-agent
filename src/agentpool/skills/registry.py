@@ -96,10 +96,10 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             skill_name = skill_entry["name"].lstrip("./")
             # Construct full path for skill directory
             if search_path and search_path != fs.root_marker:
-                skill_dir_path = to_upath(f"{search_path}/{skill_name}")
+                skill_dir_path = to_upath(f"{search_path}/{skill_name}").resolve()
                 skill_md_path = f"{search_path}/{skill_name}/SKILL.md"
             else:
-                skill_dir_path = to_upath(skill_name)
+                skill_dir_path = to_upath(skill_name).resolve()
                 skill_md_path = f"{skill_name}/SKILL.md"
             try:
                 await fs._cat_file(skill_md_path)
