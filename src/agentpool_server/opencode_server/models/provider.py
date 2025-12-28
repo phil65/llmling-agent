@@ -1,0 +1,81 @@
+"""Provider, model, and mode related models."""
+
+from typing import Any
+
+from pydantic import Field
+
+from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
+
+
+class ModelCost(OpenCodeBaseModel):
+    """Cost information for a model."""
+
+    input: float
+    output: float
+    cache_read: float | None = Field(default=None, alias="cacheRead")
+    cache_write: float | None = Field(default=None, alias="cacheWrite")
+
+
+class ModelLimit(OpenCodeBaseModel):
+    """Limit information for a model."""
+
+    context: float
+    output: float
+
+
+class Model(OpenCodeBaseModel):
+    """Model information."""
+
+    id: str
+    name: str
+    attachment: bool = False
+    cost: ModelCost
+    limit: ModelLimit
+    options: dict[str, Any] = Field(default_factory=dict)
+    reasoning: bool = False
+    release_date: str = Field(default="", alias="releaseDate")
+    temperature: bool = True
+    tool_call: bool = Field(default=True, alias="toolCall")
+
+
+class Provider(OpenCodeBaseModel):
+    """Provider information."""
+
+    id: str
+    name: str
+    env: list[str] = Field(default_factory=list)
+    models: dict[str, Model] = Field(default_factory=dict)
+    api: str | None = None
+    npm: str | None = None
+
+
+class ProvidersResponse(OpenCodeBaseModel):
+    """Response for /config/providers endpoint."""
+
+    providers: list[Provider]
+    default: dict[str, str] = Field(default_factory=dict)
+
+
+class ProviderListResponse(OpenCodeBaseModel):
+    """Response for /provider endpoint."""
+
+    all: list[Provider]
+    default: dict[str, str] = Field(default_factory=dict)
+    connected: list[str] = Field(default_factory=list)
+
+
+class ModeModel(OpenCodeBaseModel):
+    """Model selection for a mode."""
+
+    model_id: str = Field(alias="modelID")
+    provider_id: str = Field(alias="providerID")
+
+
+class Mode(OpenCodeBaseModel):
+    """Agent mode configuration."""
+
+    name: str
+    tools: dict[str, bool] = Field(default_factory=dict)
+    model: ModeModel | None = None
+    prompt: str | None = None
+    temperature: float | None = None

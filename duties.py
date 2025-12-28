@@ -224,3 +224,111 @@ def schema_html(ctx):
         "schema/config-schema.json "
         "docs/schema/index.html"
     )
+
+
+@duty(capture=False)
+def opencode_server(ctx, *args: str):
+    """Start the OpenCode-compatible API server.
+
+    Usage:
+        duty opencode-server                    # Start on default port 4096
+        duty opencode-server --port 8080        # Start on custom port
+    """
+    port = "4096"
+    host = "127.0.0.1"
+
+    # Parse arguments
+    remaining_args = []
+    args_iter = iter(args)
+    for arg in args_iter:
+        if arg == "--port":
+            port = next(args_iter, "4096")
+        elif arg.startswith("--port="):
+            port = arg.split("=", 1)[1]
+        elif arg == "--host":
+            host = next(args_iter, "127.0.0.1")
+        elif arg.startswith("--host="):
+            host = arg.split("=", 1)[1]
+        else:
+            remaining_args.append(arg)
+
+    print(f"Starting OpenCode server on http://{host}:{port}")
+    print("Connect with: opencode attach http://{host}:{port}")
+    ctx.run(
+        f'uv run python -c "'
+        f"from agentpool_server.opencode_server import run_server; "
+        f"run_server(host='{host}', port={port})\""
+    )
+
+
+@duty(capture=False)
+def opencode_tui(ctx, *args: str):
+    """Attach OpenCode TUI to our server.
+
+    Usage:
+        duty opencode-tui                       # Connect to default port 4096
+        duty opencode-tui --port 8080           # Connect to custom port
+    """
+    port = "4096"
+    host = "127.0.0.1"
+
+    # Parse arguments
+    for arg in args:
+        if arg.startswith("--port="):
+            port = arg.split("=", 1)[1]
+        elif arg.startswith("--host="):
+            host = arg.split("=", 1)[1]
+
+    url = f"http://{host}:{port}"
+    print(f"Connecting OpenCode TUI to {url}")
+    ctx.run(f"opencode attach {url}")
+
+
+@duty(capture=False)
+def opencode(ctx, *args: str):
+    """Start OpenCode server and attach TUI (runs both in parallel).
+
+    Usage:
+        duty opencode                           # Start server + TUI on port 4096
+        duty opencode --port 8080               # Use custom port
+    """
+    import signal
+    import subprocess
+    import time
+
+    port = "4096"
+    host = "127.0.0.1"
+
+    # Parse arguments
+    for arg in args:
+        if arg.startswith("--port="):
+            port = arg.split("=", 1)[1]
+        elif arg.startswith("--host="):
+            host = arg.split("=", 1)[1]
+
+    url = f"http://{host}:{port}"
+
+    # Start server in background
+    server_cmd = [
+        "uv",
+        "run",
+        "python",
+        "-c",
+        f"from agentpool_server.opencode_server import run_server; "
+        f"run_server(host='{host}', port={port})",
+    ]
+    print(f"Starting OpenCode server on {url}...")
+    server = subprocess.Popen(server_cmd)
+
+    try:
+        # Wait for server to be ready
+        time.sleep(1.5)
+
+        # Attach TUI
+        print(f"Attaching OpenCode TUI to {url}...")
+        ctx.run(f"opencode attach {url}")
+    finally:
+        # Clean up server
+        print("Shutting down OpenCode server...")
+        server.send_signal(signal.SIGTERM)
+        server.wait(timeout=5)
