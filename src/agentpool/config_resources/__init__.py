@@ -13,4 +13,7 @@ AGENTS_TEMPLATE: Final[str] = str(_RESOURCES / "agents_template.yml")
 ACP_ASSISTANT: Final[str] = str(_RESOURCES / "acp_assistant.yml")
 """Path to default ACP assistant configuration."""
 
-__all__ = ["ACP_ASSISTANT", "AGENTS_TEMPLATE"]
+CLAUDE_CODE_ASSISTANT: Final[str] = str(_RESOURCES / "claude_code_agent.yml")
+"""Path to default Claude code assistant configuration."""
+
+__all__ = ["ACP_ASSISTANT", "AGENTS_TEMPLATE", "CLAUDE_CODE_ASSISTANT"]
