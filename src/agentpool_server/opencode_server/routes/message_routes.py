@@ -56,6 +56,16 @@ async def list_messages(
     return messages
 
 
+@router.post("/message/debug")
+async def debug_message(
+    session_id: str,
+    request: Request,
+) -> dict:
+    """Debug endpoint to see raw request body."""
+    body = await request.json()
+    return {"received": body}
+
+
 @router.post("/message")
 async def send_message(  # noqa: PLR0915
     session_id: str,
@@ -94,7 +104,7 @@ async def send_message(  # noqa: PLR0915
     state.messages[session_id].append(user_msg_with_parts)
 
     # Broadcast user message created event
-    await state.broadcast_event(MessageCreatedEvent(properties=user_msg_with_parts))
+    await state.broadcast_event(MessageCreatedEvent(properties=user_message))
 
     # Mark session as running
     state.session_status[session_id] = SessionStatus(running=True)
@@ -107,9 +117,9 @@ async def send_message(  # noqa: PLR0915
     assistant_message = AssistantMessage(
         id=assistant_msg_id,
         session_id=session_id,
-        model_id=request.model_id,
-        provider_id=request.provider_id,
-        mode=request.mode or "default",
+        model_id=request.model.model_id if request.model else "default",
+        provider_id=request.model.provider_id if request.model else "agentpool",
+        mode=request.agent or "default",
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         system=[],
         time=MessageTime(created=now, completed=None),
@@ -127,7 +137,7 @@ async def send_message(  # noqa: PLR0915
     state.messages[session_id].append(assistant_msg_with_parts)
 
     # Broadcast assistant message created
-    await state.broadcast_event(MessageCreatedEvent(properties=assistant_msg_with_parts))
+    await state.broadcast_event(MessageCreatedEvent(properties=assistant_message))
 
     # Add step-start part
     step_start = StepStartPart(
@@ -136,15 +146,7 @@ async def send_message(  # noqa: PLR0915
         session_id=session_id,
     )
     assistant_msg_with_parts.parts.append(step_start)
-    await state.broadcast_event(
-        PartUpdatedEvent(
-            properties={
-                "sessionID": session_id,
-                "messageID": assistant_msg_id,
-                "part": step_start,
-            }
-        )
-    )
+    await state.broadcast_event(PartUpdatedEvent(properties=step_start))
 
     # Call the agent
     response_text = ""
@@ -178,20 +180,12 @@ async def send_message(  # noqa: PLR0915
                         state=ToolStatePending(
                             status="pending",
                             title=event.title or f"Calling {event.tool_name}",
-                            input=event.tool_input or {},
+                            input=event.raw_input or {},
                         ),
                     )
                     tool_parts[event.tool_call_id] = tool_part
                     assistant_msg_with_parts.parts.append(tool_part)
-                    await state.broadcast_event(
-                        PartUpdatedEvent(
-                            properties={
-                                "sessionID": session_id,
-                                "messageID": assistant_msg_id,
-                                "part": tool_part,
-                            }
-                        )
-                    )
+                    await state.broadcast_event(PartUpdatedEvent(properties=tool_part))
 
                 elif isinstance(event, ToolCallProgressEvent):
                     # Update to running state
@@ -199,11 +193,15 @@ async def send_message(  # noqa: PLR0915
                         existing = tool_parts[event.tool_call_id]
                         # Build output from content items
                         output_text = ""
-                        for item in event.content:
+                        for item in event.items:
                             if hasattr(item, "text"):
                                 output_text += item.text
-                            elif hasattr(item, "data"):
-                                output_text += item.data
+                            elif hasattr(item, "content"):
+                                output_text += item.content
+
+                        # Extract from existing state safely
+                        existing_title = getattr(existing.state, "title", "")
+                        existing_input = getattr(existing.state, "input", {})
 
                         updated = ToolPart(
                             id=existing.id,
@@ -213,8 +211,8 @@ async def send_message(  # noqa: PLR0915
                             call_id=existing.call_id,
                             state=ToolStateRunning(
                                 status="running",
-                                title=event.title or existing.state.title,
-                                input=existing.state.input,
+                                title=event.title or existing_title,
+                                input=existing_input,
                                 output=output_text,
                             ),
                         )
@@ -224,34 +222,33 @@ async def send_message(  # noqa: PLR0915
                             if isinstance(p, ToolPart) and p.id == existing.id:
                                 assistant_msg_with_parts.parts[i] = updated
                                 break
-                        await state.broadcast_event(
-                            PartUpdatedEvent(
-                                properties={
-                                    "sessionID": session_id,
-                                    "messageID": assistant_msg_id,
-                                    "part": updated,
-                                }
-                            )
-                        )
+                        await state.broadcast_event(PartUpdatedEvent(properties=updated))
 
                 elif isinstance(event, ToolCallCompleteEvent):
                     # Update to completed/error state
                     if event.tool_call_id in tool_parts:
                         existing = tool_parts[event.tool_call_id]
-                        result_str = str(event.result) if event.result else ""
+                        result = event.tool_result
+                        result_str = str(result) if result else ""
 
-                        if event.error:
-                            new_state = ToolStateError(
+                        # Extract from existing state safely
+                        existing_input = getattr(existing.state, "input", {})
+
+                        # Check result for error indication
+                        is_error = isinstance(result, dict) and result.get("error")
+
+                        if is_error:
+                            new_state: ToolStateCompleted | ToolStateError = ToolStateError(
                                 status="error",
                                 title=f"Error in {existing.tool}",
-                                error=str(event.error),
-                                input=existing.state.input,
+                                error=str(result.get("error", "Unknown error")),
+                                input=existing_input,
                             )
                         else:
                             new_state = ToolStateCompleted(
                                 status="completed",
                                 title=f"Completed {existing.tool}",
-                                input=existing.state.input,
+                                input=existing_input,
                                 output=result_str,
                                 time={"start": now, "end": time.time()},
                             )
@@ -270,22 +267,14 @@ async def send_message(  # noqa: PLR0915
                             if isinstance(p, ToolPart) and p.id == existing.id:
                                 assistant_msg_with_parts.parts[i] = updated
                                 break
-                        await state.broadcast_event(
-                            PartUpdatedEvent(
-                                properties={
-                                    "sessionID": session_id,
-                                    "messageID": assistant_msg_id,
-                                    "part": updated,
-                                }
-                            )
-                        )
+                        await state.broadcast_event(PartUpdatedEvent(properties=updated))
 
                 elif isinstance(event, StreamCompleteEvent):
-                    # Extract final response
-                    if event.message:
-                        for part in event.message.parts:
-                            if isinstance(part, PydanticTextPart):
-                                response_text += part.content
+                    # Extract final response from ChatMessage
+                    if event.message and hasattr(event.message, "parts"):
+                        for msg_part in event.message.parts:
+                            if isinstance(msg_part, PydanticTextPart):
+                                response_text += msg_part.content
 
                         # Get token usage
                         if hasattr(event.message, "usage") and event.message.usage:
@@ -315,15 +304,7 @@ async def send_message(  # noqa: PLR0915
         assistant_msg_with_parts.parts.append(text_part)
 
         # Broadcast text part update
-        await state.broadcast_event(
-            PartUpdatedEvent(
-                properties={
-                    "sessionID": session_id,
-                    "messageID": assistant_msg_id,
-                    "part": text_part,
-                }
-            )
-        )
+        await state.broadcast_event(PartUpdatedEvent(properties=text_part))
 
     # Add step-finish part with token counts
     step_finish = StepFinishPart(
@@ -339,6 +320,9 @@ async def send_message(  # noqa: PLR0915
         cost=0.0,  # TODO: Calculate actual cost
     )
     assistant_msg_with_parts.parts.append(step_finish)
+    await state.broadcast_event(PartUpdatedEvent(properties=step_finish))
+
+    print(f"Response text: {response_text[:100] if response_text else 'EMPTY'}...")
 
     # Update assistant message with final timing and tokens
     updated_assistant = assistant_message.model_copy(
@@ -355,7 +339,7 @@ async def send_message(  # noqa: PLR0915
     assistant_msg_with_parts.info = updated_assistant
 
     # Broadcast final message update
-    await state.broadcast_event(MessageUpdatedEvent(properties=assistant_msg_with_parts))
+    await state.broadcast_event(MessageUpdatedEvent(properties=updated_assistant))
 
     # Mark session as not running
     state.session_status[session_id] = SessionStatus(running=False)

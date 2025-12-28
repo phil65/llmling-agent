@@ -96,13 +96,20 @@ class FilePartInput(OpenCodeBaseModel):
 PartInput = TextPartInput | FilePartInput
 
 
+class MessageModelInfo(OpenCodeBaseModel):
+    """Model info in message request."""
+
+    provider_id: str = Field(alias="providerID")
+    model_id: str = Field(alias="modelID")
+
+
 class MessageRequest(OpenCodeBaseModel):
     """Request body for sending a message."""
 
     parts: list[PartInput]
-    provider_id: str = Field(alias="providerID")
-    model_id: str = Field(alias="modelID")
     message_id: str | None = Field(default=None, alias="messageID")
-    mode: str | None = None
+    model: MessageModelInfo | None = None
+    agent: str | None = None
+    no_reply: bool | None = Field(default=None, alias="noReply")
     system: str | None = None
     tools: dict[str, bool] | None = None

@@ -67,9 +67,8 @@ def opencode_command(
         # Start on custom port with specific agent
         agentpool serve-opencode --port 8080 --agent myagent agents.yml
     """
-    from agentpool.pool import AgentPool
-
-    from agentpool import log as ap_log
+    from agentpool import AgentPool, log as ap_log
+    from agentpool.config_resources import CLAUDE_CODE_ASSISTANT
     from agentpool_server.opencode_server import OpenCodeServer
 
     # Always log to file with rollover
@@ -79,60 +78,46 @@ def opencode_command(
     ap_log.configure_logging(force=True, log_file=str(log_file))
     logger.info("Configured file logging with rollover", log_file=str(log_file))
 
+    # Resolve config path (use default if not provided)
     if config:
-        # Use config file
         try:
             config_path = resolve_agent_config(config)
         except ValueError as e:
-            msg = str(e)
-            raise t.BadParameter(msg) from e
-
-        logger.info("Starting OpenCode server", config_path=config_path, host=host, port=port)
-
-        # Load agent from config
-        pool = AgentPool.from_config(config_path)
-        if agent:
-            try:
-                selected_agent = pool[agent]
-            except KeyError as e:
-                available = list(pool.agents.keys())
-                msg = f"Agent '{agent}' not found. Available: {available}"
-                raise t.BadParameter(msg) from e
-        else:
-            # Use first agent
-            selected_agent = next(iter(pool.agents.values()))
-
-        logger.info("Using agent", agent_name=selected_agent.name)
+            raise t.BadParameter(str(e)) from e
     else:
-        # Use default ACP assistant config (same default as serve-acp)
-        from agentpool.config_resources import ACP_ASSISTANT
+        config_path = CLAUDE_CODE_ASSISTANT
 
-        logger.info("Starting OpenCode server with default configuration", host=host, port=port)
+    logger.info("Starting OpenCode server", config_path=config_path, host=host, port=port)
 
-        pool = AgentPool.from_config(ACP_ASSISTANT)
-        if agent:
-            try:
-                selected_agent = pool[agent]
-            except KeyError as e:
-                available = list(pool.agents.keys())
-                msg = f"Agent '{agent}' not found. Available: {available}"
-                raise t.BadParameter(msg) from e
-        else:
-            selected_agent = next(iter(pool.agents.values()))
+    # Load agent from config
+    pool = AgentPool(config_path)
+    if agent:
+        try:
+            selected_agent = pool.all_agents[agent]
+        except KeyError as e:
+            available = list(pool.agents.keys())
+            msg = f"Agent '{agent}' not found. Available: {available}"
+            raise t.BadParameter(msg) from e
+    else:
+        selected_agent = next(iter(pool.agents.values()))
 
-        logger.info("Using default agent", agent_name=selected_agent.name)
+    logger.info("Using agent", agent_name=selected_agent.name)
 
-    # Create and run server
-    server = OpenCodeServer(
-        host=host,
-        port=port,
-        working_dir=working_dir,
-        agent=selected_agent,
-    )
+    async def run_server() -> None:
+        async with pool:
+            server = OpenCodeServer(
+                host=host,
+                port=port,
+                working_dir=working_dir,
+                agent=selected_agent,
+            )
+            logger.info("Server starting", url=f"http://{host}:{port}")
+            await server.run_async()
 
-    logger.info("Server starting", url=f"http://{host}:{port}")
+    import asyncio
+
     try:
-        server.run()
+        asyncio.run(run_server())
     except KeyboardInterrupt:
         logger.info("OpenCode server shutdown requested")
     except Exception as e:

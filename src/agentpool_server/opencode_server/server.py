@@ -10,8 +10,9 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from agentpool_server.opencode_server.routes import (
     agent_router,
@@ -67,6 +68,19 @@ def create_app(
 
     # Store state on app for access in routes
     app.state.server_state = state
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        body = await request.body()
+        print(f"Validation error for {request.url}")
+        print(f"Body: {body.decode()}")
+        print(f"Errors: {exc.errors()}")
+        return JSONResponse(
+            status_code=422,
+            content={"detail": exc.errors(), "body": body.decode()},
+        )
 
     # Register routers
     app.include_router(global_router)

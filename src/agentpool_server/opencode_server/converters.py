@@ -77,6 +77,15 @@ def convert_pydantic_tool_call_part(
     )
 
 
+def _get_input_from_state(
+    state: ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError,
+) -> dict[str, Any]:
+    """Extract input from any tool state type."""
+    if hasattr(state, "input"):
+        return state.input
+    return {}
+
+
 def convert_pydantic_tool_return_part(
     part: PydanticToolReturnPart,
     session_id: str,
@@ -88,12 +97,14 @@ def convert_pydantic_tool_return_part(
     content = part.content
     is_error = isinstance(content, dict) and content.get("error")
 
+    existing_input = _get_input_from_state(existing_tool_part.state) if existing_tool_part else {}
+
     if is_error:
-        state = ToolStateError(
+        state: ToolStateCompleted | ToolStateError = ToolStateError(
             status="error",
             title=f"Error in {part.tool_name}",
             error=str(content.get("error", "Unknown error")),
-            input=existing_tool_part.state.input if existing_tool_part else {},
+            input=existing_input,
         )
     else:
         # Format output for display
@@ -109,7 +120,7 @@ def convert_pydantic_tool_return_part(
         state = ToolStateCompleted(
             status="completed",
             title=f"Completed {part.tool_name}",
-            input=existing_tool_part.state.input if existing_tool_part else {},
+            input=existing_input,
             output=output,
             time={"start": time.time() - 1, "end": time.time()},  # Approximate
         )
@@ -167,9 +178,16 @@ def convert_tool_start_event(
         state=ToolStatePending(
             status="pending",
             title=event.title or f"Calling {event.tool_name}",
-            input=event.tool_input or {},
+            input=event.raw_input or {},
         ),
     )
+
+
+def _get_title_from_state(
+    state: ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError,
+) -> str:
+    """Extract title from any tool state type."""
+    return getattr(state, "title", "")
 
 
 def convert_tool_progress_event(
@@ -177,13 +195,13 @@ def convert_tool_progress_event(
     existing_part: ToolPart,
 ) -> ToolPart:
     """Update ToolPart with progress from AgentPool ToolCallProgressEvent."""
-    # Build output from progress content
+    # Build output from progress content items
     output_parts: list[str] = []
-    for item in event.content:
+    for item in event.items:
         if hasattr(item, "text"):
             output_parts.append(item.text)
-        elif hasattr(item, "data"):
-            output_parts.append(item.data)
+        elif hasattr(item, "content"):
+            output_parts.append(item.content)
 
     output = "\n".join(output_parts) if output_parts else ""
 
@@ -195,8 +213,8 @@ def convert_tool_progress_event(
         call_id=existing_part.call_id,
         state=ToolStateRunning(
             status="running",
-            title=event.title or existing_part.state.title,
-            input=existing_part.state.input,
+            title=event.title or _get_title_from_state(existing_part.state),
+            input=_get_input_from_state(existing_part.state),
             output=output,
         ),
     )
@@ -208,7 +226,7 @@ def convert_tool_complete_event(
 ) -> ToolPart:
     """Update ToolPart with completion from AgentPool ToolCallCompleteEvent."""
     # Format the result
-    result = event.result
+    result = event.tool_result
     if isinstance(result, str):
         output = result
     elif isinstance(result, dict):
@@ -218,18 +236,23 @@ def convert_tool_complete_event(
     else:
         output = str(result) if result is not None else ""
 
-    if event.error:
-        state = ToolStateError(
+    existing_input = _get_input_from_state(existing_part.state)
+
+    # ToolCallCompleteEvent doesn't have error field - check result for error indication
+    is_error = isinstance(result, dict) and result.get("error")
+
+    if is_error:
+        state: ToolStateCompleted | ToolStateError = ToolStateError(
             status="error",
             title=f"Error in {existing_part.tool}",
-            error=str(event.error),
-            input=existing_part.state.input,
+            error=str(result.get("error", "Unknown error")),
+            input=existing_input,
         )
     else:
         state = ToolStateCompleted(
             status="completed",
             title=f"Completed {existing_part.tool}",
-            input=existing_part.state.input,
+            input=existing_input,
             output=output,
             time={"start": time.time() - 1, "end": time.time()},
         )

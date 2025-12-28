@@ -39,13 +39,16 @@ async def _event_generator(state: ServerState) -> AsyncGenerator[dict[str, Any]]
     state.event_subscribers.append(queue)
     try:
         # Send initial connected event
+        connected = ServerConnectedEvent()
+        print(f"SSE: Sending connected event: {connected.model_dump_json(by_alias=True)}")
         yield {
             "event": "message",
-            "data": ServerConnectedEvent().model_dump_json(by_alias=True),
+            "data": connected.model_dump_json(by_alias=True),
         }
         # Stream events
         while True:
             event = await queue.get()
+            print(f"SSE: Sending event: {event.type}")
             yield {
                 "event": "message",
                 "data": event.model_dump_json(by_alias=True),

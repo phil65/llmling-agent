@@ -129,3 +129,16 @@ async def get_session_todos(session_id: str, state: StateDep) -> list[Todo]:
     if session_id not in state.sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     return state.todos.get(session_id, [])
+
+
+@router.get("/{session_id}/diff")
+async def get_session_diff(
+    session_id: str,
+    state: StateDep,
+    message_id: str | None = None,
+) -> list[dict]:
+    """Get file diffs for a session."""
+    if session_id not in state.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    # TODO: Track and return actual file diffs
+    return []

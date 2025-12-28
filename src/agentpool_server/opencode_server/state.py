@@ -49,5 +49,6 @@ class ServerState:
 
     async def broadcast_event(self, event: Event) -> None:
         """Broadcast an event to all SSE subscribers."""
+        print(f"Broadcasting event: {event.type} to {len(self.event_subscribers)} subscribers")
         for queue in self.event_subscribers:
             await queue.put(event)
