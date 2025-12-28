@@ -204,6 +204,20 @@ class MCPResourceProvider(ResourceProvider):
 
         return self._resources_cache or []
 
+    def get_status(self) -> dict[str, str]:
+        """Get connection status for this MCP server.
+
+        Returns:
+            Status dict with 'status' key and optionally 'error' key.
+            Status can be: 'connected', 'disabled', or 'failed'.
+        """
+        try:
+            if self.client.connected:
+                return {"status": "connected"}
+            return {"status": "disabled"}
+        except Exception as e:
+            return {"status": "failed", "error": str(e)}
+
 
 if __name__ == "__main__":
     import anyio

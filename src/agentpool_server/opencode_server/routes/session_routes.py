@@ -313,3 +313,172 @@ async def run_shell_command(
     )
 
     return assistant_msg_with_parts
+
+
+@router.post("/{session_id}/command")
+async def execute_command(
+    session_id: str,
+    request: CommandRequest,
+    state: StateDep,
+) -> MessageWithParts:
+    """Execute a slash command (MCP prompt).
+
+    Commands are mapped to MCP prompts. The command name is used to find
+    the matching prompt, and arguments are parsed and passed to it.
+    """
+    if session_id not in state.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Get available prompts from agent
+    if state.agent is None or not hasattr(state.agent, "tools"):
+        raise HTTPException(status_code=400, detail="No agent configured")
+
+    prompts = await state.agent.tools.list_prompts()
+
+    # Find matching prompt by name
+    prompt = next((p for p in prompts if p.name == request.command), None)
+    if prompt is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Command not found: {request.command}",
+        )
+
+    # Parse arguments - OpenCode uses $1, $2 style, MCP uses named arguments
+    # For simplicity, we'll pass the raw arguments string to the first argument
+    # or parse space-separated args into a dict
+    arguments: dict[str, str] = {}
+    if request.arguments and prompt.arguments:
+        # Split arguments and map to prompt argument names
+        arg_values = request.arguments.split()
+        for i, arg_def in enumerate(prompt.arguments):
+            if i < len(arg_values):
+                arguments[arg_def["name"]] = arg_values[i]
+
+    now = now_ms()
+
+    # Create assistant message
+    assistant_msg_id = identifier.ascending("message")
+    assistant_message = AssistantMessage(
+        id=assistant_msg_id,
+        session_id=session_id,
+        parent_id="",
+        model_id=request.model or "default",
+        provider_id="mcp",
+        mode="command",
+        agent=request.agent or "default",
+        path=MessagePath(cwd=state.working_dir, root=state.working_dir),
+        time=MessageTime(created=now, completed=None),
+        tokens=Tokens(cache=TokensCache(read=0, write=0), input=0, output=0, reasoning=0),
+        cost=0,
+    )
+
+    assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
+    state.messages[session_id].append(assistant_msg_with_parts)
+
+    await state.broadcast_event(
+        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=assistant_message))
+    )
+
+    # Mark session as busy
+    state.session_status[session_id] = SessionStatus(type="busy")
+    await state.broadcast_event(
+        SessionStatusEvent(
+            properties=SessionStatusProperties(
+                session_id=session_id,
+                status=SessionStatus(type="busy"),
+            )
+        )
+    )
+
+    # Add step-start part
+    step_start = StepStartPart(
+        id=identifier.ascending("part"),
+        message_id=assistant_msg_id,
+        session_id=session_id,
+    )
+    assistant_msg_with_parts.parts.append(step_start)
+    await state.broadcast_event(
+        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_start))
+    )
+
+    # Get prompt content and execute through the agent
+    try:
+        prompt_parts = await prompt.get_components(arguments)
+        # Extract text content from parts
+        prompt_texts = []
+        for part in prompt_parts:
+            if hasattr(part, "content"):
+                content = part.content
+                if isinstance(content, str):
+                    prompt_texts.append(content)
+                elif isinstance(content, list):
+                    # Handle Sequence[UserContent]
+                    for item in content:
+                        if hasattr(item, "text"):
+                            prompt_texts.append(item.text)
+                        elif isinstance(item, str):
+                            prompt_texts.append(item)
+        prompt_text = "\n".join(prompt_texts)
+
+        # Run the expanded prompt through the agent
+        result = await state.agent.run(prompt_text)
+        output_text = str(result.output) if hasattr(result, "output") else str(result)
+
+    except Exception as e:  # noqa: BLE001
+        output_text = f"Error executing command: {e}"
+
+    response_time = now_ms()
+
+    # Create text part with output
+    text_part = TextPart(
+        id=identifier.ascending("part"),
+        message_id=assistant_msg_id,
+        session_id=session_id,
+        text=output_text,
+    )
+    assistant_msg_with_parts.parts.append(text_part)
+    await state.broadcast_event(
+        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=text_part))
+    )
+
+    # Add step-finish part
+    from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
+
+    step_finish = StepFinishPart(
+        id=identifier.ascending("part"),
+        message_id=assistant_msg_id,
+        session_id=session_id,
+        tokens=StepFinishTokens(
+            cache=TokenCache(read=0, write=0),
+            input=0,
+            output=0,
+            reasoning=0,
+        ),
+        cost=0,
+    )
+    assistant_msg_with_parts.parts.append(step_finish)
+    await state.broadcast_event(
+        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_finish))
+    )
+
+    # Update message with completion time
+    updated_assistant = assistant_message.model_copy(
+        update={"time": MessageTime(created=now, completed=response_time)}
+    )
+    assistant_msg_with_parts.info = updated_assistant
+    await state.broadcast_event(
+        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=updated_assistant))
+    )
+
+    # Mark session as idle
+    state.session_status[session_id] = SessionStatus(type="idle")
+    await state.broadcast_event(
+        SessionStatusEvent(
+            properties=SessionStatusProperties(
+                session_id=session_id,
+                status=SessionStatus(type="idle"),
+            )
+        )
+    )
+
+    return assistant_msg_with_parts

@@ -92,7 +92,7 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | [~] | POST | `/session/{id}/message` | Send message (wait for response) |
 | [x] | GET | `/session/{id}/message/{messageID}` | Get message details |
 | [ ] | POST | `/session/{id}/prompt_async` | Send message async (no wait) |
-| [ ] | POST | `/session/{id}/command` | Execute slash command |
+| [x] | POST | `/session/{id}/command` | Execute slash command (MCP prompts) |
 | [x] | POST | `/session/{id}/shell` | Run shell command |
 
 ---
@@ -101,7 +101,7 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 
 | Status | Method | Path | Description |
 |--------|--------|------|-------------|
-| [~] | GET | `/command` | List all commands |
+| [x] | GET | `/command` | List all commands (MCP prompts) |
 
 ---
 
