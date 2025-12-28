@@ -33,23 +33,26 @@
     "payload": {
       "content": [
         {
-          "content": {
-            "text": "```/test/new_file.txt\nNew content here\n```",
-            "type": "text"
-          },
-          "type": "content"
+          "newText": "New content here",
+          "oldText": "",
+          "path": "/test/new_file.txt",
+          "type": "diff"
         }
       ],
       "locations": [
         {
           "line": 0,
           "path": "/test/new_file.txt"
-        },
-        {
-          "line": 0,
-          "path": "/test/new_file.txt"
         }
       ],
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "toolCallId": "pyd_ai_tool_call_id__write_file"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Wrote: /test/new_file.txt",
