@@ -11,6 +11,7 @@ agents:
     toolsets:
       - type: execution
       - type: file_access
+        edit_tool: batch
       - type: code
       - type: search
       - type: plan
