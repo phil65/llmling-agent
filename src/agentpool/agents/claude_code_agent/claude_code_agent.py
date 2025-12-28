@@ -880,25 +880,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         result_message = message
                         break
 
-                    # Check for cancellation
-                    if self._cancelled:
-                        self.log.info("Stream cancelled by user")
-                        # Emit partial response
-                        response_msg = ChatMessage[TResult](
-                            content="".join(text_chunks),  # type: ignore[arg-type]
-                            role="assistant",
-                            name=self.name,
-                            message_id=message_id or str(uuid.uuid4()),
-                            conversation_id=self.conversation_id,
-                            model_name=self.model_name,
-                            messages=model_messages,
-                            finish_reason="stop",
-                            metadata=file_tracker.get_metadata(),
-                        )
-                        complete_event = StreamCompleteEvent(message=response_msg)
-                        await handler(None, complete_event)
-                        yield complete_event
-                        return
+                    # Note: We do NOT return early on cancellation here.
+                    # The SDK docs warn against using break/return to exit receive_response()
+                    # early as it can cause asyncio cleanup issues. Instead, we let the
+                    # interrupt() call cause the SDK to send a ResultMessage that will
+                    # naturally terminate the stream via the isinstance(message, ResultMessage)
+                    # check above. The _cancelled flag is checked in process_prompt() to
+                    # return the correct stop reason.
                 else:
                     result_message = None
 
@@ -919,6 +907,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             complete_event = StreamCompleteEvent(message=response_msg)
             await handler(None, complete_event)
             yield complete_event
+            # Record to history even on cancellation so context is preserved
+            self.message_sent.emit(response_msg)
+            conversation.add_chat_messages([user_msg, response_msg])
             return
 
         except Exception as e:
@@ -955,6 +946,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             total_cost = Decimal(str(result_message.total_cost_usd or 0))
             cost_info = TokenCost(token_usage=run_usage, total_cost=total_cost)
 
+        # Determine finish reason - check if we were cancelled
         chat_message = ChatMessage[TResult](
             content=final_content,
             role="assistant",
@@ -965,6 +957,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             messages=model_messages,
             cost_info=cost_info,
             response_time=result_message.duration_ms / 1000 if result_message else None,
+            finish_reason="stop" if self._cancelled else None,
             metadata=file_tracker.get_metadata(),
         )
 
