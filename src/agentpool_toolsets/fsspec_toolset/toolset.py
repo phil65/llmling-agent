@@ -82,7 +82,7 @@ class FSSpecTools(ResourceProvider):
         enable_diagnostics: bool = False,
         large_file_tokens: int = 12_000,
         map_max_tokens: int = 2048,
-        edit_tool: Literal["simple", "batch"] = "simple",
+        edit_tool: Literal["simple", "batch", "agentic"] = "simple",
     ) -> None:
         """Initialize with an fsspec filesystem or execution environment.
 
@@ -218,17 +218,24 @@ class FSSpecTools(ResourceProvider):
         if self._tools is not None:
             return self._tools
 
-        edit_fn = self.edit_file_batch if self._edit_tool == "batch" else self.edit_file
         self._tools = [
             self.create_tool(self.list_directory, category="read", read_only=True, idempotent=True),
             self.create_tool(self.read_file, category="read", read_only=True, idempotent=True),
             self.create_tool(self.grep, category="search", read_only=True, idempotent=True),
             self.create_tool(self.write_file, category="edit"),
             self.create_tool(self.delete_path, category="delete", destructive=True),
-            self.create_tool(edit_fn, category="edit", name_override="edit_file"),
-            self.create_tool(self.agentic_edit, category="edit"),
             self.create_tool(self.download_file, category="read", open_world=True),
         ]
+
+        # Add edit tool based on config - mutually exclusive
+        if self._edit_tool == "agentic":
+            self._tools.append(self.create_tool(self.agentic_edit, category="edit"))
+        elif self._edit_tool == "batch":
+            self._tools.append(
+                self.create_tool(self.edit_file_batch, category="edit", name_override="edit_file")
+            )
+        else:  # simple
+            self._tools.append(self.create_tool(self.edit_file, category="edit"))
 
         if self.converter:  # Only add read_as_markdown if converter is available
             self._tools.append(

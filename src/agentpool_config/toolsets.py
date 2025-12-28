@@ -607,11 +607,11 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     )
     """Maximum tokens for structure map output when reading large files."""
 
-    edit_tool: Literal["simple", "batch"] = Field(
+    edit_tool: Literal["simple", "batch", "agentic"] = Field(
         default="simple",
         title="Edit tool variant",
     )
-    """Which edit_file variant to expose: "simple" (single replacement) or "batch" (multiple)."""
+    """Which edit tool to expose: "simple" (single replacement), "batch" (multiple replacements), or "agentic" (LLM-driven editing)."""
 
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
