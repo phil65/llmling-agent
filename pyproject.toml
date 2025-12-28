@@ -156,6 +156,7 @@ dev = [
   # Only add below (Copier)
   "pytest-asyncio>=0.24.0",
   "pytest-cov",
+  "pytest-pretty>=1.3.0",
   "pytest-rerunfailures>=16.1",
   "pytest-timeout>=2.4.0",
   "pytest-xdist",
