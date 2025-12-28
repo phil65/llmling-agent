@@ -375,7 +375,7 @@ def test_tool_call_accumulator_invalid_json():
     tool_name, args = result
     assert tool_name == "test_tool"
     # Should wrap in raw key when parsing fails
-    assert "raw" in args
+    assert "_raw" in args
 
 
 def test_tool_call_accumulator_multiple_calls():
