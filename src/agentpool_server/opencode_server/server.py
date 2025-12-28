@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
@@ -28,19 +28,29 @@ from agentpool_server.opencode_server.state import ServerState
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from agentpool.agents.base_agent import BaseAgent
+
 VERSION = "0.1.0"
 
 
-def create_app(*, working_dir: str | None = None) -> FastAPI:
+def create_app(
+    *,
+    working_dir: str | None = None,
+    agent: BaseAgent[Any, Any] | None = None,
+) -> FastAPI:
     """Create the FastAPI application.
 
     Args:
         working_dir: Working directory for file operations. Defaults to cwd.
+        agent: Optional AgentPool BaseAgent to handle messages.
 
     Returns:
         Configured FastAPI application.
     """
-    state = ServerState(working_dir=working_dir or str(Path.cwd()))
+    state = ServerState(
+        working_dir=working_dir or str(Path.cwd()),
+        agent=agent,
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -88,6 +98,7 @@ class OpenCodeServer:
         host: str = "127.0.0.1",
         port: int = 4096,
         working_dir: str | None = None,
+        agent: BaseAgent[Any, Any] | None = None,
     ) -> None:
         """Initialize the server.
 
@@ -95,17 +106,19 @@ class OpenCodeServer:
             host: Host to bind to.
             port: Port to listen on.
             working_dir: Working directory for file operations.
+            agent: Optional AgentPool BaseAgent to handle messages.
         """
         self.host = host
         self.port = port
         self.working_dir = working_dir
+        self.agent = agent
         self._app: FastAPI | None = None
 
     @property
     def app(self) -> FastAPI:
         """Get or create the FastAPI application."""
         if self._app is None:
-            self._app = create_app(working_dir=self.working_dir)
+            self._app = create_app(working_dir=self.working_dir, agent=self.agent)
         return self._app
 
     def run(self) -> None:
@@ -128,6 +141,7 @@ def run_server(
     host: str = "127.0.0.1",
     port: int = 4096,
     working_dir: str | None = None,
+    agent: BaseAgent[Any, Any] | None = None,
 ) -> None:
     """Run the OpenCode-compatible server.
 
@@ -135,8 +149,9 @@ def run_server(
         host: Host to bind to.
         port: Port to listen on.
         working_dir: Working directory for file operations.
+        agent: Optional AgentPool BaseAgent to handle messages.
     """
-    server = OpenCodeServer(host=host, port=port, working_dir=working_dir)
+    server = OpenCodeServer(host=host, port=port, working_dir=working_dir, agent=agent)
     server.run()
 
 

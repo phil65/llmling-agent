@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 
 if TYPE_CHECKING:
     import asyncio
 
+    from agentpool.agents.base_agent import BaseAgent
     from agentpool_server.opencode_server.models import (
         Event,
         MessageWithParts,
@@ -42,6 +43,9 @@ class ServerState:
 
     # SSE event subscribers
     event_subscribers: list[asyncio.Queue[Event]] = field(default_factory=list)
+
+    # AgentPool agent for handling messages
+    agent: BaseAgent[Any, Any] | None = None
 
     async def broadcast_event(self, event: Event) -> None:
         """Broadcast an event to all SSE subscribers."""

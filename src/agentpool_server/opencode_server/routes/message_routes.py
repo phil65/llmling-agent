@@ -7,21 +7,32 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Query
 
+from agentpool_server.opencode_server.converters import extract_user_prompt_from_parts
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
     AssistantMessage,
+    MessageCreatedEvent,
     MessagePath,
     MessageRequest,
     MessageTime,
+    MessageUpdatedEvent,
     MessageWithParts,
     Part,
+    PartUpdatedEvent,
     SessionStatus,
+    StepFinishPart,
+    StepStartPart,
     TextPart,
     TimeCreated,
     TimeCreatedUpdated,
     TimeStartEnd,
     Tokens,
     TokensCache,
+    ToolPart,
+    ToolStateCompleted,
+    ToolStateError,
+    ToolStatePending,
+    ToolStateRunning,
     UserMessage,
 )
 
@@ -46,15 +57,12 @@ async def list_messages(
 
 
 @router.post("/message")
-async def send_message(
+async def send_message(  # noqa: PLR0915
     session_id: str,
     request: MessageRequest,
     state: StateDep,
 ) -> MessageWithParts:
-    """Send a message and get response.
-
-    TODO: Integrate with AgentPool agents.
-    """
+    """Send a message and get response from the agent."""
     if session_id not in state.sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -85,14 +93,17 @@ async def send_message(
     user_msg_with_parts = MessageWithParts(info=user_message, parts=user_parts)
     state.messages[session_id].append(user_msg_with_parts)
 
+    # Broadcast user message created event
+    await state.broadcast_event(MessageCreatedEvent(properties=user_msg_with_parts))
+
     # Mark session as running
     state.session_status[session_id] = SessionStatus(running=True)
 
-    # TODO: Actually call the agent here
-    # For now, return a placeholder response
-    assistant_msg_id = str(uuid.uuid4())
-    response_time = time.time()
+    # Extract user prompt text
+    user_prompt = extract_user_prompt_from_parts([p.model_dump() for p in request.parts])
 
+    # Create assistant message
+    assistant_msg_id = str(uuid.uuid4())
     assistant_message = AssistantMessage(
         id=assistant_msg_id,
         session_id=session_id,
@@ -101,7 +112,7 @@ async def send_message(
         mode=request.mode or "default",
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         system=[],
-        time=MessageTime(created=now, completed=response_time),
+        time=MessageTime(created=now, completed=None),
         tokens=Tokens(
             cache=TokensCache(read=0, write=0),
             input=0,
@@ -111,19 +122,240 @@ async def send_message(
         cost=0.0,
     )
 
-    # Placeholder response
-    response_parts: list[Part] = [
-        TextPart(
-            id=f"{assistant_msg_id}-0",
+    # Initialize assistant message with empty parts
+    assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
+    state.messages[session_id].append(assistant_msg_with_parts)
+
+    # Broadcast assistant message created
+    await state.broadcast_event(MessageCreatedEvent(properties=assistant_msg_with_parts))
+
+    # Add step-start part
+    step_start = StepStartPart(
+        id=f"{assistant_msg_id}-step-start",
+        message_id=assistant_msg_id,
+        session_id=session_id,
+    )
+    assistant_msg_with_parts.parts.append(step_start)
+    await state.broadcast_event(
+        PartUpdatedEvent(
+            properties={
+                "sessionID": session_id,
+                "messageID": assistant_msg_id,
+                "part": step_start,
+            }
+        )
+    )
+
+    # Call the agent
+    response_text = ""
+    input_tokens = 0
+    output_tokens = 0
+    tool_parts: dict[str, ToolPart] = {}  # Track tool parts by call_id
+
+    if state.agent is not None:
+        try:
+            # Import event types here to avoid circular imports
+            from pydantic_ai.messages import TextPart as PydanticTextPart
+
+            from agentpool.agents.events import (
+                StreamCompleteEvent,
+                ToolCallCompleteEvent,
+                ToolCallProgressEvent,
+                ToolCallStartEvent,
+            )
+
+            # Stream events from the agent
+            async for event in state.agent.run_stream(user_prompt):
+                # Handle different event types
+                if isinstance(event, ToolCallStartEvent):
+                    # Create pending tool part
+                    tool_part = ToolPart(
+                        id=f"{assistant_msg_id}-tool-{event.tool_call_id}",
+                        message_id=assistant_msg_id,
+                        session_id=session_id,
+                        tool=event.tool_name,
+                        call_id=event.tool_call_id,
+                        state=ToolStatePending(
+                            status="pending",
+                            title=event.title or f"Calling {event.tool_name}",
+                            input=event.tool_input or {},
+                        ),
+                    )
+                    tool_parts[event.tool_call_id] = tool_part
+                    assistant_msg_with_parts.parts.append(tool_part)
+                    await state.broadcast_event(
+                        PartUpdatedEvent(
+                            properties={
+                                "sessionID": session_id,
+                                "messageID": assistant_msg_id,
+                                "part": tool_part,
+                            }
+                        )
+                    )
+
+                elif isinstance(event, ToolCallProgressEvent):
+                    # Update to running state
+                    if event.tool_call_id and event.tool_call_id in tool_parts:
+                        existing = tool_parts[event.tool_call_id]
+                        # Build output from content items
+                        output_text = ""
+                        for item in event.content:
+                            if hasattr(item, "text"):
+                                output_text += item.text
+                            elif hasattr(item, "data"):
+                                output_text += item.data
+
+                        updated = ToolPart(
+                            id=existing.id,
+                            message_id=existing.message_id,
+                            session_id=existing.session_id,
+                            tool=existing.tool,
+                            call_id=existing.call_id,
+                            state=ToolStateRunning(
+                                status="running",
+                                title=event.title or existing.state.title,
+                                input=existing.state.input,
+                                output=output_text,
+                            ),
+                        )
+                        tool_parts[event.tool_call_id] = updated
+                        # Update in parts list
+                        for i, p in enumerate(assistant_msg_with_parts.parts):
+                            if isinstance(p, ToolPart) and p.id == existing.id:
+                                assistant_msg_with_parts.parts[i] = updated
+                                break
+                        await state.broadcast_event(
+                            PartUpdatedEvent(
+                                properties={
+                                    "sessionID": session_id,
+                                    "messageID": assistant_msg_id,
+                                    "part": updated,
+                                }
+                            )
+                        )
+
+                elif isinstance(event, ToolCallCompleteEvent):
+                    # Update to completed/error state
+                    if event.tool_call_id in tool_parts:
+                        existing = tool_parts[event.tool_call_id]
+                        result_str = str(event.result) if event.result else ""
+
+                        if event.error:
+                            new_state = ToolStateError(
+                                status="error",
+                                title=f"Error in {existing.tool}",
+                                error=str(event.error),
+                                input=existing.state.input,
+                            )
+                        else:
+                            new_state = ToolStateCompleted(
+                                status="completed",
+                                title=f"Completed {existing.tool}",
+                                input=existing.state.input,
+                                output=result_str,
+                                time={"start": now, "end": time.time()},
+                            )
+
+                        updated = ToolPart(
+                            id=existing.id,
+                            message_id=existing.message_id,
+                            session_id=existing.session_id,
+                            tool=existing.tool,
+                            call_id=existing.call_id,
+                            state=new_state,
+                        )
+                        tool_parts[event.tool_call_id] = updated
+                        # Update in parts list
+                        for i, p in enumerate(assistant_msg_with_parts.parts):
+                            if isinstance(p, ToolPart) and p.id == existing.id:
+                                assistant_msg_with_parts.parts[i] = updated
+                                break
+                        await state.broadcast_event(
+                            PartUpdatedEvent(
+                                properties={
+                                    "sessionID": session_id,
+                                    "messageID": assistant_msg_id,
+                                    "part": updated,
+                                }
+                            )
+                        )
+
+                elif isinstance(event, StreamCompleteEvent):
+                    # Extract final response
+                    if event.message:
+                        for part in event.message.parts:
+                            if isinstance(part, PydanticTextPart):
+                                response_text += part.content
+
+                        # Get token usage
+                        if hasattr(event.message, "usage") and event.message.usage:
+                            input_tokens = event.message.usage.request_tokens or 0
+                            output_tokens = event.message.usage.response_tokens or 0
+
+        except Exception as e:  # noqa: BLE001
+            response_text = f"Error calling agent: {e}"
+    else:
+        response_text = (
+            "No agent configured. Please start the server with an agent.\n\n"
+            "For now, this is a placeholder response. Your message was:\n\n"
+            f"> {user_prompt}"
+        )
+
+    response_time = time.time()
+
+    # Create text part with response
+    if response_text:
+        text_part = TextPart(
+            id=f"{assistant_msg_id}-text",
             message_id=assistant_msg_id,
             session_id=session_id,
-            text="[OpenCode server placeholder] Agent integration pending.",
+            text=response_text,
             time=TimeStartEnd(start=now, end=response_time),
         )
-    ]
+        assistant_msg_with_parts.parts.append(text_part)
 
-    assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=response_parts)
-    state.messages[session_id].append(assistant_msg_with_parts)
+        # Broadcast text part update
+        await state.broadcast_event(
+            PartUpdatedEvent(
+                properties={
+                    "sessionID": session_id,
+                    "messageID": assistant_msg_id,
+                    "part": text_part,
+                }
+            )
+        )
+
+    # Add step-finish part with token counts
+    step_finish = StepFinishPart(
+        id=f"{assistant_msg_id}-step-finish",
+        message_id=assistant_msg_id,
+        session_id=session_id,
+        tokens=Tokens(
+            cache=TokensCache(read=0, write=0),
+            input=float(input_tokens),
+            output=float(output_tokens),
+            reasoning=0,
+        ),
+        cost=0.0,  # TODO: Calculate actual cost
+    )
+    assistant_msg_with_parts.parts.append(step_finish)
+
+    # Update assistant message with final timing and tokens
+    updated_assistant = assistant_message.model_copy(
+        update={
+            "time": MessageTime(created=now, completed=response_time),
+            "tokens": Tokens(
+                cache=TokensCache(read=0, write=0),
+                input=float(input_tokens),
+                output=float(output_tokens),
+                reasoning=0,
+            ),
+        }
+    )
+    assistant_msg_with_parts.info = updated_assistant
+
+    # Broadcast final message update
+    await state.broadcast_event(MessageUpdatedEvent(properties=assistant_msg_with_parts))
 
     # Mark session as not running
     state.session_status[session_id] = SessionStatus(running=False)
