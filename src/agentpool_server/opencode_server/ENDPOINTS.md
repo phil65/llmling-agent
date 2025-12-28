@@ -53,9 +53,9 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | Status | Method | Path | Description |
 |--------|--------|------|-------------|
 | [~] | GET | `/provider` | List all providers |
-| [~] | GET | `/provider/auth` | Get provider authentication methods |
-| [-] | POST | `/provider/{id}/oauth/authorize` | Authorize provider via OAuth |
-| [-] | POST | `/provider/{id}/oauth/callback` | Handle OAuth callback |
+| [x] | GET | `/provider/auth` | Get provider authentication methods |
+| [x] | POST | `/provider/{id}/oauth/authorize` | Authorize provider via OAuth |
+| [x] | POST | `/provider/{id}/oauth/callback` | Handle OAuth callback |
 
 ---
 
