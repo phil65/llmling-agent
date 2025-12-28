@@ -671,7 +671,6 @@ def _find_closest_match(content: str, search_text: str, line_hint: int) -> int |
     Returns:
         The character index of the closest match, or None if no matches found.
     """
-    lines = content.split("\n")
     matches: list[tuple[int, int]] = []  # (line_number, char_index)
 
     # Find all occurrences with their positions
