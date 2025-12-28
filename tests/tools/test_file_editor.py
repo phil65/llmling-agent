@@ -106,7 +106,7 @@ class TestReplaceContent:
 
     def test_multiple_occurrences_error(self):
         content = "test test test"
-        with pytest.raises(ValueError, match="multiple times"):
+        with pytest.raises(ValueError, match="multiple locations"):
             replace_content(content, "test", "replace")
 
     def test_replace_all(self):

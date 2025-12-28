@@ -343,10 +343,9 @@ async def test_agui_tool_execution_error(mock_sse_response):
 
 def test_tool_call_accumulator():
     """Test ToolCallAccumulator for streaming tool arguments."""
-    from agentpool.agents.agui_agent.agui_converters import ToolCallAccumulator
+    from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
     accumulator = ToolCallAccumulator()
-
     # Start a tool call
     accumulator.start("call1", "my_tool")
 
@@ -354,26 +353,23 @@ def test_tool_call_accumulator():
     accumulator.add_args("call1", '{"arg1":')
     accumulator.add_args("call1", ' "value1"')
     accumulator.add_args("call1", ', "arg2": 42}')
-
     # Complete and parse
     result = accumulator.complete("call1")
     assert result is not None
     tool_name, args = result
     assert tool_name == "my_tool"
     assert args == {"arg1": "value1", "arg2": 42}
-
     # Tool call should be removed after completion
     assert accumulator.get_pending("call1") is None
 
 
 def test_tool_call_accumulator_invalid_json():
     """Test ToolCallAccumulator with invalid JSON."""
-    from agentpool.agents.agui_agent.agui_converters import ToolCallAccumulator
+    from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
     accumulator = ToolCallAccumulator()
     accumulator.start("call1", "test_tool")
     accumulator.add_args("call1", "invalid json {")
-
     result = accumulator.complete("call1")
     assert result is not None
     tool_name, args = result
@@ -384,18 +380,15 @@ def test_tool_call_accumulator_invalid_json():
 
 def test_tool_call_accumulator_multiple_calls():
     """Test ToolCallAccumulator with multiple concurrent tool calls."""
-    from agentpool.agents.agui_agent.agui_converters import ToolCallAccumulator
+    from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
     accumulator = ToolCallAccumulator()
-
     # Start multiple tool calls
     accumulator.start("call1", "tool1")
     accumulator.start("call2", "tool2")
-
     # Add args to both
     accumulator.add_args("call1", '{"x": 1}')
     accumulator.add_args("call2", '{"y": 2}')
-
     # Check pending
     pending1 = accumulator.get_pending("call1")
     assert pending1 is not None
