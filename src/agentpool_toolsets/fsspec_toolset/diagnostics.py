@@ -528,7 +528,7 @@ ALL_SERVERS: list[DiagnosticServer] = [
     # PYRIGHT,
     # BASEDPYRIGHT,
     # MYPY,
-    ZUBAN,
+    # ZUBAN,  # Disabled: times out on large files (>1000 lines)
     PYREFLY,
     # JavaScript/TypeScript (Rust-based)
     OXLINT,
