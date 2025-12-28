@@ -30,6 +30,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: pyproject.toml
           cache-suffix: py${{ matrix.python_version }}
+          python-version: ${{ matrix.python_version }}
       - name: Set PYTHON_GIL
         if: endsWith(matrix.python_version, 't')
         run: |
