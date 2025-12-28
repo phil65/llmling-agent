@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING, Any
 import uuid
 
 from agentpool_server.opencode_server.models import (
     TextPart,
+    TimeStartEnd,
     ToolPart,
     ToolStateCompleted,
     ToolStateError,
     ToolStatePending,
     ToolStateRunning,
 )
+from agentpool_server.opencode_server.time_utils import now_ms
 
 
 if TYPE_CHECKING:
@@ -69,11 +70,7 @@ def convert_pydantic_tool_call_part(
         message_id=message_id,
         tool=part.tool_name,
         call_id=part.tool_call_id,
-        state=ToolStatePending(
-            status="pending",
-            title=f"Calling {part.tool_name}",
-            input=part.args if isinstance(part.args, dict) else {},
-        ),
+        state=ToolStatePending(status="pending"),
     )
 
 
@@ -81,7 +78,7 @@ def _get_input_from_state(
     state: ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError,
 ) -> dict[str, Any]:
     """Extract input from any tool state type."""
-    if hasattr(state, "input"):
+    if hasattr(state, "input") and state.input is not None:
         return state.input
     return {}
 
@@ -102,9 +99,9 @@ def convert_pydantic_tool_return_part(
     if is_error:
         state: ToolStateCompleted | ToolStateError = ToolStateError(
             status="error",
-            title=f"Error in {part.tool_name}",
             error=str(content.get("error", "Unknown error")),
             input=existing_input,
+            time=TimeStartEnd(start=now_ms() - 1000, end=now_ms()),
         )
     else:
         # Format output for display
@@ -122,7 +119,7 @@ def convert_pydantic_tool_return_part(
             title=f"Completed {part.tool_name}",
             input=existing_input,
             output=output,
-            time={"start": time.time() - 1, "end": time.time()},  # Approximate
+            time=TimeStartEnd(start=now_ms() - 1000, end=now_ms()),
         )
 
     return ToolPart(
@@ -175,11 +172,7 @@ def convert_tool_start_event(
         message_id=message_id,
         tool=event.tool_name,
         call_id=event.tool_call_id,
-        state=ToolStatePending(
-            status="pending",
-            title=event.title or f"Calling {event.tool_name}",
-            input=event.raw_input or {},
-        ),
+        state=ToolStatePending(status="pending"),
     )
 
 
@@ -195,16 +188,7 @@ def convert_tool_progress_event(
     existing_part: ToolPart,
 ) -> ToolPart:
     """Update ToolPart with progress from AgentPool ToolCallProgressEvent."""
-    # Build output from progress content items
-    output_parts: list[str] = []
-    for item in event.items:
-        if hasattr(item, "text"):
-            output_parts.append(item.text)
-        elif hasattr(item, "content"):
-            output_parts.append(item.content)
-
-    output = "\n".join(output_parts) if output_parts else ""
-
+    # ToolStateRunning doesn't have output field, progress is indicated by title
     return ToolPart(
         id=existing_part.id,
         session_id=existing_part.session_id,
@@ -213,9 +197,9 @@ def convert_tool_progress_event(
         call_id=existing_part.call_id,
         state=ToolStateRunning(
             status="running",
+            time=TimeStartEnd(start=now_ms()),
             title=event.title or _get_title_from_state(existing_part.state),
             input=_get_input_from_state(existing_part.state),
-            output=output,
         ),
     )
 
@@ -244,9 +228,9 @@ def convert_tool_complete_event(
     if is_error:
         state: ToolStateCompleted | ToolStateError = ToolStateError(
             status="error",
-            title=f"Error in {existing_part.tool}",
             error=str(result.get("error", "Unknown error")),
             input=existing_input,
+            time=TimeStartEnd(start=now_ms() - 1000, end=now_ms()),
         )
     else:
         state = ToolStateCompleted(
@@ -254,7 +238,7 @@ def convert_tool_complete_event(
             title=f"Completed {existing_part.tool}",
             input=existing_input,
             output=output,
-            time={"start": time.time() - 1, "end": time.time()},
+            time=TimeStartEnd(start=now_ms() - 1000, end=now_ms()),
         )
 
     return ToolPart(

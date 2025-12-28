@@ -2,23 +2,22 @@
 
 from __future__ import annotations
 
-import time
-import uuid
-
 from fastapi import APIRouter, HTTPException, Query
 
+from agentpool_server.opencode_server import identifier
 from agentpool_server.opencode_server.converters import extract_user_prompt_from_parts
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
     AssistantMessage,
-    MessageCreatedEvent,
     MessagePath,
     MessageRequest,
     MessageTime,
     MessageUpdatedEvent,
+    MessageUpdatedEventProperties,
     MessageWithParts,
     Part,
     PartUpdatedEvent,
+    PartUpdatedEventProperties,
     SessionStatus,
     StepFinishPart,
     StepStartPart,
@@ -35,6 +34,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     ToolStateRunning,
     UserMessage,
 )
+from agentpool_server.opencode_server.time_utils import now_ms
 
 
 router = APIRouter(prefix="/session/{session_id}", tags=["message"])
@@ -56,16 +56,6 @@ async def list_messages(
     return messages
 
 
-@router.post("/message/debug")
-async def debug_message(
-    session_id: str,
-    request: Request,
-) -> dict:
-    """Debug endpoint to see raw request body."""
-    body = await request.json()
-    return {"received": body}
-
-
 @router.post("/message")
 async def send_message(  # noqa: PLR0915
     session_id: str,
@@ -76,27 +66,35 @@ async def send_message(  # noqa: PLR0915
     if session_id not in state.sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    now = time.time()
+    now = now_ms()
 
-    # Create user message
-    user_msg_id = request.message_id or str(uuid.uuid4())
+    # Create user message with sortable ID
+    user_msg_id = identifier.ascending("message", request.message_id)
+
+    # Import UserMessageModel
+    from agentpool_server.opencode_server.models.message import UserMessageModel
+
     user_message = UserMessage(
         id=user_msg_id,
         session_id=session_id,
         time=TimeCreated(created=now),
+        agent=request.agent or "default",
+        model=UserMessageModel(
+            provider_id=request.model.provider_id if request.model else "agentpool",
+            model_id=request.model.model_id if request.model else "default",
+        ),
     )
 
     # Create parts from request
     user_parts: list[Part] = []
-    for i, part in enumerate(request.parts):
+    for part in request.parts:
         if part.type == "text":
             user_parts.append(
                 TextPart(
-                    id=f"{user_msg_id}-{i}",
+                    id=identifier.ascending("part"),
                     message_id=user_msg_id,
                     session_id=session_id,
                     text=part.text,
-                    time=TimeStartEnd(start=now, end=now),
                 )
             )
 
@@ -104,24 +102,37 @@ async def send_message(  # noqa: PLR0915
     state.messages[session_id].append(user_msg_with_parts)
 
     # Broadcast user message created event
-    await state.broadcast_event(MessageCreatedEvent(properties=user_message))
+    await state.broadcast_event(
+        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=user_message))
+    )
 
     # Mark session as running
-    state.session_status[session_id] = SessionStatus(running=True)
+    from agentpool_server.opencode_server.models import SessionStatusEvent, SessionStatusProperties
+
+    state.session_status[session_id] = SessionStatus(type="busy")
+    await state.broadcast_event(
+        SessionStatusEvent(
+            properties=SessionStatusProperties(
+                session_id=session_id,
+                status=SessionStatus(type="busy"),
+            )
+        )
+    )
 
     # Extract user prompt text
     user_prompt = extract_user_prompt_from_parts([p.model_dump() for p in request.parts])
 
-    # Create assistant message
-    assistant_msg_id = str(uuid.uuid4())
+    # Create assistant message with sortable ID (must come after user message)
+    assistant_msg_id = identifier.ascending("message")
     assistant_message = AssistantMessage(
         id=assistant_msg_id,
         session_id=session_id,
+        parent_id=user_msg_id,  # Link to user message
         model_id=request.model.model_id if request.model else "default",
         provider_id=request.model.provider_id if request.model else "agentpool",
         mode=request.agent or "default",
+        agent=request.agent or "default",
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
-        system=[],
         time=MessageTime(created=now, completed=None),
         tokens=Tokens(
             cache=TokensCache(read=0, write=0),
@@ -129,7 +140,7 @@ async def send_message(  # noqa: PLR0915
             output=0,
             reasoning=0,
         ),
-        cost=0.0,
+        cost=0,
     )
 
     # Initialize assistant message with empty parts
@@ -137,16 +148,20 @@ async def send_message(  # noqa: PLR0915
     state.messages[session_id].append(assistant_msg_with_parts)
 
     # Broadcast assistant message created
-    await state.broadcast_event(MessageCreatedEvent(properties=assistant_message))
+    await state.broadcast_event(
+        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=assistant_message))
+    )
 
     # Add step-start part
     step_start = StepStartPart(
-        id=f"{assistant_msg_id}-step-start",
+        id=identifier.ascending("part"),
         message_id=assistant_msg_id,
         session_id=session_id,
     )
     assistant_msg_with_parts.parts.append(step_start)
-    await state.broadcast_event(PartUpdatedEvent(properties=step_start))
+    await state.broadcast_event(
+        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_start))
+    )
 
     # Call the agent
     response_text = ""
@@ -172,20 +187,18 @@ async def send_message(  # noqa: PLR0915
                 if isinstance(event, ToolCallStartEvent):
                     # Create pending tool part
                     tool_part = ToolPart(
-                        id=f"{assistant_msg_id}-tool-{event.tool_call_id}",
+                        id=identifier.ascending("part"),
                         message_id=assistant_msg_id,
                         session_id=session_id,
                         tool=event.tool_name,
                         call_id=event.tool_call_id,
-                        state=ToolStatePending(
-                            status="pending",
-                            title=event.title or f"Calling {event.tool_name}",
-                            input=event.raw_input or {},
-                        ),
+                        state=ToolStatePending(status="pending"),
                     )
                     tool_parts[event.tool_call_id] = tool_part
                     assistant_msg_with_parts.parts.append(tool_part)
-                    await state.broadcast_event(PartUpdatedEvent(properties=tool_part))
+                    await state.broadcast_event(
+                        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=tool_part))
+                    )
 
                 elif isinstance(event, ToolCallProgressEvent):
                     # Update to running state
@@ -203,6 +216,8 @@ async def send_message(  # noqa: PLR0915
                         existing_title = getattr(existing.state, "title", "")
                         existing_input = getattr(existing.state, "input", {})
 
+                        from agentpool_server.opencode_server.models.parts import TimeStart
+
                         updated = ToolPart(
                             id=existing.id,
                             message_id=existing.message_id,
@@ -211,9 +226,9 @@ async def send_message(  # noqa: PLR0915
                             call_id=existing.call_id,
                             state=ToolStateRunning(
                                 status="running",
+                                time=TimeStart(start=now_ms()),
                                 title=event.title or existing_title,
                                 input=existing_input,
-                                output=output_text,
                             ),
                         )
                         tool_parts[event.tool_call_id] = updated
@@ -222,7 +237,9 @@ async def send_message(  # noqa: PLR0915
                             if isinstance(p, ToolPart) and p.id == existing.id:
                                 assistant_msg_with_parts.parts[i] = updated
                                 break
-                        await state.broadcast_event(PartUpdatedEvent(properties=updated))
+                        await state.broadcast_event(
+                            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=updated))
+                        )
 
                 elif isinstance(event, ToolCallCompleteEvent):
                     # Update to completed/error state
@@ -237,12 +254,16 @@ async def send_message(  # noqa: PLR0915
                         # Check result for error indication
                         is_error = isinstance(result, dict) and result.get("error")
 
+                        from agentpool_server.opencode_server.models.parts import (
+                            TimeStartEndCompacted,
+                        )
+
                         if is_error:
                             new_state: ToolStateCompleted | ToolStateError = ToolStateError(
                                 status="error",
-                                title=f"Error in {existing.tool}",
                                 error=str(result.get("error", "Unknown error")),
                                 input=existing_input,
+                                time=TimeStartEnd(start=now, end=now_ms()),
                             )
                         else:
                             new_state = ToolStateCompleted(
@@ -250,7 +271,7 @@ async def send_message(  # noqa: PLR0915
                                 title=f"Completed {existing.tool}",
                                 input=existing_input,
                                 output=result_str,
-                                time={"start": now, "end": time.time()},
+                                time=TimeStartEndCompacted(start=now, end=now_ms()),
                             )
 
                         updated = ToolPart(
@@ -267,7 +288,9 @@ async def send_message(  # noqa: PLR0915
                             if isinstance(p, ToolPart) and p.id == existing.id:
                                 assistant_msg_with_parts.parts[i] = updated
                                 break
-                        await state.broadcast_event(PartUpdatedEvent(properties=updated))
+                        await state.broadcast_event(
+                            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=updated))
+                        )
 
                 elif isinstance(event, StreamCompleteEvent):
                     # Extract final response from ChatMessage
@@ -278,8 +301,8 @@ async def send_message(  # noqa: PLR0915
 
                         # Get token usage
                         if hasattr(event.message, "usage") and event.message.usage:
-                            input_tokens = event.message.usage.request_tokens or 0
-                            output_tokens = event.message.usage.response_tokens or 0
+                            input_tokens = event.message.usage.input_tokens or 0
+                            output_tokens = event.message.usage.output_tokens or 0
 
         except Exception as e:  # noqa: BLE001
             response_text = f"Error calling agent: {e}"
@@ -290,12 +313,12 @@ async def send_message(  # noqa: PLR0915
             f"> {user_prompt}"
         )
 
-    response_time = time.time()
+    response_time = now_ms()
 
     # Create text part with response
     if response_text:
         text_part = TextPart(
-            id=f"{assistant_msg_id}-text",
+            id=identifier.ascending("part"),
             message_id=assistant_msg_id,
             session_id=session_id,
             text=response_text,
@@ -304,23 +327,29 @@ async def send_message(  # noqa: PLR0915
         assistant_msg_with_parts.parts.append(text_part)
 
         # Broadcast text part update
-        await state.broadcast_event(PartUpdatedEvent(properties=text_part))
+        await state.broadcast_event(
+            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=text_part))
+        )
 
     # Add step-finish part with token counts
+    from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
+
     step_finish = StepFinishPart(
-        id=f"{assistant_msg_id}-step-finish",
+        id=identifier.ascending("part"),
         message_id=assistant_msg_id,
         session_id=session_id,
-        tokens=Tokens(
-            cache=TokensCache(read=0, write=0),
-            input=float(input_tokens),
-            output=float(output_tokens),
+        tokens=StepFinishTokens(
+            cache=TokenCache(read=0, write=0),
+            input=input_tokens,
+            output=output_tokens,
             reasoning=0,
         ),
-        cost=0.0,  # TODO: Calculate actual cost
+        cost=0,  # TODO: Calculate actual cost
     )
     assistant_msg_with_parts.parts.append(step_finish)
-    await state.broadcast_event(PartUpdatedEvent(properties=step_finish))
+    await state.broadcast_event(
+        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_finish))
+    )
 
     print(f"Response text: {response_text[:100] if response_text else 'EMPTY'}...")
 
@@ -330,8 +359,8 @@ async def send_message(  # noqa: PLR0915
             "time": MessageTime(created=now, completed=response_time),
             "tokens": Tokens(
                 cache=TokensCache(read=0, write=0),
-                input=float(input_tokens),
-                output=float(output_tokens),
+                input=input_tokens,
+                output=output_tokens,
                 reasoning=0,
             ),
         }
@@ -339,10 +368,26 @@ async def send_message(  # noqa: PLR0915
     assistant_msg_with_parts.info = updated_assistant
 
     # Broadcast final message update
-    await state.broadcast_event(MessageUpdatedEvent(properties=updated_assistant))
+    await state.broadcast_event(
+        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=updated_assistant))
+    )
 
     # Mark session as not running
-    state.session_status[session_id] = SessionStatus(running=False)
+    from agentpool_server.opencode_server.models import SessionIdleEvent, SessionIdleProperties
+
+    state.session_status[session_id] = SessionStatus(type="idle")
+    await state.broadcast_event(
+        SessionStatusEvent(
+            properties=SessionStatusProperties(
+                session_id=session_id,
+                status=SessionStatus(type="idle"),
+            )
+        )
+    )
+    # Also emit deprecated session.idle event (still used by TUI run command)
+    await state.broadcast_event(
+        SessionIdleEvent(properties=SessionIdleProperties(session_id=session_id))
+    )
 
     # Update session timestamp
     session = state.sessions[session_id]

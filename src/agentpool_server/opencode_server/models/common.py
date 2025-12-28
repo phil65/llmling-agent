@@ -4,20 +4,20 @@ from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 
 
 class TimeCreatedUpdated(OpenCodeBaseModel):
-    """Timestamp with created and updated fields."""
+    """Timestamp with created and updated fields (milliseconds)."""
 
-    created: float
-    updated: float
+    created: int
+    updated: int
 
 
 class TimeCreated(OpenCodeBaseModel):
-    """Timestamp with created field only."""
+    """Timestamp with created field only (milliseconds)."""
 
-    created: float
+    created: int
 
 
 class TimeStartEnd(OpenCodeBaseModel):
-    """Timestamp with start and optional end."""
+    """Timestamp with start and optional end (milliseconds)."""
 
-    start: float
-    end: float | None = None
+    start: int
+    end: int | None = None

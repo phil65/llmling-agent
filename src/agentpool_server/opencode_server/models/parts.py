@@ -19,21 +19,41 @@ class TextPart(OpenCodeBaseModel):
     session_id: str = Field(alias="sessionID")
     text: str
     synthetic: bool | None = None
+    ignored: bool | None = None
     time: TimeStartEnd | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class ToolStatePending(OpenCodeBaseModel):
     """Pending tool state."""
 
     status: Literal["pending"] = "pending"
+    input: dict[str, Any] = Field(default_factory=dict)
+    raw: str = ""
+
+
+class TimeStart(OpenCodeBaseModel):
+    """Time with only start (milliseconds)."""
+
+    start: int
 
 
 class ToolStateRunning(OpenCodeBaseModel):
     """Running tool state."""
 
     status: Literal["running"] = "running"
+    time: TimeStart
     input: dict[str, Any] = Field(default_factory=dict)
-    time: TimeStartEnd | None = None
+    metadata: dict[str, Any] | None = None
+    title: str | None = None
+
+
+class TimeStartEndCompacted(OpenCodeBaseModel):
+    """Time with start, end, and optional compacted (milliseconds)."""
+
+    start: int
+    end: int
+    compacted: int | None = None
 
 
 class ToolStateCompleted(OpenCodeBaseModel):
@@ -42,7 +62,10 @@ class ToolStateCompleted(OpenCodeBaseModel):
     status: Literal["completed"] = "completed"
     input: dict[str, Any] = Field(default_factory=dict)
     output: str = ""
-    time: TimeStartEnd | None = None
+    title: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    time: TimeStartEndCompacted
+    attachments: list[Any] | None = None
 
 
 class ToolStateError(OpenCodeBaseModel):
@@ -51,7 +74,8 @@ class ToolStateError(OpenCodeBaseModel):
     status: Literal["error"] = "error"
     input: dict[str, Any] = Field(default_factory=dict)
     error: str = ""
-    time: TimeStartEnd | None = None
+    metadata: dict[str, Any] | None = None
+    time: TimeStartEnd
 
 
 ToolState = ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError
@@ -67,6 +91,23 @@ class ToolPart(OpenCodeBaseModel):
     call_id: str = Field(alias="callID")
     tool: str
     state: ToolState
+    metadata: dict[str, Any] | None = None
+
+
+class FilePartSourceText(OpenCodeBaseModel):
+    """File part source text."""
+
+    value: str
+    start: int
+    end: int
+
+
+class FileSource(OpenCodeBaseModel):
+    """File source."""
+
+    text: FilePartSourceText
+    type: Literal["file"] = "file"
+    path: str
 
 
 class FilePart(OpenCodeBaseModel):
@@ -76,8 +117,10 @@ class FilePart(OpenCodeBaseModel):
     type: Literal["file"] = "file"
     message_id: str = Field(alias="messageID")
     session_id: str = Field(alias="sessionID")
-    path: str
-    content: str | None = None
+    mime: str
+    filename: str | None = None
+    url: str
+    source: FileSource | None = None
 
 
 class StepStartPart(OpenCodeBaseModel):
@@ -87,6 +130,23 @@ class StepStartPart(OpenCodeBaseModel):
     type: Literal["step-start"] = "step-start"
     message_id: str = Field(alias="messageID")
     session_id: str = Field(alias="sessionID")
+    snapshot: str | None = None
+
+
+class TokenCache(OpenCodeBaseModel):
+    """Token cache information."""
+
+    read: int = 0
+    write: int = 0
+
+
+class StepFinishTokens(OpenCodeBaseModel):
+    """Token usage for step finish."""
+
+    input: int = 0
+    output: int = 0
+    reasoning: int = 0
+    cache: TokenCache = Field(default_factory=TokenCache)
 
 
 class StepFinishPart(OpenCodeBaseModel):
@@ -96,6 +156,10 @@ class StepFinishPart(OpenCodeBaseModel):
     type: Literal["step-finish"] = "step-finish"
     message_id: str = Field(alias="messageID")
     session_id: str = Field(alias="sessionID")
+    reason: str = "stop"
+    snapshot: str | None = None
+    cost: int = 0
+    tokens: StepFinishTokens = Field(default_factory=StepFinishTokens)
 
 
 Part = TextPart | ToolPart | FilePart | StepStartPart | StepFinishPart

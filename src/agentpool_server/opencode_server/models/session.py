@@ -29,6 +29,8 @@ class Session(OpenCodeBaseModel):
     """Session information."""
 
     id: str
+    project_id: str = Field(alias="projectID")
+    directory: str
     title: str
     version: str = "1"
     time: TimeCreatedUpdated
@@ -53,8 +55,7 @@ class SessionUpdateRequest(OpenCodeBaseModel):
 class SessionStatus(OpenCodeBaseModel):
     """Status of a session."""
 
-    running: bool = False
-    tool: str | None = None
+    type: Literal["idle", "busy", "retry"] = "idle"
 
 
 class Todo(OpenCodeBaseModel):

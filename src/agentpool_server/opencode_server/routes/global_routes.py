@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from agentpool_server.opencode_server.state import ServerState
 
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["global"])
 
 VERSION = "0.1.0"
@@ -33,37 +35,50 @@ async def get_health() -> HealthResponse:
     return HealthResponse(healthy=True, version=VERSION)
 
 
-async def _event_generator(state: ServerState) -> AsyncGenerator[dict[str, Any]]:
+def _serialize_event(event: Event, wrap_payload: bool = False) -> str:
+    """Serialize event, optionally wrapping in payload structure."""
+    import json
+
+    event_data = event.model_dump(by_alias=True, exclude_none=True)
+    if wrap_payload:
+        return json.dumps({"payload": event_data})
+    return json.dumps(event_data)
+
+
+async def _event_generator(
+    state: ServerState, *, wrap_payload: bool = False
+) -> AsyncGenerator[dict[str, Any]]:
     """Generate SSE events."""
     queue: asyncio.Queue[Event] = asyncio.Queue()
     state.event_subscribers.append(queue)
+    subscriber_count = len(state.event_subscribers)
+    logger.info(f"SSE: New client connected (total subscribers: {subscriber_count})")
     try:
         # Send initial connected event
         connected = ServerConnectedEvent()
-        print(f"SSE: Sending connected event: {connected.model_dump_json(by_alias=True)}")
-        yield {
-            "event": "message",
-            "data": connected.model_dump_json(by_alias=True),
-        }
+        data = _serialize_event(connected, wrap_payload=wrap_payload)
+        logger.info(f"SSE: Sending connected event: {data}")
+        yield {"data": data}
         # Stream events
         while True:
             event = await queue.get()
-            print(f"SSE: Sending event: {event.type}")
-            yield {
-                "event": "message",
-                "data": event.model_dump_json(by_alias=True),
-            }
+            data = _serialize_event(event, wrap_payload=wrap_payload)
+            logger.info(f"SSE: Sending event: {event.type} -> {data[:200]}...")
+            yield {"data": data}
     finally:
         state.event_subscribers.remove(queue)
+        logger.info(
+            f"SSE: Client disconnected (remaining subscribers: {len(state.event_subscribers)})"
+        )
 
 
 @router.get("/global/event")
 async def get_global_events(state: StateDep) -> EventSourceResponse:
-    """Get global events as SSE stream."""
-    return EventSourceResponse(_event_generator(state))
+    """Get global events as SSE stream (uses payload wrapper)."""
+    return EventSourceResponse(_event_generator(state, wrap_payload=True))
 
 
 @router.get("/event")
 async def get_events(state: StateDep) -> EventSourceResponse:
-    """Get events as SSE stream."""
-    return EventSourceResponse(_event_generator(state))
+    """Get events as SSE stream (no payload wrapper)."""
+    return EventSourceResponse(_event_generator(state, wrap_payload=False))

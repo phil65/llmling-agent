@@ -13,4 +13,5 @@ class OpenCodeBaseModel(BaseModel):
 
     model_config = ConfigDict(
         populate_by_name=True,
+        serialize_by_alias=True,  # Always use camelCase aliases in JSON output
     )

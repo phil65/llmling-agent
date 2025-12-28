@@ -10,8 +10,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request  # noqa: TC002
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from agentpool_server.opencode_server.routes import (
@@ -24,6 +26,13 @@ from agentpool_server.opencode_server.routes import (
     session_router,
 )
 from agentpool_server.opencode_server.state import ServerState
+
+
+class OpenCodeJSONResponse(JSONResponse):
+    """Custom JSON response that excludes None values (like OpenCode does)."""
+
+    def render(self, content: Any) -> bytes:
+        return super().render(jsonable_encoder(content, exclude_none=True))
 
 
 if TYPE_CHECKING:
@@ -64,6 +73,16 @@ def create_app(
         description="AgentPool server with OpenCode API compatibility",
         version=VERSION,
         lifespan=lifespan,
+        default_response_class=OpenCodeJSONResponse,
+    )
+
+    # Add CORS middleware (required for OpenCode TUI)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # Store state on app for access in routes
@@ -145,7 +164,7 @@ class OpenCodeServer:
         """Run the server asynchronously."""
         import uvicorn
 
-        config = uvicorn.Config(self.app, host=self.host, port=self.port)
+        config = uvicorn.Config(self.app, host=self.host, port=self.port, ws="wsproto")
         server = uvicorn.Server(config)
         await server.serve()
 

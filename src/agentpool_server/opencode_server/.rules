@@ -71,6 +71,20 @@ parent_id: str | None = Field(default=None, alias="parentID")
 
 See `ENDPOINTS.md` for the full checklist of endpoints and their implementation status.
 
+## Logging
+
+Log file location: `~/.local/state/agentpool/log/opencode.log`
+
+To tail the logs:
+```bash
+tail -f ~/.local/state/agentpool/log/opencode.log
+```
+
+To filter for SSE events:
+```bash
+tail -f ~/.local/state/agentpool/log/opencode.log | grep -i sse
+```
+
 ## Testing with the SDK
 
 ```python

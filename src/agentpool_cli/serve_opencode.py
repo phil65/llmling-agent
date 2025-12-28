@@ -99,7 +99,7 @@ def opencode_command(
             msg = f"Agent '{agent}' not found. Available: {available}"
             raise t.BadParameter(msg) from e
     else:
-        selected_agent = next(iter(pool.agents.values()))
+        selected_agent = next(iter(pool.all_agents.values()))
 
     logger.info("Using agent", agent_name=selected_agent.name)
 

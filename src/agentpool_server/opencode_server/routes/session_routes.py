@@ -2,23 +2,24 @@
 
 from __future__ import annotations
 
-import time
-import uuid
-
 from fastapi import APIRouter, HTTPException
 
+from agentpool_server.opencode_server import identifier
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
     Session,
     SessionCreatedEvent,
     SessionCreateRequest,
     SessionDeletedEvent,
+    SessionDeletedProperties,
+    SessionInfoProperties,
     SessionStatus,
     SessionUpdatedEvent,
     SessionUpdateRequest,
     TimeCreatedUpdated,
     Todo,
 )
+from agentpool_server.opencode_server.time_utils import now_ms
 
 
 router = APIRouter(prefix="/session", tags=["session"])
@@ -36,10 +37,12 @@ async def create_session(
     request: SessionCreateRequest | None = None,
 ) -> Session:
     """Create a new session."""
-    now = time.time()
-    session_id = str(uuid.uuid4())
+    now = now_ms()
+    session_id = identifier.ascending("session")
     session = Session(
         id=session_id,
+        project_id="default",  # TODO: Get from config/request
+        directory=state.working_dir,
         title=request.title if request and request.title else "New Session",
         version="1",
         time=TimeCreatedUpdated(created=now, updated=now),
@@ -47,18 +50,21 @@ async def create_session(
     )
     state.sessions[session_id] = session
     state.messages[session_id] = []
-    state.session_status[session_id] = SessionStatus(running=False)
+    state.session_status[session_id] = SessionStatus(type="idle")
     state.todos[session_id] = []
 
-    await state.broadcast_event(SessionCreatedEvent(properties=session))
+    await state.broadcast_event(SessionCreatedEvent(properties=SessionInfoProperties(info=session)))
 
     return session
 
 
 @router.get("/status")
 async def get_session_status(state: StateDep) -> dict[str, SessionStatus]:
-    """Get status for all sessions."""
-    return state.session_status
+    """Get status for all sessions.
+
+    Returns only non-idle sessions. If all sessions are idle, returns empty dict.
+    """
+    return {sid: status for sid, status in state.session_status.items() if status.type != "idle"}
 
 
 @router.get("/{session_id}")
@@ -86,13 +92,13 @@ async def update_session(
                 "title": request.title,
                 "time": TimeCreatedUpdated(
                     created=session.time.created,
-                    updated=time.time(),
+                    updated=now_ms(),
                 ),
             }
         )
     state.sessions[session_id] = session
 
-    await state.broadcast_event(SessionUpdatedEvent(properties=session))
+    await state.broadcast_event(SessionUpdatedEvent(properties=SessionInfoProperties(info=session)))
 
     return session
 
@@ -108,7 +114,9 @@ async def delete_session(session_id: str, state: StateDep) -> bool:
     state.session_status.pop(session_id, None)
     state.todos.pop(session_id, None)
 
-    await state.broadcast_event(SessionDeletedEvent(properties={"id": session_id}))
+    await state.broadcast_event(
+        SessionDeletedEvent(properties=SessionDeletedProperties(session_id=session_id))
+    )
 
     return True
 
@@ -119,7 +127,7 @@ async def abort_session(session_id: str, state: StateDep) -> bool:
     if session_id not in state.sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     # TODO: Actually abort running operations
-    state.session_status[session_id] = SessionStatus(running=False)
+    state.session_status[session_id] = SessionStatus(type="idle")
     return True
 
 
@@ -136,7 +144,7 @@ async def get_session_diff(
     session_id: str,
     state: StateDep,
     message_id: str | None = None,
-) -> list[dict]:
+) -> list[dict[str, str]]:
     """Get file diffs for a session."""
     if session_id not in state.sessions:
         raise HTTPException(status_code=404, detail="Session not found")

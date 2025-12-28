@@ -19,26 +19,33 @@ class MessagePath(OpenCodeBaseModel):
 
 
 class MessageTime(OpenCodeBaseModel):
-    """Time information for a message."""
+    """Time information for a message (milliseconds)."""
 
-    created: float
-    completed: float | None = None
+    created: int
+    completed: int | None = None
 
 
 class TokensCache(OpenCodeBaseModel):
     """Token cache information."""
 
-    read: float = 0
-    write: float = 0
+    read: int = 0
+    write: int = 0
 
 
 class Tokens(OpenCodeBaseModel):
     """Token usage information."""
 
     cache: TokensCache = Field(default_factory=TokensCache)
-    input: float = 0
-    output: float = 0
-    reasoning: float = 0
+    input: int = 0
+    output: int = 0
+    reasoning: int = 0
+
+
+class UserMessageModel(OpenCodeBaseModel):
+    """Model info for user message."""
+
+    provider_id: str = Field(alias="providerID")
+    model_id: str = Field(alias="modelID")
 
 
 class UserMessage(OpenCodeBaseModel):
@@ -48,6 +55,8 @@ class UserMessage(OpenCodeBaseModel):
     role: Literal["user"] = "user"
     session_id: str = Field(alias="sessionID")
     time: TimeCreated
+    agent: str = "default"
+    model: UserMessageModel
 
 
 class AssistantMessage(OpenCodeBaseModel):
@@ -56,16 +65,18 @@ class AssistantMessage(OpenCodeBaseModel):
     id: str
     role: Literal["assistant"] = "assistant"
     session_id: str = Field(alias="sessionID")
+    parent_id: str = Field(alias="parentID")  # Required - links to user message
     model_id: str = Field(alias="modelID")
     provider_id: str = Field(alias="providerID")
     mode: str = "default"
+    agent: str = "default"
     path: MessagePath
-    system: list[str] = Field(default_factory=list)
     time: MessageTime
     tokens: Tokens = Field(default_factory=Tokens)
-    cost: float = 0.0
+    cost: int = 0
     error: dict[str, Any] | None = None
     summary: bool | None = None
+    finish: str | None = None
 
 
 class MessageWithParts(OpenCodeBaseModel):
