@@ -2702,7 +2702,7 @@ wheels = [
 
 [[package]]
 name = "llmling-models"
-version = "1.4.7"
+version = "1.4.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv", extra = ["httpx"] },
@@ -2711,9 +2711,9 @@ dependencies = [
     { name = "schemez" },
     { name = "tokonomics" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7d/24/25c3d162f1368f562b52a8bd2e1864591429edabc6aa8945a1990c7b29a7/llmling_models-1.4.7.tar.gz", hash = "sha256:27bc22249e7adce246c44fe9c816fb85b03cf48b73b814427cf02e37e5f3b576", size = 71434, upload-time = "2025-12-27T00:27:36.912Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/7f/f99dc2c5af2e4567dc13a8ae68bc940adb46ca1c0b522b422bf29b93d376/llmling_models-1.4.8.tar.gz", hash = "sha256:9f3abbb054204c1b3e6b613e4dad1f31e9e832df69eded0d24181706d9e822fc", size = 72792, upload-time = "2025-12-28T13:42:50.561Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9f/22/1a3aeff72761c4427c1c2c4cc7286b0e0fbb745007c1b3a530ce0ebebd86/llmling_models-1.4.7-py3-none-any.whl", hash = "sha256:476be2a7c68c9f2033726c9368caf22fe86a6dbe063b3ba65560c611533341c9", size = 98839, upload-time = "2025-12-27T00:27:35.099Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/b9/72256cb905d13c196b8cfc2c6a8919943fec24faa6d68c36431396d3d659/llmling_models-1.4.8-py3-none-any.whl", hash = "sha256:19069b03c5279ed46d177bfc3588f9fa0da80640418a6558d323498694a0424a", size = 100213, upload-time = "2025-12-28T13:42:49.04Z" },
 ]
 
 [[package]]
@@ -5708,15 +5708,15 @@ aiosqlite = [
 
 [[package]]
 name = "sqlmodel"
-version = "0.0.30"
+version = "0.0.31"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "sqlalchemy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4a/bc/162873c9b2466bb6bda1531b6023b5d8ecda4daffaaae54e6fec53e2c0a7/sqlmodel-0.0.30.tar.gz", hash = "sha256:076076976aac683bae3e10c791d9e2ec5fead57ab25f7e476dea36cdfe9505e1", size = 97581, upload-time = "2025-12-26T11:45:55.002Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/56/b8/e7cd6def4a773f25d6e29ffce63ccbfd6cf9488b804ab6fb9b80d334b39d/sqlmodel-0.0.31.tar.gz", hash = "sha256:2d41a8a9ee05e40736e2f9db8ea28cbfe9b5d4e5a18dd139e80605025e0c516c", size = 94952, upload-time = "2025-12-28T12:35:01.436Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/f3/247bad31f13066a8186f2d4d1a43c75a441ed9f889d629d69d9820116dfc/sqlmodel-0.0.30-py3-none-any.whl", hash = "sha256:1b7f992170ff3145d98a72d41271335c8bb51d579c7254a1626f82bde4ec64ed", size = 29362, upload-time = "2025-12-26T11:45:53.298Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/72/5aa5be921800f6418a949a73c9bb7054890881143e6bc604a93d228a95a3/sqlmodel-0.0.31-py3-none-any.whl", hash = "sha256:6d946d56cac4c2db296ba1541357cee2e795d68174e2043cd138b916794b1513", size = 27093, upload-time = "2025-12-28T12:35:00.108Z" },
 ]
 
 [[package]]

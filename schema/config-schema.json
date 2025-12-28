@@ -2239,6 +2239,58 @@
           "default": null,
           "description": "Convenience setting to enable caching for the last user message.",
           "title": "Cache messages"
+        },
+        "thinking_budget": {
+          "anyOf": [
+            {
+              "minimum": 1024,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Budget tokens for extended thinking mode.\n\nWhen set, enables Claude's extended thinking capability, allowing the model\nto reason through complex problems before responding. Higher values allow\nfor more thorough reasoning but increase latency and cost.",
+          "examples": [
+            10000,
+            50000,
+            100000
+          ],
+          "title": "Thinking budget tokens"
+        },
+        "container": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "const": false,
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Container sandbox configuration for Claude.\n\nEnables running Claude in a sandboxed container environment with optional skills.\nSet to False to explicitly disable container mode, or provide config dict:\n- id: Container identifier\n- skills: List of skills with skill_id, type ('anthropic' or 'custom'), and version",
+          "examples": [
+            {
+              "id": "container-123"
+            },
+            {
+              "id": "my-container",
+              "skills": [
+                {
+                  "skill_id": "computer",
+                  "type": "anthropic"
+                }
+              ]
+            },
+            false
+          ],
+          "title": "Container sandbox"
         }
       },
       "required": [
@@ -7428,7 +7480,34 @@
           "anyOf": [
             {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "enum": [
+                      "Task",
+                      "TaskOutput",
+                      "Bash",
+                      "Glob",
+                      "Grep",
+                      "ExitPlanMode",
+                      "Read",
+                      "Edit",
+                      "Write",
+                      "NotebookEdit",
+                      "WebFetch",
+                      "TodoWrite",
+                      "WebSearch",
+                      "KillShell",
+                      "AskUserQuestion",
+                      "Skill",
+                      "EnterPlanMode",
+                      "LSP"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -7456,7 +7535,34 @@
           "anyOf": [
             {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "enum": [
+                      "Task",
+                      "TaskOutput",
+                      "Bash",
+                      "Glob",
+                      "Grep",
+                      "ExitPlanMode",
+                      "Read",
+                      "Edit",
+                      "Write",
+                      "NotebookEdit",
+                      "WebFetch",
+                      "TodoWrite",
+                      "WebSearch",
+                      "KillShell",
+                      "AskUserQuestion",
+                      "Skill",
+                      "EnterPlanMode",
+                      "LSP"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -7557,6 +7663,25 @@
             20
           ],
           "title": "Max Turns"
+        },
+        "max_budget_usd": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum budget in USD before stopping.\n\nWhen set, the agent will stop once the estimated cost exceeds this limit.",
+          "examples": [
+            1.0,
+            5.0,
+            10.0
+          ],
+          "title": "Max Budget (USD)"
         },
         "max_thinking_tokens": {
           "anyOf": [
@@ -14925,6 +15050,7 @@
                   "import": "#/$defs/ImportModelConfig",
                   "input": "#/$defs/InputModelConfig",
                   "openai": "#/$defs/OpenAIModelConfig",
+                  "openrouter": "#/$defs/OpenRouterModelConfig",
                   "remote-input": "#/$defs/RemoteInputConfig",
                   "remote-proxy": "#/$defs/RemoteProxyConfig",
                   "string": "#/$defs/StringModelConfig",
@@ -14954,6 +15080,9 @@
                 },
                 {
                   "$ref": "#/$defs/InputModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/OpenRouterModelConfig"
                 },
                 {
                   "$ref": "#/$defs/RemoteInputConfig"
@@ -15068,10 +15197,11 @@
         },
         "edit_tool": {
           "default": "simple",
-          "description": "Which edit_file variant to expose: \"simple\" (single replacement) or \"batch\" (multiple).",
+          "description": "Which edit tool to expose: \"simple\" (single replacement),\n\"batch\" (multiple replacements), or \"agentic\" (LLM-driven editing).",
           "enum": [
             "simple",
-            "batch"
+            "batch",
+            "agentic"
           ],
           "title": "Edit tool variant",
           "type": "string"
@@ -26307,6 +26437,7 @@
                   "import": "#/$defs/ImportModelConfig",
                   "input": "#/$defs/InputModelConfig",
                   "openai": "#/$defs/OpenAIModelConfig",
+                  "openrouter": "#/$defs/OpenRouterModelConfig",
                   "remote-input": "#/$defs/RemoteInputConfig",
                   "remote-proxy": "#/$defs/RemoteProxyConfig",
                   "string": "#/$defs/StringModelConfig",
@@ -26336,6 +26467,9 @@
                 },
                 {
                   "$ref": "#/$defs/InputModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/OpenRouterModelConfig"
                 },
                 {
                   "$ref": "#/$defs/RemoteInputConfig"
@@ -28478,9 +28612,12 @@
           "anyOf": [
             {
               "enum": [
+                "none",
+                "minimal",
                 "low",
                 "medium",
-                "high"
+                "high",
+                "xhigh"
               ],
               "type": "string"
             },
@@ -28557,6 +28694,26 @@
           ],
           "title": "Prompt Cache Retention",
           "type": "string"
+        },
+        "prediction": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Predicted output for the model to use as a starting point.\n\nCan be a simple string content or structured with text parts:\n- Simple: {\"type\": \"content\", \"content\": \"predicted text\"}\n- Parts: {\"type\": \"content\", \"content\": [{\"type\": \"text\", \"text\": \"predicted\"}]}",
+          "examples": [
+            {
+              "content": "predicted response text",
+              "type": "content"
+            }
+          ],
+          "title": "Predicted output"
         }
       },
       "required": [
@@ -29900,6 +30057,497 @@
       },
       "title": "OpenHands ACP Agent Configuration",
       "type": "object"
+    },
+    "OpenRouterModelConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for OpenRouter models.\n\nOpenRouter provides access to many models through a unified API.",
+      "properties": {
+        "type": {
+          "const": "openrouter",
+          "default": "openrouter",
+          "description": "Type identifier for OpenRouter model.",
+          "title": "Type",
+          "type": "string"
+        },
+        "identifier": {
+          "description": "String identifier for the model.",
+          "enum": [
+            "ai21/jamba-large-1.7",
+            "ai21/jamba-mini-1.7",
+            "alibaba/tongyi-deepresearch-30b-a3b",
+            "alibaba/tongyi-deepresearch-30b-a3b:free",
+            "allenai/olmo-3-32b-think:free",
+            "allenai/olmo-3-7b-instruct",
+            "allenai/olmo-3-7b-think",
+            "allenai/olmo-3.1-32b-think:free",
+            "amazon/nova-2-lite-v1",
+            "amazon/nova-premier-v1",
+            "anthropic/claude-haiku-4.5",
+            "anthropic/claude-opus-4.1",
+            "anthropic/claude-opus-4.5",
+            "anthropic/claude-sonnet-4.5",
+            "arcee-ai/trinity-mini",
+            "arcee-ai/trinity-mini:free",
+            "baidu/ernie-4.5-21b-a3b",
+            "baidu/ernie-4.5-21b-a3b-thinking",
+            "baidu/ernie-4.5-300b-a47b",
+            "baidu/ernie-4.5-vl-28b-a3b",
+            "baidu/ernie-4.5-vl-424b-a47b",
+            "bytedance-seed/seed-1.6",
+            "bytedance-seed/seed-1.6-flash",
+            "bytedance/ui-tars-1.5-7b",
+            "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+            "deepcogito/cogito-v2-preview-llama-109b-moe",
+            "deepcogito/cogito-v2-preview-llama-405b",
+            "deepcogito/cogito-v2-preview-llama-70b",
+            "deepcogito/cogito-v2.1-671b",
+            "deepseek/deepseek-chat-v3.1",
+            "deepseek/deepseek-v3.1-terminus",
+            "deepseek/deepseek-v3.1-terminus:exacto",
+            "deepseek/deepseek-v3.2",
+            "deepseek/deepseek-v3.2-exp",
+            "deepseek/deepseek-v3.2-speciale",
+            "essentialai/rnj-1-instruct",
+            "google/gemini-2.5-flash",
+            "google/gemini-2.5-flash-image",
+            "google/gemini-2.5-flash-image-preview",
+            "google/gemini-2.5-flash-lite",
+            "google/gemini-2.5-flash-lite-preview-09-2025",
+            "google/gemini-2.5-flash-preview-09-2025",
+            "google/gemini-2.5-pro",
+            "google/gemini-3-flash-preview",
+            "google/gemini-3-pro-image-preview",
+            "google/gemini-3-pro-preview",
+            "google/gemma-3n-e2b-it:free",
+            "ibm-granite/granite-4.0-h-micro",
+            "inception/mercury",
+            "kwaipilot/kat-coder-pro:free",
+            "liquid/lfm-2.2-6b",
+            "liquid/lfm2-8b-a1b",
+            "meituan/longcat-flash-chat",
+            "minimax/minimax-m1",
+            "minimax/minimax-m2",
+            "minimax/minimax-m2.1",
+            "mistralai/codestral-2508",
+            "mistralai/devstral-2512",
+            "mistralai/devstral-2512:free",
+            "mistralai/devstral-medium",
+            "mistralai/devstral-small",
+            "mistralai/ministral-14b-2512",
+            "mistralai/ministral-3b-2512",
+            "mistralai/ministral-8b-2512",
+            "mistralai/mistral-large-2512",
+            "mistralai/mistral-medium-3.1",
+            "mistralai/mistral-small-3.2-24b-instruct",
+            "mistralai/mistral-small-creative",
+            "mistralai/voxtral-small-24b-2507",
+            "moonshotai/kimi-dev-72b",
+            "moonshotai/kimi-k2",
+            "moonshotai/kimi-k2-0905",
+            "moonshotai/kimi-k2-0905:exacto",
+            "moonshotai/kimi-k2-thinking",
+            "moonshotai/kimi-k2:free",
+            "morph/morph-v3-fast",
+            "morph/morph-v3-large",
+            "nex-agi/deepseek-v3.1-nex-n1:free",
+            "nousresearch/hermes-4-405b",
+            "nousresearch/hermes-4-70b",
+            "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+            "nvidia/nemotron-3-nano-30b-a3b",
+            "nvidia/nemotron-3-nano-30b-a3b:free",
+            "nvidia/nemotron-nano-12b-v2-vl",
+            "nvidia/nemotron-nano-12b-v2-vl:free",
+            "nvidia/nemotron-nano-9b-v2",
+            "nvidia/nemotron-nano-9b-v2:free",
+            "openai/gpt-4o-audio-preview",
+            "openai/gpt-5",
+            "openai/gpt-5-chat",
+            "openai/gpt-5-codex",
+            "openai/gpt-5-image",
+            "openai/gpt-5-image-mini",
+            "openai/gpt-5-mini",
+            "openai/gpt-5-nano",
+            "openai/gpt-5-pro",
+            "openai/gpt-5.1",
+            "openai/gpt-5.1-chat",
+            "openai/gpt-5.1-codex",
+            "openai/gpt-5.1-codex-max",
+            "openai/gpt-5.1-codex-mini",
+            "openai/gpt-5.2",
+            "openai/gpt-5.2-chat",
+            "openai/gpt-5.2-pro",
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-120b:exacto",
+            "openai/gpt-oss-120b:free",
+            "openai/gpt-oss-20b",
+            "openai/gpt-oss-20b:free",
+            "openai/gpt-oss-safeguard-20b",
+            "openai/o3-deep-research",
+            "openai/o3-pro",
+            "openai/o4-mini-deep-research",
+            "opengvlab/internvl3-78b",
+            "openrouter/bodybuilder",
+            "perplexity/sonar-pro-search",
+            "prime-intellect/intellect-3",
+            "qwen/qwen-plus-2025-07-28",
+            "qwen/qwen-plus-2025-07-28:thinking",
+            "qwen/qwen3-235b-a22b-2507",
+            "qwen/qwen3-235b-a22b-thinking-2507",
+            "qwen/qwen3-30b-a3b-instruct-2507",
+            "qwen/qwen3-30b-a3b-thinking-2507",
+            "qwen/qwen3-coder",
+            "qwen/qwen3-coder-30b-a3b-instruct",
+            "qwen/qwen3-coder-flash",
+            "qwen/qwen3-coder-plus",
+            "qwen/qwen3-coder:exacto",
+            "qwen/qwen3-coder:free",
+            "qwen/qwen3-max",
+            "qwen/qwen3-next-80b-a3b-instruct",
+            "qwen/qwen3-next-80b-a3b-thinking",
+            "qwen/qwen3-vl-235b-a22b-instruct",
+            "qwen/qwen3-vl-235b-a22b-thinking",
+            "qwen/qwen3-vl-30b-a3b-instruct",
+            "qwen/qwen3-vl-30b-a3b-thinking",
+            "qwen/qwen3-vl-32b-instruct",
+            "qwen/qwen3-vl-8b-instruct",
+            "qwen/qwen3-vl-8b-thinking",
+            "relace/relace-apply-3",
+            "relace/relace-search",
+            "stepfun-ai/step3",
+            "switchpoint/router",
+            "tencent/hunyuan-a13b-instruct",
+            "thedrummer/cydonia-24b-v4.1",
+            "thudm/glm-4.1v-9b-thinking",
+            "tngtech/deepseek-r1t2-chimera",
+            "tngtech/deepseek-r1t2-chimera:free",
+            "tngtech/tng-r1t-chimera",
+            "tngtech/tng-r1t-chimera:free",
+            "x-ai/grok-3",
+            "x-ai/grok-3-mini",
+            "x-ai/grok-4",
+            "x-ai/grok-4-fast",
+            "x-ai/grok-4.1-fast",
+            "x-ai/grok-code-fast-1",
+            "xiaomi/mimo-v2-flash:free",
+            "z-ai/glm-4-32b",
+            "z-ai/glm-4.5",
+            "z-ai/glm-4.5-air",
+            "z-ai/glm-4.5-air:free",
+            "z-ai/glm-4.5v",
+            "z-ai/glm-4.6",
+            "z-ai/glm-4.6:exacto",
+            "z-ai/glm-4.6v",
+            "z-ai/glm-4.7"
+          ],
+          "examples": [
+            "anthropic/claude-3.5-sonnet",
+            "openai/gpt-4-turbo"
+          ],
+          "title": "Model identifier",
+          "type": "string"
+        },
+        "max_tokens": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The maximum number of tokens to generate before stopping.",
+          "examples": [
+            1024,
+            2048,
+            4096
+          ],
+          "title": "Maximum tokens"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Amount of randomness injected into the response.",
+          "examples": [
+            0.0,
+            0.7,
+            1.0,
+            2.0
+          ],
+          "title": "Temperature"
+        },
+        "top_p": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An alternative to sampling with temperature, called nucleus sampling.",
+          "examples": [
+            0.1,
+            0.9,
+            1.0
+          ],
+          "title": "Top-p (nucleus sampling)"
+        },
+        "timeout": {
+          "default": null,
+          "description": "Override the client-level default timeout for a request, in seconds.",
+          "examples": [
+            30.0,
+            60.0,
+            120.0
+          ],
+          "title": "Request timeout",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "seed": {
+          "default": null,
+          "description": "The random seed to use for the model.",
+          "examples": [
+            42,
+            123,
+            999
+          ],
+          "title": "Random seed",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "presence_penalty": {
+          "anyOf": [
+            {
+              "maximum": 2.0,
+              "minimum": -2.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Penalize new tokens based on whether they have appeared in the text so far.",
+          "examples": [
+            -1.0,
+            0.0,
+            0.5,
+            1.0
+          ],
+          "title": "Presence penalty"
+        },
+        "frequency_penalty": {
+          "anyOf": [
+            {
+              "maximum": 2.0,
+              "minimum": -2.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Penalize new tokens based on their existing frequency in the text so far.",
+          "examples": [
+            -1.0,
+            0.0,
+            0.5,
+            1.0
+          ],
+          "title": "Frequency penalty"
+        },
+        "stop_sequences": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Sequences that will cause the model to stop generating.",
+          "examples": [
+            [
+              "STOP",
+              "END"
+            ],
+            [
+              "\n\n"
+            ]
+          ],
+          "title": "Stop sequences"
+        },
+        "extra_headers": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Extra headers to send to the model.",
+          "examples": [
+            {
+              "Custom-Header": "value"
+            }
+          ],
+          "title": "Extra headers"
+        },
+        "models": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of fallback models to try if the primary model fails.",
+          "examples": [
+            [
+              "anthropic/claude-3-sonnet",
+              "openai/gpt-4"
+            ]
+          ],
+          "title": "Fallback models"
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Provider routing configuration.\n\nOptions include:\n- order: List of provider preferences\n- allow_fallbacks: Whether to allow fallback providers\n- require_parameters: Require providers to support all parameters\n- data_collection: 'allow' or 'deny' data collection\n- only: Restrict to specific providers\n- ignore: Exclude specific providers\n- quantizations: Preferred quantization levels\n- sort: Sort by 'price', 'throughput', or 'latency'",
+          "examples": [
+            {
+              "allow_fallbacks": true,
+              "order": [
+                "anthropic",
+                "openai"
+              ]
+            },
+            {
+              "data_collection": "deny",
+              "only": [
+                "anthropic"
+              ]
+            }
+          ],
+          "title": "Provider configuration"
+        },
+        "preset": {
+          "default": null,
+          "description": "Named preset configuration for common use cases.",
+          "title": "Preset configuration",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transforms": {
+          "anyOf": [
+            {
+              "items": {
+                "const": "middle-out",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of transforms to apply to requests.",
+          "title": "Transforms"
+        },
+        "reasoning": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reasoning/thinking configuration.\n\nOptions include:\n- effort: 'high', 'medium', or 'low'\n- max_tokens: Maximum tokens for reasoning\n- exclude: Whether to exclude reasoning from response\n- enabled: Enable/disable reasoning",
+          "examples": [
+            {
+              "effort": "high",
+              "max_tokens": 10000
+            },
+            {
+              "effort": "medium",
+              "exclude": true
+            }
+          ],
+          "title": "Reasoning configuration"
+        },
+        "usage": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Usage tracking configuration.",
+          "examples": [
+            {
+              "include": true
+            }
+          ],
+          "title": "Usage configuration"
+        }
+      },
+      "required": [
+        "identifier"
+      ],
+      "title": "OpenRouterModelConfig",
+      "type": "object",
+      "x-doc-title": "OpenRouter model"
     },
     "OrCondition": {
       "additionalProperties": false,
@@ -34045,6 +34693,7 @@
                   "import": "#/$defs/ImportModelConfig",
                   "input": "#/$defs/InputModelConfig",
                   "openai": "#/$defs/OpenAIModelConfig",
+                  "openrouter": "#/$defs/OpenRouterModelConfig",
                   "remote-input": "#/$defs/RemoteInputConfig",
                   "remote-proxy": "#/$defs/RemoteProxyConfig",
                   "string": "#/$defs/StringModelConfig",
@@ -34074,6 +34723,9 @@
                 },
                 {
                   "$ref": "#/$defs/InputModelConfig"
+                },
+                {
+                  "$ref": "#/$defs/OpenRouterModelConfig"
                 },
                 {
                   "$ref": "#/$defs/RemoteInputConfig"
