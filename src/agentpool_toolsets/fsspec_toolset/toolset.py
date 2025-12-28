@@ -535,13 +535,12 @@ class FSSpecTools(ResourceProvider):
                 "bytes_written": content_bytes,
             }
             # Emit file operation with content for UI display
-            from agentpool.agents.events import FileContentItem, LocationContentItem
+            from agentpool.agents.events import DiffContentItem
 
             await agent_ctx.events.tool_call_progress(
                 title=f"Wrote: {path}",
                 items=[
-                    LocationContentItem(path=path),
-                    FileContentItem(content=content, path=path),
+                    DiffContentItem(path=path, old_text="", new_text=content),
                 ],
             )
 
