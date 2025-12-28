@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import-not-found,unused-ignore"
 """MCP Discovery Toolset - dynamic MCP server exploration and tool execution.
 
 This toolset provides a stable interface for agents to discover and use MCP servers

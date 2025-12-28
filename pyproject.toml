@@ -239,11 +239,6 @@ disable_error_code = [
 module = ["fsspec.*"]
 ignore_missing_imports = true
 
-[[tool.mypy.overrides]]
-module = ["agentpool_toolsets.mcp_discovery.*"]
-ignore_missing_imports = true
-disable_error_code = ["unused-ignore"]
-
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
