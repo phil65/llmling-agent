@@ -115,6 +115,7 @@ coding = [
 composio = ["composio"]  # Composio toolsets
 default = [
   "pydantic-ai-slim[openai,google,anthropic,mistral,retries]>=1.0.0",
+  "claude-agent-sdk",
 ]  # Set of commonly used AI providers
 events = ["evented[all]"]  # Event triggers for agents
 git = ["fsspec[git]"]  # Git support
