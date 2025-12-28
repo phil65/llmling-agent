@@ -525,9 +525,9 @@ BIOME = BiomeServer(
 ALL_SERVERS: list[DiagnosticServer] = [
     # Python (Rust-based first)
     TY,
-    PYRIGHT,
-    BASEDPYRIGHT,
-    MYPY,
+    # PYRIGHT,
+    # BASEDPYRIGHT,
+    # MYPY,
     ZUBAN,
     PYREFLY,
     # JavaScript/TypeScript (Rust-based)
