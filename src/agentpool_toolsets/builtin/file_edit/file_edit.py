@@ -650,11 +650,11 @@ def _build_multiple_matches_error(content: str, old_string: str) -> str:
 
     # Show first few lines of the search text for context
     search_preview = old_string.split("\n")[0][:60]
-    if len(old_string.split("\n")[0]) > 60:
+    if len(old_string.split("\n")[0]) > 60:  # noqa: PLR2004
         search_preview += "..."
 
     location_str = ", ".join(str(loc) for loc in locations[:5])
-    if len(locations) > 5:
+    if len(locations) > 5:  # noqa: PLR2004
         location_str += f", ... ({len(locations)} total)"
 
     error_parts = [

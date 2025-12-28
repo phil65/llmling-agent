@@ -49,7 +49,7 @@ from agentpool_toolsets.fsspec_toolset.streaming_diff_parser import (
 if TYPE_CHECKING:
     import fsspec
     from fsspec.asyn import AsyncFileSystem
-    from pydantic_ai.messages import ModelResponse
+    from pydantic_ai.messages import ModelRequest, ModelResponse
 
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.common_types import ModelType
@@ -1022,8 +1022,6 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Success message with edit summary
         """
-        from pydantic_ai.messages import ModelRequest
-
         from agentpool.messaging import ChatMessage, MessageHistory
 
         path = self._resolve_path(path, agent_ctx)

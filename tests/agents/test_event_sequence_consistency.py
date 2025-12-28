@@ -20,14 +20,11 @@ from pathlib import Path
 from typing import Any
 
 import anyio
-from pydantic_ai import RunContext
+from pydantic_ai import RunContext  # noqa: TC002
 import pytest
 
 from agentpool import Agent
-from agentpool.agents.events import (
-    StreamCompleteEvent,
-    ToolCallCompleteEvent,
-)
+from agentpool.agents.events import StreamCompleteEvent, ToolCallCompleteEvent
 
 
 # Mark all tests in this module as integration tests

@@ -611,7 +611,8 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
         default="simple",
         title="Edit tool variant",
     )
-    """Which edit tool to expose: "simple" (single replacement), "batch" (multiple replacements), or "agentic" (LLM-driven editing)."""
+    """Which edit tool to expose: "simple" (single replacement),
+    "batch" (multiple replacements), or "agentic" (LLM-driven editing)."""
 
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
