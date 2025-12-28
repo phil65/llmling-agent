@@ -786,7 +786,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 msg = f"Run blocked: {reason}"
                 raise RuntimeError(msg)
 
-        yield RunStartedEvent(thread_id=self.conversation_id, run_id=run_id, agent_name=self.name)
+        run_started = RunStartedEvent(
+            thread_id=self.conversation_id, run_id=run_id, agent_name=self.name
+        )
+        await handler(None, run_started)
+        yield run_started
         try:
             agentlet = await self.get_agentlet(tool_choice, model, output_type, input_provider)
             content = await convert_prompts(prompts)
@@ -846,6 +850,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                         agent_name=self.name,
                                         message_id=message_id,
                                     )
+                                    await handler(None, combined_event)
                                     yield combined_event
                             case AgentRunResultEvent():
                                 # Capture final result data, Build final response message
@@ -878,7 +883,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     response_time=response_time,
                     finish_reason="stop",
                 )
-                yield StreamCompleteEvent(message=response_msg)
+                complete_event = StreamCompleteEvent(message=response_msg)
+                await handler(None, complete_event)
+                yield complete_event
                 self._current_stream_task = None
                 return
 
@@ -903,7 +910,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             if original_message:
                 response_msg = response_msg.forwarded(original_message)
             # Send additional enriched completion event
-            yield StreamCompleteEvent(message=response_msg)
+            complete_event = StreamCompleteEvent(message=response_msg)
+            await handler(None, complete_event)
+            yield complete_event
             self.message_sent.emit(response_msg)
             await self.log_message(response_msg)
             if store_history:
