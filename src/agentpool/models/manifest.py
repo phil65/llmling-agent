@@ -38,6 +38,7 @@ from agentpool_config.workers import (
 if TYPE_CHECKING:
     from upathtools import JoinablePathLike
 
+    from agentpool.messaging.compaction import CompactionPipeline
     from agentpool.models.acp_agents import BaseACPAgentConfig
     from agentpool.prompts.manager import PromptManager
     from agentpool.vfs_registry import VFSRegistry
@@ -270,6 +271,23 @@ class AgentsManifest(Schema):
           analyze:  # full config
             type: file
             path: "./prompts/analysis.md"
+    """
+
+    compaction: CompactionConfig | None = None
+    """Compaction configuration for message history management.
+
+    Controls how conversation history is compacted/summarized to manage context size.
+    Can use a preset or define custom steps:
+        compaction:
+          preset: balanced  # or: minimal, summarizing
+
+    Or custom steps:
+        compaction:
+          steps:
+            - type: filter_thinking
+            - type: summarize
+              model: openai:gpt-4o-mini
+              threshold: 15
     """
 
     model_config = ConfigDict(
@@ -582,6 +600,16 @@ class AgentsManifest(Schema):
         from agentpool.prompts.manager import PromptManager
 
         return PromptManager(self.prompts)
+
+    def get_compaction_pipeline(self) -> CompactionPipeline | None:
+        """Get the configured compaction pipeline, if any.
+
+        Returns:
+            CompactionPipeline instance or None if not configured
+        """
+        if self.compaction is None:
+            return None
+        return self.compaction.build()
 
     # @model_validator(mode="after")
     # def validate_response_types(self) -> AgentsManifest:

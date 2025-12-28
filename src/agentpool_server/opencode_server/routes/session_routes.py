@@ -316,6 +316,159 @@ async def run_shell_command(
     return assistant_msg_with_parts
 
 
+@router.post("/{session_id}/summarize")
+async def summarize_session(session_id: str, state: StateDep) -> MessageWithParts:
+    """Summarize the session conversation.
+
+    Uses the Summarize compaction step to condense older messages
+    into a summary while keeping recent messages intact.
+    """
+    if session_id not in state.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if state.agent is None:
+        raise HTTPException(status_code=400, detail="No agent configured")
+
+    messages = state.messages.get(session_id, [])
+    if not messages:
+        raise HTTPException(status_code=400, detail="No messages to summarize")
+
+    now = now_ms()
+
+    # Create assistant message for the summary
+    assistant_msg_id = identifier.ascending("message")
+    assistant_message = AssistantMessage(
+        id=assistant_msg_id,
+        session_id=session_id,
+        parent_id="",
+        model_id="summarizer",
+        provider_id="agentpool",
+        mode="summarize",
+        agent="summarizer",
+        path=MessagePath(cwd=state.working_dir, root=state.working_dir),
+        time=MessageTime(created=now, completed=None),
+        tokens=Tokens(cache=TokensCache(read=0, write=0), input=0, output=0, reasoning=0),
+        cost=0,
+    )
+
+    assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
+
+    # Broadcast message created
+    await state.broadcast_event(
+        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=assistant_message))
+    )
+
+    # Mark session as busy
+    state.session_status[session_id] = SessionStatus(type="busy")
+    await state.broadcast_event(
+        SessionStatusEvent(
+            properties=SessionStatusProperties(
+                session_id=session_id,
+                status=SessionStatus(type="busy"),
+            )
+        )
+    )
+
+    # Add step-start part
+    step_start = StepStartPart(
+        id=identifier.ascending("part"),
+        message_id=assistant_msg_id,
+        session_id=session_id,
+    )
+    assistant_msg_with_parts.parts.append(step_start)
+    await state.broadcast_event(
+        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_start))
+    )
+
+    try:
+        from agentpool.messaging.compaction import compact_conversation, summarizing_context
+
+        # Get the compaction pipeline from the agent pool configuration
+        pipeline = None
+        if state.agent.agent_pool is not None:
+            pipeline = state.agent.agent_pool.compaction_pipeline
+
+        if pipeline is None:
+            # Fall back to a default summarizing pipeline
+            pipeline = summarizing_context()
+
+        # Apply the compaction pipeline using shared helper
+        original_count, compacted_count = await compact_conversation(
+            pipeline, state.agent.conversation
+        )
+
+        if original_count > 0:
+            output_text = (
+                f"Conversation compacted using configured pipeline.\n"
+                f"Messages reduced from {original_count} to {compacted_count}."
+            )
+        else:
+            output_text = "No conversation history to compact."
+
+    except Exception as e:  # noqa: BLE001
+        output_text = f"Error summarizing session: {e}"
+
+    response_time = now_ms()
+
+    # Create text part with output
+    text_part = TextPart(
+        id=identifier.ascending("part"),
+        message_id=assistant_msg_id,
+        session_id=session_id,
+        text=output_text,
+    )
+    assistant_msg_with_parts.parts.append(text_part)
+    await state.broadcast_event(
+        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=text_part))
+    )
+
+    # Add step-finish part
+    from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
+
+    step_finish = StepFinishPart(
+        id=identifier.ascending("part"),
+        message_id=assistant_msg_id,
+        session_id=session_id,
+        tokens=StepFinishTokens(
+            cache=TokenCache(read=0, write=0),
+            input=0,
+            output=0,
+            reasoning=0,
+        ),
+        cost=0,
+    )
+    assistant_msg_with_parts.parts.append(step_finish)
+    await state.broadcast_event(
+        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_finish))
+    )
+
+    # Update message with completion time
+    updated_assistant = assistant_message.model_copy(
+        update={"time": MessageTime(created=now, completed=response_time)}
+    )
+    assistant_msg_with_parts.info = updated_assistant
+
+    # Add the summary message to the session
+    state.messages[session_id].append(assistant_msg_with_parts)
+
+    await state.broadcast_event(
+        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=updated_assistant))
+    )
+
+    # Mark session as idle
+    state.session_status[session_id] = SessionStatus(type="idle")
+    await state.broadcast_event(
+        SessionStatusEvent(
+            properties=SessionStatusProperties(
+                session_id=session_id,
+                status=SessionStatus(type="idle"),
+            )
+        )
+    )
+
+    return assistant_msg_with_parts
+
+
 @router.post("/{session_id}/command")
 async def execute_command(  # noqa: PLR0915
     session_id: str,

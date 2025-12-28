@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+from pydantic_ai import ModelRequest, ModelResponse  # noqa: TC002
 from slashed import CommandContext  # noqa: TC002
 
 from agentpool.messaging.context import NodeContext  # noqa: TC001
 from agentpool_commands.base import NodeCommand
 from agentpool_config.session import SessionQuery
 from agentpool_server.acp_server.session import ACPSession  # noqa: TC001
-
-
-if TYPE_CHECKING:
-    from pydantic_ai import ModelRequest, ModelResponse
 
 
 class ListSessionsCommand(NodeCommand):
@@ -582,6 +577,107 @@ class SetPoolCommand(NodeCommand):
             await ctx.output.print(f"❌ **Error switching pool:** {e}")
 
 
+class CompactCommand(NodeCommand):
+    """Compact the conversation history to reduce context size.
+
+    Uses the configured compaction pipeline from the agent pool manifest,
+    or falls back to a default summarizing pipeline.
+
+    This will:
+    - Apply configured compaction steps (filter, truncate, summarize)
+    - Reduce the message history while preserving important context
+    - Report the reduction in message count
+
+    Options:
+      --preset <name>   Use a specific preset (minimal, balanced, summarizing)
+
+    Examples:
+      /compact
+      /compact --preset=minimal
+    """
+
+    name = "compact"
+    category = "acp"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[NodeContext[ACPSession]],
+        *,
+        preset: str | None = None,
+    ) -> None:
+        """Compact the conversation history.
+
+        Args:
+            ctx: Command context with ACP session
+            preset: Optional preset name (minimal, balanced, summarizing)
+        """
+        session = ctx.context.data
+        if not session:
+            raise RuntimeError("Session not available in command context")
+
+        agent = session.agent
+
+        # Check if there's any history to compact
+        if not agent.conversation.get_history():
+            await ctx.output.print("📭 **No message history to compact**")
+            return
+
+        try:
+            # Get compaction pipeline
+            from agentpool.messaging.compaction import (
+                balanced_context,
+                minimal_context,
+                summarizing_context,
+            )
+
+            pipeline = None
+
+            # Check for preset override
+            if preset:
+                match preset.lower():
+                    case "minimal":
+                        pipeline = minimal_context()
+                    case "balanced":
+                        pipeline = balanced_context()
+                    case "summarizing":
+                        pipeline = summarizing_context()
+                    case _:
+                        await ctx.output.print(
+                            f"⚠️ **Unknown preset:** `{preset}`\n"
+                            "Available: minimal, balanced, summarizing"
+                        )
+                        return
+
+            # Fall back to pool's configured pipeline
+            if pipeline is None:
+                pipeline = session.agent_pool.compaction_pipeline
+
+            # Fall back to default summarizing pipeline
+            if pipeline is None:
+                pipeline = summarizing_context()
+
+            await ctx.output.print("🔄 **Compacting conversation history...**")
+
+            # Apply the pipeline using shared helper
+            from agentpool.messaging.compaction import compact_conversation
+
+            original_count, compacted_count = await compact_conversation(
+                pipeline, agent.conversation
+            )
+            reduction = original_count - compacted_count
+
+            await ctx.output.print(
+                f"✅ **Compaction complete**\n"
+                f"- Messages: {original_count} → {compacted_count} ({reduction} removed)\n"
+                f"- Reduction: {reduction / original_count * 100:.1f}%"
+                if original_count > 0
+                else "✅ **Compaction complete** (no messages)"
+            )
+
+        except Exception as e:  # noqa: BLE001
+            await ctx.output.print(f"❌ **Error compacting history:** {e}")
+
+
 def get_acp_commands() -> list[type[NodeCommand]]:
     """Get all ACP-specific slash commands."""
     return [
@@ -591,4 +687,5 @@ def get_acp_commands() -> list[type[NodeCommand]]:
         DeleteSessionCommand,
         ListPoolsCommand,
         SetPoolCommand,
+        CompactCommand,
     ]

@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     )
     from agentpool.delegation.base_team import BaseTeam
     from agentpool.mcp_server.tool_bridge import ToolManagerBridge
+    from agentpool.messaging.compaction import CompactionPipeline
     from agentpool.models import (
         AGUIAgentConfig,
         AnyAgentConfig,
@@ -537,6 +538,15 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool import MessageNode
 
         return {i.name: i for i in self._items.values() if isinstance(i, MessageNode)}
+
+    @property
+    def compaction_pipeline(self) -> CompactionPipeline | None:
+        """Get the configured compaction pipeline for message history management.
+
+        Returns:
+            CompactionPipeline instance or None if not configured
+        """
+        return self.manifest.get_compaction_pipeline()
 
     def _validate_item(self, item: MessageNode[Any, Any] | Any) -> MessageNode[Any, Any]:
         """Validate and convert items before registration.

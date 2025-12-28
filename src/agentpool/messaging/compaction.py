@@ -50,9 +50,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, cast
+from typing import TYPE_CHECKING, Any, Self, cast
 
-from pydantic import BaseModel, Field
 from pydantic_ai import (
     Agent,
     BinaryContent,
@@ -72,6 +71,8 @@ if TYPE_CHECKING:
 
     from pydantic_ai import ModelRequestPart, ModelResponsePart
     from tokonomics.model_names import ModelId
+
+    from agentpool.messaging.message_history import MessageHistory
 
 # Type aliases
 ModelMessage = ModelRequest | ModelResponse
@@ -630,197 +631,18 @@ class WhenMessageCountExceeds(CompactionStep):
 
 
 # =============================================================================
-# Configuration Models - For YAML/JSON configuration
+# Configuration Models - Re-exported from agentpool_config.compaction
 # =============================================================================
 
-
-class FilterThinkingConfig(BaseModel):
-    """Configuration for FilterThinking step."""
-
-    type: Literal["filter_thinking"] = "filter_thinking"
-
-    def build(self) -> FilterThinking:
-        return FilterThinking()
+# Configuration classes have been moved to agentpool_config.compaction
+# Re-export for backward compatibility
+from agentpool_config.compaction import (  # noqa: E402
+    CompactionConfig,
+)
 
 
-class FilterRetryPromptsConfig(BaseModel):
-    """Configuration for FilterRetryPrompts step."""
-
-    type: Literal["filter_retry_prompts"] = "filter_retry_prompts"
-
-    def build(self) -> FilterRetryPrompts:
-        return FilterRetryPrompts()
-
-
-class FilterBinaryContentConfig(BaseModel):
-    """Configuration for FilterBinaryContent step."""
-
-    type: Literal["filter_binary"] = "filter_binary"
-    keep_references: bool = False
-
-    def build(self) -> FilterBinaryContent:
-        return FilterBinaryContent(keep_references=self.keep_references)
-
-
-class FilterToolCallsConfig(BaseModel):
-    """Configuration for FilterToolCalls step."""
-
-    type: Literal["filter_tools"] = "filter_tools"
-    exclude_tools: list[str] = Field(default_factory=list)
-    include_only: list[str] | None = None
-
-    def build(self) -> FilterToolCalls:
-        return FilterToolCalls(exclude_tools=self.exclude_tools, include_only=self.include_only)
-
-
-class FilterEmptyMessagesConfig(BaseModel):
-    """Configuration for FilterEmptyMessages step."""
-
-    type: Literal["filter_empty"] = "filter_empty"
-
-    def build(self) -> FilterEmptyMessages:
-        return FilterEmptyMessages()
-
-
-class TruncateToolOutputsConfig(BaseModel):
-    """Configuration for TruncateToolOutputs step."""
-
-    type: Literal["truncate_tool_outputs"] = "truncate_tool_outputs"
-    max_length: int = 2000
-    suffix: str = "\n... [truncated]"
-
-    def build(self) -> TruncateToolOutputs:
-        return TruncateToolOutputs(max_length=self.max_length, suffix=self.suffix)
-
-
-class TruncateTextPartsConfig(BaseModel):
-    """Configuration for TruncateTextParts step."""
-
-    type: Literal["truncate_text"] = "truncate_text"
-    max_length: int = 5000
-    suffix: str = "\n... [truncated]"
-
-    def build(self) -> TruncateTextParts:
-        return TruncateTextParts(max_length=self.max_length, suffix=self.suffix)
-
-
-class KeepLastMessagesConfig(BaseModel):
-    """Configuration for KeepLastMessages step."""
-
-    type: Literal["keep_last"] = "keep_last"
-    count: int = 10
-    count_pairs: bool = True
-
-    def build(self) -> KeepLastMessages:
-        return KeepLastMessages(count=self.count, count_pairs=self.count_pairs)
-
-
-class KeepFirstMessagesConfig(BaseModel):
-    """Configuration for KeepFirstMessages step."""
-
-    type: Literal["keep_first"] = "keep_first"
-    count: int = 2
-
-    def build(self) -> KeepFirstMessages:
-        return KeepFirstMessages(count=self.count)
-
-
-class KeepFirstAndLastConfig(BaseModel):
-    """Configuration for KeepFirstAndLast step."""
-
-    type: Literal["keep_first_last"] = "keep_first_last"
-    first_count: int = 2
-    last_count: int = 5
-
-    def build(self) -> KeepFirstAndLast:
-        return KeepFirstAndLast(first_count=self.first_count, last_count=self.last_count)
-
-
-class TokenBudgetConfig(BaseModel):
-    """Configuration for TokenBudget step."""
-
-    type: Literal["token_budget"] = "token_budget"
-    max_tokens: int = 4000
-    model: str = "gpt-4o"
-
-    def build(self) -> TokenBudget:
-        return TokenBudget(max_tokens=self.max_tokens, model=self.model)
-
-
-class SummarizeConfig(BaseModel):
-    """Configuration for Summarize step."""
-
-    type: Literal["summarize"] = "summarize"
-    model: str = "openai:gpt-4o-mini"
-    threshold: int = 15
-    keep_recent: int = 5
-    summary_prompt: str | None = None
-
-    def build(self) -> Summarize:
-        kwargs: dict[str, Any] = {
-            "model": self.model,
-            "threshold": self.threshold,
-            "keep_recent": self.keep_recent,
-        }
-        if self.summary_prompt:
-            kwargs["summary_prompt"] = self.summary_prompt
-        return Summarize(**kwargs)
-
-
-class WhenMessageCountExceedsConfig(BaseModel):
-    """Configuration for WhenMessageCountExceeds wrapper."""
-
-    type: Literal["when_count_exceeds"] = "when_count_exceeds"
-    threshold: int = 20
-    step: "CompactionStepConfig"
-
-    def build(self) -> WhenMessageCountExceeds:
-        return WhenMessageCountExceeds(step=self.step.build(), threshold=self.threshold)
-
-
-# Union of all config types with discriminator
-CompactionStepConfig = Annotated[
-    FilterThinkingConfig
-    | FilterRetryPromptsConfig
-    | FilterBinaryContentConfig
-    | FilterToolCallsConfig
-    | FilterEmptyMessagesConfig
-    | TruncateToolOutputsConfig
-    | TruncateTextPartsConfig
-    | KeepLastMessagesConfig
-    | KeepFirstMessagesConfig
-    | KeepFirstAndLastConfig
-    | TokenBudgetConfig
-    | SummarizeConfig
-    | WhenMessageCountExceedsConfig,
-    Field(discriminator="type"),
-]
-
-# Update forward reference
-WhenMessageCountExceedsConfig.model_rebuild()
-
-
-class CompactionPipelineConfig(BaseModel):
-    """Configuration for a complete compaction pipeline.
-
-    Example YAML:
-        ```yaml
-        compaction:
-          steps:
-            - type: filter_thinking
-            - type: truncate_tool_outputs
-              max_length: 1000
-            - type: keep_last
-              count: 10
-        ```
-    """
-
-    steps: list[CompactionStepConfig] = Field(default_factory=list)
-    """Ordered list of compaction steps to apply."""
-
-    def build(self) -> CompactionPipeline:
-        """Build a CompactionPipeline from this configuration."""
-        return CompactionPipeline(steps=[step.build() for step in self.steps])
+# Alias for backward compatibility
+CompactionPipelineConfig = CompactionConfig
 
 
 # =============================================================================
@@ -875,6 +697,74 @@ def summarizing_context(model: ModelId | str = "openai:gpt-4o-mini") -> Compacti
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
+
+async def compact_conversation(
+    pipeline: CompactionPipeline,
+    conversation: MessageHistory,
+) -> tuple[int, int]:
+    """Apply a compaction pipeline to a conversation's message history.
+
+    Extracts model messages from ChatMessages, applies the pipeline,
+    and rebuilds the conversation history with compacted messages.
+
+    Args:
+        pipeline: The compaction pipeline to apply
+        conversation: The MessageHistory to compact
+
+    Returns:
+        Tuple of (original_count, compacted_count) of model messages
+    """
+    from agentpool.messaging.messages import ChatMessage
+
+    chat_messages = conversation.get_history()
+    if not chat_messages:
+        return 0, 0
+
+    # Extract ModelRequest/ModelResponse from ChatMessage.messages
+    model_messages: list[ModelMessage] = []
+    for chat_msg in chat_messages:
+        if chat_msg.messages:
+            model_messages.extend(chat_msg.messages)
+
+    if not model_messages:
+        return 0, 0
+
+    original_count = len(model_messages)
+
+    # Apply the compaction pipeline
+    compacted = await pipeline.apply(model_messages)
+
+    # Rebuild ChatMessages from compacted model messages
+    new_chat_messages: list[ChatMessage[Any]] = []
+    current_msgs: list[ModelMessage] = []
+
+    for msg in compacted:
+        current_msgs.append(msg)
+        if isinstance(msg, ModelResponse):
+            new_chat_messages.append(
+                ChatMessage(
+                    content="[compacted]",
+                    role="assistant",
+                    messages=list(current_msgs),
+                )
+            )
+            current_msgs = []
+
+    # Handle any remaining messages (incomplete pair)
+    if current_msgs:
+        new_chat_messages.append(
+            ChatMessage(
+                content="[compacted]",
+                role="user",
+                messages=list(current_msgs),
+            )
+        )
+
+    # Update the conversation history
+    conversation.set_history(new_chat_messages)
+
+    return original_count, len(compacted)
 
 
 def _extract_text_content(msg: ModelMessage) -> str:
