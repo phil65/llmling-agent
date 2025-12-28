@@ -125,6 +125,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         include_builtin_system_prompt: bool = True,
         model: str | None = None,
         max_turns: int | None = None,
+        max_budget_usd: float | None = None,
         max_thinking_tokens: int | None = None,
         permission_mode: PermissionMode | None = None,
         mcp_servers: Sequence[MCPServerConfig] | None = None,
@@ -233,6 +234,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=prompt_manager)
         self._model = model or config.model
         self._max_turns = max_turns or config.max_turns
+        self._max_budget_usd = max_budget_usd or config.max_budget_usd
         self._max_thinking_tokens = max_thinking_tokens or config.max_thinking_tokens
         self._permission_mode: PermissionMode | None = permission_mode or config.permission_mode
         self._external_mcp_servers = list(mcp_servers) if mcp_servers else config.get_mcp_servers()
@@ -378,6 +380,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             system_prompt=system_prompt,
             model=self._model,
             max_turns=self._max_turns,
+            max_budget_usd=self._max_budget_usd,
             max_thinking_tokens=self._max_thinking_tokens,
             permission_mode=permission_mode,
             env=self._environment or {},

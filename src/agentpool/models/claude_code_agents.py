@@ -18,6 +18,26 @@ if TYPE_CHECKING:
 
 
 PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
+ToolName = Literal[
+    "Task",
+    "TaskOutput",
+    "Bash",
+    "Glob",
+    "Grep",
+    "ExitPlanMode",
+    "Read",
+    "Edit",
+    "Write",
+    "NotebookEdit",
+    "WebFetch",
+    "TodoWrite",
+    "WebSearch",
+    "KillShell",
+    "AskUserQuestion",
+    "Skill",
+    "EnterPlanMode",
+    "LSP",
+]
 
 
 class ClaudeCodeAgentConfig(BaseAgentConfig):
@@ -74,7 +94,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     )
     """Model to use for this agent. Defaults to Claude's default model."""
 
-    allowed_tools: list[str] | None = Field(
+    allowed_tools: list[ToolName | str] | None = Field(
         default=None,
         title="Allowed Tools",
         examples=[["Read", "Write", "Bash"], ["Read", "Grep", "Glob"]],
@@ -85,7 +105,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     Common tools: Read, Write, Edit, Bash, Glob, Grep, Task, WebFetch, etc.
     """
 
-    disallowed_tools: list[str] | None = Field(
+    disallowed_tools: list[ToolName | str] | None = Field(
         default=None,
         title="Disallowed Tools",
         examples=[["Bash", "Write"], ["Task"]],
@@ -131,6 +151,17 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
         examples=[5, 10, 20],
     )
     """Maximum number of conversation turns before stopping."""
+
+    max_budget_usd: float | None = Field(
+        default=None,
+        title="Max Budget (USD)",
+        ge=0.0,
+        examples=[1.0, 5.0, 10.0],
+    )
+    """Maximum budget in USD before stopping.
+
+    When set, the agent will stop once the estimated cost exceeds this limit.
+    """
 
     max_thinking_tokens: int | None = Field(
         default=None,
