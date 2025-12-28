@@ -479,9 +479,22 @@ def _trim_diff(diff_text: str) -> str:
 
 
 def replace_content(
-    content: str, old_string: str, new_string: str, replace_all: bool = False
+    content: str,
+    old_string: str,
+    new_string: str,
+    replace_all: bool = False,
+    line_hint: int | None = None,
 ) -> str:
-    """Replace content using multiple fallback strategies with detailed error messages."""
+    """Replace content using multiple fallback strategies with detailed error messages.
+
+    Args:
+        content: The file content to edit
+        old_string: Text to find and replace
+        new_string: Replacement text
+        replace_all: If True, replace all occurrences
+        line_hint: If provided and multiple matches exist, use the match closest to this line.
+            Useful for disambiguation after getting a "multiple matches" error.
+    """
     if old_string == new_string:
         msg = "old_string and new_string must be different"
         raise ValueError(msg)
@@ -518,6 +531,16 @@ def replace_content(
             # Check if there are multiple occurrences
             last_index = content.rfind(search_text)
             if index != last_index:
+                # Multiple occurrences found
+                if line_hint is not None:
+                    # Use line_hint to pick the closest match
+                    best_index = _find_closest_match(content, search_text, line_hint)
+                    if best_index is not None:
+                        return (
+                            content[:best_index]
+                            + new_string
+                            + content[best_index + len(search_text) :]
+                        )
                 continue  # Multiple occurrences, need more context
 
             # Single occurrence - replace it
@@ -635,6 +658,39 @@ def _find_all_match_locations(content: str, search_text: str) -> list[int]:
                 locations.append(i + 1)  # 1-based
 
     return locations
+
+
+def _find_closest_match(content: str, search_text: str, line_hint: int) -> int | None:
+    """Find the occurrence of search_text closest to line_hint.
+
+    Args:
+        content: The file content
+        search_text: Text to search for
+        line_hint: Target line number (1-based)
+
+    Returns:
+        The character index of the closest match, or None if no matches found.
+    """
+    lines = content.split("\n")
+    matches: list[tuple[int, int]] = []  # (line_number, char_index)
+
+    # Find all occurrences with their positions
+    start = 0
+    while True:
+        index = content.find(search_text, start)
+        if index == -1:
+            break
+        # Calculate line number for this index
+        line_num = content[:index].count("\n") + 1
+        matches.append((line_num, index))
+        start = index + 1
+
+    if not matches:
+        return None
+
+    # Find the match closest to line_hint
+    closest = min(matches, key=lambda m: abs(m[0] - line_hint))
+    return closest[1]
 
 
 def _build_multiple_matches_error(content: str, old_string: str) -> str:

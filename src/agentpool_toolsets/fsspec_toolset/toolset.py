@@ -634,6 +634,7 @@ class FSSpecTools(ResourceProvider):
         new_string: str,
         description: str,
         replace_all: bool = False,
+        line_hint: int | None = None,
     ) -> str:
         r"""Edit a file by replacing specific content with smart matching.
 
@@ -646,55 +647,21 @@ class FSSpecTools(ResourceProvider):
             new_string: Text content to replace it with
             description: Human-readable description of what the edit accomplishes
             replace_all: Whether to replace all occurrences (default: False)
+            line_hint: Line number hint to disambiguate when multiple matches exist.
+                If the pattern matches multiple locations, the match closest to this
+                line will be used. Useful after getting a "multiple matches" error.
 
         Returns:
             Success message with edit summary
         """
-        path = self._resolve_path(path, agent_ctx)
-        msg = f"Editing file: {path}"
-        await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
-        if old_string == new_string:
-            return "Error: old_string and new_string must be different"
-
-        # Send initial pending notification
-        await agent_ctx.events.file_operation("edit", path=path, success=True)
-
-        try:  # Read current file content
-            original_content = await self._read(agent_ctx, path)
-            if isinstance(original_content, bytes):
-                original_content = original_content.decode("utf-8")
-
-            try:  # Apply smart content replacement
-                new_content = replace_content(original_content, old_string, new_string, replace_all)
-            except ValueError as e:
-                error_msg = f"Edit failed: {e}"
-                await agent_ctx.events.file_operation(
-                    "edit", path=path, success=False, error=error_msg
-                )
-                return error_msg
-
-            await self._write(agent_ctx, path, new_content)
-            success_msg = f"Successfully edited {Path(path).name}: {description}"
-            changed_line_numbers = get_changed_line_numbers(original_content, new_content)
-            if lines_changed := len(changed_line_numbers):
-                success_msg += f" ({lines_changed} lines changed)"
-
-            await agent_ctx.events.file_edit_progress(
-                path=path,
-                old_text=original_content,
-                new_text=new_content,
-                status="completed",
-            )
-
-            # Run diagnostics if enabled
-            if diagnostics_output := await self._run_diagnostics(agent_ctx, path):
-                success_msg += f"\n\nDiagnostics:\n{diagnostics_output}"
-        except Exception as e:  # noqa: BLE001
-            error_msg = f"Error editing file: {e}"
-            await agent_ctx.events.file_operation("edit", path=path, success=False, error=error_msg)
-            return error_msg
-        else:
-            return success_msg
+        return await self.edit_file_batch(
+            agent_ctx,
+            path,
+            replacements=[(old_string, new_string)],
+            description=description,
+            replace_all=replace_all,
+            line_hint=line_hint,
+        )
 
     async def edit_file_batch(  # noqa: D417
         self,
@@ -703,6 +670,7 @@ class FSSpecTools(ResourceProvider):
         replacements: list[tuple[str, str]],
         description: str,
         replace_all: bool = False,
+        line_hint: int | None = None,
     ) -> str:
         r"""Edit a file by applying multiple replacements in one operation.
 
@@ -721,6 +689,9 @@ class FSSpecTools(ResourceProvider):
                 the target location. For multi-line edits, include the full block.
             description: Human-readable description of what the edit accomplishes
             replace_all: Whether to replace all occurrences of each pattern (default: False)
+            line_hint: Line number hint to disambiguate when multiple matches exist.
+                Only applies when there is a single replacement. If the pattern matches
+                multiple locations, the match closest to this line will be used.
 
         Returns:
             Success message with edit summary
@@ -752,9 +723,13 @@ class FSSpecTools(ResourceProvider):
 
             # Apply all replacements sequentially
             new_content = original_content
+            # line_hint only makes sense for single replacements
+            hint = line_hint if len(replacements) == 1 else None
             for old_str, new_str in replacements:
                 try:
-                    new_content = replace_content(new_content, old_str, new_str, replace_all)
+                    new_content = replace_content(
+                        new_content, old_str, new_str, replace_all, line_hint=hint
+                    )
                 except ValueError as e:
                     error_msg = f"Edit failed on replacement {old_str!r}: {e}"
                     await agent_ctx.events.file_operation(
