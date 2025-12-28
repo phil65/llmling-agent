@@ -5,7 +5,7 @@ sync:
     - src/agentpool/models/claude_code_agents.py
 title: Claude Code Agents
 description: Native Claude Agent SDK integration
-icon: simple-icons/anthropic
+icon: material/robot
 ---
 
 Claude Code agents provide AgentPool's native integration with the Claude Agent SDK, enabling file operations, terminal access, and advanced code editing capabilities through Claude's official tooling.
