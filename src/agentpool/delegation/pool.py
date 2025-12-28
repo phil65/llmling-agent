@@ -1015,6 +1015,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
             tool_confirmation_mode=config.requires_tool_confirmation,
             builtin_tools=builtin_tools or None,
+            usage_limits=config.usage_limits,
         )
 
     def create_acp_agent[TDeps](

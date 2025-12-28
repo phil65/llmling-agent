@@ -115,6 +115,7 @@ class AgentKwargs(TypedDict, total=False):
 
     hooks: AgentHooks | None
     model_settings: ModelSettings | None
+    usage_limits: UsageLimits | None
 
 
 class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
@@ -168,6 +169,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         hooks: AgentHooks | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
         builtin_tools: Sequence[AbstractBuiltinTool] | None = None,
+        usage_limits: UsageLimits | None = None,
     ) -> None:
         """Initialize agent.
 
@@ -287,6 +289,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Store hooks
         self.hooks = hooks
+
+        # Store default usage limits
+        self._default_usage_limits = usage_limits
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
@@ -798,11 +803,14 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             # Prepend pending context parts (content is already pydantic-ai format)
             converted = [*pending_parts, *content]
 
+            # Use provided usage_limits or fall back to default
+            effective_limits = usage_limits or self._default_usage_limits
+
             stream_events = agentlet.run_stream_events(
                 converted,
                 deps=deps,  # type: ignore[arg-type]
                 message_history=[m for run in history_list for m in run.to_pydantic_ai()],
-                usage_limits=usage_limits,
+                usage_limits=effective_limits,
                 instructions=instructions,
             )
 
