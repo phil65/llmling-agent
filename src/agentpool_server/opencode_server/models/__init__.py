@@ -17,6 +17,7 @@ from agentpool_server.opencode_server.models.app import (
     HealthResponse,
     PathInfo,
     Project,
+    ProjectTime,
     VcsInfo,
 )
 from agentpool_server.opencode_server.models.provider import (
@@ -148,6 +149,7 @@ __all__ = [
     "PartUpdatedEventProperties",
     "PathInfo",
     "Project",
+    "ProjectTime",
     "Provider",
     "ProviderListResponse",
     "ProvidersResponse",

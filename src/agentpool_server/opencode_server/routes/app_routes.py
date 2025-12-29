@@ -13,6 +13,7 @@ from agentpool_server.opencode_server.models import (
     AppTimeInfo,
     PathInfo,
     Project,
+    ProjectTime,
     VcsInfo,
 )
 
@@ -38,26 +39,29 @@ async def get_app(state: StateDep) -> App:
     )
 
 
+def _make_project(state: StateDep) -> Project:
+    """Create a Project from current state."""
+    working_path = Path(state.working_dir)
+    git_dir = working_path / ".git"
+    return Project(
+        id="default",
+        worktree=state.working_dir,
+        vcs_dir=str(git_dir) if git_dir.is_dir() else None,
+        vcs="git" if git_dir.is_dir() else None,
+        time=ProjectTime(created=int(state.start_time * 1000)),
+    )
+
+
 @router.get("/project")
 async def list_projects(state: StateDep) -> list[Project]:
     """List all projects."""
-    return [
-        Project(
-            id="default",
-            name=Path(state.working_dir).name,
-            path=state.working_dir,
-        )
-    ]
+    return [_make_project(state)]
 
 
 @router.get("/project/current")
 async def get_project_current(state: StateDep) -> Project:
     """Get current project."""
-    return Project(
-        id="default",
-        name=Path(state.working_dir).name,
-        path=state.working_dir,
-    )
+    return _make_project(state)
 
 
 @router.get("/path")

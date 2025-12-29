@@ -35,12 +35,21 @@ class App(OpenCodeBaseModel):
     time: AppTimeInfo
 
 
+class ProjectTime(OpenCodeBaseModel):
+    """Project time information."""
+
+    created: int
+    initialized: int | None = None
+
+
 class Project(OpenCodeBaseModel):
     """Project information."""
 
     id: str
-    name: str
-    path: str
+    worktree: str
+    vcs_dir: str | None = None
+    vcs: str | None = None  # "git" or None
+    time: ProjectTime
 
 
 class VcsInfo(OpenCodeBaseModel):
