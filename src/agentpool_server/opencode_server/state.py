@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     import asyncio
 
     from agentpool.agents.base_agent import BaseAgent
+    from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
     from agentpool_server.opencode_server.models import (
         Event,
         MessageWithParts,
@@ -40,6 +41,9 @@ class ServerState:
 
     # Todo storage (session_id -> todos)
     todos: dict[str, list[Todo]] = field(default_factory=dict)
+
+    # Input providers for permission handling (session_id -> provider)
+    input_providers: dict[str, OpenCodeInputProvider] = field(default_factory=dict)
 
     # SSE event subscribers
     event_subscribers: list[asyncio.Queue[Event]] = field(default_factory=list)

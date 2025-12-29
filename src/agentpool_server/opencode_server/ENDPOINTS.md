@@ -80,7 +80,8 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | [x] | POST | `/session/{id}/summarize` | Summarize the session |
 | [x] | POST | `/session/{id}/revert` | Revert a message |
 | [x] | POST | `/session/{id}/unrevert` | Restore reverted messages |
-| [ ] | POST | `/session/{id}/permissions/{permissionID}` | Respond to permission request |
+| [x] | GET | `/session/{id}/permissions` | Get pending permission requests |
+| [x] | POST | `/session/{id}/permissions/{permissionID}` | Respond to permission request |
 
 ---
 
@@ -122,8 +123,8 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 
 | Status | Method | Path | Description |
 |--------|--------|------|-------------|
-| [ ] | GET | `/experimental/tool/ids` | List all tool IDs |
-| [ ] | GET | `/experimental/tool?provider=&model=` | List tools with schemas |
+| [x] | GET | `/experimental/tool/ids` | List all tool IDs |
+| [x] | GET | `/experimental/tool?provider=&model=` | List tools with schemas |
 
 ---
 
@@ -195,6 +196,21 @@ These endpoints are for driving the TUI and are not needed for programmatic acce
 | Status | Method | Path | Description |
 |--------|--------|------|-------------|
 | [x] | GET | `/event` | SSE event stream |
+
+### SSE Event Types
+
+| Status | Event Type | Description |
+|--------|------------|-------------|
+| [x] | `server.connected` | Server connected |
+| [x] | `session.created` | Session created |
+| [x] | `session.updated` | Session updated |
+| [x] | `session.deleted` | Session deleted |
+| [x] | `session.status` | Session status changed |
+| [x] | `session.idle` | Session became idle (deprecated) |
+| [x] | `message.updated` | Message updated |
+| [x] | `message.part.updated` | Message part updated |
+| [x] | `permission.request` | Tool permission requested |
+| [x] | `permission.resolved` | Permission request resolved |
 
 ---
 

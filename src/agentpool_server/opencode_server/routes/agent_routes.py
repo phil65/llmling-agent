@@ -197,6 +197,72 @@ async def log(request: LogRequest, state: StateDep) -> bool:
     return True
 
 
+@router.get("/experimental/tool/ids")
+async def list_tool_ids(state: StateDep) -> list[str]:
+    """List all available tool IDs.
+
+    Returns a list of tool names that are available to the agent.
+    OpenCode expects: Array<string>
+    """
+    if state.agent is None or not hasattr(state.agent, "tools"):
+        return []
+
+    try:
+        tools = await state.agent.tools.get_tools()
+        return [tool.name for tool in tools]
+    except Exception:  # noqa: BLE001
+        return []
+
+
+class ToolListItem(BaseModel):
+    """Tool info matching OpenCode SDK ToolListItem type."""
+
+    id: str
+    description: str
+    parameters: dict[str, Any]
+
+
+@router.get("/experimental/tool")
+async def list_tools_with_schemas(
+    state: StateDep,
+    provider: str | None = None,
+    model: str | None = None,
+) -> list[ToolListItem]:
+    """List tools with their JSON schemas.
+
+    Args:
+        provider: Optional provider filter (not used currently)
+        model: Optional model filter (not used currently)
+
+    Returns list of tools matching OpenCode's ToolListItem format:
+    - id: string
+    - description: string
+    - parameters: unknown (JSON schema)
+    """
+    _ = provider, model  # Currently unused, for future filtering
+
+    if state.agent is None or not hasattr(state.agent, "tools"):
+        return []
+
+    try:
+        tools = await state.agent.tools.get_tools()
+        result = []
+        for tool in tools:
+            # Extract parameters schema from the OpenAI function schema
+            schema = tool.schema
+            parameters = schema.get("function", {}).get("parameters", {})
+            result.append(
+                ToolListItem(
+                    id=tool.name,
+                    description=tool.description or "",
+                    parameters=parameters,
+                )
+            )
+        return result
+    except Exception:  # noqa: BLE001
+        return []
+
+
 @router.get("/lsp")
 async def get_lsp_status(state: StateDep) -> list[dict[str, Any]]:
     """Get LSP server status.

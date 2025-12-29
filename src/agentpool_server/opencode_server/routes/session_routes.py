@@ -76,6 +76,16 @@ async def create_session(
     state.session_status[session_id] = SessionStatus(type="idle")
     state.todos[session_id] = []
 
+    # Create input provider for this session
+    from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
+
+    input_provider = OpenCodeInputProvider(state, session_id)
+    state.input_providers[session_id] = input_provider
+
+    # Set input provider on agent if configured
+    if state.agent is not None:
+        state.agent._input_provider = input_provider
+
     await state.broadcast_event(SessionCreatedEvent(properties=SessionInfoProperties(info=session)))
 
     return session
@@ -131,6 +141,11 @@ async def delete_session(session_id: str, state: StateDep) -> bool:
     """Delete a session."""
     if session_id not in state.sessions:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    # Cancel any pending permissions and clean up input provider
+    input_provider = state.input_providers.pop(session_id, None)
+    if input_provider is not None:
+        input_provider.cancel_all_pending()
 
     del state.sessions[session_id]
     state.messages.pop(session_id, None)
@@ -357,6 +372,75 @@ async def run_shell_command(
     )
 
     return assistant_msg_with_parts
+
+
+class PermissionResponse(OpenCodeBaseModel):
+    """Request body for responding to a permission request."""
+
+    response: Literal["once", "always", "reject"]
+
+
+@router.get("/{session_id}/permissions")
+async def get_pending_permissions(session_id: str, state: StateDep) -> list[dict[str, Any]]:
+    """Get all pending permission requests for a session.
+
+    Returns a list of pending permissions awaiting user response.
+    """
+    if session_id not in state.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Get the input provider for this session
+    input_provider = state.input_providers.get(session_id)
+    if input_provider is None:
+        return []
+
+    return input_provider.get_pending_permissions()
+
+
+@router.post("/{session_id}/permissions/{permission_id}")
+async def respond_to_permission(
+    session_id: str,
+    permission_id: str,
+    request: PermissionResponse,
+    state: StateDep,
+) -> bool:
+    """Respond to a pending permission request.
+
+    The response can be:
+    - "once": Allow this tool execution once
+    - "always": Always allow this tool (remembered for session)
+    - "reject": Reject this tool execution
+    """
+    if session_id not in state.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Get the input provider for this session
+    input_provider = state.input_providers.get(session_id)
+    if input_provider is None:
+        raise HTTPException(status_code=404, detail="No input provider for session")
+
+    # Resolve the permission
+    resolved = input_provider.resolve_permission(permission_id, request.response)
+    if not resolved:
+        raise HTTPException(status_code=404, detail="Permission not found or already resolved")
+
+    # Broadcast the resolution event
+    from agentpool_server.opencode_server.models.events import (
+        PermissionResolvedEvent,
+        PermissionResolvedProperties,
+    )
+
+    await state.broadcast_event(
+        PermissionResolvedEvent(
+            properties=PermissionResolvedProperties(
+                session_id=session_id,
+                permission_id=permission_id,
+                response=request.response,
+            )
+        )
+    )
+
+    return True
 
 
 @router.post("/{session_id}/summarize")

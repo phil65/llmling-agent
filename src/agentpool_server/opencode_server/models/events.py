@@ -116,6 +116,38 @@ class PartUpdatedEvent(OpenCodeBaseModel):
     properties: PartUpdatedEventProperties
 
 
+class PermissionRequestProperties(OpenCodeBaseModel):
+    """Properties for permission request event."""
+
+    session_id: str = Field(alias="sessionID")
+    permission_id: str = Field(alias="permissionID")
+    tool_name: str = Field(alias="toolName")
+    args_preview: str = Field(alias="argsPreview")
+    message: str
+
+
+class PermissionRequestEvent(OpenCodeBaseModel):
+    """Permission request event - sent when a tool needs user confirmation."""
+
+    type: Literal["permission.request"] = "permission.request"
+    properties: PermissionRequestProperties
+
+
+class PermissionResolvedProperties(OpenCodeBaseModel):
+    """Properties for permission resolved event."""
+
+    session_id: str = Field(alias="sessionID")
+    permission_id: str = Field(alias="permissionID")
+    response: str  # "once" | "always" | "reject"
+
+
+class PermissionResolvedEvent(OpenCodeBaseModel):
+    """Permission resolved event - sent when a permission request is answered."""
+
+    type: Literal["permission.resolved"] = "permission.resolved"
+    properties: PermissionResolvedProperties
+
+
 Event = (
     ServerConnectedEvent
     | SessionCreatedEvent
@@ -125,4 +157,6 @@ Event = (
     | SessionIdleEvent
     | MessageUpdatedEvent
     | PartUpdatedEvent
+    | PermissionRequestEvent
+    | PermissionResolvedEvent
 )
