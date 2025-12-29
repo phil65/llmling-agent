@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import Field
@@ -43,6 +43,10 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
 )
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.time_utils import now_ms
+
+
+if TYPE_CHECKING:
+    from anyenv.text_sharing.opencode import MessageRole
 
 
 router = APIRouter(prefix="/session", tags=["session"])
@@ -627,7 +631,7 @@ async def share_session(
 
     for msg_with_parts in messages:
         info = msg_with_parts.info
-        role = getattr(info, "role", "user")
+        role: MessageRole = getattr(info, "role", "user")
 
         # Map role to OpenCode roles
         if role not in ("user", "assistant", "system"):
