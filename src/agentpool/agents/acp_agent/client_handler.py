@@ -167,10 +167,21 @@ class ACPClientHandler(Client):
 
             case AvailableCommandsUpdate():
                 self.state.available_commands = update
-                await self._agent.state_updated.emit(update)
-                logger.debug("Available commands updated")
+                # TODO: Disabled for now - the "way back" doesn't work yet.
+                # We tell the UI about nested ACP agent commands, but when the user
+                # enters those slash commands, we don't route them to the nested agent.
+                # Need to implement command routing before enabling this.
+                # await self._agent.state_updated.emit(update)
+                logger.debug("Available commands updated (emission disabled)")
                 self._update_event.set()
                 return
+
+        # TODO: AgentPlanUpdate handling is complex and needs design work.
+        # Options:
+        # 1. Update pool.todos - requires merging with existing todos
+        # 2. Pass through to UI - but then todos aren't centrally managed
+        # 3. Switch to agent-owned todos instead of pool-owned
+        # For now, AgentPlanUpdate falls through to stream events.
 
         # All other updates are stream events - convert and queue
         if native_event := acp_to_native_event(update):
