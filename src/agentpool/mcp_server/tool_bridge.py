@@ -244,6 +244,9 @@ class ToolManagerBridge:
     config: BridgeConfig = field(default_factory=BridgeConfig)
     """Bridge configuration."""
 
+    current_deps: Any = field(default=None, init=False, repr=False)
+    """Current dependencies for tool invocations (set by run_stream)."""
+
     _mcp: FastMCP | None = field(default=None, init=False, repr=False)
     """FastMCP server instance."""
 
@@ -445,8 +448,6 @@ class _BridgeTool(FastMCPTool):
         """Execute the wrapped tool with context bridging."""
         from fastmcp.server.dependencies import get_context
 
-        from agentpool.agents.context import get_current_deps
-
         # Get FastMCP context from context variable (not passed as parameter)
         try:
             mcp_context: Context | None = get_context()
@@ -456,8 +457,8 @@ class _BridgeTool(FastMCPTool):
         # Try to get Claude's original tool_call_id from request metadata
         tool_call_id = _extract_tool_call_id(mcp_context)
 
-        # Get deps from ContextVar (set by run_stream)
-        current_deps = get_current_deps()
+        # Get deps from bridge (set by run_stream on the agent)
+        current_deps = self._bridge.current_deps
 
         # Create context with tool-specific metadata from node's context.
         ctx = replace(

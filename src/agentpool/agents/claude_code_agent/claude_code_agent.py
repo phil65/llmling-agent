@@ -604,10 +604,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Track files modified during this run
         file_tracker = FileTracker()
 
-        # Set deps in ContextVar for access in tool bridge
-        from agentpool.agents.context import reset_current_deps, set_current_deps
-
-        deps_token = set_current_deps(deps)
+        # Set deps on tool bridge for access during tool invocations
+        # (ContextVar doesn't work because MCP server runs in a separate task)
+        if self._tool_bridge:
+            self._tool_bridge.current_deps = deps
         try:
             await self._client.query(prompt_text)
             # Merge SDK messages with event queue for real-time tool event streaming
@@ -927,8 +927,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             raise
 
         finally:
-            # Reset deps ContextVar
-            reset_current_deps(deps_token)
+            # Clear deps from tool bridge
+            if self._tool_bridge:
+                self._tool_bridge.current_deps = None
 
         # Flush any remaining response parts
         if current_response_parts:

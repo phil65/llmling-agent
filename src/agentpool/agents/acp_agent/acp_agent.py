@@ -49,7 +49,6 @@ from agentpool.agents.acp_agent.acp_converters import convert_to_acp_content, mc
 from agentpool.agents.acp_agent.client_handler import ACPClientHandler
 from agentpool.agents.acp_agent.session_state import ACPSessionState
 from agentpool.agents.base_agent import BaseAgent
-from agentpool.agents.context import reset_current_deps
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallStartEvent
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
@@ -597,10 +596,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 yield self._state.events[last_idx]
                 last_idx += 1
 
-        # Set deps in ContextVar for access in tool bridge
-        from agentpool.agents.context import set_current_deps
-
-        deps_token = set_current_deps(deps)
+        # Set deps on tool bridge for access during tool invocations
+        # (ContextVar doesn't work because MCP server runs in a separate task)
+        if self._tool_bridge:
+            self._tool_bridge.current_deps = deps
 
         # Merge ACP events with custom events from queue
         try:
@@ -633,8 +632,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             self.log.info("Stream cancelled via task cancellation")
             self._cancelled = True
         finally:
-            # Reset deps ContextVar
-            reset_current_deps(deps_token)
+            # Clear deps from tool bridge
+            if self._tool_bridge:
+                self._tool_bridge.current_deps = None
 
         # Handle cancellation - emit partial message
         if self._cancelled:
