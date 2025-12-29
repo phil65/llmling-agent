@@ -77,6 +77,7 @@ if TYPE_CHECKING:
     )
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
+    from tokonomics.model_discovery.model_info import ModelInfo
     from toprompt import AnyPromptType
 
     from agentpool.agents.context import AgentContext
@@ -666,24 +667,25 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         await handler(None, tool_start_event)
                                         yield tool_start_event
                                     else:
-                                        # Already emitted early - update with full args
+                                        # Already emitted early - emit update with full args
                                         from agentpool.agents.claude_code_agent.converters import (
                                             derive_rich_tool_info,
                                         )
 
                                         rich_info = derive_rich_tool_info(name, input_data)
-                                        # Track file modifications using derived info
-                                        file_tracker.process_event(
-                                            ToolCallStartEvent(
-                                                tool_call_id=tc_id,
-                                                tool_name=name,
-                                                title=rich_info.title,
-                                                kind=rich_info.kind,
-                                                locations=rich_info.locations,
-                                                content=rich_info.content,
-                                                raw_input=input_data,
-                                            )
+                                        updated_event = ToolCallStartEvent(
+                                            tool_call_id=tc_id,
+                                            tool_name=name,
+                                            title=rich_info.title,
+                                            kind=rich_info.kind,
+                                            locations=rich_info.locations,
+                                            content=rich_info.content,
+                                            raw_input=input_data,
                                         )
+                                        # Track file modifications using derived info
+                                        file_tracker.process_event(updated_event)
+                                        await handler(None, updated_event)
+                                        yield updated_event
                                     # Clean up from accumulator
                                     tool_accumulator.complete(tc_id)
                                 case ToolResultBlock(tool_use_id=tc_id, content=content):
@@ -1035,6 +1037,67 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             await self._client.set_permission_mode("bypassPermissions")
         elif self._client and mode == "always":
             await self._client.set_permission_mode("default")
+
+    async def get_available_models(self) -> list[ModelInfo] | None:
+        """Get available models for Claude Code agent.
+
+        Returns a static list of Claude models (opus, sonnet, haiku) since
+        Claude Code SDK only supports these models with simple IDs.
+
+        Returns:
+            List of tokonomics ModelInfo for Claude models
+        """
+        from tokonomics.model_discovery.model_info import ModelInfo, ModelPricing
+
+        # Static Claude Code models - these are the simple IDs the SDK accepts
+        # Use id_override to ensure pydantic_ai_id returns simple names like "opus"
+        return [
+            ModelInfo(
+                id="claude-opus-4-20250514",
+                name="Claude Opus",
+                provider="anthropic",
+                description="Claude Opus - most capable model",
+                context_window=200000,
+                max_output_tokens=32000,
+                input_modalities={"text", "image"},
+                output_modalities={"text"},
+                pricing=ModelPricing(
+                    prompt=0.000015,  # $15 per 1M tokens
+                    completion=0.000075,  # $75 per 1M tokens
+                ),
+                id_override="opus",  # Claude Code SDK uses simple names
+            ),
+            ModelInfo(
+                id="claude-sonnet-4-20250514",
+                name="Claude Sonnet",
+                provider="anthropic",
+                description="Claude Sonnet - balanced performance and speed",
+                context_window=200000,
+                max_output_tokens=16000,
+                input_modalities={"text", "image"},
+                output_modalities={"text"},
+                pricing=ModelPricing(
+                    prompt=0.000003,  # $3 per 1M tokens
+                    completion=0.000015,  # $15 per 1M tokens
+                ),
+                id_override="sonnet",  # Claude Code SDK uses simple names
+            ),
+            ModelInfo(
+                id="claude-haiku-3-5-20241022",
+                name="Claude Haiku",
+                provider="anthropic",
+                description="Claude Haiku - fast and cost-effective",
+                context_window=200000,
+                max_output_tokens=8000,
+                input_modalities={"text", "image"},
+                output_modalities={"text"},
+                pricing=ModelPricing(
+                    prompt=0.0000008,  # $0.80 per 1M tokens
+                    completion=0.000004,  # $4 per 1M tokens
+                ),
+                id_override="haiku",  # Claude Code SDK uses simple names
+            ),
+        ]
 
 
 if __name__ == "__main__":

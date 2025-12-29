@@ -180,19 +180,21 @@ def _get_dummy_providers() -> list[Provider]:
 
 @router.get("/config/providers")
 async def get_providers(state: StateDep) -> ProvidersResponse:
-    """Get available providers and models from tokonomics."""
-    _ = state  # unused for now
+    """Get available providers and models from agent."""
+    providers: list[Provider] = []
 
-    # TODO: Re-enable tokonomics integration after debugging TUI crash
-    # For now, return dummy provider to isolate the issue
-    providers = _get_dummy_providers()
+    # Try to get models from the agent
+    if state.agent is not None:
+        try:
+            toko_models = await state.agent.get_available_models()
+            if toko_models:
+                providers = _build_providers(toko_models)
+        except Exception:
+            pass  # Fall through to dummy providers
 
-    # try:
-    #     toko_models = await _get_available_models()
-    #     providers = _build_providers(toko_models)
-    # except Exception:
-    #     # Fall back to empty list on error
-    #     providers = []
+    # Fall back to dummy providers if no models available
+    if not providers:
+        providers = _get_dummy_providers()
 
     return ProvidersResponse(
         providers=providers,
@@ -203,31 +205,27 @@ async def get_providers(state: StateDep) -> ProvidersResponse:
 @router.get("/provider")
 async def list_providers(state: StateDep) -> ProviderListResponse:
     """List all providers."""
-    _ = state  # unused for now
-
-    # TODO: Re-enable tokonomics integration after debugging TUI crash
-    providers = _get_dummy_providers()
-
     import os
 
+    providers: list[Provider] = []
+
+    # Try to get models from the agent
+    if state.agent is not None:
+        try:
+            toko_models = await state.agent.get_available_models()
+            if toko_models:
+                providers = _build_providers(toko_models)
+        except Exception:
+            pass  # Fall through to dummy providers
+
+    # Fall back to dummy providers if no models available
+    if not providers:
+        providers = _get_dummy_providers()
+
+    # Determine which providers are "connected" based on env vars
     connected = [
         provider.id for provider in providers if any(os.environ.get(env) for env in provider.env)
     ]
-
-    # try:
-    #     toko_models = await _get_available_models()
-    #     providers = _build_providers(toko_models)
-    #     # Determine which providers are "connected" based on env vars
-    #     import os
-    #
-    #     connected = [
-    #         provider.id
-    #         for provider in providers
-    #         if any(os.environ.get(env) for env in provider.env)
-    #     ]
-    # except Exception:
-    #     providers = []
-    #     connected = []
 
     return ProviderListResponse(
         all=providers,

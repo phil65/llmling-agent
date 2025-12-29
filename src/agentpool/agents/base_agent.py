@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+
 ToolConfirmationMode = Literal["always", "never", "per_tool"]
 
 
@@ -182,3 +183,18 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         from agentpool.talk.stats import MessageStats
 
         return MessageStats(messages=list(self.conversation.chat_messages))
+
+    @abstractmethod
+    async def get_available_models(self) -> list[ModelInfo] | None:
+        """Get available models for this agent.
+
+        Returns a list of models that can be used with this agent, or None
+        if model discovery is not supported for this agent type.
+
+        Uses tokonomics.ModelInfo which includes pricing, capabilities,
+        and limits. Can be converted to protocol-specific formats (OpenCode, ACP).
+
+        Returns:
+            List of tokonomics ModelInfo, or None if not supported
+        """
+        ...

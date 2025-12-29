@@ -60,6 +60,8 @@ if TYPE_CHECKING:
     from pydantic_ai.builtin_tools import AbstractBuiltinTool
     from pydantic_ai.output import OutputSpec
     from pydantic_ai.settings import ModelSettings
+    from tokonomics.model_discovery import ProviderType
+    from tokonomics.model_discovery.model_info import ModelInfo
     from toprompt import AnyPromptType
     from upathtools import JoinablePathLike
 
@@ -116,6 +118,7 @@ class AgentKwargs(TypedDict, total=False):
     hooks: AgentHooks | None
     model_settings: ModelSettings | None
     usage_limits: UsageLimits | None
+    providers: Sequence[ProviderType] | None
 
 
 class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
@@ -170,6 +173,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
         builtin_tools: Sequence[AbstractBuiltinTool] | None = None,
         usage_limits: UsageLimits | None = None,
+        providers: Sequence[ProviderType] | None = None,
     ) -> None:
         """Initialize agent.
 
@@ -213,6 +217,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             tool_confirmation_mode: Tool confirmation mode
             builtin_tools: PydanticAI builtin tools (WebSearchTool, CodeExecutionTool, etc.)
             usage_limits: Usage limits for the agent
+            providers: Model providers for model discovery (e.g., ["openai", "anthropic"]).
+                Defaults to ["openai", "anthropic", "gemini"] if not specified.
         """
         from agentpool.agents.interactions import Interactions
         from agentpool.agents.sys_prompts import SystemPrompts
@@ -293,6 +299,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Store default usage limits
         self._default_usage_limits = usage_limits
+
+        # Store providers for model discovery
+        self._providers = list(providers) if providers else None
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
@@ -1269,6 +1278,27 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             return False
         else:
             return True
+
+    async def get_available_models(self) -> list[ModelInfo] | None:
+        """Get available models for this agent.
+
+        Uses tokonomics model discovery to fetch models from configured providers.
+        Defaults to openai, anthropic, and gemini if no providers specified.
+
+        Returns:
+            List of tokonomics ModelInfo, or None if discovery fails
+        """
+        from datetime import timedelta
+
+        from tokonomics.model_discovery import get_all_models
+
+        providers = self._providers or ["openai", "anthropic", "gemini"]
+        try:
+            max_age = timedelta(days=200)
+            return await get_all_models(providers=providers, max_age=max_age)
+        except Exception:
+            self.log.exception("Failed to discover models")
+            return None
 
 
 if __name__ == "__main__":

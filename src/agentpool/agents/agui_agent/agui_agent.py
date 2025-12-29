@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 
     from ag_ui.core import Message, ToolMessage
     from evented.configs import EventConfig
+    from tokonomics.model_discovery.model_info import ModelInfo
 
     from agentpool.agents.base_agent import ToolConfirmationMode
     from agentpool.agents.context import AgentContext
@@ -655,6 +656,25 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
     def model_name(self) -> str | None:
         """Get model name (AG-UI doesn't expose this)."""
         return None
+
+    async def get_available_models(self) -> list[ModelInfo] | None:
+        """Get available models for AG-UI agent.
+
+        AG-UI doesn't expose model information, so returns a placeholder model
+        indicating the model is determined by the remote server.
+
+        Returns:
+            List with a single placeholder ModelInfo
+        """
+        from tokonomics.model_discovery.model_info import ModelInfo
+
+        return [
+            ModelInfo(
+                id="server-determined",
+                name="Determined by server",
+                description="The model is determined by the remote AG-UI server",
+            )
+        ]
 
 
 if __name__ == "__main__":

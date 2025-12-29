@@ -70,6 +70,7 @@ if TYPE_CHECKING:
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import FinishReason
+    from tokonomics.model_discovery.model_info import ModelInfo
 
     from acp.agent.protocol import Agent as ACPAgentProtocol
     from acp.client.connection import ClientSideConnection
@@ -809,6 +810,30 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Also cancel current stream task (from base class)
         if self._current_stream_task and not self._current_stream_task.done():
             self._current_stream_task.cancel()
+
+    async def get_available_models(self) -> list[ModelInfo] | None:
+        """Get available models from the ACP session state.
+
+        Converts ACP ModelInfo to tokonomics ModelInfo format.
+
+        Returns:
+            List of tokonomics ModelInfo, or None if not available
+        """
+        from tokonomics.model_discovery.model_info import ModelInfo
+
+        if not self._state or not self._state.models:
+            return None
+
+        # Convert ACP ModelInfo to tokonomics ModelInfo
+        result: list[ModelInfo] = []
+        for acp_model in self._state.models.available_models:
+            toko_model = ModelInfo(
+                id=acp_model.model_id,
+                name=acp_model.name,
+                description=acp_model.description,
+            )
+            result.append(toko_model)
+        return result
 
 
 if __name__ == "__main__":
