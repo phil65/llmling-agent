@@ -644,6 +644,60 @@ async def revert_session(
     return updated_session
 
 
+@router.post("/{session_id}/unrevert")
+async def unrevert_session(session_id: str, state: StateDep) -> Session:
+    """Restore all reverted file changes.
+
+    Re-applies the changes that were previously reverted.
+    """
+    if session_id not in state.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if state.agent is None or state.agent.agent_pool is None:
+        raise HTTPException(status_code=400, detail="No agent configured")
+
+    file_ops = state.agent.agent_pool.file_ops
+    if not file_ops.reverted_changes:
+        raise HTTPException(status_code=400, detail="No reverted changes to restore")
+
+    # Get unrevert operations
+    unrevert_ops = file_ops.get_unrevert_operations()
+
+    # Get filesystem from the agent's environment
+    fs = state.agent.env.get_fs()
+
+    # Apply unrevert - write back the new_content
+    for path, content in unrevert_ops:
+        try:
+            if content is None:
+                # File was deleted in the original change, delete it again
+                await fs._rm_file(path)
+            else:
+                # Restore the changed content
+                content_bytes = content.encode("utf-8")
+                await fs._pipe_file(path, content_bytes)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to unrevert {path}: {e}",
+            ) from e
+
+    # Restore the changes to the tracker
+    file_ops.restore_reverted_changes()
+
+    # Clear revert info from session
+    session = state.sessions[session_id]
+    updated_session = session.model_copy(update={"revert": None})
+    state.sessions[session_id] = updated_session
+
+    # Broadcast session update
+    await state.broadcast_event(
+        SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
+    )
+
+    return updated_session
+
+
 @router.delete("/{session_id}/share")
 async def unshare_session(session_id: str, state: StateDep) -> bool:
     """Remove share link from a session.

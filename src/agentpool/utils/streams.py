@@ -288,6 +288,9 @@ class FileOpsTracker:
     changes: list[FileChange] = field(default_factory=list)
     """List of all recorded file changes in order."""
 
+    reverted_changes: list[FileChange] = field(default_factory=list)
+    """Changes that were reverted and can be restored with unrevert."""
+
     def record_change(
         self,
         path: str,
@@ -432,7 +435,10 @@ class FileOpsTracker:
         self.changes.clear()
 
     def remove_changes_since_message(self, message_id: str) -> int:
-        """Remove all changes from a specific message onwards.
+        """Remove changes from a specific message onwards and store for unrevert.
+
+        The removed changes are stored in `reverted_changes` so they can be
+        restored later via `restore_reverted_changes()`.
 
         Args:
             message_id: Message ID to start removal from
@@ -450,9 +456,44 @@ class FileOpsTracker:
         if start_idx is None:
             return 0
 
-        removed_count = len(self.changes) - start_idx
+        # Store removed changes for potential unrevert
+        self.reverted_changes = self.changes[start_idx:]
         self.changes = self.changes[:start_idx]
-        return removed_count
+        return len(self.reverted_changes)
+
+    def get_unrevert_operations(self) -> list[tuple[str, str | None]]:
+        """Get operations needed to restore reverted changes.
+
+        Returns list of (path, content) tuples. The content is the new_content
+        from each reverted change (what the file should contain after unrevert).
+
+        Returns:
+            List of (path, content_to_write) tuples for unrevert
+        """
+        if not self.reverted_changes:
+            return []
+
+        # For each path, we want the LAST new_content in the reverted changes
+        # (that's what the file looked like before the revert)
+        final_content: dict[str, str | None] = {}
+        for change in self.reverted_changes:
+            final_content[change.path] = change.new_content
+
+        return list(final_content.items())
+
+    def restore_reverted_changes(self) -> int:
+        """Move reverted changes back to the main changes list.
+
+        Returns:
+            Number of changes restored
+        """
+        if not self.reverted_changes:
+            return 0
+
+        restored_count = len(self.reverted_changes)
+        self.changes.extend(self.reverted_changes)
+        self.reverted_changes = []
+        return restored_count
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization.

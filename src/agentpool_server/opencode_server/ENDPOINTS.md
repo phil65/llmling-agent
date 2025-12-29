@@ -79,7 +79,7 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | [x] | GET | `/session/{id}/diff` | Get diff for session |
 | [x] | POST | `/session/{id}/summarize` | Summarize the session |
 | [x] | POST | `/session/{id}/revert` | Revert a message |
-| [ ] | POST | `/session/{id}/unrevert` | Restore reverted messages |
+| [x] | POST | `/session/{id}/unrevert` | Restore reverted messages |
 | [ ] | POST | `/session/{id}/permissions/{permissionID}` | Respond to permission request |
 
 ---
