@@ -31,10 +31,10 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     ToolPart,
     ToolStateCompleted,
     ToolStateError,
-    ToolStatePending,
     ToolStateRunning,
     UserMessage,
 )
+from agentpool_server.opencode_server.models.parts import TimeStart
 from agentpool_server.opencode_server.time_utils import now_ms
 
 
@@ -183,19 +183,23 @@ async def send_message(  # noqa: PLR0915
     if state.agent is not None:
         try:
             # Import event types here to avoid circular imports
+            from pydantic_ai import FunctionToolCallEvent
             from pydantic_ai.messages import (
                 PartDeltaEvent,
                 PartStartEvent,
                 TextPart as PydanticTextPart,
                 TextPartDelta,
+                ToolCallPart as PydanticToolCallPart,
             )
 
+            from agentpool.agents.claude_code_agent.converters import derive_rich_tool_info
             from agentpool.agents.events import (
                 StreamCompleteEvent,
                 ToolCallCompleteEvent,
                 ToolCallProgressEvent,
                 ToolCallStartEvent,
             )
+            from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 
             # Stream events from the agent
             async for event in state.agent.run_stream(user_prompt):
@@ -244,23 +248,96 @@ async def send_message(  # noqa: PLR0915
                                 )
                             )
 
-                    # Tool call start
+                    # Tool call start - from Claude Code agent or toolsets
                     case ToolCallStartEvent(
                         tool_name=tool_name,
                         tool_call_id=tool_call_id,
                         raw_input=raw_input,
+                        title=title,
                     ):
+                        if tool_call_id in tool_parts:
+                            # Update existing part with the custom title
+                            existing = tool_parts[tool_call_id]
+                            tool_inputs[tool_call_id] = raw_input or tool_inputs.get(
+                                tool_call_id, {}
+                            )
+
+                            updated = ToolPart(
+                                id=existing.id,
+                                message_id=existing.message_id,
+                                session_id=existing.session_id,
+                                tool=existing.tool,
+                                call_id=existing.call_id,
+                                state=ToolStateRunning(
+                                    status="running",
+                                    time=TimeStart(start=now_ms()),
+                                    input=tool_inputs[tool_call_id],
+                                    title=title,
+                                ),
+                            )
+                            tool_parts[tool_call_id] = updated
+                            for i, p in enumerate(assistant_msg_with_parts.parts):
+                                if isinstance(p, ToolPart) and p.id == existing.id:
+                                    assistant_msg_with_parts.parts[i] = updated
+                                    break
+                            await state.broadcast_event(
+                                PartUpdatedEvent(
+                                    properties=PartUpdatedEventProperties(part=updated)
+                                )
+                            )
+                        else:
+                            # Create new tool part with the title
+                            tool_inputs[tool_call_id] = raw_input or {}
+                            tool_outputs[tool_call_id] = ""
+
+                            tool_part = ToolPart(
+                                id=identifier.ascending("part"),
+                                message_id=assistant_msg_id,
+                                session_id=session_id,
+                                tool=tool_name,
+                                call_id=tool_call_id,
+                                state=ToolStateRunning(
+                                    status="running",
+                                    time=TimeStart(start=now_ms()),
+                                    input=raw_input or {},
+                                    title=title,
+                                ),
+                            )
+                            tool_parts[tool_call_id] = tool_part
+                            assistant_msg_with_parts.parts.append(tool_part)
+                            await state.broadcast_event(
+                                PartUpdatedEvent(
+                                    properties=PartUpdatedEventProperties(part=tool_part)
+                                )
+                            )
+
+                    # Pydantic-ai tool call events (fallback for pydantic-ai agents)
+                    case (
+                        FunctionToolCallEvent(part=tc_part)
+                        | PartStartEvent(part=PydanticToolCallPart() as tc_part)
+                    ) if tc_part.tool_call_id not in tool_parts:
+                        tool_call_id = tc_part.tool_call_id
+                        tool_name = tc_part.tool_name
+                        raw_input = safe_args_as_dict(tc_part)
+
                         # Store input and initialize output accumulator
-                        tool_inputs[tool_call_id] = raw_input or {}
+                        tool_inputs[tool_call_id] = raw_input
                         tool_outputs[tool_call_id] = ""
 
+                        # Derive initial title; toolset events may update it later
+                        rich_info = derive_rich_tool_info(tool_name, raw_input)
                         tool_part = ToolPart(
                             id=identifier.ascending("part"),
                             message_id=assistant_msg_id,
                             session_id=session_id,
                             tool=tool_name,
                             call_id=tool_call_id,
-                            state=ToolStatePending(status="pending", input=raw_input or {}),
+                            state=ToolStateRunning(
+                                status="running",
+                                time=TimeStart(start=now_ms()),
+                                input=raw_input,
+                                title=rich_info.title,
+                            ),
                         )
                         tool_parts[tool_call_id] = tool_part
                         assistant_msg_with_parts.parts.append(tool_part)
@@ -273,9 +350,9 @@ async def send_message(  # noqa: PLR0915
                         tool_call_id=tool_call_id,
                         title=title,
                         items=items,
-                    ) if tool_call_id and tool_call_id in tool_parts:
-                        existing = tool_parts[tool_call_id]
-
+                        tool_name=tool_name,
+                        tool_input=event_tool_input,
+                    ) if tool_call_id:
                         # Extract text content from items and accumulate
                         new_output = ""
                         for item in items:
@@ -290,37 +367,67 @@ async def send_message(  # noqa: PLR0915
                                 tool_outputs.get(tool_call_id, "") + new_output
                             )
 
-                        existing_title = getattr(existing.state, "title", "")
-                        tool_input = tool_inputs.get(tool_call_id, {})
-                        accumulated_output = tool_outputs.get(tool_call_id, "")
+                        if tool_call_id in tool_parts:
+                            # Update existing part
+                            existing = tool_parts[tool_call_id]
+                            existing_title = getattr(existing.state, "title", "")
+                            tool_input = tool_inputs.get(tool_call_id, {})
+                            accumulated_output = tool_outputs.get(tool_call_id, "")
 
-                        from agentpool_server.opencode_server.models.parts import TimeStart
+                            updated = ToolPart(
+                                id=existing.id,
+                                message_id=existing.message_id,
+                                session_id=existing.session_id,
+                                tool=existing.tool,
+                                call_id=existing.call_id,
+                                state=ToolStateRunning(
+                                    status="running",
+                                    time=TimeStart(start=now_ms()),
+                                    title=title or existing_title,
+                                    input=tool_input,
+                                    metadata={"output": accumulated_output}
+                                    if accumulated_output
+                                    else None,
+                                ),
+                            )
+                            tool_parts[tool_call_id] = updated
+                            for i, p in enumerate(assistant_msg_with_parts.parts):
+                                if isinstance(p, ToolPart) and p.id == existing.id:
+                                    assistant_msg_with_parts.parts[i] = updated
+                                    break
+                            await state.broadcast_event(
+                                PartUpdatedEvent(
+                                    properties=PartUpdatedEventProperties(part=updated)
+                                )
+                            )
+                        else:
+                            # Create new tool part from progress event
+                            tool_inputs[tool_call_id] = event_tool_input or {}
+                            accumulated_output = tool_outputs.get(tool_call_id, "")
 
-                        updated = ToolPart(
-                            id=existing.id,
-                            message_id=existing.message_id,
-                            session_id=existing.session_id,
-                            tool=existing.tool,
-                            call_id=existing.call_id,
-                            state=ToolStateRunning(
-                                status="running",
-                                time=TimeStart(start=now_ms()),
-                                title=title or existing_title,
-                                input=tool_input,
-                                # Stream output via metadata (like OpenCode's bash tool)
-                                metadata={"output": accumulated_output}
-                                if accumulated_output
-                                else None,
-                            ),
-                        )
-                        tool_parts[tool_call_id] = updated
-                        for i, p in enumerate(assistant_msg_with_parts.parts):
-                            if isinstance(p, ToolPart) and p.id == existing.id:
-                                assistant_msg_with_parts.parts[i] = updated
-                                break
-                        await state.broadcast_event(
-                            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=updated))
-                        )
+                            tool_part = ToolPart(
+                                id=identifier.ascending("part"),
+                                message_id=assistant_msg_id,
+                                session_id=session_id,
+                                tool=tool_name or "unknown",
+                                call_id=tool_call_id,
+                                state=ToolStateRunning(
+                                    status="running",
+                                    time=TimeStart(start=now_ms()),
+                                    input=event_tool_input or {},
+                                    title=title or tool_name or "Running...",
+                                    metadata={"output": accumulated_output}
+                                    if accumulated_output
+                                    else None,
+                                ),
+                            )
+                            tool_parts[tool_call_id] = tool_part
+                            assistant_msg_with_parts.parts.append(tool_part)
+                            await state.broadcast_event(
+                                PartUpdatedEvent(
+                                    properties=PartUpdatedEventProperties(part=tool_part)
+                                )
+                            )
 
                     # Tool call complete
                     case ToolCallCompleteEvent(

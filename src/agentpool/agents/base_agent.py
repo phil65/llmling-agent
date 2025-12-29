@@ -7,6 +7,7 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Literal
 
 from anyenv import MultiEventHandler
+from anyenv.signals import BoundSignal
 from exxec import LocalExecutionEnvironment
 
 from agentpool.agents.events import resolve_event_handlers
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
     from tokonomics.model_discovery.model_info import ModelInfo
 
+    from acp.schema import AvailableCommandsUpdate
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory, ModeInfo
@@ -30,6 +32,9 @@ if TYPE_CHECKING:
     from agentpool.talk.stats import MessageStats
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
+
+    # Union type for state updates emitted via state_updated signal
+    type StateUpdate = ModeInfo | ModelInfo | AvailableCommandsUpdate
 
 
 logger = get_logger(__name__)
@@ -111,6 +116,10 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Cancellation infrastructure
         self._cancelled = False
         self._current_stream_task: asyncio.Task[Any] | None = None
+
+        # State change signal - emitted when mode/model/commands change
+        # Uses union type for different state update kinds
+        self.state_updated: BoundSignal[StateUpdate] = BoundSignal()
 
     @abstractmethod
     def get_context(self, data: Any = None) -> AgentContext[Any]:

@@ -17,6 +17,7 @@ from acp.schema import (
     PromptResponse,
     ResumeSessionResponse,
     SessionInfo,
+    SessionMode,
     SessionModelState,
     SessionModeState,
     SetSessionModelRequest,
@@ -29,7 +30,6 @@ from agentpool.log import get_logger
 from agentpool.utils.tasks import TaskManager
 from agentpool_server.acp_server.converters import (
     # agent_to_mode,  # TODO: Re-enable when supporting agent switching via modes
-    get_confirmation_modes,
     mode_id_to_confirmation_mode,
 )
 from agentpool_server.acp_server.session_manager import ACPSessionManager
@@ -124,6 +124,51 @@ async def get_session_model_state(
     return SessionModelState(available_models=acp_models, current_model_id=current_model_id)
 
 
+def get_session_mode_state(agent: Any) -> SessionModeState | None:
+    """Get SessionModeState from an agent using its get_modes() method.
+
+    Converts agentpool ModeCategory to ACP SessionModeState format.
+    Currently uses the first mode category (ACP only supports one dropdown for now).
+
+    Args:
+        agent: Any agent with get_modes() method
+
+    Returns:
+        SessionModeState from agent's modes, None if no modes available
+    """
+    from agentpool.agents.base_agent import BaseAgent
+
+    if not isinstance(agent, BaseAgent):
+        return None
+
+    try:
+        mode_categories = agent.get_modes()
+    except Exception:
+        logger.exception("Failed to get modes from agent")
+        return None
+
+    if not mode_categories:
+        return None
+
+    # Use first category for now (ACP currently only supports single mode dropdown)
+    category = mode_categories[0]
+
+    # Convert ModeInfo to ACP SessionMode
+    acp_modes = [
+        SessionMode(
+            id=mode.id,
+            name=mode.name,
+            description=mode.description,
+        )
+        for mode in category.available_modes
+    ]
+
+    return SessionModeState(
+        available_modes=acp_modes,
+        current_mode_id=category.current_mode_id,
+    )
+
+
 @dataclass
 class AgentPoolACPAgent(ACPAgent):
     """Implementation of ACP Agent protocol interface for AgentPool.
@@ -204,7 +249,7 @@ class AgentPoolACPAgent(ACPAgent):
         logger.info("ACP agent initialized successfully", response=response)
         return response
 
-    async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:  # noqa: PLR0915
+    async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         """Create a new session."""
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
@@ -232,43 +277,22 @@ class AgentPoolACPAgent(ACPAgent):
                 client_info=self.client_info,
             )
 
-            # Get mode information - pass through from ACPAgent or use our confirmation modes
+            # Get mode and model information from the agent
             from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
 
-            if session := self.session_manager.get_session(session_id):
-                if isinstance(session.agent, ACPAgentClient):
-                    # Pass through nested agent's modes (e.g., Claude Code's modes)
-                    if session.agent._state and session.agent._state.modes:
-                        state = session.agent._state.modes
-                        modes = state.available_modes
-                    else:
-                        # Fallback to our confirmation modes if nested agent has none
-                        modes = get_confirmation_modes()
-                        state = SessionModeState(current_mode_id="default", available_modes=modes)
-                else:
-                    # Native Agent - use our tool confirmation modes
-                    modes = get_confirmation_modes()
-                    state = SessionModeState(current_mode_id="default", available_modes=modes)
-            else:
-                modes = get_confirmation_modes()
-                state = SessionModeState(current_mode_id="default", available_modes=modes)
-            # TODO: Re-enable agent switching via modes when needed:
-            # modes = [agent_to_mode(agent) for agent in self.agent_pool.all_agents.values()]
-            # state = SessionModeState(current_mode_id=default_name, available_modes=modes)
+            state: SessionModeState | None = None
+            models: SessionModelState | None = None
 
-            # Get model information from the agent
             if session := self.session_manager.get_session(session_id):
                 if isinstance(session.agent, ACPAgentClient):
-                    # Nested ACP agent - pass through its model state directly
-                    if session.agent._state and session.agent._state.models:
+                    # Nested ACP agent - pass through its state directly
+                    if session.agent._state:
                         models = session.agent._state.models
-                    else:
-                        models = None
+                        state = session.agent._state.modes
                 else:
-                    # Use unified get_session_model_state for all other agents
+                    # Use unified helpers for all other agents
                     models = await get_session_model_state(session.agent, session.agent.model_name)
-            else:
-                models = None
+                    state = get_session_mode_state(session.agent)
         except Exception:
             logger.exception("Failed to create new session")
             raise
@@ -282,7 +306,7 @@ class AgentPoolACPAgent(ACPAgent):
                 if self.load_skills:
                     coro_4 = session.init_client_skills()
                     self.tasks.create_task(coro_4, name=f"init_client_skills_{session_id}")
-            logger.info("Created session", session_id=session_id, agent_count=len(modes))
+            logger.info("Created session", session_id=session_id)
             return NewSessionResponse(session_id=session_id, modes=state, models=models)
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
@@ -329,38 +353,19 @@ class AgentPoolACPAgent(ACPAgent):
                 await session.initialize_mcp_servers()
 
             # Build response with current session state
-            # Get mode information - pass through from ACPAgent or use our confirmation modes
             from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
 
-            if isinstance(session.agent, ACPAgentClient):
-                # Pass through nested agent's modes (e.g., Claude Code's modes)
-                if session.agent._state and session.agent._state.modes:
-                    mode_state = session.agent._state.modes
-                else:
-                    # Fallback to our confirmation modes if nested agent has none
-                    modes = get_confirmation_modes()
-                    mode_state = SessionModeState(current_mode_id="default", available_modes=modes)
-            else:
-                # Native Agent - use our tool confirmation modes
-                modes = get_confirmation_modes()
-                mode_state = SessionModeState(current_mode_id="default", available_modes=modes)
-            # TODO: Re-enable agent switching via modes when needed:
-            # modes = [agent_to_mode(agent) for agent in self.agent_pool.all_agents.values()]
-            # mode_state = SessionModeState(
-            #     current_mode_id=session.current_agent_name,
-            #     available_modes=modes,
-            # )
+            mode_state: SessionModeState | None = None
+            models: SessionModelState | None = None
 
-            # Get model information from the agent
-            models: SessionModelState | None
             if isinstance(session.agent, ACPAgentClient):
-                # Nested ACP agent - pass through its model state directly
-                if session.agent._state and session.agent._state.models:
+                # Nested ACP agent - pass through its state directly
+                if session.agent._state:
+                    mode_state = session.agent._state.modes
                     models = session.agent._state.models
-                else:
-                    models = None
             elif session.agent:
-                # Use unified get_session_model_state for all other agents
+                # Use unified helpers for all other agents
+                mode_state = get_session_mode_state(session.agent)
                 models = await get_session_model_state(session.agent, session.agent.model_name)
             else:
                 models = None

@@ -119,6 +119,19 @@ class ACPClientHandler(Client):
             case CurrentModeUpdate(current_mode_id=mode_id):
                 if self.state.modes:
                     self.state.modes.current_mode_id = mode_id
+                    # Find ModeInfo and emit signal
+                    for acp_mode in self.state.modes.available_modes:
+                        if acp_mode.id == mode_id:
+                            from agentpool.agents.modes import ModeInfo
+
+                            mode_info = ModeInfo(
+                                id=acp_mode.id,
+                                name=acp_mode.name,
+                                description=acp_mode.description or "",
+                                category_id="remote",
+                            )
+                            await self._agent.state_updated.emit(mode_info)
+                            break
                 self.state.current_mode_id = mode_id
                 logger.debug("Mode updated", mode_id=mode_id)
                 self._update_event.set()
@@ -128,6 +141,20 @@ class ACPClientHandler(Client):
                 self.state.current_model_id = model_id
                 if self.state.models:
                     self.state.models.current_model_id = model_id
+                    # Find ModelInfo and emit signal
+                    for acp_model in self.state.models.available_models:
+                        if acp_model.model_id == model_id:
+                            from tokonomics.model_discovery.model_info import (
+                                ModelInfo as TokoModelInfo,
+                            )
+
+                            model_info = TokoModelInfo(
+                                id=acp_model.model_id,
+                                name=acp_model.name,
+                                description=acp_model.description,
+                            )
+                            await self._agent.state_updated.emit(model_info)
+                            break
                 logger.debug("Model updated", model_id=model_id)
                 self._update_event.set()
                 return
@@ -140,6 +167,7 @@ class ACPClientHandler(Client):
 
             case AvailableCommandsUpdate():
                 self.state.available_commands = update
+                await self._agent.state_updated.emit(update)
                 logger.debug("Available commands updated")
                 self._update_event.set()
                 return
