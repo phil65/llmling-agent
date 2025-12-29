@@ -16,6 +16,7 @@ from pydantic_ai.messages import (
 
 from agentpool.agents.claude_code_agent.converters import derive_rich_tool_info
 from agentpool.agents.events import (
+    FileContentItem,
     StreamCompleteEvent,
     TextContentItem,
     ToolCallCompleteEvent,
@@ -34,6 +35,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     MessageUpdatedEvent,
     MessageUpdatedEventProperties,
     MessageWithParts,
+    Part,
     PartUpdatedEvent,
     PartUpdatedEventProperties,
     SessionStatus,
@@ -54,7 +56,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     UserMessage,
 )
 from agentpool_server.opencode_server.models.message import UserMessageModel
-from agentpool_server.opencode_server.models.parts import TimeStart
+from agentpool_server.opencode_server.models.parts import TimeStart, TimeStartEndOptional
 from agentpool_server.opencode_server.time_utils import now_ms
 
 
@@ -102,7 +104,7 @@ async def send_message(  # noqa: PLR0915
     )
 
     # Create parts from request
-    user_parts = [
+    user_parts: list[Part] = [
         TextPart(
             id=identifier.ascending("part"),
             message_id=user_msg_id,
@@ -356,7 +358,7 @@ async def send_message(  # noqa: PLR0915
                         for item in items:
                             if isinstance(item, TextContentItem):
                                 new_output += item.text
-                            elif hasattr(item, "content"):
+                            elif isinstance(item, FileContentItem):
                                 new_output += item.content
 
                         # Accumulate output (OpenCode streams via metadata.output)
@@ -497,7 +499,7 @@ async def send_message(  # noqa: PLR0915
             message_id=assistant_msg_id,
             session_id=session_id,
             text=response_text,
-            time=TimeStartEnd(start=now, end=response_time),
+            time=TimeStartEndOptional(start=now, end=response_time),
         )
         assistant_msg_with_parts.parts.append(text_part)
 
@@ -512,7 +514,7 @@ async def send_message(  # noqa: PLR0915
             message_id=assistant_msg_id,
             session_id=session_id,
             text=response_text,
-            time=TimeStartEnd(start=now, end=response_time),
+            time=TimeStartEndOptional(start=now, end=response_time),
         )
         # Update in parts list
         for i, p in enumerate(assistant_msg_with_parts.parts):

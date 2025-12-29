@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: TC001
 from agentpool_server.opencode_server.models.parts import Part  # noqa: TC001
-
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 
 class MessagePath(OpenCodeBaseModel):
@@ -87,7 +83,7 @@ class MessageWithParts(OpenCodeBaseModel):
     """Message with its parts."""
 
     info: UserMessage | AssistantMessage
-    parts: Sequence[Part] = Field(default_factory=list)
+    parts: list[Part] = Field(default_factory=list)
 
 
 # Request models

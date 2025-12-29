@@ -54,9 +54,11 @@ async def list_agents(state: StateDep) -> list[Agent]:
             )
         )
 
-    return agents if agents else [
-        Agent(name="default", description="Default agent", mode="primary", default=True)
-    ]
+    return (
+        agents
+        if agents
+        else [Agent(name="default", description="Default agent", mode="primary", default=True)]
+    )
 
 
 @router.get("/command")
