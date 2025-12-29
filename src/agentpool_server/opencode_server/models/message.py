@@ -96,12 +96,30 @@ class TextPartInput(OpenCodeBaseModel):
     text: str
 
 
+class FilePartSourceText(OpenCodeBaseModel):
+    """Source text info for file part."""
+
+    value: str
+    start: int
+    end: int
+
+
+class FilePartSource(OpenCodeBaseModel):
+    """Source info for file part."""
+
+    text: FilePartSourceText | None = None
+    type: str | None = None
+    path: str | None = None
+
+
 class FilePartInput(OpenCodeBaseModel):
-    """File part for input."""
+    """File part for input (image, document, etc.)."""
 
     type: Literal["file"] = "file"
-    path: str
-    content: str | None = None
+    mime: str
+    filename: str | None = None
+    url: str  # Can be data: URI or file path
+    source: FilePartSource | None = None
 
 
 PartInput = TextPartInput | FilePartInput

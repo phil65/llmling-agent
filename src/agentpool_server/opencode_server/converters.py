@@ -256,16 +256,81 @@ def convert_tool_complete_event(
 # =============================================================================
 
 
-def convert_opencode_text_input(text: str) -> str:
-    """Convert OpenCode text input to pydantic-ai format.
+def _convert_file_part_to_user_content(part: dict[str, Any]) -> Any:
+    """Convert an OpenCode FilePartInput to pydantic-ai MultiModalContent.
 
-    For now this is a simple pass-through, but could handle
-    special formatting or attachments in the future.
+    Supports:
+    - Images (image/*) -> ImageUrl or BinaryContent
+    - Documents (application/pdf, text/*) -> DocumentUrl or BinaryContent
+    - Audio (audio/*) -> AudioUrl or BinaryContent
+    - Video (video/*) -> VideoUrl or BinaryContent
+
+    Args:
+        part: OpenCode file part with mime, url, and optional filename
+
+    Returns:
+        Appropriate pydantic-ai content type
     """
-    return text
+    from pydantic_ai.messages import (
+        AudioUrl,
+        BinaryContent,
+        DocumentUrl,
+        ImageUrl,
+        VideoUrl,
+    )
+
+    mime = part.get("mime", "")
+    url = part.get("url", "")
+
+    # Handle data: URIs - convert to BinaryContent
+    if url.startswith("data:"):
+        return BinaryContent.from_data_uri(url)
+
+    # Handle regular URLs or file paths based on mime type
+    if mime.startswith("image/"):
+        return ImageUrl(url=url)
+    if mime.startswith("audio/"):
+        return AudioUrl(url=url)
+    if mime.startswith("video/"):
+        return VideoUrl(url=url)
+    if mime.startswith(("application/pdf", "text/")):
+        return DocumentUrl(url=url)
+
+    # Fallback: treat as document
+    return DocumentUrl(url=url)
 
 
-def extract_user_prompt_from_parts(parts: list[dict[str, Any]]) -> str:
-    """Extract user prompt text from OpenCode message parts."""
-    text_parts = [part.get("text", "") for part in parts if part.get("type") == "text"]
-    return "\n".join(text_parts)
+def extract_user_prompt_from_parts(
+    parts: list[dict[str, Any]],
+) -> str | list[Any]:
+    """Extract user prompt from OpenCode message parts.
+
+    Converts OpenCode parts to pydantic-ai UserContent format:
+    - Text parts become strings
+    - File parts become ImageUrl, DocumentUrl, AudioUrl, VideoUrl, or BinaryContent
+
+    Args:
+        parts: List of OpenCode message parts
+
+    Returns:
+        Either a simple string (text-only) or a list of UserContent items
+    """
+    result: list[Any] = []
+
+    for part in parts:
+        part_type = part.get("type")
+
+        if part_type == "text":
+            text = part.get("text", "")
+            if text:
+                result.append(text)
+
+        elif part_type == "file":
+            content = _convert_file_part_to_user_content(part)
+            result.append(content)
+
+    # If only text parts, join them as a single string for simplicity
+    if all(isinstance(item, str) for item in result):
+        return "\n".join(result)
+
+    return result
