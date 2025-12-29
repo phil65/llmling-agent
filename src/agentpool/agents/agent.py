@@ -33,6 +33,7 @@ from pydantic_ai import (
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallCompleteEvent
+from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
 from agentpool.messaging.processing import prepare_prompts
@@ -67,6 +68,7 @@ if TYPE_CHECKING:
 
     from agentpool.agents import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
+    from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
         AgentName,
         BuiltinEventHandlerType,
@@ -1299,6 +1301,85 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         except Exception:
             self.log.exception("Failed to discover models")
             return None
+
+    def get_modes(self) -> list[ModeCategory]:
+        """Get available mode categories for this agent.
+
+        Native agents expose tool confirmation modes.
+
+        Returns:
+            List with single ModeCategory for tool confirmation
+        """
+        from agentpool.agents.modes import ModeCategory, ModeInfo
+
+        # Map current confirmation mode to mode ID
+        mode_id_map = {
+            "per_tool": "default",
+            "always": "default",
+            "never": "acceptEdits",
+        }
+        current_id = mode_id_map.get(self.tool_confirmation_mode, "default")
+
+        category_id = "permissions"
+        return [
+            ModeCategory(
+                id=category_id,
+                name="Permissions",
+                available_modes=[
+                    ModeInfo(
+                        id="default",
+                        name="Default",
+                        description="Require confirmation for tools marked as needing it",
+                        category_id=category_id,
+                    ),
+                    ModeInfo(
+                        id="acceptEdits",
+                        name="Accept Edits",
+                        description="Auto-approve all tool calls without confirmation",
+                        category_id=category_id,
+                    ),
+                ],
+                current_mode_id=current_id,
+            )
+        ]
+
+    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
+        """Set a mode for this agent.
+
+        Native agents support the "permissions" category with modes:
+        - "default": per_tool confirmation
+        - "acceptEdits": never confirm (auto-approve)
+
+        Args:
+            mode: Mode to activate - ModeInfo object or mode ID string
+            category_id: Optional category (only "permissions" supported)
+
+        Raises:
+            ValueError: If mode_id is invalid
+        """
+        # Extract mode_id and category from ModeInfo if provided
+        if isinstance(mode, ModeInfo):
+            mode_id = mode.id
+            category_id = category_id or mode.category_id or None
+        else:
+            mode_id = mode
+
+        # Validate category if provided
+        if category_id is not None and category_id != "permissions":
+            msg = f"Unknown category: {category_id}. Only 'permissions' is supported."
+            raise ValueError(msg)
+
+        # Map mode_id to confirmation mode
+        mode_map: dict[str, ToolConfirmationMode] = {
+            "default": "per_tool",
+            "acceptEdits": "never",
+        }
+
+        if mode_id not in mode_map:
+            msg = f"Unknown mode: {mode_id}. Available: {list(mode_map.keys())}"
+            raise ValueError(msg)
+
+        await self.set_tool_confirmation_mode(mode_map[mode_id])
 
 
 if __name__ == "__main__":

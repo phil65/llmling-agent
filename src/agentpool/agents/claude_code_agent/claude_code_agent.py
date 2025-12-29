@@ -54,6 +54,7 @@ from agentpool.agents.events import (
     ToolCallCompleteEvent,
     ToolCallStartEvent,
 )
+from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.messages import TokenCost
@@ -82,6 +83,7 @@ if TYPE_CHECKING:
 
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
+    from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
         BuiltinEventHandlerType,
         IndividualEventHandler,
@@ -1098,6 +1100,103 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 id_override="haiku",  # Claude Code SDK uses simple names
             ),
         ]
+
+    def get_modes(self) -> list[ModeCategory]:
+        """Get available mode categories for Claude Code agent.
+
+        Claude Code exposes permission modes from the SDK.
+
+        Returns:
+            List with single ModeCategory for Claude Code permission modes
+        """
+        from agentpool.agents.modes import ModeCategory, ModeInfo
+
+        # Get current mode - map our confirmation mode to Claude's permission mode
+        current_id = self._permission_mode or "default"
+        if self.tool_confirmation_mode == "never":
+            current_id = "bypassPermissions"
+
+        category_id = "permissions"
+        return [
+            ModeCategory(
+                id=category_id,
+                name="Mode",
+                available_modes=[
+                    ModeInfo(
+                        id="default",
+                        name="Default",
+                        description="Require confirmation for tool usage",
+                        category_id=category_id,
+                    ),
+                    ModeInfo(
+                        id="acceptEdits",
+                        name="Accept Edits",
+                        description="Auto-approve file edits without confirmation",
+                        category_id=category_id,
+                    ),
+                    ModeInfo(
+                        id="plan",
+                        name="Plan",
+                        description="Planning mode - no tool execution",
+                        category_id=category_id,
+                    ),
+                    ModeInfo(
+                        id="bypassPermissions",
+                        name="Bypass Permissions",
+                        description="Skip all permission checks (use with caution)",
+                        category_id=category_id,
+                    ),
+                ],
+                current_mode_id=current_id,
+            )
+        ]
+
+    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
+        """Set a mode within a category.
+
+        For Claude Code, this handles permission modes from the SDK.
+
+        Args:
+            mode: The mode to set - ModeInfo object or mode ID string
+            category_id: Optional category ID (defaults to "permissions")
+
+        Raises:
+            ValueError: If the category or mode is unknown
+        """
+        # Extract mode_id and category from ModeInfo if provided
+        if isinstance(mode, ModeInfo):
+            mode_id = mode.id
+            category_id = category_id or mode.category_id or None
+        else:
+            mode_id = mode
+
+        # Default to first (and only) category
+        if category_id is None:
+            category_id = "permissions"
+
+        if category_id != "permissions":
+            msg = f"Unknown category: {category_id}. Only 'permissions' is supported."
+            raise ValueError(msg)
+
+        # Map mode_id to PermissionMode
+        valid_modes: set[PermissionMode] = {"default", "acceptEdits", "plan", "bypassPermissions"}
+        if mode_id not in valid_modes:
+            msg = f"Unknown mode: {mode_id}. Available: {list(valid_modes)}"
+            raise ValueError(msg)
+
+        permission_mode: PermissionMode = mode_id  # type: ignore[assignment]
+        self._permission_mode = permission_mode
+
+        # Update tool confirmation mode based on permission mode
+        if mode_id == "bypassPermissions":
+            self.tool_confirmation_mode = "never"
+        elif mode_id in ("default", "plan"):
+            self.tool_confirmation_mode = "always"
+
+        # Update SDK client if connected
+        if self._client:
+            await self._client.set_permission_mode(permission_mode)
+            self.log.info("Permission mode changed", mode=mode_id)
 
 
 if __name__ == "__main__":

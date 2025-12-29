@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from agentpool.agents.base_agent import ToolConfirmationMode
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
+    from agentpool.agents.modes import ModeCategory, ModeInfo
     from agentpool.common_types import (
         BuiltinEventHandlerType,
         IndividualEventHandler,
@@ -675,6 +676,31 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 description="The model is determined by the remote AG-UI server",
             )
         ]
+
+    def get_modes(self) -> list[ModeCategory]:
+        """Get available modes for AG-UI agent.
+
+        AG-UI doesn't expose mode information, so returns an empty list.
+
+        Returns:
+            Empty list - no modes supported
+        """
+        return []
+
+    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
+        """Set a mode for AG-UI agent.
+
+        AG-UI doesn't support modes, so this always raises an error.
+
+        Args:
+            mode: The mode to set (not supported)
+            category_id: Optional category ID (not supported)
+
+        Raises:
+            ValueError: Always - AG-UI doesn't support modes
+        """
+        msg = "AG-UI agent does not support modes"
+        raise ValueError(msg)
 
 
 if __name__ == "__main__":

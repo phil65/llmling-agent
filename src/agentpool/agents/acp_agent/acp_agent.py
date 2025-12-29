@@ -51,6 +51,7 @@ from agentpool.agents.acp_agent.session_state import ACPSessionState
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.context import reset_current_deps
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallStartEvent
+from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.processing import prepare_prompts
@@ -84,6 +85,7 @@ if TYPE_CHECKING:
     from acp.schema.mcp import McpServer
     from agentpool.agents import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
+    from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
         BuiltinEventHandlerType,
         IndividualEventHandler,
@@ -834,6 +836,81 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             )
             result.append(toko_model)
         return result
+
+    def get_modes(self) -> list[ModeCategory]:
+        """Get available modes from the ACP session state.
+
+        Passthrough from remote ACP server's mode state.
+
+        Returns:
+            List of ModeCategory from remote server, empty if not available
+        """
+        from agentpool.agents.modes import ModeCategory, ModeInfo
+
+        if not self._state or not self._state.modes:
+            return []
+
+        # Convert ACP SessionModeState to our ModeCategory
+        acp_modes = self._state.modes
+        category_id = "remote"
+        modes = [
+            ModeInfo(
+                id=m.id,
+                name=m.name,
+                description=m.description or "",
+                category_id=category_id,
+            )
+            for m in acp_modes.available_modes
+        ]
+
+        return [
+            ModeCategory(
+                id=category_id,
+                name="Mode",
+                available_modes=modes,
+                current_mode_id=acp_modes.current_mode_id,
+            )
+        ]
+
+    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
+        """Set a mode on the remote ACP server.
+
+        For ACPAgent, this forwards the mode change to the remote ACP server.
+
+        Args:
+            mode: The mode to set - ModeInfo object or mode ID string
+            category_id: Optional category ID (ignored for ACP, only one category)
+
+        Raises:
+            RuntimeError: If not connected to ACP server
+            ValueError: If mode is not available
+        """
+        from acp.schema import SetSessionModeRequest
+
+        # Extract mode_id from ModeInfo if provided
+        mode_id = mode.id if isinstance(mode, ModeInfo) else mode
+
+        if not self._connection or not self._session_id:
+            msg = "Not connected to ACP server"
+            raise RuntimeError(msg)
+
+        # Validate mode is available
+        available_modes = self.get_modes()
+        if available_modes:
+            valid_ids = {m.id for cat in available_modes for m in cat.available_modes}
+            if mode_id not in valid_ids:
+                msg = f"Unknown mode: {mode_id}. Available: {valid_ids}"
+                raise ValueError(msg)
+
+        # Forward mode change to remote ACP server
+        request = SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id)
+        await self._connection.set_session_mode(request)
+
+        # Update local state
+        if self._state and self._state.modes:
+            self._state.modes.current_mode_id = mode_id
+
+        self.log.info("Mode changed on remote ACP server", mode_id=mode_id)
 
 
 if __name__ == "__main__":

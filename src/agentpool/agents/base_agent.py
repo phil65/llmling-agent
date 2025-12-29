@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
+    from agentpool.agents.modes import ModeCategory, ModeInfo
     from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation import AgentPool
     from agentpool.talk.stats import MessageStats
@@ -197,5 +198,46 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         Returns:
             List of tokonomics ModelInfo, or None if not supported
+        """
+        ...
+
+    @abstractmethod
+    def get_modes(self) -> list[ModeCategory]:
+        """Get available mode categories for this agent.
+
+        Returns a list of mode categories that can be switched. Each category
+        represents a group of mutually exclusive modes (e.g., permissions,
+        behavior presets).
+
+        Different agent types expose different modes:
+        - Native Agent: Tool confirmation modes (default, acceptEdits)
+        - ClaudeCodeAgent: Claude Code SDK modes (plan, code, etc.)
+        - ACPAgent: Passthrough from remote server
+        - AGUIAgent: Empty list (no modes)
+
+        Returns:
+            List of ModeCategory, empty list if no modes supported
+        """
+        ...
+
+    @abstractmethod
+    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
+        """Set a mode within a category.
+
+        Each agent type handles mode switching according to its own semantics:
+        - Native Agent: Maps to tool confirmation mode
+        - ClaudeCodeAgent: Maps to SDK permission mode
+        - ACPAgent: Forwards to remote server
+        - AGUIAgent: No-op (no modes supported)
+
+        Args:
+            mode: The mode to activate - either a ModeInfo object or mode ID string.
+                  If ModeInfo, category_id is extracted from it (unless overridden).
+            category_id: Optional category ID. If None and mode is a string,
+                         uses the first category. If None and mode is ModeInfo,
+                         uses the mode's category_id.
+
+        Raises:
+            ValueError: If mode_id or category_id is invalid
         """
         ...
