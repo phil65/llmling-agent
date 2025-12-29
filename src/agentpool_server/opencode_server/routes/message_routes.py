@@ -105,6 +105,12 @@ async def send_message(  # noqa: PLR0915
         MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=user_message))
     )
 
+    # Broadcast user message parts so they appear in UI
+    for part in user_parts:
+        await state.broadcast_event(
+            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=part))
+        )
+
     # Mark session as running
     from agentpool_server.opencode_server.models import SessionStatusEvent, SessionStatusProperties
 
