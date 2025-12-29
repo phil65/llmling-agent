@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic_ai import FunctionToolCallEvent
@@ -63,7 +63,42 @@ from agentpool_server.opencode_server.models.parts import (
     TimeStartEndOptional,
     TokenCache,
 )
+from agentpool_server.opencode_server.routes.session_routes import get_or_load_session
 from agentpool_server.opencode_server.time_utils import now_ms
+
+
+if TYPE_CHECKING:
+    from agentpool_server.opencode_server.state import ServerState
+
+
+async def persist_message_to_storage(
+    state: ServerState,
+    msg: MessageWithParts,
+    session_id: str,
+) -> None:
+    """Persist an OpenCode message to storage.
+
+    Converts the OpenCode MessageWithParts to ChatMessage and saves it.
+
+    Args:
+        state: Server state with pool reference
+        msg: OpenCode message to persist
+        session_id: Session/conversation ID
+    """
+    if state.pool.storage is None:
+        return
+
+    from agentpool_server.opencode_server.converters import opencode_to_chat_message
+
+    try:
+        # Convert to ChatMessage
+        chat_msg = opencode_to_chat_message(msg, conversation_id=session_id)
+
+        # Persist via storage manager
+        await state.pool.storage.log_message(chat_msg)
+    except Exception:  # noqa: BLE001
+        # Don't fail the request if storage fails
+        pass
 
 
 router = APIRouter(prefix="/session/{session_id}", tags=["message"])
@@ -76,7 +111,8 @@ async def list_messages(
     limit: int | None = Query(default=None),
 ) -> list[MessageWithParts]:
     """List messages in a session."""
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     messages = state.messages.get(session_id, [])
@@ -92,7 +128,8 @@ async def send_message(  # noqa: PLR0915
     state: StateDep,
 ) -> MessageWithParts:
     """Send a message and get response from the agent."""
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     now = now_ms()
@@ -122,6 +159,9 @@ async def send_message(  # noqa: PLR0915
     ]
     user_msg_with_parts = MessageWithParts(info=user_message, parts=user_parts)
     state.messages[session_id].append(user_msg_with_parts)
+
+    # Persist user message to storage
+    await persist_message_to_storage(state, user_msg_with_parts, session_id)
 
     # Broadcast user message created event
     await state.broadcast_event(
@@ -167,8 +207,8 @@ async def send_message(  # noqa: PLR0915
     state.messages[session_id].append(assistant_msg_with_parts)
 
     # Broadcast assistant message created
-    props = MessageUpdatedEventProperties(info=assistant_message)
-    await state.broadcast_event(MessageUpdatedEvent(properties=props))
+    updated_props = MessageUpdatedEventProperties(info=assistant_message)
+    await state.broadcast_event(MessageUpdatedEvent(properties=updated_props))
 
     # Add step-start part
     step_start = StepStartPart(
@@ -177,8 +217,8 @@ async def send_message(  # noqa: PLR0915
         session_id=session_id,
     )
     assistant_msg_with_parts.parts.append(step_start)
-    updated_props = PartUpdatedEventProperties(part=step_start)
-    await state.broadcast_event(PartUpdatedEvent(properties=updated_props))
+    part_updated_props = PartUpdatedEventProperties(part=step_start)
+    await state.broadcast_event(PartUpdatedEvent(properties=part_updated_props))
 
     # Call the agent
     response_text = ""
@@ -192,128 +232,89 @@ async def send_message(  # noqa: PLR0915
     text_part: TextPart | None = None
     text_part_id: str | None = None
 
-    if state.agent is not None:
-        try:
-            # Get the specified agent from the pool, or fall back to default
-            agent = state.agent
-            if request.agent and state.agent.agent_pool is not None:
-                agent = state.agent.agent_pool.all_agents.get(request.agent, state.agent)
+    try:
+        # Get the specified agent from the pool, or fall back to default
+        agent = state.agent
+        if request.agent and state.agent.agent_pool is not None:
+            agent = state.agent.agent_pool.all_agents.get(request.agent, state.agent)
 
-            # Stream events from the agent
-            async for event in agent.run_stream(user_prompt):
-                match event:
-                    # Text streaming start
-                    case PartStartEvent(part=PydanticTextPart(content=delta)):
-                        response_text = delta
-                        text_part_id = identifier.ascending("part")
+        # Stream events from the agent
+        async for event in agent.run_stream(user_prompt):
+            match event:
+                # Text streaming start
+                case PartStartEvent(part=PydanticTextPart(content=delta)):
+                    response_text = delta
+                    text_part_id = identifier.ascending("part")
+                    text_part = TextPart(
+                        id=text_part_id,
+                        message_id=assistant_msg_id,
+                        session_id=session_id,
+                        text=delta,
+                    )
+                    assistant_msg_with_parts.parts.append(text_part)
+                    part_updated_props = PartUpdatedEventProperties(part=text_part, delta=delta)
+                    await state.broadcast_event(PartUpdatedEvent(properties=part_updated_props))
+
+                # Text streaming delta
+                case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)) if delta:
+                    response_text += delta
+                    if text_part is not None:
                         text_part = TextPart(
-                            id=text_part_id,
+                            id=text_part.id,
                             message_id=assistant_msg_id,
                             session_id=session_id,
-                            text=delta,
+                            text=response_text,
                         )
-                        assistant_msg_with_parts.parts.append(text_part)
-                        updated_props = PartUpdatedEventProperties(part=text_part, delta=delta)
-                        await state.broadcast_event(PartUpdatedEvent(properties=updated_props))
+                        # Update in parts list
+                        for i, p in enumerate(assistant_msg_with_parts.parts):
+                            if isinstance(p, TextPart) and p.id == text_part.id:
+                                assistant_msg_with_parts.parts[i] = text_part
+                                break
+                        part_updated_props = PartUpdatedEventProperties(part=text_part, delta=delta)
+                        await state.broadcast_event(PartUpdatedEvent(properties=part_updated_props))
 
-                    # Text streaming delta
-                    case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)) if delta:
-                        response_text += delta
-                        if text_part is not None:
-                            text_part = TextPart(
-                                id=text_part.id,
-                                message_id=assistant_msg_id,
-                                session_id=session_id,
-                                text=response_text,
-                            )
-                            # Update in parts list
-                            for i, p in enumerate(assistant_msg_with_parts.parts):
-                                if isinstance(p, TextPart) and p.id == text_part.id:
-                                    assistant_msg_with_parts.parts[i] = text_part
-                                    break
-                            updated_props = PartUpdatedEventProperties(part=text_part, delta=delta)
-                            await state.broadcast_event(PartUpdatedEvent(properties=updated_props))
+                # Tool call start - from Claude Code agent or toolsets
+                case ToolCallStartEvent(
+                    tool_name=tool_name,
+                    tool_call_id=tool_call_id,
+                    raw_input=raw_input,
+                    title=title,
+                ):
+                    if tool_call_id in tool_parts:
+                        # Update existing part with the custom title
+                        existing = tool_parts[tool_call_id]
+                        tool_inputs[tool_call_id] = raw_input or tool_inputs.get(tool_call_id, {})
 
-                    # Tool call start - from Claude Code agent or toolsets
-                    case ToolCallStartEvent(
-                        tool_name=tool_name,
-                        tool_call_id=tool_call_id,
-                        raw_input=raw_input,
-                        title=title,
-                    ):
-                        if tool_call_id in tool_parts:
-                            # Update existing part with the custom title
-                            existing = tool_parts[tool_call_id]
-                            tool_inputs[tool_call_id] = raw_input or tool_inputs.get(
-                                tool_call_id, {}
-                            )
-
-                            updated = ToolPart(
-                                id=existing.id,
-                                message_id=existing.message_id,
-                                session_id=existing.session_id,
-                                tool=existing.tool,
-                                call_id=existing.call_id,
-                                state=ToolStateRunning(
-                                    status="running",
-                                    time=TimeStart(start=now_ms()),
-                                    input=tool_inputs[tool_call_id],
-                                    title=title,
-                                ),
-                            )
-                            tool_parts[tool_call_id] = updated
-                            for i, p in enumerate(assistant_msg_with_parts.parts):
-                                if isinstance(p, ToolPart) and p.id == existing.id:
-                                    assistant_msg_with_parts.parts[i] = updated
-                                    break
-                            await state.broadcast_event(
-                                PartUpdatedEvent(
-                                    properties=PartUpdatedEventProperties(part=updated)
-                                )
-                            )
-                        else:
-                            # Create new tool part with the title
-                            tool_inputs[tool_call_id] = raw_input or {}
-                            tool_outputs[tool_call_id] = ""
-                            tool_state = ToolStateRunning(
+                        updated = ToolPart(
+                            id=existing.id,
+                            message_id=existing.message_id,
+                            session_id=existing.session_id,
+                            tool=existing.tool,
+                            call_id=existing.call_id,
+                            state=ToolStateRunning(
                                 status="running",
                                 time=TimeStart(start=now_ms()),
-                                input=raw_input or {},
+                                input=tool_inputs[tool_call_id],
                                 title=title,
-                            )
-                            tool_part = ToolPart(
-                                id=identifier.ascending("part"),
-                                message_id=assistant_msg_id,
-                                session_id=session_id,
-                                tool=tool_name,
-                                call_id=tool_call_id,
-                                state=tool_state,
-                            )
-                            tool_parts[tool_call_id] = tool_part
-                            assistant_msg_with_parts.parts.append(tool_part)
-                            updated_props = PartUpdatedEventProperties(part=tool_part)
-                            await state.broadcast_event(PartUpdatedEvent(properties=updated_props))
-
-                    # Pydantic-ai tool call events (fallback for pydantic-ai agents)
-                    case (
-                        FunctionToolCallEvent(part=tc_part)
-                        | PartStartEvent(part=PydanticToolCallPart() as tc_part)
-                    ) if tc_part.tool_call_id not in tool_parts:
-                        tool_call_id = tc_part.tool_call_id
-                        tool_name = tc_part.tool_name
-                        raw_input = safe_args_as_dict(tc_part)
-
-                        # Store input and initialize output accumulator
-                        tool_inputs[tool_call_id] = raw_input
+                            ),
+                        )
+                        tool_parts[tool_call_id] = updated
+                        for i, p in enumerate(assistant_msg_with_parts.parts):
+                            if isinstance(p, ToolPart) and p.id == existing.id:
+                                assistant_msg_with_parts.parts[i] = updated
+                                break
+                        await state.broadcast_event(
+                            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=updated))
+                        )
+                    else:
+                        # Create new tool part with the title
+                        tool_inputs[tool_call_id] = raw_input or {}
                         tool_outputs[tool_call_id] = ""
-
-                        # Derive initial title; toolset events may update it later
-                        rich_info = derive_rich_tool_info(tool_name, raw_input)
                         tool_state = ToolStateRunning(
                             status="running",
                             time=TimeStart(start=now_ms()),
-                            input=raw_input,
-                            title=rich_info.title,
+                            input=raw_input or {},
+                            title=title,
                         )
                         tool_part = ToolPart(
                             id=identifier.ascending("part"),
@@ -325,127 +326,84 @@ async def send_message(  # noqa: PLR0915
                         )
                         tool_parts[tool_call_id] = tool_part
                         assistant_msg_with_parts.parts.append(tool_part)
-                        await state.broadcast_event(
-                            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=tool_part))
-                        )
+                        part_updated_props = PartUpdatedEventProperties(part=tool_part)
+                        await state.broadcast_event(PartUpdatedEvent(properties=part_updated_props))
 
-                    # Tool call progress
-                    case ToolCallProgressEvent(
-                        tool_call_id=tool_call_id,
-                        title=title,
-                        items=items,
-                        tool_name=tool_name,
-                        tool_input=event_tool_input,
-                    ) if tool_call_id:
-                        # Extract text content from items and accumulate
-                        new_output = ""
-                        for item in items:
-                            if isinstance(item, TextContentItem):
-                                new_output += item.text
-                            elif isinstance(item, FileContentItem):
-                                new_output += item.content
+                # Pydantic-ai tool call events (fallback for pydantic-ai agents)
+                case (
+                    FunctionToolCallEvent(part=tc_part)
+                    | PartStartEvent(part=PydanticToolCallPart() as tc_part)
+                ) if tc_part.tool_call_id not in tool_parts:
+                    tool_call_id = tc_part.tool_call_id
+                    tool_name = tc_part.tool_name
+                    raw_input = safe_args_as_dict(tc_part)
 
-                        # Accumulate output (OpenCode streams via metadata.output)
-                        if new_output:
-                            tool_outputs[tool_call_id] = (
-                                tool_outputs.get(tool_call_id, "") + new_output
-                            )
+                    # Store input and initialize output accumulator
+                    tool_inputs[tool_call_id] = raw_input
+                    tool_outputs[tool_call_id] = ""
 
-                        if tool_call_id in tool_parts:
-                            # Update existing part
-                            existing = tool_parts[tool_call_id]
-                            existing_title = getattr(existing.state, "title", "")
-                            tool_input = tool_inputs.get(tool_call_id, {})
-                            accumulated_output = tool_outputs.get(tool_call_id, "")
-                            tool_state = ToolStateRunning(
-                                status="running",
-                                time=TimeStart(start=now_ms()),
-                                title=title or existing_title,
-                                input=tool_input,
-                                metadata={"output": accumulated_output}
-                                if accumulated_output
-                                else None,
-                            )
-                            updated = ToolPart(
-                                id=existing.id,
-                                message_id=existing.message_id,
-                                session_id=existing.session_id,
-                                tool=existing.tool,
-                                call_id=existing.call_id,
-                                state=tool_state,
-                            )
-                            tool_parts[tool_call_id] = updated
-                            for i, p in enumerate(assistant_msg_with_parts.parts):
-                                if isinstance(p, ToolPart) and p.id == existing.id:
-                                    assistant_msg_with_parts.parts[i] = updated
-                                    break
-                            await state.broadcast_event(
-                                PartUpdatedEvent(
-                                    properties=PartUpdatedEventProperties(part=updated)
-                                )
-                            )
-                        else:
-                            # Create new tool part from progress event
-                            tool_inputs[tool_call_id] = event_tool_input or {}
-                            accumulated_output = tool_outputs.get(tool_call_id, "")
-                            tool_state = ToolStateRunning(
-                                status="running",
-                                time=TimeStart(start=now_ms()),
-                                input=event_tool_input or {},
-                                title=title or tool_name or "Running...",
-                                metadata={"output": accumulated_output}
-                                if accumulated_output
-                                else None,
-                            )
-                            tool_part = ToolPart(
-                                id=identifier.ascending("part"),
-                                message_id=assistant_msg_id,
-                                session_id=session_id,
-                                tool=tool_name or "unknown",
-                                call_id=tool_call_id,
-                                state=tool_state,
-                            )
-                            tool_parts[tool_call_id] = tool_part
-                            assistant_msg_with_parts.parts.append(tool_part)
-                            await state.broadcast_event(
-                                PartUpdatedEvent(
-                                    properties=PartUpdatedEventProperties(part=tool_part)
-                                )
-                            )
+                    # Derive initial title; toolset events may update it later
+                    rich_info = derive_rich_tool_info(tool_name, raw_input)
+                    tool_state = ToolStateRunning(
+                        status="running",
+                        time=TimeStart(start=now_ms()),
+                        input=raw_input,
+                        title=rich_info.title,
+                    )
+                    tool_part = ToolPart(
+                        id=identifier.ascending("part"),
+                        message_id=assistant_msg_id,
+                        session_id=session_id,
+                        tool=tool_name,
+                        call_id=tool_call_id,
+                        state=tool_state,
+                    )
+                    tool_parts[tool_call_id] = tool_part
+                    assistant_msg_with_parts.parts.append(tool_part)
+                    await state.broadcast_event(
+                        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=tool_part))
+                    )
 
-                    # Tool call complete
-                    case ToolCallCompleteEvent(
-                        tool_call_id=tool_call_id,
-                        tool_result=result,
-                    ) if tool_call_id in tool_parts:
+                # Tool call progress
+                case ToolCallProgressEvent(
+                    tool_call_id=tool_call_id,
+                    title=title,
+                    items=items,
+                    tool_name=tool_name,
+                    tool_input=event_tool_input,
+                ) if tool_call_id:
+                    # Extract text content from items and accumulate
+                    new_output = ""
+                    for item in items:
+                        if isinstance(item, TextContentItem):
+                            new_output += item.text
+                        elif isinstance(item, FileContentItem):
+                            new_output += item.content
+
+                    # Accumulate output (OpenCode streams via metadata.output)
+                    if new_output:
+                        tool_outputs[tool_call_id] = tool_outputs.get(tool_call_id, "") + new_output
+
+                    if tool_call_id in tool_parts:
+                        # Update existing part
                         existing = tool_parts[tool_call_id]
-                        result_str = str(result) if result else ""
+                        existing_title = getattr(existing.state, "title", "")
                         tool_input = tool_inputs.get(tool_call_id, {})
-                        is_error = isinstance(result, dict) and result.get("error")
-
-                        if is_error:
-                            new_state: ToolStateCompleted | ToolStateError = ToolStateError(
-                                status="error",
-                                error=str(result.get("error", "Unknown error")),
-                                input=tool_input,
-                                time=TimeStartEnd(start=now, end=now_ms()),
-                            )
-                        else:
-                            new_state = ToolStateCompleted(
-                                status="completed",
-                                title=f"Completed {existing.tool}",
-                                input=tool_input,
-                                output=result_str,
-                                time=TimeStartEndCompacted(start=now, end=now_ms()),
-                            )
-
+                        accumulated_output = tool_outputs.get(tool_call_id, "")
+                        tool_state = ToolStateRunning(
+                            status="running",
+                            time=TimeStart(start=now_ms()),
+                            title=title or existing_title,
+                            input=tool_input,
+                            metadata={"output": accumulated_output} if accumulated_output else None,
+                        )
                         updated = ToolPart(
                             id=existing.id,
                             message_id=existing.message_id,
                             session_id=existing.session_id,
                             tool=existing.tool,
                             call_id=existing.call_id,
-                            state=new_state,
+                            state=tool_state,
                         )
                         tool_parts[tool_call_id] = updated
                         for i, p in enumerate(assistant_msg_with_parts.parts):
@@ -455,20 +413,81 @@ async def send_message(  # noqa: PLR0915
                         await state.broadcast_event(
                             PartUpdatedEvent(properties=PartUpdatedEventProperties(part=updated))
                         )
+                    else:
+                        # Create new tool part from progress event
+                        tool_inputs[tool_call_id] = event_tool_input or {}
+                        accumulated_output = tool_outputs.get(tool_call_id, "")
+                        tool_state = ToolStateRunning(
+                            status="running",
+                            time=TimeStart(start=now_ms()),
+                            input=event_tool_input or {},
+                            title=title or tool_name or "Running...",
+                            metadata={"output": accumulated_output} if accumulated_output else None,
+                        )
+                        tool_part = ToolPart(
+                            id=identifier.ascending("part"),
+                            message_id=assistant_msg_id,
+                            session_id=session_id,
+                            tool=tool_name or "unknown",
+                            call_id=tool_call_id,
+                            state=tool_state,
+                        )
+                        tool_parts[tool_call_id] = tool_part
+                        assistant_msg_with_parts.parts.append(tool_part)
+                        await state.broadcast_event(
+                            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=tool_part))
+                        )
 
-                    # Stream complete - extract token usage
-                    case StreamCompleteEvent(message=msg) if msg and msg.usage:
-                        input_tokens = msg.usage.input_tokens or 0
-                        output_tokens = msg.usage.output_tokens or 0
+                # Tool call complete
+                case ToolCallCompleteEvent(
+                    tool_call_id=tool_call_id,
+                    tool_result=result,
+                ) if tool_call_id in tool_parts:
+                    existing = tool_parts[tool_call_id]
+                    result_str = str(result) if result else ""
+                    tool_input = tool_inputs.get(tool_call_id, {})
+                    is_error = isinstance(result, dict) and result.get("error")
 
-        except Exception as e:  # noqa: BLE001
-            response_text = f"Error calling agent: {e}"
-    else:
-        response_text = (
-            "No agent configured. Please start the server with an agent.\n\n"
-            "For now, this is a placeholder response. Your message was:\n\n"
-            f"> {user_prompt}"
-        )
+                    if is_error:
+                        new_state: ToolStateCompleted | ToolStateError = ToolStateError(
+                            status="error",
+                            error=str(result.get("error", "Unknown error")),
+                            input=tool_input,
+                            time=TimeStartEnd(start=now, end=now_ms()),
+                        )
+                    else:
+                        new_state = ToolStateCompleted(
+                            status="completed",
+                            title=f"Completed {existing.tool}",
+                            input=tool_input,
+                            output=result_str,
+                            time=TimeStartEndCompacted(start=now, end=now_ms()),
+                        )
+
+                    updated = ToolPart(
+                        id=existing.id,
+                        message_id=existing.message_id,
+                        session_id=existing.session_id,
+                        tool=existing.tool,
+                        call_id=existing.call_id,
+                        state=new_state,
+                    )
+                    tool_parts[tool_call_id] = updated
+                    for i, p in enumerate(assistant_msg_with_parts.parts):
+                        if isinstance(p, ToolPart) and p.id == existing.id:
+                            assistant_msg_with_parts.parts[i] = updated
+                            break
+                    await state.broadcast_event(
+                        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=updated))
+                    )
+
+                # Stream complete - extract token usage
+                case StreamCompleteEvent(message=msg) if msg and msg.usage:
+                    input_tokens = msg.usage.input_tokens or 0
+                    output_tokens = msg.usage.output_tokens or 0
+
+    except Exception as e:  # noqa: BLE001
+        response_text = f"Error calling agent: {e}"
 
     response_time = now_ms()
 
@@ -540,6 +559,9 @@ async def send_message(  # noqa: PLR0915
         MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=updated_assistant))
     )
 
+    # Persist assistant message to storage
+    await persist_message_to_storage(state, assistant_msg_with_parts, session_id)
+
     # Mark session as not running
     from agentpool_server.opencode_server.models import SessionIdleEvent, SessionIdleProperties
 
@@ -573,7 +595,8 @@ async def get_message(
     state: StateDep,
 ) -> MessageWithParts:
     """Get a specific message."""
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     for msg in state.messages.get(session_id, []):

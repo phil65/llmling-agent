@@ -33,6 +33,15 @@ class SessionData(Schema):
     pool_id: str | None = None
     """Optional pool/manifest identifier for multi-pool setups."""
 
+    project_id: str | None = None
+    """Project identifier (e.g., for OpenCode compatibility)."""
+
+    parent_id: str | None = None
+    """Parent session ID for forked sessions."""
+
+    version: str = "1"
+    """Session version string."""
+
     cwd: str | None = None
     """Working directory for the session."""
 

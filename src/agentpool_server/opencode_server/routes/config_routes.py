@@ -184,13 +184,12 @@ async def get_providers(state: StateDep) -> ProvidersResponse:
     providers: list[Provider] = []
 
     # Try to get models from the agent
-    if state.agent is not None:
-        try:
-            toko_models = await state.agent.get_available_models()
-            if toko_models:
-                providers = _build_providers(toko_models)
-        except Exception:  # noqa: BLE001
-            pass  # Fall through to dummy providers
+    try:
+        toko_models = await state.agent.get_available_models()
+        if toko_models:
+            providers = _build_providers(toko_models)
+    except Exception:  # noqa: BLE001
+        pass  # Fall through to dummy providers
 
     # Fall back to dummy providers if no models available
     if not providers:
@@ -207,13 +206,12 @@ async def list_providers(state: StateDep) -> ProviderListResponse:
     providers: list[Provider] = []
 
     # Try to get models from the agent
-    if state.agent is not None:
-        try:
-            toko_models = await state.agent.get_available_models()
-            if toko_models:
-                providers = _build_providers(toko_models)
-        except Exception:  # noqa: BLE001
-            pass  # Fall through to dummy providers
+    try:
+        toko_models = await state.agent.get_available_models()
+        if toko_models:
+            providers = _build_providers(toko_models)
+    except Exception:  # noqa: BLE001
+        pass  # Fall through to dummy providers
 
     # Fall back to dummy providers if no models available
     if not providers:

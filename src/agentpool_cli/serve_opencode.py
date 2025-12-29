@@ -91,25 +91,15 @@ def opencode_command(
 
     # Load agent from config
     pool = AgentPool(config_path)
-    if agent:
-        try:
-            selected_agent = pool.all_agents[agent]
-        except KeyError as e:
-            available = list(pool.agents.keys())
-            msg = f"Agent '{agent}' not found. Available: {available}"
-            raise t.BadParameter(msg) from e
-    else:
-        selected_agent = next(iter(pool.all_agents.values()))
-
-    logger.info("Using agent", agent_name=selected_agent.name)
 
     async def run_server() -> None:
         async with pool:
             server = OpenCodeServer(
+                pool,
                 host=host,
                 port=port,
                 working_dir=working_dir,
-                agent=selected_agent,
+                agent_name=agent,
             )
             logger.info("Server starting", url=f"http://{host}:{port}")
             await server.run_async()

@@ -201,6 +201,15 @@ class Session(AsyncAttrs, SQLModel, table=True):
     pool_id: str | None = Field(default=None, index=True)
     """Optional pool/manifest identifier for multi-pool setups."""
 
+    project_id: str | None = Field(default=None, index=True)
+    """Project identifier (e.g., for OpenCode compatibility)."""
+
+    parent_id: str | None = Field(default=None, index=True)
+    """Parent session ID for forked sessions."""
+
+    version: str = Field(default="1")
+    """Session version string."""
+
     title: str | None = Field(default=None, index=True)
     """AI-generated or user-provided title for the conversation."""
 

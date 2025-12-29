@@ -16,6 +16,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
+from agentpool import AgentPool
 from agentpool_server.opencode_server.routes import (
     agent_router,
     app_router,
@@ -39,27 +40,46 @@ class OpenCodeJSONResponse(JSONResponse):
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from agentpool.agents.base_agent import BaseAgent
 
 VERSION = "0.1.0"
 
 
 def create_app(
     *,
+    pool: AgentPool[Any],
+    agent_name: str | None = None,
     working_dir: str | None = None,
-    agent: BaseAgent[Any, Any] | None = None,
 ) -> FastAPI:
     """Create the FastAPI application.
 
     Args:
+        pool: AgentPool for session persistence and agent access.
+        agent_name: Name of the agent to use for handling messages.
+                   If None, uses the first agent in the pool.
         working_dir: Working directory for file operations. Defaults to cwd.
-        agent: Optional AgentPool BaseAgent to handle messages.
 
     Returns:
         Configured FastAPI application.
+
+    Raises:
+        ValueError: If specified agent_name not found or pool has no agents.
     """
+    # Resolve the agent from the pool
+    if agent_name:
+        agent = pool.all_agents.get(agent_name)
+        if agent is None:
+            msg = f"Agent '{agent_name}' not found in pool"
+            raise ValueError(msg)
+    else:
+        # Use first agent as default
+        agent = next(iter(pool.all_agents.values()), None)
+        if agent is None:
+            msg = "Pool has no agents"
+            raise ValueError(msg)
+
     state = ServerState(
         working_dir=working_dir or str(Path.cwd()),
+        pool=pool,
         agent=agent,
     )
 
@@ -129,31 +149,38 @@ class OpenCodeServer:
 
     def __init__(
         self,
+        pool: AgentPool[Any],
         *,
         host: str = "127.0.0.1",
         port: int = 4096,
+        agent_name: str | None = None,
         working_dir: str | None = None,
-        agent: BaseAgent[Any, Any] | None = None,
     ) -> None:
         """Initialize the server.
 
         Args:
+            pool: AgentPool for session persistence and agent access.
             host: Host to bind to.
             port: Port to listen on.
+            agent_name: Name of the agent to use for handling messages.
             working_dir: Working directory for file operations.
-            agent: Optional AgentPool BaseAgent to handle messages.
         """
         self.host = host
         self.port = port
+        self.pool = pool
+        self.agent_name = agent_name
         self.working_dir = working_dir
-        self.agent = agent
         self._app: FastAPI | None = None
 
     @property
     def app(self) -> FastAPI:
         """Get or create the FastAPI application."""
         if self._app is None:
-            self._app = create_app(working_dir=self.working_dir, agent=self.agent)
+            self._app = create_app(
+                pool=self.pool,
+                agent_name=self.agent_name,
+                working_dir=self.working_dir,
+            )
         return self._app
 
     def run(self) -> None:
@@ -172,23 +199,34 @@ class OpenCodeServer:
 
 
 def run_server(
+    pool: AgentPool[Any],
     *,
     host: str = "127.0.0.1",
     port: int = 4096,
+    agent_name: str | None = None,
     working_dir: str | None = None,
-    agent: BaseAgent[Any, Any] | None = None,
 ) -> None:
     """Run the OpenCode-compatible server.
 
     Args:
+        pool: AgentPool for session persistence and agent access.
         host: Host to bind to.
         port: Port to listen on.
+        agent_name: Name of the agent to use for handling messages.
         working_dir: Working directory for file operations.
-        agent: Optional AgentPool BaseAgent to handle messages.
     """
-    server = OpenCodeServer(host=host, port=port, working_dir=working_dir, agent=agent)
+    server = OpenCodeServer(
+        pool,
+        host=host,
+        port=port,
+        agent_name=agent_name,
+        working_dir=working_dir,
+    )
     server.run()
 
 
 if __name__ == "__main__":
-    run_server()
+    from agentpool import config_resources
+
+    pool = AgentPool(config_resources.CLAUDE_CODE_ASSISTANT)
+    run_server(pool)

@@ -34,18 +34,15 @@ def _get_fs(state: StateDep) -> tuple[AsyncFileSystem, str] | None:
         Tuple of (filesystem, base_path) or None if not available.
         base_path is the root directory to use for operations.
     """
-    if state.agent is not None:
-        try:
-            fs = state.agent.env.get_fs()
-            # Use env's cwd if set, otherwise use state.working_dir
-            env = state.agent.env
-            base_path = env.cwd or state.working_dir
-        except NotImplementedError:
-            return None
-        else:
-            return (fs, base_path)
-
-    return None
+    try:
+        fs = state.agent.env.get_fs()
+        # Use env's cwd if set, otherwise use state.working_dir
+        env = state.agent.env
+        base_path = env.cwd or state.working_dir
+    except NotImplementedError:
+        return None
+    else:
+        return (fs, base_path)
 
 
 @router.get("/file")

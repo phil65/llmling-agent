@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import UTC
 from typing import TYPE_CHECKING, Any, Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic_ai import FileUrl
 
+from agentpool.sessions.models import SessionData
 from agentpool_server.opencode_server import identifier
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
@@ -46,7 +48,148 @@ from agentpool_server.opencode_server.time_utils import now_ms
 
 
 if TYPE_CHECKING:
-    from anyenv.text_sharing.opencode import MessageRole
+    from agentpool_server.opencode_server.state import ServerState
+
+
+# =============================================================================
+# Conversion helpers between OpenCode Session and SessionData
+# =============================================================================
+
+
+def session_data_to_opencode(data: SessionData) -> Session:
+    """Convert SessionData to OpenCode Session model."""
+    # Convert datetime to milliseconds timestamp
+    created_ms = int(data.created_at.timestamp() * 1000)
+    updated_ms = int(data.last_active.timestamp() * 1000)
+
+    # Extract revert/share from metadata if present
+    revert = None
+    share = None
+    if "revert" in data.metadata:
+        revert = SessionRevert(**data.metadata["revert"])
+    if "share" in data.metadata:
+        share = SessionShare(**data.metadata["share"])
+
+    return Session(
+        id=data.session_id,
+        project_id=data.project_id or "default",
+        directory=data.cwd or "",
+        title=data.title or "New Session",
+        version=data.version,
+        time=TimeCreatedUpdated(created=created_ms, updated=updated_ms),
+        parent_id=data.parent_id,
+        revert=revert,
+        share=share,
+    )
+
+
+def opencode_to_session_data(
+    session: Session,
+    *,
+    agent_name: str = "default",
+    pool_id: str | None = None,
+) -> SessionData:
+    """Convert OpenCode Session to SessionData for persistence."""
+    from datetime import datetime
+
+    # Convert milliseconds timestamp to datetime
+    created_at = datetime.fromtimestamp(session.time.created / 1000, tz=UTC)
+    last_active = datetime.fromtimestamp(session.time.updated / 1000, tz=UTC)
+
+    # Store revert/share in metadata
+    metadata: dict[str, Any] = {}
+    if session.revert:
+        metadata["revert"] = session.revert.model_dump()
+    if session.share:
+        metadata["share"] = session.share.model_dump()
+
+    return SessionData(
+        session_id=session.id,
+        agent_name=agent_name,
+        conversation_id=session.id,  # Use session_id as conversation_id
+        title=session.title,
+        pool_id=pool_id,
+        project_id=session.project_id,
+        parent_id=session.parent_id,
+        version=session.version,
+        cwd=session.directory,
+        created_at=created_at,
+        last_active=last_active,
+        metadata=metadata,
+    )
+
+
+async def load_messages_from_storage(
+    state: ServerState,
+    session_id: str,
+) -> list[MessageWithParts]:
+    """Load messages from storage and convert to OpenCode format.
+
+    Args:
+        state: Server state with pool reference
+        session_id: Session/conversation ID
+
+    Returns:
+        List of OpenCode MessageWithParts
+    """
+    if state.pool.storage is None:
+        return []
+
+    from agentpool_config.session import SessionQuery
+    from agentpool_server.opencode_server.converters import chat_message_to_opencode
+
+    try:
+        query = SessionQuery(name=session_id)  # conversation_id = session_id
+        chat_messages = await state.pool.storage.filter_messages(query)
+
+        # Convert to OpenCode format
+        opencode_messages = []
+        working_dir = state.working_dir
+        agent_name = state.agent.name
+
+        for chat_msg in chat_messages:
+            opencode_msg = chat_message_to_opencode(
+                chat_msg,
+                session_id=session_id,
+                working_dir=working_dir,
+                agent_name=agent_name,
+                model_id=chat_msg.model_name or "unknown",
+                provider_id=chat_msg.provider_name or "agentpool",
+            )
+            opencode_messages.append(opencode_msg)
+
+    except Exception:  # noqa: BLE001
+        # If storage fails, return empty list
+        return []
+    else:
+        return opencode_messages
+
+
+async def get_or_load_session(state: ServerState, session_id: str) -> Session | None:
+    """Get session from cache or load from storage.
+
+    Returns None if session not found in either location.
+    Also loads messages from storage if not already cached.
+    """
+    # Check in-memory cache first
+    if session_id in state.sessions:
+        return state.sessions[session_id]
+
+    # Try to load from storage
+    data = await state.pool.sessions.store.load(session_id)
+    if data is not None:
+        session = session_data_to_opencode(data)
+        # Cache it
+        state.sessions[session_id] = session
+        # Initialize runtime state
+        if session_id not in state.session_status:
+            state.session_status[session_id] = SessionStatus(type="idle")
+        # Load messages from storage if not cached
+        if session_id not in state.messages:
+            state.messages[session_id] = await load_messages_from_storage(state, session_id)
+        return session
+
+    return None
 
 
 router = APIRouter(prefix="/session", tags=["session"])
@@ -54,8 +197,22 @@ router = APIRouter(prefix="/session", tags=["session"])
 
 @router.get("")
 async def list_sessions(state: StateDep) -> list[Session]:
-    """List all sessions."""
-    return list(state.sessions.values())
+    """List all sessions from storage.
+
+    Returns all persisted sessions, not just active ones.
+    """
+    sessions: list[Session] = []
+
+    # Load all session IDs from storage
+    session_ids = await state.pool.sessions.store.list_sessions()
+
+    for session_id in session_ids:
+        # Use get_or_load to populate cache and get Session model
+        session = await get_or_load_session(state, session_id)
+        if session is not None:
+            sessions.append(session)
+
+    return sessions
 
 
 @router.post("")
@@ -63,7 +220,7 @@ async def create_session(
     state: StateDep,
     request: SessionCreateRequest | None = None,
 ) -> Session:
-    """Create a new session."""
+    """Create a new session and persist to storage."""
     now = now_ms()
     session_id = identifier.ascending("session")
     session = Session(
@@ -75,6 +232,16 @@ async def create_session(
         time=TimeCreatedUpdated(created=now, updated=now),
         parent_id=request.parent_id if request else None,
     )
+
+    # Persist to storage
+    session_data = opencode_to_session_data(
+        session,
+        agent_name=state.agent.name,
+        pool_id=state.pool.manifest.config_file_path,
+    )
+    await state.pool.sessions.store.save(session_data)
+
+    # Cache in memory
     state.sessions[session_id] = session
     state.messages[session_id] = []
     state.session_status[session_id] = SessionStatus(type="idle")
@@ -86,9 +253,8 @@ async def create_session(
     input_provider = OpenCodeInputProvider(state, session_id)
     state.input_providers[session_id] = input_provider
 
-    # Set input provider on agent if configured
-    if state.agent is not None:
-        state.agent._input_provider = input_provider
+    # Set input provider on agent
+    state.agent._input_provider = input_provider
 
     await state.broadcast_event(SessionCreatedEvent(properties=SessionInfoProperties(info=session)))
 
@@ -106,10 +272,14 @@ async def get_session_status(state: StateDep) -> dict[str, SessionStatus]:
 
 @router.get("/{session_id}")
 async def get_session(session_id: str, state: StateDep) -> Session:
-    """Get session details."""
-    if session_id not in state.sessions:
+    """Get session details.
+
+    Loads from storage if not in memory cache.
+    """
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-    return state.sessions[session_id]
+    return session
 
 
 @router.patch("/{session_id}")
@@ -118,11 +288,11 @@ async def update_session(
     request: SessionUpdateRequest,
     state: StateDep,
 ) -> Session:
-    """Update session properties."""
-    if session_id not in state.sessions:
+    """Update session properties and persist changes."""
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session = state.sessions[session_id]
     if request.title is not None:
         session = session.model_copy(
             update={
@@ -133,17 +303,24 @@ async def update_session(
                 ),
             }
         )
-    state.sessions[session_id] = session
 
+    state.sessions[session_id] = session  # Update cache
+    session_data = opencode_to_session_data(  # Persist to storage
+        session,
+        agent_name=state.agent.name,
+        pool_id=state.pool.manifest.config_file_path,
+    )
+    await state.pool.sessions.store.save(session_data)
     await state.broadcast_event(SessionUpdatedEvent(properties=SessionInfoProperties(info=session)))
-
     return session
 
 
 @router.delete("/{session_id}")
 async def delete_session(session_id: str, state: StateDep) -> bool:
-    """Delete a session."""
-    if session_id not in state.sessions:
+    """Delete a session from both cache and storage."""
+    # Check if session exists (in cache or storage)
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Cancel any pending permissions and clean up input provider
@@ -151,10 +328,14 @@ async def delete_session(session_id: str, state: StateDep) -> bool:
     if input_provider is not None:
         input_provider.cancel_all_pending()
 
-    del state.sessions[session_id]
+    # Remove from cache
+    state.sessions.pop(session_id, None)
     state.messages.pop(session_id, None)
     state.session_status.pop(session_id, None)
     state.todos.pop(session_id, None)
+
+    # Delete from storage
+    await state.pool.sessions.store.delete(session_id)
 
     await state.broadcast_event(
         SessionDeletedEvent(properties=SessionDeletedProperties(session_id=session_id))
@@ -166,7 +347,8 @@ async def delete_session(session_id: str, state: StateDep) -> bool:
 @router.post("/{session_id}/abort")
 async def abort_session(session_id: str, state: StateDep) -> bool:
     """Abort a running session."""
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
     # TODO: Actually abort running operations
     state.session_status[session_id] = SessionStatus(type="idle")
@@ -177,19 +359,15 @@ async def abort_session(session_id: str, state: StateDep) -> bool:
 async def get_session_todos(session_id: str, state: StateDep) -> list[Todo]:
     """Get todos for a session.
 
-    Returns todos from the agent pool's TodoTracker if available,
-    otherwise falls back to session-level todos.
+    Returns todos from the agent pool's TodoTracker.
     """
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Try to get todos from pool's TodoTracker
-    if state.agent is not None and state.agent.agent_pool is not None:
-        tracker = state.agent.agent_pool.todos
-        return [Todo(id=e.id, content=e.content, status=e.status) for e in tracker.entries]
-
-    # Fall back to session-level todos (legacy)
-    return state.todos.get(session_id, [])
+    # Get todos from pool's TodoTracker
+    tracker = state.pool.todos
+    return [Todo(id=e.id, content=e.content, status=e.status) for e in tracker.entries]
 
 
 @router.get("/{session_id}/diff")
@@ -203,14 +381,11 @@ async def get_session_diff(
     Returns a list of file changes with unified diffs.
     Optionally filter to changes since a specific message.
     """
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Get file operations from the agent's pool
-    if state.agent is None or state.agent.agent_pool is None:
-        return []
-
-    file_ops = state.agent.agent_pool.file_ops
+    file_ops = state.pool.file_ops
     if not file_ops.changes:
         return []
 
@@ -238,7 +413,8 @@ async def run_shell_command(
     state: StateDep,
 ) -> MessageWithParts:
     """Run a shell command directly."""
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     now = now_ms()
@@ -294,32 +470,15 @@ async def run_shell_command(
     output_text = ""
     success = False
 
-    if state.agent is not None and hasattr(state.agent, "env"):
-        try:
-            result = await state.agent.env.execute_command(request.command)
-            success = result.success
-            if success:
-                output_text = str(result.result) if result.result else ""
-            else:
-                output_text = f"Error: {result.error}" if result.error else "Command failed"
-        except Exception as e:  # noqa: BLE001
-            output_text = f"Error executing command: {e}"
-    else:
-        # Fallback: use subprocess directly
-        import asyncio
-
-        try:
-            proc = await asyncio.create_subprocess_shell(
-                request.command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=state.working_dir,
-            )
-            stdout, stderr = await proc.communicate()
-            success = proc.returncode == 0
-            output_text = stdout.decode() if success else stderr.decode()
-        except Exception as e:  # noqa: BLE001
-            output_text = f"Error: {e}"
+    try:
+        result = await state.agent.env.execute_command(request.command)
+        success = result.success
+        if success:
+            output_text = str(result.result) if result.result else ""
+        else:
+            output_text = f"Error: {result.error}" if result.error else "Command failed"
+    except Exception as e:  # noqa: BLE001
+        output_text = f"Error executing command: {e}"
 
     response_time = now_ms()
 
@@ -390,7 +549,8 @@ async def get_pending_permissions(session_id: str, state: StateDep) -> list[dict
 
     Returns a list of pending permissions awaiting user response.
     """
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Get the input provider for this session
@@ -415,7 +575,8 @@ async def respond_to_permission(
     - "always": Always allow this tool (remembered for session)
     - "reject": Reject this tool execution
     """
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Get the input provider for this session
@@ -454,11 +615,9 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
     Uses the Summarize compaction step to condense older messages
     into a summary while keeping recent messages intact.
     """
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-
-    if state.agent is None:
-        raise HTTPException(status_code=400, detail="No agent configured")
 
     messages = state.messages.get(session_id, [])
     if not messages:
@@ -611,10 +770,9 @@ async def share_session(
     Uses the OpenCode share API to create a shareable link with the full
     conversation including messages and parts.
     """
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-
-    session = state.sessions[session_id]
     messages = state.messages.get(session_id, [])
 
     if not messages:
@@ -631,11 +789,14 @@ async def share_session(
 
     for msg_with_parts in messages:
         info = msg_with_parts.info
-        role: MessageRole = getattr(info, "role", "user")
-
-        # Map role to OpenCode roles
-        if role not in ("user", "assistant", "system"):
-            role = "assistant" if role == "model" else "user"
+        # Map role to OpenCode sharing roles
+        role = info.role
+        if role == "model":  # type: ignore[comparison-overlap]
+            mapped_role: Literal["user", "assistant", "system"] = "assistant"
+        elif role in ("user", "assistant", "system"):
+            mapped_role = role
+        else:
+            mapped_role = "user"
 
         # Extract text parts
         parts = [
@@ -644,7 +805,7 @@ async def share_session(
             if isinstance(part, TextPart) and part.text
         ]
         if parts:
-            opencode_messages.append(Message(role=role, parts=parts))
+            opencode_messages.append(Message(role=mapped_role, parts=parts))
 
     if not opencode_messages:
         raise HTTPException(status_code=400, detail="No content to share")
@@ -687,13 +848,11 @@ async def revert_session(
 
     Restores files to their state before the specified message's changes.
     """
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    if state.agent is None or state.agent.agent_pool is None:
-        raise HTTPException(status_code=400, detail="No agent configured")
-
-    file_ops = state.agent.agent_pool.file_ops
+    file_ops = state.pool.file_ops
     if not file_ops.changes:
         raise HTTPException(status_code=400, detail="No file changes to revert")
 
@@ -756,13 +915,11 @@ async def unrevert_session(session_id: str, state: StateDep) -> Session:
 
     Re-applies the changes that were previously reverted.
     """
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    if state.agent is None or state.agent.agent_pool is None:
-        raise HTTPException(status_code=400, detail="No agent configured")
-
-    file_ops = state.agent.agent_pool.file_ops
+    file_ops = state.pool.file_ops
     if not file_ops.reverted_changes:
         raise HTTPException(status_code=400, detail="No reverted changes to restore")
 
@@ -792,7 +949,6 @@ async def unrevert_session(session_id: str, state: StateDep) -> Session:
     file_ops.restore_reverted_changes()
 
     # Clear revert info from session
-    session = state.sessions[session_id]
     updated_session = session.model_copy(update={"revert": None})
     state.sessions[session_id] = updated_session
 
@@ -811,10 +967,9 @@ async def unshare_session(session_id: str, state: StateDep) -> bool:
     Note: This only removes the link from the session metadata.
     The shared content may still exist on the provider's servers.
     """
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-
-    session = state.sessions[session_id]
     if session.share is None:
         raise HTTPException(status_code=400, detail="Session is not shared")
 
@@ -841,12 +996,13 @@ async def execute_command(  # noqa: PLR0915
     Commands are mapped to MCP prompts. The command name is used to find
     the matching prompt, and arguments are parsed and passed to it.
     """
-    if session_id not in state.sessions:
+    session = await get_or_load_session(state, session_id)
+    if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Get available prompts from agent
-    if state.agent is None or not hasattr(state.agent, "tools"):
-        raise HTTPException(status_code=400, detail="No agent configured")
+    if not hasattr(state.agent, "tools"):
+        raise HTTPException(status_code=400, detail="Agent has no tools configured")
 
     prompts = await state.agent.tools.list_prompts()
 
