@@ -105,9 +105,22 @@ async def get_session_model_state(
     if not acp_models:
         return None
 
-    # Use first model as current if not specified or not found
+    # Ensure current model is in the list
     all_ids = [model.model_id for model in acp_models]
-    current_model_id = current_model if current_model in all_ids else all_ids[0]
+    if current_model and current_model not in all_ids:
+        # Add current model to the list so the UI shows it
+        acp_models.insert(
+            0,
+            ACPModelInfo(
+                model_id=current_model,
+                name=current_model,
+                description="Currently configured model",
+            ),
+        )
+        current_model_id = current_model
+    else:
+        current_model_id = current_model if current_model in all_ids else all_ids[0]
+
     return SessionModelState(available_models=acp_models, current_model_id=current_model_id)
 
 
