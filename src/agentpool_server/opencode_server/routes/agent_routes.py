@@ -21,18 +21,41 @@ router = APIRouter(tags=["agent"])
 
 @router.get("/agent")
 async def list_agents(state: StateDep) -> list[Agent]:
-    """List available agents.
+    """List available agents from the AgentPool.
 
-    TODO: Integrate with AgentPool.
+    Returns all agents with their configurations, suitable for the agent
+    switcher UI. Agents are marked as primary (visible in switcher) or
+    subagent (hidden, used internally).
     """
-    _ = state  # unused for now
-    return [
-        Agent(
-            name="default",
-            description="Default AgentPool agent",
-            mode="primary",
-            default=True,
+    if state.agent is None or state.agent.agent_pool is None:
+        return [
+            Agent(
+                name="default",
+                description="Default AgentPool agent",
+                mode="primary",
+                default=True,
+            )
+        ]
+
+    pool = state.agent.agent_pool
+    agents: list[Agent] = []
+    first_agent_name = next(iter(pool.all_agents.keys()), None)
+
+    for name, agent in pool.all_agents.items():
+        # Get description from agent
+        description = getattr(agent, "description", None) or f"Agent: {name}"
+
+        agents.append(
+            Agent(
+                name=name,
+                description=description,
+                mode="primary",  # All agents visible for now; add hidden config later
+                default=(name == first_agent_name),  # First agent is default
+            )
         )
+
+    return agents if agents else [
+        Agent(name="default", description="Default agent", mode="primary", default=True)
     ]
 
 

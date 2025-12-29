@@ -201,8 +201,13 @@ async def send_message(  # noqa: PLR0915
             )
             from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 
+            # Get the specified agent from the pool, or fall back to default
+            agent = state.agent
+            if request.agent and state.agent.agent_pool is not None:
+                agent = state.agent.agent_pool.all_agents.get(request.agent, state.agent)
+
             # Stream events from the agent
-            async for event in state.agent.run_stream(user_prompt):
+            async for event in agent.run_stream(user_prompt):
                 match event:
                     # Text streaming start
                     case PartStartEvent(part=PydanticTextPart(content=delta)):
