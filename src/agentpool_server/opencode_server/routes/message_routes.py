@@ -101,6 +101,50 @@ async def persist_message_to_storage(
         pass
 
 
+async def _generate_session_title(
+    state: ServerState,
+    session_id: str,
+    user_prompt: str,
+    assistant_response: str,
+) -> None:
+    """Generate a title for the session in the background."""
+    from agentpool.messaging.messages import ChatMessage
+    from agentpool_server.opencode_server.models import (
+        SessionInfoProperties,
+        SessionUpdatedEvent,
+    )
+
+    try:
+        if not state.pool.storage:
+            return
+
+        # Create ChatMessage objects for the title generator
+        messages = [
+            ChatMessage[str](role="user", content=user_prompt),
+            ChatMessage[str](role="assistant", content=assistant_response),
+        ]
+
+        # Generate title using storage manager
+        title = await state.pool.storage.generate_conversation_title(
+            messages=messages,
+            conversation_id=session_id,
+        )
+
+        if title and session_id in state.sessions:
+            # Update session with new title
+            session = state.sessions[session_id]
+            updated_session = session.model_copy(update={"title": title})
+            state.sessions[session_id] = updated_session
+
+            # Broadcast session update
+            await state.broadcast_event(
+                SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
+            )
+    except Exception:  # noqa: BLE001
+        # Don't fail if title generation fails
+        pass
+
+
 router = APIRouter(prefix="/session/{session_id}", tags=["message"])
 
 
@@ -584,7 +628,14 @@ async def send_message(  # noqa: PLR0915
     state.sessions[session_id] = session.model_copy(
         update={"time": TimeCreatedUpdated(created=session.time.created, updated=response_time)}
     )
-
+    # Trigger title generation if session has default title
+    if session.title == "New Session" and state.pool.storage:
+        # Convert user_prompt to string if it's a list
+        prompt_str = user_prompt if isinstance(user_prompt, str) else str(user_prompt)
+        state.create_background_task(
+            _generate_session_title(state, session_id, prompt_str, response_text),
+            name=f"generate_title_{session_id}",
+        )
     return assistant_msg_with_parts
 
 

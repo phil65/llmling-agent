@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
@@ -101,9 +102,14 @@ def auto_migrate_columns(sync_conn: Any, dialect: Any) -> None:
     from sqlmodel import SQLModel
 
     inspector = inspect(sync_conn)
+    existing_tables = set(inspector.get_table_names())
 
     # For each table in our models
     for table_name, table in SQLModel.metadata.tables.items():
+        # Skip tables that don't exist yet (they'll be created fresh)
+        if table_name not in existing_tables:
+            continue
+
         existing = {col["name"] for col in inspector.get_columns(table_name)}
 
         # For each column in model that doesn't exist in DB
@@ -116,7 +122,9 @@ def auto_migrate_columns(sync_conn: Any, dialect: Any) -> None:
                 sql = (
                     f"ALTER TABLE {table_name} ADD COLUMN {col.name} {type_sql}{nullable}{default}"
                 )
-                sync_conn.execute(text(sql))
+                # Column may already exist (race condition or stale inspector cache)
+                with contextlib.suppress(Exception):
+                    sync_conn.execute(text(sql))
 
 
 def parse_model_info(model: str | None) -> tuple[str | None, str | None]:

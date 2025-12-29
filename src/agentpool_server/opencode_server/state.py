@@ -54,6 +54,28 @@ class ServerState:
     # SSE event subscribers
     event_subscribers: list[asyncio.Queue[Event]] = field(default_factory=list)
 
+    # Background tasks (for cleanup on shutdown)
+    background_tasks: set[asyncio.Task[Any]] = field(default_factory=set)
+
+    def create_background_task(self, coro: Any, *, name: str | None = None) -> asyncio.Task[Any]:
+        """Create and track a background task."""
+        import asyncio
+
+        task = asyncio.create_task(coro, name=name)
+        self.background_tasks.add(task)
+        task.add_done_callback(self.background_tasks.discard)
+        return task
+
+    async def cleanup_tasks(self) -> None:
+        """Cancel and wait for all background tasks."""
+        for task in self.background_tasks:
+            task.cancel()
+        if self.background_tasks:
+            import asyncio
+
+            await asyncio.gather(*self.background_tasks, return_exceptions=True)
+        self.background_tasks.clear()
+
     async def broadcast_event(self, event: Event) -> None:
         """Broadcast an event to all SSE subscribers."""
         print(f"Broadcasting event: {event.type} to {len(self.event_subscribers)} subscribers")

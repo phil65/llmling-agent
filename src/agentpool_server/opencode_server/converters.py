@@ -5,7 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import uuid
 
-from pydantic_ai import TextPart as PydanticTextPart, ToolCallPart as PydanticToolCallPart
+from pydantic_ai import (
+    TextPart as PydanticTextPart,
+    ToolCallPart as PydanticToolCallPart,
+)
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
@@ -44,6 +47,12 @@ from agentpool_server.opencode_server.time_utils import now_ms
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from pydantic_ai import (
+        UserContent,
+    )
+
     from agentpool.agents.events import (
         ToolCallCompleteEvent,
         ToolCallProgressEvent,
@@ -315,7 +324,7 @@ def _convert_file_part_to_user_content(part: dict[str, Any]) -> Any:
 
 def extract_user_prompt_from_parts(
     parts: list[dict[str, Any]],
-) -> str | list[Any]:
+) -> str | Sequence[UserContent]:
     """Extract user prompt from OpenCode message parts.
 
     Converts OpenCode parts to pydantic-ai UserContent format:
@@ -328,7 +337,7 @@ def extract_user_prompt_from_parts(
     Returns:
         Either a simple string (text-only) or a list of UserContent items
     """
-    result: list[Any] = []
+    result: list[UserContent] = []
 
     for part in parts:
         part_type = part.get("type")
@@ -344,7 +353,7 @@ def extract_user_prompt_from_parts(
 
     # If only text parts, join them as a single string for simplicity
     if all(isinstance(item, str) for item in result):
-        return "\n".join(result)
+        return "\n".join(result)  # type: ignore[arg-type]
 
     return result
 
