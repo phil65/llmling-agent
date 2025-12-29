@@ -600,54 +600,61 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
 async def share_session(
     session_id: str,
     state: StateDep,
-    provider: Literal["paste_rs", "gist", "pastebin", "opencode"] = "paste_rs",
     num_messages: int | None = None,
 ) -> SessionShare:
-    """Share session conversation history.
+    """Share session conversation history via OpenCode's sharing service.
 
-    Uses text sharing providers to share conversation history.
-    Supported providers: paste_rs, gist, pastebin, opencode.
+    Uses the OpenCode share API to create a shareable link with the full
+    conversation including messages and parts.
     """
     if session_id not in state.sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    if state.agent is None:
-        raise HTTPException(status_code=400, detail="No agent configured")
+    session = state.sessions[session_id]
+    messages = state.messages.get(session_id, [])
 
-    try:
-        from anyenv.text_sharing import get_sharer
-    except ImportError as e:
-        raise HTTPException(
-            status_code=501,
-            detail="Text sharing not available (anyenv.text_sharing not installed)",
-        ) from e
+    if not messages:
+        raise HTTPException(status_code=400, detail="No messages to share")
 
-    # Format conversation history
-    content = await state.agent.conversation.format_history(
-        num_messages=num_messages,
-        include_system=False,
-    )
+    # Apply message limit if specified
+    if num_messages is not None and num_messages > 0:
+        messages = messages[-num_messages:]
 
-    if not content.strip():
+    from anyenv.text_sharing.opencode import Message, MessagePart, OpenCodeSharer
+
+    # Convert our messages to OpenCode Message format
+    opencode_messages: list[Message] = []
+
+    for msg_with_parts in messages:
+        info = msg_with_parts.info
+        role = getattr(info, "role", "user")
+
+        # Map role to OpenCode roles
+        if role not in ("user", "assistant", "system"):
+            role = "assistant" if role == "model" else "user"
+
+        # Extract text parts
+        parts: list[MessagePart] = []
+        for part in msg_with_parts.parts:
+            if hasattr(part, "text") and part.text:
+                parts.append(MessagePart(type="text", text=part.text))
+
+        if parts:
+            opencode_messages.append(Message(role=role, parts=parts))
+
+    if not opencode_messages:
         raise HTTPException(status_code=400, detail="No content to share")
 
-    try:
-        sharer = get_sharer(provider)
-        session = state.sessions[session_id]
-        result = await sharer.share(
-            content,
-            title=f"Session: {session.title}",
-            syntax="markdown",
-            visibility="unlisted",
+    # Share via OpenCode API
+    async with OpenCodeSharer() as sharer:
+        result = await sharer.share_conversation(
+            opencode_messages,
+            title=session.title,
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to share via {provider}: {e}",
-        ) from e
+        share_url = result.url
 
     # Store the share URL in the session
-    share_info = SessionShare(url=result.url)
+    share_info = SessionShare(url=share_url)
     updated_session = session.model_copy(update={"share": share_info})
     state.sessions[session_id] = updated_session
 
