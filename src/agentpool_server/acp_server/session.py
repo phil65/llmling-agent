@@ -252,6 +252,7 @@ class ACPSession:
         self.command_store = CommandStore(enable_system_commands=True, commands=cmds)
         self.command_store._initialize_sync()
         self._update_callbacks: list[Callable[[], None]] = []
+        self._remote_commands: list[AvailableCommand] = []  # Commands from nested ACP agents
 
         self.staged_content = StagedContent()
         # Inject Zed-specific instructions if client is Zed
@@ -324,9 +325,12 @@ class ACPSession:
             case ModelInfo(id=model_id):
                 update = CurrentModelUpdate(current_model_id=model_id)
                 self.log.debug("Forwarding model change to client", model_id=model_id)
-            case ACPAvailableCommandsUpdate():
-                update = state
-                self.log.debug("Forwarding commands update to client")
+            case ACPAvailableCommandsUpdate(available_commands=cmds):
+                # Store remote commands and send merged list
+                self._remote_commands = list(cmds)
+                await self.send_available_commands_update()
+                self.log.debug("Merged and sent commands update to client")
+                return
 
         notification = SessionNotification(session_id=self.session_id, update=update)
         await self.client.session_update(notification)
@@ -827,9 +831,14 @@ class ACPSession:
             self.log.exception("Error closing session")
 
     async def send_available_commands_update(self) -> None:
-        """Send current available commands to client."""
+        """Send current available commands to client.
+
+        Merges local commands from command_store with any remote commands
+        from nested ACP agents.
+        """
         try:
-            commands = self.get_acp_commands()
+            commands = self.get_acp_commands()  # Local commands
+            commands.extend(self._remote_commands)  # Merge remote commands
             await self.notifications.update_commands(commands)
         except Exception:
             self.log.exception("Failed to send available commands update")
