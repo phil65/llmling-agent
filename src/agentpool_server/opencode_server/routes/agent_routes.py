@@ -176,13 +176,9 @@ async def add_mcp_server(request: AddMCPServerRequest, state: StateDep) -> MCPSt
             config = SSEMCPServerConfig(url=HttpUrl(request.url))
         else:
             config = StreamableHTTPMCPServerConfig(url=HttpUrl(request.url))
-    elif request.command:
-        # Stdio server
-        config = StdioMCPServerConfig(
-            command=request.command,
-            args=request.args or [],
-            env=request.env,
-        )
+    elif request.command:  # Stdio server
+        args = request.args or []
+        config = StdioMCPServerConfig(command=request.command, args=args, env=request.env)
     else:
         raise HTTPException(
             status_code=400,
@@ -208,10 +204,7 @@ async def add_mcp_server(request: AddMCPServerRequest, state: StateDep) -> MCPSt
         await manager.setup_server(config, add_to_config=True)
         return MCPStatus(name=config.client_id, status="connected")
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to add MCP server: {e}",
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to add MCP server: {e}") from e
 
 
 @router.post("/log")
