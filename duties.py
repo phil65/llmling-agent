@@ -112,30 +112,94 @@ def update(ctx):
     ctx.run("uv sync --all-extras")
 
 
-@duty(capture=False)
-def lint(ctx):
-    """Lint the code and fix issues if possible."""
-    ctx.run("uv run ruff check --fix --unsafe-fixes .")
-    ctx.run("uv run ruff format .")
-    ctx.run("uv run mypy src/ --fixed-format-cache")
-    ctx.run(
-        "uv run check-jsonschema --schemafile schema/config-schema.json "
-        "src/agentpool/config_resources/*.yml "
-        "docs/examples/**/config.yml"
-    )
+def _get_lint_targets(filepath: str | None) -> tuple[str, str, str | None]:
+    """Get lint targets based on optional filepath.
+
+    Returns:
+        Tuple of (ruff_target, mypy_target, jsonschema_files_or_none)
+    """
+    if filepath is None:
+        return (
+            ".",
+            "src/",
+            "src/agentpool/config_resources/*.yml docs/examples/**/config.yml",
+        )
+
+    path = Path(filepath)
+
+    # For ruff, use the file directly
+    ruff_target = filepath
+
+    # For mypy, if it's under src/, use the file; otherwise skip
+    mypy_target = filepath if filepath.startswith("src/") else ""
+
+    # For jsonschema, only run if the file matches the patterns
+    jsonschema_files = None
+    if path.suffix in {".yml", ".yaml"} and (
+        "config_resources" in filepath
+        or ("docs/examples" in filepath and path.name == "config.yml")
+    ):
+        jsonschema_files = filepath
+
+    return ruff_target, mypy_target, jsonschema_files
 
 
 @duty(capture=False)
-def lint_check(ctx):
-    """Lint the code."""
-    ctx.run("uv run ruff check .")
-    ctx.run("uv run ruff format --check .")
-    ctx.run("uv run mypy src/agentpool/ --fixed-format-cache")
-    ctx.run(
-        "uv run check-jsonschema --schemafile schema/config-schema.json "
-        "src/agentpool/config_resources/*.yml "
-        "docs/examples/**/config.yml"
-    )
+def lint(ctx, filepath: str | None = None):  # noqa: D417
+    """Lint the code and fix issues if possible.
+
+    Args:
+        filepath: Optional path to a specific file to lint.
+                  If not provided, lints the entire project.
+    """
+    ruff_target, mypy_target, jsonschema_files = _get_lint_targets(filepath)
+
+    ctx.run(f"uv run ruff check --fix --unsafe-fixes {ruff_target}")
+    ctx.run(f"uv run ruff format {ruff_target}")
+
+    if mypy_target:
+        ctx.run(f"uv run mypy {mypy_target} --fixed-format-cache")
+
+    if jsonschema_files:
+        ctx.run(
+            f"uv run check-jsonschema --schemafile schema/config-schema.json {jsonschema_files}"
+        )
+    elif filepath is None:
+        # Full project lint - run jsonschema on all config files
+        ctx.run(
+            "uv run check-jsonschema --schemafile schema/config-schema.json "
+            "src/agentpool/config_resources/*.yml "
+            "docs/examples/**/config.yml"
+        )
+
+
+@duty(capture=False)
+def lint_check(ctx, filepath: str | None = None):  # noqa: D417
+    """Lint the code (check only, no fixes).
+
+    Args:
+        filepath: Optional path to a specific file to lint.
+                  If not provided, lints the entire project.
+    """
+    ruff_target, mypy_target, jsonschema_files = _get_lint_targets(filepath)
+
+    ctx.run(f"uv run ruff check {ruff_target}")
+    ctx.run(f"uv run ruff format --check {ruff_target}")
+
+    if mypy_target:
+        ctx.run(f"uv run mypy {mypy_target} --fixed-format-cache")
+
+    if jsonschema_files:
+        ctx.run(
+            f"uv run check-jsonschema --schemafile schema/config-schema.json {jsonschema_files}"
+        )
+    elif filepath is None:
+        # Full project lint - run jsonschema on all config files
+        ctx.run(
+            "uv run check-jsonschema --schemafile schema/config-schema.json "
+            "src/agentpool/config_resources/*.yml "
+            "docs/examples/**/config.yml"
+        )
 
 
 @duty(capture=False)
