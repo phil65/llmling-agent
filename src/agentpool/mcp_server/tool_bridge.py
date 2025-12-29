@@ -21,11 +21,9 @@ from uuid import uuid4
 import anyio
 from fastmcp import FastMCP
 from fastmcp.tools import Tool as FastMCPTool
-from llmling_models.models.helpers import infer_model
 from pydantic import BaseModel, HttpUrl
 
-from agentpool.agents import Agent, ClaudeCodeAgent
-from agentpool.agents.acp_agent.acp_agent import ACPAgent
+from agentpool.agents import Agent
 from agentpool.log import get_logger
 from agentpool.utils.signatures import filter_schema_params, get_params_matching_predicate
 
@@ -130,11 +128,11 @@ def _create_stub_run_context(ctx: AgentContext[Any]) -> RunContext[Any]:
     match ctx.agent:
         case Agent():
             model = ctx.agent._model or TestModel()
-        case ACPAgent() | ClaudeCodeAgent():
-            try:
-                model = infer_model(ctx.agent.model_name or "test")
-            except Exception:  # noqa: BLE001
-                model = TestModel()
+        # case ACPAgent() | ClaudeCodeAgent():
+        #     try:
+        #         model = infer_model(ctx.agent.model_name or "test")
+        #     except Exception:
+        #         model = TestModel()
         case _:
             model = TestModel()
     # Create a minimal usage object
