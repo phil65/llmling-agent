@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 import uuid
 
 from exxec.events import OutputEvent, ProcessCompletedEvent, ProcessErrorEvent, ProcessStartedEvent
@@ -71,7 +71,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
             ),
         ]
 
-    async def execute_code(self, agent_ctx: AgentContext, code: str) -> dict[str, Any]:  # noqa: D417
+    async def execute_code(self, agent_ctx: AgentContext, code: str) -> str:  # noqa: D417
         """Execute Python code and return the result.
 
         Args:
@@ -81,7 +81,6 @@ class ExecutionEnvironmentTools(ResourceProvider):
         output_parts: list[str] = []
         exit_code: int | None = None
         error_msg: str | None = None
-        duration: float | None = None
         try:
             async for event in self.get_env(agent_ctx).stream_code(code):
                 match event:
@@ -92,9 +91,8 @@ class ExecutionEnvironmentTools(ResourceProvider):
                         output_parts.append(data)
                         if process_id:
                             await agent_ctx.events.process_output(process_id, data)
-                    case ProcessCompletedEvent(exit_code=code_, duration=dur):
+                    case ProcessCompletedEvent(exit_code=code_):
                         exit_code = code_
-                        duration = dur
                         out = "".join(output_parts)
                         if process_id:
                             await agent_ctx.events.process_exit(
@@ -109,24 +107,29 @@ class ExecutionEnvironmentTools(ResourceProvider):
                             )
 
             combined_output = "".join(output_parts)
+
+            # Format as plain text for LLM
             if error_msg:
-                return {"error": error_msg, "output": combined_output, "exit_code": exit_code}
+                return f"{combined_output}\n\nError: {error_msg}\nExit code: {exit_code}"
 
         except Exception as e:  # noqa: BLE001
             error_id = process_id or f"code_{uuid.uuid4().hex[:8]}"
             await agent_ctx.events.process_started(
                 error_id, "execute_code", success=False, error=str(e)
             )
-            return {"error": f"Error executing code: {e}"}
+            return f"Error executing code: {e}"
         else:
-            return {"output": combined_output, "exit_code": exit_code, "duration": duration}
+            # Return just output if success, add exit code only if non-zero
+            if exit_code and exit_code != 0:
+                return f"{combined_output}\n\nExit code: {exit_code}"
+            return combined_output
 
     async def execute_command(  # noqa: PLR0915, D417
         self,
         agent_ctx: AgentContext,
         command: str,
         output_limit: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> str:
         """Execute a shell command and return the output.
 
         Args:
@@ -139,7 +142,6 @@ class ExecutionEnvironmentTools(ResourceProvider):
         stderr_parts: list[str] = []
         exit_code: int | None = None
         error_msg: str | None = None
-        duration: float | None = None
         try:
             async for event in self.get_env(agent_ctx).stream_command(command):
                 match event:
@@ -158,9 +160,8 @@ class ExecutionEnvironmentTools(ResourceProvider):
                             await agent_ctx.events.process_output(pid, data)
                         else:
                             logger.warning("OutputEvent missing process_id", stream=stream)
-                    case ProcessCompletedEvent(process_id=pid, exit_code=code_, duration=dur):
+                    case ProcessCompletedEvent(process_id=pid, exit_code=code_):
                         exit_code = code_
-                        duration = dur
                         combined = "".join(stdout_parts) + "".join(stderr_parts)
                         if pid:
                             await agent_ctx.events.process_exit(
@@ -175,6 +176,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
 
             stdout = "".join(stdout_parts)
             stderr = "".join(stderr_parts)
+
             # Apply output limit if specified
             truncated = False
             if output_limit:
@@ -186,26 +188,33 @@ class ExecutionEnvironmentTools(ResourceProvider):
                     out = stderr.encode()[-output_limit:].decode(errors="ignore")
                     stderr = "...[truncated]\n" + out
                     truncated = True
+
+            # Format as plain text for LLM
             if error_msg:
-                return {
-                    "error": error_msg,
-                    "stdout": stdout,
-                    "stderr": stderr,
-                    "exit_code": exit_code,
-                }
+                output = stdout + stderr if stdout or stderr else ""
+                return f"{output}\n\nError: {error_msg}\nExit code: {exit_code}"
+
         except Exception as e:  # noqa: BLE001
             # Use process_id from events if available, otherwise generate fallback
             error_id = process_id or f"cmd_{uuid.uuid4().hex[:8]}"
             await agent_ctx.events.process_started(error_id, command, success=False, error=str(e))
-            return {"success": False, "error": f"Error executing command: {e}"}
+            return f"Error executing command: {e}"
         else:
-            return {
-                "stdout": stdout,
-                "stderr": stderr,
-                "exit_code": exit_code,
-                "duration": duration,
-                "truncated": truncated,
-            }
+            # Combine stdout and stderr for output
+            output = stdout
+            if stderr:
+                output = f"{stdout}\n\nSTDERR:\n{stderr}" if stdout else f"STDERR:\n{stderr}"
+
+            # Add metadata only when relevant
+            suffix_parts = []
+            if truncated:
+                suffix_parts.append("[output truncated]")
+            if exit_code and exit_code != 0:
+                suffix_parts.append(f"Exit code: {exit_code}")
+
+            if suffix_parts:
+                return f"{output}\n\n{' | '.join(suffix_parts)}"
+            return output
 
     async def start_process(  # noqa: D417
         self,
@@ -215,7 +224,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
         cwd: str | None = None,
         env: dict[str, str] | None = None,
         output_limit: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> str:
         """Start a command in the background and return process ID.
 
         Args:
@@ -238,17 +247,12 @@ class ExecutionEnvironmentTools(ResourceProvider):
 
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.process_started("", command, success=False, error=str(e))
-            return {"error": f"Failed to start process: {e}"}
+            return f"Failed to start process: {e}"
         else:
-            return {
-                "process_id": process_id,
-                "command": command,
-                "args": args or [],
-                "cwd": cwd,
-                "status": "started",
-            }
+            full_cmd = f"{command} {' '.join(args)}" if args else command
+            return f"Started background process {process_id}\nCommand: {full_cmd}"
 
-    async def get_process_output(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:  # noqa: D417
+    async def get_process_output(self, agent_ctx: AgentContext, process_id: str) -> str:  # noqa: D417
         """Get current output from a background process.
 
         Args:
@@ -258,26 +262,28 @@ class ExecutionEnvironmentTools(ResourceProvider):
         try:
             output = await manager.get_output(process_id)
             await agent_ctx.events.process_output(process_id, output.combined or "")
-            result: dict[str, Any] = {
-                "process_id": process_id,
-                "stdout": output.stdout or "",
-                "stderr": output.stderr or "",
-                "combined": output.combined or "",
-                "truncated": output.truncated,
-            }
-            if output.exit_code is not None:
-                result["exit_code"] = output.exit_code
-                result["status"] = "completed"
-            else:
-                result["status"] = "running"
-        except ValueError as e:
-            return {"error": str(e)}
-        except Exception as e:  # noqa: BLE001
-            return {"error": f"Error getting process output: {e}"}
-        else:
-            return result
 
-    async def wait_for_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:  # noqa: D417
+            combined = output.combined or ""
+            status = "completed" if output.exit_code is not None else "running"
+
+            # Format as plain text
+            suffix_parts = [f"Status: {status}"]
+            if output.exit_code is not None:
+                suffix_parts.append(f"Exit code: {output.exit_code}")
+            if output.truncated:
+                suffix_parts.append("[output truncated]")
+
+            return (
+                f"{combined}\n\n{' | '.join(suffix_parts)}"
+                if combined
+                else " | ".join(suffix_parts)
+            )
+        except ValueError as e:
+            return f"Error: {e}"
+        except Exception as e:  # noqa: BLE001
+            return f"Error getting process output: {e}"
+
+    async def wait_for_process(self, agent_ctx: AgentContext, process_id: str) -> str:  # noqa: D417
         """Wait for background process to complete and return final output.
 
         Args:
@@ -288,23 +294,25 @@ class ExecutionEnvironmentTools(ResourceProvider):
             exit_code = await manager.wait_for_exit(process_id)
             output = await manager.get_output(process_id)
             await agent_ctx.events.process_exit(process_id, exit_code, final_output=output.combined)
-
         except ValueError as e:
-            return {"error": str(e)}
+            return f"Error: {e}"
         except Exception as e:  # noqa: BLE001
-            return {"error": f"Error waiting for process: {e}"}
+            return f"Error waiting for process: {e}"
         else:
-            return {
-                "process_id": process_id,
-                "exit_code": exit_code,
-                "status": "completed",
-                "stdout": output.stdout or "",
-                "stderr": output.stderr or "",
-                "combined": output.combined or "",
-                "truncated": output.truncated,
-            }
+            combined = output.combined or ""
 
-    async def kill_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:  # noqa: D417
+            # Format as plain text
+            suffix_parts = []
+            if output.truncated:
+                suffix_parts.append("[output truncated]")
+            if exit_code != 0:
+                suffix_parts.append(f"Exit code: {exit_code}")
+
+            if suffix_parts:
+                return f"{combined}\n\n{' | '.join(suffix_parts)}"
+            return combined
+
+    async def kill_process(self, agent_ctx: AgentContext, process_id: str) -> str:  # noqa: D417
         """Terminate a background process.
 
         Args:
@@ -315,18 +323,14 @@ class ExecutionEnvironmentTools(ResourceProvider):
             await agent_ctx.events.process_killed(process_id=process_id, success=True)
         except ValueError as e:
             await agent_ctx.events.process_killed(process_id, success=False, error=str(e))
-            return {"error": str(e)}
+            return f"Error: {e}"
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.process_killed(process_id, success=False, error=str(e))
-            return {"error": f"Error killing process: {e}"}
+            return f"Error killing process: {e}"
         else:
-            return {
-                "process_id": process_id,
-                "status": "killed",
-                "message": f"Process {process_id} has been terminated",
-            }
+            return f"Process {process_id} has been terminated"
 
-    async def release_process(self, agent_ctx: AgentContext, process_id: str) -> dict[str, Any]:  # noqa: D417
+    async def release_process(self, agent_ctx: AgentContext, process_id: str) -> str:  # noqa: D417
         """Release resources for a background process.
 
         Args:
@@ -335,47 +339,39 @@ class ExecutionEnvironmentTools(ResourceProvider):
         try:
             await self.get_env(agent_ctx).process_manager.release_process(process_id)
             await agent_ctx.events.process_released(process_id=process_id, success=True)
-
         except ValueError as e:
             await agent_ctx.events.process_released(process_id, success=False, error=str(e))
-            return {"error": str(e)}
+            return f"Error: {e}"
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.process_released(process_id, success=False, error=str(e))
-            return {"error": f"Error releasing process: {e}"}
+            return f"Error releasing process: {e}"
         else:
-            return {
-                "process_id": process_id,
-                "status": "released",
-                "message": f"Process {process_id} resources have been released",
-            }
+            return f"Process {process_id} resources have been released"
 
-    async def list_processes(self, agent_ctx: AgentContext) -> dict[str, Any]:
+    async def list_processes(self, agent_ctx: AgentContext) -> str:
         """List all active background processes."""
         env = self.get_env(agent_ctx)
         try:
             process_ids = await env.process_manager.list_processes()
             if not process_ids:
-                return {"processes": [], "count": 0, "message": "No active processes"}
+                return "No active background processes"
 
-            processes = []
+            lines = [f"Active processes ({len(process_ids)}):"]
             for process_id in process_ids:
                 try:
                     info = await env.process_manager.get_process_info(process_id)
-                    processes.append({
-                        "process_id": process_id,
-                        "command": info["command"],
-                        "args": info.get("args", []),
-                        "cwd": info.get("cwd"),
-                        "is_running": info.get("is_running", False),
-                        "exit_code": info.get("exit_code"),
-                        "created_at": info.get("created_at"),
-                    })
+                    command = info["command"]
+                    args = info.get("args", [])
+                    full_cmd = f"{command} {' '.join(args)}" if args else command
+                    status = "running" if info.get("is_running", False) else "stopped"
+                    exit_code = info.get("exit_code")
+                    status_str = (
+                        f"{status}" if exit_code is None else f"{status} (exit {exit_code})"
+                    )
+                    lines.append(f"  - {process_id}: {full_cmd} [{status_str}]")
                 except Exception as e:  # noqa: BLE001
-                    processes.append({
-                        "process_id": process_id,
-                        "error": f"Error getting info: {e}",
-                    })
+                    lines.append(f"  - {process_id}: [error getting info: {e}]")
 
-            return {"processes": processes, "count": len(processes)}
+            return "\n".join(lines)
         except Exception as e:  # noqa: BLE001
-            return {"error": f"Error listing processes: {e}"}
+            return f"Error listing processes: {e}"
