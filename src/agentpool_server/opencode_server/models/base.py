@@ -4,6 +4,13 @@ from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 
+def convert(text: str) -> str:
+    val = to_camel(text)
+    if val.endswith("Id"):
+        return val.rstrip("Id") + "ID"
+    return val
+
+
 class OpenCodeBaseModel(BaseModel):
     """Base model with OpenCode-compatible configuration.
 
@@ -14,6 +21,6 @@ class OpenCodeBaseModel(BaseModel):
 
     model_config = ConfigDict(
         populate_by_name=True,
-        alias_generator=to_camel,
+        alias_generator=convert,
         use_attribute_docstrings=True,
     )
