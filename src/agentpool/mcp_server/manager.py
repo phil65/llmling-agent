@@ -64,7 +64,7 @@ class MCPManager:
 
     async def __aenter__(self) -> Self:
         try:
-            if tasks := [self._setup_server(server) for server in self.servers]:
+            if tasks := [self.setup_server(server) for server in self.servers]:
                 await asyncio.gather(*tasks)
         except Exception as e:
             await self.__aexit__(type(e), e, e.__traceback__)
@@ -123,10 +123,30 @@ class MCPManager:
             logger.exception("Sampling failed")
             return f"Sampling failed: {e!s}"
 
-    async def _setup_server(self, config: MCPServerConfig) -> None:
-        """Set up a single MCP server resource provider."""
+    async def setup_server(
+        self, config: MCPServerConfig, *, add_to_config: bool = False
+    ) -> MCPResourceProvider | None:
+        """Set up a single MCP server resource provider.
+
+        Args:
+            config: MCP server configuration
+            add_to_config: If True, also add config to self.servers list and
+                          raise ValueError if config is disabled
+
+        Returns:
+            The provider if created, None if config is disabled (only when add_to_config=False)
+
+        Raises:
+            ValueError: If add_to_config=True and config is disabled
+        """
         if not config.enabled:
-            return
+            if add_to_config:
+                msg = f"Server config {config.client_id} is disabled"
+                raise ValueError(msg)
+            return None
+
+        if add_to_config:
+            self.add_server_config(config)
 
         provider = MCPResourceProvider(
             server=config,
@@ -138,6 +158,7 @@ class MCPManager:
         )
         provider = await self.exit_stack.enter_async_context(provider)
         self.providers.append(provider)
+        return provider
 
     def get_mcp_providers(self) -> list[MCPResourceProvider]:
         """Get all MCP resource providers managed by this manager."""
@@ -146,33 +167,6 @@ class MCPManager:
     def get_aggregating_provider(self) -> AggregatingResourceProvider:
         """Get the aggregating provider that contains all MCP providers."""
         return self.aggregating_provider
-
-    async def setup_server_runtime(self, config: MCPServerConfig) -> MCPResourceProvider:
-        """Set up a single MCP server at runtime while manager is running.
-
-        Returns:
-            The newly created and initialized MCPResourceProvider
-        """
-        if not config.enabled:
-            msg = f"Server config {config.client_id} is disabled"
-            raise ValueError(msg)
-
-        # Add the config first
-        self.add_server_config(config)
-        provider = MCPResourceProvider(
-            server=config,
-            name=f"{self.name}_{config.client_id}",
-            owner=self.owner,
-            source="pool" if self.owner == "pool" else "node",
-            sampling_callback=self._sampling_callback,
-            accessible_roots=self._accessible_roots,
-        )
-        provider = await self.exit_stack.enter_async_context(provider)
-        self.providers.append(provider)
-        # Note: AggregatingResourceProvider automatically sees the new provider
-        # since it references self.providers list
-
-        return provider
 
     async def cleanup(self) -> None:
         """Clean up all MCP connections and providers."""

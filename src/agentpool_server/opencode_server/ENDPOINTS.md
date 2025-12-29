@@ -134,7 +134,7 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | [~] | GET | `/lsp` | Get LSP server status |
 | [~] | GET | `/formatter` | Get formatter status |
 | [~] | GET | `/mcp` | Get MCP server status |
-| [ ] | POST | `/mcp` | Add MCP server dynamically |
+| [x] | POST | `/mcp` | Add MCP server dynamically |
 
 ---
 

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
@@ -103,6 +104,86 @@ async def get_mcp_status(state: StateDep) -> dict[str, MCPStatus]:
         pass
 
     return result
+
+
+class AddMCPServerRequest(BaseModel):
+    """Request to add an MCP server dynamically."""
+
+    command: str | None = None
+    """Command to run (for stdio servers)."""
+
+    args: list[str] | None = None
+    """Arguments for the command."""
+
+    url: str | None = None
+    """URL for HTTP/SSE servers."""
+
+    env: dict[str, str] | None = None
+    """Environment variables for the server."""
+
+
+@router.post("/mcp")
+async def add_mcp_server(request: AddMCPServerRequest, state: StateDep) -> MCPStatus:
+    """Add an MCP server dynamically.
+
+    Supports stdio servers (command + args) or HTTP/SSE servers (url).
+    """
+    from agentpool.mcp_server.manager import MCPManager
+    from agentpool.resource_providers import AggregatingResourceProvider
+    from agentpool_config.mcp_server import (
+        SSEMCPServerConfig,
+        StdioMCPServerConfig,
+        StreamableHTTPMCPServerConfig,
+    )
+
+    if state.agent is None or not hasattr(state.agent, "tools"):
+        raise HTTPException(status_code=400, detail="No agent configured")
+
+    # Build the config based on request
+    # Note: client_id is auto-generated from command/url, custom names not supported
+    config: SSEMCPServerConfig | StdioMCPServerConfig | StreamableHTTPMCPServerConfig
+    if request.url:
+        # HTTP-based server
+        if request.url.endswith("/sse"):
+            config = SSEMCPServerConfig(url=request.url)
+        else:
+            config = StreamableHTTPMCPServerConfig(url=request.url)
+    elif request.command:
+        # Stdio server
+        config = StdioMCPServerConfig(
+            command=request.command,
+            args=request.args or [],
+            env=request.env,
+        )
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Must provide either 'command' (for stdio) or 'url' (for HTTP/SSE)",
+        )
+
+    # Find the MCPManager and add the server
+    manager: MCPManager | None = None
+    for provider in state.agent.tools.external_providers:
+        if isinstance(provider, MCPManager):
+            manager = provider
+            break
+        if isinstance(provider, AggregatingResourceProvider):
+            for nested in provider.providers:
+                if isinstance(nested, MCPManager):
+                    manager = nested
+                    break
+
+    if manager is None:
+        raise HTTPException(status_code=400, detail="No MCP manager available")
+
+    try:
+        await manager.setup_server(config, add_to_config=True)
+        return MCPStatus(name=config.client_id, status="connected")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to add MCP server: {e}",
+        ) from e
 
 
 @router.post("/log")
