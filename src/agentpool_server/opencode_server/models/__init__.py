@@ -9,7 +9,6 @@ from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import (
     TimeCreated,
     TimeCreatedUpdated,
-    TimeStartEnd,
 )
 from agentpool_server.opencode_server.models.app import (
     App,
@@ -60,6 +59,10 @@ from agentpool_server.opencode_server.models.parts import (
     StepFinishPart,
     StepStartPart,
     TextPart,
+    TimeStart,
+    TimeStartEnd,
+    TimeStartEndCompacted,
+    TimeStartEndOptional,
     ToolPart,
     ToolState,
     ToolStateCompleted,
@@ -179,7 +182,11 @@ __all__ = [
     # Common
     "TimeCreated",
     "TimeCreatedUpdated",
+    # Time types (from parts.py)
+    "TimeStart",
     "TimeStartEnd",
+    "TimeStartEndCompacted",
+    "TimeStartEndOptional",
     "Todo",
     "Tokens",
     "TokensCache",

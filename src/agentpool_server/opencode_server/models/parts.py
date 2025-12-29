@@ -7,7 +7,46 @@ from typing import Any, Literal
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
-from agentpool_server.opencode_server.models.common import TimeStartEnd  # noqa: TC001
+
+
+class TimeStart(OpenCodeBaseModel):
+    """Time with only start (milliseconds).
+
+    Used by: ToolStateRunning
+    """
+
+    start: int
+
+
+class TimeStartEnd(OpenCodeBaseModel):
+    """Time with start and end, both required (milliseconds).
+
+    Used by: ToolStateError
+    """
+
+    start: int
+    end: int
+
+
+class TimeStartEndOptional(OpenCodeBaseModel):
+    """Time with start required and end optional (milliseconds).
+
+    Used by: TextPart
+    """
+
+    start: int
+    end: int | None = None
+
+
+class TimeStartEndCompacted(OpenCodeBaseModel):
+    """Time with start, end required, and optional compacted (milliseconds).
+
+    Used by: ToolStateCompleted
+    """
+
+    start: int
+    end: int
+    compacted: int | None = None
 
 
 class TextPart(OpenCodeBaseModel):
@@ -20,7 +59,7 @@ class TextPart(OpenCodeBaseModel):
     text: str
     synthetic: bool | None = None
     ignored: bool | None = None
-    time: TimeStartEnd | None = None
+    time: TimeStartEndOptional | None = None
     metadata: dict[str, Any] | None = None
 
 
@@ -32,12 +71,6 @@ class ToolStatePending(OpenCodeBaseModel):
     raw: str = ""
 
 
-class TimeStart(OpenCodeBaseModel):
-    """Time with only start (milliseconds)."""
-
-    start: int
-
-
 class ToolStateRunning(OpenCodeBaseModel):
     """Running tool state."""
 
@@ -46,14 +79,6 @@ class ToolStateRunning(OpenCodeBaseModel):
     input: dict[str, Any] = Field(default_factory=dict)
     metadata: dict[str, Any] | None = None
     title: str | None = None
-
-
-class TimeStartEndCompacted(OpenCodeBaseModel):
-    """Time with start, end, and optional compacted (milliseconds)."""
-
-    start: int
-    end: int
-    compacted: int | None = None
 
 
 class ToolStateCompleted(OpenCodeBaseModel):

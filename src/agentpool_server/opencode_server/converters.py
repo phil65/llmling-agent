@@ -9,7 +9,9 @@ from pydantic_ai import TextPart as PydanticTextPart, ToolCallPart as PydanticTo
 
 from agentpool_server.opencode_server.models import (
     TextPart,
+    TimeStart,
     TimeStartEnd,
+    TimeStartEndCompacted,
     ToolPart,
     ToolStateCompleted,
     ToolStateError,
@@ -116,7 +118,7 @@ def convert_pydantic_tool_return_part(
             title=f"Completed {part.tool_name}",
             input=existing_input,
             output=output,
-            time=TimeStartEnd(start=now_ms() - 1000, end=now_ms()),
+            time=TimeStartEndCompacted(start=now_ms() - 1000, end=now_ms()),
         )
 
     return ToolPart(
@@ -189,7 +191,7 @@ def convert_tool_progress_event(
         call_id=existing_part.call_id,
         state=ToolStateRunning(
             status="running",
-            time=TimeStartEnd(start=now_ms()),
+            time=TimeStart(start=now_ms()),
             title=event.title or _get_title_from_state(existing_part.state),
             input=_get_input_from_state(existing_part.state),
         ),
@@ -228,7 +230,7 @@ def convert_tool_complete_event(
             title=f"Completed {existing_part.tool}",
             input=existing_input,
             output=output,
-            time=TimeStartEnd(start=now_ms() - 1000, end=now_ms()),
+            time=TimeStartEndCompacted(start=now_ms() - 1000, end=now_ms()),
         )
 
     return ToolPart(
