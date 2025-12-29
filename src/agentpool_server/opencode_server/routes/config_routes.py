@@ -196,10 +196,7 @@ async def get_providers(state: StateDep) -> ProvidersResponse:
     if not providers:
         providers = _get_dummy_providers()
 
-    return ProvidersResponse(
-        providers=providers,
-        default={},
-    )
+    return ProvidersResponse(providers=providers)
 
 
 @router.get("/provider")
