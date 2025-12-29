@@ -10,11 +10,7 @@ from typing import TYPE_CHECKING, Any
 from fastapi import APIRouter, HTTPException, Query
 
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
-from agentpool_server.opencode_server.models import (
-    FileContent,
-    FileNode,
-    FindMatch,
-)
+from agentpool_server.opencode_server.models import FileContent, FileNode, FindMatch
 from agentpool_server.opencode_server.models.file import SubmatchInfo, TextWrapper
 
 
@@ -38,10 +34,10 @@ def _get_fs(state: StateDep) -> tuple[AsyncFileSystem, str] | None:
         Tuple of (filesystem, base_path) or None if not available.
         base_path is the root directory to use for operations.
     """
-    if state.agent is not None and hasattr(state.agent, "env"):
+    if state.agent is not None:
         try:
             fs = state.agent.env.get_fs()
-            # Use env's root_path/cwd if set, otherwise use state.working_dir
+            # Use env's cwd if set, otherwise use state.working_dir
             env = state.agent.env
             base_path = env.cwd or state.working_dir
         except NotImplementedError:
@@ -53,10 +49,7 @@ def _get_fs(state: StateDep) -> tuple[AsyncFileSystem, str] | None:
 
 
 @router.get("/file")
-async def list_files(
-    state: StateDep,
-    path: str = Query(default=""),
-) -> list[FileNode]:
+async def list_files(state: StateDep, path: str = Query(default="")) -> list[FileNode]:
     """List files in a directory."""
     fs_info = _get_fs(state)
 
@@ -82,14 +75,7 @@ async def list_files(
                     rel_path = full_name[len(base_path) :].lstrip("/")
                 else:
                     rel_path = name
-                nodes.append(
-                    FileNode(
-                        name=name,
-                        path=rel_path or name,
-                        type=node_type,
-                        size=size,
-                    )
-                )
+                nodes.append(FileNode(name=name, path=rel_path or name, type=node_type, size=size))
             return sorted(nodes, key=lambda n: (n.type != "directory", n.name.lower()))
         except FileNotFoundError as err:
             raise HTTPException(status_code=404, detail="Directory not found") from err
@@ -105,23 +91,14 @@ async def list_files(
         for entry in target_p.iterdir():
             node_type = "directory" if entry.is_dir() else "file"
             size = entry.stat().st_size if entry.is_file() else None
-            nodes.append(
-                FileNode(
-                    name=entry.name,
-                    path=str(entry.relative_to(working_path)),
-                    type=node_type,
-                    size=size,
-                )
-            )
+            rel_path = str(entry.relative_to(working_path))
+            nodes.append(FileNode(name=entry.name, path=rel_path, type=node_type, size=size))
 
         return sorted(nodes, key=lambda n: (n.type != "directory", n.name.lower()))
 
 
 @router.get("/file/content")
-async def read_file(
-    state: StateDep,
-    path: str = Query(),
-) -> FileContent:
+async def read_file(state: StateDep, path: str = Query()) -> FileContent:
     """Read a file's content."""
     fs_info = _get_fs(state)
 
@@ -165,10 +142,7 @@ async def get_file_status(state: StateDep) -> list[dict[str, Any]]:
 
 
 @router.get("/find")
-async def find_text(
-    state: StateDep,
-    pattern: str = Query(),
-) -> list[FindMatch]:
+async def find_text(state: StateDep, pattern: str = Query()) -> list[FindMatch]:  # noqa: PLR0915
     """Search for text pattern in files using regex."""
     try:
         regex = re.compile(pattern)
@@ -209,19 +183,20 @@ async def find_text(
 
                         for line_num, line in enumerate(content.splitlines(), 1):
                             for match in regex.finditer(line):
+                                submatches = [
+                                    SubmatchInfo(
+                                        match=TextWrapper(text=match.group()),
+                                        start=match.start(),
+                                        end=match.end(),
+                                    )
+                                ]
                                 matches.append(
                                     FindMatch(
                                         path=TextWrapper(text=rel_path),
                                         lines=TextWrapper(text=line.strip()),
                                         line_number=line_num,
                                         absolute_offset=match.start(),
-                                        submatches=[
-                                            SubmatchInfo(
-                                                match=TextWrapper(text=match.group()),
-                                                start=match.start(),
-                                                end=match.end(),
-                                            )
-                                        ],
+                                        submatches=submatches,
                                     )
                                 )
                                 if len(matches) >= max_matches:
@@ -253,19 +228,20 @@ async def find_text(
                         for line_num, line in enumerate(content.splitlines(), 1):
                             for match in regex.finditer(line):
                                 rel_path = str(entry.relative_to(working_path))
+                                submatches = [
+                                    SubmatchInfo(
+                                        match=TextWrapper(text=match.group()),
+                                        start=match.start(),
+                                        end=match.end(),
+                                    )
+                                ]
                                 matches.append(
                                     FindMatch(
                                         path=TextWrapper(text=rel_path),
                                         lines=TextWrapper(text=line.strip()),
                                         line_number=line_num,
                                         absolute_offset=match.start(),
-                                        submatches=[
-                                            SubmatchInfo(
-                                                match=TextWrapper(text=match.group()),
-                                                start=match.start(),
-                                                end=match.end(),
-                                            )
-                                        ],
+                                        submatches=submatches,
                                     )
                                 )
                                 if len(matches) >= max_matches:
@@ -341,10 +317,7 @@ async def find_files(
 
 
 @router.get("/find/symbol")
-async def find_symbols(
-    state: StateDep,
-    query: str = Query(),
-) -> list[Symbol]:
+async def find_symbols(state: StateDep, query: str = Query()) -> list[Symbol]:
     """Find workspace symbols.
 
     Returns empty list - LSP symbol search not yet implemented.
