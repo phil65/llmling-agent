@@ -82,6 +82,7 @@ if TYPE_CHECKING:
     from acp import Client, RequestPermissionResponse
     from acp.schema import (
         AvailableCommandsUpdate,
+        ConfigOptionUpdate,
         ContentBlock,
         Implementation,
         McpServer,
@@ -307,17 +308,18 @@ class ACPSession:
         self.log.info("Created ACP session", current_agent=self.current_agent_name)
 
     async def _on_state_updated(
-        self, state: ModeInfo | ModelInfo | AvailableCommandsUpdate
+        self, state: ModeInfo | ModelInfo | AvailableCommandsUpdate | ConfigOptionUpdate
     ) -> None:
         """Handle state update signal from agent - forward to ACP client."""
         from acp.schema import (
             AvailableCommandsUpdate as ACPAvailableCommandsUpdate,
+            ConfigOptionUpdate as ACPConfigOptionUpdate,
             CurrentModelUpdate,
             CurrentModeUpdate,
             SessionNotification,
         )
 
-        update: CurrentModeUpdate | CurrentModelUpdate | ACPAvailableCommandsUpdate
+        update: CurrentModeUpdate | CurrentModelUpdate | ACPConfigOptionUpdate
         match state:
             case ModeInfo(id=mode_id):
                 update = CurrentModeUpdate(current_mode_id=mode_id)
@@ -331,6 +333,9 @@ class ACPSession:
                 await self.send_available_commands_update()
                 self.log.debug("Merged and sent commands update to client")
                 return
+            case ACPConfigOptionUpdate():
+                update = state
+                self.log.debug("Forwarding config option update to client")
 
         notification = SessionNotification(session_id=self.session_id, update=update)
         await self.client.session_update(notification)

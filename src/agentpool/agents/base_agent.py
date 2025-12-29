@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
     from tokonomics.model_discovery.model_info import ModelInfo
 
-    from acp.schema import AvailableCommandsUpdate
+    from acp.schema import AvailableCommandsUpdate, ConfigOptionUpdate
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory, ModeInfo
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from agentpool_config.mcp_server import MCPServerConfig
 
     # Union type for state updates emitted via state_updated signal
-    type StateUpdate = ModeInfo | ModelInfo | AvailableCommandsUpdate
+    type StateUpdate = ModeInfo | ModelInfo | AvailableCommandsUpdate | ConfigOptionUpdate
 
 
 logger = get_logger(__name__)

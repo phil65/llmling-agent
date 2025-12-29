@@ -160,7 +160,7 @@ class ACPClientHandler(Client):
                 return
 
             case ConfigOptionUpdate():
-                # Config updates - just log for now, could store in state if needed
+                await self._agent.state_updated.emit(update)
                 logger.debug("Config option updated", update=update)
                 self._update_event.set()
                 return
