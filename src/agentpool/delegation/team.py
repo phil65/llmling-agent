@@ -176,6 +176,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
             name=self.name,
             message_id=message_id,
             conversation_id=user_msg.conversation_id,
+            parent_id=user_msg.message_id,
             metadata={
                 "agent_names": [r.agent_name for r in result],
                 "errors": {name: str(error) for name, error in result.errors.items()},

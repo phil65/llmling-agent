@@ -230,6 +230,7 @@ def format_conversation(
                     },
                     cost=float(msg.cost_info.total_cost) if msg.cost_info else None,
                     response_time=msg.response_time,
+                    parent_id=msg.parent_id,
                 )
                 for msg in chat_messages
             ],

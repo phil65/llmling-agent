@@ -196,6 +196,7 @@ class TextLogProvider(StorageProvider):
         provider_response_id: str | None = None,
         messages: str | None = None,
         finish_reason: str | None = None,
+        parent_id: str | None = None,
     ) -> None:
         """Store message and update log."""
         entry = {

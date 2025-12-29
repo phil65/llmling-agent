@@ -540,7 +540,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         else:
             handler = self.event_handler
         # Prepare user message for history and convert to ACP content blocks
-        user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
+        # Get parent_id from last message in history for tree structure
+        last_msg_id = conversation.get_last_message_id()
+        user_msg, processed_prompts, _original_message = await prepare_prompts(
+            *prompts, parent_id=last_msg_id
+        )
         run_id = str(uuid.uuid4())
         self._state.clear()  # Reset state
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ...
@@ -646,6 +650,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 name=self.name,
                 message_id=message_id or str(uuid.uuid4()),
                 conversation_id=self.conversation_id,
+                parent_id=user_msg.message_id,
                 model_name=self.model_name,
                 messages=model_messages,
                 metadata=metadata,
@@ -680,6 +685,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             name=self.name,
             message_id=message_id or str(uuid.uuid4()),
             conversation_id=self.conversation_id,
+            parent_id=user_msg.message_id,
             model_name=self.model_name,
             messages=model_messages,
             metadata=metadata,

@@ -477,6 +477,18 @@ class MessageHistory:
         # Use cost_info if available
         return self.chat_messages.get_history_tokens()
 
+    def get_last_message_id(self) -> str | None:
+        """Get the message_id of the last message in history.
+
+        Used for setting parent_id on new messages to build the message tree.
+
+        Returns:
+            The message_id of the last message, or None if history is empty.
+        """
+        if not self.chat_messages:
+            return None
+        return self.chat_messages[-1].message_id
+
 
 if __name__ == "__main__":
     from agentpool import Agent

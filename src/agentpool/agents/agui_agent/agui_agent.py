@@ -396,7 +396,11 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._current_stream_task = asyncio.current_task()
 
         conversation = message_history if message_history is not None else self.conversation
-        user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
+        # Get parent_id from last message in history for tree structure
+        last_msg_id = conversation.get_last_message_id()
+        user_msg, processed_prompts, _original_message = await prepare_prompts(
+            *prompts, parent_id=last_msg_id
+        )
         self._run_id = str(uuid4())  # New run ID for each run
         self._chunk_transformer.reset()  # Reset chunk transformer
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ModelRequest...
@@ -594,6 +598,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 name=self.name,
                 message_id=message_id or str(uuid4()),
                 conversation_id=self.conversation_id,
+                parent_id=user_msg.message_id,
                 messages=model_messages,
                 finish_reason="stop",
                 metadata=file_tracker.get_metadata(),
@@ -624,6 +629,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             name=self.name,
             message_id=message_id or str(uuid4()),
             conversation_id=self.conversation_id,
+            parent_id=user_msg.message_id,
             messages=model_messages,
             metadata=file_tracker.get_metadata(),
         )

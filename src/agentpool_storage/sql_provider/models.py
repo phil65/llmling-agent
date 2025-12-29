@@ -127,6 +127,9 @@ class Message(AsyncAttrs, SQLModel, table=True):
     conversation_id: str = Field(index=True)
     """ID of the conversation this message belongs to"""
 
+    parent_id: str | None = Field(default=None, index=True)
+    """ID of the parent message for tree-structured conversations."""
+
     timestamp: datetime = Field(
         sa_column=Column(UTCDateTime, default=get_now), default_factory=get_now
     )

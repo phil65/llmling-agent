@@ -36,6 +36,9 @@ class MessageData(TypedDict):
     timestamp: str
     """When the message was sent (ISO format)"""
 
+    parent_id: str | None
+    """ID of the parent message for tree-structured conversations."""
+
     model: str | None
     """Name of the model that generated this message"""
 

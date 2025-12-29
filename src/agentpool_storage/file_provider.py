@@ -46,6 +46,7 @@ class MessageData(TypedDict):
     provider_response_id: str | None
     messages: str | None
     finish_reason: FinishReason | None
+    parent_id: str | None
 
 
 class ConversationData(TypedDict):
@@ -205,6 +206,7 @@ class FileProvider(StorageProvider):
         provider_response_id: str | None = None,
         messages: str | None = None,
         finish_reason: FinishReason | None = None,
+        parent_id: str | None = None,
     ) -> None:
         """Log a new message."""
         self._data["messages"].append({
@@ -227,6 +229,7 @@ class FileProvider(StorageProvider):
             "provider_response_id": provider_response_id,
             "messages": messages,
             "finish_reason": finish_reason,
+            "parent_id": parent_id,
         })
         self._save()
 

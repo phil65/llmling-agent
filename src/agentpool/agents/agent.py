@@ -776,7 +776,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             handler = self.event_handler
         message_id = message_id or str(uuid4())
         run_id = str(uuid4())
-        user_msg, prompts, original_message = await prepare_prompts(*prompt)
+        # Get parent_id from last message in history for tree structure
+        last_msg_id = conversation.get_last_message_id()
+        user_msg, prompts, original_message = await prepare_prompts(*prompt, parent_id=last_msg_id)
         self.message_received.emit(user_msg)
         start_time = time.perf_counter()
         history_list = conversation.get_history()
@@ -880,6 +882,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                     agent_name=self.name,
                                     message_id=message_id,
                                     conversation_id=conversation_id or user_msg.conversation_id,
+                                    parent_id=user_msg.message_id,
                                     response_time=response_time,
                                     metadata=file_tracker.get_metadata(),
                                 )
@@ -900,6 +903,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     name=self.name,
                     message_id=message_id,
                     conversation_id=conversation_id or user_msg.conversation_id,
+                    parent_id=user_msg.message_id,
                     response_time=response_time,
                     finish_reason="stop",
                 )

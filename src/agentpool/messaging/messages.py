@@ -199,6 +199,14 @@ class ChatMessage[TContent]:
     conversation_id: str | None = None
     """ID of the conversation this message belongs to."""
 
+    parent_id: str | None = None
+    """ID of the parent message for tree-structured conversations.
+
+    This enables branching conversations where each message knows its predecessor.
+    For user messages, this typically points to the previous assistant response.
+    For assistant responses, this points to the user message being responded to.
+    """
+
     response_time: float | None = None
     """Time it took the LLM to respond."""
 
@@ -296,12 +304,29 @@ class ChatMessage[TContent]:
         message: TPromptContent,
         conversation_id: str | None = None,
         instructions: str | None = None,
+        parent_id: str | None = None,
     ) -> ChatMessage[TPromptContent]:
-        """Create a user prompt message."""
+        """Create a user prompt message.
+
+        Args:
+            message: The prompt content
+            conversation_id: ID of the conversation
+            instructions: Optional instructions for the model
+            parent_id: ID of the parent message (typically the previous assistant response)
+
+        Returns:
+            A ChatMessage representing the user prompt
+        """
         part = UserPromptPart(content=message)
         request = ModelRequest(parts=[part], instructions=instructions)
         id_ = conversation_id or str(uuid4())
-        return ChatMessage(messages=[request], role="user", content=message, conversation_id=id_)
+        return ChatMessage(
+            messages=[request],
+            role="user",
+            content=message,
+            conversation_id=id_,
+            parent_id=parent_id,
+        )
 
     @classmethod
     def from_pydantic_ai[TContentType](
@@ -311,6 +336,7 @@ class ChatMessage[TContent]:
         conversation_id: str | None = None,
         name: str | None = None,
         forwarded_from: list[str] | None = None,
+        parent_id: str | None = None,
     ) -> ChatMessage[TContentType]:
         """Convert a Pydantic model to a ChatMessage."""
         match message:
@@ -323,6 +349,7 @@ class ChatMessage[TContent]:
                     # instructions=instructions,
                     forwarded_from=forwarded_from or [],
                     name=name,
+                    parent_id=parent_id,
                 )
             case ModelResponse(
                 usage=usage,
@@ -349,6 +376,7 @@ class ChatMessage[TContent]:
                     provider_response_id=provider_response_id,
                     name=name,
                     forwarded_from=forwarded_from or [],
+                    parent_id=parent_id,
                 )
             case _ as unreachable:
                 assert_never(unreachable)
@@ -361,6 +389,7 @@ class ChatMessage[TContent]:
         agent_name: str | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
+        parent_id: str | None = None,
         response_time: float,
         metadata: SimpleJsonType | None = None,
     ) -> ChatMessage[OutputDataT]:
@@ -371,6 +400,7 @@ class ChatMessage[TContent]:
             agent_name: Name of the agent that generated this response
             message_id: Unique message identifier
             conversation_id: Conversation identifier
+            parent_id: ID of the parent message (typically the user message)
             response_time: Total time taken for the response
             metadata: Optional metadata to attach to the message
 
@@ -398,6 +428,7 @@ class ChatMessage[TContent]:
             provider_name=result.response.provider_name,
             message_id=message_id or str(uuid4()),
             conversation_id=conversation_id,
+            parent_id=parent_id,
             cost_info=cost_info,
             response_time=response_time,
             provider_details={},

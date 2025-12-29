@@ -120,6 +120,7 @@ class SQLModelProvider(StorageProvider):
         content: str,
         role: str,
         name: str | None = None,
+        parent_id: str | None = None,
         cost_info: TokenCost | None = None,
         model: str | None = None,
         response_time: float | None = None,
@@ -138,6 +139,7 @@ class SQLModelProvider(StorageProvider):
             msg = Message(
                 conversation_id=conversation_id,
                 id=message_id,
+                parent_id=parent_id,
                 content=content,
                 role=role,
                 name=name,

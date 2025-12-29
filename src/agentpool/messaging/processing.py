@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 async def prepare_prompts(
     *prompt: PromptCompatible | ChatMessage[Any],
+    parent_id: str | None = None,
 ) -> tuple[ChatMessage[Any], list[UserContent], ChatMessage[Any] | None]:
     """Prepare prompts for processing.
 
@@ -25,6 +26,7 @@ async def prepare_prompts(
 
     Args:
         *prompt: The prompt(s) to prepare.
+        parent_id: Optional ID of the parent message (typically the previous response).
 
     Returns:
         A tuple of:
@@ -41,7 +43,7 @@ async def prepare_prompts(
         # clear cost info to avoid double-counting
         return user_msg, prompts, original_msg
     prompts = await convert_prompts(prompt)
-    user_msg = ChatMessage.user_prompt(message=prompts)
+    user_msg = ChatMessage.user_prompt(message=prompts, parent_id=parent_id)
     return user_msg, prompts, None
 
 

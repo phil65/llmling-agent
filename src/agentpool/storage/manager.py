@@ -209,6 +209,7 @@ class StorageManager:
                     content=str(message.content),
                     role=message.role,
                     name=message.name,
+                    parent_id=message.parent_id,
                     cost_info=message.cost_info,
                     model=message.model_name,
                     response_time=message.response_time,

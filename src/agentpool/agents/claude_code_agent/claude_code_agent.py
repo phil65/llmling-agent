@@ -573,7 +573,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         else:
             handler = self.event_handler
         # Prepare prompts
-        user_msg, processed_prompts, _original_message = await prepare_prompts(*prompts)
+        # Get parent_id from last message in history for tree structure
+        last_msg_id = conversation.get_last_message_id()
+        user_msg, processed_prompts, _original_message = await prepare_prompts(
+            *prompts, parent_id=last_msg_id
+        )
         # Get pending parts from conversation (staged content)
         pending_parts = conversation.get_pending_parts()
         # Combine pending parts with new prompts, then join into single string for Claude SDK
@@ -907,6 +911,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 name=self.name,
                 message_id=message_id or str(uuid.uuid4()),
                 conversation_id=self.conversation_id,
+                parent_id=user_msg.message_id,
                 model_name=self.model_name,
                 messages=model_messages,
                 finish_reason="stop",
@@ -962,6 +967,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             name=self.name,
             message_id=message_id or str(uuid.uuid4()),
             conversation_id=self.conversation_id,
+            parent_id=user_msg.message_id,
             model_name=self.model_name,
             messages=model_messages,
             cost_info=cost_info,
