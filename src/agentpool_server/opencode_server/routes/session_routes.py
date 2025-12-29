@@ -634,11 +634,11 @@ async def share_session(
             role = "assistant" if role == "model" else "user"
 
         # Extract text parts
-        parts: list[MessagePart] = []
-        for part in msg_with_parts.parts:
-            if hasattr(part, "text") and part.text:
-                parts.append(MessagePart(type="text", text=part.text))
-
+        parts = [
+            MessagePart(type="text", text=part.text)
+            for part in msg_with_parts.parts
+            if isinstance(part, TextPart) and part.text
+        ]
         if parts:
             opencode_messages.append(Message(role=role, parts=parts))
 

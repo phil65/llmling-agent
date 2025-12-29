@@ -189,7 +189,7 @@ async def get_providers(state: StateDep) -> ProvidersResponse:
             toko_models = await state.agent.get_available_models()
             if toko_models:
                 providers = _build_providers(toko_models)
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass  # Fall through to dummy providers
 
     # Fall back to dummy providers if no models available
@@ -215,7 +215,7 @@ async def list_providers(state: StateDep) -> ProviderListResponse:
             toko_models = await state.agent.get_available_models()
             if toko_models:
                 providers = _build_providers(toko_models)
-        except Exception:
+        except Exception:  # noqa: BLE001
             pass  # Fall through to dummy providers
 
     # Fall back to dummy providers if no models available
