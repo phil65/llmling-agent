@@ -229,7 +229,8 @@ class CompactionConfig(Schema):
     """Use a predefined compaction pipeline.
 
     - minimal: Aggressively minimize context (filter thinking, truncate, keep last 10)
-    - balanced: Balance context preservation with size (filter thinking, truncate, keep first 2 + last 8)
+    - balanced: Balance context preservation with size (filter thinking, truncate,
+                keep first 2 + last 8)
     - summarizing: Summarize old messages (filter thinking, summarize when > 20 messages)
     """
 

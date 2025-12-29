@@ -223,7 +223,7 @@ class ToolListItem(BaseModel):
 
 
 @router.get("/experimental/tool")
-async def list_tools_with_schemas(
+async def list_tools_with_schemas(  # noqa: D417
     state: StateDep,
     provider: str | None = None,
     model: str | None = None,
@@ -258,9 +258,10 @@ async def list_tools_with_schemas(
                     parameters=parameters,
                 )
             )
-        return result
     except Exception:  # noqa: BLE001
         return []
+    else:
+        return result
 
 
 @router.get("/lsp")
