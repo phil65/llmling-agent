@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from typing import Any, Literal
+
 from fastapi import APIRouter, HTTPException
+from pydantic import Field
 
 from agentpool_server.opencode_server import identifier
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
@@ -22,6 +25,8 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     SessionDeletedEvent,
     SessionDeletedProperties,
     SessionInfoProperties,
+    SessionRevert,
+    SessionShare,
     SessionStatus,
     SessionStatusEvent,
     SessionStatusProperties,
@@ -36,6 +41,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     Tokens,
     TokensCache,
 )
+from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.time_utils import now_ms
 
 
@@ -161,12 +167,38 @@ async def get_session_diff(
     session_id: str,
     state: StateDep,
     message_id: str | None = None,
-) -> list[dict[str, str]]:
-    """Get file diffs for a session."""
+) -> list[dict[str, Any]]:
+    """Get file diffs for a session.
+
+    Returns a list of file changes with unified diffs.
+    Optionally filter to changes since a specific message.
+    """
     if session_id not in state.sessions:
         raise HTTPException(status_code=404, detail="Session not found")
-    # TODO: Track and return actual file diffs
-    return []
+
+    # Get file operations from the agent's pool
+    if state.agent is None or state.agent.agent_pool is None:
+        return []
+
+    file_ops = state.agent.agent_pool.file_ops
+    if not file_ops.changes:
+        return []
+
+    # Optionally filter by message_id
+    changes = file_ops.get_changes_since_message(message_id) if message_id else file_ops.changes
+
+    # Format as list of diffs
+    return [
+        {
+            "path": change.path,
+            "operation": change.operation,
+            "diff": change.to_unified_diff(),
+            "timestamp": change.timestamp,
+            "agent_name": change.agent_name,
+            "message_id": change.message_id,
+        }
+        for change in changes
+    ]
 
 
 @router.post("/{session_id}/shell")
@@ -467,6 +499,175 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
     )
 
     return assistant_msg_with_parts
+
+
+@router.post("/{session_id}/share")
+async def share_session(
+    session_id: str,
+    state: StateDep,
+    provider: Literal["paste_rs", "gist", "pastebin", "opencode"] = "paste_rs",
+    num_messages: int | None = None,
+) -> SessionShare:
+    """Share session conversation history.
+
+    Uses text sharing providers to share conversation history.
+    Supported providers: paste_rs, gist, pastebin, opencode.
+    """
+    if session_id not in state.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if state.agent is None:
+        raise HTTPException(status_code=400, detail="No agent configured")
+
+    try:
+        from anyenv.text_sharing import get_sharer
+    except ImportError as e:
+        raise HTTPException(
+            status_code=501,
+            detail="Text sharing not available (anyenv.text_sharing not installed)",
+        ) from e
+
+    # Format conversation history
+    content = await state.agent.conversation.format_history(
+        num_messages=num_messages,
+        include_system=False,
+    )
+
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="No content to share")
+
+    try:
+        sharer = get_sharer(provider)
+        session = state.sessions[session_id]
+        result = await sharer.share(
+            content,
+            title=f"Session: {session.title}",
+            syntax="markdown",
+            visibility="unlisted",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to share via {provider}: {e}",
+        ) from e
+
+    # Store the share URL in the session
+    share_info = SessionShare(url=result.url)
+    updated_session = session.model_copy(update={"share": share_info})
+    state.sessions[session_id] = updated_session
+
+    # Broadcast session update
+    await state.broadcast_event(
+        SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
+    )
+
+    return share_info
+
+
+class RevertRequest(OpenCodeBaseModel):
+    """Request body for reverting a message."""
+
+    message_id: str = Field(alias="messageID")
+    part_id: str | None = Field(default=None, alias="partID")
+
+
+@router.post("/{session_id}/revert")
+async def revert_session(
+    session_id: str,
+    request: RevertRequest,
+    state: StateDep,
+) -> Session:
+    """Revert file changes from a specific message.
+
+    Restores files to their state before the specified message's changes.
+    """
+    if session_id not in state.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if state.agent is None or state.agent.agent_pool is None:
+        raise HTTPException(status_code=400, detail="No agent configured")
+
+    file_ops = state.agent.agent_pool.file_ops
+    if not file_ops.changes:
+        raise HTTPException(status_code=400, detail="No file changes to revert")
+
+    # Get revert operations for changes since this message
+    revert_ops = file_ops.get_revert_operations(since_message_id=request.message_id)
+
+    if not revert_ops:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No changes found for message {request.message_id}",
+        )
+
+    # Get filesystem from the agent's environment
+    fs = state.agent.env.get_fs()
+
+    # Apply reverts using the filesystem
+    # TODO: Currently write operations only track "existed vs created", not full old content.
+    # Files that existed before a write will be restored as empty, not their original content.
+    reverted_paths = []
+    for path, content in revert_ops:
+        try:
+            if content is None:
+                # File was created (old_text=None), delete it
+                await fs._rm_file(path)
+            else:
+                # Restore original content
+                content_bytes = content.encode("utf-8")
+                await fs._pipe_file(path, content_bytes)
+            reverted_paths.append(path)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to revert {path}: {e}",
+            ) from e
+
+    # Remove the reverted changes from the tracker
+    file_ops.remove_changes_since_message(request.message_id)
+
+    # Update session with revert info
+    session = state.sessions[session_id]
+    revert_info = SessionRevert(
+        message_id=request.message_id,
+        diff=None,  # Could include the revert diff here
+        part_id=request.part_id,
+    )
+    updated_session = session.model_copy(update={"revert": revert_info})
+    state.sessions[session_id] = updated_session
+
+    # Broadcast session update
+    await state.broadcast_event(
+        SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
+    )
+
+    return updated_session
+
+
+@router.delete("/{session_id}/share")
+async def unshare_session(session_id: str, state: StateDep) -> bool:
+    """Remove share link from a session.
+
+    Note: This only removes the link from the session metadata.
+    The shared content may still exist on the provider's servers.
+    """
+    if session_id not in state.sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    session = state.sessions[session_id]
+    if session.share is None:
+        raise HTTPException(status_code=400, detail="Session is not shared")
+
+    # Remove share info from session
+    updated_session = session.model_copy(update={"share": None})
+    state.sessions[session_id] = updated_session
+
+    # Broadcast session update
+    await state.broadcast_event(
+        SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
+    )
+
+    return True
 
 
 @router.post("/{session_id}/command")

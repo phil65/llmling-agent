@@ -92,6 +92,20 @@ class StreamEventEmitter:
             items: Rich content items (terminals, diffs, locations, text)
             replace_content: If True, items replace existing content instead of appending
         """
+        # Record file changes from DiffContentItem for diff/revert support
+        if self._context.pool and self._context.pool.file_ops and items:
+            from agentpool.agents.events import DiffContentItem
+
+            for item in items:
+                if isinstance(item, DiffContentItem):
+                    self._context.pool.file_ops.record_change(
+                        path=item.path,
+                        old_content=item.old_text,
+                        new_content=item.new_text,
+                        operation="create" if item.old_text is None else "write",
+                        agent_name=self._context.node_name,
+                    )
+
         event = ToolCallProgressEvent(
             tool_call_id=self._context.tool_call_id or "",
             tool_name=self._context.tool_name,
@@ -166,6 +180,16 @@ class StreamEventEmitter:
             new_text: New file content
             status: Current status of the edit operation
         """
+        # Record file change for diff/revert support
+        if self._context.pool and self._context.pool.file_ops:
+            self._context.pool.file_ops.record_change(
+                path=path,
+                old_content=old_text,
+                new_content=new_text,
+                operation="edit",
+                agent_name=self._context.node_name,
+            )
+
         event = ToolCallProgressEvent.file_edit(
             tool_call_id=self._context.tool_call_id or "",
             tool_name=self._context.tool_name,

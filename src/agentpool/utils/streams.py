@@ -207,3 +207,271 @@ class FileTracker:
         if self.touched_files:
             return {"touched_files": sorted(self.touched_files)}
         return {}
+
+
+@dataclass
+class FileChange:
+    """Represents a single file change operation."""
+
+    path: str
+    """File path that was modified."""
+
+    old_content: str | None
+    """Content before change (None for new files)."""
+
+    new_content: str | None
+    """Content after change (None for deletions)."""
+
+    operation: str
+    """Type of operation: 'create', 'write', 'edit', 'delete'."""
+
+    timestamp: float = field(default_factory=lambda: __import__("time").time())
+    """Unix timestamp when the change occurred."""
+
+    message_id: str | None = None
+    """ID of the message that triggered this change (for revert-to-message)."""
+
+    agent_name: str | None = None
+    """Name of the agent that made this change."""
+
+    def to_unified_diff(self) -> str:
+        """Generate unified diff for this change.
+
+        Returns:
+            Unified diff string
+        """
+        import difflib
+
+        old_lines = (self.old_content or "").splitlines(keepends=True)
+        new_lines = (self.new_content or "").splitlines(keepends=True)
+
+        diff = difflib.unified_diff(
+            old_lines,
+            new_lines,
+            fromfile=f"a/{self.path}",
+            tofile=f"b/{self.path}",
+        )
+        return "".join(diff)
+
+
+@dataclass
+class FileOpsTracker:
+    r"""Tracks file operations with full content for diff/revert support.
+
+    Stores file changes with before/after content so they can be:
+    - Displayed as diffs
+    - Reverted to previous state
+    - Filtered by message ID
+
+    Example:
+        ```python
+        tracker = FileOpsTracker()
+
+        # Record a file edit
+        tracker.record_change(
+            path="src/main.py",
+            old_content="def foo(): pass",
+            new_content="def foo():\\n    return 42",
+            operation="edit",
+        )
+
+        # Get all diffs
+        for change in tracker.changes:
+            print(change.to_unified_diff())
+
+        # Revert all changes
+        for path, content in tracker.get_revert_operations():
+            write_file(path, content)
+        ```
+    """
+
+    changes: list[FileChange] = field(default_factory=list)
+    """List of all recorded file changes in order."""
+
+    def record_change(
+        self,
+        path: str,
+        old_content: str | None,
+        new_content: str | None,
+        operation: str,
+        message_id: str | None = None,
+        agent_name: str | None = None,
+    ) -> None:
+        """Record a file change.
+
+        Args:
+            path: File path that was modified
+            old_content: Content before change (None for new files)
+            new_content: Content after change (None for deletions)
+            operation: Type of operation ('create', 'write', 'edit', 'delete')
+            message_id: Optional message ID that triggered this change
+            agent_name: Optional name of the agent that made this change
+        """
+        self.changes.append(
+            FileChange(
+                path=path,
+                old_content=old_content,
+                new_content=new_content,
+                operation=operation,
+                message_id=message_id,
+                agent_name=agent_name,
+            )
+        )
+
+    def get_changes_for_path(self, path: str) -> list[FileChange]:
+        """Get all changes for a specific file path.
+
+        Args:
+            path: File path to filter by
+
+        Returns:
+            List of changes for the given path
+        """
+        return [c for c in self.changes if c.path == path]
+
+    def get_changes_since_message(self, message_id: str) -> list[FileChange]:
+        """Get all changes since (and including) a specific message.
+
+        Args:
+            message_id: Message ID to start from
+
+        Returns:
+            List of changes from the given message onwards
+        """
+        result = []
+        found = False
+        for change in self.changes:
+            if change.message_id == message_id:
+                found = True
+            if found:
+                result.append(change)
+        return result
+
+    def get_modified_paths(self) -> set[str]:
+        """Get set of all modified file paths.
+
+        Returns:
+            Set of file paths that have been modified
+        """
+        return {c.path for c in self.changes}
+
+    def get_current_state(self) -> dict[str, str | None]:
+        """Get the current state of all modified files.
+
+        For each file, returns the content after all changes have been applied.
+        Returns None for deleted files.
+
+        Returns:
+            Dict mapping path to current content (or None if deleted)
+        """
+        state: dict[str, str | None] = {}
+        for change in self.changes:
+            state[change.path] = change.new_content
+        return state
+
+    def get_original_state(self) -> dict[str, str | None]:
+        """Get the original state of all modified files.
+
+        For each file, returns the content before any changes were made.
+        Returns None for files that were created (didn't exist).
+
+        Returns:
+            Dict mapping path to original content (or None if created)
+        """
+        state: dict[str, str | None] = {}
+        for change in self.changes:
+            if change.path not in state:
+                state[change.path] = change.old_content
+        return state
+
+    def get_revert_operations(
+        self, since_message_id: str | None = None
+    ) -> list[tuple[str, str | None]]:
+        """Get operations needed to revert changes.
+
+        Returns list of (path, content) tuples in reverse order (newest first).
+        If content is None, the file should be deleted.
+
+        Args:
+            since_message_id: If provided, only revert changes from this message onwards.
+                              If None, revert all changes.
+
+        Returns:
+            List of (path, content_to_restore) tuples for revert
+        """
+        if since_message_id:
+            changes = self.get_changes_since_message(since_message_id)
+        else:
+            changes = self.changes
+
+        # Build map of path -> content to restore
+        # For each path, we need the old_content of the FIRST change in our subset
+        # (that's what the file looked like before any of these changes)
+        original_for_path: dict[str, str | None] = {}
+        for change in changes:
+            if change.path not in original_for_path:
+                original_for_path[change.path] = change.old_content
+
+        return list(original_for_path.items())
+
+    def get_combined_diff(self) -> str:
+        """Get combined unified diff of all changes.
+
+        Returns:
+            Combined diff string for all file changes
+        """
+        diffs = []
+        for change in self.changes:
+            diff = change.to_unified_diff()
+            if diff:
+                diffs.append(diff)
+        return "\n".join(diffs)
+
+    def clear(self) -> None:
+        """Clear all recorded changes."""
+        self.changes.clear()
+
+    def remove_changes_since_message(self, message_id: str) -> int:
+        """Remove all changes from a specific message onwards.
+
+        Args:
+            message_id: Message ID to start removal from
+
+        Returns:
+            Number of changes removed
+        """
+        # Find the index of the first change with this message_id
+        start_idx = None
+        for i, change in enumerate(self.changes):
+            if change.message_id == message_id:
+                start_idx = i
+                break
+
+        if start_idx is None:
+            return 0
+
+        removed_count = len(self.changes) - start_idx
+        self.changes = self.changes[:start_idx]
+        return removed_count
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization.
+
+        Returns:
+            Dict representation of all changes
+        """
+        return {
+            "changes": [
+                {
+                    "path": c.path,
+                    "operation": c.operation,
+                    "timestamp": c.timestamp,
+                    "message_id": c.message_id,
+                    "agent_name": c.agent_name,
+                    "has_old_content": c.old_content is not None,
+                    "has_new_content": c.new_content is not None,
+                }
+                for c in self.changes
+            ],
+            "modified_paths": sorted(self.get_modified_paths()),
+        }

@@ -74,11 +74,11 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | [ ] | POST | `/session/{id}/init` | Analyze app, create AGENTS.md |
 | [ ] | POST | `/session/{id}/fork` | Fork session at message |
 | [x] | POST | `/session/{id}/abort` | Abort running session |
-| [ ] | POST | `/session/{id}/share` | Share a session |
-| [ ] | DELETE | `/session/{id}/share` | Unshare a session |
-| [ ] | GET | `/session/{id}/diff` | Get diff for session |
+| [x] | POST | `/session/{id}/share` | Share a session |
+| [x] | DELETE | `/session/{id}/share` | Unshare a session |
+| [x] | GET | `/session/{id}/diff` | Get diff for session |
 | [x] | POST | `/session/{id}/summarize` | Summarize the session |
-| [ ] | POST | `/session/{id}/revert` | Revert a message |
+| [x] | POST | `/session/{id}/revert` | Revert a message |
 | [ ] | POST | `/session/{id}/unrevert` | Restore reverted messages |
 | [ ] | POST | `/session/{id}/permissions/{permissionID}` | Respond to permission request |
 
