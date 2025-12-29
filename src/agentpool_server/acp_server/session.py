@@ -136,13 +136,27 @@ def _is_slash_command(text: str) -> bool:
 
 def split_commands(
     contents: Sequence[UserContent],
+    command_store: CommandStore,
 ) -> tuple[list[str], list[UserContent]]:
+    """Split content into local slash commands and pass-through content.
+
+    Only commands that exist in the local command_store are extracted.
+    Remote commands (from nested ACP agents) stay in non_command_content
+    so they flow through to the agent and reach the nested server.
+    """
     commands: list[str] = []
     non_command_content: list[UserContent] = []
     for item in contents:
-        if isinstance(item, str) and _is_slash_command(item):
+        # Check if this is a LOCAL command we handle
+        if (
+            isinstance(item, str)
+            and _is_slash_command(item)
+            and (match := SLASH_PATTERN.match(item.strip()))
+            and command_store.get_command(match.group(1))
+        ):
             commands.append(item.strip())
         else:
+            # Not a local command - pass through (may be remote command or regular text)
             non_command_content.append(item)
     return commands, non_command_content
 
@@ -505,7 +519,7 @@ class ACPSession:
         if not contents:
             self.log.warning("Empty prompt received")
             return "refusal"
-        commands, non_command_content = split_commands(contents)
+        commands, non_command_content = split_commands(contents, self.command_store)
         async with self._task_lock:
             if commands:  # Process commands if found
                 for command in commands:

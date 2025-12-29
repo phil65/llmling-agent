@@ -167,12 +167,11 @@ class ACPClientHandler(Client):
 
             case AvailableCommandsUpdate():
                 self.state.available_commands = update
-                # TODO: Disabled for now - the "way back" doesn't work yet.
-                # We tell the UI about nested ACP agent commands, but when the user
-                # enters those slash commands, we don't route them to the nested agent.
-                # Need to implement command routing before enabling this.
-                # await self._agent.state_updated.emit(update)
-                logger.debug("Available commands updated (emission disabled)")
+                # Emit to parent session - remote commands will be merged with local ones.
+                # The "way back" works because session.split_commands() only extracts
+                # LOCAL commands; remote commands pass through to the agent prompt.
+                await self._agent.state_updated.emit(update)
+                logger.debug("Available commands updated")
                 self._update_event.set()
                 return
 
