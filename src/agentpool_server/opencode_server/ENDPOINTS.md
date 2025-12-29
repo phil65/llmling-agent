@@ -163,6 +163,28 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 
 ---
 
+## PTY (Pseudo-Terminal)
+
+| Status | Method | Path | Description |
+|--------|--------|------|-------------|
+| [ ] | GET | `/pty` | List all PTY sessions |
+| [ ] | POST | `/pty` | Create a new PTY session |
+| [ ] | GET | `/pty/{ptyID}` | Get PTY session details |
+| [ ] | PATCH | `/pty/{ptyID}` | Update PTY session (resize, etc.) |
+| [ ] | DELETE | `/pty/{ptyID}` | Remove/kill PTY session |
+| [ ] | GET | `/pty/{ptyID}/connect` | Connect to PTY (WebSocket) |
+
+### PTY SSE Event Types
+
+| Status | Event Type | Description |
+|--------|------------|-------------|
+| [ ] | `pty.created` | PTY session created |
+| [ ] | `pty.updated` | PTY session updated |
+| [ ] | `pty.exited` | PTY process exited |
+| [ ] | `pty.deleted` | PTY session deleted |
+
+---
+
 ## TUI (Skipped)
 
 These endpoints are for driving the TUI and are not needed for programmatic access.

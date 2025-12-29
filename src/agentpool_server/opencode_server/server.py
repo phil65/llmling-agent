@@ -23,6 +23,7 @@ from agentpool_server.opencode_server.routes import (
     file_router,
     global_router,
     message_router,
+    pty_router,
     session_router,
 )
 from agentpool_server.opencode_server.state import ServerState
@@ -109,6 +110,7 @@ def create_app(
     app.include_router(message_router)
     app.include_router(file_router)
     app.include_router(agent_router)
+    app.include_router(pty_router)
 
     # OpenAPI doc redirect
     @app.get("/doc")

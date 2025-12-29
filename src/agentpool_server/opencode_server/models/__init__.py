@@ -81,6 +81,12 @@ from agentpool_server.opencode_server.models.agent import (
     Agent,
     Command,
 )
+from agentpool_server.opencode_server.models.pty import (
+    PtyCreateRequest,
+    PtyInfo,
+    PtySize,
+    PtyUpdateRequest,
+)
 from agentpool_server.opencode_server.models.events import (
     Event,
     MessageUpdatedEvent,
@@ -156,6 +162,11 @@ __all__ = [
     "Provider",
     "ProviderListResponse",
     "ProvidersResponse",
+    # PTY
+    "PtyCreateRequest",
+    "PtyInfo",
+    "PtySize",
+    "PtyUpdateRequest",
     "ServerConnectedEvent",
     # Session
     "Session",
