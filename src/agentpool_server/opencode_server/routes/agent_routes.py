@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
@@ -107,7 +107,7 @@ async def get_mcp_status(state: StateDep) -> dict[str, MCPStatus]:
                 error=status_dict.get("error", "Unknown error"),
             )
         else:
-            result[provider.name] = MCPStatus(name=provider.name, status="disabled")
+            result[provider.name] = MCPStatus(name=provider.name, status="disconnected")
 
     result: dict[str, MCPStatus] = {}
     try:
@@ -168,9 +168,9 @@ async def add_mcp_server(request: AddMCPServerRequest, state: StateDep) -> MCPSt
     if request.url:
         # HTTP-based server
         if request.url.endswith("/sse"):
-            config = SSEMCPServerConfig(url=request.url)
+            config = SSEMCPServerConfig(url=HttpUrl(request.url))
         else:
-            config = StreamableHTTPMCPServerConfig(url=request.url)
+            config = StreamableHTTPMCPServerConfig(url=HttpUrl(request.url))
     elif request.command:
         # Stdio server
         config = StdioMCPServerConfig(
