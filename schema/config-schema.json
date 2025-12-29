@@ -3815,8 +3815,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
-                "openai:gpt-5.2-pro",
-                "openai:o3-pro"
+                "openai:gpt-5.2-pro"
               ],
               "type": "string"
             },
@@ -3933,7 +3932,6 @@
                 "openrouter:openai/gpt-oss-20b:free",
                 "openrouter:openai/gpt-oss-safeguard-20b",
                 "openrouter:openai/o3-deep-research",
-                "openrouter:openai/o3-pro",
                 "openrouter:openai/o4-mini-deep-research",
                 "openrouter:opengvlab/internvl3-78b",
                 "openrouter:openrouter/bodybuilder",
@@ -3972,8 +3970,6 @@
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
                 "openrouter:tngtech/tng-r1t-chimera:free",
-                "openrouter:x-ai/grok-3",
-                "openrouter:x-ai/grok-3-mini",
                 "openrouter:x-ai/grok-4",
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
@@ -4040,7 +4036,6 @@
                 "requesty:openai-responses/gpt-5-nano",
                 "requesty:openai-responses/gpt-5-pro",
                 "requesty:openai-responses/gpt-5.1-codex",
-                "requesty:openai-responses/o3-pro",
                 "requesty:openai/gpt-5",
                 "requesty:openai/gpt-5-chat",
                 "requesty:openai/gpt-5-mini",
@@ -9242,6 +9237,98 @@
       "type": "object",
       "x-doc-title": "Command Hook"
     },
+    "CompactionConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for message compaction/summarization.\n\nExample YAML:\n    ```yaml\n    compaction:\n      steps:\n        - type: filter_thinking\n        - type: truncate_tool_outputs\n          max_length: 1000\n        - type: keep_last\n          count: 10\n    ```\n\nOr use a preset:\n    ```yaml\n    compaction:\n      preset: balanced\n    ```",
+      "properties": {
+        "preset": {
+          "anyOf": [
+            {
+              "enum": [
+                "minimal",
+                "balanced",
+                "summarizing"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Use a predefined compaction pipeline.\n\n- minimal: Aggressively minimize context (filter thinking, truncate, keep last 10)\n- balanced: Balance context preservation with size (filter thinking, truncate,\n            keep first 2 + last 8)\n- summarizing: Summarize old messages (filter thinking, summarize when > 20 messages)",
+          "title": "Preset"
+        },
+        "steps": {
+          "description": "Ordered list of compaction steps to apply (ignored if preset is set).",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "filter_binary": "#/$defs/FilterBinaryContentConfig",
+                "filter_empty": "#/$defs/FilterEmptyMessagesConfig",
+                "filter_retry_prompts": "#/$defs/FilterRetryPromptsConfig",
+                "filter_thinking": "#/$defs/FilterThinkingConfig",
+                "filter_tools": "#/$defs/FilterToolCallsConfig",
+                "keep_first": "#/$defs/KeepFirstMessagesConfig",
+                "keep_first_last": "#/$defs/KeepFirstAndLastConfig",
+                "keep_last": "#/$defs/KeepLastMessagesConfig",
+                "summarize": "#/$defs/SummarizeConfig",
+                "token_budget": "#/$defs/TokenBudgetConfig",
+                "truncate_text": "#/$defs/TruncateTextPartsConfig",
+                "truncate_tool_outputs": "#/$defs/TruncateToolOutputsConfig",
+                "when_count_exceeds": "#/$defs/WhenMessageCountExceedsConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FilterThinkingConfig"
+              },
+              {
+                "$ref": "#/$defs/FilterRetryPromptsConfig"
+              },
+              {
+                "$ref": "#/$defs/FilterBinaryContentConfig"
+              },
+              {
+                "$ref": "#/$defs/FilterToolCallsConfig"
+              },
+              {
+                "$ref": "#/$defs/FilterEmptyMessagesConfig"
+              },
+              {
+                "$ref": "#/$defs/TruncateToolOutputsConfig"
+              },
+              {
+                "$ref": "#/$defs/TruncateTextPartsConfig"
+              },
+              {
+                "$ref": "#/$defs/KeepLastMessagesConfig"
+              },
+              {
+                "$ref": "#/$defs/KeepFirstMessagesConfig"
+              },
+              {
+                "$ref": "#/$defs/KeepFirstAndLastConfig"
+              },
+              {
+                "$ref": "#/$defs/TokenBudgetConfig"
+              },
+              {
+                "$ref": "#/$defs/SummarizeConfig"
+              },
+              {
+                "$ref": "#/$defs/WhenMessageCountExceedsConfig"
+              }
+            ]
+          },
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "title": "CompactionConfig",
+      "type": "object"
+    },
     "ComposioToolSetConfig": {
       "additionalProperties": false,
       "description": "Configuration for Composio toolsets.",
@@ -11224,8 +11311,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
-                "openai:gpt-5.2-pro",
-                "openai:o3-pro"
+                "openai:gpt-5.2-pro"
               ],
               "type": "string"
             },
@@ -11342,7 +11428,6 @@
                 "openrouter:openai/gpt-oss-20b:free",
                 "openrouter:openai/gpt-oss-safeguard-20b",
                 "openrouter:openai/o3-deep-research",
-                "openrouter:openai/o3-pro",
                 "openrouter:openai/o4-mini-deep-research",
                 "openrouter:opengvlab/internvl3-78b",
                 "openrouter:openrouter/bodybuilder",
@@ -11381,8 +11466,6 @@
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
                 "openrouter:tngtech/tng-r1t-chimera:free",
-                "openrouter:x-ai/grok-3",
-                "openrouter:x-ai/grok-3-mini",
                 "openrouter:x-ai/grok-4",
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
@@ -11449,7 +11532,6 @@
                 "requesty:openai-responses/gpt-5-nano",
                 "requesty:openai-responses/gpt-5-pro",
                 "requesty:openai-responses/gpt-5.1-codex",
-                "requesty:openai-responses/o3-pro",
                 "requesty:openai/gpt-5",
                 "requesty:openai/gpt-5-chat",
                 "requesty:openai/gpt-5-mini",
@@ -12026,8 +12108,7 @@
                   "openai:gpt-5.1-codex-mini",
                   "openai:gpt-5.2",
                   "openai:gpt-5.2-chat-latest",
-                  "openai:gpt-5.2-pro",
-                  "openai:o3-pro"
+                  "openai:gpt-5.2-pro"
                 ],
                 "type": "string"
               },
@@ -12144,7 +12225,6 @@
                   "openrouter:openai/gpt-oss-20b:free",
                   "openrouter:openai/gpt-oss-safeguard-20b",
                   "openrouter:openai/o3-deep-research",
-                  "openrouter:openai/o3-pro",
                   "openrouter:openai/o4-mini-deep-research",
                   "openrouter:opengvlab/internvl3-78b",
                   "openrouter:openrouter/bodybuilder",
@@ -12183,8 +12263,6 @@
                   "openrouter:tngtech/deepseek-r1t2-chimera:free",
                   "openrouter:tngtech/tng-r1t-chimera",
                   "openrouter:tngtech/tng-r1t-chimera:free",
-                  "openrouter:x-ai/grok-3",
-                  "openrouter:x-ai/grok-3-mini",
                   "openrouter:x-ai/grok-4",
                   "openrouter:x-ai/grok-4-fast",
                   "openrouter:x-ai/grok-4.1-fast",
@@ -12251,7 +12329,6 @@
                   "requesty:openai-responses/gpt-5-nano",
                   "requesty:openai-responses/gpt-5-pro",
                   "requesty:openai-responses/gpt-5.1-codex",
-                  "requesty:openai-responses/o3-pro",
                   "requesty:openai/gpt-5",
                   "requesty:openai/gpt-5-chat",
                   "requesty:openai/gpt-5-mini",
@@ -14582,8 +14659,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
-                "openai:gpt-5.2-pro",
-                "openai:o3-pro"
+                "openai:gpt-5.2-pro"
               ],
               "type": "string"
             },
@@ -14700,7 +14776,6 @@
                 "openrouter:openai/gpt-oss-20b:free",
                 "openrouter:openai/gpt-oss-safeguard-20b",
                 "openrouter:openai/o3-deep-research",
-                "openrouter:openai/o3-pro",
                 "openrouter:openai/o4-mini-deep-research",
                 "openrouter:opengvlab/internvl3-78b",
                 "openrouter:openrouter/bodybuilder",
@@ -14739,8 +14814,6 @@
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
                 "openrouter:tngtech/tng-r1t-chimera:free",
-                "openrouter:x-ai/grok-3",
-                "openrouter:x-ai/grok-3-mini",
                 "openrouter:x-ai/grok-4",
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
@@ -14807,7 +14880,6 @@
                 "requesty:openai-responses/gpt-5-nano",
                 "requesty:openai-responses/gpt-5-pro",
                 "requesty:openai-responses/gpt-5.1-codex",
-                "requesty:openai-responses/o3-pro",
                 "requesty:openai/gpt-5",
                 "requesty:openai/gpt-5-chat",
                 "requesty:openai/gpt-5-mini",
@@ -15739,8 +15811,7 @@
                   "openai:gpt-5.1-codex-mini",
                   "openai:gpt-5.2",
                   "openai:gpt-5.2-chat-latest",
-                  "openai:gpt-5.2-pro",
-                  "openai:o3-pro"
+                  "openai:gpt-5.2-pro"
                 ],
                 "type": "string"
               },
@@ -15857,7 +15928,6 @@
                   "openrouter:openai/gpt-oss-20b:free",
                   "openrouter:openai/gpt-oss-safeguard-20b",
                   "openrouter:openai/o3-deep-research",
-                  "openrouter:openai/o3-pro",
                   "openrouter:openai/o4-mini-deep-research",
                   "openrouter:opengvlab/internvl3-78b",
                   "openrouter:openrouter/bodybuilder",
@@ -15896,8 +15966,6 @@
                   "openrouter:tngtech/deepseek-r1t2-chimera:free",
                   "openrouter:tngtech/tng-r1t-chimera",
                   "openrouter:tngtech/tng-r1t-chimera:free",
-                  "openrouter:x-ai/grok-3",
-                  "openrouter:x-ai/grok-3-mini",
                   "openrouter:x-ai/grok-4",
                   "openrouter:x-ai/grok-4-fast",
                   "openrouter:x-ai/grok-4.1-fast",
@@ -15964,7 +16032,6 @@
                   "requesty:openai-responses/gpt-5-nano",
                   "requesty:openai-responses/gpt-5-pro",
                   "requesty:openai-responses/gpt-5.1-codex",
-                  "requesty:openai-responses/o3-pro",
                   "requesty:openai/gpt-5",
                   "requesty:openai/gpt-5-chat",
                   "requesty:openai/gpt-5-mini",
@@ -17751,6 +17818,103 @@
       "title": "FileWatchConfig",
       "type": "object",
       "x-doc-title": "File watching"
+    },
+    "FilterBinaryContentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for FilterBinaryContent step.",
+      "properties": {
+        "type": {
+          "const": "filter_binary",
+          "default": "filter_binary",
+          "title": "Type",
+          "type": "string"
+        },
+        "keep_references": {
+          "default": false,
+          "title": "Keep References",
+          "type": "boolean"
+        }
+      },
+      "title": "FilterBinaryContentConfig",
+      "type": "object"
+    },
+    "FilterEmptyMessagesConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for FilterEmptyMessages step.",
+      "properties": {
+        "type": {
+          "const": "filter_empty",
+          "default": "filter_empty",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "FilterEmptyMessagesConfig",
+      "type": "object"
+    },
+    "FilterRetryPromptsConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for FilterRetryPrompts step.",
+      "properties": {
+        "type": {
+          "const": "filter_retry_prompts",
+          "default": "filter_retry_prompts",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "FilterRetryPromptsConfig",
+      "type": "object"
+    },
+    "FilterThinkingConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for FilterThinking step.",
+      "properties": {
+        "type": {
+          "const": "filter_thinking",
+          "default": "filter_thinking",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "FilterThinkingConfig",
+      "type": "object"
+    },
+    "FilterToolCallsConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for FilterToolCalls step.",
+      "properties": {
+        "type": {
+          "const": "filter_tools",
+          "default": "filter_tools",
+          "title": "Type",
+          "type": "string"
+        },
+        "exclude_tools": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Exclude Tools",
+          "type": "array"
+        },
+        "include_only": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Include Only"
+        }
+      },
+      "title": "FilterToolCallsConfig",
+      "type": "object"
     },
     "FlatUnionFilesystemConfig": {
       "additionalProperties": true,
@@ -21888,6 +22052,73 @@
         }
       },
       "title": "KagiConfig",
+      "type": "object"
+    },
+    "KeepFirstAndLastConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for KeepFirstAndLast step.",
+      "properties": {
+        "type": {
+          "const": "keep_first_last",
+          "default": "keep_first_last",
+          "title": "Type",
+          "type": "string"
+        },
+        "first_count": {
+          "default": 2,
+          "title": "First Count",
+          "type": "integer"
+        },
+        "last_count": {
+          "default": 5,
+          "title": "Last Count",
+          "type": "integer"
+        }
+      },
+      "title": "KeepFirstAndLastConfig",
+      "type": "object"
+    },
+    "KeepFirstMessagesConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for KeepFirstMessages step.",
+      "properties": {
+        "type": {
+          "const": "keep_first",
+          "default": "keep_first",
+          "title": "Type",
+          "type": "string"
+        },
+        "count": {
+          "default": 2,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "title": "KeepFirstMessagesConfig",
+      "type": "object"
+    },
+    "KeepLastMessagesConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for KeepLastMessages step.",
+      "properties": {
+        "type": {
+          "const": "keep_last",
+          "default": "keep_last",
+          "title": "Type",
+          "type": "string"
+        },
+        "count": {
+          "default": 10,
+          "title": "Count",
+          "type": "integer"
+        },
+        "count_pairs": {
+          "default": true,
+          "title": "Count Pairs",
+          "type": "boolean"
+        }
+      },
+      "title": "KeepLastMessagesConfig",
       "type": "object"
     },
     "KimiACPAgentConfig": {
@@ -26821,8 +27052,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
-                "openai:gpt-5.2-pro",
-                "openai:o3-pro"
+                "openai:gpt-5.2-pro"
               ],
               "type": "string"
             },
@@ -26939,7 +27169,6 @@
                 "openrouter:openai/gpt-oss-20b:free",
                 "openrouter:openai/gpt-oss-safeguard-20b",
                 "openrouter:openai/o3-deep-research",
-                "openrouter:openai/o3-pro",
                 "openrouter:openai/o4-mini-deep-research",
                 "openrouter:opengvlab/internvl3-78b",
                 "openrouter:openrouter/bodybuilder",
@@ -26978,8 +27207,6 @@
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
                 "openrouter:tngtech/tng-r1t-chimera:free",
-                "openrouter:x-ai/grok-3",
-                "openrouter:x-ai/grok-3-mini",
                 "openrouter:x-ai/grok-4",
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
@@ -27046,7 +27273,6 @@
                 "requesty:openai-responses/gpt-5-nano",
                 "requesty:openai-responses/gpt-5-pro",
                 "requesty:openai-responses/gpt-5.1-codex",
-                "requesty:openai-responses/o3-pro",
                 "requesty:openai/gpt-5",
                 "requesty:openai/gpt-5-chat",
                 "requesty:openai/gpt-5-mini",
@@ -27827,6 +28053,58 @@
           "description": "Usage limits for this agent.",
           "title": "Usage limits"
         },
+        "model_providers": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "anthropic",
+                  "groq",
+                  "mistral",
+                  "openai",
+                  "openrouter",
+                  "github",
+                  "copilot",
+                  "cerebras",
+                  "gemini",
+                  "cohere",
+                  "deepseek",
+                  "requesty",
+                  "xai",
+                  "comet",
+                  "novita",
+                  "vercel-gateway",
+                  "chutes",
+                  "cortecs",
+                  "azure",
+                  "fireworks-ai",
+                  "ollama",
+                  "moonshotai",
+                  "zai",
+                  "claude-code"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of model providers to use for model discovery.\n\nWhen set, the agent's get_available_models() will return models from these\nproviders. Common values: \"openai\", \"anthropic\", \"gemini\", \"mistral\", etc.\nIf not set, defaults to [\"openai\", \"anthropic\", \"gemini\"].",
+          "examples": [
+            [
+              "openai",
+              "anthropic",
+              "gemini"
+            ],
+            [
+              "anthropic"
+            ]
+          ],
+          "title": "Model providers"
+        },
         "tool_mode": {
           "anyOf": [
             {
@@ -28379,8 +28657,7 @@
             "gpt-5.1-codex-mini",
             "gpt-5.2",
             "gpt-5.2-chat-latest",
-            "gpt-5.2-pro",
-            "o3-pro"
+            "gpt-5.2-pro"
           ],
           "examples": [
             "gpt-4",
@@ -30183,7 +30460,6 @@
             "openai/gpt-oss-20b:free",
             "openai/gpt-oss-safeguard-20b",
             "openai/o3-deep-research",
-            "openai/o3-pro",
             "openai/o4-mini-deep-research",
             "opengvlab/internvl3-78b",
             "openrouter/bodybuilder",
@@ -30222,8 +30498,6 @@
             "tngtech/deepseek-r1t2-chimera:free",
             "tngtech/tng-r1t-chimera",
             "tngtech/tng-r1t-chimera:free",
-            "x-ai/grok-3",
-            "x-ai/grok-3-mini",
             "x-ai/grok-4",
             "x-ai/grok-4-fast",
             "x-ai/grok-4.1-fast",
@@ -31083,8 +31357,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
-                "openai:gpt-5.2-pro",
-                "openai:o3-pro"
+                "openai:gpt-5.2-pro"
               ],
               "type": "string"
             },
@@ -31201,7 +31474,6 @@
                 "openrouter:openai/gpt-oss-20b:free",
                 "openrouter:openai/gpt-oss-safeguard-20b",
                 "openrouter:openai/o3-deep-research",
-                "openrouter:openai/o3-pro",
                 "openrouter:openai/o4-mini-deep-research",
                 "openrouter:opengvlab/internvl3-78b",
                 "openrouter:openrouter/bodybuilder",
@@ -31240,8 +31512,6 @@
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
                 "openrouter:tngtech/tng-r1t-chimera:free",
-                "openrouter:x-ai/grok-3",
-                "openrouter:x-ai/grok-3-mini",
                 "openrouter:x-ai/grok-4",
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
@@ -31308,7 +31578,6 @@
                 "requesty:openai-responses/gpt-5-nano",
                 "requesty:openai-responses/gpt-5-pro",
                 "requesty:openai-responses/gpt-5.1-codex",
-                "requesty:openai-responses/o3-pro",
                 "requesty:openai/gpt-5",
                 "requesty:openai/gpt-5-chat",
                 "requesty:openai/gpt-5-mini",
@@ -34225,8 +34494,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
-                "openai:gpt-5.2-pro",
-                "openai:o3-pro"
+                "openai:gpt-5.2-pro"
               ],
               "type": "string"
             },
@@ -34343,7 +34611,6 @@
                 "openrouter:openai/gpt-oss-20b:free",
                 "openrouter:openai/gpt-oss-safeguard-20b",
                 "openrouter:openai/o3-deep-research",
-                "openrouter:openai/o3-pro",
                 "openrouter:openai/o4-mini-deep-research",
                 "openrouter:opengvlab/internvl3-78b",
                 "openrouter:openrouter/bodybuilder",
@@ -34382,8 +34649,6 @@
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
                 "openrouter:tngtech/tng-r1t-chimera:free",
-                "openrouter:x-ai/grok-3",
-                "openrouter:x-ai/grok-3-mini",
                 "openrouter:x-ai/grok-4",
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
@@ -34450,7 +34715,6 @@
                 "requesty:openai-responses/gpt-5-nano",
                 "requesty:openai-responses/gpt-5-pro",
                 "requesty:openai-responses/gpt-5.1-codex",
-                "requesty:openai-responses/o3-pro",
                 "requesty:openai/gpt-5",
                 "requesty:openai/gpt-5-chat",
                 "requesty:openai/gpt-5-mini",
@@ -36805,8 +37069,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
-                "openai:gpt-5.2-pro",
-                "openai:o3-pro"
+                "openai:gpt-5.2-pro"
               ],
               "type": "string"
             },
@@ -36923,7 +37186,6 @@
                 "openrouter:openai/gpt-oss-20b:free",
                 "openrouter:openai/gpt-oss-safeguard-20b",
                 "openrouter:openai/o3-deep-research",
-                "openrouter:openai/o3-pro",
                 "openrouter:openai/o4-mini-deep-research",
                 "openrouter:opengvlab/internvl3-78b",
                 "openrouter:openrouter/bodybuilder",
@@ -36962,8 +37224,6 @@
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
                 "openrouter:tngtech/tng-r1t-chimera:free",
-                "openrouter:x-ai/grok-3",
-                "openrouter:x-ai/grok-3-mini",
                 "openrouter:x-ai/grok-4",
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
@@ -37030,7 +37290,6 @@
                 "requesty:openai-responses/gpt-5-nano",
                 "requesty:openai-responses/gpt-5-pro",
                 "requesty:openai-responses/gpt-5.1-codex",
-                "requesty:openai-responses/o3-pro",
                 "requesty:openai/gpt-5",
                 "requesty:openai/gpt-5-chat",
                 "requesty:openai/gpt-5-mini",
@@ -37726,8 +37985,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
-                "openai:gpt-5.2-pro",
-                "openai:o3-pro"
+                "openai:gpt-5.2-pro"
               ],
               "type": "string"
             },
@@ -37844,7 +38102,6 @@
                 "openrouter:openai/gpt-oss-20b:free",
                 "openrouter:openai/gpt-oss-safeguard-20b",
                 "openrouter:openai/o3-deep-research",
-                "openrouter:openai/o3-pro",
                 "openrouter:openai/o4-mini-deep-research",
                 "openrouter:opengvlab/internvl3-78b",
                 "openrouter:openrouter/bodybuilder",
@@ -37883,8 +38140,6 @@
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
                 "openrouter:tngtech/tng-r1t-chimera:free",
-                "openrouter:x-ai/grok-3",
-                "openrouter:x-ai/grok-3-mini",
                 "openrouter:x-ai/grok-4",
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
@@ -37951,7 +38206,6 @@
                 "requesty:openai-responses/gpt-5-nano",
                 "requesty:openai-responses/gpt-5-pro",
                 "requesty:openai-responses/gpt-5.1-codex",
-                "requesty:openai-responses/o3-pro",
                 "requesty:openai/gpt-5",
                 "requesty:openai/gpt-5-chat",
                 "requesty:openai/gpt-5-mini",
@@ -38583,6 +38837,43 @@
       "type": "object",
       "x-doc-title": "Subagent Toolset",
       "x-icon": "octicon:share-16"
+    },
+    "SummarizeConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Summarize step.",
+      "properties": {
+        "type": {
+          "const": "summarize",
+          "default": "summarize",
+          "title": "Type",
+          "type": "string"
+        },
+        "model": {
+          "default": "openai:gpt-4o-mini",
+          "title": "Model",
+          "type": "string"
+        },
+        "threshold": {
+          "default": 15,
+          "title": "Threshold",
+          "type": "integer"
+        },
+        "keep_recent": {
+          "default": 5,
+          "title": "Keep Recent",
+          "type": "integer"
+        },
+        "summary_prompt": {
+          "default": null,
+          "title": "Summary Prompt",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "SummarizeConfig",
+      "type": "object"
     },
     "TTSEventHandlerConfig": {
       "additionalProperties": false,
@@ -39552,6 +39843,30 @@
       "type": "object",
       "x-doc-title": "Time event"
     },
+    "TokenBudgetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for TokenBudget step.",
+      "properties": {
+        "type": {
+          "const": "token_budget",
+          "default": "token_budget",
+          "title": "Type",
+          "type": "string"
+        },
+        "max_tokens": {
+          "default": 4000,
+          "title": "Max Tokens",
+          "type": "integer"
+        },
+        "model": {
+          "default": "gpt-4o",
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "title": "TokenBudgetConfig",
+      "type": "object"
+    },
     "TokenThresholdCondition": {
       "additionalProperties": false,
       "description": "Triggers after token threshold is reached.",
@@ -39793,6 +40108,54 @@
         "source_file"
       ],
       "title": "TreeSitter Configuration",
+      "type": "object"
+    },
+    "TruncateTextPartsConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for TruncateTextParts step.",
+      "properties": {
+        "type": {
+          "const": "truncate_text",
+          "default": "truncate_text",
+          "title": "Type",
+          "type": "string"
+        },
+        "max_length": {
+          "default": 5000,
+          "title": "Max Length",
+          "type": "integer"
+        },
+        "suffix": {
+          "default": "\n... [truncated]",
+          "title": "Suffix",
+          "type": "string"
+        }
+      },
+      "title": "TruncateTextPartsConfig",
+      "type": "object"
+    },
+    "TruncateToolOutputsConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for TruncateToolOutputs step.",
+      "properties": {
+        "type": {
+          "const": "truncate_tool_outputs",
+          "default": "truncate_tool_outputs",
+          "title": "Type",
+          "type": "string"
+        },
+        "max_length": {
+          "default": 2000,
+          "title": "Max Length",
+          "type": "integer"
+        },
+        "suffix": {
+          "default": "\n... [truncated]",
+          "title": "Suffix",
+          "type": "string"
+        }
+      },
+      "title": "TruncateToolOutputsConfig",
       "type": "object"
     },
     "URIFileSystemConfig": {
@@ -40426,8 +40789,7 @@
                   "openai:gpt-5.1-codex-mini",
                   "openai:gpt-5.2",
                   "openai:gpt-5.2-chat-latest",
-                  "openai:gpt-5.2-pro",
-                  "openai:o3-pro"
+                  "openai:gpt-5.2-pro"
                 ],
                 "type": "string"
               },
@@ -40544,7 +40906,6 @@
                   "openrouter:openai/gpt-oss-20b:free",
                   "openrouter:openai/gpt-oss-safeguard-20b",
                   "openrouter:openai/o3-deep-research",
-                  "openrouter:openai/o3-pro",
                   "openrouter:openai/o4-mini-deep-research",
                   "openrouter:opengvlab/internvl3-78b",
                   "openrouter:openrouter/bodybuilder",
@@ -40583,8 +40944,6 @@
                   "openrouter:tngtech/deepseek-r1t2-chimera:free",
                   "openrouter:tngtech/tng-r1t-chimera",
                   "openrouter:tngtech/tng-r1t-chimera:free",
-                  "openrouter:x-ai/grok-3",
-                  "openrouter:x-ai/grok-3-mini",
                   "openrouter:x-ai/grok-4",
                   "openrouter:x-ai/grok-4-fast",
                   "openrouter:x-ai/grok-4.1-fast",
@@ -40651,7 +41010,6 @@
                   "requesty:openai-responses/gpt-5-nano",
                   "requesty:openai-responses/gpt-5-pro",
                   "requesty:openai-responses/gpt-5.1-codex",
-                  "requesty:openai-responses/o3-pro",
                   "requesty:openai/gpt-5",
                   "requesty:openai/gpt-5-chat",
                   "requesty:openai/gpt-5-mini",
@@ -42663,6 +43021,90 @@
       "type": "object",
       "x-doc-title": "Webhook"
     },
+    "WhenMessageCountExceedsConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for WhenMessageCountExceeds wrapper.",
+      "properties": {
+        "type": {
+          "const": "when_count_exceeds",
+          "default": "when_count_exceeds",
+          "title": "Type",
+          "type": "string"
+        },
+        "threshold": {
+          "default": 20,
+          "title": "Threshold",
+          "type": "integer"
+        },
+        "step": {
+          "discriminator": {
+            "mapping": {
+              "filter_binary": "#/$defs/FilterBinaryContentConfig",
+              "filter_empty": "#/$defs/FilterEmptyMessagesConfig",
+              "filter_retry_prompts": "#/$defs/FilterRetryPromptsConfig",
+              "filter_thinking": "#/$defs/FilterThinkingConfig",
+              "filter_tools": "#/$defs/FilterToolCallsConfig",
+              "keep_first": "#/$defs/KeepFirstMessagesConfig",
+              "keep_first_last": "#/$defs/KeepFirstAndLastConfig",
+              "keep_last": "#/$defs/KeepLastMessagesConfig",
+              "summarize": "#/$defs/SummarizeConfig",
+              "token_budget": "#/$defs/TokenBudgetConfig",
+              "truncate_text": "#/$defs/TruncateTextPartsConfig",
+              "truncate_tool_outputs": "#/$defs/TruncateToolOutputsConfig",
+              "when_count_exceeds": "#/$defs/WhenMessageCountExceedsConfig"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/FilterThinkingConfig"
+            },
+            {
+              "$ref": "#/$defs/FilterRetryPromptsConfig"
+            },
+            {
+              "$ref": "#/$defs/FilterBinaryContentConfig"
+            },
+            {
+              "$ref": "#/$defs/FilterToolCallsConfig"
+            },
+            {
+              "$ref": "#/$defs/FilterEmptyMessagesConfig"
+            },
+            {
+              "$ref": "#/$defs/TruncateToolOutputsConfig"
+            },
+            {
+              "$ref": "#/$defs/TruncateTextPartsConfig"
+            },
+            {
+              "$ref": "#/$defs/KeepLastMessagesConfig"
+            },
+            {
+              "$ref": "#/$defs/KeepFirstMessagesConfig"
+            },
+            {
+              "$ref": "#/$defs/KeepFirstAndLastConfig"
+            },
+            {
+              "$ref": "#/$defs/TokenBudgetConfig"
+            },
+            {
+              "$ref": "#/$defs/SummarizeConfig"
+            },
+            {
+              "$ref": "#/$defs/WhenMessageCountExceedsConfig"
+            }
+          ],
+          "title": "Step"
+        }
+      },
+      "required": [
+        "step"
+      ],
+      "title": "WhenMessageCountExceedsConfig",
+      "type": "object"
+    },
     "WikiFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for GitHub Wiki filesystem.",
@@ -43699,6 +44141,18 @@
       ],
       "title": "Commands",
       "type": "object"
+    },
+    "compaction": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CompactionConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Compaction configuration for message history management.\n\nControls how conversation history is compacted/summarized to manage context size.\nCan use a preset or define custom steps:\n    compaction:\n      preset: balanced  # or: minimal, summarizing\n\nOr custom steps:\n    compaction:\n      steps:\n        - type: filter_thinking\n        - type: summarize\n          model: openai:gpt-4o-mini\n          threshold: 15"
     }
   },
   "title": "AgentsManifest",
