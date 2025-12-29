@@ -291,6 +291,13 @@ class AgentsManifest(Schema):
               threshold: 15
     """
 
+    config_file_path: str | None = Field(default=None, exclude=True)
+    """Path to the configuration file this manifest was loaded from.
+
+    Set automatically by `from_file()`. Used for resolving relative paths.
+    Excluded from serialization.
+    """
+
     model_config = ConfigDict(
         json_schema_extra={
             "x-icon": "octicon:file-code-16",
@@ -652,6 +659,7 @@ class AgentsManifest(Schema):
 
             return agent_def.model_copy(
                 update={
+                    "config_file_path": path_str,
                     "agents": update_with_path(agent_def.agents),
                     "teams": update_with_path(agent_def.teams),
                 }
