@@ -7,7 +7,6 @@ from agentpool.messaging.messagenode import MessageNode
 from agentpool.messaging.message_history import MessageHistory
 from agentpool.messaging.compaction import (
     CompactionPipeline,
-    CompactionPipelineConfig,
     CompactionStep,
     FilterBinaryContent,
     FilterEmptyMessages,
@@ -32,7 +31,6 @@ __all__ = [
     "ChatMessage",
     "ChatMessageList",
     "CompactionPipeline",
-    "CompactionPipelineConfig",
     "CompactionStep",
     "EventManager",
     "FilterBinaryContent",

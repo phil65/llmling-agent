@@ -16,23 +16,25 @@ import pytest
 
 from agentpool.messaging.compaction import (
     CompactionPipeline,
-    CompactionPipelineConfig,
     FilterEmptyMessages,
     FilterRetryPrompts,
     FilterThinking,
-    FilterThinkingConfig,
     FilterToolCalls,
     KeepFirstAndLast,
     KeepFirstMessages,
     KeepLastMessages,
-    KeepLastMessagesConfig,
     TruncateTextParts,
     TruncateToolOutputs,
-    TruncateToolOutputsConfig,
     WhenMessageCountExceeds,
-    WhenMessageCountExceedsConfig,
     balanced_context,
     minimal_context,
+)
+from agentpool_config.compaction import (
+    CompactionConfig,
+    FilterThinkingConfig,
+    KeepLastMessagesConfig,
+    TruncateToolOutputsConfig,
+    WhenMessageCountExceedsConfig,
 )
 
 
@@ -269,7 +271,7 @@ async def test_pipeline_operator_composition():
 
 async def test_config_roundtrip():
     """Test building pipeline from config."""
-    config = CompactionPipelineConfig(
+    config = CompactionConfig(
         steps=[
             FilterThinkingConfig(),
             TruncateToolOutputsConfig(max_length=500),
@@ -314,7 +316,7 @@ async def test_empty_messages_handling():
 async def test_config_with_nested_conditional():
     """Test config with nested conditional step."""
     step = WhenMessageCountExceedsConfig(threshold=10, step=KeepLastMessagesConfig(count=5))
-    config = CompactionPipelineConfig(steps=[step])
+    config = CompactionConfig(steps=[step])
     pipeline = config.build()
     assert len(pipeline.steps) == 1
     assert isinstance(pipeline.steps[0], WhenMessageCountExceeds)

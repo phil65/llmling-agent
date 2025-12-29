@@ -22,7 +22,7 @@ Example:
     compacted = await pipeline.apply(messages)
 
     # Or via config (for YAML)
-    config = CompactionPipelineConfig(steps=[
+    config = CompactionConfig(steps=[
         FilterThinkingConfig(),
         TruncateToolOutputsConfig(max_length=1000),
         KeepLastMessagesConfig(count=10),
@@ -628,21 +628,6 @@ class WhenMessageCountExceeds(CompactionStep):
         if len(messages) > self.threshold:
             return await self.step.apply(messages)
         return list(messages)
-
-
-# =============================================================================
-# Configuration Models - Re-exported from agentpool_config.compaction
-# =============================================================================
-
-# Configuration classes have been moved to agentpool_config.compaction
-# Re-export for backward compatibility
-from agentpool_config.compaction import (  # noqa: E402
-    CompactionConfig,
-)
-
-
-# Alias for backward compatibility
-CompactionPipelineConfig = CompactionConfig
 
 
 # =============================================================================
