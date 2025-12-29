@@ -98,11 +98,53 @@ class ACPClientHandler(Client):
         return self._agent.config.allow_terminal
 
     async def session_update(self, params: SessionNotification[Any]) -> None:
-        """Handle session update notifications from the agent."""
+        """Handle session update notifications from the agent.
+
+        Some updates are state changes (mode, model, config) that should update
+        session state. Others are stream events (text chunks, tool calls) that
+        should be queued for the run_stream consumer.
+        """
+        from acp.schema import (
+            AvailableCommandsUpdate,
+            ConfigOptionUpdate,
+            CurrentModelUpdate,
+            CurrentModeUpdate,
+        )
         from agentpool.agents.acp_agent.acp_converters import acp_to_native_event
 
         update = params.update
-        # Convert to native event and queue it
+
+        # Handle state updates - these modify session state, not stream events
+        match update:
+            case CurrentModeUpdate(current_mode_id=mode_id):
+                if self.state.modes:
+                    self.state.modes.current_mode_id = mode_id
+                self.state.current_mode_id = mode_id
+                logger.debug("Mode updated", mode_id=mode_id)
+                self._update_event.set()
+                return
+
+            case CurrentModelUpdate(current_model_id=model_id):
+                self.state.current_model_id = model_id
+                if self.state.models:
+                    self.state.models.current_model_id = model_id
+                logger.debug("Model updated", model_id=model_id)
+                self._update_event.set()
+                return
+
+            case ConfigOptionUpdate():
+                # Config updates - just log for now, could store in state if needed
+                logger.debug("Config option updated", update=update)
+                self._update_event.set()
+                return
+
+            case AvailableCommandsUpdate():
+                self.state.available_commands = update
+                logger.debug("Available commands updated")
+                self._update_event.set()
+                return
+
+        # All other updates are stream events - convert and queue
         if native_event := acp_to_native_event(update):
             self.state.events.append(native_event)
         self._update_event.set()

@@ -9,7 +9,7 @@ from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:
-    from acp.schema import SessionModelState, SessionModeState
+    from acp.schema import AvailableCommandsUpdate, SessionModelState, SessionModeState
     from agentpool.agents.events import RichAgentStreamEvent
 
 logger = get_logger(__name__)
@@ -38,6 +38,9 @@ class ACPSessionState:
 
     current_mode_id: str | None = None
     """Current mode ID."""
+
+    available_commands: AvailableCommandsUpdate | None = None
+    """Available commands from the agent."""
 
     def clear(self) -> None:
         self.events.clear()
