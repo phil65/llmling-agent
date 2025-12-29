@@ -79,6 +79,12 @@ class AgentsManifest(Schema):
     INHERIT: str | list[str] | None = None
     """Inheritance references."""
 
+    name: str | None = None
+    """Optional name for this manifest.
+
+    Useful for identification when working with multiple configurations.
+    """
+
     resources: dict[str, ResourceConfig] = Field(
         default_factory=dict,
         examples=[
