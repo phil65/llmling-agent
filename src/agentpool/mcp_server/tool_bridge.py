@@ -411,7 +411,9 @@ class ToolManagerBridge:
         # Create the ASGI app
         app = self._mcp.http_app(transport=self.config.transport)
         # Configure uvicorn
-        cfg = uvicorn.Config(app=app, host=self.config.host, port=port, log_level="warning")
+        cfg = uvicorn.Config(
+            app=app, host=self.config.host, port=port, log_level="warning", ws="websockets-sansio"
+        )
         self._server = uvicorn.Server(cfg)
         # Start server in background task
         name = f"mcp-bridge-{self.config.server_name}"
