@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from tokonomics.model_names import ModelId
 
 pytestmark = [pytest.mark.integration]
-EDIT_MODEL: ModelId = "openrouter:minimax/minimax-m2.1"
+EDIT_MODEL: ModelId = "openrouter:anthropic/claude-haiku-4.5"
 
 
 @pytest.fixture
@@ -52,8 +52,8 @@ async def test_agentic_edit_basic(temp_file: Path):
     3. The file is actually modified
     4. The main conversation history is not polluted
     """
-    # Create agent with FSSpec tools
-    fsspec_tools = FSSpecTools()
+    # Create agent with FSSpec tools - must enable agentic edit mode
+    fsspec_tools = FSSpecTools(edit_tool="agentic")
 
     async with Agent(
         name="editor",
@@ -84,7 +84,7 @@ Please use agentic_edit to make this change."""
 
 async def test_agentic_edit_preserves_main_history(temp_file: Path):
     """Test that agentic_edit doesn't pollute the main conversation history."""
-    fsspec_tools = FSSpecTools()
+    fsspec_tools = FSSpecTools(edit_tool="agentic")
 
     async with Agent(
         name="editor",
@@ -122,7 +122,7 @@ async def test_agentic_edit_preserves_main_history(temp_file: Path):
 
 async def test_agentic_edit_create_mode(temp_file: Path):
     """Test agentic_edit in create mode."""
-    fsspec_tools = FSSpecTools()
+    fsspec_tools = FSSpecTools(edit_tool="agentic")
     new_file = temp_file.parent / "new_module.py"
 
     try:
@@ -152,7 +152,7 @@ Use agentic_edit with mode='create'."""
 
 async def test_agentic_edit_diff_mode(temp_file: Path):
     """Test agentic_edit in diff-based edit mode (default)."""
-    fsspec_tools = FSSpecTools()
+    fsspec_tools = FSSpecTools(edit_tool="agentic")
 
     # Write specific content we can target
     temp_file.write_text('''\

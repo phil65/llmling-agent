@@ -76,7 +76,7 @@
   {
     "event_kind": "tool_call_progress",
     "items": [],
-    "message": "{'stdout': 'hello\\n', 'stderr': '', 'exit_code': 0, 'duration': 0.01, 'truncated': False}",
+    "message": "hello\n",
     "progress": null,
     "replace_content": false,
     "status": "completed",

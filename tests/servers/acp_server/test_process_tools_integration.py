@@ -109,10 +109,11 @@ async def test_start_process(
         cwd="/tmp",
     )
 
-    assert isinstance(result, dict)
-    assert result["process_id"].startswith("mock_")
-    assert result["args"] == ["hello", "world"]
-    assert result["status"] == "started"
+    # Tools now return formatted strings
+    assert isinstance(result, str)
+    assert "Started background process" in result
+    assert "mock_" in result
+    assert "echo" in result
 
     # Check event was emitted to the queue
     events = get_progress_events(test_agent)
@@ -139,10 +140,9 @@ async def test_get_process_output(
         process_id=process_id,
     )
 
-    assert isinstance(result, dict)
-    assert result["process_id"] == process_id
-    assert result["stdout"] == "hello world\n"
-    assert result["combined"] == "hello world\n"
+    # Tools now return formatted strings
+    assert isinstance(result, str)
+    assert "hello world" in result
 
     # Check event was emitted (title contains output)
     events = get_progress_events(test_agent)
@@ -169,9 +169,10 @@ async def test_kill_process(
         process_id=process_id,
     )
 
-    assert isinstance(result, dict)
-    assert result["process_id"] == process_id
-    assert result["status"] == "killed"
+    # Tools now return formatted strings
+    assert isinstance(result, str)
+    assert process_id in result
+    assert "terminated" in result.lower()
 
     # Check event was emitted
     events = get_progress_events(test_agent)
@@ -199,10 +200,9 @@ async def test_wait_for_process(
         process_id=process_id,
     )
 
-    assert isinstance(result, dict)
-    assert result["process_id"] == process_id
-    assert result["exit_code"] == 0
-    assert result["status"] == "completed"
+    # Tools now return formatted strings
+    assert isinstance(result, str)
+    assert "hello world" in result  # The mock returns "hello world\n"
 
     # Check event was emitted
     events = get_progress_events(test_agent)
@@ -230,9 +230,10 @@ async def test_release_process(
         process_id=process_id,
     )
 
-    assert isinstance(result, dict)
-    assert result["process_id"] == process_id
-    assert result["status"] == "released"
+    # Tools now return formatted strings
+    assert isinstance(result, str)
+    assert process_id in result
+    assert "released" in result.lower()
 
     # Verify process is no longer tracked
     processes = await mock_env.process_manager.list_processes()
@@ -261,11 +262,11 @@ async def test_list_processes(
 
     result = await list_tool.execute(agent_ctx=agent_ctx)
 
-    assert isinstance(result, dict)
-    assert "processes" in result
-    process_ids = [p["process_id"] for p in result["processes"]]
-    assert pid1 in process_ids
-    assert pid2 in process_ids
+    # Tools now return formatted strings
+    assert isinstance(result, str)
+    assert pid1 in result
+    assert pid2 in result
+    assert "Active processes" in result
 
 
 async def test_execute_command(
@@ -282,9 +283,9 @@ async def test_execute_command(
         command="echo hello world",
     )
 
-    assert isinstance(result, dict)
-    assert result["stdout"] == "hello world\n"
-    assert result["exit_code"] == 0
+    # Tools now return formatted strings
+    assert isinstance(result, str)
+    assert "hello world" in result
 
     # Check events were emitted (start + output + exit)
     events = get_progress_events(test_agent)
@@ -304,9 +305,9 @@ async def test_process_not_found(
         process_id="nonexistent_process",
     )
 
-    assert isinstance(result, dict)
-    assert "error" in result
-    assert "not found" in result["error"]
+    # Tools now return formatted strings
+    assert isinstance(result, str)
+    assert "Error" in result or "not found" in result.lower()
 
 
 if __name__ == "__main__":

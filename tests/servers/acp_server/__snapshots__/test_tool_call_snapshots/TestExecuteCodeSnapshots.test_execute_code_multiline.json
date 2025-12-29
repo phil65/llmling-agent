@@ -67,11 +67,7 @@
   },
   {
     "payload": {
-      "rawOutput": {
-        "duration": 0.01,
-        "exit_code": 0,
-        "output": "3\n"
-      },
+      "rawOutput": "3\n",
       "sessionUpdate": "tool_call_update",
       "status": "completed",
       "toolCallId": "pyd_ai_tool_call_id__execute_code"

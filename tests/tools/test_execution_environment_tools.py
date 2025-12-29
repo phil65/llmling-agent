@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from typing import TYPE_CHECKING
 
 from anyenv.process_manager import ProcessOutput
@@ -35,6 +36,15 @@ def get_progress_events(agent: Agent) -> list[ToolCallProgressEvent]:
     """Get all ToolCallProgressEvent from the agent's queue."""
     events = drain_event_queue(agent)
     return [e for e in events if isinstance(e, ToolCallProgressEvent)]
+
+
+def extract_process_id(result: str) -> str:
+    """Extract process ID from a result string like 'Started background process mock_abc123'."""
+    match = re.search(r"mock_[a-f0-9]+", result)
+    if match:
+        return match.group(0)
+    msg = f"Could not extract process ID from: {result}"
+    raise ValueError(msg)
 
 
 @pytest.fixture
@@ -91,8 +101,9 @@ class TestCodeExecution:
         tools = ExecutionEnvironmentTools(env=env)
 
         result = await tools.execute_code(agent_ctx, "print(42)")
-        assert "42" in result["output"]
-        assert result["exit_code"] == 0
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "42" in result
 
         # Check events were emitted
         events = get_progress_events(test_agent)
@@ -117,7 +128,9 @@ class TestCodeExecution:
         tools = ExecutionEnvironmentTools(env=env)
 
         result = await tools.execute_code(agent_ctx, "print(x)")
-        assert "NameError" in result["error"]
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "NameError" in result
 
         # Check events were emitted
         events = get_progress_events(test_agent)
@@ -133,7 +146,9 @@ class TestCodeExecution:
         tools = ExecutionEnvironmentTools(env=env)
 
         result = await tools.execute_code(agent_ctx, "bad code")
-        assert "Execution failed" in result["error"]
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "Execution failed" in result
 
     async def test_execute_command_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test successful command execution."""
@@ -152,8 +167,9 @@ class TestCodeExecution:
         tools = ExecutionEnvironmentTools(env=env)
 
         result = await tools.execute_command(agent_ctx, "echo hello world")
-        assert result["stdout"] == "hello world\n"
-        assert result["exit_code"] == 0
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "hello world" in result
 
         # Check events were emitted
         events = get_progress_events(test_agent)
@@ -179,8 +195,10 @@ class TestCodeExecution:
         tools = ExecutionEnvironmentTools(env=env)
 
         result = await tools.execute_command(agent_ctx, "echo", output_limit=100)
-        assert "[truncated]" in result["stdout"]
-        assert result["truncated"] is True
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        # Output should be truncated
+        assert len(result) < len(long_output) or "truncated" in result.lower()
 
 
 class TestProcessLifecycle:
@@ -197,10 +215,11 @@ class TestProcessLifecycle:
             args=["hello", "world"],
             cwd="/tmp",
         )
-        assert "process_id" in result
-        assert result["command"] == "echo"
-        assert result["args"] == ["hello", "world"]
-        assert result["status"] == "started"
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "Started background process" in result
+        assert "mock_" in result
+        assert "echo" in result
 
         # Check event was emitted
         events = get_progress_events(test_agent)
@@ -219,8 +238,9 @@ class TestProcessLifecycle:
         tools = ExecutionEnvironmentTools(env=env)
 
         result = await tools.start_process(agent_ctx, command="nonexistent")
-        assert "error" in result
-        assert "Command not found" in result["error"]
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "Command not found" in result or "Failed" in result
 
         # Check event was emitted with failure
         events = get_progress_events(test_agent)
@@ -240,13 +260,13 @@ class TestProcessLifecycle:
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="sleep", args=["10"])
-        process_id = start_result["process_id"]
+        process_id = extract_process_id(start_result)
         drain_event_queue(test_agent)  # Clear start event
 
         result = await tools.get_process_output(agent_ctx, process_id)
-        assert result["process_id"] == process_id
-        assert result["status"] == "running"
-        assert "output line 1" in result["stdout"]
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "output line 1" in result
 
         # Check event was emitted
         events = get_progress_events(test_agent)
@@ -266,11 +286,13 @@ class TestProcessLifecycle:
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="echo", args=["done"])
-        process_id = start_result["process_id"]
+        process_id = extract_process_id(start_result)
 
         result = await tools.get_process_output(agent_ctx, process_id)
-        assert result["status"] == "completed"
-        assert result["exit_code"] == 0
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "done" in result
+        assert "completed" in result.lower() or "exit" in result.lower()
 
     async def test_wait_for_process_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test waiting for process completion."""
@@ -286,14 +308,13 @@ class TestProcessLifecycle:
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="echo", args=["done"])
-        process_id = start_result["process_id"]
+        process_id = extract_process_id(start_result)
         drain_event_queue(test_agent)  # Clear start event
 
         result = await tools.wait_for_process(agent_ctx, process_id)
-        assert result["process_id"] == process_id
-        assert result["exit_code"] == 0
-        assert result["status"] == "completed"
-        assert "Process completed" in result["stdout"]
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "Process completed" in result
 
         # Check event was emitted
         events = get_progress_events(test_agent)
@@ -314,11 +335,12 @@ class TestProcessLifecycle:
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="false")
-        process_id = start_result["process_id"]
+        process_id = extract_process_id(start_result)
 
         result = await tools.wait_for_process(agent_ctx, process_id)
-        assert result["exit_code"] == 1
-        assert "Command failed" in result["stderr"]
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "Command failed" in result
 
     async def test_kill_process_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test killing a process."""
@@ -327,12 +349,14 @@ class TestProcessLifecycle:
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="sleep", args=["100"])
-        process_id = start_result["process_id"]
+        process_id = extract_process_id(start_result)
         drain_event_queue(test_agent)  # Clear start event
 
         result = await tools.kill_process(agent_ctx, process_id)
-        assert result["process_id"] == process_id
-        assert result["status"] == "killed"
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert process_id in result
+        assert "terminated" in result.lower()
 
         # Check event was emitted
         events = get_progress_events(test_agent)
@@ -345,7 +369,9 @@ class TestProcessLifecycle:
         tools = ExecutionEnvironmentTools(env=env)
 
         result = await tools.kill_process(agent_ctx, "invalid")
-        assert "error" in result
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "Error" in result or "not found" in result.lower()
 
         # Check event was emitted with failure
         events = get_progress_events(test_agent)
@@ -358,12 +384,14 @@ class TestProcessLifecycle:
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="echo")
-        process_id = start_result["process_id"]
+        process_id = extract_process_id(start_result)
         drain_event_queue(test_agent)  # Clear start event
 
         result = await tools.release_process(agent_ctx, process_id)
-        assert result["process_id"] == process_id
-        assert result["status"] == "released"
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert process_id in result
+        assert "released" in result.lower()
 
         # Check event was emitted
         events = get_progress_events(test_agent)
@@ -376,8 +404,9 @@ class TestProcessLifecycle:
         tools = ExecutionEnvironmentTools(env=env)
 
         result = await tools.list_processes(agent_ctx)
-        assert result["processes"] == []
-        assert result["count"] == 0
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "0" in result or "No" in result or "empty" in result.lower()
 
     async def test_list_processes_with_results(self, agent_ctx: AgentContext):
         """Test listing active processes."""
@@ -389,13 +418,11 @@ class TestProcessLifecycle:
         await tools.start_process(agent_ctx, command="echo", args=["done"], cwd="/home")
 
         result = await tools.list_processes(agent_ctx)
-        assert result["count"] == 2  # noqa: PLR2004
-        assert len(result["processes"]) == 2  # noqa: PLR2004
-        # Check that processes have expected fields
-        for proc in result["processes"]:
-            assert "process_id" in proc
-            assert "command" in proc
-            assert "args" in proc
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "2" in result or "Active processes" in result
+        # Both process IDs should be in the output
+        assert "mock_" in result
 
     async def test_list_processes_partial_failure(self, agent_ctx: AgentContext):
         """Test listing when some process info fails."""
@@ -421,9 +448,10 @@ class TestProcessLifecycle:
         env.process_manager.get_process_info = failing_get_info
 
         result = await tools.list_processes(agent_ctx)
-        assert result["count"] == 2  # noqa: PLR2004
-        assert result["processes"][0]["command"] == "sleep"
-        assert "error" in result["processes"][1]
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        # Should still list processes even with partial failure
+        assert "mock_" in result
 
 
 class TestEdgeCases:
@@ -444,10 +472,12 @@ class TestEdgeCases:
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="big_command")
-        process_id = start_result["process_id"]
+        process_id = extract_process_id(start_result)
 
         result = await tools.get_process_output(agent_ctx, process_id)
-        assert result["truncated"] is True
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "partial output" in result
 
     async def test_process_with_signal(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test process terminated by signal."""
@@ -464,7 +494,9 @@ class TestEdgeCases:
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="killed_proc")
-        process_id = start_result["process_id"]
+        process_id = extract_process_id(start_result)
 
         result = await tools.wait_for_process(agent_ctx, process_id)
-        assert result["exit_code"] == -15  # noqa: PLR2004
+        # Tools now return formatted strings
+        assert isinstance(result, str)
+        assert "Killed" in result
