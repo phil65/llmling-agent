@@ -269,8 +269,6 @@ def ui(ctx, *args: str):
             "websocket",
             "--ws-port",
             str(port),
-            "--model-provider",
-            "openai",
         ]
         if args_str.strip():
             ws_server_cmd.extend(args_str.split())
@@ -296,7 +294,7 @@ def ui(ctx, *args: str):
         # Direct stdio - toad spawns agentpool directly
         cmd_parts = [
             "uvx --from batrachian-toad@latest toad acp",
-            f'"uv run --python 3.13 agentpool serve-acp --model-provider openai{args_str}"',
+            f'"uv run --python 3.13 agentpool serve-acp{args_str}"',
         ]
         ctx.run(" ".join(cmd_parts))
 

@@ -840,7 +840,7 @@ if __name__ == "__main__":
 
     async def main() -> None:
         """Demo: Basic call to an ACP agent."""
-        args = ["run", "agentpool", "serve-acp", "--model-provider", "openai"]
+        args = ["run", "agentpool", "serve-acp"]
         cwd = str(Path.cwd())
         async with ACPAgent(command="uv", args=args, cwd=cwd, event_handlers=["detailed"]) as agent:
             print("Response (streaming): ", end="", flush=True)

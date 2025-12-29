@@ -12,6 +12,7 @@ from llmling_models.configs import AnyModelConfig  # noqa: TC002
 from pydantic import ConfigDict, Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002
 from schemez import InlineSchemaDef
+from tokonomics.model_discovery import ProviderType  # noqa: TC002
 from tokonomics.model_names import ModelId  # noqa: TC002
 from toprompt import render_prompt
 
@@ -229,6 +230,18 @@ class NativeAgentConfig(BaseAgentConfig):
 
     usage_limits: UsageLimits | None = Field(default=None, title="Usage limits")
     """Usage limits for this agent."""
+
+    model_providers: list[ProviderType] | None = Field(
+        default=None,
+        examples=[["openai", "anthropic", "gemini"], ["anthropic"]],
+        title="Model providers",
+    )
+    """List of model providers to use for model discovery.
+
+    When set, the agent's get_available_models() will return models from these
+    providers. Common values: "openai", "anthropic", "gemini", "mistral", etc.
+    If not set, defaults to ["openai", "anthropic", "gemini"].
+    """
 
     tool_mode: ToolMode | None = Field(
         default=None,

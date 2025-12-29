@@ -51,7 +51,6 @@ agentpool serve-acp agents.yml
 - `--file-access/--no-file-access`: Enable file system operations (default: enabled)
 - `--terminal-access/--no-terminal-access`: Enable terminal integration (default: enabled)
 - `--session-support/--no-session-support`: Enable session loading (default: enabled)
-- `--model-provider`: Specify model providers to search (can be repeated)
 - `--show-messages`: Show message activity in logs
 - `--log-level`: Set logging level (debug, info, warning, error)
 
@@ -71,9 +70,7 @@ Add this configuration to your Zed `settings.json`:
         "3.13",
         "agentpool[default,coding]@latest",
         "serve-acp",
-        "https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/docs/examples/pick_experts/config.yml", # <- insert your agent config here
-        "--model-provider",
-        "openai"
+        "https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/docs/examples/pick_experts/config.yml"
       ],
       "env": {
         "OPENAI_API_KEY": "your-api-key-here"
@@ -654,15 +651,20 @@ You can reference remote configuration files directly:
 agentpool serve-acp https://example.com/config.yml
 ```
 
-### Provider Selection
+### Model Provider Selection
 
-Limit which providers are searched for models:
+Model providers are configured per-agent via the `model_providers` field in your agent configuration:
 
-```bash
-agentpool serve-acp config.yml --model-provider openai --model-provider anthropic
+```yaml
+agents:
+  my_agent:
+    model: openai:gpt-4o
+    model_providers:
+      - openai
+      - anthropic
 ```
 
-If not provider is passed, OpenRouter is used.
+This determines which providers the agent can list in model discovery. If not set, defaults to `["openai", "anthropic", "gemini"]`.
 
 Available model providers:
 

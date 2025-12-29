@@ -45,8 +45,7 @@ Add to your Zed `settings.json`:
         "--python", "3.13",
         "agentpool[default,coding]@latest",
         "serve-acp",
-        "path/to/config.yml",
-        "--model-provider", "openai"
+        "path/to/config.yml"
       ],
       "env": {
         "OPENAI_API_KEY": "your-api-key"

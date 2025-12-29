@@ -7,11 +7,8 @@ the Agent Client Protocol.
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
 import functools
 from typing import TYPE_CHECKING, Any, Self
-
-import logfire
 
 from acp import serve
 from agentpool import AgentPool
@@ -22,40 +19,12 @@ from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from tokonomics.model_discovery import ProviderType
-    from tokonomics.model_discovery.model_info import ModelInfo
     from upathtools import JoinablePathLike
 
     from acp import Transport
-    from acp.schema import ModelInfo as ACPModelInfo
 
 
 logger = get_logger(__name__)
-
-
-def _convert_to_acp_model_info(
-    toko_models: Sequence[ModelInfo],
-) -> list[ACPModelInfo]:
-    """Convert tokonomics ModelInfo list to ACP ModelInfo list.
-
-    Args:
-        toko_models: List of tokonomics ModelInfo objects
-
-    Returns:
-        List of ACP ModelInfo objects with pydantic_ai_id as model_id
-    """
-    from acp.schema import ModelInfo as ACPModelInfo
-
-    return [
-        ACPModelInfo(
-            model_id=model.pydantic_ai_id,
-            name=f"{model.provider}: {model.name}" if model.provider else model.name,
-            description=model.format(),
-        )
-        for model in toko_models
-    ]
 
 
 class ACPServer(BaseServer):
@@ -75,7 +44,6 @@ class ACPServer(BaseServer):
         name: str | None = None,
         file_access: bool = True,
         terminal_access: bool = True,
-        providers: list[ProviderType] | None = None,
         debug_messages: bool = False,
         debug_file: str | None = None,
         debug_commands: bool = False,
@@ -91,7 +59,6 @@ class ACPServer(BaseServer):
             name: Optional Server name (auto-generated if None)
             file_access: Whether to support file access operations
             terminal_access: Whether to support terminal access operations
-            providers: List of providers to use for model discovery (None = openrouter)
             debug_messages: Whether to enable debug message logging
             debug_file: File path for debug message logging
             debug_commands: Whether to enable debug slash commands for testing
@@ -103,7 +70,6 @@ class ACPServer(BaseServer):
         super().__init__(pool, name=name, raise_exceptions=True)
         self.file_access = file_access
         self.terminal_access = terminal_access
-        self.providers = providers or ["openai", "anthropic", "gemini"]
         self.debug_messages = debug_messages
         self.debug_file = debug_file
         self.debug_commands = debug_commands
@@ -112,9 +78,6 @@ class ACPServer(BaseServer):
         self.config_path = config_path
         self.transport: Transport = transport
 
-        self._available_models: list[ACPModelInfo] = []
-        self._models_initialized = False
-
     @classmethod
     def from_config(
         cls,
@@ -122,7 +85,6 @@ class ACPServer(BaseServer):
         *,
         file_access: bool = True,
         terminal_access: bool = True,
-        providers: list[ProviderType] | None = None,
         debug_messages: bool = False,
         debug_file: str | None = None,
         debug_commands: bool = False,
@@ -136,7 +98,6 @@ class ACPServer(BaseServer):
             config_path: Path to agentpool YAML config file
             file_access: Enable file system access
             terminal_access: Enable terminal access
-            providers: List of provider types to use for model discovery
             debug_messages: Enable saving JSON messages to file
             debug_file: Path to debug file
             debug_commands: Enable debug slash commands for testing
@@ -153,7 +114,6 @@ class ACPServer(BaseServer):
             pool,
             file_access=file_access,
             terminal_access=terminal_access,
-            providers=providers,
             debug_messages=debug_messages,
             debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
             debug_commands=debug_commands,
@@ -180,11 +140,9 @@ class ACPServer(BaseServer):
             type(self.transport).__name__ if not isinstance(self.transport, str) else self.transport
         )
         self.log.info("Starting ACP server", transport=transport_name)
-        await self._initialize_models()  # Initialize models on first run
         create_acp_agent = functools.partial(
             AgentPoolACPAgent,
             agent_pool=self.pool,
-            available_models=self._available_models,
             file_access=self.file_access,
             terminal_access=self.terminal_access,
             debug_commands=self.debug_commands,
@@ -272,28 +230,3 @@ class ACPServer(BaseServer):
 
         self.log.info("Pool swapped successfully", agent_names=agent_names, default_agent=agent)
         return agent_names
-
-    @logfire.instrument("ACP: Initializing models.")
-    async def _initialize_models(self) -> None:
-        """Initialize available models using tokonomics model discovery.
-
-        Converts tokonomics ModelInfo to ACP ModelInfo format at startup
-        so all downstream code works with ACP types consistently.
-        """
-        from tokonomics.model_discovery import get_all_models
-
-        if self._models_initialized:
-            return
-        try:
-            self.log.info("Discovering available models...")
-            delta = timedelta(days=200)
-            toko_models = await get_all_models(providers=self.providers, max_age=delta)
-            # Convert to ACP format once at startup
-            self._available_models = _convert_to_acp_model_info(toko_models)
-            self._models_initialized = True
-            self.log.info("Discovered models", count=len(self._available_models))
-        except Exception:
-            self.log.exception("Failed to discover models")
-            self._available_models = []
-        finally:
-            self._models_initialized = True

@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
+    from tokonomics.model_discovery.model_info import ModelInfo
 
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent

@@ -44,7 +44,6 @@ async def acp_test_session(
     *,
     file_access: bool = True,
     terminal_access: bool = True,
-    providers: list[str] | None = None,
     debug_messages: bool = False,
     debug_file: str | None = None,
     debug_commands: bool = False,
@@ -63,7 +62,6 @@ async def acp_test_session(
         config: Path to agent configuration YAML file. If None, uses default config.
         file_access: Enable file system access for agents.
         terminal_access: Enable terminal access for agents.
-        providers: Model providers to search for models.
         debug_messages: Save raw JSON-RPC messages to debug file.
         debug_file: File path for JSON-RPC debug messages.
         debug_commands: Enable debug slash commands for testing.
@@ -97,10 +95,6 @@ async def acp_test_session(
 
     if not terminal_access:
         args.append("--no-terminal-access")
-
-    if providers:
-        for provider in providers:
-            args.extend(["--model-provider", provider])
 
     if debug_messages:
         args.append("--debug-messages")
