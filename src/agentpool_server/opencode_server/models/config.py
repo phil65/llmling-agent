@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import Field
-
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 
 
@@ -17,7 +15,7 @@ class Config(OpenCodeBaseModel):
 
     # Model settings
     model: str | None = None
-    small_model: str | None = Field(default=None, alias="smallModel")
+    small_model: str | None = None
 
     # Theme and UI
     theme: str | None = None

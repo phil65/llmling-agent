@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field
-
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import TimeCreatedUpdated  # noqa: TC001
 
@@ -13,9 +11,9 @@ from agentpool_server.opencode_server.models.common import TimeCreatedUpdated  #
 class SessionRevert(OpenCodeBaseModel):
     """Revert information for a session."""
 
-    message_id: str = Field(alias="messageID")
+    message_id: str
     diff: str | None = None
-    part_id: str | None = Field(default=None, alias="partID")
+    part_id: str | None = None
     snapshot: str | None = None
 
 
@@ -29,12 +27,12 @@ class Session(OpenCodeBaseModel):
     """Session information."""
 
     id: str
-    project_id: str = Field(alias="projectID")
+    project_id: str
     directory: str
     title: str
     version: str = "1"
     time: TimeCreatedUpdated
-    parent_id: str | None = Field(default=None, alias="parentID")
+    parent_id: str | None = None
     revert: SessionRevert | None = None
     share: SessionShare | None = None
 
@@ -42,7 +40,7 @@ class Session(OpenCodeBaseModel):
 class SessionCreateRequest(OpenCodeBaseModel):
     """Request body for creating a session."""
 
-    parent_id: str | None = Field(default=None, alias="parentID")
+    parent_id: str | None = None
     title: str | None = None
 
 

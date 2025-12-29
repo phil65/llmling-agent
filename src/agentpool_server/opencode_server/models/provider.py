@@ -12,8 +12,8 @@ class ModelCost(OpenCodeBaseModel):
 
     input: float
     output: float
-    cache_read: float | None = Field(default=None, alias="cacheRead")
-    cache_write: float | None = Field(default=None, alias="cacheWrite")
+    cache_read: float | None = None
+    cache_write: float | None = None
 
 
 class ModelLimit(OpenCodeBaseModel):
@@ -33,9 +33,9 @@ class Model(OpenCodeBaseModel):
     limit: ModelLimit
     options: dict[str, Any] = Field(default_factory=dict)
     reasoning: bool = False
-    release_date: str = Field(default="", alias="releaseDate")
+    release_date: str = ""
     temperature: bool = True
-    tool_call: bool = Field(default=True, alias="toolCall")
+    tool_call: bool = True
 
 
 class Provider(OpenCodeBaseModel):
@@ -67,8 +67,8 @@ class ProviderListResponse(OpenCodeBaseModel):
 class ModeModel(OpenCodeBaseModel):
     """Model selection for a mode."""
 
-    model_id: str = Field(alias="modelID")
-    provider_id: str = Field(alias="providerID")
+    model_id: str
+    provider_id: str
 
 
 class Mode(OpenCodeBaseModel):

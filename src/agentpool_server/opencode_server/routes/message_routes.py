@@ -5,7 +5,24 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic_ai import FunctionToolCallEvent
+from pydantic_ai.messages import (
+    PartDeltaEvent,
+    PartStartEvent,
+    TextPart as PydanticTextPart,
+    TextPartDelta,
+    ToolCallPart as PydanticToolCallPart,
+)
 
+from agentpool.agents.claude_code_agent.converters import derive_rich_tool_info
+from agentpool.agents.events import (
+    StreamCompleteEvent,
+    TextContentItem,
+    ToolCallCompleteEvent,
+    ToolCallProgressEvent,
+    ToolCallStartEvent,
+)
+from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool_server.opencode_server import identifier
 from agentpool_server.opencode_server.converters import extract_user_prompt_from_parts
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
@@ -20,6 +37,8 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     PartUpdatedEvent,
     PartUpdatedEventProperties,
     SessionStatus,
+    SessionStatusEvent,
+    SessionStatusProperties,
     StepFinishPart,
     StepStartPart,
     TextPart,
@@ -34,6 +53,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     ToolStateRunning,
     UserMessage,
 )
+from agentpool_server.opencode_server.models.message import UserMessageModel
 from agentpool_server.opencode_server.models.parts import TimeStart
 from agentpool_server.opencode_server.time_utils import now_ms
 
@@ -68,13 +88,8 @@ async def send_message(  # noqa: PLR0915
         raise HTTPException(status_code=404, detail="Session not found")
 
     now = now_ms()
-
     # Create user message with sortable ID
     user_msg_id = identifier.ascending("message", request.message_id)
-
-    # Import UserMessageModel
-    from agentpool_server.opencode_server.models.message import UserMessageModel
-
     user_message = UserMessage(
         id=user_msg_id,
         session_id=session_id,
@@ -110,9 +125,6 @@ async def send_message(  # noqa: PLR0915
         await state.broadcast_event(
             PartUpdatedEvent(properties=PartUpdatedEventProperties(part=part))
         )
-
-    # Mark session as running
-    from agentpool_server.opencode_server.models import SessionStatusEvent, SessionStatusProperties
 
     state.session_status[session_id] = SessionStatus(type="busy")
     await state.broadcast_event(
@@ -182,25 +194,6 @@ async def send_message(  # noqa: PLR0915
 
     if state.agent is not None:
         try:
-            # Import event types here to avoid circular imports
-            from pydantic_ai import FunctionToolCallEvent
-            from pydantic_ai.messages import (
-                PartDeltaEvent,
-                PartStartEvent,
-                TextPart as PydanticTextPart,
-                TextPartDelta,
-                ToolCallPart as PydanticToolCallPart,
-            )
-
-            from agentpool.agents.claude_code_agent.converters import derive_rich_tool_info
-            from agentpool.agents.events import (
-                StreamCompleteEvent,
-                ToolCallCompleteEvent,
-                ToolCallProgressEvent,
-                ToolCallStartEvent,
-            )
-            from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
-
             # Get the specified agent from the pool, or fall back to default
             agent = state.agent
             if request.agent and state.agent.agent_pool is not None:
@@ -361,7 +354,7 @@ async def send_message(  # noqa: PLR0915
                         # Extract text content from items and accumulate
                         new_output = ""
                         for item in items:
-                            if hasattr(item, "text"):
+                            if isinstance(item, TextContentItem):
                                 new_output += item.text
                             elif hasattr(item, "content"):
                                 new_output += item.content

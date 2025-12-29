@@ -15,8 +15,8 @@ class TextPart(OpenCodeBaseModel):
 
     id: str
     type: Literal["text"] = "text"
-    message_id: str = Field(alias="messageID")
-    session_id: str = Field(alias="sessionID")
+    message_id: str
+    session_id: str
     text: str
     synthetic: bool | None = None
     ignored: bool | None = None
@@ -86,9 +86,9 @@ class ToolPart(OpenCodeBaseModel):
 
     id: str
     type: Literal["tool"] = "tool"
-    message_id: str = Field(alias="messageID")
-    session_id: str = Field(alias="sessionID")
-    call_id: str = Field(alias="callID")
+    message_id: str
+    session_id: str
+    call_id: str
     tool: str
     state: ToolState
     metadata: dict[str, Any] | None = None
@@ -115,8 +115,8 @@ class FilePart(OpenCodeBaseModel):
 
     id: str
     type: Literal["file"] = "file"
-    message_id: str = Field(alias="messageID")
-    session_id: str = Field(alias="sessionID")
+    message_id: str
+    session_id: str
     mime: str
     filename: str | None = None
     url: str
@@ -128,8 +128,8 @@ class StepStartPart(OpenCodeBaseModel):
 
     id: str
     type: Literal["step-start"] = "step-start"
-    message_id: str = Field(alias="messageID")
-    session_id: str = Field(alias="sessionID")
+    message_id: str
+    session_id: str
     snapshot: str | None = None
 
 
@@ -154,8 +154,8 @@ class StepFinishPart(OpenCodeBaseModel):
 
     id: str
     type: Literal["step-finish"] = "step-finish"
-    message_id: str = Field(alias="messageID")
-    session_id: str = Field(alias="sessionID")
+    message_id: str
+    session_id: str
     reason: str = "stop"
     snapshot: str | None = None
     cost: int = 0

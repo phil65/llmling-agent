@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: TC001
 from agentpool_server.opencode_server.models.parts import Part  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 class MessagePath(OpenCodeBaseModel):
@@ -44,8 +48,8 @@ class Tokens(OpenCodeBaseModel):
 class UserMessageModel(OpenCodeBaseModel):
     """Model info for user message."""
 
-    provider_id: str = Field(alias="providerID")
-    model_id: str = Field(alias="modelID")
+    provider_id: str
+    model_id: str
 
 
 class UserMessage(OpenCodeBaseModel):
@@ -53,7 +57,7 @@ class UserMessage(OpenCodeBaseModel):
 
     id: str
     role: Literal["user"] = "user"
-    session_id: str = Field(alias="sessionID")
+    session_id: str
     time: TimeCreated
     agent: str = "default"
     model: UserMessageModel
@@ -64,10 +68,10 @@ class AssistantMessage(OpenCodeBaseModel):
 
     id: str
     role: Literal["assistant"] = "assistant"
-    session_id: str = Field(alias="sessionID")
-    parent_id: str = Field(alias="parentID")  # Required - links to user message
-    model_id: str = Field(alias="modelID")
-    provider_id: str = Field(alias="providerID")
+    session_id: str
+    parent_id: str  # Required - links to user message
+    model_id: str
+    provider_id: str
     mode: str = "default"
     agent: str = "default"
     path: MessagePath
@@ -83,7 +87,7 @@ class MessageWithParts(OpenCodeBaseModel):
     """Message with its parts."""
 
     info: UserMessage | AssistantMessage
-    parts: list[Part] = Field(default_factory=list)
+    parts: Sequence[Part] = Field(default_factory=list)
 
 
 # Request models
@@ -128,18 +132,18 @@ PartInput = TextPartInput | FilePartInput
 class MessageModelInfo(OpenCodeBaseModel):
     """Model info in message request."""
 
-    provider_id: str = Field(alias="providerID")
-    model_id: str = Field(alias="modelID")
+    provider_id: str
+    model_id: str
 
 
 class MessageRequest(OpenCodeBaseModel):
     """Request body for sending a message."""
 
     parts: list[PartInput]
-    message_id: str | None = Field(default=None, alias="messageID")
+    message_id: str | None = None
     model: MessageModelInfo | None = None
     agent: str | None = None
-    no_reply: bool | None = Field(default=None, alias="noReply")
+    no_reply: bool | None = None
     system: str | None = None
     tools: dict[str, bool] | None = None
 
@@ -159,4 +163,4 @@ class CommandRequest(OpenCodeBaseModel):
     arguments: str | None = None
     agent: str | None = None
     model: str | None = None  # Format: "providerID/modelID"
-    message_id: str | None = Field(default=None, alias="messageID")
+    message_id: str | None = None

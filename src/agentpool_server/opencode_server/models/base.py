@@ -1,6 +1,7 @@
 """Base model for all OpenCode API models."""
 
 from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 
 
 class OpenCodeBaseModel(BaseModel):
@@ -13,5 +14,6 @@ class OpenCodeBaseModel(BaseModel):
 
     model_config = ConfigDict(
         populate_by_name=True,
-        serialize_by_alias=True,  # Always use camelCase aliases in JSON output
+        alias_generator=to_camel,
+        use_attribute_docstrings=True,
     )

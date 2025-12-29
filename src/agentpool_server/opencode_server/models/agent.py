@@ -23,8 +23,8 @@ class AgentPermission(OpenCodeBaseModel):
 class AgentModel(OpenCodeBaseModel):
     """Agent model configuration."""
 
-    model_id: str = Field(alias="modelID")
-    provider_id: str = Field(alias="providerID")
+    model_id: str
+    provider_id: str
 
 
 class Agent(OpenCodeBaseModel):
@@ -36,7 +36,7 @@ class Agent(OpenCodeBaseModel):
     native: bool | None = None
     hidden: bool | None = None
     default: bool | None = None
-    top_p: float | None = Field(default=None, alias="topP")
+    top_p: float | None = None
     temperature: float | None = None
     color: str | None = None
     permission: AgentPermission = Field(default_factory=AgentPermission)

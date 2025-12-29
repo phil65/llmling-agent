@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import uuid
 
+from pydantic_ai import TextPart as PydanticTextPart, ToolCallPart as PydanticToolCallPart
+
 from agentpool_server.opencode_server.models import (
     TextPart,
     TimeStartEnd,
@@ -18,14 +20,9 @@ from agentpool_server.opencode_server.time_utils import now_ms
 
 
 if TYPE_CHECKING:
-    from pydantic_ai.messages import (
-        ModelResponse,
-        TextPart as PydanticTextPart,
-        ToolCallPart as PydanticToolCallPart,
-        ToolReturnPart as PydanticToolReturnPart,
-    )
+    from pydantic_ai import ModelResponse, ToolReturnPart as PydanticToolReturnPart
 
-    from agentpool.agents.events.events import (
+    from agentpool.agents.events import (
         ToolCallCompleteEvent,
         ToolCallProgressEvent,
         ToolCallStartEvent,
@@ -138,11 +135,6 @@ def convert_model_response_to_parts(
     message_id: str,
 ) -> list[Part]:
     """Convert a pydantic-ai ModelResponse to OpenCode Parts."""
-    from pydantic_ai.messages import (
-        TextPart as PydanticTextPart,
-        ToolCallPart as PydanticToolCallPart,
-    )
-
     parts: list[Part] = []
 
     for part in response.parts:
@@ -223,9 +215,7 @@ def convert_tool_complete_event(
     existing_input = _get_input_from_state(existing_part.state)
 
     # ToolCallCompleteEvent doesn't have error field - check result for error indication
-    is_error = isinstance(result, dict) and result.get("error")
-
-    if is_error:
+    if isinstance(result, dict) and result.get("error"):
         state: ToolStateCompleted | ToolStateError = ToolStateError(
             status="error",
             error=str(result.get("error", "Unknown error")),

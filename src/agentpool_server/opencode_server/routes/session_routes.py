@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal
 
 from fastapi import APIRouter, HTTPException
-from pydantic import Field
+from pydantic_ai import FileUrl
 
 from agentpool_server.opencode_server import identifier
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
@@ -673,8 +673,8 @@ async def share_session(
 class RevertRequest(OpenCodeBaseModel):
     """Request body for reverting a message."""
 
-    message_id: str = Field(alias="messageID")
-    part_id: str | None = Field(default=None, alias="partID")
+    message_id: str
+    part_id: str | None = None
 
 
 @router.post("/{session_id}/revert")
@@ -929,15 +929,15 @@ async def execute_command(  # noqa: PLR0915
                 elif isinstance(content, list):
                     # Handle Sequence[UserContent]
                     for item in content:
-                        if hasattr(item, "text"):
-                            prompt_texts.append(item.text)
+                        if isinstance(item, FileUrl):
+                            prompt_texts.append(item.url)
                         elif isinstance(item, str):
                             prompt_texts.append(item)
         prompt_text = "\n".join(prompt_texts)
 
         # Run the expanded prompt through the agent
         result = await state.agent.run(prompt_text)
-        output_text = str(result.output) if hasattr(result, "output") else str(result)
+        output_text = str(result.data)
 
     except Exception as e:  # noqa: BLE001
         output_text = f"Error executing command: {e}"

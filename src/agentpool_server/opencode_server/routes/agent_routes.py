@@ -73,7 +73,7 @@ async def list_commands(state: StateDep) -> list[Command]:
         return [
             Command(
                 name=prompt.name,
-                description=prompt.description or None,
+                description=prompt.description or "",
             )
             for prompt in prompts
         ]

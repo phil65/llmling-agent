@@ -52,7 +52,7 @@ class SessionUpdatedEvent(OpenCodeBaseModel):
 class SessionDeletedProperties(OpenCodeBaseModel):
     """Properties for session deleted event."""
 
-    session_id: str = Field(alias="sessionID")
+    session_id: str
 
 
 class SessionDeletedEvent(OpenCodeBaseModel):
@@ -65,7 +65,7 @@ class SessionDeletedEvent(OpenCodeBaseModel):
 class SessionStatusProperties(OpenCodeBaseModel):
     """Properties for session status event."""
 
-    session_id: str = Field(alias="sessionID")
+    session_id: str
     status: SessionStatus
 
 
@@ -79,7 +79,7 @@ class SessionStatusEvent(OpenCodeBaseModel):
 class SessionIdleProperties(OpenCodeBaseModel):
     """Properties for session idle event (deprecated but still used by TUI)."""
 
-    session_id: str = Field(alias="sessionID")
+    session_id: str
 
 
 class SessionIdleEvent(OpenCodeBaseModel):
@@ -119,10 +119,10 @@ class PartUpdatedEvent(OpenCodeBaseModel):
 class PermissionRequestProperties(OpenCodeBaseModel):
     """Properties for permission request event."""
 
-    session_id: str = Field(alias="sessionID")
-    permission_id: str = Field(alias="permissionID")
-    tool_name: str = Field(alias="toolName")
-    args_preview: str = Field(alias="argsPreview")
+    session_id: str
+    permission_id: str
+    tool_name: str
+    args_preview: str
     message: str
 
 
@@ -136,8 +136,8 @@ class PermissionRequestEvent(OpenCodeBaseModel):
 class PermissionResolvedProperties(OpenCodeBaseModel):
     """Properties for permission resolved event."""
 
-    session_id: str = Field(alias="sessionID")
-    permission_id: str = Field(alias="permissionID")
+    session_id: str
+    permission_id: str
     response: str  # "once" | "always" | "reject"
 
 

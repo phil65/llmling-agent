@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 
@@ -45,13 +45,13 @@ class SubmatchInfo(OpenCodeBaseModel):
     end: int
 
 
-class FindMatch(OpenCodeBaseModel):
+class FindMatch(BaseModel):
     """Text search match."""
 
     path: TextWrapper
     lines: TextWrapper
-    line_number: int = Field(alias="line_number")
-    absolute_offset: int = Field(alias="absolute_offset")
+    line_number: int  # these here are snake_case in the API, so we inherit from BaseModel
+    absolute_offset: int
     submatches: list[SubmatchInfo] = Field(default_factory=list)
 
 
