@@ -156,9 +156,20 @@ async def abort_session(session_id: str, state: StateDep) -> bool:
 
 @router.get("/{session_id}/todo")
 async def get_session_todos(session_id: str, state: StateDep) -> list[Todo]:
-    """Get todos for a session."""
+    """Get todos for a session.
+
+    Returns todos from the agent pool's TodoTracker if available,
+    otherwise falls back to session-level todos.
+    """
     if session_id not in state.sessions:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    # Try to get todos from pool's TodoTracker
+    if state.agent is not None and state.agent.agent_pool is not None:
+        tracker = state.agent.agent_pool.todos
+        return [Todo(id=e.id, content=e.content, status=e.status) for e in tracker.entries]
+
+    # Fall back to session-level todos (legacy)
     return state.todos.get(session_id, [])
 
 

@@ -153,9 +153,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
 
         # File operations tracker for diff/revert support
-        from agentpool.utils.streams import FileOpsTracker
+        from agentpool.utils.streams import FileOpsTracker, TodoTracker
 
         self.file_ops = FileOpsTracker()
+
+        # Todo/plan tracker for task management
+        self.todos = TodoTracker()
 
         # Create all agents from unified manifest.agents dict
         for name, config in self.manifest.agents.items():

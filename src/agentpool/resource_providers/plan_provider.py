@@ -7,13 +7,15 @@ from typing import TYPE_CHECKING, Literal
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.resource_providers import ResourceProvider
+from agentpool.utils.streams import TodoPriority, TodoStatus  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from agentpool.tools.base import Tool
+    from agentpool.utils.streams import TodoTracker
 
 
-# Plan entry types - domain models independent of ACP
+# Keep PlanEntry for backward compatibility with event emitting
 PlanEntryPriority = Literal["high", "medium", "low"]
 PlanEntryStatus = Literal["pending", "in_progress", "completed"]
 
@@ -50,13 +52,19 @@ class PlanProvider(ResourceProvider):
     """Provides plan-related tools for agent planning and task management.
 
     This provider creates tools for managing agent plans and tasks,
-    emitting domain events that can be handled by protocol adapters.
+    delegating storage to pool.todos and emitting domain events
+    that can be handled by protocol adapters.
     """
 
     def __init__(self) -> None:
         """Initialize plan provider."""
         super().__init__(name="plan")
-        self._current_plan: list[PlanEntry] = []
+
+    def _get_tracker(self, agent_ctx: AgentContext) -> TodoTracker | None:
+        """Get the TodoTracker from the pool."""
+        if agent_ctx.pool is not None:
+            return agent_ctx.pool.todos
+        return None
 
     async def get_tools(self) -> list[Tool]:
         """Get plan management tools."""
@@ -76,7 +84,8 @@ class PlanProvider(ResourceProvider):
         Returns:
             Markdown-formatted plan with all entries and their status
         """
-        if not self._current_plan:
+        tracker = self._get_tracker(agent_ctx)
+        if tracker is None or not tracker.entries:
             return "## Plan\n\n*No plan entries yet.*"
 
         lines = ["## Plan", ""]
@@ -90,7 +99,7 @@ class PlanProvider(ResourceProvider):
             "medium": "🟡",
             "low": "🟢",
         }
-        for i, entry in enumerate(self._current_plan):
+        for i, entry in enumerate(tracker.entries):
             icon = status_icons.get(entry.status, "?")
             priority = priority_labels.get(entry.priority, "")
             lines.append(f"{i}. {icon} {priority} {entry.content} *({entry.status})*")
@@ -101,7 +110,7 @@ class PlanProvider(ResourceProvider):
         self,
         agent_ctx: AgentContext,
         content: str,
-        priority: PlanEntryPriority = "medium",
+        priority: TodoPriority = "medium",
         index: int | None = None,
     ) -> str:
         """Add a new plan entry.
@@ -115,15 +124,12 @@ class PlanProvider(ResourceProvider):
         Returns:
             Success message indicating entry was added
         """
-        entry = PlanEntry(content=content, priority=priority, status="pending")
-        if index is None:
-            self._current_plan.append(entry)
-            entry_index = len(self._current_plan) - 1
-        else:
-            if index < 0 or index > len(self._current_plan):
-                return f"Error: Index {index} out of range (0-{len(self._current_plan)})"
-            self._current_plan.insert(index, entry)
-            entry_index = index
+        tracker = self._get_tracker(agent_ctx)
+        if tracker is None:
+            return "Error: No pool available for plan tracking"
+
+        entry = tracker.add(content, priority=priority, index=index)
+        entry_index = tracker.entries.index(entry)
 
         await self._emit_plan_update(agent_ctx)
 
@@ -134,8 +140,8 @@ class PlanProvider(ResourceProvider):
         agent_ctx: AgentContext,
         index: int,
         content: str | None = None,
-        status: PlanEntryStatus | None = None,
-        priority: PlanEntryPriority | None = None,
+        status: TodoStatus | None = None,
+        priority: TodoPriority | None = None,
     ) -> str:
         """Update an existing plan entry.
 
@@ -149,26 +155,25 @@ class PlanProvider(ResourceProvider):
         Returns:
             Success message indicating what was updated
         """
-        if index < 0 or index >= len(self._current_plan):
-            return f"Error: Index {index} out of range (0-{len(self._current_plan) - 1})"
+        tracker = self._get_tracker(agent_ctx)
+        if tracker is None:
+            return "Error: No pool available for plan tracking"
 
-        entry = self._current_plan[index]
+        if index < 0 or index >= len(tracker.entries):
+            return f"Error: Index {index} out of range (0-{len(tracker.entries) - 1})"
+
         updates = []
-
         if content is not None:
-            entry.content = content
             updates.append(f"content to {content!r}")
-
         if status is not None:
-            entry.status = status
             updates.append(f"status to {status!r}")
-
         if priority is not None:
-            entry.priority = priority
             updates.append(f"priority to {priority!r}")
 
         if not updates:
             return "No changes specified"
+
+        tracker.update_by_index(index, content=content, status=status, priority=priority)
 
         await self._emit_plan_update(agent_ctx)
         return f"Updated entry {index}: {', '.join(updates)}"
@@ -183,14 +188,32 @@ class PlanProvider(ResourceProvider):
         Returns:
             Success message indicating entry was removed
         """
-        if index < 0 or index >= len(self._current_plan):
-            return f"Error: Index {index} out of range (0-{len(self._current_plan) - 1})"
-        removed_entry = self._current_plan.pop(index)
+        tracker = self._get_tracker(agent_ctx)
+        if tracker is None:
+            return "Error: No pool available for plan tracking"
+
+        if index < 0 or index >= len(tracker.entries):
+            return f"Error: Index {index} out of range (0-{len(tracker.entries) - 1})"
+
+        removed_entry = tracker.remove_by_index(index)
         await self._emit_plan_update(agent_ctx)
-        if self._current_plan:
+
+        if removed_entry is None:
+            return f"Error: Could not remove entry at index {index}"
+
+        if tracker.entries:
             return f"Removed entry {index}: {removed_entry.content!r}, remaining entries reindexed"
         return f"Removed entry {index}: {removed_entry.content!r}, plan is now empty"
 
     async def _emit_plan_update(self, agent_ctx: AgentContext) -> None:
         """Emit plan update event."""
-        await agent_ctx.events.plan_updated(self._current_plan)
+        tracker = self._get_tracker(agent_ctx)
+        if tracker is None:
+            return
+
+        # Convert TodoEntry to PlanEntry for event compatibility
+        entries = [
+            PlanEntry(content=e.content, priority=e.priority, status=e.status)
+            for e in tracker.entries
+        ]
+        await agent_ctx.events.plan_updated(entries)

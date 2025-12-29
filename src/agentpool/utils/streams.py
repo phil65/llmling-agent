@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 
 if TYPE_CHECKING:
@@ -516,3 +516,247 @@ class FileOpsTracker:
             ],
             "modified_paths": sorted(self.get_modified_paths()),
         }
+
+
+# =============================================================================
+# Todo/Plan Tracking
+# =============================================================================
+
+TodoPriority = Literal["high", "medium", "low"]
+TodoStatus = Literal["pending", "in_progress", "completed"]
+
+
+@dataclass
+class TodoEntry:
+    """A single todo/plan entry.
+
+    Represents a task that the agent intends to accomplish.
+    """
+
+    id: str
+    """Unique identifier for this entry."""
+
+    content: str
+    """Human-readable description of what this task aims to accomplish."""
+
+    status: TodoStatus = "pending"
+    """Current execution status."""
+
+    priority: TodoPriority = "medium"
+    """Relative importance of this task."""
+
+    created_at: float = field(default_factory=lambda: __import__("time").time())
+    """Unix timestamp when the entry was created."""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "id": self.id,
+            "content": self.content,
+            "status": self.status,
+            "priority": self.priority,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass
+class TodoTracker:
+    """Tracks todo/plan entries at the pool level.
+
+    Provides a central place to manage todos that persists across
+    agent runs and is accessible from any toolset or endpoint.
+
+    Example:
+        ```python
+        tracker = TodoTracker()
+
+        # Add entries
+        tracker.add("Implement feature X", priority="high")
+        tracker.add("Write tests", priority="medium")
+
+        # Update status
+        tracker.update_status("todo_1", "in_progress")
+
+        # Get current entries
+        for entry in tracker.entries:
+            print(f"{entry.status}: {entry.content}")
+        ```
+    """
+
+    entries: list[TodoEntry] = field(default_factory=list)
+    """List of all todo entries."""
+
+    _id_counter: int = field(default=0, repr=False)
+    """Counter for generating unique IDs."""
+
+    def _next_id(self) -> str:
+        """Generate next unique ID."""
+        self._id_counter += 1
+        return f"todo_{self._id_counter}"
+
+    def add(
+        self,
+        content: str,
+        *,
+        priority: TodoPriority = "medium",
+        status: TodoStatus = "pending",
+        index: int | None = None,
+    ) -> TodoEntry:
+        """Add a new todo entry.
+
+        Args:
+            content: Description of the task
+            priority: Relative importance (high/medium/low)
+            status: Initial status (default: pending)
+            index: Optional position to insert at (default: append)
+
+        Returns:
+            The created TodoEntry
+        """
+        entry = TodoEntry(
+            id=self._next_id(),
+            content=content,
+            priority=priority,
+            status=status,
+        )
+        if index is None or index >= len(self.entries):
+            self.entries.append(entry)
+        else:
+            self.entries.insert(max(0, index), entry)
+        return entry
+
+    def get(self, entry_id: str) -> TodoEntry | None:
+        """Get entry by ID.
+
+        Args:
+            entry_id: The entry ID to find
+
+        Returns:
+            The entry if found, None otherwise
+        """
+        for entry in self.entries:
+            if entry.id == entry_id:
+                return entry
+        return None
+
+    def get_by_index(self, index: int) -> TodoEntry | None:
+        """Get entry by index.
+
+        Args:
+            index: The 0-based index
+
+        Returns:
+            The entry if found, None otherwise
+        """
+        if 0 <= index < len(self.entries):
+            return self.entries[index]
+        return None
+
+    def update(
+        self,
+        entry_id: str,
+        *,
+        content: str | None = None,
+        status: TodoStatus | None = None,
+        priority: TodoPriority | None = None,
+    ) -> bool:
+        """Update an existing entry.
+
+        Args:
+            entry_id: The entry ID to update
+            content: New content (if provided)
+            status: New status (if provided)
+            priority: New priority (if provided)
+
+        Returns:
+            True if entry was found and updated, False otherwise
+        """
+        entry = self.get(entry_id)
+        if entry is None:
+            return False
+
+        if content is not None:
+            entry.content = content
+        if status is not None:
+            entry.status = status
+        if priority is not None:
+            entry.priority = priority
+        return True
+
+    def update_by_index(
+        self,
+        index: int,
+        *,
+        content: str | None = None,
+        status: TodoStatus | None = None,
+        priority: TodoPriority | None = None,
+    ) -> bool:
+        """Update an entry by index.
+
+        Args:
+            index: The 0-based index
+            content: New content (if provided)
+            status: New status (if provided)
+            priority: New priority (if provided)
+
+        Returns:
+            True if entry was found and updated, False otherwise
+        """
+        entry = self.get_by_index(index)
+        if entry is None:
+            return False
+
+        if content is not None:
+            entry.content = content
+        if status is not None:
+            entry.status = status
+        if priority is not None:
+            entry.priority = priority
+        return True
+
+    def remove(self, entry_id: str) -> bool:
+        """Remove an entry by ID.
+
+        Args:
+            entry_id: The entry ID to remove
+
+        Returns:
+            True if entry was found and removed, False otherwise
+        """
+        for i, entry in enumerate(self.entries):
+            if entry.id == entry_id:
+                self.entries.pop(i)
+                return True
+        return False
+
+    def remove_by_index(self, index: int) -> TodoEntry | None:
+        """Remove an entry by index.
+
+        Args:
+            index: The 0-based index
+
+        Returns:
+            The removed entry if found, None otherwise
+        """
+        if 0 <= index < len(self.entries):
+            return self.entries.pop(index)
+        return None
+
+    def clear(self) -> None:
+        """Clear all entries."""
+        self.entries.clear()
+
+    def get_by_status(self, status: TodoStatus) -> list[TodoEntry]:
+        """Get all entries with a specific status.
+
+        Args:
+            status: The status to filter by
+
+        Returns:
+            List of matching entries
+        """
+        return [e for e in self.entries if e.status == status]
+
+    def to_list(self) -> list[dict[str, Any]]:
+        """Convert to list of dicts for JSON serialization."""
+        return [e.to_dict() for e in self.entries]
