@@ -5,8 +5,23 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+import httpx
+from llmling_models.auth.anthropic_auth import (
+    AnthropicTokenStore,
+    build_authorization_url,
+    exchange_code_for_token,
+    generate_pkce,
+)
 from pydantic import BaseModel, HttpUrl
 
+from agentpool.mcp_server.manager import MCPManager
+from agentpool.resource_providers import AggregatingResourceProvider
+from agentpool.resource_providers.mcp_provider import MCPResourceProvider
+from agentpool_config.mcp_server import (
+    SSEMCPServerConfig,
+    StdioMCPServerConfig,
+    StreamableHTTPMCPServerConfig,
+)
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
     Agent,
@@ -14,6 +29,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     LogRequest,
     MCPStatus,
 )
+from agentpool_server.opencode_server.models.agent import AgentModel
 
 
 router = APIRouter(tags=["agent"])
@@ -43,12 +59,11 @@ async def list_agents(state: StateDep) -> list[Agent]:
 
     for name, agent in pool.all_agents.items():
         # Get description from agent
-        description = getattr(agent, "description", None) or f"Agent: {name}"
-
         agents.append(
             Agent(
                 name=name,
-                description=description,
+                description=agent.description or f"Agent: {name}",
+                model=AgentModel(model_id=agent.model_name or "unknown", provider_id=""),
                 mode="primary",  # All agents visible for now; add hidden config later
                 default=(name == first_agent_name),  # First agent is default
             )
@@ -89,10 +104,6 @@ async def get_mcp_status(state: StateDep) -> dict[str, MCPStatus]:
 
     Returns status for each connected MCP server.
     """
-    from agentpool.mcp_server.manager import MCPManager
-    from agentpool.resource_providers import AggregatingResourceProvider
-    from agentpool.resource_providers.mcp_provider import MCPResourceProvider
-
     if state.agent is None or not hasattr(state.agent, "tools"):
         return {}
 
@@ -153,14 +164,6 @@ async def add_mcp_server(request: AddMCPServerRequest, state: StateDep) -> MCPSt
 
     Supports stdio servers (command + args) or HTTP/SSE servers (url).
     """
-    from agentpool.mcp_server.manager import MCPManager
-    from agentpool.resource_providers import AggregatingResourceProvider
-    from agentpool_config.mcp_server import (
-        SSEMCPServerConfig,
-        StdioMCPServerConfig,
-        StreamableHTTPMCPServerConfig,
-    )
-
     if state.agent is None or not hasattr(state.agent, "tools"):
         raise HTTPException(status_code=400, detail="No agent configured")
 
@@ -275,14 +278,9 @@ async def list_tools_with_schemas(  # noqa: D417
         for tool in tools:
             # Extract parameters schema from the OpenAI function schema
             schema = tool.schema
-            parameters = schema.get("function", {}).get("parameters", {})
-            result.append(
-                ToolListItem(
-                    id=tool.name,
-                    description=tool.description or "",
-                    parameters=parameters,
-                )
-            )
+            params = schema.get("function", {}).get("parameters", {})
+            item = ToolListItem(id=tool.name, description=tool.description or "", parameters=params)
+            result.append(item)
     except Exception:  # noqa: BLE001
         return []
     else:
@@ -347,11 +345,6 @@ async def oauth_authorize(provider_id: str, state: StateDep) -> dict[str, Any]:
     _ = state
 
     if provider_id == "anthropic":
-        from llmling_models.auth.anthropic_auth import (
-            build_authorization_url,
-            generate_pkce,
-        )
-
         verifier, challenge = generate_pkce()
         auth_url = build_authorization_url(verifier, challenge)
 
@@ -366,8 +359,6 @@ async def oauth_authorize(provider_id: str, state: StateDep) -> dict[str, Any]:
         }
 
     if provider_id == "copilot":
-        import httpx
-
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 "https://github.com/login/device/code",
@@ -398,8 +389,6 @@ async def oauth_authorize(provider_id: str, state: StateDep) -> dict[str, Any]:
             "device_code": device_code,
         }
 
-    from fastapi import HTTPException
-
     raise HTTPException(status_code=404, detail=f"Unknown provider: {provider_id}")
 
 
@@ -420,17 +409,9 @@ async def oauth_callback(
 
     if provider_id == "anthropic":
         if not code or not verifier:
-            from fastapi import HTTPException
-
             raise HTTPException(
-                status_code=400,
-                detail="Missing code or verifier for Anthropic OAuth",
+                status_code=400, detail="Missing code or verifier for Anthropic OAuth"
             )
-
-        from llmling_models.auth.anthropic_auth import (
-            AnthropicTokenStore,
-            exchange_code_for_token,
-        )
 
         try:
             token = exchange_code_for_token(code, verifier)
@@ -441,8 +422,6 @@ async def oauth_callback(
             # Clean up flow state
             _oauth_flows.pop(f"anthropic:{verifier}", None)
         except Exception as e:
-            from fastapi import HTTPException
-
             raise HTTPException(status_code=400, detail=str(e)) from e
         else:
             return {
@@ -454,14 +433,10 @@ async def oauth_callback(
 
     if provider_id == "copilot":
         if not device_code:
-            from fastapi import HTTPException
-
             raise HTTPException(
                 status_code=400,
                 detail="Missing device_code for Copilot OAuth",
             )
-
-        import httpx
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
@@ -484,8 +459,6 @@ async def oauth_callback(
         if "error" in data:
             if data["error"] == "authorization_pending":
                 return {"type": "pending", "message": "Waiting for user authorization"}
-            from fastapi import HTTPException
-
             raise HTTPException(
                 status_code=400,
                 detail=data.get("error_description", data["error"]),
@@ -504,7 +477,4 @@ async def oauth_callback(
             }
 
         return {"type": "pending", "message": "No token received yet"}
-
-    from fastapi import HTTPException
-
     raise HTTPException(status_code=404, detail=f"Unknown provider: {provider_id}")
