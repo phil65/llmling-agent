@@ -1,20 +1,21 @@
 ---
 title: OpenCode Server
-description: REST/SSE server for OpenCode TUI and Desktop clients
+description: REST/SSE server compatible with the OpenCode API protocol
 icon: material/code-braces
 ---
 
 # OpenCode Server
 
-The OpenCode server implements the OpenCode API protocol, enabling AgentPool agents to be used with the [OpenCode TUI](https://github.com/sst/opencode) and OpenCode Desktop applications.
+The OpenCode server implements the OpenCode API protocol, enabling AgentPool agents to be used with the [OpenCode TUI](https://github.com/sst/opencode) and other compatible clients.
 
 ## What is OpenCode?
 
 OpenCode is an open-source coding assistant with:
 
 - **Terminal UI (TUI)** - Beautiful terminal interface
-- **Desktop App** - Electron-based desktop application
 - **REST + SSE API** - Standard HTTP protocol with Server-Sent Events
+
+The OpenCode API protocol can be used by any compatible client to interact with AgentPool agents.
 
 ## Quick Start
 
@@ -25,9 +26,11 @@ agentpool serve-opencode config.yml --port 4096
 
 See [`serve-opencode`](../cli/serve-opencode.md) for all CLI options.
 
-## Connecting the OpenCode TUI
+## Connecting Clients
 
-### Installing OpenCode
+### OpenCode TUI
+
+#### Installing OpenCode
 
 ```bash
 # Using npm
@@ -37,7 +40,7 @@ npm install -g opencode
 bun install -g opencode
 ```
 
-### Connecting to AgentPool
+#### Connecting to AgentPool
 
 In a separate terminal, point the TUI at your running server:
 
@@ -55,13 +58,17 @@ opencode
 
 The TUI will connect to your AgentPool server instead of its built-in backend. You'll see your configured agent(s) and can interact with them through the familiar OpenCode interface.
 
+### Custom Clients
+
+Any client that implements the OpenCode API protocol can connect to this server. The API uses standard REST endpoints with SSE for real-time events.
+
 ## Architecture
 
 ```mermaid
 graph TB
     subgraph Clients
         TUI["OpenCode TUI"]
-        Desktop["OpenCode Desktop"]
+        Custom["Custom Clients"]
     end
     
     subgraph Server["OpenCode Server"]
@@ -76,7 +83,7 @@ graph TB
     end
     
     TUI <-->|HTTP| REST
-    Desktop <-->|HTTP| REST
+    Custom <-->|HTTP| REST
     REST -->|Events| SSE
     REST --> Agent
     Agent --> Tools
@@ -235,25 +242,13 @@ The OpenCode TUI uses these environment variables:
 |----------|-------------|
 | `OPENCODE_API_URL` | Server URL (e.g., `http://localhost:4096`) |
 
-## Comparison with Native OpenCode
-
-| Feature | Native OpenCode | AgentPool OpenCode Server |
-|---------|-----------------|---------------------------|
-| LLM Provider | Anthropic, OpenAI | Any (via pydantic-ai) |
-| File Access | Local only | Local + Remote (fsspec) |
-| Shell Execution | Local only | Local + Remote (exxec) |
-| Tools | Built-in | Configurable toolsets |
-| MCP Servers | Supported | Supported |
-| Slash Commands | Template-based | MCP prompts |
-
 ## Limitations
 
-Current limitations compared to native OpenCode:
+Current limitations:
 
 - `prompt_async` not yet implemented (use sync `message`)
-- `fork`, `share`, `summarize` not yet implemented
+- `fork` not yet implemented
 - Symbol search returns empty (LSP not integrated)
-- Some permission flows not implemented
 
 See [ENDPOINTS.md](https://github.com/phil65/agentpool/blob/main/src/agentpool_server/opencode_server/ENDPOINTS.md) for full implementation status.
 
