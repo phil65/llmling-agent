@@ -64,7 +64,7 @@ async def test_parallel_grouping():
     sorted_funcs = _sort_functions([f._node_function for f in [first, second_a, second_b, third]])
     groups = _group_parallel(sorted_funcs)
 
-    assert len(groups) == 3  # noqa: PLR2004
+    assert len(groups) == 3
     assert [f.name for f in groups[0]] == ["first"]
     assert {f.name for f in groups[1]} == {"second_a", "second_b"}
     assert [f.name for f in groups[2]] == ["third"]

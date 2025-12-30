@@ -109,15 +109,12 @@ async def list_files(state: StateDep, path: str = Query(default="")) -> list[Fil
     working_path = Path(state.working_dir)
 
     # Validate path if provided (empty path means root, which is always valid)
-    if path:
-        target_p = _validate_path(working_path, path)
-    else:
-        target_p = working_path.resolve()
+    target_p = _validate_path(working_path, path) if path else working_path.resolve()
 
     fs_info = _get_fs(state)
 
     if fs_info is not None:
-        fs, base_path = fs_info
+        fs, _base_path = fs_info
         # Use fsspec filesystem with validated path
         target = str(target_p)
         try:
@@ -177,7 +174,7 @@ async def read_file(state: StateDep, path: str = Query()) -> FileContent:
     fs_info = _get_fs(state)
 
     if fs_info is not None:
-        fs, base_path = fs_info
+        fs, _base_path = fs_info
         # Use fsspec filesystem with validated path
         full_path = str(target)
         try:

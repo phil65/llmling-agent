@@ -7,9 +7,13 @@ Tests the /find and /find/file endpoints for text and file searching.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestFindText:
@@ -393,7 +397,8 @@ class TestFindFiles:
         # Should be relative path
         path = files[0]
         assert not path.startswith("/")
-        assert "deep" in path and "nested" in path
+        assert "deep" in path
+        assert "nested" in path
 
     @pytest.mark.asyncio
     async def test_no_matches_returns_empty(

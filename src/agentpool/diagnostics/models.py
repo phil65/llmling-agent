@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 
 
 @dataclass
@@ -90,7 +90,7 @@ class LSPServerState:
     initialized: bool = False
     """Whether LSP initialize handshake completed."""
 
-    capabilities: dict = field(default_factory=dict)
+    capabilities: dict[str, Any] = field(default_factory=dict)
     """Server capabilities from initialize response."""
 
 
@@ -299,6 +299,28 @@ class RenameResult:
 
     error: str | None = None
     """Error message if failed."""
+
+
+# LSP Hover content types (from LSP spec)
+
+
+class MarkedStringDict(TypedDict):
+    """MarkedString with language identifier (deprecated in LSP 3.0+)."""
+
+    language: str
+    value: str
+
+
+class MarkupContent(TypedDict):
+    """MarkupContent from LSP spec."""
+
+    kind: str  # "plaintext" or "markdown"
+    value: str
+
+
+# Union type for hover contents
+type MarkedString = str | MarkedStringDict
+type HoverContents = str | MarkupContent | MarkedStringDict | list[MarkedString]
 
 
 # Symbol kind mapping from LSP numeric values

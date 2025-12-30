@@ -51,7 +51,7 @@ async def test_single_execution():
         messages: list[ChatMessage[Any]] = []
         for talk in stats:
             messages.extend(talk.stats.messages)
-        assert len(messages) == 2  # One from each agent  # noqa: PLR2004
+        assert len(messages) == 2  # One from each agent
 
 
 # async def test_continuous_execution():

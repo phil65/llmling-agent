@@ -39,7 +39,7 @@ async def test_agent_message_history(test_agent: Agent[None]):
     result = await test_agent.run(SIMPLE_PROMPT)
     assert result.data == TEST_RESPONSE
     assert test_agent.conversation.last_run_messages
-    assert len(test_agent.conversation.last_run_messages) == 2  # noqa: PLR2004
+    assert len(test_agent.conversation.last_run_messages) == 2
 
 
 async def test_agent_streaming(test_agent: Agent[None]):
@@ -88,7 +88,7 @@ async def test_agent_streaming_pydanticai_history(test_agent: Agent[None]):
 
     # Check conversation history increased
     messages = test_agent.conversation.get_history()
-    assert len(messages) == 4  # Original 2 + new 2  # noqa: PLR2004
+    assert len(messages) == 4  # Original 2 + new 2
 
 
 async def test_agent_concurrent_runs(test_agent: Agent[None]):
@@ -138,7 +138,7 @@ async def test_agent_forwarding():
         await helper_agent.task_manager.complete_tasks()
 
         # Verify both agents responded
-        assert len(messages) == 2  # noqa: PLR2004
+        assert len(messages) == 2
         assert any(m.name == "main-agent" for m in messages)
         assert any(m.name == "helper-agent" for m in messages)
         assert any(m.content == "Main response" for m in messages)

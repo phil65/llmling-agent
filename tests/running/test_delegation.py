@@ -68,8 +68,8 @@ async def test_non_agent_parameter(pool):
     ) -> str:
         assert isinstance(agent1, Agent)
         assert normal == "test"
-        assert no_hint == 123  # noqa: PLR2004
-        assert kwonly == 456  # noqa: PLR2004
+        assert no_hint == 123
+        assert kwonly == 456
         return "ok"
 
     result = await test_func()
@@ -103,7 +103,7 @@ async def test_agent_functionality(pool):
         return [result1.content, result2.content]
 
     results = await test_func()
-    assert len(results) == 2  # noqa: PLR2004
+    assert len(results) == 2
     assert all(isinstance(r, str) for r in results)
 
 

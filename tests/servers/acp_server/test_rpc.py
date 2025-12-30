@@ -249,10 +249,10 @@ async def test_session_notifications_flow(
 
         # Wait for async dispatch
         for _ in range(50):
-            if len(test_client.notifications) >= 2:  # noqa: PLR2004
+            if len(test_client.notifications) >= 2:
                 break
             await anyio.sleep(0.01)
-        assert len(test_client.notifications) >= 2  # noqa: PLR2004
+        assert len(test_client.notifications) >= 2
         assert test_client.notifications[0].session_id == "sess"
 
 
@@ -340,7 +340,7 @@ async def test_method_not_found_results_in_error_response(
 
         line = await asyncio.wait_for(s.client_reader.readline(), timeout=1)
         resp = anyenv.load_json(line)
-        assert resp["id"] == 2  # noqa: PLR2004
+        assert resp["id"] == 2
         method_not_found_code = -32601
         assert resp["error"]["code"] == method_not_found_code
 

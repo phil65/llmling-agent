@@ -37,7 +37,7 @@ async def test_vfs_registry():
 
     # Test root listing shows protocols
     root_listing = await fs._ls("/", detail=False)
-    assert len(root_listing) == 2  # noqa: PLR2004
+    assert len(root_listing) == 2
     assert {"docs", "data"} == set(root_listing)
 
     # Test write and read operations

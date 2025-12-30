@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
     from agentpool_server.opencode_server.dependencies import StateDep
     from agentpool_server.opencode_server.models import PtyCreateRequest, PtyUpdateRequest
+    from agentpool_server.opencode_server.state import ServerState
 
 
 router = APIRouter(prefix="/pty", tags=["pty"])
@@ -217,7 +218,6 @@ async def remove_pty(pty_id: str, state: StateDep) -> dict[str, bool]:
 async def connect_pty(websocket: WebSocket, pty_id: str) -> None:
     """Connect to PTY via WebSocket for interactive terminal."""
     # Get state from websocket's app
-    from agentpool_server.opencode_server.state import ServerState
 
     state: ServerState = websocket.app.state.server_state
 

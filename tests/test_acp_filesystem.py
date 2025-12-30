@@ -172,7 +172,7 @@ async def test_info(acp_fs):
     info = await acp_fs._info("test.txt")
     assert info["name"] == "test.txt"
     assert info["type"] == "file"
-    assert info["size"] == 12  # noqa: PLR2004
+    assert info["size"] == 12
 
 
 async def test_byte_range_not_supported(acp_fs):

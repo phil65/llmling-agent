@@ -81,11 +81,11 @@ async def test_agent_pool_conversation_flow():
             responses.append(result)
 
         # Verify correct number of responses
-        assert len(responses) == 2  # noqa: PLR2004
+        assert len(responses) == 2
 
         # Verify conversation order was maintained
         assert responses[0].data.conversation_index == 1
-        assert responses[1].data.conversation_index == 2  # noqa: PLR2004
+        assert responses[1].data.conversation_index == 2
         print(responses)
         # Verify message content
         assert responses[0].data.message == "Response to: Hello!"

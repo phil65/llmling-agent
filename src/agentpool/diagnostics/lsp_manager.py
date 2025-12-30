@@ -12,9 +12,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from dataclasses import dataclass, field
-import json
 import time
 from typing import TYPE_CHECKING, Any
+
+import anyenv
 
 from agentpool.diagnostics.models import (
     COMPLETION_KIND_MAP,
@@ -40,6 +41,10 @@ from agentpool.diagnostics.models import (
 if TYPE_CHECKING:
     from anyenv.lsp_servers import LSPServerInfo
     from exxec import ExecutionEnvironment
+
+    from agentpool.diagnostics.models import (
+        HoverContents,
+    )
 
 
 # One-shot script template for sending LSP requests via Unix socket
@@ -281,7 +286,7 @@ class LSPManager:
         init_options = dict(config.initialization)
 
         # Build initialize params
-        init_params = {
+        init_params: dict[str, Any] = {
             "processId": None,  # We don't have a process ID in the traditional sense
             "rootUri": root_uri,
             "capabilities": {
@@ -354,8 +359,8 @@ class LSPManager:
             return {"error": f"Script failed: {result.stderr}"}
 
         try:
-            return json.loads(result.stdout or "{}")
-        except json.JSONDecodeError as e:
+            return anyenv.load_json(result.stdout or "{}", return_type=dict)
+        except anyenv.JsonLoadError as e:
             return {"error": f"Invalid JSON response: {e}"}
 
     async def _send_notification(
@@ -1017,7 +1022,7 @@ class LSPManager:
         if "error" in response or not response.get("result"):
             return []
 
-        return response["result"]
+        return response["result"]  # type: ignore[no-any-return]
 
     # =========================================================================
     # Call Hierarchy
@@ -1334,8 +1339,8 @@ def _parse_locations(result: Any) -> list[Location]:
     return locations
 
 
-def _extract_hover_contents(contents: Any) -> str:
-    """Extract string from hover contents (can be string, MarkedString, or MarkupContent)."""
+def _extract_hover_contents(contents: HoverContents) -> str:
+    """Extract string from hover contents."""
     if isinstance(contents, str):
         return contents
 

@@ -61,7 +61,7 @@ def test_prompt_inheritance(tmp_path: Path):
 
     child_yaml = YAML_CHILD.format(base_path=base_file)
     manifest = AgentsManifest.from_yaml(child_yaml, inherit_path=base_file)
-    assert len(manifest.prompts.system_prompts) == 3  # noqa: PLR2004
+    assert len(manifest.prompts.system_prompts) == 3
     assert manifest.prompts.system_prompts["reviewer"].content == "Specialized reviewer"
     assert manifest.prompts.system_prompts["validator"].content == "Base validator"
     assert manifest.prompts.system_prompts["analyzer"].category == "task"

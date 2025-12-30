@@ -54,7 +54,7 @@ async def test_chained_communication(pool: AgentPool):
     await agent1.run("Start chain")
 
     # Should capture both flows
-    assert len(messages) == 2  # noqa: PLR2004
+    assert len(messages) == 2
     assert messages[0].source == agent1
     assert messages[0].targets == [agent2]
     assert messages[1].source == agent2
@@ -79,7 +79,7 @@ async def test_broadcast_communication(pool: AgentPool):
     await agent1.run("Broadcast message")
 
     # Should capture two events, one for each target
-    assert len(messages) == 2  # noqa: PLR2004
+    assert len(messages) == 2
     targets = {t for m in messages for t in m.targets}
     assert targets == {agent2, agent3}
     assert all(m.source == agent1 for m in messages)

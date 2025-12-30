@@ -42,13 +42,13 @@ async def test_multiple_targets():
         await source.run("message 2")  # One more through each talk
 
         # Each talk processes both messages (results are passed to both)
-        assert talk1.stats.message_count == 2  # noqa: PLR2004
-        assert talk2.stats.message_count == 2  # noqa: PLR2004
+        assert talk1.stats.message_count == 2
+        assert talk2.stats.message_count == 2
 
         # Manager aggregates all talks
         group_stats = source.connections.stats
-        assert group_stats.num_connections == 2  # noqa: PLR2004
-        assert group_stats.message_count == 4  # 2 talks * 1 message each  # noqa: PLR2004
+        assert group_stats.num_connections == 2
+        assert group_stats.message_count == 4  # 2 talks * 1 message each
 
 
 async def test_connection_filtering():
@@ -118,10 +118,10 @@ async def test_group_stats_aggregation():
 
         # Check group stats
         group_stats = team_talk.stats
-        assert group_stats.num_connections == 2  # noqa: PLR2004
-        assert group_stats.message_count == 2  # noqa: PLR2004 # One message to two targets
+        assert group_stats.num_connections == 2
+        assert group_stats.message_count == 2  # One message to two targets
         assert len(group_stats.source_names) == 1
-        assert len(group_stats.target_names) == 2  # noqa: PLR2004
+        assert len(group_stats.target_names) == 2
         assert group_stats.start_time is not None
         assert group_stats.last_message_time is not None
 
@@ -146,10 +146,8 @@ async def test_group_stats_aggregation():
             # Should create separate talks under a TeamTalk
             assert isinstance(talk, TeamTalk)
             assert len(talk.stats.source_names) == 1  # source
-            assert len(talk.stats.target_names) == 2  # team1 and team2  # noqa: PLR2004
-            assert (
-                talk.stats.message_count == 2  # noqa: PLR2004
-            )  # One message to each team
+            assert len(talk.stats.target_names) == 2  # team1 and team2
+            assert talk.stats.message_count == 2  # One message to each team
 
             # Test connection to single team
             single_team_talk = source.connect_to(team1)

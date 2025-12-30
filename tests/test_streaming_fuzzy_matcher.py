@@ -376,8 +376,8 @@ return a+b
 def test_range_class():
     """Test Range dataclass functionality."""
     range_obj = Range(10, 20)
-    assert range_obj.start == 10  # noqa: PLR2004
-    assert range_obj.end == 20  # noqa: PLR2004
+    assert range_obj.start == 10
+    assert range_obj.end == 20
 
     # Test immutability
     with pytest.raises(Exception):  # Should be frozen  # noqa: B017, PT011

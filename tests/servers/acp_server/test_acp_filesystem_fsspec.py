@@ -72,7 +72,7 @@ async def test_acp_filesystem_fsspec_operations():
             # fsspec convention: 'name' contains full path
             assert Path(info["name"]).name == "file1.txt"
             assert info["type"] == "file"
-            assert info["size"] == 17  # Length of "Content of file 1"  # noqa: PLR2004
+            assert info["size"] == 17  # Length of "Content of file 1"
 
         finally:
             await client.cleanup()

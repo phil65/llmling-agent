@@ -159,7 +159,7 @@ async def test_filter_empty_messages():
     step = FilterEmptyMessages()
     result = await step.apply(messages)
     # Empty response should be removed
-    assert len(result) == 3  # noqa: PLR2004
+    assert len(result) == 3
 
 
 async def test_truncate_tool_outputs():
@@ -174,7 +174,7 @@ async def test_truncate_tool_outputs():
     assert isinstance(request, ModelRequest)
     tool_return = request.parts[0]
     assert isinstance(tool_return, ToolReturnPart)
-    assert len(tool_return.content) < 150  # noqa: PLR2004
+    assert len(tool_return.content) < 150
     assert "[truncated]" in tool_return.content
 
 
@@ -188,7 +188,7 @@ async def test_truncate_text_parts():
     assert isinstance(response, ModelResponse)
     text_part = response.parts[0]
     assert isinstance(text_part, TextPart)
-    assert len(text_part.content) < 250  # noqa: PLR2004
+    assert len(text_part.content) < 250
     assert "[truncated]" in text_part.content
 
 
@@ -196,7 +196,7 @@ async def test_keep_last_messages(sample_messages):
     """Test keeping only last N messages."""
     step = KeepLastMessages(count=2, count_pairs=False)
     result = await step.apply(sample_messages)
-    assert len(result) == 2  # noqa: PLR2004
+    assert len(result) == 2
     # Should be the last two messages
     assert isinstance(result[0], ModelRequest)
     assert isinstance(result[1], ModelResponse)
@@ -207,14 +207,14 @@ async def test_keep_last_messages_pairs(sample_messages):
     step = KeepLastMessages(count=2, count_pairs=True)
     result = await step.apply(sample_messages)
     # 2 pairs = 4 messages (request + response each)
-    assert len(result) == 4  # noqa: PLR2004
+    assert len(result) == 4
 
 
 async def test_keep_first_messages(sample_messages):
     """Test keeping only first N messages."""
     step = KeepFirstMessages(count=2)
     result = await step.apply(sample_messages)
-    assert len(result) == 2  # noqa: PLR2004
+    assert len(result) == 2
     # Should be the first two messages
     assert isinstance(result[0], ModelRequest)
     assert isinstance(result[1], ModelResponse)
@@ -224,7 +224,7 @@ async def test_keep_first_and_last(sample_messages):
     """Test keeping first and last messages."""
     step = KeepFirstAndLast(first_count=1, last_count=1)
     result = await step.apply(sample_messages)
-    assert len(result) == 2  # noqa: PLR2004
+    assert len(result) == 2
     # First should be initial request
     assert isinstance(result[0], ModelRequest)
     # Last should be final response
@@ -240,11 +240,11 @@ async def test_when_message_count_exceeds():
     # Should not apply when below threshold
     step = WhenMessageCountExceeds(step=KeepLastMessages(count=1), threshold=5)
     result = await step.apply(messages)
-    assert len(result) == 2  # noqa: PLR2004
+    assert len(result) == 2
     # Should apply when above threshold
     many_messages = messages * 10  # 20 messages
     result = await step.apply(many_messages)
-    assert len(result) < 20  # noqa: PLR2004
+    assert len(result) < 20
 
 
 async def test_pipeline_composition(sample_messages):
@@ -254,7 +254,7 @@ async def test_pipeline_composition(sample_messages):
     )
     result = await pipeline.apply(sample_messages)
     # Should have no thinking and only last 2 pairs
-    assert len(result) == 4  # noqa: PLR2004
+    assert len(result) == 4
     for msg in result:
         if isinstance(msg, ModelResponse):
             assert not any(isinstance(p, ThinkingPart) for p in msg.parts)
@@ -266,7 +266,7 @@ async def test_pipeline_operator_composition():
     step2 = KeepLastMessages(count=2)
     pipeline = step1 | step2
     assert isinstance(pipeline, CompactionPipeline)
-    assert len(pipeline.steps) == 2  # noqa: PLR2004
+    assert len(pipeline.steps) == 2
 
 
 async def test_config_roundtrip():
@@ -280,7 +280,7 @@ async def test_config_roundtrip():
     )
 
     pipeline = config.build()
-    assert len(pipeline.steps) == 3  # noqa: PLR2004
+    assert len(pipeline.steps) == 3
     assert isinstance(pipeline.steps[0], FilterThinking)
     assert isinstance(pipeline.steps[1], TruncateToolOutputs)
     assert isinstance(pipeline.steps[2], KeepLastMessages)

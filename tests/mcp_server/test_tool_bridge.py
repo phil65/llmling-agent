@@ -144,7 +144,7 @@ async def test_pool_tool_bridge_cleanup():
         agent = await pool.add_agent(name="test_agent", model="test", system_prompt="Test")
         await pool.create_tool_bridge(agent, name="bridge1")
         await pool.create_tool_bridge(agent, name="bridge2")
-        assert len(pool._tool_bridges) == 2  # noqa: PLR2004
+        assert len(pool._tool_bridges) == 2
 
     # After exiting, bridges should be cleaned up
     assert len(pool._tool_bridges) == 0
@@ -161,7 +161,7 @@ async def test_bridge_with_context_tools():
         async with ToolManagerBridge(node=agent, config=BridgeConfig(port=0)):
             # Both tools should be registered
             tools = await agent.tools.get_tools()
-            assert len(tools) == 2  # noqa: PLR2004
+            assert len(tools) == 2
             tool_names = {t.name for t in tools}
             assert "simple_add" in tool_names
             assert "list_pool_agents" in tool_names

@@ -66,7 +66,7 @@ async def test_read_file_with_line_and_limit(
     content_lines = result.split("\n")
     assert "Line 2" in content_lines
     assert "Line 3" in content_lines
-    assert len(content_lines) == 2  # noqa: PLR2004
+    assert len(content_lines) == 2
 
 
 async def test_read_file_error(

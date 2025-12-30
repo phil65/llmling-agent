@@ -19,12 +19,12 @@ async def test_team_parallel_execution():
         result = await team.execute("test")
 
         # Check that we got responses from all agents
-        assert len(result) == 3  # noqa: PLR2004
+        assert len(result) == 3
         agent_names = {r.agent_name for r in result}
         assert agent_names == {"a1", "a2", "a3"}
 
         # Check that stats were collected
-        assert len(team.execution_stats.messages) == 3  # noqa: PLR2004
+        assert len(team.execution_stats.messages) == 3
         assert all(isinstance(msg, ChatMessage) for msg in team.execution_stats.messages)
 
 
@@ -43,7 +43,7 @@ async def test_team_shared_prompt():
         result = await team.execute("specific task")
 
         # Each agent should get both prompts
-        assert len(result) == 2  # noqa: PLR2004
+        assert len(result) == 2
         for response in result:
             assert response.message
             assert "Common instruction" in str(response.message.content)
@@ -64,9 +64,7 @@ async def test_nested_teams():
         result = await execution.run("test message")
         assert isinstance(result, ChatMessage)
         # Team's messages should be in the chain
-        assert (
-            len(execution.execution_stats.messages) == 2  # noqa: PLR2004
-        )  # Team(a1+a2) + a3
+        assert len(execution.execution_stats.messages) == 2  # Team(a1+a2) + a3
 
 
 async def test_nested_team_run():
@@ -85,9 +83,7 @@ async def test_nested_team_run():
         result = await parallel_team.run("test message")
         assert isinstance(result, ChatMessage)
         # Should have all messages
-        assert (
-            len(parallel_team.execution_stats.messages) == 3  # noqa: PLR2004
-        )  # TeamRun(a1+a2) + a3 + a4
+        assert len(parallel_team.execution_stats.messages) == 3  # TeamRun(a1+a2) + a3 + a4
 
         # # Test streaming with nested Team
         # async with execution.run_stream("test message") as stream:
@@ -96,7 +92,7 @@ async def test_nested_team_run():
 
         # Test iteration with nested TeamRun
         messages = [msg async for msg in parallel_team.run_iter("test message")]
-        assert len(messages) == 3  # Should get all messages  # noqa: PLR2004
+        assert len(messages) == 3  # Should get all messages
 
 
 async def test_simple_team_run_iter():
@@ -111,7 +107,7 @@ async def test_simple_team_run_iter():
 
         # Test iteration
         messages = [msg async for msg in team.run_iter("test message")]
-        assert len(messages) == 2  # Should get one message per agent  # noqa: PLR2004
+        assert len(messages) == 2  # Should get one message per agent
         assert {msg.name for msg in messages} == {"a1", "a2"}
 
 
@@ -125,7 +121,7 @@ async def test_sequential_run_iter():
         sequential = a1 | a2
 
         messages = [msg async for msg in sequential.run_iter("test message")]
-        assert len(messages) == 2  # noqa: PLR2004
+        assert len(messages) == 2
         # Should maintain order
         assert [msg.name for msg in messages] == ["a1", "a2"]
 
@@ -145,7 +141,7 @@ async def test_simple_team_with_teamrun_iter():
         messages = [msg async for msg in team.run_iter("test message")]
 
         # Should get TWO messages: one from TeamRun, one from a3
-        assert len(messages) == 2  # noqa: PLR2004
+        assert len(messages) == 2
 
         # Verify senders
         senders = {msg.name for msg in messages}
@@ -189,33 +185,33 @@ async def test_team_operators():
         # Simple agent combinations
         team1 = a1 & a2
         assert isinstance(team1, Team)
-        assert len(team1.nodes) == 2  # noqa: PLR2004
+        assert len(team1.nodes) == 2
         assert list(team1.nodes) == [a1, a2]
 
         # Adding agent to team
         team2 = team1 & a3
         assert isinstance(team2, Team)
-        assert len(team2.nodes) == 3  # noqa: PLR2004
+        assert len(team2.nodes) == 3
         assert list(team2.nodes) == [a1, a2, a3]
 
         # Combining teams - should flatten
         other_team = a3 & a4
         combined = team1 & other_team
         assert isinstance(combined, Team)
-        assert len(combined.nodes) == 4  # noqa: PLR2004
+        assert len(combined.nodes) == 4
         assert list(combined.nodes) == [a1, a2, a3, a4]
 
         # Test sequential combinations (|)
         # Simple agent combinations
         seq1 = a1 | a2
         assert isinstance(seq1, TeamRun)
-        assert len(seq1.nodes) == 2  # noqa: PLR2004
+        assert len(seq1.nodes) == 2
         assert list(seq1.nodes) == [a1, a2]
 
         # Adding to TeamRun - should extend
         seq2 = seq1 | a3
         assert seq2 is seq1  # Same TeamRun instance
-        assert len(seq1.nodes) == 3  # noqa: PLR2004
+        assert len(seq1.nodes) == 3
         assert list(seq1.nodes) == [a1, a2, a3]
 
         # Complex combinations
@@ -225,14 +221,14 @@ async def test_team_operators():
         # TeamRun with Team member
         combined_1 = team3 | seq3
         assert isinstance(combined_1, TeamRun)
-        assert len(combined_1.nodes) == 2  # noqa: PLR2004
+        assert len(combined_1.nodes) == 2
         assert combined_1.nodes[0] is team3
         assert isinstance(combined_1.nodes[1], TeamRun)
 
         # Team with TeamRun member
         combined_2 = Team([team3, seq3])
         assert isinstance(combined_2, Team)
-        assert len(combined_2.nodes) == 2  # noqa: PLR2004
+        assert len(combined_2.nodes) == 2
         assert combined_2.nodes[0] is team3
         assert isinstance(combined_2.nodes[1], TeamRun)
 

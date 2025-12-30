@@ -172,7 +172,7 @@ def test_parse_agent_with_agentpool_extensions():
 
         assert config.description == "Agent with agentpool-specific fields"
         assert get_model_identifier(config.model) == CLAUDE_MODEL_ALIASES["opus"]
-        assert config.retries == 3  # noqa: PLR2004
+        assert config.retries == 3
         assert config.avatar == "https://example.com/avatar.png"
 
 
@@ -288,7 +288,7 @@ def test_manifest_file_agents_mixed(tmp_path: Path):
 
     assert "inline_agent" in manifest.node_names
     assert "file_agent" in manifest.node_names
-    assert len(manifest.node_names) == 2  # noqa: PLR2004
+    assert len(manifest.node_names) == 2
 
 
 def test_manifest_invalid_file_agent(tmp_path: Path):

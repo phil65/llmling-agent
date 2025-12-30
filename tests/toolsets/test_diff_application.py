@@ -50,7 +50,7 @@ class TestParseDiff:
             "</diff>\n"
         )
         hunks = parse_locationless_diff(diff)
-        assert len(hunks) == 2  # noqa: PLR2004
+        assert len(hunks) == 2
 
     def test_parse_code_block_format(self):
         diff = "```diff\n context line\n-old line\n+new line\n```\n"
@@ -195,7 +195,7 @@ def third():
         count_42 = sum(1 for line in lines if "return 42" in line)
         count_100 = sum(1 for line in lines if "return 100" in line)
         assert count_100 == 1
-        assert count_42 == 2  # Two unchanged  # noqa: PLR2004
+        assert count_42 == 2  # Two unchanged
 
 
 class TestCompareApproaches:

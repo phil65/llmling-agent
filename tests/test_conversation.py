@@ -11,12 +11,12 @@ async def test_conversation_history_management(default_model: str):
         # Send first message and check basic history
         await agent.run("First message")
         history1 = agent.conversation.get_history()
-        assert len(history1) == 2  # User message + Response  # noqa: PLR2004
+        assert len(history1) == 2  # User message + Response
 
         # Send second message and verify history includes both exchanges
         await agent.run("Second message")
         history2 = agent.conversation.get_history()
-        assert len(history2) == 4  # Both exchanges  # noqa: PLR2004
+        assert len(history2) == 4  # Both exchanges
 
         # Verify messages are in correct order
         assert "First message" in str(history2[0])

@@ -70,7 +70,7 @@ async def test_parallel_execution():
         prompt = "Test input"
         responses = await group.execute(prompt)
         # Verify execution
-        assert len(responses) == 2  # noqa: PLR2004
+        assert len(responses) == 2
         assert all(r.success for r in responses)
         assert all(r.message.data.message == f"Response to: {prompt}" for r in responses)  # type: ignore
 
@@ -92,7 +92,7 @@ async def test_sequential_execution():
         responses = await group.execute(prompt)
 
         # Verify execution order
-        assert len(responses) == 2  # noqa: PLR2004
+        assert len(responses) == 2
         assert all(r.success for r in responses)
         agent_order = [r.message.name for r in responses]  # type: ignore
         assert agent_order == ["agent_1", "agent_2"]

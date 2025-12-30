@@ -29,7 +29,7 @@ class TestParentIdBasic:
             pass
 
         history = test_agent.conversation.get_history()
-        assert len(history) == 2  # user + response  # noqa: PLR2004
+        assert len(history) == 2  # user + response
 
         user_msg = history[0]
         assert user_msg.role == "user"
@@ -58,7 +58,7 @@ class TestParentIdBasic:
             pass
 
         history = test_agent.conversation.get_history()
-        assert len(history) == 4  # 2 user + 2 response  # noqa: PLR2004
+        assert len(history) == 4  # 2 user + 2 response
 
         user_1 = history[0]
         response_1 = history[1]
@@ -85,7 +85,7 @@ class TestParentIdBasic:
                 pass
 
         history = test_agent.conversation.get_history()
-        assert len(history) == 6  # 3 user + 3 response  # noqa: PLR2004
+        assert len(history) == 6  # 3 user + 3 response
 
         # Walk the chain from last to first
         current = history[-1]
@@ -98,7 +98,7 @@ class TestParentIdBasic:
             current = parent
 
         # Chain should contain all messages
-        assert len(chain) == 6  # noqa: PLR2004
+        assert len(chain) == 6
 
         # First message (end of chain) should have no parent
         assert chain[-1].parent_id is None
@@ -136,7 +136,7 @@ class TestParentIdForwarding:
             # The helper's response should have a parent_id pointing to
             # the user message in its own conversation
             helper_history = helper_agent.conversation.get_history()
-            assert len(helper_history) >= 2  # noqa: PLR2004
+            assert len(helper_history) >= 2
 
             # Find the user message (forwarded from main)
             user_msg = next(m for m in helper_history if m.role == "user")
@@ -181,7 +181,7 @@ class TestParentIdWithRun:
         await test_agent.run("Second")
 
         history = test_agent.conversation.get_history()
-        assert len(history) == 4  # noqa: PLR2004
+        assert len(history) == 4
 
         user_1 = history[0]
         response_1 = history[1]

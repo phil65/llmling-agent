@@ -193,7 +193,7 @@ async def test_multiple_hooks_all_allow():
     async with agent:
         result = await agent.run("Hello")
 
-    assert len(hook_state["calls"]) == 2  # noqa: PLR2004
+    assert len(hook_state["calls"]) == 2
     assert result.content is not None
 
 

@@ -97,7 +97,7 @@ async def test_multiple_processes_management(process_manifest):
         proc3 = await pm.start_process(cmd3, args3)
         # Verify all are tracked
         processes = await pm.list_processes()
-        assert len(processes) == 3  # noqa: PLR2004
+        assert len(processes) == 3
         assert all(p in processes for p in [proc1, proc2, proc3])
 
         # Wait for all to complete
@@ -128,7 +128,7 @@ async def test_process_output_limit(process_manifest):
         # Check that output was truncated
         output = await pm.get_output(process_id)
         assert output.truncated
-        assert len(output.combined.encode()) < 500  # noqa: PLR2004
+        assert len(output.combined.encode()) < 500
         await pm.release_process(process_id)
 
 

@@ -93,7 +93,7 @@ async def test_acp_agent_streaming(acp_agent_config: ACPAgentConfig):
                 async for chunk in agent.run_stream("Hi"):
                     chunks.append(chunk)  # noqa: PERF401
 
-            assert len(chunks) > 2  # noqa: PLR2004
+            assert len(chunks) > 2
     except TimeoutError:
         pytest.skip("ACP server took too long to respond")
 
@@ -198,7 +198,7 @@ async def test_acp_agent_with_custom_execution_environment(test_config_file: Pat
         env = agent._client_handler.env
         assert isinstance(env, LocalExecutionEnvironment)
         assert env is not None
-        assert env.timeout == 120.0  # noqa: PLR2004
+        assert env.timeout == 120.0
 
 
 async def test_acp_agent_cleanup_on_error(acp_agent_config: ACPAgentConfig):

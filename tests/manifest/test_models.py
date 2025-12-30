@@ -75,7 +75,7 @@ def test_valid_agent_definition():
     assert isinstance(schema, InlineSchemaDef)
     score = schema.fields["score"]  # pyright: ignore
     assert score.ge == 0
-    assert score.le == 100  # noqa: PLR2004
+    assert score.le == 100
 
 
 def test_missing_referenced_response():

@@ -113,7 +113,7 @@ async def test_get_conversations(provider: SQLModelProvider, sample_data: None):
     # Get all conversations
     filters = QueryFilters()
     results = await provider.get_conversations(filters)
-    assert len(results) == 2  # noqa: PLR2004
+    assert len(results) == 2
 
     # Filter by agent
     filters = QueryFilters(agent_name="test_agent")
@@ -121,7 +121,7 @@ async def test_get_conversations(provider: SQLModelProvider, sample_data: None):
     assert len(results) == 1
     conv, msgs = results[0]
     assert conv["agent"] == "test_agent"
-    assert len(msgs) == 2  # noqa: PLR2004
+    assert len(msgs) == 2
 
     # Filter by time
     filters = QueryFilters(since=BASE_TIME - timedelta(hours=1.5))
@@ -137,8 +137,8 @@ async def test_get_conversation_stats(provider: SQLModelProvider, sample_data: N
 
     # Check model grouping
     assert "gpt-5" in stats
-    assert stats["gpt-5"]["messages"] == 2  # noqa: PLR2004
-    assert stats["gpt-5"]["total_tokens"] == 30  # noqa: PLR2004
+    assert stats["gpt-5"]["messages"] == 2
+    assert stats["gpt-5"]["total_tokens"] == 30
     assert "gpt-3.5-turbo" in stats
     assert stats["gpt-3.5-turbo"]["messages"] == 1
 
@@ -160,7 +160,7 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
     # Get all conversations
     filters = QueryFilters()
     results = await provider.get_conversations(filters)
-    assert len(results) == 2  # noqa: PLR2004
+    assert len(results) == 2
 
     # Filter by agent
     filters = QueryFilters(agent_name="test_agent")
@@ -168,7 +168,7 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
     assert len(results) == 1
     conv, msgs = results[0]
     assert conv["agent"] == "test_agent"
-    assert len(msgs) == 2  # noqa: PLR2004
+    assert len(msgs) == 2
 
     # Filter by model
     filters = QueryFilters(model="gpt-5")
@@ -190,7 +190,7 @@ async def test_time_filters(provider: SQLModelProvider, sample_data: None):
     # Get all conversations (no time filter)
     filters = QueryFilters()
     results = await provider.get_conversations(filters)
-    assert len(results) == 2  # All conversations  # noqa: PLR2004
+    assert len(results) == 2  # All conversations
 
     # Filter with cutoff after latest conversation - should get nothing
     filters = QueryFilters(since=latest_conv_time + timedelta(seconds=1))
@@ -212,9 +212,9 @@ async def test_filtered_conversations(provider: SQLModelProvider, sample_data: N
     assert len(results) == 1
     conv = results[0]
     assert conv["agent"] == "test_agent"
-    assert len(conv["messages"]) == 2  # noqa: PLR2004
+    assert len(conv["messages"]) == 2
     assert conv["token_usage"] is not None
-    assert conv["token_usage"]["total"] == 30  # 10 + 20 tokens  # noqa: PLR2004
+    assert conv["token_usage"]["total"] == 30  # 10 + 20 tokens
 
 
 async def test_period_filtering(provider: SQLModelProvider, sample_data: None):

@@ -165,7 +165,7 @@ async def test_claude_code_mcp_servers_config():
         agent = await pool.exit_stack.enter_async_context(agent)
 
         # Should have both external and bridge MCP servers
-        assert len(agent._mcp_servers) >= 2  # noqa: PLR2004
+        assert len(agent._mcp_servers) >= 2
         # Should have the external server
         assert any("external" in name for name in agent._mcp_servers)
         # Should have the bridge server

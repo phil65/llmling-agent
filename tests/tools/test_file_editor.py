@@ -73,7 +73,7 @@ line 3"""
     def test_multi_occurrence_replacer(self):
         content = "test test test"
         matches = list(_multi_occurrence_replacer(content, "test"))
-        assert len(matches) == 3  # noqa: PLR2004
+        assert len(matches) == 3
 
 
 class TestLevenshteinDistance:
@@ -81,8 +81,8 @@ class TestLevenshteinDistance:
 
     def test_empty_strings(self):
         assert _levenshtein_distance("", "") == 0
-        assert _levenshtein_distance("abc", "") == 3  # noqa: PLR2004
-        assert _levenshtein_distance("", "abc") == 3  # noqa: PLR2004
+        assert _levenshtein_distance("abc", "") == 3
+        assert _levenshtein_distance("", "abc") == 3
 
     def test_identical_strings(self):
         assert _levenshtein_distance("hello", "hello") == 0
@@ -93,7 +93,7 @@ class TestLevenshteinDistance:
         assert _levenshtein_distance("cats", "cat") == 1  # deletion
 
     def test_complex_cases(self):
-        assert _levenshtein_distance("kitten", "sitting") == 3  # noqa: PLR2004
+        assert _levenshtein_distance("kitten", "sitting") == 3
 
 
 class TestReplaceContent:

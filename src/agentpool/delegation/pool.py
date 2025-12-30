@@ -34,6 +34,7 @@ from agentpool_config.forward_targets import (
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
+    from contextlib import AbstractAsyncContextManager
     from types import TracebackType
 
     from pydantic_ai import ModelSettings
@@ -182,10 +183,13 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 for agent in agents:
                     agent.tools.add_provider(aggregating_provider)
                 # Collect remaining components to initialize (MCP already initialized)
-                node_inits = [
-                    self.exit_stack.enter_async_context(c)
-                    for c in [self.storage, self.sessions, *agents, *teams]
+                comps: list[AbstractAsyncContextManager[Any]] = [
+                    self.storage,
+                    self.sessions,
+                    *agents,
+                    *teams,
                 ]
+                node_inits = [self.exit_stack.enter_async_context(c) for c in comps]
                 if self.parallel_load:
                     await asyncio.gather(*node_inits)
                 else:

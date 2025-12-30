@@ -26,7 +26,7 @@ async def test_agent_piping():
     assert result[0].message.data == "model: test"
     assert result[1].message.data == "transform1: model: test"
     assert result[2].message.data == "transform2: transform1: model: test"
-    assert pipeline.execution_stats.message_count == 3  # noqa: PLR2004
+    assert pipeline.execution_stats.message_count == 3
 
 
 async def test_agent_piping_with_monitoring():
@@ -97,7 +97,7 @@ async def test_agent_piping_iter(caplog):
     # 1. First agent's response
     # 2. The connection object
     # Then it should fail
-    assert len(items) == 2  # noqa: PLR2004
+    assert len(items) == 2
     assert isinstance(items[0], AgentResponse)
     assert isinstance(items[1], Talk)
     assert items[0].message.content == "model: test"  # type: ignore
@@ -137,7 +137,7 @@ async def test_agent_piping_async():
     result = await pipeline.execute("test")
 
     assert result.success
-    assert len(result) == 2  # noqa: PLR2004
+    assert len(result) == 2
     assert result[0].message
     assert result[1].message
     assert result[0].message.data == "model: test"
