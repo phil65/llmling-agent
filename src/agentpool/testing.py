@@ -408,6 +408,163 @@ async def run_ci_tests(
     return result
 
 
+@dataclass
+class BisectResult:
+    """Result of a CI bisect operation."""
+
+    first_bad_commit: str
+    """The first commit that failed the checks."""
+
+    last_good_commit: str
+    """The last commit that passed the checks."""
+
+    commits_tested: list[CITestResult] = field(default_factory=list)
+    """Results for all commits tested during bisection."""
+
+    total_commits_in_range: int = 0
+    """Total number of commits in the range (good, bad]."""
+
+    steps_taken: int = 0
+    """Number of bisection steps performed."""
+
+    def summary(self) -> str:
+        """Generate a human-readable summary."""
+        lines = [
+            "Bisect Results",
+            "=" * 40,
+            f"First bad commit: {self.first_bad_commit[:12]}",
+            f"Last good commit: {self.last_good_commit[:12]}",
+            f"Commits in range: {self.total_commits_in_range}",
+            f"Steps taken: {self.steps_taken}",
+            "",
+            "Tested commits:",
+        ]
+        for result in self.commits_tested:
+            status = "✓" if result.all_passed else "✗"
+            lines.append(f"  {status} {result.commit[:12]}")
+        return "\n".join(lines)
+
+
+def _get_commits_between(good: str, bad: str) -> list[str]:
+    """Get list of commits between good and bad (exclusive of good, inclusive of bad)."""
+    result = subprocess.run(
+        ["git", "rev-list", "--ancestry-path", f"{good}..{bad}"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    # Returns newest first, we want oldest first for bisection
+    commits = result.stdout.strip().split("\n")
+    return list(reversed(commits)) if commits[0] else []
+
+
+async def bisect_ci(
+    good_commit: str,
+    bad_commit: str = "HEAD",
+    *,
+    repo: str | None = None,
+    poll_interval: float = 10.0,
+    timeout: float = 600.0,
+    os: OSChoice = "ubuntu-latest",
+    python_version: str = "3.13",
+    run_lint: bool = True,
+    run_format: bool = True,
+    run_typecheck: bool = True,
+    run_test: bool = True,
+) -> BisectResult:
+    """Binary search to find the first commit that broke CI.
+
+    Uses git bisect logic to efficiently find the first bad commit
+    between a known good commit and a known bad commit.
+
+    Args:
+        good_commit: A commit SHA known to pass all enabled checks.
+        bad_commit: A commit SHA known to fail. Defaults to HEAD.
+        repo: Repository in "owner/repo" format. Auto-detected if None.
+        poll_interval: Seconds between status checks. Defaults to 10.
+        timeout: Timeout per CI run in seconds. Defaults to 600.
+        os: Operating system to run on. Defaults to "ubuntu-latest".
+        python_version: Python version to use. Defaults to "3.13".
+        run_lint: Whether to run ruff check. Defaults to True.
+        run_format: Whether to run ruff format check. Defaults to True.
+        run_typecheck: Whether to run mypy type checking. Defaults to True.
+        run_test: Whether to run pytest. Defaults to True.
+
+    Returns:
+        BisectResult with the first bad commit and bisection details.
+
+    Example:
+        ```python
+        # Find which commit broke tests on Windows
+        result = await bisect_ci(
+            good_commit="abc123",
+            bad_commit="HEAD",
+            os="windows-latest",
+            run_lint=False,
+            run_format=False,
+            run_typecheck=False,
+        )
+        print(f"Tests broke at: {result.first_bad_commit}")
+        ```
+    """
+    good_sha = _resolve_commit(good_commit)
+    bad_sha = _resolve_commit(bad_commit)
+
+    # Get all commits in range
+    commits = _get_commits_between(good_sha, bad_sha)
+    if not commits:
+        msg = f"No commits found between {good_sha[:12]} and {bad_sha[:12]}"
+        raise ValueError(msg)
+
+    tested: list[CITestResult] = []
+    left = 0
+    right = len(commits) - 1
+    steps = 0
+
+    # Binary search: find first bad commit
+    # Invariant: commits[left-1] is good (or left=0), commits[right] is bad
+    while left < right:
+        mid = (left + right) // 2
+        steps += 1
+
+        result = await run_ci_tests(
+            commits[mid],
+            repo=repo,
+            poll_interval=poll_interval,
+            timeout=timeout,
+            os=os,
+            python_version=python_version,
+            run_lint=run_lint,
+            run_format=run_format,
+            run_typecheck=run_typecheck,
+            run_test=run_test,
+        )
+        tested.append(result)
+
+        if result.all_passed:
+            # This commit is good, search in upper half
+            left = mid + 1
+        else:
+            # This commit is bad, search in lower half
+            right = mid
+
+    first_bad_sha = commits[right]
+
+    # Determine last good commit
+    if right == 0:
+        last_good_sha = good_sha
+    else:
+        last_good_sha = commits[right - 1]
+
+    return BisectResult(
+        first_bad_commit=first_bad_sha,
+        last_good_commit=last_good_sha,
+        commits_tested=tested,
+        total_commits_in_range=len(commits),
+        steps_taken=steps,
+    )
+
+
 async def quick_ci_check(commit: str = "HEAD") -> bool:
     """Quick check if a commit passes all CI checks.
 
