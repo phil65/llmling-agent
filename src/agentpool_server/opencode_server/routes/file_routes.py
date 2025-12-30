@@ -26,6 +26,64 @@ router = APIRouter(tags=["file"])
 # Directories to skip when searching
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".tox", "dist", "build"}
 
+# Sensitive files that should never be exposed via the API
+BLOCKED_FILES = {".env", ".env.local", ".env.production", ".env.development", ".env.test"}
+
+
+def _validate_path(root: Path, user_path: str) -> Path:
+    """Validate and resolve a user-provided path, ensuring it stays within root.
+
+    Args:
+        root: The root directory (working_dir) that paths must stay within.
+        user_path: The user-provided relative path.
+
+    Returns:
+        The resolved absolute path that is guaranteed to be within root.
+
+    Raises:
+        HTTPException: If the path escapes root or is blocked.
+    """
+    # Resolve the root to handle any symlinks in the root itself
+    resolved_root = root.resolve()
+
+    # Join and resolve the full path (this handles ../, symlinks, etc.)
+    target = (root / user_path).resolve()
+
+    # Check that the resolved path is within the resolved root
+    try:
+        target.relative_to(resolved_root)
+    except ValueError:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: path escapes project directory",
+        ) from None
+
+    # Check for blocked files
+    if target.name in BLOCKED_FILES:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Access denied: {target.name} files are protected",
+        )
+
+    return target
+
+
+def _validate_path_str(root: str, user_path: str) -> str:
+    """Validate path for fsspec filesystem (string-based).
+
+    Args:
+        root: The root directory path as string.
+        user_path: The user-provided relative path.
+
+    Returns:
+        The validated absolute path as string.
+
+    Raises:
+        HTTPException: If the path escapes root or is blocked.
+    """
+    validated = _validate_path(Path(root), user_path)
+    return str(validated)
+
 
 def _get_fs(state: StateDep) -> tuple[AsyncFileSystem, str] | None:
     """Get the fsspec filesystem from the agent's environment if available.
@@ -48,29 +106,42 @@ def _get_fs(state: StateDep) -> tuple[AsyncFileSystem, str] | None:
 @router.get("/file")
 async def list_files(state: StateDep, path: str = Query(default="")) -> list[FileNode]:
     """List files in a directory."""
+    working_path = Path(state.working_dir)
+
+    # Validate path if provided (empty path means root, which is always valid)
+    if path:
+        target_p = _validate_path(working_path, path)
+    else:
+        target_p = working_path.resolve()
+
     fs_info = _get_fs(state)
 
     if fs_info is not None:
         fs, base_path = fs_info
-        # Use fsspec filesystem
-        target = f"{base_path}/{path}" if path else base_path
+        # Use fsspec filesystem with validated path
+        target = str(target_p)
         try:
             if not await fs._isdir(target):
                 raise HTTPException(status_code=404, detail="Directory not found")
 
             entries = await fs._ls(target, detail=True)
             nodes = []
+            resolved_root = working_path.resolve()
             for entry in entries:
                 full_name = entry.get("name", "")
                 name = full_name.split("/")[-1]
                 if not name:
                     continue
+                # Skip blocked files in directory listings
+                if name in BLOCKED_FILES:
+                    continue
                 node_type = "directory" if entry.get("type") == "directory" else "file"
                 size = entry.get("size") if node_type == "file" else None
-                # Build relative path from base_path
-                if full_name.startswith(base_path):
-                    rel_path = full_name[len(base_path) :].lstrip("/")
-                else:
+                # Build relative path from resolved root
+                entry_path = Path(full_name)
+                try:
+                    rel_path = str(entry_path.relative_to(resolved_root))
+                except ValueError:
                     rel_path = name
                 nodes.append(FileNode(name=name, path=rel_path or name, type=node_type, size=size))
             return sorted(nodes, key=lambda n: (n.type != "directory", n.name.lower()))
@@ -78,17 +149,18 @@ async def list_files(state: StateDep, path: str = Query(default="")) -> list[Fil
             raise HTTPException(status_code=404, detail="Directory not found") from err
     else:
         # Fallback to local Path operations
-        working_path = Path(state.working_dir)
-        target_p = working_path / path if path else working_path
-
         if not target_p.is_dir():
             raise HTTPException(status_code=404, detail="Directory not found")
 
         nodes = []
+        resolved_root = working_path.resolve()
         for entry in target_p.iterdir():
+            # Skip blocked files in directory listings
+            if entry.name in BLOCKED_FILES:
+                continue
             node_type = "directory" if entry.is_dir() else "file"
             size = entry.stat().st_size if entry.is_file() else None
-            rel_path = str(entry.relative_to(working_path))
+            rel_path = str(entry.relative_to(resolved_root))
             nodes.append(FileNode(name=entry.name, path=rel_path, type=node_type, size=size))
 
         return sorted(nodes, key=lambda n: (n.type != "directory", n.name.lower()))
@@ -97,12 +169,17 @@ async def list_files(state: StateDep, path: str = Query(default="")) -> list[Fil
 @router.get("/file/content")
 async def read_file(state: StateDep, path: str = Query()) -> FileContent:
     """Read a file's content."""
+    working_path = Path(state.working_dir)
+
+    # Validate path - this checks for traversal, symlink escapes, and blocked files
+    target = _validate_path(working_path, path)
+
     fs_info = _get_fs(state)
 
     if fs_info is not None:
         fs, base_path = fs_info
-        # Use fsspec filesystem
-        full_path = f"{base_path}/{path}"
+        # Use fsspec filesystem with validated path
+        full_path = str(target)
         try:
             if not await fs._isfile(full_path):
                 raise HTTPException(status_code=404, detail="File not found")
@@ -115,9 +192,7 @@ async def read_file(state: StateDep, path: str = Query()) -> FileContent:
         except UnicodeDecodeError as err:
             raise HTTPException(status_code=400, detail="Cannot read binary file") from err
     else:
-        # Fallback to local Path operations
-        target = Path(state.working_dir) / path
-
+        # Fallback to local Path operations (target already validated)
         if not target.is_file():
             raise HTTPException(status_code=404, detail="File not found")
 

@@ -11,6 +11,7 @@ from pydantic_ai import FileUrl
 
 from agentpool.sessions.models import SessionData
 from agentpool_server.opencode_server import identifier
+from agentpool_server.opencode_server.command_validation import validate_command
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
     AssistantMessage,
@@ -635,6 +636,9 @@ async def run_shell_command(
     session = await get_or_load_session(state, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    # Validate command for security issues
+    validate_command(request.command, state.working_dir)
 
     now = now_ms()
 
