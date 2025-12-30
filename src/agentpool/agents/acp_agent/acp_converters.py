@@ -189,42 +189,56 @@ def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | No
         # Text message chunks -> PartDeltaEvent with TextPartDelta
         case AgentMessageChunk(content=TextContentBlock(text=text)):
             return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=text))
+
         # Thought chunks -> PartDeltaEvent with ThinkingPartDelta
         case AgentThoughtChunk(content=TextContentBlock(text=text)):
             return PartDeltaEvent(index=0, delta=ThinkingPartDelta(content_delta=text))
-        # User message echo - could emit as PartStartEvent if needed
+
+        # User message echo - usually ignored
         case UserMessageChunk():
-            return None  # Usually ignored
+            return None
+
         # Tool call start -> ToolCallStartEvent
-        case ToolCallStart() as tc:
+        case ToolCallStart(
+            tool_call_id=tool_call_id,
+            title=title,
+            kind=kind,
+            content=content,
+            locations=locations,
+            raw_input=raw_input,
+        ):
             return ToolCallStartEvent(
-                tool_call_id=tc.tool_call_id,
-                tool_name=tc.title,  # ACP uses title, not separate tool_name
-                title=tc.title,
-                kind=tc.kind or "other",
-                content=convert_acp_content(list(tc.content) if tc.content else None),
-                locations=convert_acp_locations(list(tc.locations) if tc.locations else None),
-                raw_input=tc.raw_input or {},
+                tool_call_id=tool_call_id,
+                tool_name=title,  # ACP uses title, not separate tool_name
+                title=title,
+                kind=kind or "other",
+                content=convert_acp_content(list(content) if content else None),
+                locations=convert_acp_locations(list(locations) if locations else None),
+                raw_input=raw_input or {},
             )
 
         # Tool call progress -> ToolCallProgressEvent
-        case ToolCallProgress() as tc:
-            items = convert_acp_content(list(tc.content) if tc.content else None)
+        case ToolCallProgress(
+            tool_call_id=tool_call_id,
+            status=status,
+            title=title,
+            content=content,
+            raw_output=raw_output,
+        ):
             return ToolCallProgressEvent(
-                tool_call_id=tc.tool_call_id,
-                status=tc.status or "in_progress",
-                title=tc.title,
-                items=items,
-                message=str(tc.raw_output) if tc.raw_output else None,
+                tool_call_id=tool_call_id,
+                status=status or "in_progress",
+                title=title,
+                items=convert_acp_content(list(content) if content else None),
+                message=str(raw_output) if raw_output else None,
             )
 
         # Plan update -> PlanUpdateEvent
-        case AgentPlanUpdate(entries=acp_entries):
+        case AgentPlanUpdate(entries=entries):
             from agentpool.resource_providers.plan_provider import PlanEntry
 
             native_entries = [
-                PlanEntry(content=e.content, priority=e.priority, status=e.status)
-                for e in acp_entries
+                PlanEntry(content=e.content, priority=e.priority, status=e.status) for e in entries
             ]
             return PlanUpdateEvent(entries=native_entries)
 
