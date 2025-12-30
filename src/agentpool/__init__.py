@@ -13,7 +13,7 @@ from agentpool.models.manifest import AgentsManifest
 
 # Builtin toolsets imports removed to avoid circular dependency
 # Import them directly from agentpool_toolsets.builtin when needed
-from agentpool.agents import Agent, AgentContext
+from agentpool.agents import Agent, AgentContext, ClaudeCodeAgent, ACPAgent, AGUIAgent
 from agentpool.delegation import AgentPool, Team, TeamRun, BaseTeam
 from dotenv import load_dotenv
 from agentpool.messaging.messages import ChatMessage
@@ -40,6 +40,8 @@ __url__ = "https://github.com/phil65/agentpool"
 load_dotenv()
 
 __all__ = [
+    "ACPAgent",
+    "AGUIAgent",
     "Agent",
     "AgentContext",
     "AgentPool",
@@ -49,6 +51,7 @@ __all__ = [
     "BinaryContent",
     "BinaryImage",
     "ChatMessage",
+    "ClaudeCodeAgent",
     "DocumentUrl",
     "ImageUrl",
     "MessageNode",
