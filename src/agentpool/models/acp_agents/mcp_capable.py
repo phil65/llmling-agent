@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any, Literal, assert_never, cast
 
+import anyenv
 from pydantic import BaseModel, ConfigDict, Field
 
 from agentpool.models.acp_agents.base import BaseACPAgentConfig
@@ -285,7 +286,7 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
             return None
         # StructuredResponseConfig - resolve schema via get_schema()
         model_cls = cast(type[BaseModel], self.output_type.response_schema.get_schema())
-        return json.dumps(model_cls.model_json_schema())
+        return anyenv.dump_json(model_cls.model_json_schema())
 
 
 class GeminiACPAgentConfig(MCPCapableACPAgentConfig):
