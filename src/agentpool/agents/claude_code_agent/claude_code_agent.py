@@ -858,11 +858,21 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             elif delta_type == "input_json_delta":
                                 # Accumulate tool argument JSON fragments
                                 partial_json = delta.get("partial_json", "")
-                                # Find which tool call this belongs to by index
-                                # The index corresponds to the content block index
-                                for tc_id in tool_accumulator._calls:
-                                    tool_accumulator.add_args(tc_id, partial_json)
-                                    break  # Only one tool call streams at a time
+                                if partial_json:
+                                    # Find which tool call this belongs to by index
+                                    # The index corresponds to the content block index
+                                    for tc_id in tool_accumulator._calls:
+                                        tool_accumulator.add_args(tc_id, partial_json)
+                                        # Emit PartDeltaEvent with ToolCallPartDelta
+                                        tool_delta = ToolCallPartDelta(
+                                            tool_name_delta=None,
+                                            args_delta=partial_json,
+                                            tool_call_id=tc_id,
+                                        )
+                                        delta_event = PartDeltaEvent(index=index, delta=tool_delta)
+                                        await handler(None, delta_event)
+                                        yield delta_event
+                                        break  # Only one tool call streams at a time
 
                         # Handle content_block_stop events
                         elif event_type == "content_block_stop":
