@@ -222,17 +222,12 @@ class AgentPoolACPAgent(ACPAgent):
 
     async def initialize(self, params: InitializeRequest) -> InitializeResponse:
         """Initialize the agent and negotiate capabilities."""
-        logger.info("Initializing ACP agent implementation")
         version = min(params.protocol_version, self.PROTOCOL_VERSION)
         self.client_capabilities = params.client_capabilities
         self.client_info = params.client_info
-        logger.info(
-            "Client capabilities",
-            capabilities=self.client_capabilities,
-            client_info=self.client_info,
-        )
+        logger.info("Client info", request=params.model_dump_json())
         self._initialized = True
-        response = InitializeResponse.create(
+        return InitializeResponse.create(
             protocol_version=version,
             name="agentpool",
             title="AgentPool",
@@ -245,8 +240,6 @@ class AgentPoolACPAgent(ACPAgent):
             embedded_context_prompts=True,
             image_prompts=True,
         )
-        logger.info("ACP agent initialized successfully", response=response)
-        return response
 
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         """Create a new session."""
