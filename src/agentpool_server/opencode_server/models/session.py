@@ -50,6 +50,14 @@ class SessionUpdateRequest(OpenCodeBaseModel):
     title: str | None = None
 
 
+class SessionForkRequest(OpenCodeBaseModel):
+    """Request body for forking a session."""
+
+    message_id: str | None = None
+    """Optional message ID to fork from. If provided, only messages up to and including
+    this message will be copied to the forked session. If None, all messages are copied."""
+
+
 class SessionStatus(OpenCodeBaseModel):
     """Status of a session."""
 

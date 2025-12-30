@@ -26,6 +26,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     SessionCreateRequest,
     SessionDeletedEvent,
     SessionDeletedProperties,
+    SessionForkRequest,
     SessionInfoProperties,
     SessionRevert,
     SessionShare,
@@ -353,6 +354,111 @@ async def abort_session(session_id: str, state: StateDep) -> bool:
     # TODO: Actually abort running operations
     state.session_status[session_id] = SessionStatus(type="idle")
     return True
+
+
+@router.post("/{session_id}/fork")
+async def fork_session(
+    session_id: str,
+    state: StateDep,
+    request: SessionForkRequest | None = None,
+    directory: str | None = None,
+) -> Session:
+    """Fork a session, optionally at a specific message.
+
+    Creates a new session with:
+    - parent_id pointing to the original session
+    - Copies all messages (or up to message_id if specified)
+    - Independent conversation history from that point forward
+
+    Args:
+        session_id: The session to fork from
+        request: Optional fork parameters (message_id to fork from)
+        directory: Optional directory for the forked session
+
+    Returns:
+        The newly created forked session
+    """
+    # Get the original session
+    original_session = await get_or_load_session(state, session_id)
+    if original_session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Get messages from the original session
+    original_messages = state.messages.get(session_id, [])
+
+    # Filter messages if message_id is specified
+    messages_to_copy: list[MessageWithParts] = []
+    if request and request.message_id:
+        # Copy messages up to and including the specified message_id
+        for msg in original_messages:
+            messages_to_copy.append(msg)
+            if msg.info.id == request.message_id:
+                break
+        else:
+            # message_id not found in messages
+            raise HTTPException(
+                status_code=404,
+                detail=f"Message {request.message_id} not found in session",
+            )
+    else:
+        # Copy all messages
+        messages_to_copy = list(original_messages)
+
+    # Create the new forked session
+    now = now_ms()
+    new_session_id = identifier.ascending("session")
+
+    # Use provided directory or inherit from original session
+    fork_directory = directory if directory else original_session.directory
+
+    forked_session = Session(
+        id=new_session_id,
+        project_id=original_session.project_id,
+        directory=fork_directory,
+        title=f"{original_session.title} (fork)",
+        version="1",
+        time=TimeCreatedUpdated(created=now, updated=now),
+        parent_id=session_id,  # Link to original session
+    )
+
+    # Persist the forked session to storage
+    session_data = opencode_to_session_data(
+        forked_session,
+        agent_name=state.agent.name,
+        pool_id=state.pool.manifest.config_file_path,
+    )
+    await state.pool.sessions.store.save(session_data)
+
+    # Cache in memory
+    state.sessions[new_session_id] = forked_session
+    state.session_status[new_session_id] = SessionStatus(type="idle")
+    state.todos[new_session_id] = []
+
+    # Copy messages to the new session (with updated session_id references)
+    copied_messages: list[MessageWithParts] = []
+    for msg_with_parts in messages_to_copy:
+        # Create new message info with updated session_id
+        new_info = msg_with_parts.info.model_copy(update={"session_id": new_session_id})
+        # Copy parts with updated session_id
+        new_parts = [
+            part.model_copy(update={"session_id": new_session_id}) for part in msg_with_parts.parts
+        ]
+        copied_messages.append(MessageWithParts(info=new_info, parts=new_parts))
+
+    state.messages[new_session_id] = copied_messages
+
+    # Create input provider for the new session
+    from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
+
+    input_provider = OpenCodeInputProvider(state, new_session_id)
+    state.input_providers[new_session_id] = input_provider
+
+    # Broadcast session created event
+    await state.broadcast_event(
+        SessionCreatedEvent(properties=SessionInfoProperties(info=forked_session))
+    )
+
+    return forked_session
 
 
 @router.get("/{session_id}/todo")

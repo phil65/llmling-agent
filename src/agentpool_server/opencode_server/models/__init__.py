@@ -32,6 +32,7 @@ from agentpool_server.opencode_server.models.provider import (
 from agentpool_server.opencode_server.models.session import (
     Session,
     SessionCreateRequest,
+    SessionForkRequest,
     SessionRevert,
     SessionShare,
     SessionStatus,
@@ -171,6 +172,7 @@ __all__ = [
     # Session
     "Session",
     "SessionCreateRequest",
+    "SessionForkRequest",
     "SessionCreatedEvent",
     "SessionDeletedEvent",
     "SessionDeletedProperties",
