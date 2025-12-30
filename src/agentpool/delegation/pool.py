@@ -118,6 +118,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.sessions import SessionManager
         from agentpool.skills.manager import SkillsManager
         from agentpool.storage import StorageManager
+        from agentpool.utils.streams import FileOpsTracker, TodoTracker
 
         match manifest:
             case None:
@@ -150,15 +151,9 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             self._tasks.register(name, task)
         self.process_manager = ProcessManager()
         self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
-
-        # File operations tracker for diff/revert support
-        from agentpool.utils.streams import FileOpsTracker, TodoTracker
-
         self.file_ops = FileOpsTracker()
-
         # Todo/plan tracker for task management
         self.todos = TodoTracker()
-
         # Create all agents from unified manifest.agents dict
         for name, config in self.manifest.agents.items():
             agent = self._create_agent_from_config(
@@ -187,10 +182,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 await self.exit_stack.enter_async_context(self.mcp)
                 await self.exit_stack.enter_async_context(self.skills)
                 aggregating_provider = self.mcp.get_aggregating_provider()
-                agents = list(self.agents.values())
-                acp_agents = list(self.acp_agents.values())
-                agui_agents = list(self.agui_agents.values())
-                claude_code_agents = list(self.claude_code_agents.values())
+                agents = list(self.all_agents.values())
                 teams = list(self.teams.values())
                 for agent in agents:
                     agent.tools.add_provider(aggregating_provider)
@@ -199,9 +191,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     self.storage,
                     self.sessions,
                     *agents,
-                    *acp_agents,
-                    *agui_agents,
-                    *claude_code_agents,
                     *teams,
                 ]
                 # MCP server is now managed externally - removed from pool
