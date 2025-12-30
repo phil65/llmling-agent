@@ -1174,7 +1174,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             parent=self if pass_message_history else None,
         )
 
-    def set_model(self, model: ModelType) -> None:
+    async def set_model(self, model: ModelType) -> None:
         """Set the model for this agent.
 
         Args:

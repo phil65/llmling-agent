@@ -122,9 +122,9 @@ async def test_history_sharing(tmp_path: Path):
         main_agent = pool.get_agent("main")
         worker = pool.get_agent("worker")
         # Configure models: real model for main agent, TestModel for worker
-        main_agent.set_model("openai:gpt-5-nano")
+        await main_agent.set_model("openai:gpt-5-nano")
         worker_model = TestModel(custom_output_text="The value is 42")
-        worker.set_model(worker_model)
+        await worker.set_model(worker_model)
         # Create some conversation history
         result = await main_agent.run("Remember X equals 42")
         # Worker should have access to history
@@ -141,8 +141,8 @@ async def test_worker_context_sharing(tmp_path: Path):
         specialist = pool.get_agent("specialist")
         main_model = TestModel(call_tools=["ask_specialist"])
         specialist_model = TestModel(custom_output_text="I can see context value: 123")
-        main_agent.set_model(main_model)
-        specialist.set_model(specialist_model)
+        await main_agent.set_model(main_model)
+        await specialist.set_model(specialist_model)
         prompt = "Ask specialist: What's in the context?"
         result = await main_agent.run(prompt, deps={"important_value": 123})
         assert "123" in result.data
@@ -185,9 +185,9 @@ async def test_multiple_workers_same_prompt(tmp_path: Path):
         main_model = TestModel(call_tools=["ask_worker", "ask_specialist"])
         worker_model = TestModel(custom_output_text="I am a helpful worker assistant")
         specialist_model = TestModel(custom_output_text="I am a domain specialist")
-        main_agent.set_model(main_model)
-        worker.set_model(worker_model)
-        specialist.set_model(specialist_model)
+        await main_agent.set_model(main_model)
+        await worker.set_model(worker_model)
+        await specialist.set_model(specialist_model)
         responses = []
         main_agent.message_sent.connect(lambda msg: responses.append(msg.content))
         await main_agent.run("Ask both workers: introduce yourselves")

@@ -66,7 +66,7 @@ async def test_connection_filtering():
 
         # Second message with custom response
         model = TestModel(custom_output_text="important response from model")
-        source.set_model(model)
+        await source.set_model(model)
         await source.run("second message")
 
         assert talk.stats.message_count == 1  # Only the message containing "importan

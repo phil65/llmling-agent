@@ -25,7 +25,6 @@ from acp.schema import (
     SetSessionModeRequest,
     SetSessionModeResponse,
 )
-from agentpool import Agent
 from agentpool.log import get_logger
 from agentpool.utils.tasks import TaskManager
 from agentpool_server.acp_server.converters import (
@@ -691,7 +690,6 @@ class AgentPoolACPAgent(ACPAgent):
         Validates that the requested model is available via agent.get_available_models().
         """
         from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
-        from agentpool.agents.claude_code_agent import ClaudeCodeAgent
 
         try:
             session = self.session_manager.get_session(params.session_id)
@@ -733,11 +731,8 @@ class AgentPoolACPAgent(ACPAgent):
                     )
                     return None
 
-            # Set the model on the agent
-            if isinstance(session.agent, ClaudeCodeAgent):
-                await session.agent.set_model(params.model_id)
-            elif isinstance(session.agent, Agent):
-                session.agent.set_model(params.model_id)
+            # Set the model on the agent (all agents now have async set_model)
+            await session.agent.set_model(params.model_id)
 
             logger.info("Set model", model_id=params.model_id, session_id=params.session_id)
             return SetSessionModelResponse()

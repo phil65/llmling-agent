@@ -140,6 +140,15 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         ...
 
     @abstractmethod
+    async def set_model(self, model: str) -> None:
+        """Set the model for this agent.
+
+        Args:
+            model: New model identifier to use
+        """
+        ...
+
+    @abstractmethod
     def run_stream(
         self,
         *prompt: Any,

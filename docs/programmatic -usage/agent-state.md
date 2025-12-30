@@ -25,7 +25,7 @@ async with Agent(...) as agent:
     # Register tools
     agent.tools.register_tool(my_tool)
     # Change model
-    agent.set_model("openai:gpt-5-nano")
+    await agent.set_model("openai:gpt-5-nano")
     # Clear conversation history
     agent.conversation.clear()
     # Add context messages

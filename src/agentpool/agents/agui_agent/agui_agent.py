@@ -664,6 +664,11 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Get model name (AG-UI doesn't expose this)."""
         return None
 
+    async def set_model(self, model: str) -> None:
+        """Set model (no-op for AG-UI as model is controlled by remote server)."""
+        # AG-UI agents don't support model selection - the model is
+        # determined by the remote server configuration
+
     async def get_available_models(self) -> list[ModelInfo] | None:
         """Get available models for AG-UI agent.
 

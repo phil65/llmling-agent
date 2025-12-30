@@ -16,6 +16,59 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageNode
 
 
+class ListModelsCommand(NodeCommand):
+    """List available models for the current agent.
+
+    Displays all models that can be used with the current agent,
+    formatted as a markdown table with model ID, name, and description.
+
+    Examples:
+      /list-models
+    """
+
+    name = "list-models"
+    category = "model"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[AgentContext],
+    ) -> None:
+        """List available models.
+
+        Args:
+            ctx: Command context
+        """
+        agent = ctx.context.agent
+        models = await agent.get_available_models()
+
+        if not models:
+            await ctx.print("No models available for this agent.")
+            return
+
+        # Build markdown table
+        lines = [
+            "| Model ID | Name | Description |",
+            "|----------|------|-------------|",
+        ]
+
+        for model in models:
+            model_id = model.id_override if model.id_override else model.id
+            name = model.name or ""
+            description = model.description or ""
+            # Escape pipe characters in fields
+            name = name.replace("|", "\\|")
+            description = description.replace("|", "\\|")
+            lines.append(f"| `{model_id}` | {name} | {description} |")
+
+        await ctx.print("\n".join(lines))
+
+    @classmethod
+    def supports_node(cls, node: MessageNode[Any, Any]) -> bool:
+        from agentpool import ACPAgent, Agent, ClaudeCodeAgent
+
+        return isinstance(node, Agent | ACPAgent | ClaudeCodeAgent)
+
+
 class SetModelCommand(NodeCommand):
     """Change the language model for the current conversation.
 
@@ -46,7 +99,7 @@ class SetModelCommand(NodeCommand):
         """
         try:
             # Create new session with model override
-            ctx.context.native_agent.set_model(model)
+            await ctx.context.agent.set_model(model)
             await ctx.print(f"✅ **Model changed to:** `{model}`")
         except Exception as e:  # noqa: BLE001
             await ctx.print(f"❌ **Failed to change model:** {e}")
@@ -57,6 +110,6 @@ class SetModelCommand(NodeCommand):
 
     @classmethod
     def supports_node(cls, node: MessageNode[Any, Any]) -> bool:
-        from agentpool import Agent
+        from agentpool import ACPAgent, Agent, ClaudeCodeAgent
 
-        return isinstance(node, Agent)
+        return isinstance(node, Agent | ACPAgent | ClaudeCodeAgent)

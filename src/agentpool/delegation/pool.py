@@ -40,7 +40,6 @@ if TYPE_CHECKING:
     from pydantic_ai import ModelSettings
     from pydantic_ai.models import Model
     from pydantic_ai.output import OutputSpec
-    from tokonomics.model_names import ModelId
     from upathtools import JoinablePathLike
 
     from agentpool.agents.acp_agent import ACPAgent
@@ -657,7 +656,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         agent: AgentName | Agent[Any, str],
         *,
         return_type: type[TResult] = str,  # type: ignore
-        model_override: ModelId | str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[TPoolDeps, TResult]: ...
 
@@ -668,7 +666,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         *,
         deps_type: type[TCustomDeps],
         return_type: type[TResult] = str,  # type: ignore
-        model_override: ModelId | str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[TCustomDeps, TResult]: ...
 
@@ -678,7 +675,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         *,
         deps_type: Any | None = None,
         return_type: Any = str,
-        model_override: ModelId | str | None = None,
         session: SessionIdType | SessionQuery = None,
     ) -> Agent[Any, Any]:
         """Get or configure an agent from the pool.
@@ -691,7 +687,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             agent: Either agent name or instance
             deps_type: Optional custom dependencies type (overrides shared deps)
             return_type: Optional type for structured responses
-            model_override: Optional model override
             session: Optional session ID or query to recover conversation
 
         Returns:
@@ -702,6 +697,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         Raises:
             KeyError: If agent name not found
             ValueError: If configuration is invalid
+
+        Note:
+            To change the model, call `await agent.set_model(model_id)` after
+            getting the agent.
         """
         from agentpool.agents import Agent
 
@@ -710,8 +709,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # base.context.data = deps if deps is not None else self.shared_deps
         base.deps_type = deps_type
         base.agent_pool = self
-        if model_override:
-            base.set_model(model_override)
         if session:
             base.conversation.load_history_from_database(session=session)
         if return_type not in {str, None}:
