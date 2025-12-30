@@ -343,6 +343,46 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Get the model name."""
         return self._current_model
 
+    def _build_hooks(self) -> dict[str, list[Any]]:
+        """Build SDK hooks configuration.
+
+        Returns:
+            Dictionary mapping hook event names to HookMatcher lists
+        """
+        from claude_agent_sdk.types import (
+            HookContext,
+            HookInput,
+            HookMatcher,
+            SyncHookJSONOutput,
+        )
+
+        async def on_pre_compact(
+            input_data: HookInput,
+            tool_use_id: str | None,
+            context: HookContext,
+        ) -> SyncHookJSONOutput:
+            """Handle PreCompact hook by emitting a text notification for auto-compaction."""
+            # input_data is PreCompactHookInput when hook_event_name == "PreCompact"
+            trigger = input_data.get("trigger", "auto")  # type: ignore[typeddict-item]
+
+            # Only show notification for auto-compaction
+            # Manual compaction is triggered via slash command which handles its own UI
+            if trigger == "auto":
+                from pydantic_ai import PartDeltaEvent, TextPartDelta
+
+                text = "\n\n---\n\n📦 **Context compaction** triggered. Summarizing conversation...\n\n---\n\n"
+                delta_event = PartDeltaEvent(
+                    index=0,
+                    delta=TextPartDelta(content_delta=text),
+                )
+                await self._event_queue.put(delta_event)
+
+            return {"continue_": True}
+
+        return {
+            "PreCompact": [HookMatcher(matcher=None, hooks=[on_pre_compact])],
+        }
+
     def _build_options(self, *, formatted_system_prompt: str | None = None) -> ClaudeAgentOptions:
         """Build ClaudeAgentOptions from runtime state.
 
@@ -396,6 +436,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             output_format=to_output_format(self._output_type),
             mcp_servers=self._mcp_servers or {},
             include_partial_messages=True,
+            hooks=self._build_hooks(),  # type: ignore[arg-type]
         )
 
     async def _can_use_tool(  # noqa: PLR0911
