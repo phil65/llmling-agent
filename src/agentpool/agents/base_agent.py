@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
+    from slashed import CommandStore
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from acp.schema import AvailableCommandsUpdate, ConfigOptionUpdate
@@ -120,6 +121,16 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # State change signal - emitted when mode/model/commands change
         # Uses union type for different state update kinds
         self.state_updated: BoundSignal[StateUpdate] = BoundSignal()
+
+        # Command store for slash commands
+        from slashed import CommandStore
+
+        self._command_store: CommandStore = CommandStore()
+
+    @property
+    def command_store(self) -> CommandStore:
+        """Get the command store for slash commands."""
+        return self._command_store
 
     @abstractmethod
     def get_context(self, data: Any = None) -> AgentContext[Any]:

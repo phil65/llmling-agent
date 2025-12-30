@@ -80,7 +80,7 @@ if TYPE_CHECKING:
     from claude_agent_sdk.types import HookContext, HookInput, SyncHookJSONOutput
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
-    from slashed import Command, CommandContext, CommandStore
+    from slashed import Command, CommandContext
     from tokonomics.model_discovery.model_info import ModelInfo
     from toprompt import AnyPromptType
 
@@ -262,11 +262,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._tool_bridge: ToolManagerBridge | None = None
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
         self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
-
-        # Command store for slash commands from Claude Code
-        from slashed import CommandStore
-
-        self._command_store: CommandStore = CommandStore()
 
     def get_context(self, data: Any = None) -> AgentContext:
         """Create a new context for this agent.
@@ -528,11 +523,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 self.log.exception("Error disconnecting Claude Code client")
             self._client = None
         await super().__aexit__(exc_type, exc_val, exc_tb)
-
-    @property
-    def command_store(self) -> CommandStore:
-        """Get the command store for slash commands."""
-        return self._command_store
 
     async def populate_commands(self) -> None:
         """Populate the command store with slash commands from Claude Code.
