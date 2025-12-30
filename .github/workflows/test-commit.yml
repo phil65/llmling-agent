@@ -36,11 +36,11 @@ on:
         required: false
         default: true
         type: boolean
-      run_test:
-        description: "Run pytest"
+      test_command:
+        description: "Pytest command (empty to skip tests)"
         required: false
-        default: true
-        type: boolean
+        default: "pytest --tb=short"
+        type: string
 
 env:
   FORCE_COLOR: 1
@@ -129,7 +129,7 @@ jobs:
 
   test:
     name: Test (pytest)
-    if: ${{ inputs.run_test }}
+    if: ${{ inputs.test_command != '' }}
     runs-on: ${{ inputs.os }}
     continue-on-error: true
     outputs:
@@ -159,7 +159,7 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: uv run --no-group docs pytest --tb=short
+        run: uv run --no-group docs ${{ inputs.test_command }}
 
   report:
     name: Report Results
@@ -189,8 +189,8 @@ jobs:
           else
             echo "| Type Check (mypy) | skipped |" >> $GITHUB_STEP_SUMMARY
           fi
-          if [ "${{ inputs.run_test }}" == "true" ]; then
-            echo "| Tests (pytest) | ${{ needs.test.outputs.result }} |" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ inputs.test_command }}" ]; then
+            echo "| Tests (\`${{ inputs.test_command }}\`) | ${{ needs.test.outputs.result }} |" >> $GITHUB_STEP_SUMMARY
           else
             echo "| Tests (pytest) | skipped |" >> $GITHUB_STEP_SUMMARY
           fi

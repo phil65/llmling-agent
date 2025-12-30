@@ -169,6 +169,12 @@ class CITestResult:
     raw_jobs: list[dict[str, Any]] = field(default_factory=list)
     """Raw job data from GitHub API."""
 
+    failed_logs: str | None = None
+    """Logs from failed steps (fetched on demand)."""
+
+    _repo: str | None = field(default=None, repr=False)
+    """Repository for fetching logs."""
+
     @property
     def all_passed(self) -> bool:
         """Check if all enabled checks passed (skipped checks are ignored)."""
@@ -207,6 +213,62 @@ class CITestResult:
         ]
         return "\n".join(lines)
 
+    def fetch_failed_logs(self, max_lines: int = 200) -> str:
+        """Fetch logs from failed steps.
+
+        Args:
+            max_lines: Maximum number of log lines to return.
+
+        Returns:
+            Log output from failed steps, or empty string if no failures.
+        """
+        if not self.any_failed:
+            return ""
+
+        repo_args = ["-R", self._repo] if self._repo else []
+        try:
+            result = subprocess.run(
+                ["gh", "run", "view", str(self.run_id), "--log-failed", *repo_args],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            lines = result.stdout.strip().split("\n")
+            # Return last N lines (most relevant)
+            if len(lines) > max_lines:
+                lines = lines[-max_lines:]
+            self.failed_logs = "\n".join(lines)
+            return self.failed_logs
+        except subprocess.CalledProcessError:
+            return ""
+
+    def get_failure_summary(self, max_lines: int = 50) -> str:
+        """Get a concise summary of failures.
+
+        Returns:
+            Summary including the test/check that failed and key error lines.
+        """
+        logs = self.fetch_failed_logs(max_lines=max_lines * 2)
+        if not logs:
+            return "No failure logs available."
+
+        # Extract key lines (errors, failures, assertions)
+        key_patterns = ["FAILED", "Error", "error:", "AssertionError", "Timeout", "Exception"]
+        key_lines = []
+        for line in logs.split("\n"):
+            if any(p in line for p in key_patterns):
+                # Clean up the line (remove timestamp prefix)
+                parts = line.split("\t")
+                if len(parts) >= 3:
+                    key_lines.append(parts[-1].strip())
+                else:
+                    key_lines.append(line.strip())
+
+        if key_lines:
+            return "\n".join(key_lines[:max_lines])
+        # Fall back to last N lines
+        return "\n".join(logs.split("\n")[-max_lines:])
+
 
 def _run_gh(*args: str) -> str:
     """Run a gh CLI command and return output."""
@@ -243,7 +305,7 @@ async def run_ci_tests(
     run_lint: bool = True,
     run_format: bool = True,
     run_typecheck: bool = True,
-    run_test: bool = True,
+    test_command: str | None = "pytest --tb=short",
 ) -> CITestResult:
     """Trigger CI tests for a commit and wait for results.
 
@@ -260,7 +322,8 @@ async def run_ci_tests(
         run_lint: Whether to run ruff check. Defaults to True.
         run_format: Whether to run ruff format check. Defaults to True.
         run_typecheck: Whether to run mypy type checking. Defaults to True.
-        run_test: Whether to run pytest. Defaults to True.
+        test_command: Pytest command to run, or None to skip tests.
+            Defaults to "pytest --tb=short". Use "-k pattern" to filter tests.
 
     Returns:
         CITestResult with individual check results.
@@ -274,13 +337,14 @@ async def run_ci_tests(
         # Run all checks
         result = await run_ci_tests("abc123")
 
-        # Run only tests on Windows
+        # Run specific test on Windows
         result = await run_ci_tests(
             "abc123",
             os="windows-latest",
             run_lint=False,
             run_format=False,
             run_typecheck=False,
+            test_command="pytest -k test_acp_agent --tb=short",
         )
 
         if result.all_passed:
@@ -298,7 +362,7 @@ async def run_ci_tests(
     repo_args = ["-R", repo] if repo else []
 
     # Trigger the workflow with parameters
-    _run_gh(
+    workflow_args = [
         "workflow",
         "run",
         "test-commit.yml",
@@ -315,9 +379,10 @@ async def run_ci_tests(
         "-f",
         f"run_typecheck={str(run_typecheck).lower()}",
         "-f",
-        f"run_test={str(run_test).lower()}",
+        f"test_command={test_command or ''}",
         *repo_args,
-    )
+    ]
+    _run_gh(*workflow_args)
 
     # Wait a moment for the run to be created
     await asyncio.sleep(2)
@@ -372,6 +437,8 @@ async def run_ci_tests(
     duration = time.monotonic() - start_time
     jobs = run_data.get("jobs", [])
 
+    run_test = test_command is not None and test_command != ""
+
     result = CITestResult(
         commit=commit_sha,
         run_id=run_id,
@@ -380,6 +447,7 @@ async def run_ci_tests(
         python_version=python_version,
         duration_seconds=duration,
         raw_jobs=jobs,
+        _repo=repo,
         # Set skipped for disabled checks
         lint="skipped" if not run_lint else "pending",
         format="skipped" if not run_format else "pending",
@@ -470,7 +538,7 @@ async def bisect_ci(
     run_lint: bool = True,
     run_format: bool = True,
     run_typecheck: bool = True,
-    run_test: bool = True,
+    test_command: str | None = "pytest --tb=short",
 ) -> BisectResult:
     """Binary search to find the first commit that broke CI.
 
@@ -488,14 +556,14 @@ async def bisect_ci(
         run_lint: Whether to run ruff check. Defaults to True.
         run_format: Whether to run ruff format check. Defaults to True.
         run_typecheck: Whether to run mypy type checking. Defaults to True.
-        run_test: Whether to run pytest. Defaults to True.
+        test_command: Pytest command to run, or None to skip tests.
 
     Returns:
         BisectResult with the first bad commit and bisection details.
 
     Example:
         ```python
-        # Find which commit broke tests on Windows
+        # Find which commit broke a specific test on Windows
         result = await bisect_ci(
             good_commit="abc123",
             bad_commit="HEAD",
@@ -503,6 +571,7 @@ async def bisect_ci(
             run_lint=False,
             run_format=False,
             run_typecheck=False,
+            test_command="pytest -k test_acp_agent --tb=short",
         )
         print(f"Tests broke at: {result.first_bad_commit}")
         ```
@@ -537,7 +606,7 @@ async def bisect_ci(
             run_lint=run_lint,
             run_format=run_format,
             run_typecheck=run_typecheck,
-            run_test=run_test,
+            test_command=test_command,
         )
         tested.append(result)
 
