@@ -29,7 +29,7 @@ class ListSessionsCommand(NodeCommand):
     name = "list-sessions"
     category = "acp"
 
-    async def execute_command(
+    async def execute_command(  # noqa: PLR0915
         self,
         ctx: CommandContext[NodeContext[ACPSession]],
         *,

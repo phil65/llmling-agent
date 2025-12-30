@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from datetime import UTC
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -358,7 +359,7 @@ async def abort_session(session_id: str, state: StateDep) -> bool:
 
 
 @router.post("/{session_id}/fork")
-async def fork_session(
+async def fork_session(  # noqa: D417
     session_id: str,
     state: StateDep,
     request: SessionForkRequest | None = None,
@@ -463,7 +464,7 @@ async def fork_session(
 
 
 @router.post("/{session_id}/init")
-async def init_session(
+async def init_session(  # noqa: D417
     session_id: str,
     state: StateDep,
     request: SessionInitRequest | None = None,
@@ -565,10 +566,8 @@ async def init_session(
         finally:
             # Restore original model if we changed it
             if original_model is not None:
-                try:
+                with contextlib.suppress(Exception):
                     await agent.set_model(original_model)
-                except Exception:  # noqa: BLE001
-                    pass
 
     state.create_background_task(run_init(), name=f"init_{session_id}")
 
