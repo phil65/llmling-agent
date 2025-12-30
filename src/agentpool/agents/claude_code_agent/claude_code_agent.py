@@ -80,6 +80,7 @@ if TYPE_CHECKING:
     from claude_agent_sdk.types import HookContext, HookInput, SyncHookJSONOutput
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
+    from slashed import Command, CommandContext, CommandStore
     from tokonomics.model_discovery.model_info import ModelInfo
     from toprompt import AnyPromptType
 
@@ -261,6 +262,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._tool_bridge: ToolManagerBridge | None = None
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
         self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
+
+        # Command store for slash commands from Claude Code
+        from slashed import CommandStore
+
+        self._command_store: CommandStore = CommandStore()
 
     def get_context(self, data: Any = None) -> AgentContext:
         """Create a new context for this agent.
@@ -522,6 +528,127 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 self.log.exception("Error disconnecting Claude Code client")
             self._client = None
         await super().__aexit__(exc_type, exc_val, exc_tb)
+
+    @property
+    def command_store(self) -> CommandStore:
+        """Get the command store for slash commands."""
+        return self._command_store
+
+    async def populate_commands(self) -> None:
+        """Populate the command store with slash commands from Claude Code.
+
+        Fetches available commands from the connected Claude Code server
+        and registers them as slashed Commands. Should be called after
+        connection is established.
+
+        Commands that are not supported or not useful for external use
+        are filtered out (e.g., login, logout, context, cost).
+        """
+        if not self._client:
+            self.log.warning("Cannot populate commands: not connected")
+            return
+
+        server_info = await self._client.get_server_info()
+        if not server_info:
+            self.log.warning("No server info available for command population")
+            return
+
+        commands = server_info.get("commands", [])
+        if not commands:
+            self.log.debug("No commands available from Claude Code server")
+            return
+
+        # Commands to skip - not useful or problematic in this context
+        unsupported = {"context", "cost", "login", "logout", "release-notes", "todos"}
+
+        for cmd_info in commands:
+            name = cmd_info.get("name", "")
+            if not name or name in unsupported:
+                continue
+
+            command = self._create_claude_code_command(cmd_info)
+            self._command_store.register_command(command)
+
+        self.log.info(
+            "Populated command store", command_count=len(self._command_store.list_commands())
+        )
+
+    def _create_claude_code_command(self, cmd_info: dict[str, Any]) -> Command:
+        """Create a slashed Command from Claude Code command info.
+
+        Args:
+            cmd_info: Command info dict with 'name', 'description', 'argumentHint'
+
+        Returns:
+            A slashed Command that executes via Claude Code
+        """
+        from slashed import Command
+
+        name = cmd_info.get("name", "")
+        description = cmd_info.get("description", "")
+        argument_hint = cmd_info.get("argumentHint")
+
+        # Handle MCP commands - they have " (MCP)" suffix in Claude Code
+        category = "claude_code"
+        if name.endswith(" (MCP)"):
+            name = f"mcp:{name.replace(' (MCP)', '')}"
+            category = "mcp"
+
+        async def execute_command(
+            ctx: CommandContext[Any],
+            args: list[str],
+            kwargs: dict[str, str],
+        ) -> None:
+            """Execute the Claude Code slash command."""
+            import re
+
+            from claude_agent_sdk.types import (
+                AssistantMessage,
+                ResultMessage,
+                TextBlock,
+                UserMessage,
+            )
+
+            # Build command string
+            args_str = " ".join(args) if args else ""
+            if kwargs:
+                kwargs_str = " ".join(f"{k}={v}" for k, v in kwargs.items())
+                args_str = f"{args_str} {kwargs_str}".strip()
+
+            full_command = f"/{name} {args_str}".strip()
+
+            # Execute via agent run - slash commands go through as prompts
+            if self._client:
+                await self._client.query(full_command)
+                async for msg in self._client.receive_response():
+                    if isinstance(msg, AssistantMessage):
+                        for block in msg.content:
+                            if isinstance(block, TextBlock):
+                                await ctx.print(block.text)
+                    elif isinstance(msg, UserMessage):
+                        # Handle local command output wrapped in XML tags
+                        content = msg.content if isinstance(msg.content, str) else ""
+                        # Extract content from <local-command-stdout> or <local-command-stderr>
+                        match = re.search(
+                            r"<local-command-(?:stdout|stderr)>(.*?)</local-command-(?:stdout|stderr)>",
+                            content,
+                            re.DOTALL,
+                        )
+                        if match:
+                            await ctx.print(match.group(1))
+                    elif isinstance(msg, ResultMessage):
+                        if msg.result:
+                            await ctx.print(msg.result)
+                        if msg.is_error:
+                            await ctx.print(f"Error: {msg.subtype}")
+
+        return Command(
+            execute_func=execute_command,
+            name=name,
+            description=description or f"Claude Code command: {name}",
+            category=category,
+            usage=argument_hint,
+        )
 
     async def run(
         self,
