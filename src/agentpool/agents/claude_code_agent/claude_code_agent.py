@@ -41,6 +41,7 @@ from pydantic_ai import (
     ThinkingPart,
     ThinkingPartDelta,
     ToolCallPart,
+    ToolCallPartDelta,
     ToolReturnPart,
     UserPromptPart,
 )
