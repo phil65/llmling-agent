@@ -58,6 +58,16 @@ class SessionForkRequest(OpenCodeBaseModel):
     this message will be copied to the forked session. If None, all messages are copied."""
 
 
+class SessionInitRequest(OpenCodeBaseModel):
+    """Request body for initializing a session (creating AGENTS.md)."""
+
+    model_id: str | None = None
+    """Optional model ID to use for the init task."""
+
+    provider_id: str | None = None
+    """Optional provider ID to use for the init task."""
+
+
 class SessionStatus(OpenCodeBaseModel):
     """Status of a session."""
 

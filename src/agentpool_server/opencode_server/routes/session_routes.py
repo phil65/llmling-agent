@@ -28,6 +28,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     SessionDeletedProperties,
     SessionForkRequest,
     SessionInfoProperties,
+    SessionInitRequest,
     SessionRevert,
     SessionShare,
     SessionStatus,
@@ -459,6 +460,119 @@ async def fork_session(
     )
 
     return forked_session
+
+
+@router.post("/{session_id}/init")
+async def init_session(
+    session_id: str,
+    state: StateDep,
+    request: SessionInitRequest | None = None,
+) -> bool:
+    """Initialize a session by analyzing the codebase and creating AGENTS.md.
+
+    Generates a repository map, reads README if present, and runs the agent
+    with a prompt to create an AGENTS.md file with project-specific context.
+
+    Args:
+        session_id: The session to initialize
+        request: Optional model/provider override for the init task
+
+    Returns:
+        True when the init task has been started (runs async)
+    """
+    session = await get_or_load_session(state, session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Get the agent and filesystem
+    agent = state.agent
+    fs = agent.env.get_fs()
+    working_dir = state.working_dir
+
+    # Generate repomap
+    from agentpool.repomap import RepoMap, find_src_files
+
+    try:
+        all_files = await find_src_files(fs, working_dir)
+        repo_map = RepoMap(fs=fs, root_path=working_dir, max_tokens=4000)
+        repomap_content = await repo_map.get_map(all_files) or "No repository map generated."
+    except Exception as e:  # noqa: BLE001
+        repomap_content = f"Error generating repository map: {e}"
+
+    # Try to read README.md
+    readme_content = ""
+    for readme_name in ["README.md", "readme.md", "README", "readme.txt"]:
+        try:
+            readme_path = f"{working_dir}/{readme_name}".replace("//", "/")
+            content = await fs._cat_file(readme_path)
+            readme_content = content.decode("utf-8") if isinstance(content, bytes) else content
+            break
+        except Exception:  # noqa: BLE001
+            continue
+
+    # Build the init prompt
+    prompt_parts = [
+        "Please analyze this codebase and create an AGENTS.md file in the project root.",
+        "",
+        "<repository-structure>",
+        repomap_content,
+        "</repository-structure>",
+    ]
+
+    if readme_content:
+        prompt_parts.extend([
+            "",
+            "<readme>",
+            readme_content,
+            "</readme>",
+        ])
+
+    prompt_parts.extend([
+        "",
+        "Include:",
+        "1. Build/lint/test commands - especially for running a single test",
+        "2. Code style guidelines (imports, formatting, types, naming conventions, error handling)",
+        "",
+        "The file will be given to AI coding agents working in this repository. "
+        "Keep it around 150 lines.",
+        "",
+        "If there are existing rules (.cursor/rules/, .cursorrules, "
+        ".github/copilot-instructions.md), incorporate them.",
+    ])
+
+    init_prompt = "\n".join(prompt_parts)
+
+    # Handle model selection if requested
+    original_model: str | None = None
+    if request and request.model_id and request.provider_id:
+        requested_model = f"{request.provider_id}:{request.model_id}"
+        try:
+            available_models = await agent.get_available_models()
+            if available_models:
+                valid_ids = [m.id_override if m.id_override else m.id for m in available_models]
+                if requested_model in valid_ids:
+                    # Store original model to restore later
+                    original_model = agent.model_name
+                    await agent.set_model(requested_model)
+        except Exception:  # noqa: BLE001
+            # Agent doesn't support model selection, ignore
+            pass
+
+    # Run the agent in the background
+    async def run_init() -> None:
+        try:
+            await agent.run(init_prompt)
+        finally:
+            # Restore original model if we changed it
+            if original_model is not None:
+                try:
+                    await agent.set_model(original_model)
+                except Exception:  # noqa: BLE001
+                    pass
+
+    state.create_background_task(run_init(), name=f"init_{session_id}")
+
+    return True
 
 
 @router.get("/{session_id}/todo")

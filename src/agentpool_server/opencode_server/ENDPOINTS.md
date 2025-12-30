@@ -71,7 +71,7 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | [x] | PATCH | `/session/{id}` | Update session properties |
 | [ ] | GET | `/session/{id}/children` | Get child sessions |
 | [x] | GET | `/session/{id}/todo` | Get todo list for session |
-| [ ] | POST | `/session/{id}/init` | Analyze app, create AGENTS.md |
+| [x] | POST | `/session/{id}/init` | Analyze app, create AGENTS.md |
 | [x] | POST | `/session/{id}/fork` | Fork session at message |
 | [x] | POST | `/session/{id}/abort` | Abort running session |
 | [x] | POST | `/session/{id}/share` | Share a session |
