@@ -34,7 +34,6 @@ from agentpool_config.forward_targets import (
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
-    from contextlib import AbstractAsyncContextManager
     from types import TracebackType
 
     from pydantic_ai import ModelSettings
@@ -156,11 +155,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self.todos = TodoTracker()
         # Create all agents from unified manifest.agents dict
         for name, config in self.manifest.agents.items():
-            agent = self._create_agent_from_config(
-                name,
-                config,
-                deps_type=shared_deps_type,
-            )
+            agent = self._create_agent_from_config(name, config, deps_type=shared_deps_type)
             agent.agent_pool = self
             self.register(name, agent)
 
@@ -187,21 +182,15 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 for agent in agents:
                     agent.tools.add_provider(aggregating_provider)
                 # Collect remaining components to initialize (MCP already initialized)
-                components: list[AbstractAsyncContextManager[Any]] = [
-                    self.storage,
-                    self.sessions,
-                    *agents,
-                    *teams,
+                node_inits = [
+                    self.exit_stack.enter_async_context(c)
+                    for c in [self.storage, self.sessions, *agents, *teams]
                 ]
-                # MCP server is now managed externally - removed from pool
-                # Initialize all components
                 if self.parallel_load:
-                    await asyncio.gather(
-                        *(self.exit_stack.enter_async_context(c) for c in components)
-                    )
+                    await asyncio.gather(*node_inits)
                 else:
-                    for component in components:
-                        await self.exit_stack.enter_async_context(component)
+                    for init in node_inits:
+                        await init
 
             except Exception as e:
                 await self.cleanup()
