@@ -22,6 +22,8 @@ class ListSessionsCommand(NodeCommand):
     Options:
       --active    Show only active sessions
       --stored    Show only stored sessions
+      --page      Page number (1-based, default: 1)
+      --per-page  Items per page (default: 10)
     """
 
     name = "list-sessions"
@@ -33,6 +35,8 @@ class ListSessionsCommand(NodeCommand):
         *,
         active: bool = False,
         stored: bool = False,
+        page: int = 1,
+        per_page: int = 20,
     ) -> None:
         """List available ACP sessions.
 
@@ -40,6 +44,8 @@ class ListSessionsCommand(NodeCommand):
             ctx: Command context with ACP session
             active: Show only active sessions
             stored: Show only stored sessions
+            page: Page number (1-based)
+            per_page: Number of items per page
         """
         session = ctx.context.data
         if not session:
@@ -49,6 +55,11 @@ class ListSessionsCommand(NodeCommand):
             await ctx.output.print("❌ **Session manager not available**")
             return
 
+        # Validate pagination params
+        page = max(page, 1)
+        if per_page < 1:
+            per_page = 20
+
         # If no filter specified, show both
         if not active and not stored:
             active = stored = True
@@ -56,62 +67,104 @@ class ListSessionsCommand(NodeCommand):
         try:
             output_lines = ["## 📋 ACP Sessions\n"]
 
-            # Show active sessions
+            # Collect all sessions to paginate
+            all_sessions: list[tuple[str, str, dict[str, str | None]]] = []  # (id, type, info)
+
+            # Collect active sessions
             if active:
-                output_lines.append("### 🟢 Active Sessions")
                 active_sessions = session.manager._active
+                for session_id, sess in active_sessions.items():
+                    session_data = await session.manager.session_manager.store.load(session_id)
+                    title = session_data.title if session_data else None
+                    is_current = session_id == session.session_id
+                    all_sessions.append((
+                        session_id,
+                        "active",
+                        {
+                            "agent_name": sess.current_agent_name,
+                            "cwd": sess.cwd or "unknown",
+                            "title": title,
+                            "is_current": "yes" if is_current else None,
+                            "last_active": None,
+                        },
+                    ))
 
-                if not active_sessions:
-                    output_lines.append("*No active sessions*\n")
-                else:
-                    for session_id, sess in active_sessions.items():
-                        agent_name = sess.current_agent_name
-                        cwd = sess.cwd or "unknown"
-                        is_current = session_id == session.session_id
-
-                        # Get title from SessionData
-                        session_data = await session.manager.session_manager.store.load(session_id)
-                        title = session_data.title if session_data else None
-
-                        status = " *(current)*" if is_current else ""
-                        title_text = f": {title}" if title else ""
-                        output_lines.append(f"- **{session_id}**{status}{title_text}")
-                        output_lines.append(f"  - Agent: `{agent_name}`")
-                        output_lines.append(f"  - Directory: `{cwd}`")
-                    output_lines.append("")
-
-            # Show stored sessions
+            # Collect stored sessions
             if stored:
-                output_lines.append("### 💾 Stored Sessions")
-
                 try:
                     stored_session_ids = await session.manager.session_manager.store.list_sessions()
-                    # Filter out active ones if we already showed them
+                    # Filter out active ones if we already collected them
                     if active:
                         stored_session_ids = [
                             sid for sid in stored_session_ids if sid not in session.manager._active
                         ]
 
-                    if not stored_session_ids:
-                        output_lines.append("*No stored sessions*\n")
-                    else:
-                        for session_id in stored_session_ids:
-                            session_data = await session.manager.session_manager.store.load(
-                                session_id
-                            )
-                            if session_data:
-                                title_text = f": {session_data.title}" if session_data.title else ""
-                                output_lines.append(f"- **{session_id}**{title_text}")
-                                output_lines.append(f"  - Agent: `{session_data.agent_name}`")
-                                output_lines.append(
-                                    f"  - Directory: `{session_data.cwd or 'unknown'}`"
-                                )
-                                output_lines.append(
-                                    f"  - Last active: {session_data.last_active.strftime('%Y-%m-%d %H:%M')}"  # noqa: E501
-                                )
-                        output_lines.append("")
+                    for session_id in stored_session_ids:
+                        session_data = await session.manager.session_manager.store.load(session_id)
+                        if session_data:
+                            all_sessions.append((
+                                session_id,
+                                "stored",
+                                {
+                                    "agent_name": session_data.agent_name,
+                                    "cwd": session_data.cwd or "unknown",
+                                    "title": session_data.title,
+                                    "is_current": None,
+                                    "last_active": session_data.last_active.strftime(
+                                        "%Y-%m-%d %H:%M"
+                                    ),
+                                },
+                            ))
                 except Exception as e:  # noqa: BLE001
                     output_lines.append(f"*Error loading stored sessions: {e}*\n")
+
+            # Calculate pagination
+            total_count = len(all_sessions)
+            total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
+            page = min(page, total_pages)
+
+            start_idx = (page - 1) * per_page
+            end_idx = start_idx + per_page
+            page_sessions = all_sessions[start_idx:end_idx]
+
+            if not page_sessions:
+                output_lines.append("*No sessions found*\n")
+            else:
+                # Group by type for display
+                active_in_page = [(s, i) for s, t, i in page_sessions if t == "active"]
+                stored_in_page = [(s, i) for s, t, i in page_sessions if t == "stored"]
+
+                if active_in_page:
+                    output_lines.append("### 🟢 Active Sessions")
+                    for session_id, info in active_in_page:
+                        status = " *(current)*" if info["is_current"] else ""
+                        title_text = f": {info['title']}" if info["title"] else ""
+                        output_lines.append(f"- **{session_id}**{status}{title_text}")
+                        output_lines.append(f"  - Agent: `{info['agent_name']}`")
+                        output_lines.append(f"  - Directory: `{info['cwd']}`")
+                    output_lines.append("")
+
+                if stored_in_page:
+                    output_lines.append("### 💾 Stored Sessions")
+                    for session_id, info in stored_in_page:
+                        title_text = f": {info['title']}" if info["title"] else ""
+                        output_lines.append(f"- **{session_id}**{title_text}")
+                        output_lines.append(f"  - Agent: `{info['agent_name']}`")
+                        output_lines.append(f"  - Directory: `{info['cwd']}`")
+                        if info["last_active"]:
+                            output_lines.append(f"  - Last active: {info['last_active']}")
+                    output_lines.append("")
+
+            # Add pagination info
+            output_lines.append(f"---\n*Page {page}/{total_pages} ({total_count} total sessions)*")
+            if total_pages > 1:
+                nav_hints = []
+                if page > 1:
+                    nav_hints.append(f"`/list-sessions --page {page - 1}` for previous")
+                if page < total_pages:
+                    nav_hints.append(f"`/list-sessions --page {page + 1}` for next")
+                if nav_hints:
+                    output_lines.append(f"*{', '.join(nav_hints)}*")
 
             await ctx.output.print("\n".join(output_lines))
 
