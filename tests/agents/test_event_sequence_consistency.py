@@ -24,11 +24,12 @@ from pydantic_ai import RunContext  # noqa: TC002
 import pytest
 
 from agentpool import Agent
+from agentpool.agents.claude_code_agent import ClaudeCodeAgent
 from agentpool.agents.events import StreamCompleteEvent, ToolCallCompleteEvent
 
 
 # Mark all tests in this module as integration tests
-pytestmark = [pytest.mark.integration]
+pytestmark = [pytest.mark.integration, pytest.mark.slow]
 
 
 # --- Test Tool ---
@@ -206,15 +207,12 @@ async def test_acp_agent_event_sequence(acp_agent_config_with_tool: tuple[Any, P
     config, _ = acp_agent_config_with_tool
     collector = EventCollector()
 
-    try:
-        async with ACPAgent(config=config) as agent:
-            with anyio.fail_after(45.0):
-                async for event in agent.run_stream(
-                    TOOL_CALL_PROMPT, event_handlers=[collector.handle_event]
-                ):
-                    collector.iterated_events.append(event)
-    except TimeoutError:
-        pytest.skip("ACP server took too long to respond")
+    async with ACPAgent(config=config) as agent:
+        with anyio.fail_after(45.0):
+            async for event in agent.run_stream(
+                TOOL_CALL_PROMPT, event_handlers=[collector.handle_event]
+            ):
+                collector.iterated_events.append(event)
 
     # Verify both collection methods got the same events
     iterated_types = collector.get_iterated_types()
@@ -229,9 +227,6 @@ async def test_acp_agent_event_sequence(acp_agent_config_with_tool: tuple[Any, P
 
 async def test_claude_code_agent_event_sequence(claude_code_agent_config: dict[str, Any]):
     """Test ClaudeCodeAgent emits events in expected sequence."""
-    pytest.importorskip("claude_agent_sdk")
-    from agentpool.agents.claude_code_agent import ClaudeCodeAgent
-
     collector = EventCollector()
 
     prompt = """\
