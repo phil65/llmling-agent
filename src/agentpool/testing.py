@@ -129,6 +129,7 @@ async def acp_test_session(
 # --- GitHub CI Testing ---
 
 CheckResult = Literal["success", "failure", "skipped", "cancelled", "pending"]
+OSChoice = Literal["ubuntu-latest", "macos-latest", "windows-latest"]
 
 
 @dataclass
@@ -156,6 +157,12 @@ class CITestResult:
     test: CheckResult = "pending"
     """Result of pytest."""
 
+    os: str = "ubuntu-latest"
+    """Operating system used for the run."""
+
+    python_version: str = "3.13"
+    """Python version used for the run."""
+
     duration_seconds: float = 0.0
     """Total duration of the CI run."""
 
@@ -164,9 +171,10 @@ class CITestResult:
 
     @property
     def all_passed(self) -> bool:
-        """Check if all checks passed."""
+        """Check if all enabled checks passed (skipped checks are ignored)."""
         return all(
-            result == "success" for result in [self.lint, self.format, self.typecheck, self.test]
+            result in ("success", "skipped")
+            for result in [self.lint, self.format, self.typecheck, self.test]
         )
 
     @property
@@ -188,6 +196,7 @@ class CITestResult:
         lines = [
             f"CI Results for {self.commit[:8]}",
             f"Run: {self.run_url}",
+            f"OS: {self.os} | Python: {self.python_version}",
             "",
             f"  {status_icons[self.lint]} Lint (ruff check): {self.lint}",
             f"  {status_icons[self.format]} Format (ruff format): {self.format}",
@@ -229,6 +238,12 @@ async def run_ci_tests(
     repo: str | None = None,
     poll_interval: float = 10.0,
     timeout: float = 600.0,
+    os: OSChoice = "ubuntu-latest",
+    python_version: str = "3.13",
+    run_lint: bool = True,
+    run_format: bool = True,
+    run_typecheck: bool = True,
+    run_test: bool = True,
 ) -> CITestResult:
     """Trigger CI tests for a commit and wait for results.
 
@@ -240,6 +255,12 @@ async def run_ci_tests(
         repo: Repository in "owner/repo" format. Auto-detected if None.
         poll_interval: Seconds between status checks. Defaults to 10.
         timeout: Maximum seconds to wait for completion. Defaults to 600 (10 min).
+        os: Operating system to run on. Defaults to "ubuntu-latest".
+        python_version: Python version to use. Defaults to "3.13".
+        run_lint: Whether to run ruff check. Defaults to True.
+        run_format: Whether to run ruff format check. Defaults to True.
+        run_typecheck: Whether to run mypy type checking. Defaults to True.
+        run_test: Whether to run pytest. Defaults to True.
 
     Returns:
         CITestResult with individual check results.
@@ -250,7 +271,18 @@ async def run_ci_tests(
 
     Example:
         ```python
+        # Run all checks
         result = await run_ci_tests("abc123")
+
+        # Run only tests on Windows
+        result = await run_ci_tests(
+            "abc123",
+            os="windows-latest",
+            run_lint=False,
+            run_format=False,
+            run_typecheck=False,
+        )
+
         if result.all_passed:
             print("All checks passed!")
         else:
@@ -265,13 +297,25 @@ async def run_ci_tests(
     # Build repo flag if specified
     repo_args = ["-R", repo] if repo else []
 
-    # Trigger the workflow
+    # Trigger the workflow with parameters
     _run_gh(
         "workflow",
         "run",
         "test-commit.yml",
         "-f",
         f"commit={commit_sha}",
+        "-f",
+        f"os={os}",
+        "-f",
+        f"python_version={python_version}",
+        "-f",
+        f"run_lint={str(run_lint).lower()}",
+        "-f",
+        f"run_format={str(run_format).lower()}",
+        "-f",
+        f"run_typecheck={str(run_typecheck).lower()}",
+        "-f",
+        f"run_test={str(run_test).lower()}",
         *repo_args,
     )
 
@@ -332,11 +376,18 @@ async def run_ci_tests(
         commit=commit_sha,
         run_id=run_id,
         run_url=run_url,
+        os=os,
+        python_version=python_version,
         duration_seconds=duration,
         raw_jobs=jobs,
+        # Set skipped for disabled checks
+        lint="skipped" if not run_lint else "pending",
+        format="skipped" if not run_format else "pending",
+        typecheck="skipped" if not run_typecheck else "pending",
+        test="skipped" if not run_test else "pending",
     )
 
-    # Map job names to results
+    # Map job names to results (only for enabled checks)
     for job in jobs:
         name = job.get("name", "").lower()
         conclusion = job.get("conclusion", "pending")
@@ -345,13 +396,13 @@ async def run_ci_tests(
         if conclusion not in ("success", "failure", "skipped", "cancelled"):
             conclusion = "pending"
 
-        if "lint" in name and "format" not in name:
+        if "lint" in name and "format" not in name and run_lint:
             result.lint = conclusion
-        elif "format" in name:
+        elif "format" in name and run_format:
             result.format = conclusion
-        elif "type" in name or "mypy" in name:
+        elif ("type" in name or "mypy" in name) and run_typecheck:
             result.typecheck = conclusion
-        elif "test" in name or "pytest" in name:
+        elif ("test" in name or "pytest" in name) and run_test:
             result.test = conclusion
 
     return result
