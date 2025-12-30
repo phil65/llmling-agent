@@ -77,6 +77,7 @@ if TYPE_CHECKING:
         ToolPermissionContext,
         ToolUseBlock,
     )
+    from claude_agent_sdk.types import HookContext, HookInput, SyncHookJSONOutput
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
     from tokonomics.model_discovery.model_info import ModelInfo
@@ -349,12 +350,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             Dictionary mapping hook event names to HookMatcher lists
         """
-        from claude_agent_sdk.types import (
-            HookContext,
-            HookInput,
-            HookMatcher,
-            SyncHookJSONOutput,
-        )
+        from claude_agent_sdk.types import HookMatcher
 
         async def on_pre_compact(
             input_data: HookInput,
@@ -368,9 +364,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Only show notification for auto-compaction
             # Manual compaction is triggered via slash command which handles its own UI
             if trigger == "auto":
-                from pydantic_ai import PartDeltaEvent, TextPartDelta
-
-                text = "\n\n---\n\n📦 **Context compaction** triggered. Summarizing conversation...\n\n---\n\n"
+                text = (
+                    "\n\n---\n\n"
+                    "📦 **Context compaction** triggered. Summarizing conversation..."
+                    "\n\n---\n\n"
+                )
                 delta_event = PartDeltaEvent(
                     index=0,
                     delta=TextPartDelta(content_delta=text),
