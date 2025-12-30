@@ -1,7 +1,9 @@
-"""OpenCode-compatible identifier generation.
+"""Identifier generation utilities.
 
 Generates IDs that are lexicographically sortable by creation time.
 Format: {prefix}_{hex_timestamp}{random_base62}
+
+Compatible with OpenCode's identifier format.
 """
 
 from __future__ import annotations
@@ -23,7 +25,7 @@ PREFIXES: dict[PrefixType, str] = {
 }
 
 BASE62_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-ID_LENGTH = 26
+ID_LENGTH = 26  # Characters after prefix (12 hex + 14 base62)
 
 # State for monotonic ID generation
 _last_timestamp = 0
@@ -44,6 +46,9 @@ def ascending(prefix: PrefixType, given: str | None = None) -> str:
 
     Returns:
         A sortable ID with the format {prefix}_{hex_timestamp}{random}
+
+    Raises:
+        ValueError: If given ID doesn't start with expected prefix
     """
     if given is not None:
         expected_prefix = PREFIXES[prefix]
@@ -53,6 +58,18 @@ def ascending(prefix: PrefixType, given: str | None = None) -> str:
         return given
 
     return _create(prefix, descending=False)
+
+
+def descending(prefix: PrefixType) -> str:
+    """Generate a descending (reverse chronologically sortable) ID.
+
+    Args:
+        prefix: The type prefix for the ID
+
+    Returns:
+        A reverse-sortable ID
+    """
+    return _create(prefix, descending=True)
 
 
 def _create(prefix: PrefixType, *, descending: bool = False) -> str:
@@ -74,20 +91,31 @@ def _create(prefix: PrefixType, *, descending: bool = False) -> str:
         _counter = 0
     _counter += 1
 
-    # Combine timestamp and counter (matches OpenCode's encoding)
+    # Combine timestamp and counter
     now = current_timestamp * 0x1000 + _counter
 
     if descending:
         now = ~now & 0xFFFFFFFFFFFF  # Invert for descending order (48 bits)
 
-    # Extract bytes using OpenCode's method (big-endian, 6 bytes from positions 40,32,24,16,8,0)
+    # Encode as 6 bytes (48 bits), big-endian
     time_bytes = bytearray(6)
     for i in range(6):
         time_bytes[i] = (now >> (40 - 8 * i)) & 0xFF
 
     time_hex = time_bytes.hex()
 
-    # Add random suffix
+    # Add random suffix (14 chars for 26 total after prefix)
     random_suffix = _random_base62(ID_LENGTH - 12)
 
     return f"{PREFIXES[prefix]}_{time_hex}{random_suffix}"
+
+
+def generate_session_id() -> str:
+    """Generate a unique, chronologically sortable session ID.
+
+    Convenience function for the common case.
+
+    Returns:
+        A session ID like 'ses_b71310fdf001ZHcn6VSpkaBcHi'
+    """
+    return ascending("session")

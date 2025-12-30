@@ -94,8 +94,14 @@ class SessionManager:
         logger.debug("Session manager closed", session_count=len(sessions))
 
     def generate_session_id(self) -> str:
-        """Generate a unique session ID."""
-        return f"sess_{uuid4().hex[:12]}"
+        """Generate a unique, chronologically sortable session ID.
+
+        Uses OpenCode-compatible format: ses_{hex_timestamp}{random_base62}
+        IDs are lexicographically sortable by creation time.
+        """
+        from agentpool.utils.identifiers import generate_session_id
+
+        return generate_session_id()
 
     async def create(
         self,

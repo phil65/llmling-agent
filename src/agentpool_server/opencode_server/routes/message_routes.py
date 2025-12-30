@@ -23,8 +23,8 @@ from agentpool.agents.events import (
     ToolCallProgressEvent,
     ToolCallStartEvent,
 )
+from agentpool.utils import identifiers as identifier
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
-from agentpool_server.opencode_server import identifier
 from agentpool_server.opencode_server.converters import extract_user_prompt_from_parts
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
@@ -135,6 +135,18 @@ async def _generate_session_title(
             session = state.sessions[session_id]
             updated_session = session.model_copy(update={"title": title})
             state.sessions[session_id] = updated_session
+
+            # Persist to storage
+            from agentpool_server.opencode_server.routes.session_routes import (
+                opencode_to_session_data,
+            )
+
+            session_data = opencode_to_session_data(
+                updated_session,
+                agent_name=state.agent.name,
+                pool_id=state.pool.manifest.config_file_path,
+            )
+            await state.pool.sessions.store.save(session_data)
 
             # Broadcast session update
             await state.broadcast_event(

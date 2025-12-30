@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic_ai import FileUrl
 
 from agentpool.sessions.models import SessionData
-from agentpool_server.opencode_server import identifier
+from agentpool.utils import identifiers as identifier
 from agentpool_server.opencode_server.command_validation import validate_command
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
