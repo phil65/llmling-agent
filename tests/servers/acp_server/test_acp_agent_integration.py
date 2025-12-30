@@ -10,6 +10,7 @@ Run with: pytest tests/servers/acp_server/test_acp_agent_integration.py -v
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 from typing import TYPE_CHECKING, Any
 
 import anyio
@@ -26,7 +27,11 @@ if TYPE_CHECKING:
 
 
 # Mark all tests in this module as slow/integration
-pytestmark = [pytest.mark.integration]
+# Skip on Windows due to subprocess/asyncio compatibility issues
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(sys.platform == "win32", reason="ACP subprocess tests hang on Windows"),
+]
 
 
 @pytest.fixture
