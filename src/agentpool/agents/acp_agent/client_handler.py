@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 import uuid
@@ -167,11 +168,13 @@ class ACPClientHandler(Client):
 
             case AvailableCommandsUpdate():
                 self.state.available_commands = update
+                # Populate command store with remote commands
+                self._populate_command_store(update.available_commands)
                 # Emit to parent session - remote commands will be merged with local ones.
                 # The "way back" works because session.split_commands() only extracts
                 # LOCAL commands; remote commands pass through to the agent prompt.
                 await self._agent.state_updated.emit(update)
-                logger.debug("Available commands updated")
+                logger.debug("Available commands updated", count=len(update.available_commands))
                 self._update_event.set()
                 return
 
@@ -380,6 +383,72 @@ class ACPClientHandler(Client):
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         """Handle extension notifications."""
         logger.debug("Extension notification", method=method)
+
+    def _populate_command_store(self, commands: Sequence[AvailableCommand]) -> None:
+        """Populate the agent's command store with remote ACP commands.
+
+        Args:
+            commands: List of AvailableCommand objects from the remote agent
+        """
+        store = self._agent.command_store
+
+        for cmd in commands:
+            command = self._create_acp_command(cmd)
+            # Unregister if already exists (in case of update)
+            if store.get_command(cmd.name):
+                store.unregister_command(cmd.name)
+            store.register_command(command)
+
+        logger.debug("Populated command store", command_count=len(store.list_commands()))
+
+    def _create_acp_command(self, cmd: AvailableCommand) -> Command:
+        """Create a slashed Command from an ACP AvailableCommand.
+
+        The command, when executed, sends a prompt with the slash command
+        to the remote ACP agent.
+
+        Args:
+            cmd: AvailableCommand from remote agent
+
+        Returns:
+            A slashed Command that sends the command to the remote agent
+        """
+        from pydantic_ai import PartDeltaEvent, TextPartDelta
+        from slashed import Command
+
+        name = cmd.name
+        description = cmd.description
+        input_hint = cmd.input.root.hint if cmd.input else None
+
+        async def execute_command(
+            ctx: Any,
+            args: list[str],
+            kwargs: dict[str, str],
+        ) -> None:
+            """Execute the remote ACP slash command."""
+            # Build command string
+            args_str = " ".join(args) if args else ""
+            if kwargs:
+                kwargs_str = " ".join(f"{k}={v}" for k, v in kwargs.items())
+                args_str = f"{args_str} {kwargs_str}".strip()
+
+            full_command = f"/{name} {args_str}".strip()
+
+            # Execute via agent run_stream - the slash command goes as a prompt
+            async for event in self._agent.run_stream(full_command):
+                # Extract text from PartDeltaEvent with TextPartDelta
+                if isinstance(event, PartDeltaEvent):
+                    delta = event.delta
+                    if isinstance(delta, TextPartDelta):
+                        await ctx.print(delta.content)
+
+        return Command(
+            execute_func=execute_command,
+            name=name,
+            description=description,
+            category="remote",
+            usage=input_hint,
+        )
 
 
 if __name__ == "__main__":
