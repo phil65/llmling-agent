@@ -1,28 +1,26 @@
-"""PTY (Pseudo-Terminal) routes."""
+"""PTY (Pseudo-Terminal) routes.
+
+Uses the agent's execution environment PTY manager for terminal sessions.
+"""
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
 from dataclasses import dataclass, field
-import os
 from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException, WebSocketDisconnect
 
-from agentpool_server.opencode_server.models import (
-    PtyInfo,
-)
+from agentpool_server.opencode_server.models import PtyInfo
 
 
 if TYPE_CHECKING:
+    from exxec.pty_manager import PtyManagerProtocol
     from fastapi import WebSocket
 
     from agentpool_server.opencode_server.dependencies import StateDep
-    from agentpool_server.opencode_server.models import (
-        PtyCreateRequest,
-        PtyUpdateRequest,
-    )
+    from agentpool_server.opencode_server.models import PtyCreateRequest, PtyUpdateRequest
 
 
 router = APIRouter(prefix="/pty", tags=["pty"])
@@ -30,101 +28,111 @@ router = APIRouter(prefix="/pty", tags=["pty"])
 
 @dataclass
 class PtySession:
-    """Active PTY session."""
+    """Active PTY session with WebSocket subscribers."""
 
-    info: PtyInfo
-    process: asyncio.subprocess.Process | None = None
-    buffer: str = ""
+    pty_id: str
     subscribers: set[WebSocket] = field(default_factory=set)
     read_task: asyncio.Task[Any] | None = None
+    buffer: str = ""
 
 
-# Global PTY sessions store (could be moved to ServerState later)
+# Track WebSocket subscribers per PTY session
 _pty_sessions: dict[str, PtySession] = {}
 
 
-def _generate_pty_id() -> str:
-    """Generate a unique PTY ID."""
-    import uuid
+def _get_pty_manager(state: StateDep) -> PtyManagerProtocol:
+    """Get PTY manager from agent's execution environment.
 
-    return f"pty_{uuid.uuid4().hex[:12]}"
+    Args:
+        state: Server state with agent
+
+    Returns:
+        PTY manager from the agent's execution environment
+
+    Raises:
+        HTTPException: If PTY is not supported
+    """
+    try:
+        return state.agent.env.get_pty_manager()
+    except NotImplementedError as e:
+        raise HTTPException(
+            status_code=501, detail="PTY not supported by this execution environment"
+        ) from e
+
+
+def _convert_pty_info(info: Any, title: str | None = None) -> PtyInfo:
+    """Convert exxec PtyInfo to OpenCode PtyInfo model.
+
+    Args:
+        info: PtyInfo from exxec
+        title: Optional title override
+
+    Returns:
+        OpenCode PtyInfo model
+    """
+    return PtyInfo(
+        id=info.id,
+        title=title or f"Terminal {info.id[-4:]}",
+        command=info.command,
+        args=info.args,
+        cwd=info.cwd or "",
+        status=info.status,
+        pid=info.pid,
+    )
 
 
 @router.get("")
 async def list_ptys(state: StateDep) -> list[PtyInfo]:
     """List all PTY sessions."""
-    return [session.info for session in _pty_sessions.values()]
+    manager = _get_pty_manager(state)
+    sessions = await manager.list_sessions()
+    return [_convert_pty_info(s) for s in sessions]
 
 
 @router.post("")
 async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
     """Create a new PTY session."""
-    pty_id = _generate_pty_id()
+    manager = _get_pty_manager(state)
 
-    # Determine shell command
-    command = request.command or os.environ.get("SHELL", "/bin/bash")
-    args = request.args or []
-    if command.endswith("sh") and "-l" not in args:
-        args = ["-l", *args]
-
+    # Use working dir from state if not specified
     cwd = request.cwd or state.working_dir
-    title = request.title or f"Terminal {pty_id[-4:]}"
 
-    # Build environment
-    env = {**os.environ, **(request.env or {}), "TERM": "xterm-256color"}
-
-    # Start the process
     try:
-        full_command = [command, *args]
-        process = await asyncio.create_subprocess_exec(
-            *full_command,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
+        info = await manager.create(
+            command=request.command,
+            args=request.args,
             cwd=cwd,
-            env=env,
+            env=request.env,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to create PTY: {e}") from e
 
-    info = PtyInfo(
-        id=pty_id,
-        title=title,
-        command=command,
-        args=args,
-        cwd=cwd,
-        status="running",
-        pid=process.pid or 0,
-    )
+    pty_id = info.id
+    title = request.title or f"Terminal {pty_id[-4:]}"
 
-    session = PtySession(info=info, process=process)
+    # Create session tracker for WebSocket subscribers
+    session = PtySession(pty_id=pty_id)
     _pty_sessions[pty_id] = session
 
-    # Start background task to read output
-    session.read_task = asyncio.create_task(_read_pty_output(pty_id))
+    # Start background task to read output and distribute to subscribers
+    session.read_task = asyncio.create_task(_read_pty_output(manager, pty_id))
 
-    # TODO: Broadcast pty.created event
-
-    return info
+    return _convert_pty_info(info, title=title)
 
 
-async def _read_pty_output(pty_id: str) -> None:
+async def _read_pty_output(manager: PtyManagerProtocol, pty_id: str) -> None:
     """Background task to read PTY output and distribute to subscribers."""
     session = _pty_sessions.get(pty_id)
-    if not session or not session.process or not session.process.stdout:
+    if not session:
         return
 
     try:
-        while True:
-            data = await session.process.stdout.read(4096)
-            if not data:
-                break
-
+        async for data in manager.stream(pty_id):
             decoded = data.decode("utf-8", errors="replace")
 
             if session.subscribers:
                 # Send to all connected WebSocket clients
-                disconnected = set()
+                disconnected: set[WebSocket] = set()
                 for ws in session.subscribers:
                     try:
                         await ws.send_text(decoded)
@@ -142,85 +150,94 @@ async def _read_pty_output(pty_id: str) -> None:
         pass
     except Exception:  # noqa: BLE001
         pass
-    finally:
-        # Mark as exited
-        if pty_id in _pty_sessions:
-            session = _pty_sessions[pty_id]
-            session.info.status = "exited"
-            # TODO: Broadcast pty.exited event
 
 
 @router.get("/{pty_id}")
 async def get_pty(pty_id: str, state: StateDep) -> PtyInfo:
     """Get PTY session details."""
-    session = _pty_sessions.get(pty_id)
-    if not session:
+    manager = _get_pty_manager(state)
+    info = await manager.get_info(pty_id)
+    if not info:
         raise HTTPException(status_code=404, detail="PTY session not found")
-    return session.info
+    return _convert_pty_info(info)
 
 
 @router.patch("/{pty_id}")
 async def update_pty(pty_id: str, request: PtyUpdateRequest, state: StateDep) -> PtyInfo:
     """Update PTY session (title, resize)."""
-    session = _pty_sessions.get(pty_id)
-    if not session:
+    from exxec.pty_manager import PtySize
+
+    manager = _get_pty_manager(state)
+    info = await manager.get_info(pty_id)
+    if not info:
         raise HTTPException(status_code=404, detail="PTY session not found")
 
-    if request.title:
-        session.info.title = request.title
+    # Handle resize if requested
+    if request.size:
+        await manager.resize(pty_id, PtySize(rows=request.size.rows, cols=request.size.cols))
+        # Refresh info after resize
+        info = await manager.get_info(pty_id)
+        if not info:
+            raise HTTPException(status_code=404, detail="PTY session not found after resize")
 
-    # Note: resize requires actual PTY support (not available with subprocess)
-    # Real implementation would use bun-pty or similar
+    # Title is handled at the API level, not in the PTY manager
+    title = request.title if request.title else f"Terminal {pty_id[-4:]}"
 
-    # TODO: Broadcast pty.updated event
-
-    return session.info
+    return _convert_pty_info(info, title=title)
 
 
 @router.delete("/{pty_id}")
 async def remove_pty(pty_id: str, state: StateDep) -> dict[str, bool]:
     """Remove/kill PTY session."""
-    session = _pty_sessions.get(pty_id)
-    if not session:
+    manager = _get_pty_manager(state)
+
+    # Kill the PTY session
+    success = await manager.kill(pty_id)
+    if not success:
         raise HTTPException(status_code=404, detail="PTY session not found")
 
-    # Kill the process
-    if session.process and session.process.returncode is None:
-        try:
-            session.process.terminate()
-            await asyncio.wait_for(session.process.wait(), timeout=5.0)
-        except TimeoutError:
-            session.process.kill()
-        except Exception:  # noqa: BLE001
-            pass
+    # Cleanup session tracker
+    session = _pty_sessions.pop(pty_id, None)
+    if session:
+        # Cancel read task
+        if session.read_task and not session.read_task.done():
+            session.read_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await session.read_task
 
-    # Cancel read task
-    if session.read_task and not session.read_task.done():
-        session.read_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await session.read_task
-
-    # Close all WebSocket connections
-    for ws in session.subscribers:
-        with contextlib.suppress(Exception):
-            await ws.close()
-
-    del _pty_sessions[pty_id]
-
-    # TODO: Broadcast pty.deleted event
+        # Close all WebSocket connections
+        for ws in session.subscribers:
+            with contextlib.suppress(Exception):
+                await ws.close()
 
     return {"success": True}
 
 
 @router.websocket("/{pty_id}/connect")
 async def connect_pty(websocket: WebSocket, pty_id: str) -> None:
-    """Connect to PTY via WebSocket."""
-    session = _pty_sessions.get(pty_id)
-    if not session:
+    """Connect to PTY via WebSocket for interactive terminal."""
+    # Get state from websocket's app
+    from agentpool_server.opencode_server.state import ServerState
+
+    state: ServerState = websocket.app.state.server_state
+
+    try:
+        manager = _get_pty_manager(state)
+    except HTTPException:
+        await websocket.close(code=4501, reason="PTY not supported")
+        return
+
+    info = await manager.get_info(pty_id)
+    if not info:
         await websocket.close(code=4004, reason="PTY session not found")
         return
 
     await websocket.accept()
+
+    # Get or create session tracker
+    if pty_id not in _pty_sessions:
+        _pty_sessions[pty_id] = PtySession(pty_id=pty_id)
+    session = _pty_sessions[pty_id]
     session.subscribers.add(websocket)
 
     # Send buffered output
@@ -237,12 +254,14 @@ async def connect_pty(websocket: WebSocket, pty_id: str) -> None:
             data = await websocket.receive_text()
 
             # Write to PTY stdin
-            if session.process and session.process.stdin and session.info.status == "running":
+            info = await manager.get_info(pty_id)
+            if info and info.status == "running":
                 try:
-                    session.process.stdin.write(data.encode())
-                    await session.process.stdin.drain()
+                    await manager.write(pty_id, data.encode())
                 except Exception:  # noqa: BLE001
                     break
+            else:
+                break
     except WebSocketDisconnect:
         pass
     except Exception:  # noqa: BLE001
