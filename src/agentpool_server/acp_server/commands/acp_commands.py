@@ -22,8 +22,9 @@ class ListSessionsCommand(NodeCommand):
     Options:
       --active    Show only active sessions
       --stored    Show only stored sessions
+      --detail    Show detailed view (default: compact table)
       --page      Page number (1-based, default: 1)
-      --per-page  Items per page (default: 10)
+      --per-page  Items per page (default: 20)
     """
 
     name = "list-sessions"
@@ -35,6 +36,7 @@ class ListSessionsCommand(NodeCommand):
         *,
         active: bool = False,
         stored: bool = False,
+        detail: bool = False,
         page: int = 1,
         per_page: int = 20,
     ) -> None:
@@ -44,6 +46,7 @@ class ListSessionsCommand(NodeCommand):
             ctx: Command context with ACP session
             active: Show only active sessions
             stored: Show only stored sessions
+            detail: Show detailed view instead of compact table
             page: Page number (1-based)
             per_page: Number of items per page
         """
@@ -129,8 +132,8 @@ class ListSessionsCommand(NodeCommand):
 
             if not page_sessions:
                 output_lines.append("*No sessions found*\n")
-            else:
-                # Group by type for display
+            elif detail:
+                # Detailed view (original format)
                 active_in_page = [(s, i) for s, t, i in page_sessions if t == "active"]
                 stored_in_page = [(s, i) for s, t, i in page_sessions if t == "stored"]
 
@@ -154,6 +157,18 @@ class ListSessionsCommand(NodeCommand):
                         if info["last_active"]:
                             output_lines.append(f"  - Last active: {info['last_active']}")
                     output_lines.append("")
+            else:
+                # Compact table view (default)
+                output_lines.append("| Title | Agent | Last Active |")
+                output_lines.append("|-------|-------|-------------|")
+                for session_id, session_type, info in page_sessions:
+                    title = info["title"] or session_id[:16]
+                    if info["is_current"]:
+                        title = f"▶️ {title}"
+                    agent = info["agent_name"]
+                    last_active = info["last_active"] or "-"
+                    output_lines.append(f"| {title} | {agent} | {last_active} |")
+                output_lines.append("")
 
             # Add pagination info
             output_lines.append(f"---\n*Page {page}/{total_pages} ({total_count} total sessions)*")
