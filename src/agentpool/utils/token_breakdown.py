@@ -124,9 +124,9 @@ def _messages_to_text(messages: Sequence[ModelMessage]) -> str:
     text_parts: list[str] = []
     for message in messages:
         if isinstance(message, ModelRequest):
-            for part in message.parts:
-                if hasattr(part, "content") and isinstance(part.content, str):
-                    text_parts.append(part.content)  # noqa: PERF401
+            for request_part in message.parts:
+                if hasattr(request_part, "content") and isinstance(request_part.content, str):
+                    text_parts.append(request_part.content)  # noqa: PERF401
         elif isinstance(message, ModelResponse):
             if text := message.text:
                 text_parts.append(text)
