@@ -104,7 +104,7 @@ def _extract_system_prompts(messages: Sequence[ModelMessage]) -> list[str]:
         if isinstance(message, ModelRequest):
             for part in message.parts:
                 if isinstance(part, SystemPromptPart):
-                    prompts.append(part.content)
+                    prompts.append(part.content)  # noqa: PERF401
     return prompts
 
 
@@ -126,7 +126,7 @@ def _messages_to_text(messages: Sequence[ModelMessage]) -> str:
         if isinstance(message, ModelRequest):
             for part in message.parts:
                 if hasattr(part, "content") and isinstance(part.content, str):
-                    text_parts.append(part.content)
+                    text_parts.append(part.content)  # noqa: PERF401
         elif isinstance(message, ModelResponse):
             if text := message.text:
                 text_parts.append(text)
@@ -182,7 +182,7 @@ async def get_token_breakdown(
     system_prompt_usages: list[TokenUsage] = []
     for i, content in enumerate(system_prompt_contents):
         token_count = _count_tokens_tiktoken(content, model_name)
-        label = content[:50] + "..." if len(content) > 50 else content
+        label = content[:50] + "..." if len(content) > 50 else content  # noqa: PLR2004
         system_prompt_usages.append(
             TokenUsage(token_count=token_count, label=f"System prompt {i + 1}: {label}")
         )

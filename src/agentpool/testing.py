@@ -238,9 +238,10 @@ class CITestResult:
             if len(lines) > max_lines:
                 lines = lines[-max_lines:]
             self.failed_logs = "\n".join(lines)
-            return self.failed_logs
         except subprocess.CalledProcessError:
             return ""
+        else:
+            return self.failed_logs
 
     def get_failure_summary(self, max_lines: int = 50) -> str:
         """Get a concise summary of failures.
@@ -259,7 +260,7 @@ class CITestResult:
             if any(p in line for p in key_patterns):
                 # Clean up the line (remove timestamp prefix)
                 parts = line.split("\t")
-                if len(parts) >= 3:
+                if len(parts) >= 3:  # noqa: PLR2004
                     key_lines.append(parts[-1].strip())
                 else:
                     key_lines.append(line.strip())
@@ -620,10 +621,7 @@ async def bisect_ci(
     first_bad_sha = commits[right]
 
     # Determine last good commit
-    if right == 0:
-        last_good_sha = good_sha
-    else:
-        last_good_sha = commits[right - 1]
+    last_good_sha = good_sha if right == 0 else commits[right - 1]
 
     return BisectResult(
         first_bad_commit=first_bad_sha,
