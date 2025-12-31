@@ -869,11 +869,13 @@ async def share_session(
     session_id: str,
     state: StateDep,
     num_messages: int | None = None,
-) -> SessionShare:
+) -> Session:
     """Share session conversation history via OpenCode's sharing service.
 
     Uses the OpenCode share API to create a shareable link with the full
     conversation including messages and parts.
+
+    Returns the updated session with the share URL.
     """
     session = await get_or_load_session(state, session_id)
     if session is None:
@@ -924,7 +926,7 @@ async def share_session(
     # Broadcast session update
     await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
 
-    return share_info
+    return updated_session
 
 
 class RevertRequest(OpenCodeBaseModel):
