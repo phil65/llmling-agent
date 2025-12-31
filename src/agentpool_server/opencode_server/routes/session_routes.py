@@ -31,7 +31,6 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     SessionCreateRequest,
     SessionDeletedEvent,
     SessionForkRequest,
-    SessionInfoProperties,
     SessionInitRequest,
     SessionRevert,
     SessionShare,
@@ -240,7 +239,7 @@ async def create_session(
     state.input_providers[session_id] = input_provider
     # Set input provider on agent
     state.agent._input_provider = input_provider
-    await state.broadcast_event(SessionCreatedEvent(properties=SessionInfoProperties(info=session)))
+    await state.broadcast_event(SessionCreatedEvent.create(session))
     return session
 
 
@@ -283,7 +282,7 @@ async def update_session(
     id_ = state.pool.manifest.config_file_path
     session_data = opencode_to_session_data(session, agent_name=state.agent.name, pool_id=id_)
     await state.pool.sessions.store.save(session_data)
-    await state.broadcast_event(SessionUpdatedEvent(properties=SessionInfoProperties(info=session)))
+    await state.broadcast_event(SessionUpdatedEvent.create(session))
     return session
 
 
@@ -410,9 +409,7 @@ async def fork_session(  # noqa: D417
     state.input_providers[new_session_id] = input_provider
 
     # Broadcast session created event
-    await state.broadcast_event(
-        SessionCreatedEvent(properties=SessionInfoProperties(info=forked_session))
-    )
+    await state.broadcast_event(SessionCreatedEvent.create(forked_session))
 
     return forked_session
 
@@ -925,9 +922,7 @@ async def share_session(
     state.sessions[session_id] = updated_session
 
     # Broadcast session update
-    await state.broadcast_event(
-        SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
-    )
+    await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
 
     return share_info
 
@@ -999,9 +994,7 @@ async def revert_session(session_id: str, request: RevertRequest, state: StateDe
     state.sessions[session_id] = updated_session
 
     # Broadcast session update
-    await state.broadcast_event(
-        SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
-    )
+    await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
 
     return updated_session
 
@@ -1044,9 +1037,7 @@ async def unrevert_session(session_id: str, state: StateDep) -> Session:
     updated_session = session.model_copy(update={"revert": None})
     state.sessions[session_id] = updated_session
     # Broadcast session update
-    await state.broadcast_event(
-        SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
-    )
+    await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
 
     return updated_session
 
@@ -1068,9 +1059,7 @@ async def unshare_session(session_id: str, state: StateDep) -> bool:
     updated_session = session.model_copy(update={"share": None})
     state.sessions[session_id] = updated_session
     # Broadcast session update
-    await state.broadcast_event(
-        SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
-    )
+    await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
 
     return True
 

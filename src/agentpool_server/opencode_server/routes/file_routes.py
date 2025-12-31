@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import FileContent, FileNode, FindMatch
-from agentpool_server.opencode_server.models.file import SubmatchInfo, TextWrapper
+from agentpool_server.opencode_server.models.file import SubmatchInfo
 
 
 if TYPE_CHECKING:
@@ -253,16 +253,12 @@ async def find_text(state: StateDep, pattern: str = Query()) -> list[FindMatch]:
                         for line_num, line in enumerate(content.splitlines(), 1):
                             for match in regex.finditer(line):
                                 submatches = [
-                                    SubmatchInfo(
-                                        match=TextWrapper(text=match.group()),
-                                        start=match.start(),
-                                        end=match.end(),
-                                    )
+                                    SubmatchInfo.create(match.group(), match.start(), match.end())
                                 ]
                                 matches.append(
-                                    FindMatch(
-                                        path=TextWrapper(text=rel_path),
-                                        lines=TextWrapper(text=line.strip()),
+                                    FindMatch.create(
+                                        path=rel_path,
+                                        lines=line.strip(),
                                         line_number=line_num,
                                         absolute_offset=match.start(),
                                         submatches=submatches,
@@ -298,16 +294,12 @@ async def find_text(state: StateDep, pattern: str = Query()) -> list[FindMatch]:
                             for match in regex.finditer(line):
                                 rel_path = str(entry.relative_to(working_path))
                                 submatches = [
-                                    SubmatchInfo(
-                                        match=TextWrapper(text=match.group()),
-                                        start=match.start(),
-                                        end=match.end(),
-                                    )
+                                    SubmatchInfo.create(match.group(), match.start(), match.end())
                                 ]
                                 matches.append(
-                                    FindMatch(
-                                        path=TextWrapper(text=rel_path),
-                                        lines=TextWrapper(text=line.strip()),
+                                    FindMatch.create(
+                                        path=rel_path,
+                                        lines=line.strip(),
                                         line_number=line_num,
                                         absolute_offset=match.start(),
                                         submatches=submatches,

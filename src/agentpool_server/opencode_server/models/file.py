@@ -1,6 +1,8 @@
 """File operation models."""
 
-from typing import Literal
+from __future__ import annotations
+
+from typing import Literal, Self
 
 from pydantic import BaseModel, Field
 
@@ -44,6 +46,10 @@ class SubmatchInfo(OpenCodeBaseModel):
     start: int
     end: int
 
+    @classmethod
+    def create(cls, text: str, start: int, end: int) -> Self:
+        return cls(match=TextWrapper(text=text), start=start, end=end)
+
 
 class FindMatch(BaseModel):
     """Text search match."""
@@ -53,6 +59,23 @@ class FindMatch(BaseModel):
     line_number: int  # these here are snake_case in the API, so we inherit from BaseModel
     absolute_offset: int
     submatches: list[SubmatchInfo] = Field(default_factory=list)
+
+    @classmethod
+    def create(
+        cls,
+        path: str,
+        lines: str,
+        line_number: int,
+        absolute_offset: int,
+        submatches: list[SubmatchInfo] | None = None,
+    ) -> FindMatch:
+        return cls(
+            path=TextWrapper(text=path),
+            lines=TextWrapper(text=lines),
+            line_number=line_number,
+            absolute_offset=absolute_offset,
+            submatches=submatches or [],
+        )
 
 
 class Symbol(OpenCodeBaseModel):

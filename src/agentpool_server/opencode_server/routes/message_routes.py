@@ -23,9 +23,13 @@ from agentpool.agents.events import (
     ToolCallProgressEvent,
     ToolCallStartEvent,
 )
+from agentpool.messaging.messages import ChatMessage
 from agentpool.utils import identifiers as identifier
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
-from agentpool_server.opencode_server.converters import extract_user_prompt_from_parts
+from agentpool_server.opencode_server.converters import (
+    extract_user_prompt_from_parts,
+    opencode_to_chat_message,
+)
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models import (  # noqa: TC001
     AssistantMessage,
@@ -36,8 +40,10 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     MessageWithParts,
     Part,
     PartUpdatedEvent,
+    SessionIdleEvent,
     SessionStatus,
     SessionStatusEvent,
+    SessionUpdatedEvent,
     StepFinishPart,
     StepStartPart,
     TextPart,
@@ -60,7 +66,10 @@ from agentpool_server.opencode_server.models.parts import (
     TimeStartEndOptional,
     TokenCache,
 )
-from agentpool_server.opencode_server.routes.session_routes import get_or_load_session
+from agentpool_server.opencode_server.routes.session_routes import (
+    get_or_load_session,
+    opencode_to_session_data,
+)
 from agentpool_server.opencode_server.time_utils import now_ms
 
 
@@ -85,12 +94,9 @@ async def persist_message_to_storage(
     if state.pool.storage is None:
         return
 
-    from agentpool_server.opencode_server.converters import opencode_to_chat_message
-
     try:
         # Convert to ChatMessage
         chat_msg = opencode_to_chat_message(msg, conversation_id=session_id)
-
         # Persist via storage manager
         await state.pool.storage.log_message(chat_msg)
     except Exception:  # noqa: BLE001
@@ -105,12 +111,6 @@ async def _generate_session_title(
     assistant_response: str,
 ) -> None:
     """Generate a title for the session in the background."""
-    from agentpool.messaging.messages import ChatMessage
-    from agentpool_server.opencode_server.models import (
-        SessionInfoProperties,
-        SessionUpdatedEvent,
-    )
-
     try:
         if not state.pool.storage:
             return
@@ -132,12 +132,6 @@ async def _generate_session_title(
             session = state.sessions[session_id]
             updated_session = session.model_copy(update={"title": title})
             state.sessions[session_id] = updated_session
-
-            # Persist to storage
-            from agentpool_server.opencode_server.routes.session_routes import (
-                opencode_to_session_data,
-            )
-
             session_data = opencode_to_session_data(
                 updated_session,
                 agent_name=state.agent.name,
@@ -146,9 +140,7 @@ async def _generate_session_title(
             await state.pool.sessions.store.save(session_data)
 
             # Broadcast session update
-            await state.broadcast_event(
-                SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
-            )
+            await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
     except Exception:  # noqa: BLE001
         # Don't fail if title generation fails
         pass
@@ -212,25 +204,20 @@ async def send_message(  # noqa: PLR0915
     ]
     user_msg_with_parts = MessageWithParts(info=user_message, parts=user_parts)
     state.messages[session_id].append(user_msg_with_parts)
-
     # Persist user message to storage
     await persist_message_to_storage(state, user_msg_with_parts, session_id)
-
     # Broadcast user message created event
     await state.broadcast_event(MessageUpdatedEvent.create(user_message))
-
     # Broadcast user message parts so they appear in UI
     for part in user_parts:
         await state.broadcast_event(PartUpdatedEvent.create(part))
-
     state.session_status[session_id] = SessionStatus(type="busy")
     await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="busy")))
-
     # Extract user prompt text
     user_prompt = extract_user_prompt_from_parts([p.model_dump() for p in request.parts])
-
     # Create assistant message with sortable ID (must come after user message)
     assistant_msg_id = identifier.ascending("message")
+    tokens = Tokens(cache=TokensCache(read=0, write=0))
     assistant_message = AssistantMessage(
         id=assistant_msg_id,
         session_id=session_id,
@@ -241,22 +228,14 @@ async def send_message(  # noqa: PLR0915
         agent=request.agent or "default",
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         time=MessageTime(created=now, completed=None),
-        tokens=Tokens(
-            cache=TokensCache(read=0, write=0),
-            input=0,
-            output=0,
-            reasoning=0,
-        ),
+        tokens=tokens,
         cost=0,
     )
-
     # Initialize assistant message with empty parts
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
     state.messages[session_id].append(assistant_msg_with_parts)
-
     # Broadcast assistant message created
     await state.broadcast_event(MessageUpdatedEvent.create(assistant_message))
-
     # Add step-start part
     step_start = StepStartPart(
         id=identifier.ascending("part"),
@@ -265,7 +244,6 @@ async def send_message(  # noqa: PLR0915
     )
     assistant_msg_with_parts.parts.append(step_start)
     await state.broadcast_event(PartUpdatedEvent.create(step_start))
-
     # Call the agent
     response_text = ""
     input_tokens = 0
@@ -273,7 +251,6 @@ async def send_message(  # noqa: PLR0915
     tool_parts: dict[str, ToolPart] = {}  # Track tool parts by call_id
     tool_outputs: dict[str, str] = {}  # Track accumulated output per tool call
     tool_inputs: dict[str, dict[str, Any]] = {}  # Track inputs per tool call
-
     # Track streaming text part for incremental updates
     text_part: TextPart | None = None
     text_part_id: str | None = None
@@ -378,11 +355,9 @@ async def send_message(  # noqa: PLR0915
                     tool_call_id = tc_part.tool_call_id
                     tool_name = tc_part.tool_name
                     raw_input = safe_args_as_dict(tc_part)
-
                     # Store input and initialize output accumulator
                     tool_inputs[tool_call_id] = raw_input
                     tool_outputs[tool_call_id] = ""
-
                     # Derive initial title; toolset events may update it later
                     rich_info = derive_rich_tool_info(tool_name, raw_input)
                     tool_state = ToolStateRunning(
@@ -587,10 +562,7 @@ async def send_message(  # noqa: PLR0915
     await state.broadcast_event(MessageUpdatedEvent.create(updated_assistant))
     # Persist assistant message to storage
     await persist_message_to_storage(state, assistant_msg_with_parts, session_id)
-
     # Mark session as not running
-    from agentpool_server.opencode_server.models import SessionIdleEvent
-
     state.session_status[session_id] = SessionStatus(type="idle")
     await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="idle")))
     await state.broadcast_event(SessionIdleEvent.create(session_id))

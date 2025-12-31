@@ -41,12 +41,20 @@ class SessionCreatedEvent(OpenCodeBaseModel):
     type: Literal["session.created"] = "session.created"
     properties: SessionInfoProperties
 
+    @classmethod
+    def create(cls, session: Session) -> Self:
+        return cls(properties=SessionInfoProperties(info=session))
+
 
 class SessionUpdatedEvent(OpenCodeBaseModel):
     """Session updated event."""
 
     type: Literal["session.updated"] = "session.updated"
     properties: SessionInfoProperties
+
+    @classmethod
+    def create(cls, session: Session) -> Self:
+        return cls(properties=SessionInfoProperties(info=session))
 
 
 class SessionDeletedProperties(OpenCodeBaseModel):
