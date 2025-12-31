@@ -4760,14 +4760,6 @@
           "type": "boolean"
         },
         "cpu": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string"
-            }
-          ],
           "default": 1.0,
           "description": "CPU cores allocated to the container.",
           "examples": [
@@ -4778,24 +4770,24 @@
           ],
           "ge": 0.1,
           "le": 64.0,
-          "title": "CPU Cores"
+          "title": "CPU Cores",
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "memory": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "string"
-            }
-          ],
           "default": 128,
           "description": "Memory allocated to the container in MiB.",
           "examples": [
             128,
             "1Gi"
           ],
-          "title": "Memory (MiB)"
+          "title": "Memory (MiB)",
+          "type": [
+            "integer",
+            "string"
+          ]
         },
         "keep_warm_seconds": {
           "default": 600,
@@ -17437,7 +17429,9 @@
             },
             {
               "format": "path",
-              "type": "string"
+              "type": [
+                "string"
+              ]
             },
             {
               "additionalProperties": false,
@@ -19626,20 +19620,16 @@
           "type": "boolean"
         },
         "project_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "integer"
-            }
-          ],
           "description": "GitLab project ID or path (e.g., 'namespace/project')",
           "examples": [
             "mygroup/myproject",
             12345
           ],
-          "title": "Project ID"
+          "title": "Project ID",
+          "type": [
+            "string",
+            "integer"
+          ]
         },
         "ref": {
           "default": null,
@@ -42157,13 +42147,9 @@
           "anyOf": [
             {
               "additionalProperties": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "string"
-                  }
+                "type": [
+                  "integer",
+                  "string"
                 ]
               },
               "type": "object"
@@ -42888,17 +42874,13 @@
           "title": "Client Certificate"
         },
         "verify": {
-          "anyOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "string"
-            }
-          ],
           "default": true,
           "description": "Verify SSL certificates (True, False, or CA bundle path)",
-          "title": "Verify SSL"
+          "title": "Verify SSL",
+          "type": [
+            "boolean",
+            "string"
+          ]
         },
         "timeout": {
           "anyOf": [
@@ -43546,6 +43528,15 @@
       "description": "Inheritance references.",
       "title": "Inherit"
     },
+    "name": {
+      "default": null,
+      "description": "Optional name for this manifest.\n\nUseful for identification when working with multiple configurations.",
+      "title": "Name",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "resources": {
       "additionalProperties": {
         "anyOf": [
@@ -44153,6 +44144,15 @@
       ],
       "default": null,
       "description": "Compaction configuration for message history management.\n\nControls how conversation history is compacted/summarized to manage context size.\nCan use a preset or define custom steps:\n    compaction:\n      preset: balanced  # or: minimal, summarizing\n\nOr custom steps:\n    compaction:\n      steps:\n        - type: filter_thinking\n        - type: summarize\n          model: openai:gpt-4o-mini\n          threshold: 15"
+    },
+    "config_file_path": {
+      "default": null,
+      "description": "Path to the configuration file this manifest was loaded from.\n\nSet automatically by `from_file()`. Used for resolving relative paths.\nExcluded from serialization.",
+      "title": "Config File Path",
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "title": "AgentsManifest",
