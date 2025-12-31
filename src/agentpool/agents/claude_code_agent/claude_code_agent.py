@@ -80,7 +80,7 @@ if TYPE_CHECKING:
     from claude_agent_sdk.types import HookContext, HookInput, SyncHookJSONOutput
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
-    from slashed import Command, CommandContext
+    from slashed import BaseCommand, Command, CommandContext
     from tokonomics.model_discovery.model_info import ModelInfo
     from toprompt import AnyPromptType
 
@@ -148,6 +148,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "always",
         output_type: type[TResult] | None = None,
+        commands: Sequence[BaseCommand] | None = None,
     ) -> None:
         """Initialize ClaudeCodeAgent.
 
@@ -218,6 +219,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             output_type=output_type or str,  # type: ignore[arg-type]
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
+            commands=commands,
         )
 
         self._config = config

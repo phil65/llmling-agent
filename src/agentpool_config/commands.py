@@ -6,10 +6,14 @@ from collections.abc import Callable
 import inspect
 from pathlib import Path
 import re
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
+
+
+if TYPE_CHECKING:
+    from slashed import Command
 
 
 class BaseCommandConfig(Schema):
@@ -42,6 +46,25 @@ class BaseCommandConfig(Schema):
             like slashed that examine Python callables.
         """
         raise NotImplementedError
+
+    def get_slashed_command(self, category: str = "manifest") -> Command:
+        """Create a slashed Command from this configuration.
+
+        Args:
+            category: Category to assign to the command
+
+        Returns:
+            A slashed Command instance ready for registration
+        """
+        from slashed import Command
+
+        func = self.get_callable()
+        return Command(
+            func,
+            name=self.name,
+            description=self.description,
+            category=category,
+        )
 
 
 class StaticCommandConfig(BaseCommandConfig):

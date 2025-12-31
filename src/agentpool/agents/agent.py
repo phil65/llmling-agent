@@ -61,6 +61,7 @@ if TYPE_CHECKING:
     from pydantic_ai.builtin_tools import AbstractBuiltinTool
     from pydantic_ai.output import OutputSpec
     from pydantic_ai.settings import ModelSettings
+    from slashed import BaseCommand
     from tokonomics.model_discovery import ProviderType
     from tokonomics.model_discovery.model_info import ModelInfo
     from toprompt import AnyPromptType
@@ -176,6 +177,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         builtin_tools: Sequence[AbstractBuiltinTool] | None = None,
         usage_limits: UsageLimits | None = None,
         providers: Sequence[ProviderType] | None = None,
+        commands: Sequence[BaseCommand] | None = None,
     ) -> None:
         """Initialize agent.
 
@@ -253,6 +255,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             output_type=to_type(output_type),  # type: ignore[arg-type]
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
+            commands=commands,
         )
 
         # Store config for context creation

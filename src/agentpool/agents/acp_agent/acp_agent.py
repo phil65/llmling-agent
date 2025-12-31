@@ -70,6 +70,7 @@ if TYPE_CHECKING:
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import FinishReason
+    from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from acp.agent.protocol import Agent as ACPAgentProtocol
@@ -151,6 +152,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        commands: Sequence[BaseCommand] | None = None,
     ) -> None: ...
 
     @overload
@@ -173,6 +175,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "always",
+        commands: Sequence[BaseCommand] | None = None,
     ) -> None: ...
 
     def __init__(
@@ -195,6 +198,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "always",
+        commands: Sequence[BaseCommand] | None = None,
     ) -> None:
         # Build config from kwargs if not provided
         if config is None:
@@ -226,6 +230,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             input_provider=input_provider,
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
+            commands=commands,
         )
 
         # ACP-specific state

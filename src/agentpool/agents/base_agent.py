@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
     from evented.configs import EventConfig
     from exxec import ExecutionEnvironment
-    from slashed import CommandStore
+    from slashed import BaseCommand, CommandStore
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from acp.schema import AvailableCommandsUpdate, ConfigOptionUpdate
@@ -74,6 +74,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         output_type: type[TResult] = str,  # type: ignore[assignment]
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        commands: Sequence[BaseCommand] | None = None,
     ) -> None:
         """Initialize base agent with shared infrastructure.
 
@@ -90,6 +91,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             output_type: Output type for this agent
             tool_confirmation_mode: How tool execution confirmation is handled
             event_handlers: Event handlers for this agent
+            commands: Slash commands to register with this agent
         """
         super().__init__(
             name=name,
@@ -126,6 +128,11 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         from slashed import CommandStore
 
         self._command_store: CommandStore = CommandStore()
+
+        # Register provided commands
+        if commands:
+            for command in commands:
+                self._command_store.register_command(command)
 
     @property
     def command_store(self) -> CommandStore:

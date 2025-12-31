@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 
     from ag_ui.core import Message, ToolMessage
     from evented.configs import EventConfig
+    from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from agentpool.agents.base_agent import ToolConfirmationMode
@@ -134,6 +135,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
+        commands: Sequence[BaseCommand] | None = None,
     ) -> None:
         """Initialize AG-UI agent client.
 
@@ -166,6 +168,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             event_configs=event_configs,
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
+            commands=commands,
         )
 
         # AG-UI specific configuration

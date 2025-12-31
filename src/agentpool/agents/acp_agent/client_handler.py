@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 import uuid
@@ -26,6 +25,8 @@ from agentpool.tools.base import Tool
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from exxec import ExecutionEnvironment
     from slashed import Command
 
