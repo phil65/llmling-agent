@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
+from pydantic import HttpUrl
 from slashed import CommandContext, CommandError  # noqa: TC002
 
 from agentpool_commands.base import NodeCommand
@@ -12,6 +13,7 @@ from agentpool_commands.base import NodeCommand
 if TYPE_CHECKING:
     from agentpool.agents.context import AgentContext
     from agentpool.messaging import MessageNode
+    from agentpool_config.mcp_server import MCPServerConfig
 
 
 class AddMCPServerCommand(NodeCommand):
@@ -60,7 +62,6 @@ class AddMCPServerCommand(NodeCommand):
         try:
             # Parse arguments
             arg_list = [a.strip() for a in args.split("|")] if args else []
-
             # Parse environment variables
             env_dict: dict[str, str] = {}
             if env:
@@ -69,12 +70,7 @@ class AddMCPServerCommand(NodeCommand):
                         key, value = pair.split("=", 1)
                         env_dict[key.strip()] = value.strip()
 
-            config = StdioMCPServerConfig(
-                name=name,
-                command=command,
-                args=arg_list,
-                env=env_dict,
-            )
+            config = StdioMCPServerConfig(name=name, command=command, args=arg_list, env=env_dict)
             await ctx.context.agent.mcp.setup_server(config, add_to_config=True)
             await ctx.print(f"**Added MCP server** `{name}` with command: `{command}`")
 
@@ -121,13 +117,7 @@ class AddRemoteMCPServerCommand(NodeCommand):
             url: Server URL endpoint
             transport: HTTP transport type (sse or streamable-http)
         """
-        from pydantic import HttpUrl
-
-        from agentpool_config.mcp_server import (
-            MCPServerConfig,
-            SSEMCPServerConfig,
-            StreamableHTTPMCPServerConfig,
-        )
+        from agentpool_config.mcp_server import SSEMCPServerConfig, StreamableHTTPMCPServerConfig
 
         try:
             config: MCPServerConfig
@@ -167,18 +157,18 @@ class ListMCPServersCommand(NodeCommand):
         """
         from agentpool_commands.markdown_utils import format_table
 
-        servers = ctx.context.agent.mcp.servers
+        servers = ctx.context.agent.mcp.providers
         if not servers:
             await ctx.print("No MCP servers configured.")
             return
 
         rows = []
-        for name, server in servers.items():
-            server_type = type(server.config).__name__.replace("MCPServerConfig", "")
+        for server in servers:
+            server_type = type(server.server).__name__.replace("MCPServerConfig", "")
             rows.append({
-                "Name": name,
+                "Name": server.name,
                 "Type": server_type,
-                "Status": "connected" if server.is_connected else "disconnected",
+                "Status": "connected" if server.client.connected else "disconnected",
             })
 
         headers = ["Name", "Type", "Status"]

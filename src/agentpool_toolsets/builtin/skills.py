@@ -77,7 +77,7 @@ class _StringOutputWriter:
         return self._buffer.getvalue()
 
 
-async def run_command(ctx: AgentContext, command: str) -> str:
+async def run_command(ctx: AgentContext, command: str) -> str:  # noqa: D417
     """Execute an internal command.
 
     This provides access to the agent's internal CLI for management operations.
@@ -119,9 +119,10 @@ async def run_command(ctx: AgentContext, command: str) -> str:
     try:
         await ctx.agent.command_store.execute_command(cmd, cmd_ctx)
         result = output.getvalue()
-        return result if result else "Command executed successfully."
     except Exception as e:  # noqa: BLE001
         return f"Command failed: {e}"
+    else:
+        return result if result else "Command executed successfully."
 
 
 class SkillsTools(StaticResourceProvider):

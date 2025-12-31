@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from slashed import CommandContext, CommandError  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
 from agentpool.messaging.context import NodeContext  # noqa: TC001
 from agentpool_commands.base import NodeCommand
-from agentpool_commands.completers import get_available_agents
+from agentpool_commands.completers import get_available_agents, get_available_nodes
 from agentpool_commands.markdown_utils import format_table
 
 
@@ -224,7 +226,7 @@ class CreateTeamCommand(NodeCommand):
         self,
         ctx: CommandContext[NodeContext],
         *nodes: str,
-        mode: Literal[sequential, parallel] = "sequential",
+        mode: Literal["sequential", "parallel"] = "sequential",
         name: str | None = None,
     ) -> None:
         """Create a team from existing nodes.
