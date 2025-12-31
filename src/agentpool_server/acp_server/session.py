@@ -265,7 +265,7 @@ class ACPSession:
             ),
             *get_acp_commands(),
         ]
-        self.command_store = CommandStore(enable_system_commands=True, commands=cmds)
+        self.command_store = CommandStore(commands=cmds)
         self.command_store._initialize_sync()
         self._update_callbacks: list[Callable[[], None]] = []
         self._remote_commands: list[AvailableCommand] = []  # Commands from nested ACP agents
