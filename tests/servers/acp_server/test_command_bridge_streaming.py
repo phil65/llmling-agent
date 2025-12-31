@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock
 
 import anyio
 import pytest
+from slashed import Command
 
 from acp import ClientCapabilities
 from agentpool import Agent, AgentPool
@@ -91,10 +92,11 @@ async def test_immediate_send_with_slow_command():
         await anyio.sleep(0.01)  # Small delay
         await ctx.print("Completed!")
 
-    # Add the command to the session's command store
-    session.command_store.add_command(
-        name="slow", fn=slow_command_func, description="A slow command for testing"
+    # Add the command to the session's command store using from_raw for raw signature
+    slow_cmd = Command.from_raw(
+        slow_command_func, name="slow", description="A slow command for testing"
     )
+    session.command_store.register_command(slow_cmd)
 
     # Collect messages with timestamps to verify immediate sending
     messages_with_time = []
@@ -159,9 +161,8 @@ async def test_immediate_send_error_handling(caplog: pytest.LogCaptureFixture):
         msg = "Command failed!"
         raise ValueError(msg)
 
-    session.command_store.add_command(
-        name="fail", fn=failing_command, description="A failing command"
-    )
+    fail_cmd = Command.from_raw(failing_command, name="fail", description="A failing command")
+    session.command_store.register_command(fail_cmd)
 
     # Collect all messages
     sent_messages = []

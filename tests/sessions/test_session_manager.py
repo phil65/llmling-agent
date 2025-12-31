@@ -425,7 +425,7 @@ class TestSessionManager:
             session = await manager.create(agent_name="test_agent")
 
             assert session.agent_name == "test_agent"
-            assert session.session_id.startswith("sess_")
+            assert session.session_id.startswith("ses_")  # OpenCode-compatible format
             assert not session.is_closed
 
     async def test_create_session_with_custom_id(self, agent_pool: AgentPool) -> None:
