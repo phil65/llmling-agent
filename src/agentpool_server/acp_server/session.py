@@ -1050,8 +1050,8 @@ class ACPSession:
         usage_hint = (
             " ".join(f"<{arg['name']}>" for arg in prompt.arguments) if prompt.arguments else None
         )
-        return Command(
-            execute_func=execute_prompt,
+        return Command.from_raw(
+            execute_prompt,
             name=prompt.name,
             description=prompt.description or f"MCP prompt: {prompt.name}",
             category="mcp",
@@ -1102,8 +1102,8 @@ class ACPSession:
         # Create command name - prefix with provider if not builtin
         command_name = f"{provider}_{name}" if provider != "builtin" else name
 
-        return Command(
-            execute_func=execute_prompt,
+        return Command.from_raw(
+            execute_prompt,
             name=command_name,
             description=f"Prompt hub: {provider}:{name}",
             category="prompts",

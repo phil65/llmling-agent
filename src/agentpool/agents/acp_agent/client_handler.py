@@ -27,8 +27,10 @@ from agentpool.tools.base import Tool
 
 if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
+    from slashed import Command
 
     from acp.schema import (
+        AvailableCommand,
         CreateTerminalRequest,
         KillTerminalCommandRequest,
         ReadTextFileRequest,
@@ -440,10 +442,10 @@ class ACPClientHandler(Client):
                 if isinstance(event, PartDeltaEvent):
                     delta = event.delta
                     if isinstance(delta, TextPartDelta):
-                        await ctx.print(delta.content)
+                        await ctx.print(delta.content_delta)
 
-        return Command(
-            execute_func=execute_command,
+        return Command.from_raw(
+            execute_command,
             name=name,
             description=description,
             category="remote",

@@ -360,7 +360,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         ) -> SyncHookJSONOutput:
             """Handle PreCompact hook by emitting a text notification for auto-compaction."""
             # input_data is PreCompactHookInput when hook_event_name == "PreCompact"
-            trigger = input_data.get("trigger", "auto")  # type: ignore[typeddict-item]
+            trigger = input_data.get("trigger", "auto")
 
             # Only show notification for auto-compaction
             # Manual compaction is triggered via slash command which handles its own UI
@@ -632,8 +632,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         if msg.is_error:
                             await ctx.print(f"Error: {msg.subtype}")
 
-        return Command(
-            execute_func=execute_command,
+        return Command.from_raw(
+            execute_command,
             name=name,
             description=description or f"Claude Code command: {name}",
             category=category,

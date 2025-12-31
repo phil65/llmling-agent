@@ -5626,15 +5626,15 @@ wheels = [
 
 [[package]]
 name = "slashed"
-version = "1.0.17"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "psygnal" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/87/83/b50cbfdc23bebf29b4c260a10c911029265938ee46fb48ef9b58b8e95005/slashed-1.0.17.tar.gz", hash = "sha256:2be1f2d14998168cbc018283afb29e28159c1460637c5afcfef421eb5236d36e", size = 41007, upload-time = "2025-12-30T23:44:00.622Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/d4/68268013878a0d18ff65ec72acea0d94f29abb96a433e52cf0a6c006b551/slashed-1.1.0.tar.gz", hash = "sha256:c6ff4d8d5a8ea54f8e596c504e8fa05fa0dd720d03927850b374fb9884d537c9", size = 41946, upload-time = "2025-12-31T00:00:52.644Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/46/ec70cefb949876e43adbac7ee998b75ec7f29b4fe7b18c269fad06498fef/slashed-1.0.17-py3-none-any.whl", hash = "sha256:d5e1bff76934c8fac4d24403b4a2ad66d6e8664804b751cbecb60d0df290cfc2", size = 53766, upload-time = "2025-12-30T23:43:59.322Z" },
+    { url = "https://files.pythonhosted.org/packages/96/48/575c6bd0cac83f52b133a885f05383d0673376a33f22a827f9073530298d/slashed-1.1.0-py3-none-any.whl", hash = "sha256:b1e05332674ea7dd35f8f13874dfce01c3af01b97296eaf4b051b466a977fb08", size = 54596, upload-time = "2025-12-31T00:00:51.046Z" },
 ]
 
 [[package]]
