@@ -664,7 +664,7 @@ agents:
       - anthropic
 ```
 
-This determines which providers the agent can list in model discovery. If not set, defaults to `["openai", "anthropic", "gemini"]`.
+This determines which providers the agent can list in model discovery. If not set, defaults to `["models.dev"]`.
 
 Available model providers:
 

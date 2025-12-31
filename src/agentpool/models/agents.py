@@ -233,14 +233,14 @@ class NativeAgentConfig(BaseAgentConfig):
 
     model_providers: list[ProviderType] | None = Field(
         default=None,
-        examples=[["openai", "anthropic", "gemini"], ["anthropic"]],
+        examples=[["models.dev"], ["anthropic", "openai"]],
         title="Model providers",
     )
     """List of model providers to use for model discovery.
 
     When set, the agent's get_available_models() will return models from these
     providers. Common values: "openai", "anthropic", "gemini", "mistral", etc.
-    If not set, defaults to ["openai", "anthropic", "gemini"].
+    If not set, defaults to ["models.dev"].
     """
 
     tool_mode: ToolMode | None = Field(

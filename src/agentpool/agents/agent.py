@@ -222,7 +222,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             builtin_tools: PydanticAI builtin tools (WebSearchTool, CodeExecutionTool, etc.)
             usage_limits: Usage limits for the agent
             providers: Model providers for model discovery (e.g., ["openai", "anthropic"]).
-                Defaults to ["openai", "anthropic", "gemini"] if not specified.
+                Defaults to ["models.dev"] if not specified.
             commands: Slash commands
         """
         from agentpool.agents.interactions import Interactions
@@ -1302,7 +1302,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         from tokonomics.model_discovery import get_all_models
 
-        providers = self._providers or ["openai", "anthropic", "gemini"]
+        providers = self._providers or ["models.dev"]
         try:
             max_age = timedelta(days=200)
             return await get_all_models(providers=providers, max_age=max_age)
