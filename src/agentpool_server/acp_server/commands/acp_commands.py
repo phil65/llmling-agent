@@ -161,7 +161,7 @@ class ListSessionsCommand(NodeCommand):
                 # Compact table view (default)
                 output_lines.append("| Title | Agent | Last Active |")
                 output_lines.append("|-------|-------|-------------|")
-                for session_id, session_type, info in page_sessions:
+                for session_id, _session_type, info in page_sessions:
                     title = info["title"] or session_id[:16]
                     if info["is_current"]:
                         title = f"▶️ {title}"
