@@ -10,6 +10,7 @@ from mcp import types
 
 from agentpool.log import get_logger
 from agentpool.ui.base import InputProvider
+from agentpool_server.opencode_server.models.events import PermissionRequestEvent
 
 
 if TYPE_CHECKING:
@@ -109,34 +110,21 @@ class OpenCodeInputProvider(InputProvider):
             )
             self._pending_permissions[permission_id] = pending
 
-            # Broadcast SSE event to notify clients
-            from agentpool_server.opencode_server.models.events import (
-                PermissionRequestEvent,
-                PermissionRequestProperties,
-            )
-
             max_preview_args = 3
             args_preview = ", ".join(f"{k}={v!r}" for k, v in list(args.items())[:max_preview_args])
             if len(args) > max_preview_args:
                 args_preview += ", ..."
 
-            event = PermissionRequestEvent(
-                properties=PermissionRequestProperties(
-                    session_id=self.session_id,
-                    permission_id=permission_id,
-                    tool_name=tool.name,
-                    args_preview=args_preview,
-                    message=f"Tool '{tool.name}' wants to execute with args: {args_preview}",
-                )
-            )
-            await self.state.broadcast_event(event)
-
-            logger.info(
-                "Permission requested",
+            event = PermissionRequestEvent.create(
+                session_id=self.session_id,
                 permission_id=permission_id,
                 tool_name=tool.name,
+                args_preview=args_preview,
+                message=f"Tool '{tool.name}' wants to execute with args: {args_preview}",
             )
 
+            await self.state.broadcast_event(event)
+            logger.info("Permission requested", permission_id=permission_id, tool_name=tool.name)
             # Wait for the client to respond
             try:
                 response = await future

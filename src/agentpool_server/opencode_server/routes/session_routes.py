@@ -53,10 +53,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     TokensCache,
 )
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
-from agentpool_server.opencode_server.models.events import (
-    PermissionResolvedEvent,
-    PermissionResolvedProperties,
-)
+from agentpool_server.opencode_server.models.events import PermissionResolvedEvent
 from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
 from agentpool_server.opencode_server.time_utils import now_ms
 
@@ -234,11 +231,8 @@ async def create_session(
     )
 
     # Persist to storage
-    session_data = opencode_to_session_data(
-        session,
-        agent_name=state.agent.name,
-        pool_id=state.pool.manifest.config_file_path,
-    )
+    id_ = state.pool.manifest.config_file_path
+    session_data = opencode_to_session_data(session, agent_name=state.agent.name, pool_id=id_)
     await state.pool.sessions.store.save(session_data)
     # Cache in memory
     state.sessions[session_id] = session
@@ -290,11 +284,8 @@ async def update_session(
         time_ = TimeCreatedUpdated(created=session.time.created, updated=now_ms())
         session = session.model_copy(update={"title": request.title, "time": time_})
     state.sessions[session_id] = session  # Update cache
-    session_data = opencode_to_session_data(  # Persist to storage
-        session,
-        agent_name=state.agent.name,
-        pool_id=state.pool.manifest.config_file_path,
-    )
+    id_ = state.pool.manifest.config_file_path
+    session_data = opencode_to_session_data(session, agent_name=state.agent.name, pool_id=id_)
     await state.pool.sessions.store.save(session_data)
     await state.broadcast_event(SessionUpdatedEvent(properties=SessionInfoProperties(info=session)))
     return session
@@ -772,12 +763,10 @@ async def respond_to_permission(
         raise HTTPException(status_code=404, detail="Permission not found or already resolved")
 
     await state.broadcast_event(
-        PermissionResolvedEvent(
-            properties=PermissionResolvedProperties(
-                session_id=session_id,
-                permission_id=permission_id,
-                response=request.response,
-            )
+        PermissionResolvedEvent.create(
+            session_id=session_id,
+            permission_id=permission_id,
+            response=request.response,
         )
     )
 
@@ -1211,11 +1200,8 @@ async def execute_command(  # noqa: PLR0915
     )
 
     # Add step-start part
-    step_start = StepStartPart(
-        id=identifier.ascending("part"),
-        message_id=assistant_msg_id,
-        session_id=session_id,
-    )
+    part_id = identifier.ascending("part")
+    step_start = StepStartPart(id=part_id, message_id=assistant_msg_id, session_id=session_id)
     assistant_msg_with_parts.parts.append(step_start)
     await state.broadcast_event(
         PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_start))
@@ -1239,7 +1225,6 @@ async def execute_command(  # noqa: PLR0915
                         elif isinstance(item, str):
                             prompt_texts.append(item)
         prompt_text = "\n".join(prompt_texts)
-
         # Run the expanded prompt through the agent
         result = await state.agent.run(prompt_text)
         output_text = str(result.data)
@@ -1248,7 +1233,6 @@ async def execute_command(  # noqa: PLR0915
         output_text = f"Error executing command: {e}"
 
     response_time = now_ms()
-
     # Create text part with output
     text_part = TextPart(
         id=identifier.ascending("part"),
@@ -1264,12 +1248,7 @@ async def execute_command(  # noqa: PLR0915
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
         session_id=session_id,
-        tokens=StepFinishTokens(
-            cache=TokenCache(read=0, write=0),
-            input=0,
-            output=0,
-            reasoning=0,
-        ),
+        tokens=StepFinishTokens(cache=TokenCache(read=0, write=0)),
         cost=0,
     )
     assistant_msg_with_parts.parts.append(step_finish)

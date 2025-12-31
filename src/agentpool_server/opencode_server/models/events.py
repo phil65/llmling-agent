@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Self
 
 from pydantic import Field
 
@@ -132,6 +132,24 @@ class PermissionRequestEvent(OpenCodeBaseModel):
     type: Literal["permission.request"] = "permission.request"
     properties: PermissionRequestProperties
 
+    @classmethod
+    def create(
+        cls,
+        session_id: str,
+        permission_id: str,
+        tool_name: str,
+        args_preview: str,
+        message: str,
+    ) -> Self:
+        props = PermissionRequestProperties(
+            session_id=session_id,
+            permission_id=permission_id,
+            tool_name=tool_name,
+            args_preview=args_preview,
+            message=message,
+        )
+        return cls(properties=props)
+
 
 class PermissionResolvedProperties(OpenCodeBaseModel):
     """Properties for permission resolved event."""
@@ -146,6 +164,20 @@ class PermissionResolvedEvent(OpenCodeBaseModel):
 
     type: Literal["permission.resolved"] = "permission.resolved"
     properties: PermissionResolvedProperties
+
+    @classmethod
+    def create(
+        cls,
+        session_id: str,
+        permission_id: str,
+        response: str,
+    ) -> Self:
+        props = PermissionResolvedProperties(
+            session_id=session_id,
+            permission_id=permission_id,
+            response=response,
+        )
+        return cls(properties=props)
 
 
 Event = (
