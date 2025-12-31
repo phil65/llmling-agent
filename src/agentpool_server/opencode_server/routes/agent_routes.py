@@ -29,7 +29,6 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     LogRequest,
     MCPStatus,
 )
-from agentpool_server.opencode_server.models.agent import AgentModel
 
 
 router = APIRouter(tags=["agent"])
@@ -63,7 +62,7 @@ async def list_agents(state: StateDep) -> list[Agent]:
             Agent(
                 name=name,
                 description=agent.description or f"Agent: {name}",
-                model=AgentModel(model_id=agent.model_name or "unknown", provider_id=""),
+                # model=AgentModel(model_id=agent.model_name or "unknown", provider_id=""),
                 mode="primary",  # All agents visible for now; add hidden config later
                 default=(name == first_agent_name),  # First agent is default
             )

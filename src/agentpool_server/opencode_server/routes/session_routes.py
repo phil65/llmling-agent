@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import contextlib
-from datetime import UTC
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal
 
+from anyenv.text_sharing.opencode import Message, MessagePart, OpenCodeSharer
 from fastapi import APIRouter, HTTPException
 from pydantic_ai import FileUrl
 
+from agentpool.repomap import RepoMap, find_src_files
 from agentpool.sessions.models import SessionData
 from agentpool.utils import identifiers as identifier
+from agentpool_config.session import SessionQuery
 from agentpool_server.opencode_server.command_validation import validate_command
+from agentpool_server.opencode_server.converters import chat_message_to_opencode
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
+from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
 from agentpool_server.opencode_server.models import (  # noqa: TC001
     AssistantMessage,
     CommandRequest,
@@ -48,6 +53,11 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     TokensCache,
 )
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
+from agentpool_server.opencode_server.models.events import (
+    PermissionResolvedEvent,
+    PermissionResolvedProperties,
+)
+from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
 from agentpool_server.opencode_server.time_utils import now_ms
 
 
@@ -94,19 +104,15 @@ def opencode_to_session_data(
     pool_id: str | None = None,
 ) -> SessionData:
     """Convert OpenCode Session to SessionData for persistence."""
-    from datetime import datetime
-
     # Convert milliseconds timestamp to datetime
     created_at = datetime.fromtimestamp(session.time.created / 1000, tz=UTC)
     last_active = datetime.fromtimestamp(session.time.updated / 1000, tz=UTC)
-
     # Store revert/share in metadata
     metadata: dict[str, Any] = {}
     if session.revert:
         metadata["revert"] = session.revert.model_dump()
     if session.share:
         metadata["share"] = session.share.model_dump()
-
     return SessionData(
         session_id=session.id,
         agent_name=agent_name,
@@ -123,10 +129,7 @@ def opencode_to_session_data(
     )
 
 
-async def load_messages_from_storage(
-    state: ServerState,
-    session_id: str,
-) -> list[MessageWithParts]:
+async def load_messages_from_storage(state: ServerState, session_id: str) -> list[MessageWithParts]:
     """Load messages from storage and convert to OpenCode format.
 
     Args:
@@ -139,18 +142,13 @@ async def load_messages_from_storage(
     if state.pool.storage is None:
         return []
 
-    from agentpool_config.session import SessionQuery
-    from agentpool_server.opencode_server.converters import chat_message_to_opencode
-
     try:
         query = SessionQuery(name=session_id)  # conversation_id = session_id
         chat_messages = await state.pool.storage.filter_messages(query)
-
         # Convert to OpenCode format
         opencode_messages = []
         working_dir = state.working_dir
         agent_name = state.agent.name
-
         for chat_msg in chat_messages:
             opencode_msg = chat_message_to_opencode(
                 chat_msg,
@@ -206,10 +204,8 @@ async def list_sessions(state: StateDep) -> list[Session]:
     Returns all persisted sessions, not just active ones.
     """
     sessions: list[Session] = []
-
     # Load all session IDs from storage
     session_ids = await state.pool.sessions.store.list_sessions()
-
     for session_id in session_ids:
         # Use get_or_load to populate cache and get Session model
         session = await get_or_load_session(state, session_id)
@@ -244,24 +240,17 @@ async def create_session(
         pool_id=state.pool.manifest.config_file_path,
     )
     await state.pool.sessions.store.save(session_data)
-
     # Cache in memory
     state.sessions[session_id] = session
     state.messages[session_id] = []
     state.session_status[session_id] = SessionStatus(type="idle")
     state.todos[session_id] = []
-
     # Create input provider for this session
-    from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
-
     input_provider = OpenCodeInputProvider(state, session_id)
     state.input_providers[session_id] = input_provider
-
     # Set input provider on agent
     state.agent._input_provider = input_provider
-
     await state.broadcast_event(SessionCreatedEvent(properties=SessionInfoProperties(info=session)))
-
     return session
 
 
@@ -298,16 +287,8 @@ async def update_session(
         raise HTTPException(status_code=404, detail="Session not found")
 
     if request.title is not None:
-        session = session.model_copy(
-            update={
-                "title": request.title,
-                "time": TimeCreatedUpdated(
-                    created=session.time.created,
-                    updated=now_ms(),
-                ),
-            }
-        )
-
+        time_ = TimeCreatedUpdated(created=session.time.created, updated=now_ms())
+        session = session.model_copy(update={"title": request.title, "time": time_})
     state.sessions[session_id] = session  # Update cache
     session_data = opencode_to_session_data(  # Persist to storage
         session,
@@ -337,10 +318,8 @@ async def delete_session(session_id: str, state: StateDep) -> bool:
     state.messages.pop(session_id, None)
     state.session_status.pop(session_id, None)
     state.todos.pop(session_id, None)
-
     # Delete from storage
     await state.pool.sessions.store.delete(session_id)
-
     await state.broadcast_event(
         SessionDeletedEvent(properties=SessionDeletedProperties(session_id=session_id))
     )
@@ -388,7 +367,6 @@ async def fork_session(  # noqa: D417
 
     # Get messages from the original session
     original_messages = state.messages.get(session_id, [])
-
     # Filter messages if message_id is specified
     messages_to_copy: list[MessageWithParts] = []
     if request and request.message_id:
@@ -399,10 +377,8 @@ async def fork_session(  # noqa: D417
                 break
         else:
             # message_id not found in messages
-            raise HTTPException(
-                status_code=404,
-                detail=f"Message {request.message_id} not found in session",
-            )
+            detail = f"Message {request.message_id} not found in session"
+            raise HTTPException(status_code=404, detail=detail)
     else:
         # Copy all messages
         messages_to_copy = list(original_messages)
@@ -410,10 +386,8 @@ async def fork_session(  # noqa: D417
     # Create the new forked session
     now = now_ms()
     new_session_id = identifier.ascending("session")
-
     # Use provided directory or inherit from original session
     fork_directory = directory if directory else original_session.directory
-
     forked_session = Session(
         id=new_session_id,
         project_id=original_session.project_id,
@@ -431,12 +405,10 @@ async def fork_session(  # noqa: D417
         pool_id=state.pool.manifest.config_file_path,
     )
     await state.pool.sessions.store.save(session_data)
-
     # Cache in memory
     state.sessions[new_session_id] = forked_session
     state.session_status[new_session_id] = SessionStatus(type="idle")
     state.todos[new_session_id] = []
-
     # Copy messages to the new session (with updated session_id references)
     copied_messages: list[MessageWithParts] = []
     for msg_with_parts in messages_to_copy:
@@ -449,10 +421,6 @@ async def fork_session(  # noqa: D417
         copied_messages.append(MessageWithParts(info=new_info, parts=new_parts))
 
     state.messages[new_session_id] = copied_messages
-
-    # Create input provider for the new session
-    from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
-
     input_provider = OpenCodeInputProvider(state, new_session_id)
     state.input_providers[new_session_id] = input_provider
 
@@ -490,10 +458,6 @@ async def init_session(  # noqa: D417
     agent = state.agent
     fs = agent.env.get_fs()
     working_dir = state.working_dir
-
-    # Generate repomap
-    from agentpool.repomap import RepoMap, find_src_files
-
     try:
         all_files = await find_src_files(fs, working_dir)
         repo_map = RepoMap(fs=fs, root_path=working_dir, max_tokens=4000)
@@ -704,7 +668,6 @@ async def run_shell_command(
         output_text = f"Error executing command: {e}"
 
     response_time = now_ms()
-
     # Create text part with output
     text_part = TextPart(
         id=identifier.ascending("part"),
@@ -716,10 +679,6 @@ async def run_shell_command(
     await state.broadcast_event(
         PartUpdatedEvent(properties=PartUpdatedEventProperties(part=text_part))
     )
-
-    # Add step-finish part
-    from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
-
     step_finish = StepFinishPart(
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
@@ -811,12 +770,6 @@ async def respond_to_permission(
     resolved = input_provider.resolve_permission(permission_id, request.response)
     if not resolved:
         raise HTTPException(status_code=404, detail="Permission not found or already resolved")
-
-    # Broadcast the resolution event
-    from agentpool_server.opencode_server.models.events import (
-        PermissionResolvedEvent,
-        PermissionResolvedProperties,
-    )
 
     await state.broadcast_event(
         PermissionResolvedEvent(
@@ -960,14 +913,11 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
         update={"time": MessageTime(created=now, completed=response_time)}
     )
     assistant_msg_with_parts.info = updated_assistant
-
     # Add the summary message to the session
     state.messages[session_id].append(assistant_msg_with_parts)
-
     await state.broadcast_event(
         MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=updated_assistant))
     )
-
     # Mark session as idle
     state.session_status[session_id] = SessionStatus(type="idle")
     await state.broadcast_event(
@@ -1004,12 +954,8 @@ async def share_session(
     # Apply message limit if specified
     if num_messages is not None and num_messages > 0:
         messages = messages[-num_messages:]
-
-    from anyenv.text_sharing.opencode import Message, MessagePart, OpenCodeSharer
-
     # Convert our messages to OpenCode Message format
     opencode_messages: list[Message] = []
-
     for msg_with_parts in messages:
         info = msg_with_parts.info
         # Map role to OpenCode sharing roles
@@ -1035,10 +981,7 @@ async def share_session(
 
     # Share via OpenCode API
     async with OpenCodeSharer() as sharer:
-        result = await sharer.share_conversation(
-            opencode_messages,
-            title=session.title,
-        )
+        result = await sharer.share_conversation(opencode_messages, title=session.title)
         share_url = result.url
 
     # Store the share URL in the session
@@ -1062,11 +1005,7 @@ class RevertRequest(OpenCodeBaseModel):
 
 
 @router.post("/{session_id}/revert")
-async def revert_session(
-    session_id: str,
-    request: RevertRequest,
-    state: StateDep,
-) -> Session:
+async def revert_session(session_id: str, request: RevertRequest, state: StateDep) -> Session:
     """Revert file changes from a specific message.
 
     Restores files to their state before the specified message's changes.
@@ -1148,10 +1087,8 @@ async def unrevert_session(session_id: str, state: StateDep) -> Session:
 
     # Get unrevert operations
     unrevert_ops = file_ops.get_unrevert_operations()
-
     # Get filesystem from the agent's environment
     fs = state.agent.env.get_fs()
-
     # Apply unrevert - write back the new_content
     for path, content in unrevert_ops:
         try:
@@ -1163,18 +1100,14 @@ async def unrevert_session(session_id: str, state: StateDep) -> Session:
                 content_bytes = content.encode("utf-8")
                 await fs._pipe_file(path, content_bytes)
         except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to unrevert {path}: {e}",
-            ) from e
+            detail = f"Failed to unrevert {path}: {e}"
+            raise HTTPException(status_code=500, detail=detail) from e
 
     # Restore the changes to the tracker
     file_ops.restore_reverted_changes()
-
     # Clear revert info from session
     updated_session = session.model_copy(update={"revert": None})
     state.sessions[session_id] = updated_session
-
     # Broadcast session update
     await state.broadcast_event(
         SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
@@ -1199,7 +1132,6 @@ async def unshare_session(session_id: str, state: StateDep) -> bool:
     # Remove share info from session
     updated_session = session.model_copy(update={"share": None})
     state.sessions[session_id] = updated_session
-
     # Broadcast session update
     await state.broadcast_event(
         SessionUpdatedEvent(properties=SessionInfoProperties(info=updated_session))
@@ -1228,14 +1160,11 @@ async def execute_command(  # noqa: PLR0915
         raise HTTPException(status_code=400, detail="Agent has no tools configured")
 
     prompts = await state.agent.tools.list_prompts()
-
     # Find matching prompt by name
     prompt = next((p for p in prompts if p.name == request.command), None)
     if prompt is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Command not found: {request.command}",
-        )
+        detail = f"Command not found: {request.command}"
+        raise HTTPException(status_code=404, detail=detail)
 
     # Parse arguments - OpenCode uses $1, $2 style, MCP uses named arguments
     # For simplicity, we'll pass the raw arguments string to the first argument
@@ -1249,7 +1178,6 @@ async def execute_command(  # noqa: PLR0915
                 arguments[arg_def["name"]] = arg_values[i]
 
     now = now_ms()
-
     # Create assistant message
     assistant_msg_id = identifier.ascending("message")
     assistant_message = AssistantMessage(
@@ -1268,11 +1196,9 @@ async def execute_command(  # noqa: PLR0915
 
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
     state.messages[session_id].append(assistant_msg_with_parts)
-
     await state.broadcast_event(
         MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=assistant_message))
     )
-
     # Mark session as busy
     state.session_status[session_id] = SessionStatus(type="busy")
     await state.broadcast_event(
@@ -1334,10 +1260,6 @@ async def execute_command(  # noqa: PLR0915
     await state.broadcast_event(
         PartUpdatedEvent(properties=PartUpdatedEventProperties(part=text_part))
     )
-
-    # Add step-finish part
-    from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
-
     step_finish = StepFinishPart(
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
