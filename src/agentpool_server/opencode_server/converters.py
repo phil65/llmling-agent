@@ -418,27 +418,55 @@ def chat_message_to_opencode(  # noqa: PLR0915
             model=UserMessageModel(provider_id=provider_id, model_id=model_id),
         )
 
-        # Extract text from user prompt parts
-        for model_msg in msg.messages:
-            if isinstance(model_msg, ModelRequest):
-                for part in model_msg.parts:
-                    if isinstance(part, UserPromptPart):
-                        content = part.content
-                        if isinstance(content, str):
-                            text = content
-                        else:
-                            # Multi-modal content - extract text parts
-                            text = " ".join(str(c) for c in content if isinstance(c, str))
-                        if text:
-                            parts.append(
-                                TextPart(
-                                    id=generate_part_id(),
-                                    message_id=message_id,
-                                    session_id=session_id,
-                                    text=text,
-                                    time=TimeStartEndOptional(start=created_ms),
+        # Extract text from user message
+        # First try msg.content directly (simple case)
+        if msg.content and isinstance(msg.content, str):
+            parts.append(
+                TextPart(
+                    id=generate_part_id(),
+                    message_id=message_id,
+                    session_id=session_id,
+                    text=msg.content,
+                    time=TimeStartEndOptional(start=created_ms),
+                )
+            )
+        else:
+            # Fall back to extracting from messages (pydantic-ai format)
+            for model_msg in msg.messages:
+                if isinstance(model_msg, ModelRequest):
+                    for part in model_msg.parts:
+                        if isinstance(part, UserPromptPart):
+                            content = part.content
+                            if isinstance(content, str):
+                                text = content
+                            else:
+                                # Multi-modal content - extract text parts
+                                text = " ".join(str(c) for c in content if isinstance(c, str))
+                            if text:
+                                parts.append(
+                                    TextPart(
+                                        id=generate_part_id(),
+                                        message_id=message_id,
+                                        session_id=session_id,
+                                        text=text,
+                                        time=TimeStartEndOptional(start=created_ms),
+                                    )
                                 )
-                            )
+                elif isinstance(model_msg, dict) and model_msg.get("kind") == "request":
+                    # Handle serialized dict format from storage
+                    for part in model_msg.get("parts", []):
+                        if part.get("part_kind") == "user-prompt":
+                            text = part.get("content", "")
+                            if text and isinstance(text, str):
+                                parts.append(
+                                    TextPart(
+                                        id=generate_part_id(),
+                                        message_id=message_id,
+                                        session_id=session_id,
+                                        text=text,
+                                        time=TimeStartEndOptional(start=created_ms),
+                                    )
+                                )
     else:
         # Assistant message
         completed_ms = created_ms
