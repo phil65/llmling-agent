@@ -181,6 +181,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             event_handlers: Event handlers for streaming events
             tool_confirmation_mode: Tool confirmation behavior
             output_type: Type for structured output (uses JSON schema)
+            commands: Slash commands
         """
         from agentpool.agents.sys_prompts import SystemPrompts
 

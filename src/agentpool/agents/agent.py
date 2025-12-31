@@ -223,6 +223,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             usage_limits: Usage limits for the agent
             providers: Model providers for model discovery (e.g., ["openai", "anthropic"]).
                 Defaults to ["openai", "anthropic", "gemini"] if not specified.
+            commands: Slash commands
         """
         from agentpool.agents.interactions import Interactions
         from agentpool.agents.sys_prompts import SystemPrompts
