@@ -197,3 +197,71 @@ class SwitchAgentCommand(NodeCommand):
     def get_completer(self) -> CallbackCompleter:
         """Get completer for agent names."""
         return CallbackCompleter(get_available_agents)
+
+
+class CreateTeamCommand(NodeCommand):
+    """Create a team from existing agents/nodes.
+
+    Teams allow multiple agents to work together, either in parallel
+    or sequentially (pipeline).
+
+    Options:
+      --mode sequential|parallel   How the team operates (default: sequential)
+      --name team_name            Optional name for the team
+
+    Examples:
+      # Create a sequential pipeline
+      /create-team agent1 agent2 agent3
+
+      # Create a parallel team with custom name
+      /create-team agent1 agent2 --mode parallel --name review_team
+    """
+
+    name = "create-team"
+    category = "agents"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[NodeContext],
+        *nodes: str,
+        mode: Literal[sequential, parallel] = "sequential",
+        name: str | None = None,
+    ) -> None:
+        """Create a team from existing nodes.
+
+        Args:
+            ctx: Command context
+            nodes: Names of agents/teams to include
+            mode: How the team operates (sequential or parallel)
+            name: Optional name for the team
+        """
+        if not ctx.context.pool:
+            msg = "No agent pool available"
+            raise CommandError(msg)
+
+        if len(nodes) < 2:  # noqa: PLR2004
+            msg = "At least 2 nodes are required to create a team"
+            raise CommandError(msg)
+
+        # Verify all nodes exist
+        node_list = list(nodes)
+        for node_name in node_list:
+            if node_name not in ctx.context.pool.nodes:
+                available = ", ".join(ctx.context.pool.nodes.keys())
+                msg = f"Node '{node_name}' not found. Available: {available}"
+                raise CommandError(msg)
+
+        # Create the team
+        if mode == "sequential":
+            team = ctx.context.pool.create_team_run(node_list, name=name)
+        else:
+            team = ctx.context.pool.create_team(node_list, name=name)
+
+        mode_str = "pipeline" if mode == "sequential" else "parallel"
+        await ctx.print(
+            f"**Created {mode_str} team** `{team.name}` with nodes: `{', '.join(node_list)}`"
+        )
+
+    def get_completer(self) -> CallbackCompleter:
+        """Get completer for node names."""
+        return CallbackCompleter(get_available_nodes)

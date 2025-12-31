@@ -264,6 +264,63 @@ class RegisterToolCommand(NodeCommand):
             raise CommandError(msg) from e
 
 
+class RegisterCodeToolCommand(NodeCommand):
+    """Register a new tool from Python code.
+
+    The code should define a function that will become the tool.
+    The function name becomes the tool name unless overridden.
+
+    Options:
+      --name tool_name         Custom name for the tool
+      --description "text"     Custom description
+
+    Examples:
+      /register-code-tool "def greet(name: str) -> str: return f'Hello {name}'"
+      /register-code-tool "def add(a: int, b: int) -> int: return a + b" --name sum
+    """
+
+    name = "register-code-tool"
+    category = "tools"
+
+    @classmethod
+    def supports_node(cls, node: MessageNode[Any, Any]) -> bool:
+        from agentpool import Agent
+
+        return isinstance(node, Agent)
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[AgentContext],
+        code: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> None:
+        """Register a new tool from code string.
+
+        Args:
+            ctx: Command context
+            code: Python code defining a function
+            name: Optional custom name for the tool
+            description: Optional custom description
+        """
+        from agentpool.tools.base import Tool
+
+        try:
+            tool_obj = Tool.from_code(code, name=name, description=description)
+            tool_obj.enabled = True
+            tool_obj.source = "dynamic"
+
+            registered = ctx.context.agent.tools.register_tool(tool_obj)
+            await ctx.print(
+                f"**Tool registered:** `{registered.name}`"
+                f" - {registered.description or '*No description*'}"
+            )
+        except Exception as e:
+            msg = f"Failed to register code tool: {e}"
+            raise CommandError(msg) from e
+
+
 async def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:
     manager = ctx.command_context.context.agent.tools
     return list({t.name for t in await manager.get_tools()})

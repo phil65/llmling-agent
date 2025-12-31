@@ -5,7 +5,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from agentpool import Agent, AgentContext, AgentPool
-from agentpool_config.toolsets import AgentManagementToolsetConfig, SubagentToolsetConfig
+from agentpool_config.toolsets import SubagentToolsetConfig
 
 
 async def run_ctx_tool(ctx: RunContext) -> str:
@@ -88,9 +88,8 @@ async def test_plain_tool_no_context():
 async def test_capability_tools(default_model: str):
     """Test that capability tools work with AgentContext."""
     async with AgentPool() as pool:
-        agent_mgmt = AgentManagementToolsetConfig()
         subagent = SubagentToolsetConfig()
-        toolset_providers = [agent_mgmt.get_provider(), subagent.get_provider()]
+        toolset_providers = [subagent.get_provider()]
         agent = await pool.add_agent(name="test", model=default_model, toolsets=toolset_providers)
         prompt = "Get available agents using the list_available_nodes tool and return all names."
         result = await agent.run(prompt)
@@ -106,20 +105,22 @@ async def test_capability_tools(default_model: str):
 
 @pytest.mark.flaky(reruns=2)
 async def test_team_creation(default_model: str):
-    """Test that an agent can create other agents and form them into a team."""
+    """Test that an agent can create other agents and form them into a team via commands."""
     async with AgentPool() as pool:
-        # Create creator agent with needed toolsets
-        toolsets = [AgentManagementToolsetConfig()]
+        # Create creator agent with skills toolset (provides run_command tool)
+        from agentpool_config.toolsets import SkillsToolsetConfig
+
+        toolsets = [SkillsToolsetConfig()]
         toolset_providers = [config.get_provider() for config in toolsets]
         creator = await pool.add_agent(
             name="creator", model=default_model, toolsets=toolset_providers
         )
-        # Ask it to create a content team
+        # Ask it to create agents using run_command
         result = await creator.run("""
-            Create two agents:
-            1. A researcher who finds information named "alice"
-            2. A writer who creates content named "bob"
-            Then create a sequential team named "crew" with these agents.
+            Use run_command to:
+            1. Run "/create-agent alice" - a researcher who finds information
+            2. Run "/create-agent bob" - a writer who creates content
+            3. Run "/create-team crew alice bob" to form a sequential team
         """)
 
         # Verify agents were created

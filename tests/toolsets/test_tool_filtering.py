@@ -3,48 +3,11 @@
 from __future__ import annotations
 
 from agentpool_config.toolsets import (
-    AgentManagementToolsetConfig,
     CodeToolsetConfig,
-    HistoryToolsetConfig,
-    IntegrationToolsetConfig,
     SkillsToolsetConfig,
     SubagentToolsetConfig,
-    ToolManagementToolsetConfig,
     UserInteractionToolsetConfig,
 )
-
-
-async def test_agent_management_tool_filtering():
-    """Test filtering tools in agent management toolset."""
-    config = AgentManagementToolsetConfig(
-        tools={
-            "create_worker_agent": True,
-            "add_agent": False,
-            "add_team": True,
-            "connect_nodes": False,
-        }
-    )
-    provider = config.get_provider()
-    tools = await provider.get_tools()
-    tool_names = {t.name for t in tools}
-
-    assert "create_worker_agent" in tool_names
-    assert "add_team" in tool_names
-    assert "add_agent" not in tool_names
-    assert "connect_nodes" not in tool_names
-
-
-async def test_agent_management_no_filter():
-    """Test that all tools are enabled when no filter is specified."""
-    config = AgentManagementToolsetConfig()
-    provider = config.get_provider()
-    tools = await provider.get_tools()
-    tool_names = {t.name for t in tools}
-
-    assert "create_worker_agent" in tool_names
-    assert "add_agent" in tool_names
-    assert "add_team" in tool_names
-    assert "connect_nodes" in tool_names
 
 
 async def test_subagent_tool_filtering():
@@ -70,17 +33,6 @@ async def test_user_interaction_tool_filtering():
     assert len(tool_names) == 0
 
 
-async def test_history_tool_filtering():
-    """Test filtering tools in history toolset."""
-    config = HistoryToolsetConfig(tools={"search_history": True, "show_statistics": False})
-    provider = config.get_provider()
-    tools = await provider.get_tools()
-    tool_names = {t.name for t in tools}
-
-    assert "search_history" in tool_names
-    assert "show_statistics" not in tool_names
-
-
 async def test_skills_tool_filtering():
     """Test filtering tools in skills toolset."""
     config = SkillsToolsetConfig(tools={"load_skill": False})
@@ -90,30 +42,6 @@ async def test_skills_tool_filtering():
 
     assert "load_skill" not in tool_names
     assert "list_skills" in tool_names
-
-
-async def test_integration_tool_filtering():
-    """Test filtering tools in integration toolset."""
-    config = IntegrationToolsetConfig(
-        tools={"add_local_mcp_server": True, "add_remote_mcp_server": False}
-    )
-    provider = config.get_provider()
-    tools = await provider.get_tools()
-    tool_names = {t.name for t in tools}
-
-    assert "add_local_mcp_server" in tool_names
-    assert "add_remote_mcp_server" not in tool_names
-
-
-async def test_tool_management_filtering():
-    """Test filtering tools in tool management toolset."""
-    config = ToolManagementToolsetConfig(tools={"register_tool": True, "register_code_tool": False})
-    provider = config.get_provider()
-    tools = await provider.get_tools()
-    tool_names = {t.name for t in tools}
-
-    assert "register_tool" in tool_names
-    assert "register_code_tool" not in tool_names
 
 
 async def test_code_toolset_filtering():
@@ -129,10 +57,10 @@ async def test_code_toolset_filtering():
 
 async def test_filtering_provider_delegates_attributes():
     """Test that FilteringResourceProvider delegates attributes correctly."""
-    config = AgentManagementToolsetConfig(tools={"create_worker_agent": True})
+    config = SubagentToolsetConfig(tools={"delegate_to": True})
     provider = config.get_provider()
 
     # Should delegate name attribute
-    assert provider.name == "agent_management"
+    assert provider.name == "subagent_tools"
     # Should have log attribute from ResourceProvider
     assert hasattr(provider, "log")

@@ -229,18 +229,6 @@ async def get_logs(
     return "\n".join(lines)
 
 
-async def clear_logs() -> str:
-    """Clear all captured log entries from memory.
-
-    Returns:
-        Confirmation message
-    """
-    handler = get_memory_handler()
-    count = len(handler.records)
-    handler.clear()
-    return f"Cleared {count} log entries"
-
-
 # =============================================================================
 # Path Tools
 # =============================================================================
@@ -283,22 +271,16 @@ class DebugTools(StaticResourceProvider):
     - Platform path discovery
     """
 
-    def __init__(self, name: str = "debug", install_log_handler: bool = True) -> None:
+    def __init__(self, name: str = "debug") -> None:
         """Initialize debug tools.
 
         Args:
             name: Toolset name/namespace
-            install_log_handler: Whether to install the memory log handler
         """
         super().__init__(name=name)
-
-        if install_log_handler:
-            install_memory_handler()
 
         desc = (execute_introspection.__doc__ or "") + "\n\n" + INTROSPECTION_USAGE
         self._tools = [
             self.create_tool(execute_introspection, category="other", description_override=desc),
-            self.create_tool(get_logs, category="other", read_only=True, idempotent=True),
-            self.create_tool(clear_logs, category="other"),
             self.create_tool(get_platform_paths, category="other", read_only=True, idempotent=True),
         ]

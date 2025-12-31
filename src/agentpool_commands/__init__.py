@@ -5,6 +5,7 @@ from __future__ import annotations
 from agentpool_commands.base import NodeCommand
 from agentpool_commands.agents import (
     CreateAgentCommand,
+    CreateTeamCommand,
     ListAgentsCommand,
     ShowAgentCommand,
     # SwitchAgentCommand,
@@ -14,6 +15,12 @@ from agentpool_commands.connections import (
     DisconnectCommand,
     ListConnectionsCommand,
     DisconnectAllCommand,
+)
+from agentpool_commands.history import SearchHistoryCommand
+from agentpool_commands.mcp import (
+    AddMCPServerCommand,
+    AddRemoteMCPServerCommand,
+    ListMCPServersCommand,
 )
 from agentpool_commands.models import SetModelCommand
 from agentpool_commands.prompts import ListPromptsCommand, ShowPromptCommand
@@ -28,6 +35,7 @@ from agentpool_commands.tools import (
     DisableToolCommand,
     EnableToolCommand,
     ListToolsCommand,
+    RegisterCodeToolCommand,
     RegisterToolCommand,
     ShowToolCommand,
 )
@@ -39,6 +47,7 @@ from agentpool_commands.workers import (
 from agentpool_commands.utils import (
     CopyClipboardCommand,
     EditAgentFileCommand,
+    GetLogsCommand,
     ShareHistoryCommand,
 )
 from typing import TYPE_CHECKING, Any
@@ -64,6 +73,7 @@ def get_agent_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComm
         "enable_enable_tool": EnableToolCommand,
         "enable_disable_tool": DisableToolCommand,
         "enable_register_tool": RegisterToolCommand,
+        "enable_register_code_tool": RegisterCodeToolCommand,
         "enable_list_resources": ListResourcesCommand,
         "enable_show_resource": ShowResourceCommand,
         "enable_add_resource": AddResourceCommand,
@@ -77,6 +87,11 @@ def get_agent_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComm
         "enable_list_connections": ListConnectionsCommand,
         "enable_disconnect_all": DisconnectAllCommand,
         "enable_read": ReadCommand,
+        "enable_add_mcp_server": AddMCPServerCommand,
+        "enable_add_remote_mcp_server": AddRemoteMCPServerCommand,
+        "enable_list_mcp_servers": ListMCPServersCommand,
+        "enable_search_history": SearchHistoryCommand,
+        "enable_get_logs": GetLogsCommand,
     }
     return [command for flag, command in command_map.items() if kwargs.get(flag, True)]
 
@@ -85,6 +100,7 @@ def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComma
     """Get commands that operate on multiple agents or the pool itself."""
     command_map = {
         "enable_create_agent": CreateAgentCommand,
+        "enable_create_team": CreateTeamCommand,
         "enable_list_agents": ListAgentsCommand,
         "enable_show_agent": ShowAgentCommand,
         "enable_edit_agent_file": EditAgentFileCommand,
@@ -123,6 +139,7 @@ def get_commands(
     enable_enable_tool: bool = True,
     enable_disable_tool: bool = True,
     enable_register_tool: bool = True,
+    enable_register_code_tool: bool = True,
     enable_list_resources: bool = True,
     enable_show_resource: bool = True,
     enable_add_resource: bool = True,
@@ -136,7 +153,13 @@ def get_commands(
     enable_list_connections: bool = True,
     enable_disconnect_all: bool = True,
     enable_read: bool = True,
+    enable_add_mcp_server: bool = True,
+    enable_add_remote_mcp_server: bool = True,
+    enable_list_mcp_servers: bool = True,
+    enable_search_history: bool = True,
+    enable_get_logs: bool = True,
     enable_create_agent: bool = True,
+    enable_create_team: bool = True,
     enable_list_agents: bool = True,
     enable_show_agent: bool = True,
     enable_edit_agent_file: bool = True,
@@ -153,6 +176,7 @@ def get_commands(
         "enable_enable_tool": enable_enable_tool,
         "enable_disable_tool": enable_disable_tool,
         "enable_register_tool": enable_register_tool,
+        "enable_register_code_tool": enable_register_code_tool,
         "enable_list_resources": enable_list_resources,
         "enable_show_resource": enable_show_resource,
         "enable_add_resource": enable_add_resource,
@@ -166,9 +190,15 @@ def get_commands(
         "enable_list_connections": enable_list_connections,
         "enable_disconnect_all": enable_disconnect_all,
         "enable_read": enable_read,
+        "enable_add_mcp_server": enable_add_mcp_server,
+        "enable_add_remote_mcp_server": enable_add_remote_mcp_server,
+        "enable_list_mcp_servers": enable_list_mcp_servers,
+        "enable_search_history": enable_search_history,
+        "enable_get_logs": enable_get_logs,
     }
     pool_kwargs = {
         "enable_create_agent": enable_create_agent,
+        "enable_create_team": enable_create_team,
         "enable_list_agents": enable_list_agents,
         "enable_show_agent": enable_show_agent,
         "enable_edit_agent_file": enable_edit_agent_file,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+from typing import Literal
 import webbrowser
 
 from anyenv.text_sharing import TextSharerStr, Visibility  # noqa: TC002
@@ -10,6 +11,9 @@ from slashed import CommandContext, CommandError  # noqa: TC002
 
 from agentpool.messaging.context import NodeContext  # noqa: TC001
 from agentpool_commands.base import NodeCommand
+
+
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
 class CopyClipboardCommand(NodeCommand):
@@ -187,3 +191,50 @@ class ShareHistoryCommand(NodeCommand):
     def condition(cls) -> bool:
         """Check if anyenv text_sharing is available."""
         return importlib.util.find_spec("anyenv.text_sharing") is not None
+
+
+class GetLogsCommand(NodeCommand):
+    """Get recent log entries from memory.
+
+    Shows captured log entries with filtering options:
+    - Filter by minimum log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    - Filter by logger name substring
+    - Limit number of entries returned
+
+    Logs are shown newest first.
+    """
+
+    name = "get-logs"
+    category = "debug"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[NodeContext],
+        *,
+        level: LogLevel = "INFO",
+        logger_filter: str | None = None,
+        limit: int | str = 50,
+    ) -> None:
+        """Get recent log entries.
+
+        Args:
+            ctx: Command context
+            level: Minimum log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+            logger_filter: Only show logs from loggers containing this string
+            limit: Maximum number of log entries to return
+        """
+        from agentpool_toolsets.builtin.debug import get_memory_handler
+
+        # Convert limit to int (slashed passes args as strings)
+        limit_int = int(limit) if isinstance(limit, str) else limit
+
+        handler = get_memory_handler()
+        records = handler.get_records(level=level, logger_filter=logger_filter, limit=limit_int)
+
+        if not records:
+            await ctx.print("No log entries found matching criteria")
+            return
+
+        await ctx.print(f"## 📋 {len(records)} Log Entries (newest first)\n")
+        for record in records:
+            await ctx.print(record.message)

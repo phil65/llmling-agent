@@ -127,9 +127,15 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Command store for slash commands
         from slashed import CommandStore
 
+        from agentpool_commands import get_commands
+
         self._command_store: CommandStore = CommandStore()
 
-        # Register provided commands
+        # Register default agent commands
+        for command in get_commands():
+            self._command_store.register_command(command)
+
+        # Register additional provided commands
         if commands:
             for command in commands:
                 self._command_store.register_command(command)

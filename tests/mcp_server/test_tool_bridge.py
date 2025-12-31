@@ -10,7 +10,7 @@ from agentpool import AgentPool
 from agentpool.agents.acp_agent import ACPAgent
 from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge, create_tool_bridge
 from agentpool.models.acp_agents.mcp_capable import ClaudeACPAgentConfig
-from agentpool_config.toolsets import AgentManagementToolsetConfig, SubagentToolsetConfig
+from agentpool_config.toolsets import SkillsToolsetConfig, SubagentToolsetConfig
 
 
 if TYPE_CHECKING:
@@ -200,7 +200,7 @@ async def test_get_nonexistent_bridge_raises():
 async def test_acp_agent_toolsets_adds_providers():
     """Test that toolsets from config are added to ToolManager."""
     async with AgentPool() as pool:
-        toolsets = [SubagentToolsetConfig(), AgentManagementToolsetConfig()]
+        toolsets = [SubagentToolsetConfig(), SkillsToolsetConfig()]
         config = ClaudeACPAgentConfig(name="test_acp", toolsets=toolsets)
         agent = ACPAgent(config=config, agent_pool=pool)
         await agent._setup_toolsets()
@@ -211,6 +211,8 @@ async def test_acp_agent_toolsets_adds_providers():
         # SubagentTools provides: list_available_nodes, delegate_to, ask_agent
         assert "list_available_nodes" in tool_names
         assert "delegate_to" in tool_names
+        # SkillsTools provides: list_skills, load_skill, run_command
+        assert "list_skills" in tool_names
         await agent._cleanup()
 
 

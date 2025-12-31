@@ -102,13 +102,13 @@ async def test_claude_code_subagent_tool_invocation(
 
 async def test_claude_code_multiple_toolsets():
     """Test ClaudeCodeAgent with multiple toolsets."""
-    from agentpool_config.toolsets import AgentManagementToolsetConfig
+    from agentpool_config.toolsets import SkillsToolsetConfig
 
     config = ClaudeCodeAgentConfig(
         name="claude_code_multi",
         cwd=str(Path.cwd()),
         permission_mode="acceptEdits",
-        toolsets=[SubagentToolsetConfig(), AgentManagementToolsetConfig()],
+        toolsets=[SubagentToolsetConfig(), SkillsToolsetConfig()],
         builtin_tools=[],
     )
 
@@ -123,8 +123,8 @@ async def test_claude_code_multiple_toolsets():
         # Should have tools from both toolsets
         # SubagentToolset provides: list_available_nodes, delegate_to, ask_agent
         assert "list_available_nodes" in tool_names or "delegate_to" in tool_names
-        # AgentManagementToolset provides: create_worker_agent, add_agent, etc.
-        assert "add_agent" in tool_names or "create_worker_agent" in tool_names
+        # SkillsToolset provides: list_skills, load_skill, run_command
+        assert "list_skills" in tool_names or "load_skill" in tool_names
 
 
 async def test_pool_cleanup_stops_tool_bridges(manifest_with_claude_code: AgentsManifest):

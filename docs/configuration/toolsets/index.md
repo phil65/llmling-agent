@@ -47,7 +47,6 @@ agents:
 
 | Toolset | Description |
 |---------|-------------|
-| [Agent Management](./agent-management.md) | Create and manage agents dynamically |
 | [Subagent](./subagent.md) | Delegate tasks to other agents |
 | [Workers](./workers.md) | Manage worker agents |
 
@@ -60,21 +59,18 @@ agents:
 | [Code Mode](./code-mode.md) | Wrap toolsets for code-based interaction |
 | [Remote Code Mode](./remote-code-mode.md) | Remote code-based interaction |
 
-### Memory & History
+### Memory
 
 | Toolset | Description |
 |---------|-------------|
-| [History](./history.md) | Access conversation history |
 | [Semantic Memory](./semantic-memory.md) | Vector-based semantic memory |
 
 ### Utility
 
 | Toolset | Description |
 |---------|-------------|
-| [Tool Management](./tool-management.md) | Enable/disable tools at runtime |
 | [User Interaction](./user-interaction.md) | Interact with users |
 | [Skills](./skills.md) | Load and execute skills |
-| [Integrations](./integrations.md) | Integration utilities |
 | [Config Creation](./config-creation.md) | Create agent configurations |
 | [Import Tools](./import-tools.md) | Import individual functions as tools |
 | [Custom](./custom.md) | Load custom toolset implementations |

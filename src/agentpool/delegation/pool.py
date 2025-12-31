@@ -132,6 +132,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 raise ValueError(msg)
 
         registry.configure_observability(self.manifest.observability)
+
+        # Install memory log handler early so all logs are captured
+        from agentpool_toolsets.builtin.debug import install_memory_handler
+
+        self._memory_log_handler = install_memory_handler()
+
         self.shared_deps_type = shared_deps_type
         self._input_provider = input_provider
         self.exit_stack = AsyncExitStack()

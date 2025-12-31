@@ -1,4 +1,4 @@
-"""Provider for skills tools."""
+"""Provider for skills and commands tools."""
 
 from __future__ import annotations
 
@@ -59,14 +59,84 @@ async def list_skills(ctx: AgentContext) -> str:
     return "\n".join(lines)
 
 
-class SkillsTools(StaticResourceProvider):
-    """Provider for Claude Code Skills tools.
+class _StringOutputWriter:
+    """Output writer that captures output to a string buffer."""
 
-    Provides tools to discover and load skills from the pool's skills registry.
+    def __init__(self) -> None:
+        from io import StringIO
+
+        self._buffer = StringIO()
+
+    async def print(self, message: str) -> None:
+        """Write a message to the buffer."""
+        self._buffer.write(message)
+        self._buffer.write("\n")
+
+    def getvalue(self) -> str:
+        """Get the captured output."""
+        return self._buffer.getvalue()
+
+
+async def run_command(ctx: AgentContext, command: str) -> str:
+    """Execute an internal command.
+
+    This provides access to the agent's internal CLI for management operations.
+    Use `help` to see all available commands, or `help <command>` for details.
+
+    Commands cover:
+    - Agent/team management: create-agent, create-team, list-agents
+    - Tool management: list-tools, register-tool, enable-tool, disable-tool
+    - MCP servers: add-mcp-server, add-remote-mcp-server, list-mcp-servers
+    - Connections: connect, disconnect, connections
+    - Workers: add-worker, remove-worker, list-workers
+    - And more...
+
+    Args:
+        command: The command to execute (e.g., "help", "list-tools", "create-agent myagent").
+                 Leading slash is optional.
+
+    Returns:
+        Command output or error message
+    """
+    from slashed import CommandContext
+
+    if not ctx.agent.command_store:
+        return "No command store available"
+
+    # Remove leading slash if present (slashed expects command name without /)
+    cmd = command.lstrip("/")
+
+    # Create output capture
+    output = _StringOutputWriter()
+
+    # Create CommandContext with output capture and AgentContext as data
+    cmd_ctx = CommandContext(
+        output=output,
+        data=ctx,
+        command_store=ctx.agent.command_store,
+    )
+
+    try:
+        await ctx.agent.command_store.execute_command(cmd, cmd_ctx)
+        result = output.getvalue()
+        return result if result else "Command executed successfully."
+    except Exception as e:  # noqa: BLE001
+        return f"Command failed: {e}"
+
+
+class SkillsTools(StaticResourceProvider):
+    """Provider for skills and commands tools.
+
+    Provides tools to:
+    - Discover and load skills from the pool's skills registry
+    - Execute internal commands via the agent's command system
+
     Skills are discovered from configured directories (e.g., ~/.claude/skills/,
     .claude/skills/).
 
-    The pool manages skill discovery; this toolset just provides access to them.
+    Commands provide access to management operations like creating agents,
+    managing tools, connecting nodes, etc. Use run_command("/help") to discover
+    available commands.
     """
 
     def __init__(self, name: str = "skills") -> None:
@@ -74,4 +144,10 @@ class SkillsTools(StaticResourceProvider):
         self._tools = [
             self.create_tool(load_skill, category="read", read_only=True, idempotent=True),
             self.create_tool(list_skills, category="read", read_only=True, idempotent=True),
+            self.create_tool(
+                run_command,
+                category="other",
+                read_only=False,
+                idempotent=False,
+            ),
         ]

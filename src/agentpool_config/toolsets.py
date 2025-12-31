@@ -33,12 +33,6 @@ if TYPE_CHECKING:
 
 MarkupType = Literal["yaml", "json", "toml"]
 # Tool name literals for statically-defined toolsets
-AgentManagementToolName = Literal[
-    "create_worker_agent",
-    "add_agent",
-    "add_team",
-    "connect_nodes",
-]
 SubagentToolName = Literal[
     "list_available_nodes",
     "delegate_to",
@@ -55,11 +49,8 @@ ExecutionEnvironmentToolName = Literal[
     "list_processes",
 ]
 
-ToolManagementToolName = Literal["register_tool", "register_code_tool"]
 UserInteractionToolName = Literal["ask_user",]
-HistoryToolName = Literal["search_history", "show_statistics"]
 SkillsToolName = Literal["load_skill", "list_skills"]
-IntegrationToolName = Literal["add_local_mcp_server", "add_remote_mcp_server"]
 CodeToolName = Literal["format_code", "ast_grep"]
 PlanToolName = Literal["get_plan", "add_plan_entry", "update_plan_entry", "remove_plan_entry"]
 
@@ -176,37 +167,6 @@ class ComposioToolSetConfig(BaseToolsetConfig):
         return ComposioTools(user_id=self.user_id, toolsets=self.toolsets, api_key=key)
 
 
-class AgentManagementToolsetConfig(BaseToolsetConfig):
-    """Configuration for agent pool building tools."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "x-icon": "octicon:people-16",
-            "x-doc-title": "Agent Management Toolset",
-        }
-    )
-
-    type: Literal["agent_management"] = Field("agent_management", init=False)
-    """Agent pool building toolset (create_worker_agent, add_agent, add_team, connect_nodes)."""
-
-    tools: dict[AgentManagementToolName, bool] | None = Field(
-        default=None,
-        title="Tool filter",
-    )
-    """Optional tool filter to enable/disable specific tools."""
-
-    def get_provider(self) -> ResourceProvider:
-        """Create agent management tools provider."""
-        from agentpool_toolsets.builtin import AgentManagementTools
-
-        provider = AgentManagementTools(name="agent_management")
-        if self.tools is not None:
-            from agentpool.resource_providers import FilteringResourceProvider
-
-            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
-        return provider
-
-
 class SubagentToolsetConfig(BaseToolsetConfig):
     """Configuration for subagent interaction tools."""
 
@@ -312,37 +272,6 @@ class ExecutionEnvironmentToolsetConfig(BaseToolsetConfig):
         return provider
 
 
-class ToolManagementToolsetConfig(BaseToolsetConfig):
-    """Configuration for tool management toolset."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "x-icon": "octicon:tools-16",
-            "x-doc-title": "Tool Management Toolset",
-        }
-    )
-
-    type: Literal["tool_management"] = Field("tool_management", init=False)
-    """Tool management toolset."""
-
-    tools: dict[ToolManagementToolName, bool] | None = Field(
-        default=None,
-        title="Tool filter",
-    )
-    """Optional tool filter to enable/disable specific tools."""
-
-    def get_provider(self) -> ResourceProvider:
-        """Create tool management tools provider."""
-        from agentpool_toolsets.builtin import ToolManagementTools
-
-        provider = ToolManagementTools(name="tool_management")
-        if self.tools is not None:
-            from agentpool.resource_providers import FilteringResourceProvider
-
-            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
-        return provider
-
-
 class UserInteractionToolsetConfig(BaseToolsetConfig):
     """Configuration for user interaction toolset."""
 
@@ -367,37 +296,6 @@ class UserInteractionToolsetConfig(BaseToolsetConfig):
         from agentpool_toolsets.builtin import UserInteractionTools
 
         provider = UserInteractionTools(name="user_interaction")
-        if self.tools is not None:
-            from agentpool.resource_providers import FilteringResourceProvider
-
-            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
-        return provider
-
-
-class HistoryToolsetConfig(BaseToolsetConfig):
-    """Configuration for history toolset."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "x-icon": "octicon:history-16",
-            "x-doc-title": "History Toolset",
-        }
-    )
-
-    type: Literal["history"] = Field("history", init=False)
-    """History toolset."""
-
-    tools: dict[HistoryToolName, bool] | None = Field(
-        default=None,
-        title="Tool filter",
-    )
-    """Optional tool filter to enable/disable specific tools."""
-
-    def get_provider(self) -> ResourceProvider:
-        """Create history tools provider."""
-        from agentpool_toolsets.builtin import HistoryTools
-
-        provider = HistoryTools(name="history")
         if self.tools is not None:
             from agentpool.resource_providers import FilteringResourceProvider
 
@@ -434,37 +332,6 @@ class SkillsToolsetConfig(BaseToolsetConfig):
         from agentpool_toolsets.builtin import SkillsTools
 
         provider = SkillsTools(name="skills")
-        if self.tools is not None:
-            from agentpool.resource_providers import FilteringResourceProvider
-
-            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
-        return provider
-
-
-class IntegrationToolsetConfig(BaseToolsetConfig):
-    """Configuration for integration toolset."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "x-icon": "octicon:link-16",
-            "x-doc-title": "Integration Toolset",
-        }
-    )
-
-    type: Literal["integrations"] = Field("integrations", init=False)
-    """Integration toolset."""
-
-    tools: dict[IntegrationToolName, bool] | None = Field(
-        default=None,
-        title="Tool filter",
-    )
-    """Optional tool filter to enable/disable specific tools."""
-
-    def get_provider(self) -> ResourceProvider:
-        """Create integration tools provider."""
-        from agentpool_toolsets.builtin import IntegrationTools
-
-        provider = IntegrationTools(name="integrations")
         if self.tools is not None:
             from agentpool.resource_providers import FilteringResourceProvider
 
@@ -995,20 +862,11 @@ class DebugToolsetConfig(BaseToolsetConfig):
     type: Literal["debug"] = Field("debug", init=False)
     """Debug toolset."""
 
-    install_log_handler: bool = Field(
-        default=True,
-        title="Install log handler",
-    )
-    """Whether to install the memory log handler for log inspection."""
-
     def get_provider(self) -> ResourceProvider:
         """Create debug tools provider."""
         from agentpool_toolsets.builtin.debug import DebugTools
 
-        return DebugTools(
-            name=self.namespace or "debug",
-            install_log_handler=self.install_log_handler,
-        )
+        return DebugTools(name=self.namespace or "debug")
 
 
 class MCPDiscoveryToolsetConfig(BaseToolsetConfig):
@@ -1064,13 +922,9 @@ ToolsetConfig = Annotated[
     OpenAPIToolsetConfig
     | EntryPointToolsetConfig
     | ComposioToolSetConfig
-    | AgentManagementToolsetConfig
     | ExecutionEnvironmentToolsetConfig
-    | ToolManagementToolsetConfig
     | UserInteractionToolsetConfig
-    | HistoryToolsetConfig
     | SkillsToolsetConfig
-    | IntegrationToolsetConfig
     | CodeToolsetConfig
     | FSSpecToolsetConfig
     | VFSToolsetConfig
