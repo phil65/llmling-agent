@@ -61,6 +61,10 @@ class SessionDeletedEvent(OpenCodeBaseModel):
     type: Literal["session.deleted"] = "session.deleted"
     properties: SessionDeletedProperties
 
+    @classmethod
+    def create(cls, session_id: str) -> Self:
+        return cls(properties=SessionDeletedProperties(session_id=session_id))
+
 
 class SessionStatusProperties(OpenCodeBaseModel):
     """Properties for session status event."""
@@ -75,6 +79,10 @@ class SessionStatusEvent(OpenCodeBaseModel):
     type: Literal["session.status"] = "session.status"
     properties: SessionStatusProperties
 
+    @classmethod
+    def create(cls, session_id: str, status: SessionStatus) -> Self:
+        return cls(properties=SessionStatusProperties(session_id=session_id, status=status))
+
 
 class SessionIdleProperties(OpenCodeBaseModel):
     """Properties for session idle event (deprecated but still used by TUI)."""
@@ -87,6 +95,10 @@ class SessionIdleEvent(OpenCodeBaseModel):
 
     type: Literal["session.idle"] = "session.idle"
     properties: SessionIdleProperties
+
+    @classmethod
+    def create(cls, session_id: str) -> Self:
+        return cls(properties=SessionIdleProperties(session_id=session_id))
 
 
 class MessageUpdatedEventProperties(OpenCodeBaseModel):
@@ -101,6 +113,10 @@ class MessageUpdatedEvent(OpenCodeBaseModel):
     type: Literal["message.updated"] = "message.updated"
     properties: MessageUpdatedEventProperties
 
+    @classmethod
+    def create(cls, message: UserMessage | AssistantMessage) -> Self:
+        return cls(properties=MessageUpdatedEventProperties(info=message))
+
 
 class PartUpdatedEventProperties(OpenCodeBaseModel):
     """Properties for part updated event."""
@@ -114,6 +130,10 @@ class PartUpdatedEvent(OpenCodeBaseModel):
 
     type: Literal["message.part.updated"] = "message.part.updated"
     properties: PartUpdatedEventProperties
+
+    @classmethod
+    def create(cls, part: Part, delta: str | None = None) -> Self:
+        return cls(properties=PartUpdatedEventProperties(part=part, delta=delta))
 
 
 class PermissionRequestProperties(OpenCodeBaseModel):

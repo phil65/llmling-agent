@@ -24,15 +24,12 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     MessagePath,
     MessageTime,
     MessageUpdatedEvent,
-    MessageUpdatedEventProperties,
     MessageWithParts,
     PartUpdatedEvent,
-    PartUpdatedEventProperties,
     Session,
     SessionCreatedEvent,
     SessionCreateRequest,
     SessionDeletedEvent,
-    SessionDeletedProperties,
     SessionForkRequest,
     SessionInfoProperties,
     SessionInitRequest,
@@ -40,7 +37,6 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     SessionShare,
     SessionStatus,
     SessionStatusEvent,
-    SessionStatusProperties,
     SessionUpdatedEvent,
     SessionUpdateRequest,
     ShellRequest,
@@ -311,9 +307,7 @@ async def delete_session(session_id: str, state: StateDep) -> bool:
     state.todos.pop(session_id, None)
     # Delete from storage
     await state.pool.sessions.store.delete(session_id)
-    await state.broadcast_event(
-        SessionDeletedEvent(properties=SessionDeletedProperties(session_id=session_id))
-    )
+    await state.broadcast_event(SessionDeletedEvent.create(session_id))
 
     return True
 
@@ -618,20 +612,11 @@ async def run_shell_command(
     state.messages[session_id].append(assistant_msg_with_parts)
 
     # Broadcast message created
-    await state.broadcast_event(
-        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=assistant_message))
-    )
+    await state.broadcast_event(MessageUpdatedEvent.create(assistant_message))
 
     # Mark session as busy
     state.session_status[session_id] = SessionStatus(type="busy")
-    await state.broadcast_event(
-        SessionStatusEvent(
-            properties=SessionStatusProperties(
-                session_id=session_id,
-                status=SessionStatus(type="busy"),
-            )
-        )
-    )
+    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="busy")))
 
     # Add step-start part
     step_start = StepStartPart(
@@ -640,9 +625,7 @@ async def run_shell_command(
         session_id=session_id,
     )
     assistant_msg_with_parts.parts.append(step_start)
-    await state.broadcast_event(
-        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_start))
-    )
+    await state.broadcast_event(PartUpdatedEvent.create(step_start))
 
     # Execute the command
     output_text = ""
@@ -667,9 +650,7 @@ async def run_shell_command(
         text=f"$ {request.command}\n{output_text}",
     )
     assistant_msg_with_parts.parts.append(text_part)
-    await state.broadcast_event(
-        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=text_part))
-    )
+    await state.broadcast_event(PartUpdatedEvent.create(text_part))
     step_finish = StepFinishPart(
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
@@ -683,29 +664,18 @@ async def run_shell_command(
         cost=0,
     )
     assistant_msg_with_parts.parts.append(step_finish)
-    await state.broadcast_event(
-        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_finish))
-    )
+    await state.broadcast_event(PartUpdatedEvent.create(step_finish))
 
     # Update message with completion time
     updated_assistant = assistant_message.model_copy(
         update={"time": MessageTime(created=now, completed=response_time)}
     )
     assistant_msg_with_parts.info = updated_assistant
-    await state.broadcast_event(
-        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=updated_assistant))
-    )
+    await state.broadcast_event(MessageUpdatedEvent.create(updated_assistant))
 
     # Mark session as idle
     state.session_status[session_id] = SessionStatus(type="idle")
-    await state.broadcast_event(
-        SessionStatusEvent(
-            properties=SessionStatusProperties(
-                session_id=session_id,
-                status=SessionStatus(type="idle"),
-            )
-        )
-    )
+    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="idle")))
 
     return assistant_msg_with_parts
 
@@ -809,20 +779,11 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
 
     # Broadcast message created
-    await state.broadcast_event(
-        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=assistant_message))
-    )
+    await state.broadcast_event(MessageUpdatedEvent.create(assistant_message))
 
     # Mark session as busy
     state.session_status[session_id] = SessionStatus(type="busy")
-    await state.broadcast_event(
-        SessionStatusEvent(
-            properties=SessionStatusProperties(
-                session_id=session_id,
-                status=SessionStatus(type="busy"),
-            )
-        )
-    )
+    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="busy")))
 
     # Add step-start part
     step_start = StepStartPart(
@@ -831,9 +792,7 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
         session_id=session_id,
     )
     assistant_msg_with_parts.parts.append(step_start)
-    await state.broadcast_event(
-        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_start))
-    )
+    await state.broadcast_event(PartUpdatedEvent.create(step_start))
 
     try:
         from agentpool.messaging.compaction import compact_conversation, summarizing_context
@@ -873,9 +832,7 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
         text=output_text,
     )
     assistant_msg_with_parts.parts.append(text_part)
-    await state.broadcast_event(
-        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=text_part))
-    )
+    await state.broadcast_event(PartUpdatedEvent.create(text_part))
 
     # Add step-finish part
     from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
@@ -893,9 +850,7 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
         cost=0,
     )
     assistant_msg_with_parts.parts.append(step_finish)
-    await state.broadcast_event(
-        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_finish))
-    )
+    await state.broadcast_event(PartUpdatedEvent.create(step_finish))
 
     # Update message with completion time
     updated_assistant = assistant_message.model_copy(
@@ -904,19 +859,10 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
     assistant_msg_with_parts.info = updated_assistant
     # Add the summary message to the session
     state.messages[session_id].append(assistant_msg_with_parts)
-    await state.broadcast_event(
-        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=updated_assistant))
-    )
+    await state.broadcast_event(MessageUpdatedEvent.create(updated_assistant))
     # Mark session as idle
     state.session_status[session_id] = SessionStatus(type="idle")
-    await state.broadcast_event(
-        SessionStatusEvent(
-            properties=SessionStatusProperties(
-                session_id=session_id,
-                status=SessionStatus(type="idle"),
-            )
-        )
-    )
+    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="idle")))
 
     return assistant_msg_with_parts
 
@@ -1185,27 +1131,16 @@ async def execute_command(  # noqa: PLR0915
 
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
     state.messages[session_id].append(assistant_msg_with_parts)
-    await state.broadcast_event(
-        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=assistant_message))
-    )
+    await state.broadcast_event(MessageUpdatedEvent.create(assistant_message))
     # Mark session as busy
     state.session_status[session_id] = SessionStatus(type="busy")
-    await state.broadcast_event(
-        SessionStatusEvent(
-            properties=SessionStatusProperties(
-                session_id=session_id,
-                status=SessionStatus(type="busy"),
-            )
-        )
-    )
+    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="busy")))
 
     # Add step-start part
     part_id = identifier.ascending("part")
     step_start = StepStartPart(id=part_id, message_id=assistant_msg_id, session_id=session_id)
     assistant_msg_with_parts.parts.append(step_start)
-    await state.broadcast_event(
-        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_start))
-    )
+    await state.broadcast_event(PartUpdatedEvent.create(step_start))
 
     # Get prompt content and execute through the agent
     try:
@@ -1241,9 +1176,7 @@ async def execute_command(  # noqa: PLR0915
         text=output_text,
     )
     assistant_msg_with_parts.parts.append(text_part)
-    await state.broadcast_event(
-        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=text_part))
-    )
+    await state.broadcast_event(PartUpdatedEvent.create(text_part))
     step_finish = StepFinishPart(
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
@@ -1252,28 +1185,15 @@ async def execute_command(  # noqa: PLR0915
         cost=0,
     )
     assistant_msg_with_parts.parts.append(step_finish)
-    await state.broadcast_event(
-        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_finish))
-    )
+    await state.broadcast_event(PartUpdatedEvent.create(step_finish))
 
     # Update message with completion time
     updated_assistant = assistant_message.model_copy(
         update={"time": MessageTime(created=now, completed=response_time)}
     )
     assistant_msg_with_parts.info = updated_assistant
-    await state.broadcast_event(
-        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=updated_assistant))
-    )
-
+    await state.broadcast_event(MessageUpdatedEvent.create(updated_assistant))
     # Mark session as idle
     state.session_status[session_id] = SessionStatus(type="idle")
-    await state.broadcast_event(
-        SessionStatusEvent(
-            properties=SessionStatusProperties(
-                session_id=session_id,
-                status=SessionStatus(type="idle"),
-            )
-        )
-    )
-
+    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="idle")))
     return assistant_msg_with_parts

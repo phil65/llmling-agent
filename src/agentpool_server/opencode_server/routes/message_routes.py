@@ -33,14 +33,11 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     MessageRequest,
     MessageTime,
     MessageUpdatedEvent,
-    MessageUpdatedEventProperties,
     MessageWithParts,
     Part,
     PartUpdatedEvent,
-    PartUpdatedEventProperties,
     SessionStatus,
     SessionStatusEvent,
-    SessionStatusProperties,
     StepFinishPart,
     StepStartPart,
     TextPart,
@@ -220,19 +217,14 @@ async def send_message(  # noqa: PLR0915
     await persist_message_to_storage(state, user_msg_with_parts, session_id)
 
     # Broadcast user message created event
-    await state.broadcast_event(
-        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=user_message))
-    )
+    await state.broadcast_event(MessageUpdatedEvent.create(user_message))
 
     # Broadcast user message parts so they appear in UI
     for part in user_parts:
-        await state.broadcast_event(
-            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=part))
-        )
+        await state.broadcast_event(PartUpdatedEvent.create(part))
 
     state.session_status[session_id] = SessionStatus(type="busy")
-    props = SessionStatusProperties(session_id=session_id, status=SessionStatus(type="busy"))
-    await state.broadcast_event(SessionStatusEvent(properties=props))
+    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="busy")))
 
     # Extract user prompt text
     user_prompt = extract_user_prompt_from_parts([p.model_dump() for p in request.parts])
@@ -263,8 +255,7 @@ async def send_message(  # noqa: PLR0915
     state.messages[session_id].append(assistant_msg_with_parts)
 
     # Broadcast assistant message created
-    updated_props = MessageUpdatedEventProperties(info=assistant_message)
-    await state.broadcast_event(MessageUpdatedEvent(properties=updated_props))
+    await state.broadcast_event(MessageUpdatedEvent.create(assistant_message))
 
     # Add step-start part
     step_start = StepStartPart(
@@ -273,8 +264,7 @@ async def send_message(  # noqa: PLR0915
         session_id=session_id,
     )
     assistant_msg_with_parts.parts.append(step_start)
-    part_updated_props = PartUpdatedEventProperties(part=step_start)
-    await state.broadcast_event(PartUpdatedEvent(properties=part_updated_props))
+    await state.broadcast_event(PartUpdatedEvent.create(step_start))
 
     # Call the agent
     response_text = ""
@@ -308,8 +298,7 @@ async def send_message(  # noqa: PLR0915
                         text=delta,
                     )
                     assistant_msg_with_parts.parts.append(text_part)
-                    part_updated_props = PartUpdatedEventProperties(part=text_part, delta=delta)
-                    await state.broadcast_event(PartUpdatedEvent(properties=part_updated_props))
+                    await state.broadcast_event(PartUpdatedEvent.create(text_part, delta=delta))
 
                 # Text streaming delta
                 case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)) if delta:
@@ -326,8 +315,7 @@ async def send_message(  # noqa: PLR0915
                             if isinstance(p, TextPart) and p.id == text_part.id:
                                 assistant_msg_with_parts.parts[i] = text_part
                                 break
-                        part_updated_props = PartUpdatedEventProperties(part=text_part, delta=delta)
-                        await state.broadcast_event(PartUpdatedEvent(properties=part_updated_props))
+                        await state.broadcast_event(PartUpdatedEvent.create(text_part, delta=delta))
 
                 # Tool call start - from Claude Code agent or toolsets
                 case ToolCallStartEvent(
@@ -359,9 +347,7 @@ async def send_message(  # noqa: PLR0915
                             if isinstance(p, ToolPart) and p.id == existing.id:
                                 assistant_msg_with_parts.parts[i] = updated
                                 break
-                        await state.broadcast_event(
-                            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=updated))
-                        )
+                        await state.broadcast_event(PartUpdatedEvent.create(updated))
                     else:
                         # Create new tool part with the title
                         tool_inputs[tool_call_id] = raw_input or {}
@@ -382,8 +368,7 @@ async def send_message(  # noqa: PLR0915
                         )
                         tool_parts[tool_call_id] = tool_part
                         assistant_msg_with_parts.parts.append(tool_part)
-                        part_updated_props = PartUpdatedEventProperties(part=tool_part)
-                        await state.broadcast_event(PartUpdatedEvent(properties=part_updated_props))
+                        await state.broadcast_event(PartUpdatedEvent.create(tool_part))
 
                 # Pydantic-ai tool call events (fallback for pydantic-ai agents)
                 case (
@@ -416,9 +401,7 @@ async def send_message(  # noqa: PLR0915
                     )
                     tool_parts[tool_call_id] = tool_part
                     assistant_msg_with_parts.parts.append(tool_part)
-                    await state.broadcast_event(
-                        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=tool_part))
-                    )
+                    await state.broadcast_event(PartUpdatedEvent.create(tool_part))
 
                 # Tool call progress
                 case ToolCallProgressEvent(
@@ -466,9 +449,7 @@ async def send_message(  # noqa: PLR0915
                             if isinstance(p, ToolPart) and p.id == existing.id:
                                 assistant_msg_with_parts.parts[i] = updated
                                 break
-                        await state.broadcast_event(
-                            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=updated))
-                        )
+                        await state.broadcast_event(PartUpdatedEvent.create(updated))
                     else:
                         # Create new tool part from progress event
                         tool_inputs[tool_call_id] = event_tool_input or {}
@@ -490,9 +471,7 @@ async def send_message(  # noqa: PLR0915
                         )
                         tool_parts[tool_call_id] = tool_part
                         assistant_msg_with_parts.parts.append(tool_part)
-                        await state.broadcast_event(
-                            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=tool_part))
-                        )
+                        await state.broadcast_event(PartUpdatedEvent.create(tool_part))
 
                 # Tool call complete
                 case ToolCallCompleteEvent(
@@ -533,9 +512,7 @@ async def send_message(  # noqa: PLR0915
                         if isinstance(p, ToolPart) and p.id == existing.id:
                             assistant_msg_with_parts.parts[i] = updated
                             break
-                    await state.broadcast_event(
-                        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=updated))
-                    )
+                    await state.broadcast_event(PartUpdatedEvent.create(updated))
 
                 # Stream complete - extract token usage
                 case StreamCompleteEvent(message=msg) if msg and msg.usage:
@@ -559,9 +536,7 @@ async def send_message(  # noqa: PLR0915
         assistant_msg_with_parts.parts.append(text_part)
 
         # Broadcast text part update
-        await state.broadcast_event(
-            PartUpdatedEvent(properties=PartUpdatedEventProperties(part=text_part))
-        )
+        await state.broadcast_event(PartUpdatedEvent.create(text_part))
     elif text_part is not None:
         # Update the streamed text part with final timing
         final_text_part = TextPart(
@@ -590,9 +565,7 @@ async def send_message(  # noqa: PLR0915
         cost=0,  # TODO: Calculate actual cost
     )
     assistant_msg_with_parts.parts.append(step_finish)
-    await state.broadcast_event(
-        PartUpdatedEvent(properties=PartUpdatedEventProperties(part=step_finish))
-    )
+    await state.broadcast_event(PartUpdatedEvent.create(step_finish))
 
     print(f"Response text: {response_text[:100] if response_text else 'EMPTY'}...")
 
@@ -611,29 +584,16 @@ async def send_message(  # noqa: PLR0915
     assistant_msg_with_parts.info = updated_assistant
 
     # Broadcast final message update
-    await state.broadcast_event(
-        MessageUpdatedEvent(properties=MessageUpdatedEventProperties(info=updated_assistant))
-    )
-
+    await state.broadcast_event(MessageUpdatedEvent.create(updated_assistant))
     # Persist assistant message to storage
     await persist_message_to_storage(state, assistant_msg_with_parts, session_id)
 
     # Mark session as not running
-    from agentpool_server.opencode_server.models import SessionIdleEvent, SessionIdleProperties
+    from agentpool_server.opencode_server.models import SessionIdleEvent
 
     state.session_status[session_id] = SessionStatus(type="idle")
-    await state.broadcast_event(
-        SessionStatusEvent(
-            properties=SessionStatusProperties(
-                session_id=session_id,
-                status=SessionStatus(type="idle"),
-            )
-        )
-    )
-    # Also emit deprecated session.idle event (still used by TUI run command)
-    await state.broadcast_event(
-        SessionIdleEvent(properties=SessionIdleProperties(session_id=session_id))
-    )
+    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="idle")))
+    await state.broadcast_event(SessionIdleEvent.create(session_id))
 
     # Update session timestamp
     session = state.sessions[session_id]
