@@ -83,13 +83,7 @@ async def list_commands(state: StateDep) -> list[Command]:
     """
     try:
         prompts = await state.agent.tools.list_prompts()
-        return [
-            Command(
-                name=prompt.name,
-                description=prompt.description or "",
-            )
-            for prompt in prompts
-        ]
+        return [Command(name=p.name, description=p.description or "") for p in prompts]
     except Exception:  # noqa: BLE001
         return []
 
@@ -108,11 +102,8 @@ async def get_mcp_status(state: StateDep) -> dict[str, MCPStatus]:
         if status_type == "connected":
             result[provider.name] = MCPStatus(name=provider.name, status="connected")
         elif status_type == "failed":
-            result[provider.name] = MCPStatus(
-                name=provider.name,
-                status="error",
-                error=status_dict.get("error", "Unknown error"),
-            )
+            error = status_dict.get("error", "Unknown error")
+            result[provider.name] = MCPStatus(name=provider.name, status="error", error=error)
         else:
             result[provider.name] = MCPStatus(name=provider.name, status="disconnected")
 
@@ -171,10 +162,8 @@ async def add_mcp_server(request: AddMCPServerRequest, state: StateDep) -> MCPSt
         args = request.args or []
         config = StdioMCPServerConfig(command=request.command, args=args, env=request.env)
     else:
-        raise HTTPException(
-            status_code=400,
-            detail="Must provide either 'command' (for stdio) or 'url' (for HTTP/SSE)",
-        )
+        detail = "Must provide either 'command' (for stdio) or 'url' (for HTTP/SSE)"
+        raise HTTPException(status_code=400, detail=detail)
 
     # Find the MCPManager and add the server
     manager: MCPManager | None = None
