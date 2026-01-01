@@ -185,23 +185,32 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 
 ---
 
-## TUI (Skipped)
+## TUI (External Control)
 
-These endpoints are for driving the TUI and are not needed for programmatic access.
+These endpoints allow external integrations (e.g., VSCode extension) to control the TUI
+by broadcasting events via SSE.
 
 | Status | Method | Path | Description |
 |--------|--------|------|-------------|
-| [-] | POST | `/tui/append-prompt` | Append text to prompt |
-| [-] | POST | `/tui/open-help` | Open help dialog |
-| [-] | POST | `/tui/open-sessions` | Open session selector |
-| [-] | POST | `/tui/open-themes` | Open theme selector |
-| [-] | POST | `/tui/open-models` | Open model selector |
-| [-] | POST | `/tui/submit-prompt` | Submit current prompt |
-| [-] | POST | `/tui/clear-prompt` | Clear the prompt |
-| [-] | POST | `/tui/execute-command` | Execute a command |
-| [-] | POST | `/tui/show-toast` | Show toast notification |
-| [-] | GET | `/tui/control/next` | Wait for next control request |
-| [-] | POST | `/tui/control/response` | Respond to control request |
+| [x] | POST | `/tui/append-prompt` | Append text to prompt |
+| [x] | POST | `/tui/open-help` | Open help dialog |
+| [x] | POST | `/tui/open-sessions` | Open session selector |
+| [x] | POST | `/tui/open-themes` | Open theme selector |
+| [x] | POST | `/tui/open-models` | Open model selector |
+| [x] | POST | `/tui/submit-prompt` | Submit current prompt |
+| [x] | POST | `/tui/clear-prompt` | Clear the prompt |
+| [x] | POST | `/tui/execute-command` | Execute a command |
+| [x] | POST | `/tui/show-toast` | Show toast notification |
+| [-] | GET | `/tui/control/next` | Wait for next control request (not needed) |
+| [-] | POST | `/tui/control/response` | Respond to control request (not needed) |
+
+### TUI SSE Event Types
+
+| Status | Event Type | Description |
+|--------|------------|-------------|
+| [x] | `tui.prompt.append` | Append text to prompt input |
+| [x] | `tui.command.execute` | Execute a TUI command |
+| [x] | `tui.toast.show` | Show toast notification |
 
 ---
 

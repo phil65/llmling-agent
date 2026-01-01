@@ -8,6 +8,7 @@ from agentpool_server.opencode_server.routes.message_routes import router as mes
 from agentpool_server.opencode_server.routes.file_routes import router as file_router
 from agentpool_server.opencode_server.routes.agent_routes import router as agent_router
 from agentpool_server.opencode_server.routes.pty_routes import router as pty_router
+from agentpool_server.opencode_server.routes.tui_routes import router as tui_router
 
 __all__ = [
     "agent_router",
@@ -18,4 +19,5 @@ __all__ = [
     "message_router",
     "pty_router",
     "session_router",
+    "tui_router",
 ]

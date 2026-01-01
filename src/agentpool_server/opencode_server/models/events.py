@@ -208,6 +208,86 @@ class PermissionResolvedEvent(OpenCodeBaseModel):
         return cls(properties=props)
 
 
+# =============================================================================
+# TUI Events - for external control of the TUI (e.g., VSCode extension)
+# =============================================================================
+
+
+class TuiPromptAppendProperties(OpenCodeBaseModel):
+    """Properties for TUI prompt append event."""
+
+    text: str
+
+
+class TuiPromptAppendEvent(OpenCodeBaseModel):
+    """TUI prompt append event - appends text to the prompt input."""
+
+    type: Literal["tui.prompt.append"] = "tui.prompt.append"
+    properties: TuiPromptAppendProperties
+
+    @classmethod
+    def create(cls, text: str) -> Self:
+        return cls(properties=TuiPromptAppendProperties(text=text))
+
+
+class TuiCommandExecuteProperties(OpenCodeBaseModel):
+    """Properties for TUI command execute event."""
+
+    command: str
+
+
+class TuiCommandExecuteEvent(OpenCodeBaseModel):
+    """TUI command execute event - executes a TUI command.
+
+    Commands include:
+    - session.list, session.new, session.share, session.interrupt, session.compact
+    - session.page.up, session.page.down, session.half.page.up, session.half.page.down
+    - session.first, session.last
+    - prompt.clear, prompt.submit
+    - agent.cycle
+    """
+
+    type: Literal["tui.command.execute"] = "tui.command.execute"
+    properties: TuiCommandExecuteProperties
+
+    @classmethod
+    def create(cls, command: str) -> Self:
+        return cls(properties=TuiCommandExecuteProperties(command=command))
+
+
+class TuiToastShowProperties(OpenCodeBaseModel):
+    """Properties for TUI toast show event."""
+
+    title: str | None = None
+    message: str
+    variant: Literal["info", "success", "warning", "error"] = "info"
+    duration: int = 5000  # Duration in milliseconds
+
+
+class TuiToastShowEvent(OpenCodeBaseModel):
+    """TUI toast show event - shows a toast notification."""
+
+    type: Literal["tui.toast.show"] = "tui.toast.show"
+    properties: TuiToastShowProperties
+
+    @classmethod
+    def create(
+        cls,
+        message: str,
+        variant: Literal["info", "success", "warning", "error"] = "info",
+        title: str | None = None,
+        duration: int = 5000,
+    ) -> Self:
+        return cls(
+            properties=TuiToastShowProperties(
+                title=title,
+                message=message,
+                variant=variant,
+                duration=duration,
+            )
+        )
+
+
 Event = (
     ServerConnectedEvent
     | SessionCreatedEvent
@@ -219,4 +299,7 @@ Event = (
     | PartUpdatedEvent
     | PermissionRequestEvent
     | PermissionResolvedEvent
+    | TuiPromptAppendEvent
+    | TuiCommandExecuteEvent
+    | TuiToastShowEvent
 )
