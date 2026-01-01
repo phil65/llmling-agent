@@ -473,15 +473,27 @@ def chat_message_to_opencode(  # noqa: PLR0915
         if msg.response_time:
             completed_ms = created_ms + int(msg.response_time * 1000)
 
-        # Extract token usage
+        # Extract token usage (handle both object and dict formats)
+        usage = msg.usage
+        if usage:
+            if isinstance(usage, dict):
+                input_tokens = usage.get("input_tokens", 0) or 0
+                output_tokens = usage.get("output_tokens", 0) or 0
+                cache_read = usage.get("cache_read_tokens", 0) or 0
+                cache_write = usage.get("cache_write_tokens", 0) or 0
+            else:
+                input_tokens = usage.input_tokens or 0
+                output_tokens = usage.output_tokens or 0
+                cache_read = usage.cache_read_tokens or 0
+                cache_write = usage.cache_write_tokens or 0
+        else:
+            input_tokens = output_tokens = cache_read = cache_write = 0
+
         tokens = Tokens(
-            input=msg.usage.input_tokens or 0 if msg.usage else 0,
-            output=msg.usage.output_tokens or 0 if msg.usage else 0,
+            input=input_tokens,
+            output=output_tokens,
             reasoning=0,
-            cache=TokensCache(
-                read=msg.usage.cache_read_tokens or 0 if msg.usage else 0,
-                write=msg.usage.cache_write_tokens or 0 if msg.usage else 0,
-            ),
+            cache=TokensCache(read=cache_read, write=cache_write),
         )
 
         info = AssistantMessage(
@@ -541,6 +553,47 @@ def chat_message_to_opencode(  # noqa: PLR0915
                             ),
                         )
                         tool_calls[p.tool_call_id or ""] = tool_part
+                        parts.append(tool_part)
+
+            elif isinstance(model_msg, dict) and model_msg.get("kind") == "response":
+                # Handle serialized dict format from storage
+                for p in model_msg.get("parts", []):
+                    part_kind = p.get("part_kind")
+                    if part_kind == "text":
+                        text_content = p.get("content", "")
+                        if text_content:
+                            parts.append(
+                                TextPart(
+                                    id=p.get("id") or generate_part_id(),
+                                    message_id=message_id,
+                                    session_id=session_id,
+                                    text=text_content,
+                                    time=TimeStartEndOptional(start=created_ms, end=completed_ms),
+                                )
+                            )
+                    elif part_kind == "tool-call":
+                        tool_input = p.get("args", {})
+                        if isinstance(tool_input, str):
+                            import json
+
+                            try:
+                                tool_input = json.loads(tool_input)
+                            except json.JSONDecodeError:
+                                tool_input = {}
+                        tool_part = ToolPart(
+                            id=generate_part_id(),
+                            message_id=message_id,
+                            session_id=session_id,
+                            tool=p.get("tool_name", "unknown"),
+                            call_id=p.get("tool_call_id") or generate_part_id(),
+                            state=ToolStateRunning(
+                                status="running",
+                                time=TimeStart(start=created_ms),
+                                input=tool_input,
+                                title=f"Running {p.get('tool_name', 'unknown')}",
+                            ),
+                        )
+                        tool_calls[p.get("tool_call_id") or ""] = tool_part
                         parts.append(tool_part)
 
             elif isinstance(model_msg, ModelRequest):
@@ -606,6 +659,73 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                     message_id=message_id,
                                     session_id=session_id,
                                     tool=part.tool_name,
+                                    call_id=call_id,
+                                    state=state,
+                                )
+                            )
+
+            elif isinstance(model_msg, dict) and model_msg.get("kind") == "request":
+                # Handle serialized dict format for tool returns from storage
+                for p in model_msg.get("parts", []):
+                    if p.get("part_kind") == "tool-return":
+                        call_id = p.get("tool_call_id") or ""
+                        existing = tool_calls.get(call_id)
+                        content = p.get("content")
+
+                        # Format output
+                        if isinstance(content, str):
+                            output = content
+                        elif isinstance(content, dict):
+                            import json
+
+                            output = json.dumps(content, indent=2)
+                        else:
+                            output = str(content) if content is not None else ""
+
+                        # Check for error
+                        is_error = isinstance(content, dict) and "error" in content
+                        tool_name = p.get("tool_name", "unknown")
+
+                        if existing:
+                            existing_input = _get_input_from_state(existing.state)
+                            if is_error:
+                                existing.state = ToolStateError(
+                                    status="error",
+                                    error=str(content.get("error", "Unknown error")),
+                                    input=existing_input,
+                                    time=TimeStartEnd(start=created_ms, end=completed_ms),
+                                )
+                            else:
+                                existing.state = ToolStateCompleted(
+                                    status="completed",
+                                    title=f"Completed {tool_name}",
+                                    input=existing_input,
+                                    output=output,
+                                    time=TimeStartEndCompacted(start=created_ms, end=completed_ms),
+                                )
+                        else:
+                            state: ToolStateCompleted | ToolStateError
+                            if is_error:
+                                state = ToolStateError(
+                                    status="error",
+                                    error=str(content.get("error", "Unknown error")),
+                                    input={},
+                                    time=TimeStartEnd(start=created_ms, end=completed_ms),
+                                )
+                            else:
+                                state = ToolStateCompleted(
+                                    status="completed",
+                                    title=f"Completed {tool_name}",
+                                    input={},
+                                    output=output,
+                                    time=TimeStartEndCompacted(start=created_ms, end=completed_ms),
+                                )
+                            parts.append(
+                                ToolPart(
+                                    id=generate_part_id(),
+                                    message_id=message_id,
+                                    session_id=session_id,
+                                    tool=tool_name,
                                     call_id=call_id,
                                     state=state,
                                 )
