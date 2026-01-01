@@ -113,6 +113,7 @@ async def get_agent_capabilities(agent_class: type[BaseACPAgentConfig]) -> dict[
                 command,
                 *args,
                 env=env,
+                log_stderr=True,
             ) as (conn, _process):
                 init_request = InitializeRequest(
                     protocol_version=1,

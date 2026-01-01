@@ -362,6 +362,32 @@ def default_environment() -> dict[str, str]:
     return env
 
 
+async def _drain_stderr_to_log(
+    process: Process,
+    command: str,
+    log_level: int = logging.WARNING,
+) -> None:
+    """Read stderr from a process and log each line.
+
+    Args:
+        process: The subprocess to read stderr from.
+        command: Command name for log messages.
+        log_level: Log level for stderr output (default WARNING).
+    """
+    if process.stderr is None:
+        return
+
+    try:
+        async for line_bytes in process.stderr:
+            line = line_bytes.decode(errors="replace").rstrip()
+            if line:
+                logger.log(log_level, "[%s stderr] %s", command, line)
+    except anyio.EndOfStream:
+        pass
+    except Exception:  # noqa: BLE001
+        logger.debug("Error reading stderr from %s", command, exc_info=True)
+
+
 @asynccontextmanager
 async def spawn_stdio_transport(
     command: str,
@@ -370,11 +396,23 @@ async def spawn_stdio_transport(
     cwd: str | Path | None = None,
     stderr: int | None = subprocess.PIPE,
     shutdown_timeout: float = 2.0,
+    log_stderr: bool = False,
+    stderr_log_level: int = logging.WARNING,
 ) -> AsyncIterator[tuple[ByteReceiveStream, ByteSendStream, Process]]:
     """Launch a subprocess and expose its stdio streams as anyio streams.
 
     This mirrors the defensive shutdown behaviour used by the MCP Python SDK:
     close stdin first, wait for graceful exit, then escalate to terminate/kill.
+
+    Args:
+        command: The command to execute.
+        *args: Arguments for the command.
+        env: Environment variables (merged with defaults).
+        cwd: Working directory for the subprocess.
+        stderr: How to handle stderr (default: subprocess.PIPE).
+        shutdown_timeout: Timeout for graceful shutdown.
+        log_stderr: If True, read stderr in background and log each line.
+        stderr_log_level: Log level for stderr output (default WARNING).
     """
     merged_env = default_environment()
     if env:
@@ -395,9 +433,19 @@ async def spawn_stdio_transport(
         msg = "spawn_stdio_transport requires stdout/stdin pipes"
         raise RuntimeError(msg)
 
+    stderr_task: asyncio.Task[None] | None = None
+    if log_stderr and process.stderr is not None:
+        stderr_task = asyncio.create_task(_drain_stderr_to_log(process, command, stderr_log_level))
+
     try:
         yield process.stdout, process.stdin, process
     finally:
+        # Cancel stderr logging task
+        if stderr_task is not None:
+            stderr_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await stderr_task
+
         # Attempt graceful stdin shutdown first
         if process.stdin is not None:
             with contextlib.suppress(Exception):

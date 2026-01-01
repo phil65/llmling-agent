@@ -87,10 +87,20 @@ async def spawn_stdio_connection(
     env: Mapping[str, str] | None = None,
     cwd: str | Path | None = None,
     observers: list[StreamObserver] | None = None,
-    **transport_kwargs: Any,
+    log_stderr: bool = False,
 ) -> AsyncIterator[tuple[Connection, Process]]:
-    """Spawn a subprocess and bind its stdio to a low-level Connection."""
-    async with spawn_stdio_transport(command, *args, env=env, cwd=cwd, **transport_kwargs) as (
+    """Spawn a subprocess and bind its stdio to a low-level Connection.
+
+    Args:
+        handler: Method handler for the connection.
+        command: The command to execute.
+        *args: Arguments for the command.
+        env: Environment variables for the subprocess.
+        cwd: Working directory for the subprocess.
+        observers: Optional stream observers.
+        log_stderr: If True, log stderr output from the subprocess.
+    """
+    async with spawn_stdio_transport(command, *args, env=env, cwd=cwd, log_stderr=log_stderr) as (
         reader,
         writer,
         process,
@@ -109,16 +119,26 @@ async def spawn_agent_process(
     *args: str,
     env: Mapping[str, str] | None = None,
     cwd: str | Path | None = None,
-    transport_kwargs: Mapping[str, Any] | None = None,
+    log_stderr: bool = False,
     **connection_kwargs: Any,
 ) -> AsyncIterator[tuple[ClientSideConnection, Process]]:
-    """Spawn an ACP agent subprocess and return a ClientSideConnection to it."""
+    """Spawn an ACP agent subprocess and return a ClientSideConnection to it.
+
+    Args:
+        to_client: Factory function that creates a Client from an Agent.
+        command: The command to execute.
+        *args: Arguments for the command.
+        env: Environment variables for the subprocess.
+        cwd: Working directory for the subprocess.
+        log_stderr: If True, log stderr output from the subprocess.
+        **connection_kwargs: Additional arguments for ClientSideConnection.
+    """
     async with spawn_stdio_transport(
         command,
         *args,
         env=env,
         cwd=cwd,
-        **(dict(transport_kwargs) if transport_kwargs else {}),
+        log_stderr=log_stderr,
     ) as (reader, writer, process):
         conn = ClientSideConnection(to_client, writer, reader, **connection_kwargs)
         try:
@@ -134,16 +154,26 @@ async def spawn_client_process(
     *args: str,
     env: Mapping[str, str] | None = None,
     cwd: str | Path | None = None,
-    transport_kwargs: Mapping[str, Any] | None = None,
+    log_stderr: bool = False,
     **connection_kwargs: Any,
 ) -> AsyncIterator[tuple[AgentSideConnection, Process]]:
-    """Spawn an ACP client subprocess and return an AgentSideConnection to it."""
+    """Spawn an ACP client subprocess and return an AgentSideConnection to it.
+
+    Args:
+        to_agent: Factory function that creates an Agent from an AgentSideConnection.
+        command: The command to execute.
+        *args: Arguments for the command.
+        env: Environment variables for the subprocess.
+        cwd: Working directory for the subprocess.
+        log_stderr: If True, log stderr output from the subprocess.
+        **connection_kwargs: Additional arguments for AgentSideConnection.
+    """
     async with spawn_stdio_transport(
         command,
         *args,
         env=env,
         cwd=cwd,
-        **(dict(transport_kwargs) if transport_kwargs else {}),
+        log_stderr=log_stderr,
     ) as (reader, writer, process):
         conn = AgentSideConnection(to_agent, writer, reader, **connection_kwargs)
         try:
