@@ -521,7 +521,19 @@ def chat_message_to_opencode(  # noqa: PLR0915
         )
 
         # Process all model messages to extract parts
-        for model_msg in msg.messages:
+        # Deserialize dicts to proper pydantic-ai objects if needed
+        from pydantic import TypeAdapter
+        from pydantic_ai.messages import ModelMessage
+
+        model_message_adapter: TypeAdapter[ModelMessage] = TypeAdapter(ModelMessage)
+
+        for raw_msg in msg.messages:
+            # Deserialize dict to proper ModelRequest/ModelResponse if needed
+            if isinstance(raw_msg, dict):
+                model_msg = model_message_adapter.validate_python(raw_msg)
+            else:
+                model_msg = raw_msg
+
             if isinstance(model_msg, ModelResponse):
                 for p in model_msg.parts:
                     if isinstance(p, PydanticTextPart):
@@ -553,47 +565,6 @@ def chat_message_to_opencode(  # noqa: PLR0915
                             ),
                         )
                         tool_calls[p.tool_call_id or ""] = tool_part
-                        parts.append(tool_part)
-
-            elif isinstance(model_msg, dict) and model_msg.get("kind") == "response":
-                # Handle serialized dict format from storage
-                for p in model_msg.get("parts", []):
-                    part_kind = p.get("part_kind")
-                    if part_kind == "text":
-                        text_content = p.get("content", "")
-                        if text_content:
-                            parts.append(
-                                TextPart(
-                                    id=p.get("id") or generate_part_id(),
-                                    message_id=message_id,
-                                    session_id=session_id,
-                                    text=text_content,
-                                    time=TimeStartEndOptional(start=created_ms, end=completed_ms),
-                                )
-                            )
-                    elif part_kind == "tool-call":
-                        tool_input = p.get("args", {})
-                        if isinstance(tool_input, str):
-                            import json
-
-                            try:
-                                tool_input = json.loads(tool_input)
-                            except json.JSONDecodeError:
-                                tool_input = {}
-                        tool_part = ToolPart(
-                            id=generate_part_id(),
-                            message_id=message_id,
-                            session_id=session_id,
-                            tool=p.get("tool_name", "unknown"),
-                            call_id=p.get("tool_call_id") or generate_part_id(),
-                            state=ToolStateRunning(
-                                status="running",
-                                time=TimeStart(start=created_ms),
-                                input=tool_input,
-                                title=f"Running {p.get('tool_name', 'unknown')}",
-                            ),
-                        )
-                        tool_calls[p.get("tool_call_id") or ""] = tool_part
                         parts.append(tool_part)
 
             elif isinstance(model_msg, ModelRequest):
@@ -659,73 +630,6 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                     message_id=message_id,
                                     session_id=session_id,
                                     tool=part.tool_name,
-                                    call_id=call_id,
-                                    state=state,
-                                )
-                            )
-
-            elif isinstance(model_msg, dict) and model_msg.get("kind") == "request":
-                # Handle serialized dict format for tool returns from storage
-                for p in model_msg.get("parts", []):
-                    if p.get("part_kind") == "tool-return":
-                        call_id = p.get("tool_call_id") or ""
-                        existing = tool_calls.get(call_id)
-                        content = p.get("content")
-
-                        # Format output
-                        if isinstance(content, str):
-                            output = content
-                        elif isinstance(content, dict):
-                            import json
-
-                            output = json.dumps(content, indent=2)
-                        else:
-                            output = str(content) if content is not None else ""
-
-                        # Check for error
-                        is_error = isinstance(content, dict) and "error" in content
-                        tool_name = p.get("tool_name", "unknown")
-
-                        if existing:
-                            existing_input = _get_input_from_state(existing.state)
-                            if is_error:
-                                existing.state = ToolStateError(
-                                    status="error",
-                                    error=str(content.get("error", "Unknown error")),
-                                    input=existing_input,
-                                    time=TimeStartEnd(start=created_ms, end=completed_ms),
-                                )
-                            else:
-                                existing.state = ToolStateCompleted(
-                                    status="completed",
-                                    title=f"Completed {tool_name}",
-                                    input=existing_input,
-                                    output=output,
-                                    time=TimeStartEndCompacted(start=created_ms, end=completed_ms),
-                                )
-                        else:
-                            state: ToolStateCompleted | ToolStateError
-                            if is_error:
-                                state = ToolStateError(
-                                    status="error",
-                                    error=str(content.get("error", "Unknown error")),
-                                    input={},
-                                    time=TimeStartEnd(start=created_ms, end=completed_ms),
-                                )
-                            else:
-                                state = ToolStateCompleted(
-                                    status="completed",
-                                    title=f"Completed {tool_name}",
-                                    input={},
-                                    output=output,
-                                    time=TimeStartEndCompacted(start=created_ms, end=completed_ms),
-                                )
-                            parts.append(
-                                ToolPart(
-                                    id=generate_part_id(),
-                                    message_id=message_id,
-                                    session_id=session_id,
-                                    tool=tool_name,
                                     call_id=call_id,
                                     state=state,
                                 )
