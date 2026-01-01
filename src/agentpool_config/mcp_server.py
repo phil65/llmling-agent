@@ -78,7 +78,8 @@ class BaseMCPServerConfig(Schema):
         examples=[["read_file", "list_directory"], ["search", "fetch"]],
         title="Enabled tools",
     )
-    """If set, only these tools will be available (whitelist). Mutually exclusive with disabled_tools."""
+    """If set, only these tools will be available (whitelist).
+    Mutually exclusive with disabled_tools."""
 
     disabled_tools: list[str] | None = Field(
         default=None,
@@ -91,7 +92,7 @@ class BaseMCPServerConfig(Schema):
     def _validate_tool_filters(self) -> Self:
         """Validate that enabled_tools and disabled_tools are mutually exclusive."""
         if self.enabled_tools is not None and self.disabled_tools is not None:
-            msg = "Cannot specify both 'enabled_tools' and 'disabled_tools' - they are mutually exclusive"
+            msg = "Cannot specify both 'enabled_tools' and 'disabled_tools'"
             raise ValueError(msg)
         return self
 

@@ -11,20 +11,22 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
+    ThinkingPart,
     ToolCallPart,
 )
 from pydantic_ai.models import ModelRequestParameters
 from pydantic_ai.tools import ToolDefinition
+from pydantic_ai.usage import RequestUsage, RunUsage
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai.messages import (
-        ModelMessage,
-    )
+    from pydantic_ai.messages import ModelMessage, TextPart
     from pydantic_ai.models import Model
     from pydantic_ai.settings import ModelSettings
+
+    from agentpool.messaging.messages import TokenCost
 
 
 @dataclass
@@ -103,6 +105,60 @@ def count_tokens(text: str, model_name: str = "gpt-4") -> int:
         encoding = tiktoken.get_encoding("cl100k_base")
 
     return len(encoding.encode(text))
+
+
+async def calculate_usage_from_parts(
+    input_parts: Sequence[Any],
+    response_parts: Sequence[TextPart | ThinkingPart | ToolCallPart],
+    text_content: str,
+    model_name: str | None = None,
+    provider: str | None = None,
+) -> tuple[RequestUsage, TokenCost | None]:
+    """Calculate token usage and cost from input/output parts.
+
+    This is used by agents that don't receive usage info from the backend
+    (like ACP and AG-UI agents) to approximate token counts.
+
+    Args:
+        input_parts: Input parts (prompts, pending parts) sent to the agent
+        response_parts: Response parts received (text, thinking, tool calls)
+        text_content: The final text content of the response
+        model_name: Model name for token counting and cost calculation
+        provider: Provider name for cost calculation
+
+    Returns:
+        Tuple of (RequestUsage, TokenCost or None)
+    """
+    from agentpool.messaging.messages import TokenCost
+
+    model_for_count = model_name or "gpt-4"
+
+    # Input tokens from prompts
+    input_text = " ".join(str(p) for p in input_parts)
+    input_tokens = count_tokens(input_text, model_for_count)
+
+    # Output tokens from response content
+    output_text = text_content
+    for part in response_parts:
+        if isinstance(part, ThinkingPart) and part.content:
+            output_text += part.content
+        elif isinstance(part, ToolCallPart) and part.args:
+            args_str = json.dumps(part.args) if not isinstance(part.args, str) else part.args
+            output_text += args_str
+    output_tokens = count_tokens(output_text, model_for_count)
+
+    # Build usage
+    usage = RequestUsage(input_tokens=input_tokens, output_tokens=output_tokens)
+    run_usage = RunUsage(input_tokens=input_tokens, output_tokens=output_tokens)
+
+    # Calculate cost
+    cost_info = await TokenCost.from_usage(
+        usage=run_usage,
+        model=model_name or "unknown",
+        provider=provider,
+    )
+
+    return usage, cost_info
 
 
 def _extract_system_prompts(messages: Sequence[ModelMessage]) -> list[str]:
