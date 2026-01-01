@@ -248,6 +248,7 @@ async def send_message(  # noqa: PLR0915
     response_text = ""
     input_tokens = 0
     output_tokens = 0
+    total_cost = 0  # Cost in micro-dollars (millionths of a dollar)
     tool_parts: dict[str, ToolPart] = {}  # Track tool parts by call_id
     tool_outputs: dict[str, str] = {}  # Track accumulated output per tool call
     tool_inputs: dict[str, dict[str, Any]] = {}  # Track inputs per tool call
@@ -489,10 +490,14 @@ async def send_message(  # noqa: PLR0915
                             break
                     await state.broadcast_event(PartUpdatedEvent.create(updated))
 
-                # Stream complete - extract token usage
-                case StreamCompleteEvent(message=msg) if msg and msg.usage:
-                    input_tokens = msg.usage.input_tokens or 0
-                    output_tokens = msg.usage.output_tokens or 0
+                # Stream complete - extract token usage and cost
+                case StreamCompleteEvent(message=msg) if msg:
+                    if msg.usage:
+                        input_tokens = msg.usage.input_tokens or 0
+                        output_tokens = msg.usage.output_tokens or 0
+                    if msg.cost_info and msg.cost_info.total_cost:
+                        # Cost is in dollars, OpenCode expects micro-dollars (millionths)
+                        total_cost = int(msg.cost_info.total_cost * 1_000_000)
 
     except Exception as e:  # noqa: BLE001
         response_text = f"Error calling agent: {e}"
@@ -537,7 +542,7 @@ async def send_message(  # noqa: PLR0915
             output=output_tokens,
             reasoning=0,
         ),
-        cost=0,  # TODO: Calculate actual cost
+        cost=total_cost,
     )
     assistant_msg_with_parts.parts.append(step_finish)
     await state.broadcast_event(PartUpdatedEvent.create(step_finish))
@@ -554,6 +559,7 @@ async def send_message(  # noqa: PLR0915
                 output=output_tokens,
                 reasoning=0,
             ),
+            "cost": total_cost,
         }
     )
     assistant_msg_with_parts.info = updated_assistant
