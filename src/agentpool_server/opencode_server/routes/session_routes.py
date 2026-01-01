@@ -208,10 +208,7 @@ async def list_sessions(state: StateDep) -> list[Session]:
 
 
 @router.post("")
-async def create_session(
-    state: StateDep,
-    request: SessionCreateRequest | None = None,
-) -> Session:
+async def create_session(state: StateDep, request: SessionCreateRequest | None = None) -> Session:
     """Create a new session and persist to storage."""
     now = now_ms()
     session_id = identifier.ascending("session")
@@ -407,10 +404,8 @@ async def fork_session(  # noqa: D417
     state.messages[new_session_id] = copied_messages
     input_provider = OpenCodeInputProvider(state, new_session_id)
     state.input_providers[new_session_id] = input_provider
-
     # Broadcast session created event
     await state.broadcast_event(SessionCreatedEvent.create(forked_session))
-
     return forked_session
 
 
@@ -466,15 +461,8 @@ async def init_session(  # noqa: D417
         repomap_content,
         "</repository-structure>",
     ]
-
     if readme_content:
-        prompt_parts.extend([
-            "",
-            "<readme>",
-            readme_content,
-            "</readme>",
-        ])
-
+        prompt_parts.extend(["", "<readme>", readme_content, "</readme>"])
     prompt_parts.extend([
         "",
         "Include:",
@@ -554,10 +542,8 @@ async def get_session_diff(
     file_ops = state.pool.file_ops
     if not file_ops.changes:
         return []
-
     # Optionally filter by message_id
     changes = file_ops.get_changes_since_message(message_id) if message_id else file_ops.changes
-
     # Format as list of diffs
     return [
         {
@@ -585,9 +571,7 @@ async def run_shell_command(
 
     # Validate command for security issues
     validate_command(request.command, state.working_dir)
-
     now = now_ms()
-
     # Create assistant message for the shell output
     assistant_msg_id = identifier.ascending("message")
     assistant_message = AssistantMessage(
@@ -607,14 +591,11 @@ async def run_shell_command(
     # Initialize message with empty parts
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
     state.messages[session_id].append(assistant_msg_with_parts)
-
     # Broadcast message created
     await state.broadcast_event(MessageUpdatedEvent.create(assistant_message))
-
     # Mark session as busy
     state.session_status[session_id] = SessionStatus(type="busy")
     await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="busy")))
-
     # Add step-start part
     step_start = StepStartPart(
         id=identifier.ascending("part"),
@@ -623,11 +604,9 @@ async def run_shell_command(
     )
     assistant_msg_with_parts.parts.append(step_start)
     await state.broadcast_event(PartUpdatedEvent.create(step_start))
-
     # Execute the command
     output_text = ""
     success = False
-
     try:
         result = await state.agent.env.execute_command(request.command)
         success = result.success
@@ -652,28 +631,18 @@ async def run_shell_command(
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
         session_id=session_id,
-        tokens=StepFinishTokens(
-            cache=TokenCache(read=0, write=0),
-            input=0,
-            output=0,
-            reasoning=0,
-        ),
-        cost=0,
+        tokens=StepFinishTokens(cache=TokenCache(read=0, write=0)),
     )
     assistant_msg_with_parts.parts.append(step_finish)
     await state.broadcast_event(PartUpdatedEvent.create(step_finish))
-
     # Update message with completion time
-    updated_assistant = assistant_message.model_copy(
-        update={"time": MessageTime(created=now, completed=response_time)}
-    )
+    time_ = MessageTime(created=now, completed=response_time)
+    updated_assistant = assistant_message.model_copy(update={"time": time_})
     assistant_msg_with_parts.info = updated_assistant
     await state.broadcast_event(MessageUpdatedEvent.create(updated_assistant))
-
     # Mark session as idle
     state.session_status[session_id] = SessionStatus(type="idle")
     await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="idle")))
-
     return assistant_msg_with_parts
 
 
@@ -750,13 +719,10 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
     session = await get_or_load_session(state, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-
     messages = state.messages.get(session_id, [])
     if not messages:
         raise HTTPException(status_code=400, detail="No messages to summarize")
-
     now = now_ms()
-
     # Create assistant message for the summary
     assistant_msg_id = identifier.ascending("message")
     assistant_message = AssistantMessage(
@@ -774,14 +740,11 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
     )
 
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
-
     # Broadcast message created
     await state.broadcast_event(MessageUpdatedEvent.create(assistant_message))
-
     # Mark session as busy
     state.session_status[session_id] = SessionStatus(type="busy")
     await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="busy")))
-
     # Add step-start part
     step_start = StepStartPart(
         id=identifier.ascending("part"),
@@ -790,7 +753,6 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
     )
     assistant_msg_with_parts.parts.append(step_start)
     await state.broadcast_event(PartUpdatedEvent.create(step_start))
-
     try:
         from agentpool.messaging.compaction import compact_conversation, summarizing_context
 
@@ -820,7 +782,6 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
         output_text = f"Error summarizing session: {e}"
 
     response_time = now_ms()
-
     # Create text part with output
     text_part = TextPart(
         id=identifier.ascending("part"),
@@ -830,29 +791,18 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
     )
     assistant_msg_with_parts.parts.append(text_part)
     await state.broadcast_event(PartUpdatedEvent.create(text_part))
-
     # Add step-finish part
-    from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
-
     step_finish = StepFinishPart(
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
         session_id=session_id,
-        tokens=StepFinishTokens(
-            cache=TokenCache(read=0, write=0),
-            input=0,
-            output=0,
-            reasoning=0,
-        ),
-        cost=0,
+        tokens=StepFinishTokens(cache=TokenCache()),
     )
     assistant_msg_with_parts.parts.append(step_finish)
     await state.broadcast_event(PartUpdatedEvent.create(step_finish))
-
     # Update message with completion time
-    updated_assistant = assistant_message.model_copy(
-        update={"time": MessageTime(created=now, completed=response_time)}
-    )
+    time_ = MessageTime(created=now, completed=response_time)
+    updated_assistant = assistant_message.model_copy(update={"time": time_})
     assistant_msg_with_parts.info = updated_assistant
     # Add the summary message to the session
     state.messages[session_id].append(assistant_msg_with_parts)
@@ -860,7 +810,6 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
     # Mark session as idle
     state.session_status[session_id] = SessionStatus(type="idle")
     await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="idle")))
-
     return assistant_msg_with_parts
 
 
@@ -909,7 +858,6 @@ async def share_session(
         ]
         if parts:
             opencode_messages.append(Message(role=mapped_role, parts=parts))
-
     if not opencode_messages:
         raise HTTPException(status_code=400, detail="No content to share")
 
@@ -949,10 +897,8 @@ async def revert_session(session_id: str, request: RevertRequest, state: StateDe
     revert_ops = file_ops.get_revert_operations(since_message_id=request.message_id)
 
     if not revert_ops:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No changes found for message {request.message_id}",
-        )
+        detail = f"No changes found for message {request.message_id}"
+        raise HTTPException(status_code=404, detail=detail)
     # Get filesystem from the agent's environment
     fs = state.agent.env.get_fs()
     # Apply reverts using the filesystem
@@ -970,20 +916,14 @@ async def revert_session(session_id: str, request: RevertRequest, state: StateDe
                 await fs._pipe_file(path, content_bytes)
             reverted_paths.append(path)
         except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to revert {path}: {e}",
-            ) from e
+            raise HTTPException(status_code=500, detail=f"Failed to revert {path}: {e}") from e
 
     # Remove the reverted changes from the tracker
     file_ops.remove_changes_since_message(request.message_id)
     # Update session with revert info
     session = state.sessions[session_id]
-    revert_info = SessionRevert(
-        message_id=request.message_id,
-        diff=None,  # Could include the revert diff here
-        part_id=request.part_id,
-    )
+    # TODO: include the diff?
+    revert_info = SessionRevert(message_id=request.message_id, part_id=request.part_id)
     updated_session = session.model_copy(update={"revert": revert_info})
     state.sessions[session_id] = updated_session
     # Broadcast session update
@@ -1028,7 +968,6 @@ async def unrevert_session(session_id: str, state: StateDep) -> Session:
     state.sessions[session_id] = updated_session
     # Broadcast session update
     await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
-
     return updated_session
 
 
@@ -1049,7 +988,6 @@ async def unshare_session(session_id: str, state: StateDep) -> bool:
     state.sessions[session_id] = updated_session
     # Broadcast session update
     await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
-
     return True
 
 
@@ -1152,12 +1090,11 @@ async def execute_command(  # noqa: PLR0915
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
         session_id=session_id,
-        tokens=StepFinishTokens(cache=TokenCache(read=0, write=0)),
+        tokens=StepFinishTokens(cache=TokenCache()),
         cost=0,
     )
     assistant_msg_with_parts.parts.append(step_finish)
     await state.broadcast_event(PartUpdatedEvent.create(step_finish))
-
     # Update message with completion time
     time_ = MessageTime(created=now, completed=response_time)
     updated_assistant = assistant_message.model_copy(update={"time": time_})
