@@ -38,6 +38,7 @@ from agentpool_server.opencode_server.models.session import (
     SessionShare,
     SessionStatus,
     SessionUpdateRequest,
+    SummarizeRequest,
     Todo,
 )
 from agentpool_server.opencode_server.models.message import (
@@ -189,6 +190,7 @@ __all__ = [
     "SessionUpdateRequest",
     "SessionUpdatedEvent",
     "ShellRequest",
+    "SummarizeRequest",
     "StepFinishPart",
     "StepStartPart",
     "Symbol",

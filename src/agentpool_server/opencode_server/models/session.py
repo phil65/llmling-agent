@@ -68,6 +68,23 @@ class SessionInitRequest(OpenCodeBaseModel):
     """Optional provider ID to use for the init task."""
 
 
+class SummarizeRequest(OpenCodeBaseModel):
+    """Request body for summarizing a session.
+
+    Matches OpenCode's compaction API. If model info is provided, uses that model
+    for the summary generation. If 'auto' is True, automatically selects the model.
+    """
+
+    model_id: str | None = None
+    """Optional model ID to use for summary generation."""
+
+    provider_id: str | None = None
+    """Optional provider ID to use for summary generation."""
+
+    auto: bool | None = None
+    """If True, automatically select the model for summarization."""
+
+
 class SessionStatus(OpenCodeBaseModel):
     """Status of a session."""
 

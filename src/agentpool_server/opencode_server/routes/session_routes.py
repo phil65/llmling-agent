@@ -41,6 +41,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     ShellRequest,
     StepFinishPart,
     StepStartPart,
+    SummarizeRequest,
     TextPart,
     TimeCreatedUpdated,
     Todo,
@@ -709,37 +710,62 @@ async def respond_to_permission(
     return True
 
 
+# OpenCode-style continuation prompt for summarization
+SUMMARIZE_PROMPT = """Provide a detailed prompt for continuing our conversation above. Focus on information that would be helpful for continuing the conversation, including what we did, what we're doing, which files we're working on, and what we're going to do next considering new session will not have access to our conversation."""  # noqa: E501
+
+
 @router.post("/{session_id}/summarize")
-async def summarize_session(session_id: str, state: StateDep) -> MessageWithParts:
+async def summarize_session(  # noqa: PLR0915
+    session_id: str,
+    state: StateDep,
+    request: SummarizeRequest | None = None,
+) -> MessageWithParts:
     """Summarize the session conversation.
 
-    Uses the Summarize compaction step to condense older messages
-    into a summary while keeping recent messages intact.
+    First runs the compaction pipeline to condense older messages,
+    then streams an LLM-generated summary/continuation prompt to the user.
+    The summary message is marked with summary=true for UI display.
     """
+    from pydantic_ai.messages import (
+        PartDeltaEvent,
+        PartStartEvent,
+        TextPart as PydanticTextPart,
+        TextPartDelta,
+    )
+
+    from agentpool.agents.events import StreamCompleteEvent
+
     session = await get_or_load_session(state, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
     messages = state.messages.get(session_id, [])
     if not messages:
         raise HTTPException(status_code=400, detail="No messages to summarize")
+
+    # Determine model to use
+    model_id = request.model_id if request and request.model_id else "default"
+    provider_id = request.provider_id if request and request.provider_id else "agentpool"
+
     now = now_ms()
-    # Create assistant message for the summary
+    # Create assistant message for the summary (marked with summary=true)
     assistant_msg_id = identifier.ascending("message")
     assistant_message = AssistantMessage(
         id=assistant_msg_id,
         session_id=session_id,
         parent_id="",
-        model_id="summarizer",
-        provider_id="agentpool",
+        model_id=model_id,
+        provider_id=provider_id,
         mode="summarize",
         agent="summarizer",
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         time=MessageTime(created=now, completed=None),
         tokens=Tokens(cache=TokensCache(read=0, write=0), input=0, output=0, reasoning=0),
         cost=0,
+        summary=True,  # Mark as summary message
     )
 
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
+    state.messages[session_id].append(assistant_msg_with_parts)
     # Broadcast message created
     await state.broadcast_event(MessageUpdatedEvent.create(assistant_message))
     # Mark session as busy
@@ -753,6 +779,74 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
     )
     assistant_msg_with_parts.parts.append(step_start)
     await state.broadcast_event(PartUpdatedEvent.create(step_start))
+
+    # Step 1: Stream LLM summary generation FIRST (while we have full history)
+    # The LLM sees the complete conversation and generates a continuation prompt.
+    response_text = ""
+    input_tokens = 0
+    output_tokens = 0
+    text_part: TextPart | None = None
+
+    try:
+        agent = state.agent
+        # Stream events from the agent with the summarization prompt
+        # This runs with FULL history - the summary is based on complete context
+        async for event in agent.run_stream(SUMMARIZE_PROMPT):
+            match event:
+                # Text streaming start
+                case PartStartEvent(part=PydanticTextPart(content=delta)):
+                    response_text = delta
+                    text_part = TextPart(
+                        id=identifier.ascending("part"),
+                        message_id=assistant_msg_id,
+                        session_id=session_id,
+                        text=delta,
+                    )
+                    assistant_msg_with_parts.parts.append(text_part)
+                    await state.broadcast_event(PartUpdatedEvent.create(text_part, delta=delta))
+
+                # Text streaming delta
+                case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)) if delta:
+                    response_text += delta
+                    if text_part is not None:
+                        text_part = TextPart(
+                            id=text_part.id,
+                            message_id=assistant_msg_id,
+                            session_id=session_id,
+                            text=response_text,
+                        )
+                        # Update in parts list
+                        for i, p in enumerate(assistant_msg_with_parts.parts):
+                            if isinstance(p, TextPart) and p.id == text_part.id:
+                                assistant_msg_with_parts.parts[i] = text_part
+                                break
+                        await state.broadcast_event(PartUpdatedEvent.create(text_part, delta=delta))
+
+                # Stream complete - extract token usage
+                case StreamCompleteEvent(message=msg) if msg and msg.usage:
+                    input_tokens = msg.usage.input_tokens or 0
+                    output_tokens = msg.usage.output_tokens or 0
+
+    except Exception as e:  # noqa: BLE001
+        response_text = f"Error generating summary: {e}"
+
+    response_time = now_ms()
+
+    # Create/update text part with final response
+    if text_part is None:
+        text_part = TextPart(
+            id=identifier.ascending("part"),
+            message_id=assistant_msg_id,
+            session_id=session_id,
+            text=response_text,
+        )
+        assistant_msg_with_parts.parts.append(text_part)
+        await state.broadcast_event(PartUpdatedEvent.create(text_part))
+
+    # Step 2: Run compaction pipeline AFTER summary is generated
+    # The summary was generated with full context. Now we compact the history.
+    # Final state will be: [compacted history] + [summary message]
+    # The compacted history becomes the cached prefix for future LLM calls.
     try:
         from agentpool.messaging.compaction import compact_conversation, summarizing_context
 
@@ -765,47 +859,40 @@ async def summarize_session(session_id: str, state: StateDep) -> MessageWithPart
             # Fall back to a default summarizing pipeline
             pipeline = summarizing_context()
 
-        # Apply the compaction pipeline using shared helper
-        original_count, compacted_count = await compact_conversation(
-            pipeline, state.agent.conversation
-        )
+        # Apply the compaction pipeline
+        await compact_conversation(pipeline, state.agent.conversation)
 
-        if original_count > 0:
-            output_text = (
-                f"Conversation compacted using configured pipeline.\n"
-                f"Messages reduced from {original_count} to {compacted_count}."
-            )
-        else:
-            output_text = "No conversation history to compact."
+    except Exception:  # noqa: BLE001
+        # Compaction failure is not fatal - we still have the summary
+        pass
 
-    except Exception as e:  # noqa: BLE001
-        output_text = f"Error summarizing session: {e}"
-
-    response_time = now_ms()
-    # Create text part with output
-    text_part = TextPart(
-        id=identifier.ascending("part"),
-        message_id=assistant_msg_id,
-        session_id=session_id,
-        text=output_text,
-    )
-    assistant_msg_with_parts.parts.append(text_part)
-    await state.broadcast_event(PartUpdatedEvent.create(text_part))
     # Add step-finish part
     step_finish = StepFinishPart(
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
         session_id=session_id,
-        tokens=StepFinishTokens(cache=TokenCache()),
+        tokens=StepFinishTokens(
+            cache=TokenCache(read=0, write=0),
+            input=input_tokens,
+            output=output_tokens,
+            reasoning=0,
+        ),
     )
     assistant_msg_with_parts.parts.append(step_finish)
     await state.broadcast_event(PartUpdatedEvent.create(step_finish))
-    # Update message with completion time
-    time_ = MessageTime(created=now, completed=response_time)
-    updated_assistant = assistant_message.model_copy(update={"time": time_})
+    # Update message with completion time and tokens
+    updated_assistant = assistant_message.model_copy(
+        update={
+            "time": MessageTime(created=now, completed=response_time),
+            "tokens": Tokens(
+                cache=TokensCache(read=0, write=0),
+                input=input_tokens,
+                output=output_tokens,
+                reasoning=0,
+            ),
+        }
+    )
     assistant_msg_with_parts.info = updated_assistant
-    # Add the summary message to the session
-    state.messages[session_id].append(assistant_msg_with_parts)
     await state.broadcast_event(MessageUpdatedEvent.create(updated_assistant))
     # Mark session as idle
     state.session_status[session_id] = SessionStatus(type="idle")
