@@ -1302,10 +1302,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         from tokonomics.model_discovery import get_all_models
 
-        providers = self._providers or ["models.dev"]
         try:
             max_age = timedelta(days=200)
-            return await get_all_models(providers=providers, max_age=max_age)
+            return await get_all_models(
+                providers=self._providers or ["models.dev"], max_age=max_age
+            )
         except Exception:
             self.log.exception("Failed to discover models")
             return None
