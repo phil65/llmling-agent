@@ -106,53 +106,31 @@
   '''
   === CagentACPAgentConfig ===
   
-  Command: cagent
+  Command: cagent acp
   
   CLI Help Output:
   ----------------------------------------------------------------------
-  cagent is a command-line tool for running AI agents
+  Start an ACP server that exposes the agent via the Agent Client Protocol
   
   Usage:
-    cagent [flags]
-    cagent [command]
+    cagent acp <agent-file>|<registry-ref> [flags]
   
   Examples:
-    cagent run ./agent.yaml
-    cagent run agentcatalog/pirate
-  
-  Core Commands:
-    exec        Execute an agent
-    new         Create a new agent configuration
-    pull        Pull an agent from an OCI registry
-    push        Push an agent to an OCI registry
-    run         Run an agent
-  
-  Advanced Commands:
-    alias       Manage aliases
-    build       Build a Docker image for the agent
-    catalog     Manage the agent catalog
-    debug       Debug tools
-    eval        Run evaluations for an agent
-  
-  Server Commands:
-    a2a         Start an agent as an A2A (Agent-to-Agent) server
-    acp         Start an agent as an ACP (Agent Client Protocol) server
-    api         Start the cagent API server
-    mcp         Start an agent as an MCP (Model Context Protocol) server
-  
-  Additional Commands:
-    completion  Generate the autocompletion script for the specified shell
-    feedback    Send feedback about cagent
-    help        Help about any command
-    version     Print the version information
+    cagent acp ./agent.yaml
+    cagent acp ./team.yaml
+    cagent acp agentcatalog/pirate
   
   Flags:
+        --code-mode-tools         Provide a single tool to call other tools via Javascript
+        --env-from-file strings   Set environment variables from file
+    -h, --help                    help for acp
+        --models-gateway string   Set the models gateway address
+        --working-dir string      Set the working directory for the session (applies to tools and relative paths)
+  
+  Global Flags:
     -d, --debug             Enable debug logging
-    -h, --help              help for cagent
         --log-file string   Path to debug log file (default: ~/.cagent/cagent.debug.log; only used with --debug)
     -o, --otel              Enable OpenTelemetry tracing
-  
-  Use "cagent [command] --help" for more information about a command.
   '''
 # ---
 # name: test_acp_agent_help_output[ClaudeACPAgentConfig]
@@ -170,26 +148,27 @@
   '''
   === CodexACPAgentConfig ===
   
-  Command: npx
+  Command: npx @zed-industries/codex-acp
   
   CLI Help Output:
   ----------------------------------------------------------------------
-  Run a command from a local or remote npm package
+  CLI option that captures arbitrary configuration overrides specified as `-c key=value`. It
+  intentionally keeps both halves **unparsed** so that the calling code can decide how to interpret
+  the right-hand side
   
-  Usage:
-  npm exec -- <pkg>[@<version>] [args...]
-  npm exec --package=<pkg>[@<version>] -- <cmd> [args...]
-  npm exec -c '<cmd> [args...]'
-  npm exec --package=foo -c '<cmd> [args...]'
+  Usage: codex-acp [OPTIONS]
   
   Options:
-  [--package <package-spec> [--package <package-spec> ...]] [-c|--call <call>]
-  [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
-  [--workspaces] [--include-workspace-root]
+    -c, --config <key=value>
+            Override a configuration value that would otherwise be loaded from `~/.codex/config.toml`.
+            Use a dotted path (`foo.bar.baz`) to override nested values. The `value` portion is parsed
+            as TOML. If it fails to parse as TOML, the raw string is used as a literal.
+            
+            Examples: - `-c model="o3"` - `-c 'sandbox_permissions=["disk-full-read-access"]'` - `-c
+            shell_environment_policy.inherit=all`
   
-  alias: x
-  
-  Run "npm help exec" for more info
+    -h, --help
+            Print help (see a summary with '-h')
   '''
 # ---
 # name: test_acp_agent_help_output[CursorACPAgentConfig]
@@ -287,34 +266,16 @@
   '''
   === GooseACPAgentConfig ===
   
-  Command: goose
+  Command: goose acp
   
   CLI Help Output:
   ----------------------------------------------------------------------
-  An AI agent
+  Run goose as an ACP agent server on stdio
   
-  Usage: goose [COMMAND]
-  
-  Commands:
-    configure  Configure goose settings
-    info       Display goose information
-    mcp        Run one of the mcp servers bundled with goose
-    acp        Run goose as an ACP agent server on stdio
-    session    Start or resume interactive chat sessions [aliases: s]
-    project    Open the last project directory [aliases: p]
-    projects   List recent project directories [aliases: ps]
-    run        Execute commands from an instruction file or stdin
-    recipe     Recipe utilities for validation and deeplinking
-    schedule   Manage scheduled jobs [aliases: sched]
-    update     Update the goose CLI version
-    bench      Evaluate system configuration across a range of practical tasks
-    web        Experimental: Start a web server with a chat interface
-    term       Terminal-integrated goose session
-    help       Print this message or the help of the given subcommand(s)
+  Usage: goose acp
   
   Options:
-    -h, --help     Print help
-    -V, --version  Print version
+    -h, --help  Print help
   '''
 # ---
 # name: test_acp_agent_help_output[KimiACPAgentConfig]
@@ -416,174 +377,63 @@
   '''
   === OpenCodeACPAgentConfig ===
   
-  Command: opencode
+  Command: opencode acp
   
   CLI Help Output:
   ----------------------------------------------------------------------
-  [38;2;128;128;128m                    [0m             ▄
-  [38;2;128;128;128m█▀▀█ █▀▀█ █▀▀█ █▀▀▄ [0m█▀▀▀ █▀▀█ █▀▀█ █▀▀█
-  [38;2;128;128;128m█░░█ █░░█ █▀▀▀ █░░█ [0m█░░░ █░░█ █░░█ █▀▀▀
-  [38;2;128;128;128m▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀  ▀ [0m▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀
+  opencode acp
   
-  Commands:
-    opencode acp                 start ACP (Agent Client Protocol) server
-    opencode [project]           start opencode tui                                          [default]
-    opencode attach <url>        attach to a running opencode server
-    opencode run [message..]     run opencode with a message
-    opencode auth                manage credentials
-    opencode agent               manage agents
-    opencode upgrade [target]    upgrade opencode to the latest or a specific version
-    opencode uninstall           uninstall opencode and remove all related files
-    opencode serve               starts a headless opencode server
-    opencode web                 starts a headless opencode server
-    opencode models [provider]   list all available models
-    opencode stats               show token usage and cost statistics
-    opencode export [sessionID]  export session data as JSON
-    opencode import <file>       import session data from JSON file or URL
-    opencode github              manage GitHub agent
-    opencode pr <number>         fetch and checkout a GitHub PR branch, then run opencode
-    opencode session             manage sessions
-  
-  Positionals:
-    project  path to start opencode in                                                        [string]
+  start ACP (Agent Client Protocol) server
   
   Options:
     -h, --help        show help                                                              [boolean]
     -v, --version     show version number                                                    [boolean]
         --print-logs  print logs to stderr                                                   [boolean]
         --log-level   log level                   [string] [choices: "DEBUG", "INFO", "WARN", "ERROR"]
-    -m, --model       model to use in the format of provider/model                            [string]
-    -c, --continue    continue the last session                                              [boolean]
-    -s, --session     session id to continue                                                  [string]
-    -p, --prompt      prompt to use                                                           [string]
-        --agent       agent to use                                                            [string]
         --port        port to listen on                                          [number] [default: 0]
         --hostname    hostname to listen on                            [string] [default: "127.0.0.1"]
+        --mdns        enable mDNS service discovery (defaults hostname to 0.0.0.0)
+                                                                            [boolean] [default: false]
+        --cors        additional domains to allow for CORS                       [array] [default: []]
+        --cwd         working directory           [string] [default: "/home/phil65/dev/oss/agentpool"]
   '''
 # ---
 # name: test_acp_agent_help_output[OpenHandsACPAgentConfig]
   '''
   === OpenHandsACPAgentConfig ===
   
-  Command: openhands
+  Command: openhands acp
   
   CLI Help Output:
   ----------------------------------------------------------------------
-  usage: openhands [-h] [--version] [-t TASK] [-f FILE] [--resume RESUME]
-                   {serve,acp} ...
-  
-  OpenHands CLI - Terminal User Interface for OpenHands AI Agent
-  
-  positional arguments:
-    {serve,acp}           Additional commands
-      serve               Launch the OpenHands GUI server using Docker (web
-                          interface)
-      acp                 Start OpenHands as an Agent Client Protocol (ACP)
-                          agent
+  usage: openhands acp [-h]
   
   options:
-    -h, --help            show this help message and exit
-    --version, -v         Show the version number and exit
-    -t TASK, --task TASK  Initial task text to seed the conversation with
-    -f FILE, --file FILE  Path to a file whose contents will seed the initial
-                          conversation
-    --resume RESUME       Conversation ID to resume
-  
-              By default, OpenHands runs in CLI mode (terminal interface).
-              Use 'serve' subcommand to launch the GUI server instead.
-  
-              Examples:
-                  openhands                           # Start CLI mode
-                  openhands --resume conversation-id  # Resume a conversation in CLI mode
-                  openhands serve                     # Launch GUI server
-                  openhands serve --gpu               # Launch GUI server with GPU support
-                  openhands acp                       # Start as Agent-Client Protocol
-                                                        server for clients like Zed IDE
+    -h, --help  show this help message and exit
   '''
 # ---
 # name: test_acp_agent_help_output[StakpakACPAgentConfig]
   '''
   === StakpakACPAgentConfig ===
   
-  Command: stakpak
+  Command: stakpak acp
   
   CLI Help Output:
   ----------------------------------------------------------------------
-  Stakpak CLI tool
+  Start Agent Client Protocol server (for editor integration)
   
-  Usage: stakpak [OPTIONS] [PROMPT] [COMMAND]
-  
-  Commands:
-    version    Get CLI Version
-    login      Login to Stakpak
-    logout     Logout from Stakpak
-    acp        Start Agent Client Protocol server (for editor integration)
-    set        Set configuration values
-    config     Configuration management commands
-    rulebooks  Rulebook management commands
-    account    Get current account
-    mcp        MCP commands
-    warden     Stakpak Warden wraps coding agents to apply security policies and limit their capabilities
-    update     Update Stakpak Agent to the latest version
-    help       Print this message or the help of the given subcommand(s)
-  
-  Arguments:
-    [PROMPT]  Prompt to run the agent
+  Usage: stakpak acp [OPTIONS]
   
   Options:
-    -p, --print
-            Run the agent for a single step and print the response
-    -a, --async
-            Run the agent in async mode (multiple steps until completion)
-    -m, --max-steps <MAX_STEPS>
-            Maximum number of steps the agent can take (default: 50 for --async, 1 for --print/--approve)
-    -c, --checkpoint <CHECKPOINT_ID>
-            Resume agent session at a specific checkpoint
-    -w, --workdir <WORKDIR>
-            Run the agent in a specific directory
-        --verbose
-            Enable verbose output
-    -o, --output <OUTPUT_FORMAT>
-            Output format: json or text [default: text]
-        --debug
-            Enable debug output
-        --disable-secret-redaction
-            Disable secret redaction (WARNING: this will print secrets to the console)
-        --privacy-mode
-            Enable privacy mode to redact private data like IP addresses and AWS account IDs
-        --study-mode
-            Enable study mode to use the agent as a study assistant
-        --index-big-project
-            Allow indexing of large projects (more than 500 supported files)
-        --enable-slack-tools
-            Enable Slack tools (experimental)
-        --disable-mcp-mtls
-            Disable mTLS (WARNING: this will use unencrypted HTTP communication)
-        --enable-subagents
-            Enable subagents
-        --subagent-config <SUBAGENT_CONFIG_PATH>
-            Subagent configuration file subagents.toml
-    -t, --tool <ALLOWED_TOOLS>
-            Allow only the specified tool in the agent's context
-        --system-prompt-file <SYSTEM_PROMPT_FILE>
-            Read system prompt from file
-        --prompt-file <PROMPT_FILE>
-            Read prompt from file (runs in async mode only)
-        --profile <PROFILE>
-            Configuration profile to use (can also be set with STAKPAK_PROFILE env var)
-        --model <MODEL>
-            Choose agent model on startup (smart or eco)
-        --config <CONFIG_PATH>
-            Custom path to config file (overrides default ~/.stakpak/config.toml)
-    -h, --help
-            Print help
+        --system-prompt-file <SYSTEM_PROMPT_FILE>  Read system prompt from file
+    -h, --help                                     Print help
   '''
 # ---
 # name: test_acp_agent_help_output[VTCodeACPAgentConfig]
   '''
   === VTCodeACPAgentConfig ===
   
-  Command: vtcode
+  Command: vtcode acp
   
   CLI Help Output:
   ----------------------------------------------------------------------

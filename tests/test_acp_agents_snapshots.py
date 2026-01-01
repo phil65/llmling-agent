@@ -38,6 +38,8 @@ def get_cli_help_output(agent_class: type[BaseACPAgentConfig]) -> str:
     Returns:
         The help output from running the CLI command with --help.
     """
+    import asyncio
+
     try:
         instance = agent_class()
     except Exception as e:  # noqa: BLE001
@@ -45,10 +47,26 @@ def get_cli_help_output(agent_class: type[BaseACPAgentConfig]) -> str:
 
     command = instance.get_command()
 
+    # Get base args (subcommands) - these define the actual command we use
+    # e.g., for opencode, get_args returns ["acp", ...] so we want "opencode acp --help"
+    try:
+        base_args = asyncio.run(instance.get_args(prompt_manager=None))
+        # Extract only subcommand args (before any flags like --cwd)
+        subcommand_args = []
+        for arg in base_args:
+            if arg.startswith("-"):
+                break
+            subcommand_args.append(arg)
+    except Exception:  # noqa: BLE001
+        subcommand_args = []
+
+    full_command = [command, *subcommand_args] if subcommand_args else [command]
+    command_str = " ".join(full_command)
+
     lines = [
         f"=== {agent_class.__name__} ===",
         "",
-        f"Command: {command}",
+        f"Command: {command_str}",
         "",
     ]
 
@@ -56,7 +74,7 @@ def get_cli_help_output(agent_class: type[BaseACPAgentConfig]) -> str:
     for help_flag in ["--help", "-h", "help"]:
         try:
             result = subprocess.run(
-                [command, help_flag],
+                [*full_command, help_flag],
                 capture_output=True,
                 text=True,
                 timeout=10,
