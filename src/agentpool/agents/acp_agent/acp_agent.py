@@ -26,6 +26,7 @@ Example:
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -44,6 +45,7 @@ from pydantic_ai import (
     ToolCallPart,
     UserPromptPart,
 )
+from pydantic_ai.usage import RequestUsage, RunUsage
 
 from agentpool.agents.acp_agent.acp_converters import convert_to_acp_content, mcp_configs_to_acp
 from agentpool.agents.acp_agent.client_handler import ACPClientHandler
@@ -53,6 +55,7 @@ from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCa
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
+from agentpool.messaging.messages import TokenCost
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
 from agentpool.utils.streams import (
@@ -60,6 +63,7 @@ from agentpool.utils.streams import (
     merge_queue_into_iterator,
 )
 from agentpool.utils.subprocess_utils import SubprocessError, monitor_process
+from agentpool.utils.token_breakdown import count_tokens
 
 
 if TYPE_CHECKING:
@@ -684,6 +688,32 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         text_content = "".join(text_chunks)
         metadata = file_tracker.get_metadata()
+
+        # Calculate approximate token usage from what we can observe
+        # Input: the prompt we sent
+        input_text = " ".join(str(p) for p in processed_prompts)
+        input_text += " ".join(str(p) for p in pending_parts)
+        input_tokens = count_tokens(input_text, self.model_name or "gpt-4")
+
+        # Output: text + thinking + tool call args
+        output_text = text_content
+        for part in current_response_parts:
+            if isinstance(part, ThinkingPart) and part.content:
+                output_text += part.content
+            elif isinstance(part, ToolCallPart) and part.args:
+                args_str = json.dumps(part.args) if not isinstance(part.args, str) else part.args
+                output_text += args_str
+        output_tokens = count_tokens(output_text, self.model_name or "gpt-4")
+
+        # Build usage and cost info
+        usage = RequestUsage(input_tokens=input_tokens, output_tokens=output_tokens)
+        run_usage = RunUsage(input_tokens=input_tokens, output_tokens=output_tokens)
+        cost_info = await TokenCost.from_usage(
+            usage=run_usage,
+            model=self.model_name or "unknown",
+            provider=self.config.type,
+        )
+
         message = ChatMessage[str](
             content=text_content,
             role="assistant",
@@ -695,6 +725,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             messages=model_messages,
             metadata=metadata,
             finish_reason=finish_reason,
+            usage=usage,
+            cost_info=cost_info,
         )
         complete_event = StreamCompleteEvent(message=message)
         await handler(None, complete_event)

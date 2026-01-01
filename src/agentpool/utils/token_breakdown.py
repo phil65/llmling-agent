@@ -80,8 +80,16 @@ def _normalize_tool_schema(tool: ToolDefinition | dict[str, Any]) -> dict[str, A
     return tool
 
 
-def _count_tokens_tiktoken(text: str, model_name: str = "gpt-4") -> int:
-    """Count tokens using tiktoken as a fallback."""
+def count_tokens(text: str, model_name: str = "gpt-4") -> int:
+    """Count tokens using tiktoken.
+
+    Args:
+        text: The text to count tokens for.
+        model_name: The model name for encoding selection.
+
+    Returns:
+        The number of tokens in the text.
+    """
     try:
         import tiktoken
     except ImportError:
@@ -173,7 +181,7 @@ async def get_token_breakdown(
             usage = await model.count_tokens(list(msgs), model_settings, params)
         except NotImplementedError:
             approximate = True
-            return _count_tokens_tiktoken(_messages_to_text(msgs), model_name)
+            return count_tokens(_messages_to_text(msgs), model_name)
         else:
             return usage.input_tokens
 
@@ -181,7 +189,7 @@ async def get_token_breakdown(
     system_prompt_contents = _extract_system_prompts(messages)
     system_prompt_usages: list[TokenUsage] = []
     for i, content in enumerate(system_prompt_contents):
-        token_count = _count_tokens_tiktoken(content, model_name)
+        token_count = count_tokens(content, model_name)
         label = content[:50] + "..." if len(content) > 50 else content  # noqa: PLR2004
         system_prompt_usages.append(
             TokenUsage(token_count=token_count, label=f"System prompt {i + 1}: {label}")
@@ -195,7 +203,7 @@ async def get_token_breakdown(
     for tool in tool_schemas:
         schema = _normalize_tool_schema(tool)
         schema_text = json.dumps(schema)
-        token_count = _count_tokens_tiktoken(schema_text, model_name)
+        token_count = count_tokens(schema_text, model_name)
         tool_name = schema.get("name", "unknown")
         tool_usages.append(TokenUsage(token_count=token_count, label=tool_name))
     if tool_usages:
