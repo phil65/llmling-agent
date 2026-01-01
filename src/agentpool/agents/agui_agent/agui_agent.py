@@ -11,6 +11,7 @@ locally and results sent back.
 from __future__ import annotations
 
 import asyncio
+import json
 from typing import TYPE_CHECKING, Any, Self
 from uuid import uuid4
 
@@ -26,6 +27,7 @@ from pydantic_ai import (
     ToolReturnPart,
     UserPromptPart,
 )
+from pydantic_ai.usage import RequestUsage, RunUsage
 
 from agentpool.agents.agui_agent.chunk_transformer import ChunkTransformer
 from agentpool.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
@@ -33,9 +35,11 @@ from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
+from agentpool.messaging.messages import TokenCost
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.tools import ToolManager
 from agentpool.utils.streams import FileTracker
+from agentpool.utils.token_breakdown import count_tokens
 
 
 if TYPE_CHECKING:
@@ -627,6 +631,32 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 break
 
         text_content = "".join(text_chunks)
+
+        # Calculate approximate token usage from what we can observe
+        # Input: the prompt we sent
+        input_text = " ".join(str(p) for p in processed_prompts)
+        input_text += " ".join(str(p) for p in pending_parts)
+        model_for_count = self.model_name or "gpt-4"
+        input_tokens = count_tokens(input_text, model_for_count)
+
+        # Output: text + thinking + tool call args
+        output_text = text_content
+        for part in current_response_parts:
+            if isinstance(part, ThinkingPart) and part.content:
+                output_text += part.content
+            elif isinstance(part, ToolCallPart) and part.args:
+                args_str = json.dumps(part.args) if not isinstance(part.args, str) else part.args
+                output_text += args_str
+        output_tokens = count_tokens(output_text, model_for_count)
+
+        # Build usage and cost info
+        usage = RequestUsage(input_tokens=input_tokens, output_tokens=output_tokens)
+        run_usage = RunUsage(input_tokens=input_tokens, output_tokens=output_tokens)
+        cost_info = await TokenCost.from_usage(
+            usage=run_usage,
+            model=self.model_name or "unknown",
+        )
+
         final_message = ChatMessage[str](
             content=text_content,
             role="assistant",
@@ -636,6 +666,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             parent_id=user_msg.message_id,
             messages=model_messages,
             metadata=file_tracker.get_metadata(),
+            usage=usage,
+            cost_info=cost_info,
         )
         complete_event = StreamCompleteEvent(message=final_message)
         await self.event_handler(None, complete_event)
