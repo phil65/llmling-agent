@@ -3,7 +3,7 @@
 These tests capture the actual CLI help output of agent tools to detect
 when command-line arguments and options change.
 
-Run with: uv run pytest tests/test_acp_agents_snapshots.py -m acp_cli_snapshot
+Run with: uv run pytest tests/test_acp_agents_snapshots.py -m acp_snapshot
 """
 
 from __future__ import annotations
@@ -102,7 +102,7 @@ def get_cli_help_output(agent_class: type[BaseACPAgentConfig]) -> str:
     return "\n".join(lines)
 
 
-@pytest.mark.acp_cli_snapshot
+@pytest.mark.acp_snapshot
 @pytest.mark.parametrize(
     "agent_class",
     get_concrete_agent_classes(),
@@ -115,11 +115,11 @@ def test_acp_agent_help_output(agent_class: type[BaseACPAgentConfig], snapshot):
     Changes in command-line options, flags, or arguments will trigger snapshot updates.
 
     To update snapshots after intentional changes:
-        uv run pytest tests/test_acp_agents_snapshots.py -m acp_cli_snapshot --snapshot-update
+        uv run pytest tests/test_acp_agents_snapshots.py -m acp_snapshot --snapshot-update
     """
     help_output = get_cli_help_output(agent_class)
     assert help_output == snapshot
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-m", "acp_cli_snapshot", "-v"])
+    pytest.main([__file__, "-m", "acp_snapshot", "-v"])

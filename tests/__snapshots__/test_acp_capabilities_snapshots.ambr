@@ -1,0 +1,470 @@
+# serializer version: 1
+# name: test_acp_agent_capabilities[AmpACPAgentConfig]
+  '''
+  === AmpACPAgentConfig ===
+  
+  Status: ok
+  Command: npx -y amp-acp
+  
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": false,
+    "mcp": {
+      "http": true,
+      "sse": true,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  '''
+# ---
+# name: test_acp_agent_capabilities[AuggieACPAgentConfig]
+  '''
+  === AuggieACPAgentConfig ===
+  
+  Status: ok
+  Command: auggie --acp
+  
+  Agent Info:
+    name: auggie
+    title: Auggie Agent
+    version: 0.12.0 (commit caae5f40)
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": false,
+    "mcp": {
+      "http": false,
+      "sse": false,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": false,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  '''
+# ---
+# name: test_acp_agent_capabilities[CagentACPAgentConfig]
+  '''
+  === CagentACPAgentConfig ===
+  
+  Status: timeout
+  Command: cagent acp
+  Error: Initialization timed out (15s)
+  '''
+# ---
+# name: test_acp_agent_capabilities[ClaudeACPAgentConfig]
+  '''
+  === ClaudeACPAgentConfig ===
+  
+  Status: ok
+  Command: claude-code-acp
+  
+  Agent Info:
+    name: @zed-industries/claude-code-acp
+    title: Claude Code
+    version: 0.12.6
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": false,
+    "mcp": {
+      "http": true,
+      "sse": true,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": true
+    }
+  }
+  
+  Auth Methods:
+    - claude-login: Log in with Claude Code
+  '''
+# ---
+# name: test_acp_agent_capabilities[CodexACPAgentConfig]
+  '''
+  === CodexACPAgentConfig ===
+  
+  Status: ok
+  Command: npx @zed-industries/codex-acp
+  
+  Agent Info:
+    name: codex-acp
+    title: Codex
+    version: 0.8.0
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": false,
+    "mcp": {
+      "http": true,
+      "sse": false,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  
+  Auth Methods:
+    - chatgpt: Login with ChatGPT
+    - codex-api-key: Use CODEX_API_KEY
+    - openai-api-key: Use OPENAI_API_KEY
+  '''
+# ---
+# name: test_acp_agent_capabilities[CursorACPAgentConfig]
+  '''
+  === CursorACPAgentConfig ===
+  
+  Status: ok
+  Command: cursor-agent-acp
+  
+  Agent Info:
+    name: cursor-agent-acp
+    title: Cursor Agent ACP Adapter
+    version: 0.5.2
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": true,
+    "mcp": {
+      "http": false,
+      "sse": false,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  '''
+# ---
+# name: test_acp_agent_capabilities[FastAgentACPAgentConfig]
+  '''
+  === FastAgentACPAgentConfig ===
+  
+  Status: ok
+  Command: fast-agent-acp --model anthropic.claude-3-5-haiku-latest
+  
+  Agent Info:
+    name: fast-agent-acp
+    title: None
+    version: 0.4.19
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": false,
+    "mcp": {
+      "http": false,
+      "sse": false,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  '''
+# ---
+# name: test_acp_agent_capabilities[GeminiACPAgentConfig]
+  '''
+  === GeminiACPAgentConfig ===
+  
+  Status: ok
+  Command: gemini --experimental-acp
+  
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": false,
+    "mcp": {
+      "http": false,
+      "sse": false,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": true,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  
+  Auth Methods:
+    - oauth-personal: Log in with Google
+    - gemini-api-key: Use Gemini API key
+    - vertex-ai: Vertex AI
+  '''
+# ---
+# name: test_acp_agent_capabilities[GooseACPAgentConfig]
+  '''
+  === GooseACPAgentConfig ===
+  
+  Status: ok
+  Command: goose acp
+  
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": true,
+    "mcp": {
+      "http": false,
+      "sse": false,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  '''
+# ---
+# name: test_acp_agent_capabilities[KimiACPAgentConfig]
+  '''
+  === KimiACPAgentConfig ===
+  
+  Status: ok
+  Command: kimi --acp
+  
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": false,
+    "mcp": {
+      "http": false,
+      "sse": false,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": false,
+      "image": false
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  '''
+# ---
+# name: test_acp_agent_capabilities[MistralACPAgentConfig]
+  '''
+  === MistralACPAgentConfig ===
+  
+  Status: ok
+  Command: vibe-acp
+  
+  Agent Info:
+    name: @mistralai/mistral-vibe
+    title: Mistral Vibe
+    version: 1.3.3
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": false,
+    "mcp": {
+      "http": false,
+      "sse": false,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": true,
+      "image": false
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  '''
+# ---
+# name: test_acp_agent_capabilities[OpenCodeACPAgentConfig]
+  '''
+  === OpenCodeACPAgentConfig ===
+  
+  Status: ok
+  Command: opencode acp
+  
+  Agent Info:
+    name: OpenCode
+    title: None
+    version: 1.0.223
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": true,
+    "mcp": {
+      "http": true,
+      "sse": true,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  
+  Auth Methods:
+    - opencode-login: Login with opencode
+  '''
+# ---
+# name: test_acp_agent_capabilities[OpenHandsACPAgentConfig]
+  '''
+  === OpenHandsACPAgentConfig ===
+  
+  Status: ok
+  Command: openhands acp
+  
+  Agent Info:
+    name: OpenHands CLI ACP Agent
+    title: None
+    version: 1.3.0
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": true,
+    "mcp": {
+      "http": true,
+      "sse": true,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  '''
+# ---
+# name: test_acp_agent_capabilities[StakpakACPAgentConfig]
+  '''
+  === StakpakACPAgentConfig ===
+  
+  Status: ok
+  Command: stakpak acp
+  
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": true,
+    "mcp": {
+      "http": true,
+      "sse": true,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": false,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": false,
+      "resume": false
+    }
+  }
+  '''
+# ---
+# name: test_acp_agent_capabilities[VTCodeACPAgentConfig]
+  '''
+  === VTCodeACPAgentConfig ===
+  
+  Status: timeout
+  Command: vtcode acp
+  Error: Initialization timed out (15s)
+  '''
+# ---

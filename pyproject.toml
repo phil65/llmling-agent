@@ -261,7 +261,7 @@ reportPrivateImportUsage = false
 reportUnusedExpression = false
 
 [tool.pytest]
-addopts = ["-m", "not slow and not acp_cli_snapshot"]
+addopts = ["-m", "not slow and not acp_snapshot"]
 filterwarnings = [
   "ignore::DeprecationWarning:psygnal.*",
   "ignore::DeprecationWarning:pydantic.*:",
@@ -272,7 +272,7 @@ log_date_format = "%Y-%m-%d %H:%M:%S"
 log_format = "%(asctime)s %(levelname)s %(message)s"
 log_level = "ERROR"
 markers = [
-  "acp_cli_snapshot: marks tests as ACP CLI snapshot tests (excluded by default)",
+  "acp_snapshot: marks tests as ACP snapshot tests (excluded by default)",
   "asyncio: mark test as async",
   "integration: marks tests as integration tests",
   "slow: marks tests as slow",
