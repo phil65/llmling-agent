@@ -473,6 +473,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             if tool_name.startswith(bridge_prefix):
                 return PermissionResultAllow()
 
+        # Auto-grant tools from configured external MCP servers
+        # These are explicitly configured by the user, so they should be trusted
+        # Tool names are like: mcp__{server_name}__{tool_name}
+        if tool_name.startswith("mcp__") and self._mcp_servers:
+            for server_name in self._mcp_servers:
+                if tool_name.startswith(f"mcp__{server_name}__"):
+                    return PermissionResultAllow()
+
         # Use input provider if available
         if self._input_provider:
             # Create a dummy Tool for the confirmation dialog
