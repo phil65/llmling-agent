@@ -917,15 +917,12 @@ async def share_session(
     async with OpenCodeSharer() as sharer:
         result = await sharer.share_conversation(opencode_messages, title=session.title)
         share_url = result.url
-
     # Store the share URL in the session
     share_info = SessionShare(url=share_url)
     updated_session = session.model_copy(update={"share": share_info})
     state.sessions[session_id] = updated_session
-
     # Broadcast session update
     await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
-
     return updated_session
 
 
@@ -945,11 +942,9 @@ async def revert_session(session_id: str, request: RevertRequest, state: StateDe
     session = await get_or_load_session(state, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-
     file_ops = state.pool.file_ops
     if not file_ops.changes:
         raise HTTPException(status_code=400, detail="No file changes to revert")
-
     # Get revert operations for changes since this message
     revert_ops = file_ops.get_revert_operations(since_message_id=request.message_id)
 
@@ -958,10 +953,8 @@ async def revert_session(session_id: str, request: RevertRequest, state: StateDe
             status_code=404,
             detail=f"No changes found for message {request.message_id}",
         )
-
     # Get filesystem from the agent's environment
     fs = state.agent.env.get_fs()
-
     # Apply reverts using the filesystem
     # TODO: Currently write operations only track "existed vs created", not full old content.
     # Files that existed before a write will be restored as empty, not their original content.
@@ -984,7 +977,6 @@ async def revert_session(session_id: str, request: RevertRequest, state: StateDe
 
     # Remove the reverted changes from the tracker
     file_ops.remove_changes_since_message(request.message_id)
-
     # Update session with revert info
     session = state.sessions[session_id]
     revert_info = SessionRevert(
@@ -994,10 +986,8 @@ async def revert_session(session_id: str, request: RevertRequest, state: StateDe
     )
     updated_session = session.model_copy(update={"revert": revert_info})
     state.sessions[session_id] = updated_session
-
     # Broadcast session update
     await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
-
     return updated_session
 
 
@@ -1010,11 +1000,9 @@ async def unrevert_session(session_id: str, state: StateDep) -> Session:
     session = await get_or_load_session(state, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-
     file_ops = state.pool.file_ops
     if not file_ops.reverted_changes:
         raise HTTPException(status_code=400, detail="No reverted changes to restore")
-
     # Get unrevert operations
     unrevert_ops = file_ops.get_unrevert_operations()
     # Get filesystem from the agent's environment
@@ -1056,7 +1044,6 @@ async def unshare_session(session_id: str, state: StateDep) -> bool:
         raise HTTPException(status_code=404, detail="Session not found")
     if session.share is None:
         raise HTTPException(status_code=400, detail="Session is not shared")
-
     # Remove share info from session
     updated_session = session.model_copy(update={"share": None})
     state.sessions[session_id] = updated_session
@@ -1080,7 +1067,6 @@ async def execute_command(  # noqa: PLR0915
     session = await get_or_load_session(state, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-
     prompts = await state.agent.tools.list_prompts()
     # Find matching prompt by name
     prompt = next((p for p in prompts if p.name == request.command), None)
@@ -1115,14 +1101,12 @@ async def execute_command(  # noqa: PLR0915
         tokens=Tokens(cache=TokensCache(read=0, write=0), input=0, output=0, reasoning=0),
         cost=0,
     )
-
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
     state.messages[session_id].append(assistant_msg_with_parts)
     await state.broadcast_event(MessageUpdatedEvent.create(assistant_message))
     # Mark session as busy
     state.session_status[session_id] = SessionStatus(type="busy")
     await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="busy")))
-
     # Add step-start part
     part_id = identifier.ascending("part")
     step_start = StepStartPart(id=part_id, message_id=assistant_msg_id, session_id=session_id)
@@ -1175,9 +1159,8 @@ async def execute_command(  # noqa: PLR0915
     await state.broadcast_event(PartUpdatedEvent.create(step_finish))
 
     # Update message with completion time
-    updated_assistant = assistant_message.model_copy(
-        update={"time": MessageTime(created=now, completed=response_time)}
-    )
+    time_ = MessageTime(created=now, completed=response_time)
+    updated_assistant = assistant_message.model_copy(update={"time": time_})
     assistant_msg_with_parts.info = updated_assistant
     await state.broadcast_event(MessageUpdatedEvent.create(updated_assistant))
     # Mark session as idle
