@@ -444,3 +444,24 @@ class SQLModelProvider(StorageProvider):
         msg_count = len(msg_result.scalars().all())
 
         return conv_count, msg_count
+
+    async def delete_conversation_messages(
+        self,
+        conversation_id: str,
+    ) -> int:
+        """Delete all messages for a conversation."""
+        from sqlalchemy import delete, func
+
+        async with AsyncSession(self.engine) as session:
+            # First count messages to return
+            count_result = await session.execute(
+                select(func.count()).where(Message.conversation_id == conversation_id)
+            )
+            count = count_result.scalar() or 0
+
+            # Then delete
+            await session.execute(
+                delete(Message).where(Message.conversation_id == conversation_id)  # type: ignore[arg-type]
+            )
+            await session.commit()
+            return count

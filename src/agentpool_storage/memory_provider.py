@@ -395,3 +395,12 @@ class MemoryStorageProvider(StorageProvider):
             msg_count = len(self.messages)
 
         return conv_count, msg_count
+
+    async def delete_conversation_messages(
+        self,
+        conversation_id: str,
+    ) -> int:
+        """Delete all messages for a conversation."""
+        original_count = len(self.messages)
+        self.messages = [m for m in self.messages if m["conversation_id"] != conversation_id]
+        return original_count - len(self.messages)

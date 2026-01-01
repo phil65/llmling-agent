@@ -859,8 +859,20 @@ async def summarize_session(  # noqa: PLR0915
             # Fall back to a default summarizing pipeline
             pipeline = summarizing_context()
 
-        # Apply the compaction pipeline
+        # Apply the compaction pipeline (modifies agent.conversation in place)
         await compact_conversation(pipeline, state.agent.conversation)
+
+        # Persist compacted messages to storage, replacing the old ones
+        if state.pool.storage is not None:
+            compacted_history = state.agent.conversation.get_history()
+            await state.pool.storage.replace_conversation_messages(
+                session_id,
+                compacted_history,
+            )
+
+        # Update in-memory OpenCode messages list with compacted versions
+        # Keep only the summary message we just created
+        state.messages[session_id] = [assistant_msg_with_parts]
 
     except Exception:  # noqa: BLE001
         # Compaction failure is not fatal - we still have the summary

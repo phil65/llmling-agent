@@ -379,3 +379,17 @@ class FileProvider(StorageProvider):
             msg_count = len(self._data["messages"])
 
         return conv_count, msg_count
+
+    async def delete_conversation_messages(
+        self,
+        conversation_id: str,
+    ) -> int:
+        """Delete all messages for a conversation."""
+        original_count = len(self._data["messages"])
+        self._data["messages"] = [
+            m for m in self._data["messages"] if m["conversation_id"] != conversation_id
+        ]
+        deleted = original_count - len(self._data["messages"])
+        if deleted > 0:
+            self._save()
+        return deleted

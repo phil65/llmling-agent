@@ -309,3 +309,21 @@ class StorageProvider:
             Tuple of (conversation count, message count)
         """
         raise NotImplementedError
+
+    async def delete_conversation_messages(
+        self,
+        conversation_id: str,
+    ) -> int:
+        """Delete all messages for a conversation.
+
+        Used for compaction - removes existing messages so they can be
+        replaced with compacted versions.
+
+        Args:
+            conversation_id: ID of the conversation to clear
+
+        Returns:
+            Number of messages deleted
+        """
+        msg = f"{self.__class__.__name__} does not support deleting messages"
+        raise NotImplementedError(msg)

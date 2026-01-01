@@ -9,6 +9,7 @@ from anyenv import method_spawner
 from pydantic_ai import Agent
 
 from agentpool.log import get_logger
+from agentpool.messaging import ChatMessage
 from agentpool.storage.serialization import serialize_messages
 from agentpool.utils.tasks import TaskManager
 from agentpool_config.storage import (
@@ -25,7 +26,6 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from agentpool.common_types import JsonValue
-    from agentpool.messaging import ChatMessage
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import BaseStorageProviderConfig, StorageConfig
     from agentpool_storage.base import StorageProvider
@@ -363,6 +363,87 @@ class StorageManager:
         """
         provider = self.get_history_provider()
         return await provider.get_conversation_title(conversation_id)
+
+    @method_spawner
+    async def delete_conversation_messages(
+        self,
+        conversation_id: str,
+    ) -> int:
+        """Delete all messages for a conversation in all providers.
+
+        Used for compaction - removes existing messages so they can be
+        replaced with compacted versions.
+
+        Args:
+            conversation_id: ID of the conversation to clear
+
+        Returns:
+            Total number of messages deleted across all providers
+        """
+        total_deleted = 0
+        for provider in self.providers:
+            try:
+                deleted = await provider.delete_conversation_messages(conversation_id)
+                total_deleted += deleted
+            except NotImplementedError:
+                # Provider doesn't support deletion (e.g., write-only log)
+                pass
+            except Exception:
+                logger.exception(
+                    "Error deleting messages from provider",
+                    provider=provider.__class__.__name__,
+                    conversation_id=conversation_id,
+                )
+        return total_deleted
+
+    @method_spawner
+    async def replace_conversation_messages(
+        self,
+        conversation_id: str,
+        messages: Sequence[ChatMessage[Any]],
+    ) -> tuple[int, int]:
+        """Replace all messages for a conversation with new ones.
+
+        Deletes existing messages and logs new ones. Used for compaction
+        where the full history is replaced with a compacted version.
+
+        Args:
+            conversation_id: ID of the conversation
+            messages: New messages to store
+
+        Returns:
+            Tuple of (deleted_count, added_count)
+        """
+        # First delete existing messages
+        deleted = await self.delete_conversation_messages(conversation_id)
+
+        # Then log new messages
+        added = 0
+        for message in messages:
+            # Ensure conversation_id is set on the message
+            msg_to_log: ChatMessage[Any] = message
+            if not message.conversation_id:
+                msg_to_log = ChatMessage(
+                    content=message.content,
+                    role=message.role,
+                    name=message.name,
+                    conversation_id=conversation_id,
+                    message_id=message.message_id,
+                    parent_id=message.parent_id,
+                    model_name=message.model_name,
+                    cost_info=message.cost_info,
+                    response_time=message.response_time,
+                    forwarded_from=message.forwarded_from,
+                    timestamp=message.timestamp,
+                    provider_name=message.provider_name,
+                    provider_response_id=message.provider_response_id,
+                    messages=message.messages,
+                    finish_reason=message.finish_reason,
+                )
+            await self.log_message(msg_to_log)
+            added += 1
+
+        return deleted, added
 
     async def generate_conversation_title(
         self,
