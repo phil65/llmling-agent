@@ -407,14 +407,22 @@ class ChatMessage[TContent]:
         Returns:
             A ChatMessage with all fields populated from the result
         """
-        # Calculate costs
+        # Calculate costs - prefer provider-reported cost if available
         run_usage = result.usage()
         usage = result.response.usage
-        cost_info = await TokenCost.from_usage(
-            model=result.response.model_name or "",
-            usage=run_usage,
-            provider=result.response.provider_name,
-        )
+        provider_cost = (result.response.provider_details or {}).get("cost")
+        if provider_cost is not None:
+            # Use actual cost from provider (e.g., OpenRouter returns this)
+            cost_info: TokenCost | None = TokenCost(
+                token_usage=run_usage, total_cost=Decimal(str(provider_cost))
+            )
+        else:
+            # Fall back to calculated cost
+            cost_info = await TokenCost.from_usage(
+                model=result.response.model_name or "",
+                usage=run_usage,
+                provider=result.response.provider_name,
+            )
 
         return ChatMessage[OutputDataT](
             content=result.output,
