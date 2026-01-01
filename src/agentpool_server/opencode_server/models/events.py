@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Self
+from typing import Any, Literal, Self
 
 from pydantic import Field
 
@@ -144,21 +144,54 @@ class PartUpdatedEvent(OpenCodeBaseModel):
         return cls(properties=PartUpdatedEventProperties(part=part, delta=delta))
 
 
-class PermissionRequestProperties(OpenCodeBaseModel):
-    """Properties for permission request event."""
+class PermissionTimeInfo(OpenCodeBaseModel):
+    """Time information for permission event."""
+
+    created: int
+
+
+class PermissionUpdatedProperties(OpenCodeBaseModel):
+    """Properties for permission updated event.
+
+    Matches OpenCode's Permission.Info schema.
+    """
+
+    id: str
+    """Permission ID."""
+
+    type: str
+    """Tool type/name."""
 
     session_id: str
-    permission_id: str
-    tool_name: str
-    args_preview: str
-    message: str
+    """Session ID."""
+
+    message_id: str
+    """Message ID."""
+
+    call_id: str | None = None
+    """Optional tool call ID."""
+
+    title: str
+    """Human-readable title for the permission request."""
+
+    metadata: dict[str, Any]
+    """Arbitrary metadata about the tool call."""
+
+    time: PermissionTimeInfo
+    """Timestamp information."""
+
+    pattern: str | list[str] | None = None
+    """Optional pattern for matching."""
 
 
 class PermissionRequestEvent(OpenCodeBaseModel):
-    """Permission request event - sent when a tool needs user confirmation."""
+    """Permission request event - sent when a tool needs user confirmation.
 
-    type: Literal["permission.request"] = "permission.request"
-    properties: PermissionRequestProperties
+    Uses 'permission.updated' event type for OpenCode TUI compatibility.
+    """
+
+    type: Literal["permission.updated"] = "permission.updated"
+    properties: PermissionUpdatedProperties
 
     @classmethod
     def create(
@@ -168,30 +201,48 @@ class PermissionRequestEvent(OpenCodeBaseModel):
         tool_name: str,
         args_preview: str,
         message: str,
+        message_id: str = "",
+        call_id: str | None = None,
     ) -> Self:
-        props = PermissionRequestProperties(
+        import time
+
+        props = PermissionUpdatedProperties(
+            id=permission_id,
+            type=tool_name,
             session_id=session_id,
-            permission_id=permission_id,
-            tool_name=tool_name,
-            args_preview=args_preview,
-            message=message,
+            message_id=message_id,
+            call_id=call_id,
+            title=message,
+            metadata={"args_preview": args_preview},
+            time=PermissionTimeInfo(created=int(time.time() * 1000)),
         )
         return cls(properties=props)
 
 
-class PermissionResolvedProperties(OpenCodeBaseModel):
-    """Properties for permission resolved event."""
+class PermissionRepliedProperties(OpenCodeBaseModel):
+    """Properties for permission replied event.
+
+    Matches OpenCode's permission.replied event schema.
+    """
 
     session_id: str
+    """Session ID."""
+
     permission_id: str
-    response: str  # "once" | "always" | "reject"
+    """Permission ID."""
+
+    response: str
+    """Response: 'once' | 'always' | 'reject'."""
 
 
 class PermissionResolvedEvent(OpenCodeBaseModel):
-    """Permission resolved event - sent when a permission request is answered."""
+    """Permission resolved event - sent when a permission request is answered.
 
-    type: Literal["permission.resolved"] = "permission.resolved"
-    properties: PermissionResolvedProperties
+    Uses 'permission.replied' event type for OpenCode TUI compatibility.
+    """
+
+    type: Literal["permission.replied"] = "permission.replied"
+    properties: PermissionRepliedProperties
 
     @classmethod
     def create(
@@ -200,7 +251,7 @@ class PermissionResolvedEvent(OpenCodeBaseModel):
         permission_id: str,
         response: str,
     ) -> Self:
-        props = PermissionResolvedProperties(
+        props = PermissionRepliedProperties(
             session_id=session_id,
             permission_id=permission_id,
             response=response,
