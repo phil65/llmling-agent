@@ -106,7 +106,7 @@ async def test_capability_tools(default_model: str):
 @pytest.mark.flaky(reruns=2)
 async def test_team_creation(default_model: str):
     """Test that an agent can create other agents and form them into a team via commands."""
-    default_model = "openrouter:anthropic/claude-haiku-4.5"
+    # default_model = "openrouter:anthropic/claude-haiku-4.5"
     async with AgentPool() as pool:
         # Create creator agent with skills toolset (provides run_command tool)
         from agentpool_config.toolsets import SkillsToolsetConfig
