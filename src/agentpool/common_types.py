@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -48,6 +49,26 @@ SimpleJsonType = dict[
 type JsonValue = JsonPrimitive | JsonArray | JsonObject
 type JsonObject = dict[str, JsonValue]
 type JsonArray = list[JsonValue]
+
+
+MCPConnectionStatus = Literal["connected", "disconnected", "error"]
+
+
+@dataclass(frozen=True, slots=True)
+class MCPServerStatus:
+    """Status information for an MCP server.
+
+    Attributes:
+        name: Server name/identifier
+        status: Connection status
+        server_type: Transport type (stdio, sse, http)
+        error: Error message if status is "error"
+    """
+
+    name: str
+    status: MCPConnectionStatus
+    server_type: str = "unknown"
+    error: str | None = None
 
 
 NodeName = str

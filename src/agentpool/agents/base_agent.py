@@ -28,7 +28,11 @@ if TYPE_CHECKING:
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory, ModeInfo
-    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
+    from agentpool.common_types import (
+        BuiltinEventHandlerType,
+        IndividualEventHandler,
+        MCPServerStatus,
+    )
     from agentpool.delegation import AgentPool
     from agentpool.talk.stats import MessageStats
     from agentpool.ui.base import InputProvider
@@ -227,6 +231,56 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         from agentpool.talk.stats import MessageStats
 
         return MessageStats(messages=list(self.conversation.chat_messages))
+
+    def get_mcp_server_info(self) -> dict[str, MCPServerStatus]:
+        """Get information about configured MCP servers.
+
+        Returns a dict mapping server names to their status info. Used by
+        the OpenCode /mcp endpoint to display MCP servers in the UI.
+
+        The default implementation checks external_providers on the tool manager.
+        Subclasses may override to provide agent-specific MCP server info
+        (e.g., ClaudeCodeAgent has its own MCP server handling).
+
+        Returns:
+            Dict mapping server name to MCPServerStatus
+        """
+        from agentpool.common_types import MCPServerStatus
+        from agentpool.mcp_server.manager import MCPManager
+        from agentpool.resource_providers import AggregatingResourceProvider
+        from agentpool.resource_providers.mcp_provider import MCPResourceProvider
+
+        def add_status(provider: MCPResourceProvider, result: dict[str, MCPServerStatus]) -> None:
+            status_dict = provider.get_status()
+            status_type = status_dict.get("status", "disabled")
+            if status_type == "connected":
+                result[provider.name] = MCPServerStatus(
+                    name=provider.name, status="connected", server_type="stdio"
+                )
+            elif status_type == "failed":
+                error = status_dict.get("error", "Unknown error")
+                result[provider.name] = MCPServerStatus(
+                    name=provider.name, status="error", error=error
+                )
+            else:
+                result[provider.name] = MCPServerStatus(name=provider.name, status="disconnected")
+
+        result: dict[str, MCPServerStatus] = {}
+        try:
+            for provider in self.tools.external_providers:
+                if isinstance(provider, MCPResourceProvider):
+                    add_status(provider, result)
+                elif isinstance(provider, AggregatingResourceProvider):
+                    for nested in provider.providers:
+                        if isinstance(nested, MCPResourceProvider):
+                            add_status(nested, result)
+                elif isinstance(provider, MCPManager):
+                    for mcp_provider in provider.get_mcp_providers():
+                        add_status(mcp_provider, result)
+        except Exception:  # noqa: BLE001
+            pass
+
+        return result
 
     @abstractmethod
     async def get_available_models(self) -> list[ModelInfo] | None:

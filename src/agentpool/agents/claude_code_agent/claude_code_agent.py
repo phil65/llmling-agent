@@ -91,6 +91,7 @@ if TYPE_CHECKING:
     from agentpool.common_types import (
         BuiltinEventHandlerType,
         IndividualEventHandler,
+        MCPServerStatus,
         PromptCompatible,
     )
     from agentpool.delegation import AgentPool
@@ -348,6 +349,27 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     def model_name(self) -> str | None:
         """Get the model name."""
         return self._current_model
+
+    def get_mcp_server_info(self) -> dict[str, MCPServerStatus]:
+        """Get information about configured MCP servers.
+
+        Returns a dict mapping server names to their status info. This is used
+        by the OpenCode /mcp endpoint to display MCP servers in the sidebar.
+
+        Returns:
+            Dict mapping server name to MCPServerStatus dataclass
+        """
+        from agentpool.common_types import MCPServerStatus
+
+        result: dict[str, MCPServerStatus] = {}
+        for name, config in self._mcp_servers.items():
+            server_type = config.get("type", "unknown")
+            result[name] = MCPServerStatus(
+                name=name,
+                status="connected",  # Claude SDK manages connections
+                server_type=server_type,
+            )
+        return result
 
     def _build_hooks(self) -> dict[str, list[Any]]:
         """Build SDK hooks configuration.

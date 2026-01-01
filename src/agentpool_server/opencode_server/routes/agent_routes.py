@@ -16,7 +16,6 @@ from pydantic import BaseModel, HttpUrl
 
 from agentpool.mcp_server.manager import MCPManager
 from agentpool.resource_providers import AggregatingResourceProvider
-from agentpool.resource_providers.mcp_provider import MCPResourceProvider
 from agentpool_config.mcp_server import (
     SSEMCPServerConfig,
     StdioMCPServerConfig,
@@ -94,37 +93,18 @@ async def get_mcp_status(state: StateDep) -> dict[str, MCPStatus]:
 
     Returns status for each connected MCP server.
     """
+    # Use agent's get_mcp_server_info method which handles different agent types
+    server_info = state.agent.get_mcp_server_info()
 
-    def add_mcp_status(provider: MCPResourceProvider, result: dict[str, MCPStatus]) -> None:
-        """Add status for a single MCP provider."""
-        status_dict = provider.get_status()
-        status_type = status_dict.get("status", "disabled")
-        if status_type == "connected":
-            result[provider.name] = MCPStatus(name=provider.name, status="connected")
-        elif status_type == "failed":
-            error = status_dict.get("error", "Unknown error")
-            result[provider.name] = MCPStatus(name=provider.name, status="error", error=error)
-        else:
-            result[provider.name] = MCPStatus(name=provider.name, status="disconnected")
-
-    result: dict[str, MCPStatus] = {}
-    try:
-        for provider in state.agent.tools.external_providers:
-            if isinstance(provider, MCPResourceProvider):
-                add_mcp_status(provider, result)
-            elif isinstance(provider, AggregatingResourceProvider):
-                # Check nested providers in aggregating provider
-                for nested in provider.providers:
-                    if isinstance(nested, MCPResourceProvider):
-                        add_mcp_status(nested, result)
-            elif isinstance(provider, MCPManager):
-                # MCPManager wraps multiple MCPResourceProviders
-                for mcp_provider in provider.get_mcp_providers():
-                    add_mcp_status(mcp_provider, result)
-    except Exception:  # noqa: BLE001
-        pass
-
-    return result
+    # Convert MCPServerStatus dataclass to MCPStatus response model
+    return {
+        name: MCPStatus(
+            name=status.name,
+            status=status.status,
+            error=status.error,
+        )
+        for name, status in server_info.items()
+    }
 
 
 class AddMCPServerRequest(BaseModel):
