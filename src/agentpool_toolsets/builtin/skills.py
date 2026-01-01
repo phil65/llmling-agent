@@ -81,19 +81,24 @@ async def run_command(ctx: AgentContext, command: str) -> str:  # noqa: D417
     """Execute an internal command.
 
     This provides access to the agent's internal CLI for management operations.
-    Use `help` to see all available commands, or `help <command>` for details.
 
-    Commands cover:
+    IMPORTANT: Before using any command for the first time, call "help <command>" to learn
+    the correct syntax and available options. Commands have specific argument orders and
+    flags that must be followed exactly.
+
+    Discovery commands:
+    - "help" - list all available commands
+    - "help <command>" - get detailed usage for a specific command (ALWAYS do this first!)
+
+    Command categories:
     - Agent/team management: create-agent, create-team, list-agents
     - Tool management: list-tools, register-tool, enable-tool, disable-tool
     - MCP servers: add-mcp-server, add-remote-mcp-server, list-mcp-servers
     - Connections: connect, disconnect, connections
     - Workers: add-worker, remove-worker, list-workers
-    - And more...
 
     Args:
-        command: The command to execute (e.g., "help", "list-tools", "create-agent myagent").
-                 Leading slash is optional.
+        command: The command to execute. Leading slash is optional.
 
     Returns:
         Command output or error message

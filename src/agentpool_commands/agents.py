@@ -213,14 +213,13 @@ class CreateTeamCommand(NodeCommand):
 
     Options:
       --mode sequential|parallel   How the team operates (default: sequential)
-      --name team_name            Optional name for the team
 
     Examples:
-      # Create a sequential pipeline
-      /create-team agent1 agent2 agent3
+      # Create a team named "crew" with alice and bob
+      /create-team crew alice bob
 
-      # Create a parallel team with custom name
-      /create-team agent1 agent2 --mode parallel --name review_team
+      # Create a parallel team
+      /create-team reviewers alice bob --mode parallel
     """
 
     name = "create-team"
@@ -229,24 +228,24 @@ class CreateTeamCommand(NodeCommand):
     async def execute_command(
         self,
         ctx: CommandContext[NodeContext],
+        name: str,
         *nodes: str,
         mode: Literal["sequential", "parallel"] = "sequential",
-        name: str | None = None,
     ) -> None:
         """Create a team from existing nodes.
 
         Args:
             ctx: Command context
+            name: Name for the team
             nodes: Names of agents/teams to include
             mode: How the team operates (sequential or parallel)
-            name: Optional name for the team
         """
         if not ctx.context.pool:
             msg = "No agent pool available"
             raise CommandError(msg)
 
         if len(nodes) < 2:  # noqa: PLR2004
-            msg = "At least 2 nodes are required to create a team"
+            msg = "At least 2 members are required to create a team"
             raise CommandError(msg)
 
         # Verify all nodes exist
