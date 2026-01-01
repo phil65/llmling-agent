@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
-from pydantic import ConfigDict, Field, HttpUrl
+from pydantic import ConfigDict, Field, HttpUrl, model_validator
 from schemez import Schema
 
 
@@ -72,6 +72,43 @@ class BaseMCPServerConfig(Schema):
         title="Server timeout",
     )
     """Timeout for the server process in seconds."""
+
+    enabled_tools: list[str] | None = Field(
+        default=None,
+        examples=[["read_file", "list_directory"], ["search", "fetch"]],
+        title="Enabled tools",
+    )
+    """If set, only these tools will be available (whitelist). Mutually exclusive with disabled_tools."""
+
+    disabled_tools: list[str] | None = Field(
+        default=None,
+        examples=[["delete_file", "write_file"], ["dangerous_tool"]],
+        title="Disabled tools",
+    )
+    """Tools to exclude from this server (blacklist). Mutually exclusive with enabled_tools."""
+
+    @model_validator(mode="after")
+    def _validate_tool_filters(self) -> Self:
+        """Validate that enabled_tools and disabled_tools are mutually exclusive."""
+        if self.enabled_tools is not None and self.disabled_tools is not None:
+            msg = "Cannot specify both 'enabled_tools' and 'disabled_tools' - they are mutually exclusive"
+            raise ValueError(msg)
+        return self
+
+    def is_tool_allowed(self, tool_name: str) -> bool:
+        """Check if a tool is allowed based on enabled/disabled lists.
+
+        Args:
+            tool_name: Name of the tool to check
+
+        Returns:
+            True if the tool is allowed, False otherwise
+        """
+        if self.enabled_tools is not None:
+            return tool_name in self.enabled_tools
+        if self.disabled_tools is not None:
+            return tool_name not in self.disabled_tools
+        return True
 
     def get_env_vars(self) -> dict[str, str]:
         """Get environment variables for the server process."""

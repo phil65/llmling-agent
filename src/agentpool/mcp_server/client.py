@@ -237,19 +237,28 @@ class MCPClient:
         )
 
     async def list_tools(self) -> list[MCPTool]:
-        """Get available tools directly from the server."""
+        """Get available tools directly from the server.
+
+        Tools are filtered based on the server config's enabled_tools/disabled_tools settings.
+        """
         if not self.connected:
             msg = "Not connected to MCP server"
             raise RuntimeError(msg)
 
         try:
             tools = await self._client.list_tools()
-            logger.debug("Listed tools from MCP server", num_tools=len(tools))
+            # Filter tools based on config
+            filtered_tools = [t for t in tools if self.config.is_tool_allowed(t.name)]
+            logger.debug(
+                "Listed tools from MCP server",
+                total_tools=len(tools),
+                filtered_tools=len(filtered_tools),
+            )
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to list tools", error=e)
             return []
         else:
-            return tools
+            return filtered_tools
 
     async def list_prompts(self) -> list[MCPPrompt]:
         """Get available prompts from the server."""
