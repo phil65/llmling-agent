@@ -113,7 +113,7 @@ async def get_agent_capabilities(agent_class: type[BaseACPAgentConfig]) -> dict[
                 command,
                 *args,
                 env=env,
-            ) as (conn, process):
+            ) as (conn, _process):
                 init_request = InitializeRequest(
                     protocol_version=1,
                     client_info=Implementation(
@@ -222,8 +222,7 @@ def format_capabilities_output(caps: dict[str, Any]) -> str:
         if "auth_methods" in caps:
             lines.append("")
             lines.append("Auth Methods:")
-            for method in caps["auth_methods"]:
-                lines.append(f"  - {method['id']}: {method['name']}")
+            lines.extend(f"  - {method['id']}: {method['name']}" for method in caps["auth_methods"])
 
     elif "error" in caps:
         lines.append(f"Error: {caps['error']}")

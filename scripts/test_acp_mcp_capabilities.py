@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Test script to probe ACP agents for MCP capabilities.
 
 This script spawns each MCP-capable ACP agent, performs the initialization
@@ -134,7 +133,7 @@ async def test_agent_capabilities(config: AgentTestConfig) -> dict:
                 lambda _: MinimalClient(),
                 config.command,
                 *config.args,
-            ) as (conn, process):
+            ) as (conn, _process):
                 # Send initialize request
                 init_request = InitializeRequest(
                     protocol_version=1,
@@ -180,7 +179,7 @@ async def test_agent_capabilities(config: AgentTestConfig) -> dict:
     except TimeoutError:
         result["status"] = "timeout"
         result["error"] = "Initialization timed out (15s)"
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         result["status"] = "error"
         result["error"] = str(e)
 
