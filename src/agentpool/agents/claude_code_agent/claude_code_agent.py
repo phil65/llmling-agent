@@ -45,6 +45,7 @@ from pydantic_ai import (
     ToolReturnPart,
     UserPromptPart,
 )
+from pydantic_ai.usage import RequestUsage
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.claude_code_agent.converters import claude_message_to_events
@@ -1117,18 +1118,26 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             else "".join(text_chunks)
         )
 
-        # Build cost_info from ResultMessage if available
+        # Build cost_info and usage from ResultMessage if available
         cost_info: TokenCost | None = None
+        request_usage: RequestUsage | None = None
         if result_message and result_message.usage:
-            usage = result_message.usage
+            usage_dict = result_message.usage
             run_usage = RunUsage(
-                input_tokens=usage.get("input_tokens", 0),
-                output_tokens=usage.get("output_tokens", 0),
-                cache_read_tokens=usage.get("cache_read_input_tokens", 0),
-                cache_write_tokens=usage.get("cache_creation_input_tokens", 0),
+                input_tokens=usage_dict.get("input_tokens", 0),
+                output_tokens=usage_dict.get("output_tokens", 0),
+                cache_read_tokens=usage_dict.get("cache_read_input_tokens", 0),
+                cache_write_tokens=usage_dict.get("cache_creation_input_tokens", 0),
             )
             total_cost = Decimal(str(result_message.total_cost_usd or 0))
             cost_info = TokenCost(token_usage=run_usage, total_cost=total_cost)
+            # Also set usage for OpenCode compatibility
+            request_usage = RequestUsage(
+                input_tokens=usage_dict.get("input_tokens", 0),
+                output_tokens=usage_dict.get("output_tokens", 0),
+                cache_read_tokens=usage_dict.get("cache_read_input_tokens", 0),
+                cache_write_tokens=usage_dict.get("cache_creation_input_tokens", 0),
+            )
 
         # Determine finish reason - check if we were cancelled
         chat_message = ChatMessage[TResult](
@@ -1141,6 +1150,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             model_name=self.model_name,
             messages=model_messages,
             cost_info=cost_info,
+            usage=request_usage or RequestUsage(),
             response_time=result_message.duration_ms / 1000 if result_message else None,
             finish_reason="stop" if self._cancelled else None,
             metadata=file_tracker.get_metadata(),
