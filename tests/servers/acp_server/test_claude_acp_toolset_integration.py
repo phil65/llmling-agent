@@ -107,13 +107,13 @@ async def test_claude_acp_tool_bridge_mcp_config(claude_config_with_subagent: Cl
 
 async def test_claude_acp_multiple_toolsets():
     """Test Claude ACP agent with multiple toolsets."""
-    from agentpool_config.toolsets import AgentManagementToolsetConfig
+    from agentpool_config.toolsets import DebugToolsetConfig
 
     config = ClaudeACPAgentConfig(
         name="claude_multi",
         cwd=str(Path.cwd()),
         permission_mode="acceptEdits",
-        toolsets=[SubagentToolsetConfig(), AgentManagementToolsetConfig()],
+        toolsets=[SubagentToolsetConfig(), DebugToolsetConfig()],
     )
 
     async with AgentPool() as pool:
@@ -125,7 +125,9 @@ async def test_claude_acp_multiple_toolsets():
             tool_names = {t.name for t in tools}
             # Should have tools from both toolsets
             # SubagentToolset provides: list_available_nodes, delegate_to, ask_agent
-            assert "list_available_nodes" in tool_names or "delegate_to" in tool_names
+            assert "list_available_nodes" in tool_names
+            assert "delegate_to" in tool_names
+            assert "execute_introspection" in tool_names
 
 
 async def test_pool_cleanup_stops_tool_bridges(manifest_with_claude: AgentsManifest):
