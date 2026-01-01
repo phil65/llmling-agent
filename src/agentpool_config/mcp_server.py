@@ -111,6 +111,24 @@ class BaseMCPServerConfig(Schema):
             return tool_name not in self.disabled_tools
         return True
 
+    def needs_tool_filtering(self) -> bool:
+        """Check if this config has tool filtering configured."""
+        return self.enabled_tools is not None or self.disabled_tools is not None
+
+    def wrap_with_mcp_filter(self) -> StdioMCPServerConfig:
+        """Wrap this MCP server with mcp-filter for tool filtering.
+
+        Creates a new StdioMCPServerConfig that runs mcp-filter as a proxy,
+        applying the configured enabled_tools/disabled_tools filtering.
+
+        Returns:
+            A new StdioMCPServerConfig that wraps the original server with mcp-filter
+
+        Raises:
+            NotImplementedError: Subclasses must implement this method
+        """
+        raise NotImplementedError
+
     def get_env_vars(self) -> dict[str, str]:
         """Get environment variables for the server process."""
         env = os.environ.copy()
@@ -180,6 +198,34 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
         """Generate a unique client ID for this stdio server configuration."""
         return f"{self.command}_{' '.join(self.args)}"
 
+    def wrap_with_mcp_filter(self) -> StdioMCPServerConfig:
+        """Wrap this stdio MCP server with mcp-filter for tool filtering.
+
+        Returns:
+            A new StdioMCPServerConfig that wraps this server with mcp-filter
+        """
+        filter_args = ["mcp-filter", "run", "-t", "stdio", "--stdio-command", self.command]
+
+        # Add original args as a single --stdio-arg
+        if self.args:
+            filter_args.extend(["--stdio-arg", " ".join(self.args)])
+
+        # Add allowlist (exact tool names)
+        if self.enabled_tools:
+            filter_args.extend(["-a", ",".join(self.enabled_tools)])
+
+        # Add denylist (regex patterns)
+        if self.disabled_tools:
+            filter_args.extend(["-d", ",".join(self.disabled_tools)])
+
+        return StdioMCPServerConfig(
+            name=self.name,
+            command="uvx",
+            args=filter_args,
+            env=self.env,
+            timeout=self.timeout,
+        )
+
     def to_pydantic_ai(self) -> MCPServerStdio:
         """Convert to pydantic-ai MCPServerStdio instance."""
         from pydantic_ai.mcp import MCPServerStdio
@@ -224,6 +270,29 @@ class SSEMCPServerConfig(BaseMCPServerConfig):
         """Generate a unique client ID for this SSE server configuration."""
         return f"sse_{self.url}"
 
+    def wrap_with_mcp_filter(self) -> StdioMCPServerConfig:
+        """Wrap this SSE MCP server with mcp-filter for tool filtering.
+
+        Returns:
+            A new StdioMCPServerConfig that wraps this server with mcp-filter
+        """
+        filter_args = ["mcp-filter", "run", "-t", "http", "--http-url", str(self.url)]
+
+        # Add allowlist (exact tool names)
+        if self.enabled_tools:
+            filter_args.extend(["-a", ",".join(self.enabled_tools)])
+
+        # Add denylist (regex patterns)
+        if self.disabled_tools:
+            filter_args.extend(["-d", ",".join(self.disabled_tools)])
+
+        return StdioMCPServerConfig(
+            name=self.name,
+            command="uvx",
+            args=filter_args,
+            timeout=self.timeout,
+        )
+
     def to_pydantic_ai(self) -> MCPServerSSE:
         """Convert to pydantic-ai MCPServerSSE instance."""
         from pydantic_ai.mcp import MCPServerSSE
@@ -262,6 +331,29 @@ class StreamableHTTPMCPServerConfig(BaseMCPServerConfig):
     def client_id(self) -> str:
         """Generate a unique client ID for this streamable HTTP server configuration."""
         return f"streamable_http_{self.url}"
+
+    def wrap_with_mcp_filter(self) -> StdioMCPServerConfig:
+        """Wrap this HTTP MCP server with mcp-filter for tool filtering.
+
+        Returns:
+            A new StdioMCPServerConfig that wraps this server with mcp-filter
+        """
+        filter_args = ["mcp-filter", "run", "-t", "http", "--http-url", str(self.url)]
+
+        # Add allowlist (exact tool names)
+        if self.enabled_tools:
+            filter_args.extend(["-a", ",".join(self.enabled_tools)])
+
+        # Add denylist (regex patterns)
+        if self.disabled_tools:
+            filter_args.extend(["-d", ",".join(self.disabled_tools)])
+
+        return StdioMCPServerConfig(
+            name=self.name,
+            command="uvx",
+            args=filter_args,
+            timeout=self.timeout,
+        )
 
     def to_pydantic_ai(self) -> MCPServerStreamableHTTP:
         """Convert to pydantic-ai MCPServerStreamableHTTP instance."""

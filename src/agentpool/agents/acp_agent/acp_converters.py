@@ -265,6 +265,9 @@ def mcp_config_to_acp(config: MCPServerConfig) -> McpServer | None: ...
 def mcp_config_to_acp(config: MCPServerConfig) -> McpServer | None:
     """Convert native MCPServerConfig to ACP McpServer format.
 
+    If the config has tool filtering (enabled_tools or disabled_tools),
+    the server is wrapped with mcp-filter proxy to apply the filtering.
+
     Args:
         config: agentpool MCP server configuration
 
@@ -279,19 +282,27 @@ def mcp_config_to_acp(config: MCPServerConfig) -> McpServer | None:
         StreamableHTTPMCPServerConfig,
     )
 
+    # If filtering is configured, wrap with mcp-filter first
+    if config.needs_tool_filtering():
+        config = config.wrap_with_mcp_filter()
+
     match config:
         case StdioMCPServerConfig(command=command, args=args):
             env_vars = config.get_env_vars() if hasattr(config, "get_env_vars") else {}
+            env_list = [EnvVariable(name=k, value=v) for k, v in env_vars.items()]
             return StdioMcpServer(
                 name=config.name or command,
                 command=command,
                 args=list(args) if args else [],
-                env=[EnvVariable(name=k, value=v) for k, v in env_vars.items()],
+                env=env_list,
             )
+
         case SSEMCPServerConfig(url=url):
             return SseMcpServer(name=config.name or str(url), url=url, headers=[])
+
         case StreamableHTTPMCPServerConfig(url=url):
             return HttpMcpServer(name=config.name or str(url), url=url, headers=[])
+
         case _:
             return None
 
