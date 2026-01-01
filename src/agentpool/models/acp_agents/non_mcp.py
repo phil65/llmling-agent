@@ -760,6 +760,121 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
         return args
 
 
+class GeminiACPAgentConfig(BaseACPAgentConfig):
+    """Configuration for Gemini CLI via ACP.
+
+    Provides typed settings for the gemini CLI with ACP support.
+
+    Note:
+        Gemini CLI does not support runtime MCP server injection via config.
+        MCP servers must be pre-configured using `gemini mcp add` command.
+
+    Example:
+        ```yaml
+        agents:
+          coder:
+            type: acp
+            provider: gemini
+            cwd: /path/to/project
+            model: gemini-2.5-pro
+            approval_mode: auto_edit
+            allowed_tools:
+              - read_file
+              - write_file
+              - terminal
+        ```
+    """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Gemini ACP Agent Configuration"})
+
+    provider: Literal["gemini"] = Field("gemini", init=False)
+    """Discriminator for Gemini ACP agent."""
+
+    model: str | None = Field(
+        default=None,
+        title="Model",
+        examples=["gemini-2.5-pro", "gemini-2.5-flash"],
+    )
+    """Model override."""
+
+    approval_mode: Literal["default", "auto_edit", "yolo"] | None = Field(
+        default=None,
+        title="Approval Mode",
+        examples=["auto_edit", "yolo"],
+    )
+    """Approval mode for tool execution."""
+
+    sandbox: bool = Field(default=False, title="Sandbox")
+    """Run in sandbox mode."""
+
+    yolo: bool = Field(default=False, title="YOLO")
+    """Automatically accept all actions."""
+
+    allowed_tools: list[str] | None = Field(
+        default=None,
+        title="Allowed Tools",
+        examples=[["read_file", "write_file", "terminal"], ["search"]],
+    )
+    """Tools allowed to run without confirmation."""
+
+    allowed_mcp_server_names: list[str] | None = Field(
+        default=None,
+        title="Allowed MCP Server Names",
+        examples=[["filesystem", "github"], ["slack"]],
+    )
+    """Allowed MCP server names."""
+
+    extensions: list[str] | None = Field(
+        default=None,
+        title="Extensions",
+        examples=[["python", "typescript"], ["rust", "go"]],
+    )
+    """List of extensions to use. If not provided, all are used."""
+
+    include_directories: list[str] | None = Field(
+        default=None,
+        title="Include Directories",
+        examples=[["/path/to/lib", "/path/to/shared"], ["./vendor"]],
+    )
+    """Additional directories to include in the workspace."""
+
+    output_format: Literal["text", "json", "stream-json"] | None = Field(
+        default=None,
+        title="Output Format",
+        examples=["json", "stream-json"],
+    )
+    """Output format."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "gemini"
+
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+        """Build command arguments from settings."""
+        args: list[str] = ["--experimental-acp"]
+
+        if self.model:
+            args.extend(["--model", self.model])
+        if self.approval_mode:
+            args.extend(["--approval-mode", self.approval_mode])
+        if self.sandbox:
+            args.append("--sandbox")
+        if self.yolo:
+            args.append("--yolo")
+        if self.allowed_tools:
+            args.extend(["--allowed-tools", *self.allowed_tools])
+        if self.allowed_mcp_server_names:
+            args.extend(["--allowed-mcp-server-names", *self.allowed_mcp_server_names])
+        if self.extensions:
+            args.extend(["--extensions", *self.extensions])
+        if self.include_directories:
+            args.extend(["--include-directories", *self.include_directories])
+        if self.output_format:
+            args.extend(["--output-format", self.output_format])
+
+        return args
+
+
 # Union of all ACP agent config types
 RegularACPAgentConfigTypes = (
     CodexACPAgentConfig
@@ -772,4 +887,5 @@ RegularACPAgentConfigTypes = (
     | MistralACPAgentConfig
     | VTCodeACPAgentConfig
     | CursorACPAgentConfig
+    | GeminiACPAgentConfig
 )
