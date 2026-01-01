@@ -81,9 +81,6 @@ async def list_commands(state: StateDep) -> list[Command]:
 
     Commands are derived from MCP prompts available to the agent.
     """
-    if not hasattr(state.agent, "tools"):
-        return []
-
     try:
         prompts = await state.agent.tools.list_prompts()
         return [
@@ -103,8 +100,6 @@ async def get_mcp_status(state: StateDep) -> dict[str, MCPStatus]:
 
     Returns status for each connected MCP server.
     """
-    if not hasattr(state.agent, "tools"):
-        return {}
 
     def add_mcp_status(provider: MCPResourceProvider, result: dict[str, MCPStatus]) -> None:
         """Add status for a single MCP provider."""
@@ -163,9 +158,6 @@ async def add_mcp_server(request: AddMCPServerRequest, state: StateDep) -> MCPSt
 
     Supports stdio servers (command + args) or HTTP/SSE servers (url).
     """
-    if not hasattr(state.agent, "tools"):
-        raise HTTPException(status_code=400, detail="Agent has no tools configured")
-
     # Build the config based on request
     # Note: client_id is auto-generated from command/url, custom names not supported
     config: SSEMCPServerConfig | StdioMCPServerConfig | StreamableHTTPMCPServerConfig
@@ -224,9 +216,6 @@ async def list_tool_ids(state: StateDep) -> list[str]:
     Returns a list of tool names that are available to the agent.
     OpenCode expects: Array<string>
     """
-    if not hasattr(state.agent, "tools"):
-        return []
-
     try:
         tools = await state.agent.tools.get_tools()
         return [tool.name for tool in tools]
@@ -260,9 +249,6 @@ async def list_tools_with_schemas(  # noqa: D417
     - parameters: unknown (JSON schema)
     """
     _ = provider, model  # Currently unused, for future filtering
-
-    if not hasattr(state.agent, "tools"):
-        return []
 
     try:
         tools = await state.agent.tools.get_tools()

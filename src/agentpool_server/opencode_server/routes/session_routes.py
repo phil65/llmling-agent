@@ -1081,10 +1081,6 @@ async def execute_command(  # noqa: PLR0915
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Get available prompts from agent
-    if not hasattr(state.agent, "tools"):
-        raise HTTPException(status_code=400, detail="Agent has no tools configured")
-
     prompts = await state.agent.tools.list_prompts()
     # Find matching prompt by name
     prompt = next((p for p in prompts if p.name == request.command), None)
