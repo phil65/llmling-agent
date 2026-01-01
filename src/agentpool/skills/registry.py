@@ -72,7 +72,9 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             if not isinstance(fs, AsyncFileSystem):
                 fs = AsyncFileSystemWrapper(fs)
             search_path = base_path if base_path is not None else fs.root_marker
+            original_skills_dir: UPath | None = None
         else:
+            original_skills_dir = to_upath(skills_dir)
             fs = upath_to_fs(skills_dir, **storage_options)
             search_path = fs.root_marker
 
@@ -93,16 +95,19 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             return
         logger.info("Found skills", skills=skill_dirs, skills_dir=search_path)
         for skill_entry in skill_dirs:
-            skill_name = skill_entry["name"].lstrip("./")
-            # Construct full path for skill directory
-            if search_path and search_path != fs.root_marker:
-                skill_dir_path = to_upath(f"{search_path}/{skill_name}").resolve()
-                skill_md_path = f"{search_path}/{skill_name}/SKILL.md"
+            # entry["name"] is relative to the filesystem root
+            # We need to construct the full path for _parse_skill
+            entry_name = skill_entry["name"]
+            if original_skills_dir is not None:
+                # When we created fs from a path, entry names are relative to that path
+                skill_dir_path = original_skills_dir / entry_name
             else:
-                skill_dir_path = to_upath(skill_name).resolve()
-                skill_md_path = f"{skill_name}/SKILL.md"
+                # When fs was provided directly, entry names should be usable as-is
+                skill_dir_path = to_upath(entry_name)
+            # For fs._cat_file, use the path relative to the filesystem
+            fs_skill_md_path = f"{entry_name}/SKILL.md"
             try:
-                await fs._cat_file(skill_md_path)
+                await fs._cat_file(fs_skill_md_path)
             except FileNotFoundError:
                 continue
 
