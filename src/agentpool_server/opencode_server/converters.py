@@ -507,7 +507,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
             path=MessagePath(cwd=working_dir, root=working_dir),
             time=MessageTime(created=created_ms, completed=completed_ms),
             tokens=tokens,
-            cost=int(msg.cost_info.total_cost * 1_000_000) if msg.cost_info else 0,
+            cost=float(msg.cost_info.total_cost) if msg.cost_info else 0.0,
             finish=msg.finish_reason,
         )
 
@@ -642,7 +642,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                 message_id=message_id,
                 session_id=session_id,
                 reason=msg.finish_reason or "stop",
-                cost=int(msg.cost_info.total_cost * 1_000_000) if msg.cost_info else 0,
+                cost=float(msg.cost_info.total_cost) if msg.cost_info else 0.0,
                 tokens=StepFinishTokens(
                     input=tokens.input,
                     output=tokens.output,

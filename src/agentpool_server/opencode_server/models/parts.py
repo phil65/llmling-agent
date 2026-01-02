@@ -183,7 +183,7 @@ class StepFinishPart(OpenCodeBaseModel):
     session_id: str
     reason: str = "stop"
     snapshot: str | None = None
-    cost: int = 0
+    cost: float = 0.0
     tokens: StepFinishTokens = Field(default_factory=StepFinishTokens)
 
 

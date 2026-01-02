@@ -586,7 +586,7 @@ async def run_shell_command(
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         time=MessageTime(created=now, completed=None),
         tokens=Tokens(cache=TokensCache(read=0, write=0), input=0, output=0, reasoning=0),
-        cost=0,
+        cost=0.0,
     )
 
     # Initialize message with empty parts
@@ -760,7 +760,7 @@ async def summarize_session(  # noqa: PLR0915
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         time=MessageTime(created=now, completed=None),
         tokens=Tokens(cache=TokensCache(read=0, write=0), input=0, output=0, reasoning=0),
-        cost=0,
+        cost=0.0,
         summary=True,  # Mark as summary message
     )
 
@@ -1136,7 +1136,7 @@ async def execute_command(  # noqa: PLR0915
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         time=MessageTime(created=now, completed=None),
         tokens=Tokens(cache=TokensCache(read=0, write=0), input=0, output=0, reasoning=0),
-        cost=0,
+        cost=0.0,
     )
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
     state.messages[session_id].append(assistant_msg_with_parts)
@@ -1190,7 +1190,7 @@ async def execute_command(  # noqa: PLR0915
         message_id=assistant_msg_id,
         session_id=session_id,
         tokens=StepFinishTokens(cache=TokenCache()),
-        cost=0,
+        cost=0.0,
     )
     assistant_msg_with_parts.parts.append(step_finish)
     await state.broadcast_event(PartUpdatedEvent.create(step_finish))

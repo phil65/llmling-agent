@@ -73,7 +73,7 @@ class AssistantMessage(OpenCodeBaseModel):
     path: MessagePath
     time: MessageTime
     tokens: Tokens = Field(default_factory=Tokens)
-    cost: int = 0
+    cost: float = 0.0
     error: dict[str, Any] | None = None
     summary: bool | None = None
     finish: str | None = None

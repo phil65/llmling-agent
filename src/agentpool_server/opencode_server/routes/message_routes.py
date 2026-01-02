@@ -281,7 +281,7 @@ async def send_message(  # noqa: PLR0915
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         time=MessageTime(created=now, completed=None),
         tokens=tokens,
-        cost=0,
+        cost=0.0,
     )
     # Initialize assistant message with empty parts
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
@@ -300,7 +300,7 @@ async def send_message(  # noqa: PLR0915
     response_text = ""
     input_tokens = 0
     output_tokens = 0
-    total_cost = 0  # Cost in micro-dollars (millionths of a dollar)
+    total_cost = 0.0  # Cost in dollars
     tool_parts: dict[str, ToolPart] = {}  # Track tool parts by call_id
     tool_outputs: dict[str, str] = {}  # Track accumulated output per tool call
     tool_inputs: dict[str, dict[str, Any]] = {}  # Track inputs per tool call
@@ -556,8 +556,8 @@ async def send_message(  # noqa: PLR0915
                         input_tokens = msg.usage.input_tokens or 0
                         output_tokens = msg.usage.output_tokens or 0
                     if msg.cost_info and msg.cost_info.total_cost:
-                        # Cost is in dollars, OpenCode expects micro-dollars (millionths)
-                        total_cost = int(msg.cost_info.total_cost * 1_000_000)
+                        # Cost is in Decimal dollars, OpenCode expects float dollars
+                        total_cost = float(msg.cost_info.total_cost)
 
                 # Compaction event - emit session.compacted SSE event
                 case CompactionEvent(session_id=compact_session_id, phase=phase):
