@@ -339,6 +339,45 @@ class TuiToastShowEvent(OpenCodeBaseModel):
         )
 
 
+# =============================================================================
+# Todo Events
+# =============================================================================
+
+
+class Todo(OpenCodeBaseModel):
+    """A single todo item."""
+
+    id: str
+    """Unique identifier for the todo item."""
+
+    content: str
+    """Brief description of the task."""
+
+    status: str
+    """Current status: pending, in_progress, completed, cancelled."""
+
+    priority: str
+    """Priority level: high, medium, low."""
+
+
+class TodoUpdatedProperties(OpenCodeBaseModel):
+    """Properties for todo updated event."""
+
+    session_id: str
+    todos: list[Todo]
+
+
+class TodoUpdatedEvent(OpenCodeBaseModel):
+    """Todo list updated event."""
+
+    type: Literal["todo.updated"] = "todo.updated"
+    properties: TodoUpdatedProperties
+
+    @classmethod
+    def create(cls, session_id: str, todos: list[Todo]) -> Self:
+        return cls(properties=TodoUpdatedProperties(session_id=session_id, todos=todos))
+
+
 Event = (
     ServerConnectedEvent
     | SessionCreatedEvent
@@ -350,6 +389,7 @@ Event = (
     | PartUpdatedEvent
     | PermissionRequestEvent
     | PermissionResolvedEvent
+    | TodoUpdatedEvent
     | TuiPromptAppendEvent
     | TuiCommandExecuteEvent
     | TuiToastShowEvent

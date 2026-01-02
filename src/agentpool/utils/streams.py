@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable
+    from collections.abc import AsyncIterator
 
     from agentpool.common_types import SimpleJsonType
 
@@ -559,6 +560,10 @@ class TodoEntry:
         }
 
 
+# Type for todo change callback (async)
+TodoChangeCallback = Callable[["TodoTracker"], Awaitable[None]]
+
+
 @dataclass
 class TodoTracker:
     """Tracks todo/plan entries at the pool level.
@@ -580,6 +585,9 @@ class TodoTracker:
         # Get current entries
         for entry in tracker.entries:
             print(f"{entry.status}: {entry.content}")
+
+        # Subscribe to changes
+        tracker.on_change = lambda t: print(f"Todos changed: {len(t.entries)} items")
         ```
     """
 
@@ -588,6 +596,19 @@ class TodoTracker:
 
     _id_counter: int = field(default=0, repr=False)
     """Counter for generating unique IDs."""
+
+    on_change: TodoChangeCallback | None = field(default=None, repr=False)
+    """Optional async callback invoked when todos change."""
+
+    _pending_tasks: set[asyncio.Task[None]] = field(default_factory=set, repr=False)
+    """Track pending notification tasks to prevent garbage collection."""
+
+    def _notify_change(self) -> None:
+        """Notify listener of changes (schedules async callback)."""
+        if self.on_change is not None:
+            task = asyncio.create_task(self.on_change(self))
+            self._pending_tasks.add(task)
+            task.add_done_callback(self._pending_tasks.discard)
 
     def _next_id(self) -> str:
         """Generate next unique ID."""
@@ -623,6 +644,7 @@ class TodoTracker:
             self.entries.append(entry)
         else:
             self.entries.insert(max(0, index), entry)
+        self._notify_change()
         return entry
 
     def get(self, entry_id: str) -> TodoEntry | None:
@@ -675,12 +697,18 @@ class TodoTracker:
         if entry is None:
             return False
 
-        if content is not None:
+        changed = False
+        if content is not None and entry.content != content:
             entry.content = content
-        if status is not None:
+            changed = True
+        if status is not None and entry.status != status:
             entry.status = status
-        if priority is not None:
+            changed = True
+        if priority is not None and entry.priority != priority:
             entry.priority = priority
+            changed = True
+        if changed:
+            self._notify_change()
         return True
 
     def update_by_index(
@@ -706,12 +734,18 @@ class TodoTracker:
         if entry is None:
             return False
 
-        if content is not None:
+        changed = False
+        if content is not None and entry.content != content:
             entry.content = content
-        if status is not None:
+            changed = True
+        if status is not None and entry.status != status:
             entry.status = status
-        if priority is not None:
+            changed = True
+        if priority is not None and entry.priority != priority:
             entry.priority = priority
+            changed = True
+        if changed:
+            self._notify_change()
         return True
 
     def remove(self, entry_id: str) -> bool:
@@ -726,6 +760,7 @@ class TodoTracker:
         for i, entry in enumerate(self.entries):
             if entry.id == entry_id:
                 self.entries.pop(i)
+                self._notify_change()
                 return True
         return False
 
@@ -739,12 +774,16 @@ class TodoTracker:
             The removed entry if found, None otherwise
         """
         if 0 <= index < len(self.entries):
-            return self.entries.pop(index)
+            entry = self.entries.pop(index)
+            self._notify_change()
+            return entry
         return None
 
     def clear(self) -> None:
         """Clear all entries."""
-        self.entries.clear()
+        if self.entries:
+            self.entries.clear()
+            self._notify_change()
 
     def get_by_status(self, status: TodoStatus) -> list[TodoEntry]:
         """Get all entries with a specific status.

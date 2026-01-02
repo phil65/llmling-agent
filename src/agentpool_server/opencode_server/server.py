@@ -84,11 +84,29 @@ def create_app(
         agent=agent,
     )
 
+    # Set up todo change callback to broadcast events
+    async def on_todo_change(tracker: Any) -> None:
+        """Broadcast todo updates to all active sessions."""
+        from agentpool_server.opencode_server.models.events import Todo, TodoUpdatedEvent
+
+        # Convert tracker entries to OpenCode Todo models
+        todos = [
+            Todo(id=e.id, content=e.content, status=e.status, priority=e.priority)
+            for e in tracker.entries
+        ]
+        # Broadcast to all active sessions
+        for session_id in state.sessions:
+            event = TodoUpdatedEvent.create(session_id=session_id, todos=todos)
+            await state.broadcast_event(event)
+
+    pool.todos.on_change = on_todo_change
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # Startup
         yield
-        # Shutdown
+        # Shutdown - clear callback
+        pool.todos.on_change = None
 
     app = FastAPI(
         title="OpenCode-Compatible API",
