@@ -115,12 +115,17 @@ class OpenCodeInputProvider(InputProvider):
             if len(args) > max_preview_args:
                 args_preview += ", ..."
 
+            # Extract call_id from AgentContext if available
+            call_id = getattr(context, "tool_call_id", None)
+            # TODO: Extract message_id from context when available
+
             event = PermissionRequestEvent.create(
                 session_id=self.session_id,
                 permission_id=permission_id,
                 tool_name=tool.name,
                 args_preview=args_preview,
                 message=f"Tool '{tool.name}' wants to execute with args: {args_preview}",
+                call_id=call_id,
             )
 
             await self.state.broadcast_event(event)
