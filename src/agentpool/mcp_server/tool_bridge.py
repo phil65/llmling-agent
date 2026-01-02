@@ -25,6 +25,7 @@ from pydantic import BaseModel, HttpUrl
 
 from agentpool.agents import Agent
 from agentpool.log import get_logger
+from agentpool.resource_providers import ResourceChangeEvent
 from agentpool.utils.signatures import filter_schema_params, get_params_matching_predicate
 
 
@@ -41,6 +42,8 @@ if TYPE_CHECKING:
     from agentpool.agents import AgentContext
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.tools.base import Tool
+
+_ = ResourceChangeEvent  # Used at runtime in method signature
 
 
 logger = get_logger(__name__)
@@ -270,10 +273,14 @@ class ToolManagerBridge:
         """Start the HTTP MCP server in the background."""
         self._mcp = FastMCP(name=self.config.server_name)
         await self._register_tools()
+        self._subscribe_to_tool_changes()
         await self._start_server()
 
     async def stop(self) -> None:
         """Stop the HTTP MCP server."""
+        # Unsubscribe from tool changes
+        self._unsubscribe_from_tool_changes()
+
         if self._server:
             self._server.should_exit = True
             if self._server_task:
@@ -288,6 +295,37 @@ class ToolManagerBridge:
         self._mcp = None
         self._actual_port = None
         logger.info("ToolManagerBridge stopped")
+
+    def _subscribe_to_tool_changes(self) -> None:
+        """Subscribe to tool changes from all providers via signals."""
+        for provider in self.node.tools.providers:
+            provider.tools_changed.connect(self._on_tools_changed)
+
+    def _unsubscribe_from_tool_changes(self) -> None:
+        """Disconnect from tool change signals on all providers."""
+        for provider in self.node.tools.providers:
+            provider.tools_changed.disconnect(self._on_tools_changed)
+
+    async def _on_tools_changed(self, event: ResourceChangeEvent) -> None:
+        """Handle tool changes from a provider."""
+        logger.info(
+            "Tools changed in provider, notifying MCP clients",
+            provider=event.provider_name,
+            provider_kind=event.provider_kind,
+        )
+        if self._mcp:
+            # Re-register tools with the MCP server
+            await self._refresh_tools()
+            # Notify connected clients that tools have changed
+            await self._mcp.send_tools_list_changed()
+
+    async def _refresh_tools(self) -> None:
+        """Refresh tools registered with the MCP server."""
+        if not self._mcp:
+            return
+        # Clear existing tools and re-register
+        self._mcp._tool_manager._tools.clear()
+        await self._register_tools()
 
     @property
     def port(self) -> int:

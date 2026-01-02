@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Self
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Literal, Self
+
+from anyenv.signals import Signal
 
 from agentpool.log import get_logger
 from agentpool.tools.base import Tool
@@ -25,18 +28,69 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+ResourceType = Literal["tools", "prompts", "resources", "skills"]
+ProviderKind = Literal["base", "mcp", "tools", "prompts", "skills", "aggregating", "custom"]
+
+
+@dataclass(frozen=True, slots=True)
+class ResourceChangeEvent:
+    """Event emitted when resources change in a provider.
+
+    Attributes:
+        provider_name: Name of the provider instance
+        provider_kind: Kind/type of the provider (e.g., "mcp", "tools")
+        resource_type: Type of resource that changed
+        owner: Optional owner of the provider (e.g., agent name)
+    """
+
+    provider_name: str
+    provider_kind: ProviderKind
+    resource_type: ResourceType
+    owner: str | None = None
+
+
 class ResourceProvider:
     """Base class for resource providers.
 
     Provides tools, prompts, and other resources to agents.
     Default implementations return empty lists - override as needed.
+
+    Class Attributes:
+        kind: Short slug identifying the provider type (e.g., "mcp", "tools")
+
+    Change signals (using anyenv.signals.Signal):
+        - tools_changed: Emitted when tools change
+        - prompts_changed: Emitted when prompts change
+        - resources_changed: Emitted when resources change
+        - skills_changed: Emitted when skills change
+
+    Example:
+        provider.tools_changed.connect(my_handler)
+        await provider.tools_changed.emit(provider.create_change_event("tools"))
     """
+
+    kind: ProviderKind = "base"
+
+    # Change signals - emit ResourceChangeEvent when resources change
+    tools_changed: Signal[ResourceChangeEvent] = Signal()
+    prompts_changed: Signal[ResourceChangeEvent] = Signal()
+    resources_changed: Signal[ResourceChangeEvent] = Signal()
+    skills_changed: Signal[ResourceChangeEvent] = Signal()
 
     def __init__(self, name: str, owner: str | None = None) -> None:
         """Initialize the resource provider."""
         self.name = name
         self.owner = owner
         self.log = logger.bind(name=self.name, owner=self.owner)
+
+    def create_change_event(self, resource_type: ResourceType) -> ResourceChangeEvent:
+        """Create a ResourceChangeEvent for this provider."""
+        return ResourceChangeEvent(
+            provider_name=self.name,
+            provider_kind=self.kind,
+            resource_type=resource_type,
+            owner=self.owner,
+        )
 
     async def __aenter__(self) -> Self:
         """Async context entry if required."""

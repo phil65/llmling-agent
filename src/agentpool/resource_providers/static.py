@@ -26,6 +26,8 @@ class StaticResourceProvider(ResourceProvider):
     to the common ResourceProvider interface.
     """
 
+    kind = "tools"
+
     def __init__(
         self,
         name: str = "static",

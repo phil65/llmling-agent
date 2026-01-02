@@ -56,6 +56,8 @@ class PlanProvider(ResourceProvider):
     that can be handled by protocol adapters.
     """
 
+    kind = "tools"
+
     def __init__(self) -> None:
         """Initialize plan provider."""
         super().__init__(name="plan")

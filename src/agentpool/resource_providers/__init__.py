@@ -1,6 +1,11 @@
 """Resource provider implementations."""
 
-from agentpool.resource_providers.base import ResourceProvider
+from agentpool.resource_providers.base import (
+    ProviderKind,
+    ResourceChangeEvent,
+    ResourceProvider,
+    ResourceType,
+)
 from agentpool.resource_providers.static import StaticResourceProvider
 from agentpool.resource_providers.filtering import FilteringResourceProvider
 from agentpool.resource_providers.aggregating import AggregatingResourceProvider
@@ -12,6 +17,9 @@ __all__ = [
     "FilteringResourceProvider",
     "MCPResourceProvider",
     "PlanProvider",
+    "ProviderKind",
+    "ResourceChangeEvent",
     "ResourceProvider",
+    "ResourceType",
     "StaticResourceProvider",
 ]

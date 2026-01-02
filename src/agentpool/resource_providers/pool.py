@@ -20,6 +20,8 @@ logger = get_logger(__name__)
 class PoolResourceProvider(ResourceProvider):
     """Provider that exposes an AgentPool's resources."""
 
+    kind = "tools"
+
     def __init__(
         self,
         pool: AgentPool[Any],
