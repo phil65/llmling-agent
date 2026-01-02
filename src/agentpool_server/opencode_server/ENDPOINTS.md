@@ -227,11 +227,11 @@ All event types supported by the OpenCode protocol:
 | Status | Event Type | Description |
 |--------|------------|-------------|
 | [x] | `server.connected` | Server connected (sent on SSE connect) |
-| [ ] | `global.disposed` | Global instance disposed |
-| [ ] | `installation.updated` | Installation updated |
+| [-] | `global.disposed` | Global instance disposed (multi-project, not needed) |
+| [-] | `installation.updated` | Installation updated (auto-upgrade complete, not needed) |
 | [x] | `installation.update-available` | Update available (via `tui.toast.show` workaround) |
 | [ ] | `project.updated` | Project configuration updated |
-| [ ] | `server.instance.disposed` | Server instance disposed |
+| [-] | `server.instance.disposed` | Server instance disposed (multi-project, not needed) |
 | [ ] | `lsp.updated` | LSP server status updated |
 | [ ] | `lsp.client.diagnostics` | LSP client diagnostics received |
 | [x] | `session.created` | Session created |
