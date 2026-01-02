@@ -92,41 +92,56 @@ def _warmup_lsp_for_files(state: ServerState, file_paths: list[str]) -> None:
         state: Server state with LSP manager
         file_paths: List of file paths that were accessed
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
+    print(f"[LSP] _warmup_lsp_for_files called with: {file_paths}")
+
     try:
         lsp_manager = state.get_or_create_lsp_manager()
-    except RuntimeError:
+        print("[LSP] Got LSP manager successfully")
+    except RuntimeError as e:
         # No execution environment available for LSP
+        print(f"[LSP] No LSP manager: {e}")
         return
 
     async def warmup_files() -> None:
         """Start LSP servers for each file path."""
+        print("[LSP] warmup_files task started")
         from agentpool_server.opencode_server.models.events import LspUpdatedEvent
 
         servers_started = False
         for path in file_paths:
             # Find appropriate server for this file
             server_info = lsp_manager.get_server_for_file(path)
+            print(f"[LSP] Server for {path}: {server_info.id if server_info else None}")
             if server_info is None:
                 continue
 
             server_id = server_info.id
             if lsp_manager.is_running(server_id):
+                print(f"[LSP] Server {server_id} already running")
                 continue
 
             # Start server for workspace root
             root_uri = f"file://{state.working_dir}"
             try:
+                print(f"[LSP] Starting server {server_id}...")
                 await lsp_manager.start_server(server_id, root_uri)
                 servers_started = True
-            except Exception:  # noqa: BLE001
+                print(f"[LSP] Server {server_id} started successfully")
+            except Exception as e:  # noqa: BLE001
                 # Don't fail on LSP startup errors
-                pass
+                print(f"[LSP] Failed to start server {server_id}: {e}")
 
         # Emit lsp.updated event if any servers started
         if servers_started:
+            print("[LSP] Broadcasting LspUpdatedEvent")
             await state.broadcast_event(LspUpdatedEvent.create())
+        print("[LSP] warmup_files task completed")
 
     # Run warmup in background (don't block the event handler)
+    print("[LSP] Creating background task for warmup")
     state.create_background_task(warmup_files(), name="lsp-warmup")
 
 

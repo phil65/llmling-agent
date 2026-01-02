@@ -238,10 +238,24 @@ async def list_tools_with_schemas(  # noqa: D417
 async def get_lsp_status(state: StateDep) -> list[dict[str, Any]]:
     """Get LSP server status.
 
-    Returns empty list - LSP not supported yet.
+    Returns status of all running LSP servers.
     """
-    _ = state
-    return []
+    try:
+        lsp_manager = state.get_or_create_lsp_manager()
+        servers = []
+        for server_id, server_state in lsp_manager._servers.items():
+            # OpenCode TUI expects "connected" or "error" for status colors
+            status = "connected" if server_state.initialized else "error"
+            servers.append({
+                "id": server_id,
+                "name": server_id,
+                "status": status,
+                "language": server_state.language,
+                "root": server_state.root_uri,  # TUI uses "root" not "rootUri"
+            })
+        return servers
+    except Exception:  # noqa: BLE001
+        return []
 
 
 @router.get("/formatter")

@@ -15,8 +15,6 @@ from dataclasses import dataclass, field
 import time
 from typing import TYPE_CHECKING, Any
 
-import anyenv
-
 from agentpool.diagnostics.models import (
     COMPLETION_KIND_MAP,
     SYMBOL_KIND_MAP,
@@ -217,11 +215,19 @@ class LSPManager:
             ValueError: If server_id not registered
             RuntimeError: If server fails to start
         """
+        import sys
+
+        print(f"[LSP-MGR] start_server called: {server_id}", file=sys.stderr, flush=True)
+
         if server_id in self._servers:
+            print(f"[LSP-MGR] {server_id} already in _servers", file=sys.stderr, flush=True)
             return self._servers[server_id]
 
         # Check if already being started (prevent concurrent starts)
         if server_id in self._starting:
+            print(
+                f"[LSP-MGR] {server_id} already starting, waiting...", file=sys.stderr, flush=True
+            )
             # Wait for the other start to complete
             for _ in range(100):  # 10 second timeout
                 await asyncio.sleep(0.1)
@@ -237,42 +243,69 @@ class LSPManager:
 
         # Mark as starting to prevent concurrent attempts
         self._starting.add(server_id)
+        print(f"[LSP-MGR] marked {server_id} as starting", file=sys.stderr, flush=True)
 
         try:
             # Build the command
             command = config.get_full_command()
             command_str = " ".join(command)
+            print(f"[LSP-MGR] command: {command_str}", file=sys.stderr, flush=True)
 
             # Socket path for this server
             socket_path = f"{self.socket_dir}/{server_id}.sock"
+            print(f"[LSP-MGR] socket_path: {socket_path}", file=sys.stderr, flush=True)
 
             # Start the LSP proxy process
             from agentpool.diagnostics.lsp_proxy import LSPProxy
 
             proxy_cmd = LSPProxy.get_start_command(command_str, socket_path)
+            print(f"[LSP-MGR] proxy_cmd: {proxy_cmd}", file=sys.stderr, flush=True)
 
             # Ensure socket directory exists
             await self.env.execute_command(f"mkdir -p {self.socket_dir}")
+            print("[LSP-MGR] created socket dir", file=sys.stderr, flush=True)
 
             # Start proxy as background process
+            print("[LSP-MGR] starting process...", file=sys.stderr, flush=True)
             process_id = await self.env.process_manager.start_process(
                 command=proxy_cmd[0],
                 args=proxy_cmd[1:],
                 env=config.get_env(),
             )
+            print(f"[LSP-MGR] process started: {process_id}", file=sys.stderr, flush=True)
 
             # Wait for socket to be ready (check for .ready marker file)
             ready_path = f"{socket_path}.ready"
-            for _ in range(50):  # 5 second timeout
+            print(f"[LSP-MGR] waiting for ready file: {ready_path}", file=sys.stderr, flush=True)
+            for i in range(50):  # 5 second timeout
                 result = await self.env.execute_command(f"test -f {ready_path} && echo ready")
                 if result.stdout and "ready" in result.stdout:
+                    print(f"[LSP-MGR] ready after {i} iterations", file=sys.stderr, flush=True)
                     break
                 await asyncio.sleep(0.1)
             else:
                 # Cleanup on failure
+                print("[LSP-MGR] socket not ready, killing process", file=sys.stderr, flush=True)
                 await self.env.process_manager.kill_process(process_id)
                 msg = f"LSP proxy for {server_id} failed to start (socket not ready)"
                 raise RuntimeError(msg)
+
+            # Extra wait to ensure socket is fully ready
+            await asyncio.sleep(0.2)
+
+            # Verify socket file exists
+            import os
+
+            if not os.path.exists(socket_path):
+                print(
+                    f"[LSP-MGR] WARNING: socket file doesn't exist: {socket_path}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+            else:
+                print(
+                    f"[LSP-MGR] socket file confirmed: {socket_path}", file=sys.stderr, flush=True
+                )
 
             # Create server state
             state = LSPServerState(
@@ -284,21 +317,28 @@ class LSPManager:
                 initialized=False,
             )
             self._servers[server_id] = state
+            print("[LSP-MGR] state created, initializing...", file=sys.stderr, flush=True)
 
             # Run LSP initialize handshake
             try:
                 await self._initialize_server(state, config, root_uri)
-            except Exception:
+                print("[LSP-MGR] initialization complete", file=sys.stderr, flush=True)
+            except Exception as e:
                 # Initialization failed - remove from servers dict and re-raise
+                print(f"[LSP-MGR] initialization failed: {e}", file=sys.stderr, flush=True)
                 self._servers.pop(server_id, None)
                 # Kill the process
                 await self.env.process_manager.kill_process(process_id)
                 raise
 
             return state
+        except Exception as e:
+            print(f"[LSP-MGR] start_server error: {e}", file=sys.stderr, flush=True)
+            raise
         finally:
             # Always remove from starting set
             self._starting.discard(server_id)
+            print(f"[LSP-MGR] removed {server_id} from starting set", file=sys.stderr, flush=True)
 
     async def _initialize_server(
         self,
@@ -366,7 +406,7 @@ class LSPManager:
         method: str,
         params: dict[str, Any],
     ) -> dict[str, Any]:
-        """Send an LSP request via one-shot script.
+        """Send an LSP request via Unix socket.
 
         Args:
             socket_path: Unix socket path
@@ -376,23 +416,61 @@ class LSPManager:
         Returns:
             JSON-RPC response dict
         """
-        # Generate client script
-        script = LSP_CLIENT_SCRIPT.format(
-            socket_path=socket_path,
-            method=method,
-            params=params,
-        )
+        import json
+        import sys
 
-        # Execute via environment
-        result = await self.env.execute_command(f"python3 -c {_shell_quote(script)}")
-
-        if result.exit_code != 0:
-            return {"error": f"Script failed: {result.stderr}"}
+        print(f"[LSP-MGR] _send_request: {method}", file=sys.stderr, flush=True)
 
         try:
-            return anyenv.load_json(result.stdout or "{}", return_type=dict)
-        except anyenv.JsonLoadError as e:
-            return {"error": f"Invalid JSON response: {e}"}
+            # Connect to socket
+            reader, writer = await asyncio.open_unix_connection(socket_path)
+
+            # Build JSON-RPC request
+            request = {"jsonrpc": "2.0", "id": 1, "method": method, "params": params}
+            payload = json.dumps(request)
+            header = f"Content-Length: {len(payload)}\r\n\r\n"
+
+            # Send request
+            writer.write(header.encode() + payload.encode())
+            await writer.drain()
+
+            # Read response headers
+            headers = b""
+            while b"\r\n\r\n" not in headers:
+                chunk = await asyncio.wait_for(reader.read(1), timeout=30.0)
+                if not chunk:
+                    return {"error": "Connection closed"}
+                headers += chunk
+
+            # Parse Content-Length
+            header_str = headers.decode()
+            length = None
+            for line in header_str.split("\r\n"):
+                if line.startswith("Content-Length:"):
+                    length = int(line.split(":")[1].strip())
+                    break
+
+            if length is None:
+                return {"error": "No Content-Length header"}
+
+            # Read response body
+            body = await asyncio.wait_for(reader.read(length), timeout=30.0)
+            response: dict[str, Any] = json.loads(body)
+
+            writer.close()
+            await writer.wait_closed()
+
+            print(f"[LSP-MGR] response: {str(response)[:100]}", file=sys.stderr, flush=True)
+            return response
+
+        except FileNotFoundError:
+            return {"error": f"Socket not found: {socket_path}"}
+        except ConnectionRefusedError:
+            return {"error": "Connection refused"}
+        except TimeoutError:
+            return {"error": "Request timeout"}
+        except Exception as e:
+            return {"error": str(e)}
 
     async def _send_notification(
         self,
