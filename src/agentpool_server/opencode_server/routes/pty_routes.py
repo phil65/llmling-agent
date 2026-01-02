@@ -93,6 +93,8 @@ async def list_ptys(state: StateDep) -> list[PtyInfo]:
 @router.post("")
 async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
     """Create a new PTY session."""
+    from agentpool_server.opencode_server.models.events import PtyCreatedEvent
+
     manager = _get_pty_manager(state)
 
     # Use working dir from state if not specified
@@ -116,17 +118,26 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
     _pty_sessions[pty_id] = session
 
     # Start background task to read output and distribute to subscribers
-    session.read_task = asyncio.create_task(_read_pty_output(manager, pty_id))
+    session.read_task = asyncio.create_task(_read_pty_output(manager, pty_id, state))
 
-    return _convert_pty_info(info, title=title)
+    pty_info = _convert_pty_info(info, title=title)
+
+    # Broadcast PTY created event
+    event = PtyCreatedEvent.create(info=pty_info.model_dump(by_alias=True))
+    await state.broadcast_event(event)
+
+    return pty_info
 
 
-async def _read_pty_output(manager: PtyManagerProtocol, pty_id: str) -> None:
+async def _read_pty_output(manager: PtyManagerProtocol, pty_id: str, state: ServerState) -> None:
     """Background task to read PTY output and distribute to subscribers."""
+    from agentpool_server.opencode_server.models.events import PtyExitedEvent
+
     session = _pty_sessions.get(pty_id)
     if not session:
         return
 
+    exit_code = 0
     try:
         async for data in manager.stream(pty_id):
             decoded = data.decode("utf-8", errors="replace")
@@ -148,9 +159,13 @@ async def _read_pty_output(manager: PtyManagerProtocol, pty_id: str) -> None:
                     session.buffer = session.buffer[-50000:]
 
     except asyncio.CancelledError:
-        pass
+        return  # Don't broadcast exit if cancelled
     except Exception:  # noqa: BLE001
-        pass
+        exit_code = -1
+
+    # Stream ended - process exited, broadcast event
+    event = PtyExitedEvent.create(pty_id=pty_id, exit_code=exit_code)
+    await state.broadcast_event(event)
 
 
 @router.get("/{pty_id}")
@@ -168,6 +183,8 @@ async def update_pty(pty_id: str, request: PtyUpdateRequest, state: StateDep) ->
     """Update PTY session (title, resize)."""
     from exxec.pty_manager import PtySize
 
+    from agentpool_server.opencode_server.models.events import PtyUpdatedEvent
+
     manager = _get_pty_manager(state)
     info = await manager.get_info(pty_id)
     if not info:
@@ -184,12 +201,20 @@ async def update_pty(pty_id: str, request: PtyUpdateRequest, state: StateDep) ->
     # Title is handled at the API level, not in the PTY manager
     title = request.title if request.title else f"Terminal {pty_id[-4:]}"
 
-    return _convert_pty_info(info, title=title)
+    pty_info = _convert_pty_info(info, title=title)
+
+    # Broadcast PTY updated event
+    event = PtyUpdatedEvent.create(info=pty_info.model_dump(by_alias=True))
+    await state.broadcast_event(event)
+
+    return pty_info
 
 
 @router.delete("/{pty_id}")
 async def remove_pty(pty_id: str, state: StateDep) -> dict[str, bool]:
     """Remove/kill PTY session."""
+    from agentpool_server.opencode_server.models.events import PtyDeletedEvent
+
     manager = _get_pty_manager(state)
 
     # Kill the PTY session
@@ -210,6 +235,10 @@ async def remove_pty(pty_id: str, state: StateDep) -> dict[str, bool]:
         for ws in session.subscribers:
             with contextlib.suppress(Exception):
                 await ws.close()
+
+    # Broadcast PTY deleted event
+    event = PtyDeletedEvent.create(pty_id=pty_id)
+    await state.broadcast_event(event)
 
     return {"success": True}
 

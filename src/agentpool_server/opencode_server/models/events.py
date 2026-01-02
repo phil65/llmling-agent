@@ -405,6 +405,86 @@ class FileWatcherUpdatedEvent(OpenCodeBaseModel):
 
 
 # =============================================================================
+# PTY Events
+# =============================================================================
+
+
+class PtyCreatedProperties(OpenCodeBaseModel):
+    """Properties for PTY created event."""
+
+    info: Any
+    """PTY session info."""
+
+
+class PtyCreatedEvent(OpenCodeBaseModel):
+    """PTY session created event."""
+
+    type: Literal["pty.created"] = "pty.created"
+    properties: PtyCreatedProperties
+
+    @classmethod
+    def create(cls, info: Any) -> Self:
+        return cls(properties=PtyCreatedProperties(info=info))
+
+
+class PtyUpdatedProperties(OpenCodeBaseModel):
+    """Properties for PTY updated event."""
+
+    info: Any
+    """PTY session info."""
+
+
+class PtyUpdatedEvent(OpenCodeBaseModel):
+    """PTY session updated event."""
+
+    type: Literal["pty.updated"] = "pty.updated"
+    properties: PtyUpdatedProperties
+
+    @classmethod
+    def create(cls, info: Any) -> Self:
+        return cls(properties=PtyUpdatedProperties(info=info))
+
+
+class PtyExitedProperties(OpenCodeBaseModel):
+    """Properties for PTY exited event."""
+
+    id: str
+    """PTY session ID."""
+
+    exit_code: int
+    """Process exit code."""
+
+
+class PtyExitedEvent(OpenCodeBaseModel):
+    """PTY process exited event."""
+
+    type: Literal["pty.exited"] = "pty.exited"
+    properties: PtyExitedProperties
+
+    @classmethod
+    def create(cls, pty_id: str, exit_code: int) -> Self:
+        return cls(properties=PtyExitedProperties(id=pty_id, exit_code=exit_code))
+
+
+class PtyDeletedProperties(OpenCodeBaseModel):
+    """Properties for PTY deleted event."""
+
+    id: str
+    """PTY session ID."""
+
+
+class PtyDeletedEvent(OpenCodeBaseModel):
+    """PTY session deleted event."""
+
+    type: Literal["pty.deleted"] = "pty.deleted"
+    properties: PtyDeletedProperties
+
+    @classmethod
+    def create(cls, pty_id: str) -> Self:
+        return cls(properties=PtyDeletedProperties(id=pty_id))
+
+
+# =============================================================================
 # VCS Events
 # =============================================================================
 
@@ -440,6 +520,10 @@ Event = (
     | PermissionResolvedEvent
     | TodoUpdatedEvent
     | FileWatcherUpdatedEvent
+    | PtyCreatedEvent
+    | PtyUpdatedEvent
+    | PtyExitedEvent
+    | PtyDeletedEvent
     | VcsBranchUpdatedEvent
     | TuiPromptAppendEvent
     | TuiCommandExecuteEvent

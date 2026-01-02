@@ -178,10 +178,10 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 
 | Status | Event Type | Description |
 |--------|------------|-------------|
-| [ ] | `pty.created` | PTY session created |
-| [ ] | `pty.updated` | PTY session updated |
-| [ ] | `pty.exited` | PTY process exited |
-| [ ] | `pty.deleted` | PTY session deleted |
+| [x] | `pty.created` | PTY session created |
+| [x] | `pty.updated` | PTY session updated |
+| [x] | `pty.exited` | PTY process exited |
+| [x] | `pty.deleted` | PTY session deleted |
 
 ---
 
@@ -257,10 +257,10 @@ All event types supported by the OpenCode protocol:
 | [x] | `tui.prompt.append` | Append text to TUI prompt input |
 | [x] | `tui.command.execute` | Execute a TUI command |
 | [x] | `tui.toast.show` | Show toast notification in TUI |
-| [ ] | `pty.created` | PTY session created |
-| [ ] | `pty.updated` | PTY session updated |
-| [ ] | `pty.exited` | PTY process exited |
-| [ ] | `pty.deleted` | PTY session deleted |
+| [x] | `pty.created` | PTY session created |
+| [x] | `pty.updated` | PTY session updated |
+| [x] | `pty.exited` | PTY process exited |
+| [x] | `pty.deleted` | PTY session deleted |
 
 ---
 
