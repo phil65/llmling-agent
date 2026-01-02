@@ -45,7 +45,7 @@ class TestReadFileSnapshots:
         await harness.mock_env.set_file_content("/test/hello.txt", "Hello, World!")
 
         messages = await harness.execute_tool(
-            tool_name="read_file",
+            tool_name="read",
             tool_args={"path": "/test/hello.txt"},
             toolsets=[FSSpecToolsetConfig()],
         )
@@ -62,7 +62,7 @@ class TestReadFileSnapshots:
         await harness.mock_env.set_file_content("/test/lines.txt", content)
 
         messages = await harness.execute_tool(
-            tool_name="read_file",
+            tool_name="read",
             tool_args={"path": "/test/lines.txt", "line": 3, "limit": 2},
             toolsets=[FSSpecToolsetConfig()],
         )

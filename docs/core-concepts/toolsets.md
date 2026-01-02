@@ -48,9 +48,9 @@ agents:
 
 **Provides tools:**
 
-- `read_file` - Read files (text or binary)
+- `read` - Read files (text or binary)
 - `list_directory` - List directory contents with filtering
-- `write_file` - Write content to files
+- `write` - Write content to files
 - `delete_path` - Delete files or directories
 - `edit_file` - Edit files with smart matching
 - `download_file` - Download files from URLs

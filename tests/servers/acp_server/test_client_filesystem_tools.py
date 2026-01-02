@@ -38,7 +38,7 @@ async def test_read_file_success(
     await mock_env.set_file_content("/home/user/test.txt", "Hello, World!\nThis is a test file.\n")
 
     tools = await fs_tools.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_file")
+    read_tool = next(tool for tool in tools if tool.name == "read")
     result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/test.txt")
 
     assert isinstance(result, str)
@@ -57,7 +57,7 @@ async def test_read_file_with_line_and_limit(
     )
 
     tools = await fs_tools.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_file")
+    read_tool = next(tool for tool in tools if tool.name == "read")
     result = await read_tool.execute(
         agent_ctx=agent_ctx, path="/home/large_file.txt", line=2, limit=2
     )
@@ -75,7 +75,7 @@ async def test_read_file_error(
 ):
     """Test file reading error handling."""
     tools = await fs_tools.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_file")
+    read_tool = next(tool for tool in tools if tool.name == "read")
     result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/nonexistent.txt")
     assert "error" in result
 
@@ -87,7 +87,7 @@ async def test_write_text_file_success(
 ):
     """Test successful file writing."""
     tools = await fs_tools.get_tools()
-    write_tool = next(tool for tool in tools if tool.name == "write_file")
+    write_tool = next(tool for tool in tools if tool.name == "write")
     result = await write_tool.execute(
         agent_ctx=agent_ctx,
         path="/home/user/output.txt",
@@ -111,7 +111,7 @@ async def test_write_text_file_json(
     json_str = '{\n  "debug": true,\n  "version": "1.0.0"\n}'
 
     tools = await fs_tools.get_tools()
-    write_tool = next(tool for tool in tools if tool.name == "write_file")
+    write_tool = next(tool for tool in tools if tool.name == "write")
     result = await write_tool.execute(
         agent_ctx=agent_ctx, path="/home/user/config.json", content=json_str
     )
@@ -132,7 +132,7 @@ async def test_read_empty_file(
     await mock_env.set_file_content("/home/user/empty.txt", "")
 
     tools = await fs_tools.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_file")
+    read_tool = next(tool for tool in tools if tool.name == "read")
     result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/empty.txt")
 
     assert isinstance(result, str)
@@ -146,7 +146,7 @@ async def test_write_empty_file(
 ):
     """Test writing empty content to a file."""
     tools = await fs_tools.get_tools()
-    write_tool = next(tool for tool in tools if tool.name == "write_file")
+    write_tool = next(tool for tool in tools if tool.name == "write")
     result = await write_tool.execute(
         agent_ctx=agent_ctx, path="/home/user/empty_output.txt", content=""
     )
@@ -168,7 +168,7 @@ async def test_read_file_with_unicode(
     await mock_env.set_file_content("/home/user/unicode.txt", content)
 
     tools = await fs_tools.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_file")
+    read_tool = next(tool for tool in tools if tool.name == "read")
     result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/unicode.txt")
 
     assert isinstance(result, str)
@@ -187,7 +187,7 @@ async def test_write_file_with_unicode(
     content = "Testing unicode: 日本語, русский, العربية 🎉"
 
     tools = await fs_tools.get_tools()
-    write_tool = next(tool for tool in tools if tool.name == "write_file")
+    write_tool = next(tool for tool in tools if tool.name == "write")
     result = await write_tool.execute(agent_ctx=agent_ctx, path="/home/output.txt", content=content)
 
     assert isinstance(result, dict)
@@ -206,8 +206,8 @@ async def test_read_then_write(
     await mock_env.set_file_content("/home/user/test.txt", "original content")
 
     tools = await fs_tools.get_tools()
-    read_tool = next(tool for tool in tools if tool.name == "read_file")
-    write_tool = next(tool for tool in tools if tool.name == "write_file")
+    read_tool = next(tool for tool in tools if tool.name == "read")
+    write_tool = next(tool for tool in tools if tool.name == "write")
 
     # Read original
     result = await read_tool.execute(agent_ctx=agent_ctx, path="/home/user/test.txt")

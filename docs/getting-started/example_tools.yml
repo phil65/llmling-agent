@@ -10,12 +10,6 @@ agents:
           - import_path: os.listdir
             name: list_files
             description: "List directory contents"
-          - import_path: builtins.open
-            name: read_file
-            description: "Read file contents"
-          - import_path: builtins.open
-            name: write_file
-            description: "Write file contents"
           - import_path: os.remove
             name: delete_file
             description: "Delete a file"

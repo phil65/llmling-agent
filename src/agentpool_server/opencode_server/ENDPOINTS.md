@@ -309,3 +309,54 @@ Or combined (less reliable for interactive use):
 ```bash
 duty opencode
 ```
+
+---
+
+## Tool UI Rendering
+
+The OpenCode TUI has special rendering for certain tool names. Tools must use these exact names
+and parameter formats (after snake_case → camelCase conversion) to get custom UI treatment.
+
+Parameter conversion is handled in `converters.py` via `_PARAM_NAME_MAP`.
+
+| Tool Name | Expected Parameters (camelCase) | UI Treatment |
+|-----------|--------------------------------|--------------|
+| `read` | `filePath`, `offset`, `limit` | Glasses icon, shows filename |
+| `list` | `path` | Bullet-list icon, shows directory |
+| `glob` | `path`, `pattern` | Magnifying-glass icon, shows pattern |
+| `grep` | `path`, `pattern`, `include` | Magnifying-glass icon, shows pattern |
+| `webfetch` | `url`, `format` | Window icon, shows URL |
+| `task` | `subagent_type`, `description` | Task icon, shows agent summary |
+| `bash` | `command`, `description` | Console icon, shows command + output |
+| `edit` | `filePath`, `oldString`, `newString` | Code icon, **diff view** |
+| `write` | `filePath`, `content` | Code icon, **syntax-highlighted content** |
+| `todowrite` | `todos` (array with `status`, `content`) | Checklist icon, checkbox list |
+| `todoread` | - | Filtered out (not displayed) |
+
+### Metadata
+
+Some tools also use `props.metadata` for additional UI data:
+
+| Tool | Metadata Fields | Description |
+|------|-----------------|-------------|
+| `edit` | `filediff`, `diagnostics` | Diff data and LSP diagnostics |
+| `write` | `diagnostics` | LSP diagnostics for the written file |
+| `bash` | `command` | Fallback if `input.command` missing |
+| `task` | `summary`, `sessionId` | Child tool summary and session ID |
+
+### Parameter Name Mapping
+
+The `_PARAM_NAME_MAP` in `converters.py` converts our snake_case to TUI's camelCase:
+
+```python
+_PARAM_NAME_MAP = {
+    "path": "filePath",
+    "file_path": "filePath",
+    "old_string": "oldString",
+    "new_string": "newString",
+    "replace_all": "replaceAll",
+    "line_hint": "lineHint",
+}
+```
+
+

@@ -1109,7 +1109,7 @@ def get_file_map_from_content(  # noqa: PLR0915
 
     header = (
         f"# File: {filename} ({lines} lines)\n"
-        f"# Structure map (~{tokens_approx} tokens). Use read_file with line/limit for details.\n\n"
+        f"# Structure map (~{tokens_approx} tokens). Use read with line/limit for details.\n\n"
     )
 
     result = header + f"{filename}:\n" + tree_output
