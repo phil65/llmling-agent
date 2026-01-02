@@ -94,7 +94,7 @@ def _warmup_lsp_for_files(state: ServerState, file_paths: list[str]) -> None:
     """
     import logging
 
-    logger = logging.getLogger(__name__)
+    logging.getLogger(__name__)
     print(f"[LSP] _warmup_lsp_for_files called with: {file_paths}")
 
     try:

@@ -253,9 +253,10 @@ async def get_lsp_status(state: StateDep) -> list[dict[str, Any]]:
                 "language": server_state.language,
                 "root": server_state.root_uri,  # TUI uses "root" not "rootUri"
             })
-        return servers
     except Exception:  # noqa: BLE001
         return []
+    else:
+        return servers
 
 
 @router.get("/formatter")

@@ -402,13 +402,17 @@ class LSPManager:
             try:
                 response: dict[str, Any] = anyenv.load_json(result.stdout or "{}", return_type=dict)
                 # Check if it's a socket not found error - retry
-                if "error" in response and "Socket not found" in str(response["error"]):
-                    if attempt < retries - 1:
-                        await asyncio.sleep(0.5)
-                        continue
-                return response
+                if (
+                    "error" in response
+                    and "Socket not found" in str(response["error"])
+                    and attempt < retries - 1
+                ):
+                    await asyncio.sleep(0.5)
+                    continue
             except anyenv.JsonLoadError as e:
                 return {"error": f"Invalid JSON response: {e}"}
+            else:
+                return response
 
         # Should not reach here, but return last result error if we do
         return {"error": f"Failed after {retries} retries: {last_result}"}
