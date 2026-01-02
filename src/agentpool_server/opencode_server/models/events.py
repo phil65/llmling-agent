@@ -126,6 +126,48 @@ class SessionCompactedEvent(OpenCodeBaseModel):
         return cls(properties=SessionCompactedProperties(sessionID=session_id))
 
 
+class SessionErrorInfo(OpenCodeBaseModel):
+    """Error information for session error event.
+
+    Simplified version of OpenCode's error types (ProviderAuthError, UnknownError, etc.)
+    """
+
+    name: str
+    """Error type name (e.g., 'UnknownError', 'ProviderAuthError')."""
+
+    data: dict[str, Any] | None = None
+    """Additional error data, typically contains 'message' field."""
+
+
+class SessionErrorProperties(OpenCodeBaseModel):
+    """Properties for session error event."""
+
+    session_id: str | None = Field(default=None, alias="sessionID")
+    error: SessionErrorInfo | None = None
+
+
+class SessionErrorEvent(OpenCodeBaseModel):
+    """Session error event - emitted when an error occurs during message processing."""
+
+    type: Literal["session.error"] = "session.error"
+    properties: SessionErrorProperties
+
+    @classmethod
+    def create(
+        cls,
+        session_id: str | None = None,
+        error_name: str = "UnknownError",
+        error_message: str | None = None,
+    ) -> Self:
+        error_data = {"message": error_message} if error_message else None
+        return cls(
+            properties=SessionErrorProperties(
+                sessionID=session_id,
+                error=SessionErrorInfo(name=error_name, data=error_data),
+            )
+        )
+
+
 class MessageUpdatedEventProperties(OpenCodeBaseModel):
     """Properties for message updated event."""
 

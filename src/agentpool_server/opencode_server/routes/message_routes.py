@@ -42,6 +42,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     Part,
     PartUpdatedEvent,
     SessionCompactedEvent,
+    SessionErrorEvent,
     SessionIdleEvent,
     SessionStatus,
     SessionStatusEvent,
@@ -510,6 +511,14 @@ async def send_message(  # noqa: PLR0915
 
     except Exception as e:  # noqa: BLE001
         response_text = f"Error calling agent: {e}"
+        # Emit session error event
+        await state.broadcast_event(
+            SessionErrorEvent.create(
+                session_id=session_id,
+                error_name=type(e).__name__,
+                error_message=str(e),
+            )
+        )
 
     response_time = now_ms()
 
