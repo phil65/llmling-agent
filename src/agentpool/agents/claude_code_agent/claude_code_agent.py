@@ -104,6 +104,16 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# Prefix to strip from tool names for cleaner UI display
+_MCP_TOOL_PREFIX = "mcp__agentpool-claude-tools__"
+
+
+def _strip_mcp_prefix(tool_name: str) -> str:
+    """Strip MCP server prefix from tool names for cleaner UI display."""
+    if tool_name.startswith(_MCP_TOOL_PREFIX):
+        return tool_name[len(_MCP_TOOL_PREFIX) :]
+    return tool_name
+
 
 class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     """Agent wrapping Claude Agent SDK's ClaudeSDKClient.
@@ -838,8 +848,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     current_response_parts.append(ThinkingPart(content=thinking))
                                 case ToolUseBlockType(id=tc_id, name=name, input=input_data):
                                     pending_tool_calls[tc_id] = block
+                                    display_name = _strip_mcp_prefix(name)
                                     tool_call_part = ToolCallPart(
-                                        tool_name=name, args=input_data, tool_call_id=tc_id
+                                        tool_name=display_name, args=input_data, tool_call_id=tc_id
                                     )
                                     current_response_parts.append(tool_call_part)
 
@@ -858,7 +869,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         rich_info = derive_rich_tool_info(name, input_data)
                                         tool_start_event = ToolCallStartEvent(
                                             tool_call_id=tc_id,
-                                            tool_name=name,
+                                            tool_name=display_name,
                                             title=rich_info.title,
                                             kind=rich_info.kind,
                                             locations=rich_info.locations,
@@ -878,7 +889,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         rich_info = derive_rich_tool_info(name, input_data)
                                         updated_event = ToolCallStartEvent(
                                             tool_call_id=tc_id,
-                                            tool_name=name,
+                                            tool_name=display_name,
                                             title=rich_info.title,
                                             kind=rich_info.kind,
                                             locations=rich_info.locations,
@@ -900,7 +911,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                                     # Get tool name from pending calls
                                     tool_use = pending_tool_calls.pop(tc_id, None)
-                                    tool_name = tool_use.name if tool_use else "unknown"
+                                    tool_name = _strip_mcp_prefix(
+                                        tool_use.name if tool_use else "unknown"
+                                    )
                                     tool_input = tool_use.input if tool_use else {}
 
                                     # Create ToolReturnPart for the result
@@ -950,7 +963,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                                 # Get tool name from pending calls
                                 tool_use = pending_tool_calls.pop(tc_id, None)
-                                tool_name = tool_use.name if tool_use else "unknown"
+                                tool_name = _strip_mcp_prefix(
+                                    tool_use.name if tool_use else "unknown"
+                                )
                                 tool_input = tool_use.input if tool_use else {}
 
                                 # Create ToolReturnPart for the result
@@ -1005,17 +1020,19 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             elif block_type == "tool_use":
                                 # Emit ToolCallStartEvent early (args still streaming)
                                 tc_id = content_block.get("id", "")
-                                tool_name = content_block.get("name", "")
+                                raw_tool_name = content_block.get("name", "")
+                                tool_name = _strip_mcp_prefix(raw_tool_name)
                                 tool_accumulator.start(tc_id, tool_name)
                                 # Track for permission matching - permission callback will use this
-                                self._pending_tool_call_ids[tool_name] = tc_id
+                                # Use raw name since SDK uses raw names for permissions
+                                self._pending_tool_call_ids[raw_tool_name] = tc_id
 
                                 # Derive rich info with empty args for now
                                 from agentpool.agents.claude_code_agent.converters import (
                                     derive_rich_tool_info,
                                 )
 
-                                rich_info = derive_rich_tool_info(tool_name, {})
+                                rich_info = derive_rich_tool_info(raw_tool_name, {})
                                 tool_start_event = ToolCallStartEvent(
                                     tool_call_id=tc_id,
                                     tool_name=tool_name,
