@@ -6,10 +6,14 @@ import asyncio
 from collections.abc import Awaitable, Callable, Set as AbstractSet
 import contextlib
 from dataclasses import dataclass, field
+import logging
 from pathlib import Path
 from typing import Self
 
 from watchfiles import Change, awatch
+
+
+logger = logging.getLogger(__name__)
 
 
 # Callback type for file change notifications
@@ -81,16 +85,24 @@ class FileWatcher:
         # Filter to only existing paths
         existing_paths = [p for p in str_paths if Path(p).exists()]
         if not existing_paths:
+            logger.warning("FileWatcher: no existing paths to watch from %s", str_paths)
             return
 
-        async for changes in awatch(
-            *existing_paths,
-            debounce=self.debounce,
-            stop_event=self._stop_event,
-        ):
-            # Don't let callback errors kill the watcher
-            with contextlib.suppress(Exception):
-                await self.callback(changes)
+        logger.info("FileWatcher: starting watch loop for %s", existing_paths)
+        try:
+            async for changes in awatch(
+                *existing_paths,
+                debounce=self.debounce,
+                stop_event=self._stop_event,
+            ):
+                logger.info("FileWatcher detected changes: %s", changes)
+                # Don't let callback errors kill the watcher
+                try:
+                    await self.callback(changes)
+                except Exception:
+                    logger.exception("Error in file watcher callback")
+        except Exception:
+            logger.exception("FileWatcher watch loop failed")
 
     async def __aenter__(self) -> Self:
         """Start watcher on context enter."""
@@ -133,9 +145,11 @@ async def get_git_branch(repo_path: str | Path) -> str | None:
 
 @dataclass
 class GitBranchWatcher:
-    """Watches for git branch changes.
+    """Watches for git branch changes using polling.
 
-    Monitors the .git/HEAD file and calls a callback when the branch changes.
+    Polls the current git branch periodically and calls a callback when it changes.
+    Uses polling instead of file watching because git uses atomic renames which
+    are not reliably detected by inotify/watchfiles.
 
     Example:
         ```python
@@ -158,14 +172,23 @@ class GitBranchWatcher:
     callback: Callable[[str | None], Awaitable[None]]
     """Async callback invoked with new branch name when branch changes."""
 
+    poll_interval: float = 1.0
+    """Polling interval in seconds."""
+
     _current_branch: str | None = field(default=None, repr=False)
     """Cached current branch."""
 
-    _file_watcher: FileWatcher | None = field(default=None, repr=False)
-    """Underlying file watcher."""
+    _task: asyncio.Task[None] | None = field(default=None, repr=False)
+    """Background polling task."""
+
+    _stop_event: asyncio.Event = field(default_factory=asyncio.Event, repr=False)
+    """Event to signal stop."""
 
     async def start(self) -> None:
         """Start watching for branch changes."""
+        if self._task is not None:
+            return  # Already running
+
         repo = Path(self.repo_path)
         git_dir = repo / ".git"
 
@@ -175,30 +198,53 @@ class GitBranchWatcher:
             if content.startswith("gitdir:"):
                 git_dir = Path(content[7:].strip())
 
-        head_file = git_dir / "HEAD"
-        if not head_file.exists():
+        if not git_dir.exists():
+            logger.warning("Git directory not found: %s", git_dir)
             return
 
         # Get initial branch
         self._current_branch = await get_git_branch(self.repo_path)
-
-        async def on_file_change(changes: AbstractSet[tuple[Change, str]]) -> None:
-            new_branch = await get_git_branch(self.repo_path)
-            if new_branch != self._current_branch:
-                self._current_branch = new_branch
-                await self.callback(new_branch)
-
-        self._file_watcher = FileWatcher(
-            paths=[head_file],
-            callback=on_file_change,
+        logger.info(
+            "GitBranchWatcher started (polling), repo: %s, initial branch: %s",
+            self.repo_path,
+            self._current_branch,
         )
-        await self._file_watcher.start()
+
+        self._stop_event.clear()
+        self._task = asyncio.create_task(self._poll_loop())
+
+    async def _poll_loop(self) -> None:
+        """Internal polling loop."""
+        while not self._stop_event.is_set():
+            try:
+                await asyncio.wait_for(
+                    self._stop_event.wait(),
+                    timeout=self.poll_interval,
+                )
+                break  # Stop event was set
+            except TimeoutError:
+                # Poll interval elapsed, check for changes
+                pass
+
+            try:
+                new_branch = await get_git_branch(self.repo_path)
+                if new_branch != self._current_branch:
+                    logger.info("Branch changed: %s -> %s", self._current_branch, new_branch)
+                    self._current_branch = new_branch
+                    await self.callback(new_branch)
+            except Exception:
+                logger.exception("Error polling git branch")
 
     async def stop(self) -> None:
         """Stop watching for branch changes."""
-        if self._file_watcher:
-            await self._file_watcher.stop()
-            self._file_watcher = None
+        if self._task is None:
+            return
+
+        self._stop_event.set()
+        self._task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self._task
+        self._task = None
 
     @property
     def current_branch(self) -> str | None:

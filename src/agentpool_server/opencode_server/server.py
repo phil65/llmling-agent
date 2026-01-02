@@ -101,27 +101,67 @@ def create_app(  # noqa: PLR0915
 
     pool.todos.on_change = on_todo_change
 
-    # Git branch watcher for VCS events
+    # Watchers for VCS and file events
     git_branch_watcher: Any = None
+    project_file_watcher: Any = None
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        nonlocal git_branch_watcher
+        nonlocal git_branch_watcher, project_file_watcher
+        import logging
 
-        # Startup - set up git branch watcher
-        from agentpool.utils.file_watcher import GitBranchWatcher
-        from agentpool_server.opencode_server.models.events import VcsBranchUpdatedEvent
+        from watchfiles import Change
 
+        from agentpool.utils.file_watcher import FileWatcher, GitBranchWatcher
+        from agentpool_server.opencode_server.models.events import (
+            FileWatcherUpdatedEvent,
+            VcsBranchUpdatedEvent,
+        )
+
+        log = logging.getLogger(__name__)
+
+        # --- Git branch watcher ---
         async def on_branch_change(branch: str | None) -> None:
             """Broadcast branch change to all subscribers."""
+            log.info("Broadcasting vcs.branch.updated event: %s", branch)
             event = VcsBranchUpdatedEvent.create(branch=branch)
             await state.broadcast_event(event)
 
+        log.info("Setting up GitBranchWatcher for: %s", state.working_dir)
         git_branch_watcher = GitBranchWatcher(
             repo_path=state.working_dir,
             callback=on_branch_change,
         )
         await git_branch_watcher.start()
+        log.info("GitBranchWatcher started, current branch: %s", git_branch_watcher.current_branch)
+
+        # --- Project file watcher ---
+        # Map watchfiles Change types to OpenCode event types
+        change_type_map: dict[Change, str] = {
+            Change.added: "add",
+            Change.modified: "change",
+            Change.deleted: "unlink",
+        }
+
+        async def on_file_change(changes: set[tuple[Change, str]]) -> None:
+            """Broadcast file changes to all subscribers."""
+            for change_type, file_path in changes:
+                # Skip .git directory changes
+                if "/.git/" in file_path or file_path.endswith("/.git"):
+                    continue
+                event_type = change_type_map.get(change_type, "change")
+                log.info("Broadcasting file.watcher.updated: %s %s", event_type, file_path)
+                event = FileWatcherUpdatedEvent.create(file=file_path, event=event_type)  # type: ignore[arg-type]
+                await state.broadcast_event(event)
+
+        log.info("Setting up project FileWatcher for: %s", state.working_dir)
+        project_file_watcher = FileWatcher(
+            paths=[state.working_dir],
+            callback=on_file_change,
+            debounce=500,  # 500ms debounce to batch rapid changes
+        )
+        await project_file_watcher.start()
+        log.info("Project FileWatcher started")
 
         yield
 
@@ -129,6 +169,8 @@ def create_app(  # noqa: PLR0915
         pool.todos.on_change = None
         if git_branch_watcher:
             await git_branch_watcher.stop()
+        if project_file_watcher:
+            await project_file_watcher.stop()
 
     app = FastAPI(
         title="OpenCode-Compatible API",

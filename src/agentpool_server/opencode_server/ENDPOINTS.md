@@ -250,8 +250,8 @@ All event types supported by the OpenCode protocol:
 | [x] | `permission.replied` | Permission request resolved (user responded) |
 | [x] | `todo.updated` | Todo list item updated |
 | [ ] | `file.edited` | File was edited |
-| [ ] | `file.watcher.updated` | File watcher status changed |
-| [ ] | `vcs.branch.updated` | VCS branch changed |
+| [x] | `file.watcher.updated` | File watcher detects project file changes |
+| [x] | `vcs.branch.updated` | VCS branch changed (polling-based) |
 | [ ] | `mcp.tools.changed` | MCP server tools changed |
 | [ ] | `command.executed` | Slash command executed |
 | [x] | `tui.prompt.append` | Append text to TUI prompt input |

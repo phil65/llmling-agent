@@ -379,6 +379,32 @@ class TodoUpdatedEvent(OpenCodeBaseModel):
 
 
 # =============================================================================
+# File Watcher Events
+# =============================================================================
+
+
+class FileWatcherUpdatedProperties(OpenCodeBaseModel):
+    """Properties for file watcher updated event."""
+
+    file: str
+    """Absolute path to the file that changed."""
+
+    event: Literal["add", "change", "unlink"]
+    """Type of change: add (created), change (modified), unlink (deleted)."""
+
+
+class FileWatcherUpdatedEvent(OpenCodeBaseModel):
+    """File watcher updated event - sent when a project file changes."""
+
+    type: Literal["file.watcher.updated"] = "file.watcher.updated"
+    properties: FileWatcherUpdatedProperties
+
+    @classmethod
+    def create(cls, file: str, event: Literal["add", "change", "unlink"]) -> Self:
+        return cls(properties=FileWatcherUpdatedProperties(file=file, event=event))
+
+
+# =============================================================================
 # VCS Events
 # =============================================================================
 
@@ -413,6 +439,7 @@ Event = (
     | PermissionRequestEvent
     | PermissionResolvedEvent
     | TodoUpdatedEvent
+    | FileWatcherUpdatedEvent
     | VcsBranchUpdatedEvent
     | TuiPromptAppendEvent
     | TuiCommandExecuteEvent
