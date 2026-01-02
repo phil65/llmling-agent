@@ -139,6 +139,9 @@ class LSPManager:
     _server_configs: dict[str, LSPServerInfo] = field(default_factory=dict)
     """Server configurations by server_id."""
 
+    _starting: set[str] = field(default_factory=set)
+    """Server IDs currently being started (to prevent concurrent start attempts)."""
+
     def __post_init__(self) -> None:
         """Initialize internal state."""
         # dataclass default_factory doesn't work with mutable defaults in __init__
@@ -146,6 +149,8 @@ class LSPManager:
             self._servers = {}
         if not hasattr(self, "_server_configs") or self._server_configs is None:
             self._server_configs = {}
+        if not hasattr(self, "_starting") or self._starting is None:
+            self._starting = set()
 
     def register_server(self, config: LSPServerInfo) -> None:
         """Register an LSP server configuration.
@@ -182,14 +187,16 @@ class LSPManager:
         return None
 
     def is_running(self, server_id: str) -> bool:
-        """Check if a server is currently running.
+        """Check if a server is currently running or starting.
 
         Args:
             server_id: Server identifier
 
         Returns:
-            True if server is running
+            True if server is running or being started
         """
+        if server_id in self._starting:
+            return True  # Treat "starting" as running to prevent concurrent starts
         return server_id in self._servers and self._servers[server_id].initialized
 
     async def start_server(
@@ -213,61 +220,85 @@ class LSPManager:
         if server_id in self._servers:
             return self._servers[server_id]
 
+        # Check if already being started (prevent concurrent starts)
+        if server_id in self._starting:
+            # Wait for the other start to complete
+            for _ in range(100):  # 10 second timeout
+                await asyncio.sleep(0.1)
+                if server_id in self._servers:
+                    return self._servers[server_id]
+            msg = f"Timeout waiting for {server_id} to start"
+            raise RuntimeError(msg)
+
         config = self._server_configs.get(server_id)
         if not config:
             msg = f"Server {server_id!r} not registered"
             raise ValueError(msg)
 
-        # Build the command
-        command = config.get_full_command()
-        command_str = " ".join(command)
+        # Mark as starting to prevent concurrent attempts
+        self._starting.add(server_id)
 
-        # Socket path for this server
-        socket_path = f"{self.socket_dir}/{server_id}.sock"
+        try:
+            # Build the command
+            command = config.get_full_command()
+            command_str = " ".join(command)
 
-        # Start the LSP proxy process
-        from agentpool.diagnostics.lsp_proxy import LSPProxy
+            # Socket path for this server
+            socket_path = f"{self.socket_dir}/{server_id}.sock"
 
-        proxy_cmd = LSPProxy.get_start_command(command_str, socket_path)
+            # Start the LSP proxy process
+            from agentpool.diagnostics.lsp_proxy import LSPProxy
 
-        # Ensure socket directory exists
-        await self.env.execute_command(f"mkdir -p {self.socket_dir}")
+            proxy_cmd = LSPProxy.get_start_command(command_str, socket_path)
 
-        # Start proxy as background process
-        process_id = await self.env.process_manager.start_process(
-            command=proxy_cmd[0],
-            args=proxy_cmd[1:],
-            env=config.get_env(),
-        )
+            # Ensure socket directory exists
+            await self.env.execute_command(f"mkdir -p {self.socket_dir}")
 
-        # Wait for socket to be ready (check for .ready marker file)
-        ready_path = f"{socket_path}.ready"
-        for _ in range(50):  # 5 second timeout
-            result = await self.env.execute_command(f"test -f {ready_path} && echo ready")
-            if result.stdout and "ready" in result.stdout:
-                break
-            await asyncio.sleep(0.1)
-        else:
-            # Cleanup on failure
-            await self.env.process_manager.kill_process(process_id)
-            msg = f"LSP proxy for {server_id} failed to start (socket not ready)"
-            raise RuntimeError(msg)
+            # Start proxy as background process
+            process_id = await self.env.process_manager.start_process(
+                command=proxy_cmd[0],
+                args=proxy_cmd[1:],
+                env=config.get_env(),
+            )
 
-        # Create server state
-        state = LSPServerState(
-            server_id=server_id,
-            process_id=process_id,
-            socket_path=socket_path,
-            language=config.extensions[0] if config.extensions else "unknown",
-            root_uri=root_uri,
-            initialized=False,
-        )
-        self._servers[server_id] = state
+            # Wait for socket to be ready (check for .ready marker file)
+            ready_path = f"{socket_path}.ready"
+            for _ in range(50):  # 5 second timeout
+                result = await self.env.execute_command(f"test -f {ready_path} && echo ready")
+                if result.stdout and "ready" in result.stdout:
+                    break
+                await asyncio.sleep(0.1)
+            else:
+                # Cleanup on failure
+                await self.env.process_manager.kill_process(process_id)
+                msg = f"LSP proxy for {server_id} failed to start (socket not ready)"
+                raise RuntimeError(msg)
 
-        # Run LSP initialize handshake
-        await self._initialize_server(state, config, root_uri)
+            # Create server state
+            state = LSPServerState(
+                server_id=server_id,
+                process_id=process_id,
+                socket_path=socket_path,
+                language=config.extensions[0] if config.extensions else "unknown",
+                root_uri=root_uri,
+                initialized=False,
+            )
+            self._servers[server_id] = state
 
-        return state
+            # Run LSP initialize handshake
+            try:
+                await self._initialize_server(state, config, root_uri)
+            except Exception:
+                # Initialization failed - remove from servers dict and re-raise
+                self._servers.pop(server_id, None)
+                # Kill the process
+                await self.env.process_manager.kill_process(process_id)
+                raise
+
+            return state
+        finally:
+            # Always remove from starting set
+            self._starting.discard(server_id)
 
     async def _initialize_server(
         self,
