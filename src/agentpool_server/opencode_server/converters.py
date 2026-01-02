@@ -62,6 +62,26 @@ if TYPE_CHECKING:
     from agentpool_server.opencode_server.models import Part
 
 
+# Parameter name mapping from snake_case to camelCase for OpenCode TUI compatibility
+_PARAM_NAME_MAP: dict[str, str] = {
+    "path": "filePath",
+    "file_path": "filePath",
+    "old_string": "oldString",
+    "new_string": "newString",
+    "replace_all": "replaceAll",
+    "line_hint": "lineHint",
+}
+
+
+def _convert_params_for_ui(params: dict[str, Any]) -> dict[str, Any]:
+    """Convert parameter names from snake_case to camelCase for OpenCode TUI.
+
+    OpenCode TUI expects camelCase parameter names like 'filePath', 'oldString', etc.
+    This converts our snake_case parameters to match those expectations.
+    """
+    return {_PARAM_NAME_MAP.get(k, k): v for k, v in params.items()}
+
+
 def generate_part_id() -> str:
     """Generate a unique part ID."""
     return str(uuid.uuid4())
@@ -105,10 +125,17 @@ def convert_pydantic_tool_call_part(
 
 def _get_input_from_state(
     state: ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError,
+    *,
+    convert_params: bool = False,
 ) -> dict[str, Any]:
-    """Extract input from any tool state type."""
+    """Extract input from any tool state type.
+
+    Args:
+        state: Tool state to extract input from
+        convert_params: If True, convert param names to camelCase for UI display
+    """
     if hasattr(state, "input") and state.input is not None:
-        return state.input
+        return _convert_params_for_ui(state.input) if convert_params else state.input
     return {}
 
 
@@ -550,7 +577,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         # Create tool part in pending/running state
                         from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 
-                        tool_input = safe_args_as_dict(p)
+                        tool_input = _convert_params_for_ui(safe_args_as_dict(p))
                         tool_part = ToolPart(
                             id=generate_part_id(),
                             message_id=message_id,

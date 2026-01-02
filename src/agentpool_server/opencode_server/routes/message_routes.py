@@ -29,6 +29,7 @@ from agentpool.messaging.messages import ChatMessage
 from agentpool.utils import identifiers as identifier
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool_server.opencode_server.converters import (
+    _convert_params_for_ui,
     extract_user_prompt_from_parts,
     opencode_to_chat_message,
 )
@@ -354,10 +355,12 @@ async def send_message(  # noqa: PLR0915
                     raw_input=raw_input,
                     title=title,
                 ):
+                    # Convert param names for OpenCode TUI compatibility
+                    ui_input = _convert_params_for_ui(raw_input) if raw_input else {}
                     if tool_call_id in tool_parts:
                         # Update existing part with the custom title
                         existing = tool_parts[tool_call_id]
-                        tool_inputs[tool_call_id] = raw_input or tool_inputs.get(tool_call_id, {})
+                        tool_inputs[tool_call_id] = ui_input or tool_inputs.get(tool_call_id, {})
 
                         updated = ToolPart(
                             id=existing.id,
@@ -380,12 +383,12 @@ async def send_message(  # noqa: PLR0915
                         await state.broadcast_event(PartUpdatedEvent.create(updated))
                     else:
                         # Create new tool part with the title
-                        tool_inputs[tool_call_id] = raw_input or {}
+                        tool_inputs[tool_call_id] = ui_input
                         tool_outputs[tool_call_id] = ""
                         tool_state = ToolStateRunning(
                             status="running",
                             time=TimeStart(start=now_ms()),
-                            input=raw_input or {},
+                            input=ui_input,
                             title=title,
                         )
                         tool_part = ToolPart(
@@ -408,15 +411,17 @@ async def send_message(  # noqa: PLR0915
                     tool_call_id = tc_part.tool_call_id
                     tool_name = tc_part.tool_name
                     raw_input = safe_args_as_dict(tc_part)
+                    # Convert param names for OpenCode TUI compatibility
+                    ui_input = _convert_params_for_ui(raw_input)
                     # Store input and initialize output accumulator
-                    tool_inputs[tool_call_id] = raw_input
+                    tool_inputs[tool_call_id] = ui_input
                     tool_outputs[tool_call_id] = ""
                     # Derive initial title; toolset events may update it later
                     rich_info = derive_rich_tool_info(tool_name, raw_input)
                     tool_state = ToolStateRunning(
                         status="running",
                         time=TimeStart(start=now_ms()),
-                        input=raw_input,
+                        input=ui_input,
                         title=rich_info.title,
                     )
                     tool_part = ToolPart(
@@ -488,12 +493,15 @@ async def send_message(  # noqa: PLR0915
                         await state.broadcast_event(PartUpdatedEvent.create(updated))
                     else:
                         # Create new tool part from progress event
-                        tool_inputs[tool_call_id] = event_tool_input or {}
+                        ui_input = (
+                            _convert_params_for_ui(event_tool_input) if event_tool_input else {}
+                        )
+                        tool_inputs[tool_call_id] = ui_input
                         accumulated_output = tool_outputs.get(tool_call_id, "")
                         tool_state = ToolStateRunning(
                             status="running",
                             time=TimeStart(start=now_ms()),
-                            input=event_tool_input or {},
+                            input=ui_input,
                             title=title or tool_name or "Running...",
                             metadata={"output": accumulated_output} if accumulated_output else None,
                         )

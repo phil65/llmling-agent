@@ -220,7 +220,7 @@ class FSSpecTools(ResourceProvider):
 
         self._tools = [
             self.create_tool(self.list_directory, category="read", read_only=True, idempotent=True),
-            self.create_tool(self.read_file, category="read", read_only=True, idempotent=True),
+            self.create_tool(self.read, category="read", read_only=True, idempotent=True),
             self.create_tool(self.grep, category="search", read_only=True, idempotent=True),
             self.create_tool(self.write_file, category="edit"),
             self.create_tool(self.delete_path, category="delete", destructive=True),
@@ -348,7 +348,7 @@ class FSSpecTools(ResourceProvider):
         else:
             return result
 
-    async def read_file(  # noqa: D417
+    async def read(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         path: str,
