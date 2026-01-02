@@ -229,7 +229,7 @@ All event types supported by the OpenCode protocol:
 | [x] | `server.connected` | Server connected (sent on SSE connect) |
 | [ ] | `global.disposed` | Global instance disposed |
 | [ ] | `installation.updated` | Installation updated |
-| [ ] | `installation.update-available` | Update available for installation |
+| [x] | `installation.update-available` | Update available (via `tui.toast.show` workaround) |
 | [ ] | `project.updated` | Project configuration updated |
 | [ ] | `server.instance.disposed` | Server instance disposed |
 | [ ] | `lsp.updated` | LSP server status updated |

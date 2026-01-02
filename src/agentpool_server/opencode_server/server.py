@@ -45,6 +45,46 @@ if TYPE_CHECKING:
 VERSION = "0.1.0"
 
 
+async def check_pypi_version(package: str = "agentpool") -> str | None:
+    """Check PyPI for the latest version of a package.
+
+    Args:
+        package: Package name to check
+
+    Returns:
+        Latest version string, or None if check fails
+    """
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"https://pypi.org/pypi/{package}/json")
+            if response.status_code == 200:  # noqa: PLR2004
+                data = response.json()
+                return data.get("info", {}).get("version")
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
+def compare_versions(current: str, latest: str) -> bool:
+    """Check if latest version is newer than current.
+
+    Args:
+        current: Current version string
+        latest: Latest version string
+
+    Returns:
+        True if latest is newer than current
+    """
+    from packaging.version import Version
+
+    try:
+        return Version(latest) > Version(current)
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def create_app(  # noqa: PLR0915
     *,
     pool: AgentPool[Any],
@@ -162,6 +202,26 @@ def create_app(  # noqa: PLR0915
         )
         await project_file_watcher.start()
         log.info("Project FileWatcher started")
+
+        # --- Version update check (triggered when first client connects) ---
+        async def check_for_updates() -> None:
+            """Check PyPI for updates and notify via toast."""
+            from agentpool import __version__ as current_version
+            from agentpool_server.opencode_server.models.events import TuiToastShowEvent
+
+            latest = await check_pypi_version("agentpool")
+            if latest and compare_versions(current_version, latest):
+                log.info("Update available: %s -> %s", current_version, latest)
+                event = TuiToastShowEvent.create(
+                    title="Update Available",
+                    message=f"agentpool {latest} is available (current: {current_version})",
+                    variant="info",
+                    duration=10000,
+                )
+                await state.broadcast_event(event)
+
+        # Register callback to run when first SSE client connects
+        state.on_first_subscriber = check_for_updates
 
         yield
 

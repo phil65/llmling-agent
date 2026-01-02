@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 import time
 from typing import TYPE_CHECKING, Any
@@ -20,6 +21,9 @@ if TYPE_CHECKING:
         SessionStatus,
         Todo,
     )
+
+# Type alias for async callback
+OnFirstSubscriberCallback = Callable[[], Coroutine[Any, Any, None]]
 
 
 @dataclass
@@ -53,6 +57,10 @@ class ServerState:
 
     # SSE event subscribers
     event_subscribers: list[asyncio.Queue[Event]] = field(default_factory=list)
+
+    # Callback for first subscriber connection (e.g., for update check)
+    on_first_subscriber: OnFirstSubscriberCallback | None = None
+    _first_subscriber_triggered: bool = field(default=False, repr=False)
 
     # Background tasks (for cleanup on shutdown)
     background_tasks: set[asyncio.Task[Any]] = field(default_factory=set)

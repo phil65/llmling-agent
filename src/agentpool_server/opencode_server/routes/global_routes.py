@@ -53,6 +53,16 @@ async def _event_generator(
     state.event_subscribers.append(queue)
     subscriber_count = len(state.event_subscribers)
     logger.info("SSE: New client connected (total subscribers: %s)", subscriber_count)
+
+    # Trigger first subscriber callback if this is the first connection
+    if (
+        subscriber_count == 1
+        and not state._first_subscriber_triggered
+        and state.on_first_subscriber is not None
+    ):
+        state._first_subscriber_triggered = True
+        state.create_background_task(state.on_first_subscriber(), name="on_first_subscriber")
+
     try:
         # Send initial connected event
         connected = ServerConnectedEvent()
