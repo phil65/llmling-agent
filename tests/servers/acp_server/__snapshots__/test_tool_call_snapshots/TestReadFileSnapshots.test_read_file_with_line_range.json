@@ -11,7 +11,7 @@
       "sessionUpdate": "tool_call",
       "status": "pending",
       "title": "Reading: /test/lines.txt",
-      "toolCallId": "pyd_ai_tool_call_id__read_file"
+      "toolCallId": "pyd_ai_tool_call_id__read"
     },
     "type": "tool_call"
   },
@@ -26,7 +26,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Reading file: /test/lines.txt",
-      "toolCallId": "pyd_ai_tool_call_id__read_file"
+      "toolCallId": "pyd_ai_tool_call_id__read"
     },
     "type": "tool_call_update"
   },
@@ -41,7 +41,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Read: /test/lines.txt",
-      "toolCallId": "pyd_ai_tool_call_id__read_file"
+      "toolCallId": "pyd_ai_tool_call_id__read"
     },
     "type": "tool_call_update"
   },
@@ -65,7 +65,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Read: /test/lines.txt",
-      "toolCallId": "pyd_ai_tool_call_id__read_file"
+      "toolCallId": "pyd_ai_tool_call_id__read"
     },
     "type": "tool_call_update"
   },
@@ -74,7 +74,7 @@
       "rawOutput": "Line 3\nLine 4",
       "sessionUpdate": "tool_call_update",
       "status": "completed",
-      "toolCallId": "pyd_ai_tool_call_id__read_file"
+      "toolCallId": "pyd_ai_tool_call_id__read"
     },
     "type": "tool_call_update"
   }

@@ -80,7 +80,7 @@ class TestWriteFileSnapshots:
     ) -> None:
         """Test writing a new file produces expected notifications."""
         messages = await harness.execute_tool(
-            tool_name="write_file",
+            tool_name="write",
             tool_args={"path": "/test/new_file.txt", "content": "New content here"},
             toolsets=[FSSpecToolsetConfig()],
         )
@@ -96,7 +96,7 @@ class TestWriteFileSnapshots:
         await harness.mock_env.set_file_content("/test/existing.txt", "Old content")
 
         messages = await harness.execute_tool(
-            tool_name="write_file",
+            tool_name="write",
             tool_args={
                 "path": "/test/existing.txt",
                 "content": "Updated content",

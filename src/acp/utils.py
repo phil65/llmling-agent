@@ -122,6 +122,14 @@ def generate_tool_title(tool_name: str, tool_input: dict[str, Any]) -> str:  # n
     """
     name_lower = tool_name.lower()
 
+    # Exact matches for common tool names (OpenCode compatibility)
+    if name_lower == "read" and (path := tool_input.get("path") or tool_input.get("file_path")):
+        return f"Reading: {path}"
+    if name_lower in ("write", "edit") and (
+        path := tool_input.get("path") or tool_input.get("file_path")
+    ):
+        return f"Editing: {path}"
+
     # Command/script execution - show the command
     if any(k in name_lower for k in ["command", "execute", "run", "shell", "script"]) and (
         cmd := tool_input.get("command")
@@ -217,6 +225,11 @@ def infer_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
         Tool kind string for ACP protocol
     """
     name_lower = tool_name.lower()
+
+    # Exact matches for common tool names (OpenCode compatibility)
+    if name_lower in ("read", "write", "edit"):
+        return "read" if name_lower == "read" else "edit"
+
     if any(i in name_lower for i in ["read", "load", "get"]) and any(
         i in name_lower for i in ["file", "path", "content"]
     ):

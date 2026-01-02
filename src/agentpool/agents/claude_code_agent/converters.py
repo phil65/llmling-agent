@@ -50,7 +50,7 @@ def derive_rich_tool_info(name: str, input_data: dict[str, Any]) -> RichToolInfo
     built-in tools and MCP bridge tools.
 
     Args:
-        name: The tool name (e.g., "Read", "mcp__server__read_file")
+        name: The tool name (e.g., "Read", "mcp__server__read")
         input_data: The tool input arguments
 
     Returns:

@@ -11,7 +11,7 @@
       "sessionUpdate": "tool_call",
       "status": "pending",
       "title": "Editing: /test/existing.txt",
-      "toolCallId": "pyd_ai_tool_call_id__write_file"
+      "toolCallId": "pyd_ai_tool_call_id__write"
     },
     "type": "tool_call"
   },
@@ -26,7 +26,7 @@
       ],
       "sessionUpdate": "tool_call_update",
       "title": "Writing file: /test/existing.txt",
-      "toolCallId": "pyd_ai_tool_call_id__write_file"
+      "toolCallId": "pyd_ai_tool_call_id__write"
     },
     "type": "tool_call_update"
   },
@@ -48,7 +48,7 @@
       ],
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
-      "toolCallId": "pyd_ai_tool_call_id__write_file"
+      "toolCallId": "pyd_ai_tool_call_id__write"
     },
     "type": "tool_call_update"
   },
@@ -57,7 +57,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Wrote: /test/existing.txt",
-      "toolCallId": "pyd_ai_tool_call_id__write_file"
+      "toolCallId": "pyd_ai_tool_call_id__write"
     },
     "type": "tool_call_update"
   },
@@ -72,7 +72,7 @@
       },
       "sessionUpdate": "tool_call_update",
       "status": "completed",
-      "toolCallId": "pyd_ai_tool_call_id__write_file"
+      "toolCallId": "pyd_ai_tool_call_id__write"
     },
     "type": "tool_call_update"
   }

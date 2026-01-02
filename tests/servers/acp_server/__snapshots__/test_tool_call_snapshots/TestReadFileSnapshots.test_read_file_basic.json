@@ -9,7 +9,7 @@
       "sessionUpdate": "tool_call",
       "status": "pending",
       "title": "Reading: /test/hello.txt",
-      "toolCallId": "pyd_ai_tool_call_id__read_file"
+      "toolCallId": "pyd_ai_tool_call_id__read"
     },
     "type": "tool_call"
   },
@@ -24,7 +24,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Reading file: /test/hello.txt",
-      "toolCallId": "pyd_ai_tool_call_id__read_file"
+      "toolCallId": "pyd_ai_tool_call_id__read"
     },
     "type": "tool_call_update"
   },
@@ -39,7 +39,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Read: /test/hello.txt",
-      "toolCallId": "pyd_ai_tool_call_id__read_file"
+      "toolCallId": "pyd_ai_tool_call_id__read"
     },
     "type": "tool_call_update"
   },
@@ -63,7 +63,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Read: /test/hello.txt",
-      "toolCallId": "pyd_ai_tool_call_id__read_file"
+      "toolCallId": "pyd_ai_tool_call_id__read"
     },
     "type": "tool_call_update"
   },
@@ -72,7 +72,7 @@
       "rawOutput": "Hello, World!",
       "sessionUpdate": "tool_call_update",
       "status": "completed",
-      "toolCallId": "pyd_ai_tool_call_id__read_file"
+      "toolCallId": "pyd_ai_tool_call_id__read"
     },
     "type": "tool_call_update"
   }
