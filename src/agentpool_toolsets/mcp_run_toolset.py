@@ -107,7 +107,7 @@ class McpRunTools(ResourceProvider):
             ) -> CallToolResult:
                 if _session is not None:
                     # Use persistent session if available
-                    return await _session.call_tool(tool_name, arguments=input_dict)  # type: ignore[no-any-return]
+                    return await _session.call_tool(tool_name, arguments=input_dict)
                 # Fallback to creating a new connection (when not using context manager)
                 async with self.client.mcp_sse().connect() as new_session:
                     return await new_session.call_tool(tool_name, arguments=input_dict)  # type: ignore[no-any-return]

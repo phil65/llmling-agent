@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
@@ -560,8 +560,8 @@ class TodoEntry:
         }
 
 
-# Type for todo change callback (async)
-TodoChangeCallback = Callable[["TodoTracker"], Awaitable[None]]
+# Type for todo change callback (async coroutine)
+TodoChangeCallback = Callable[["TodoTracker"], Coroutine[Any, Any, None]]
 
 
 @dataclass
@@ -606,7 +606,7 @@ class TodoTracker:
     def _notify_change(self) -> None:
         """Notify listener of changes (schedules async callback)."""
         if self.on_change is not None:
-            task = asyncio.create_task(self.on_change(self))
+            task: asyncio.Task[None] = asyncio.create_task(self.on_change(self))
             self._pending_tasks.add(task)
             task.add_done_callback(self._pending_tasks.discard)
 

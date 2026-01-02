@@ -39,7 +39,7 @@ class OpenCodeJSONResponse(JSONResponse):
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Set as AbstractSet
 
 
 VERSION = "0.1.0"
@@ -60,8 +60,10 @@ async def check_pypi_version(package: str = "agentpool") -> str | None:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(f"https://pypi.org/pypi/{package}/json")
             if response.status_code == 200:  # noqa: PLR2004
-                data = response.json()
-                return data.get("info", {}).get("version")
+                data: dict[str, Any] = response.json()
+                info: dict[str, Any] = data.get("info", {})
+                version: str | None = info.get("version")
+                return version
     except Exception:  # noqa: BLE001
         pass
     return None
@@ -183,7 +185,7 @@ def create_app(  # noqa: PLR0915
             Change.deleted: "unlink",
         }
 
-        async def on_file_change(changes: set[tuple[Change, str]]) -> None:
+        async def on_file_change(changes: AbstractSet[tuple[Change, str]]) -> None:
             """Broadcast file changes to all subscribers."""
             for change_type, file_path in changes:
                 # Skip .git directory changes

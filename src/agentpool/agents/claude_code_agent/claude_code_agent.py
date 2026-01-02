@@ -513,7 +513,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             tool_call_id = self._pending_tool_call_ids.get(tool_name)
             ctx = self.get_context()
             # Attach tool_call_id to context for permission event
-            ctx.tool_call_id = tool_call_id  # type: ignore[attr-defined]
+            ctx.tool_call_id = tool_call_id
             result = await self._input_provider.get_tool_confirmation(
                 context=ctx,
                 tool=tool,

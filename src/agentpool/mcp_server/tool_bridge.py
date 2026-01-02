@@ -309,23 +309,46 @@ class ToolManagerBridge:
     async def _on_tools_changed(self, event: ResourceChangeEvent) -> None:
         """Handle tool changes from a provider."""
         logger.info(
-            "Tools changed in provider, notifying MCP clients",
+            "Tools changed in provider, refreshing MCP tools",
             provider=event.provider_name,
             provider_kind=event.provider_kind,
         )
         if self._mcp:
-            # Re-register tools with the MCP server
             await self._refresh_tools()
-            # Notify connected clients that tools have changed
-            await self._mcp.send_tools_list_changed()
 
     async def _refresh_tools(self) -> None:
-        """Refresh tools registered with the MCP server."""
+        """Refresh tools registered with the MCP server.
+
+        Uses FastMCP's add_tool/remove_tool API which automatically sends
+        ToolListChanged notifications when called within a request context.
+
+        Note: FastMCP only sends notifications when inside a request context
+        (ContextVar-based). Outside of requests, tools are updated but clients
+        won't receive a push notification - they'll see changes on next list_tools.
+
+        Future improvement: Access StreamableHTTPSessionManager._server_instances
+        to broadcast ToolListChanged to all connected sessions regardless of context.
+        """
         if not self._mcp:
             return
-        # Clear existing tools and re-register
-        self._mcp._tool_manager._tools.clear()
-        await self._register_tools()
+
+        # Get current and new tool sets
+        current_names = set(self._mcp._tool_manager._tools.keys())
+        new_tools = await self.node.tools.get_tools(state="enabled")
+        new_names = {t.name for t in new_tools}
+
+        # Remove tools that are no longer present
+        for name in current_names - new_names:
+            with suppress(Exception):
+                self._mcp.remove_tool(name)
+
+        # Add/update tools
+        for tool in new_tools:
+            if tool.name in current_names:
+                # Remove and re-add to update
+                with suppress(Exception):
+                    self._mcp.remove_tool(tool.name)
+            self._register_single_tool(tool)
 
     @property
     def port(self) -> int:

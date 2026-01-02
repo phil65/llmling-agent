@@ -572,6 +572,7 @@ Event = (
     | SessionUpdatedEvent
     | SessionDeletedEvent
     | SessionStatusEvent
+    | SessionErrorEvent
     | SessionIdleEvent
     | MessageUpdatedEvent
     | PartUpdatedEvent
@@ -579,6 +580,7 @@ Event = (
     | PermissionResolvedEvent
     | TodoUpdatedEvent
     | FileWatcherUpdatedEvent
+    | SessionCompactedEvent
     | PtyCreatedEvent
     | PtyUpdatedEvent
     | PtyExitedEvent
