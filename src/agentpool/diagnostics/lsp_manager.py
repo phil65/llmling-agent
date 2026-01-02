@@ -47,22 +47,21 @@ if TYPE_CHECKING:
     )
 
 
-# One-shot script template for sending LSP requests via Unix socket
+# One-shot script template for sending LSP requests via TCP
 LSP_CLIENT_SCRIPT = '''
 """One-shot LSP client - sends request and prints JSON response."""
 import asyncio
 import json
-import sys
 
-SOCKET_PATH = {socket_path!r}
+PORT = {port!r}
 METHOD = {method!r}
 PARAMS = {params!r}
 
 
 async def send_request() -> None:
-    """Connect to LSP proxy, send request, print response."""
+    """Connect to LSP proxy via TCP, send request, print response."""
     try:
-        reader, writer = await asyncio.open_unix_connection(SOCKET_PATH)
+        reader, writer = await asyncio.open_connection("127.0.0.1", PORT)
 
         # Build JSON-RPC request
         request = {{"jsonrpc": "2.0", "id": 1, "method": METHOD, "params": PARAMS}}
@@ -104,10 +103,8 @@ async def send_request() -> None:
         writer.close()
         await writer.wait_closed()
 
-    except FileNotFoundError:
-        print(json.dumps({{"error": f"Socket not found: {{SOCKET_PATH}}"}}))
     except ConnectionRefusedError:
-        print(json.dumps({{"error": "Connection refused"}}))
+        print(json.dumps({{"error": f"Connection refused on port {{PORT}}"}}))
     except Exception as e:
         print(json.dumps({{"error": str(e)}}))
 
@@ -130,8 +127,8 @@ class LSPManager:
     env: ExecutionEnvironment
     """The execution environment to run servers in."""
 
-    socket_dir: str = "/tmp/lsp-sockets"
-    """Directory for Unix sockets."""
+    port_file_dir: str = "/tmp/lsp-ports"
+    """Directory for port files."""
 
     _servers: dict[str, LSPServerState] = field(default_factory=dict)
     """Running servers by server_id."""
@@ -243,16 +240,16 @@ class LSPManager:
             command = config.get_full_command()
             command_str = " ".join(command)
 
-            # Socket path for this server
-            socket_path = f"{self.socket_dir}/{server_id}.sock"
+            # Port file path for this server
+            port_file = f"{self.port_file_dir}/{server_id}.port"
 
             # Start the LSP proxy process
             from agentpool.diagnostics.lsp_proxy import LSPProxy
 
-            proxy_cmd = LSPProxy.get_start_command(command_str, socket_path)
+            proxy_cmd = LSPProxy.get_start_command(command_str, port_file)
 
-            # Ensure socket directory exists
-            await self.env.execute_command(f"mkdir -p {self.socket_dir}")
+            # Ensure port file directory exists
+            await self.env.execute_command(f"mkdir -p {self.port_file_dir}")
 
             # Start proxy as background process
             process_id = await self.env.process_manager.start_process(
@@ -261,8 +258,8 @@ class LSPManager:
                 env=config.get_env(),
             )
 
-            # Wait for socket to be ready (check for .ready marker file)
-            ready_path = f"{socket_path}.ready"
+            # Wait for server to be ready (check for .ready marker file)
+            ready_path = f"{port_file}.ready"
             for _ in range(50):  # 5 second timeout
                 result = await self.env.execute_command(f"test -f {ready_path} && echo ready")
                 if result.stdout and "ready" in result.stdout:
@@ -271,17 +268,22 @@ class LSPManager:
             else:
                 # Cleanup on failure
                 await self.env.process_manager.kill_process(process_id)
-                msg = f"LSP proxy for {server_id} failed to start (socket not ready)"
+                msg = f"LSP proxy for {server_id} failed to start (not ready)"
                 raise RuntimeError(msg)
 
-            # Extra wait to ensure socket is fully ready
-            await asyncio.sleep(0.2)
+            # Read the port from the port file
+            port_result = await self.env.execute_command(f"cat {port_file}")
+            if not port_result.stdout or port_result.exit_code != 0:
+                await self.env.process_manager.kill_process(process_id)
+                msg = f"LSP proxy for {server_id} failed to start (no port file)"
+                raise RuntimeError(msg)
+            port = int(port_result.stdout.strip())
 
             # Create server state
             state = LSPServerState(
                 server_id=server_id,
                 process_id=process_id,
-                socket_path=socket_path,
+                port=port,
                 language=config.extensions[0] if config.extensions else "unknown",
                 root_uri=root_uri,
                 initialized=False,
@@ -348,7 +350,7 @@ class LSPManager:
             init_params["workspaceFolders"] = [{"uri": root_uri, "name": "workspace"}]
 
         # Send initialize request
-        response = await self._send_request(state.socket_path, "initialize", init_params)
+        response = await self._send_request(state.port, "initialize", init_params)
 
         if "error" in response:
             msg = f"LSP initialize failed: {response['error']}"
@@ -359,13 +361,13 @@ class LSPManager:
             state.capabilities = response["result"].get("capabilities", {})
 
         # Send initialized notification (no response expected)
-        await self._send_notification(state.socket_path, "initialized", {})
+        await self._send_notification(state.port, "initialized", {})
 
         state.initialized = True
 
     async def _send_request(
         self,
-        socket_path: str,
+        port: int,
         method: str,
         params: dict[str, Any],
         retries: int = 3,
@@ -373,7 +375,7 @@ class LSPManager:
         """Send an LSP request via execution environment.
 
         Args:
-            socket_path: Unix socket path
+            port: TCP port to connect to
             method: LSP method name
             params: Method parameters
             retries: Number of retries for transient failures
@@ -383,12 +385,12 @@ class LSPManager:
         """
         # Generate client script
         script = LSP_CLIENT_SCRIPT.format(
-            socket_path=socket_path,
+            port=port,
             method=method,
             params=params,
         )
 
-        # Execute via environment with retries for socket not ready
+        # Execute via environment with retries for connection refused
         cmd = f"python3 -c {_shell_quote(script)}"
 
         last_result = None
@@ -401,10 +403,10 @@ class LSPManager:
 
             try:
                 response: dict[str, Any] = anyenv.load_json(result.stdout or "{}", return_type=dict)
-                # Check if it's a socket not found error - retry
+                # Check if it's a connection refused error - retry
                 if (
                     "error" in response
-                    and "Socket not found" in str(response["error"])
+                    and "Connection refused" in str(response["error"])
                     and attempt < retries - 1
                 ):
                     await asyncio.sleep(0.5)
@@ -419,7 +421,7 @@ class LSPManager:
 
     async def _send_notification(
         self,
-        socket_path: str,
+        port: int,
         method: str,
         params: dict[str, Any],
     ) -> None:
@@ -444,15 +446,16 @@ class LSPManager:
 
         # Send shutdown request
         with contextlib.suppress(Exception):
-            await self._send_request(state.socket_path, "shutdown", {})
+            await self._send_request(state.port, "shutdown", {})
 
         # Kill the process
         with contextlib.suppress(Exception):
             await self.env.process_manager.kill_process(state.process_id)
 
-        # Cleanup socket files
+        # Cleanup port files
+        port_file = f"{self.port_file_dir}/{server_id}.port"
         with contextlib.suppress(Exception):
-            await self.env.execute_command(f"rm -f {state.socket_path} {state.socket_path}.ready")
+            await self.env.execute_command(f"rm -f {port_file} {port_file}.ready")
 
         del self._servers[server_id]
 
@@ -501,7 +504,7 @@ class LSPManager:
                 "text": content,
             }
         }
-        await self._send_notification(state.socket_path, "textDocument/didOpen", open_params)
+        await self._send_notification(state.port, "textDocument/didOpen", open_params)
 
         # For proper diagnostic collection, we'd need to listen for
         # textDocument/publishDiagnostics notifications from the server.
@@ -599,7 +602,7 @@ class LSPManager:
             "position": {"line": line, "character": character},
         }
 
-        response = await self._send_request(state.socket_path, "textDocument/hover", params)
+        response = await self._send_request(state.port, "textDocument/hover", params)
 
         if "error" in response or not response.get("result"):
             return None
@@ -637,7 +640,7 @@ class LSPManager:
             "position": {"line": line, "character": character},
         }
 
-        response = await self._send_request(state.socket_path, "textDocument/definition", params)
+        response = await self._send_request(state.port, "textDocument/definition", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -671,9 +674,7 @@ class LSPManager:
             "position": {"line": line, "character": character},
         }
 
-        response = await self._send_request(
-            state.socket_path, "textDocument/typeDefinition", params
-        )
+        response = await self._send_request(state.port, "textDocument/typeDefinition", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -709,9 +710,7 @@ class LSPManager:
             "position": {"line": line, "character": character},
         }
 
-        response = await self._send_request(
-            state.socket_path, "textDocument/implementation", params
-        )
+        response = await self._send_request(state.port, "textDocument/implementation", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -748,7 +747,7 @@ class LSPManager:
             "context": {"includeDeclaration": include_declaration},
         }
 
-        response = await self._send_request(state.socket_path, "textDocument/references", params)
+        response = await self._send_request(state.port, "textDocument/references", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -778,9 +777,7 @@ class LSPManager:
         state = self._servers[server_id]
         params = {"textDocument": {"uri": file_uri}}
 
-        response = await self._send_request(
-            state.socket_path, "textDocument/documentSymbol", params
-        )
+        response = await self._send_request(state.port, "textDocument/documentSymbol", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -807,7 +804,7 @@ class LSPManager:
         state = self._servers[server_id]
         params = {"query": query}
 
-        response = await self._send_request(state.socket_path, "workspace/symbol", params)
+        response = await self._send_request(state.port, "workspace/symbol", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -841,7 +838,7 @@ class LSPManager:
             "position": {"line": line, "character": character},
         }
 
-        response = await self._send_request(state.socket_path, "textDocument/completion", params)
+        response = await self._send_request(state.port, "textDocument/completion", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -881,7 +878,7 @@ class LSPManager:
             "position": {"line": line, "character": character},
         }
 
-        response = await self._send_request(state.socket_path, "textDocument/signatureHelp", params)
+        response = await self._send_request(state.port, "textDocument/signatureHelp", params)
 
         if "error" in response or not response.get("result"):
             return None
@@ -962,7 +959,7 @@ class LSPManager:
             },
         }
 
-        response = await self._send_request(state.socket_path, "textDocument/codeAction", params)
+        response = await self._send_request(state.port, "textDocument/codeAction", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -1001,7 +998,7 @@ class LSPManager:
         }
 
         prepare_response = await self._send_request(
-            state.socket_path, "textDocument/prepareRename", prepare_params
+            state.port, "textDocument/prepareRename", prepare_params
         )
 
         if "error" in prepare_response:
@@ -1018,7 +1015,7 @@ class LSPManager:
             "newName": new_name,
         }
 
-        response = await self._send_request(state.socket_path, "textDocument/rename", rename_params)
+        response = await self._send_request(state.port, "textDocument/rename", rename_params)
 
         if "error" in response:
             return RenameResult(
@@ -1071,7 +1068,7 @@ class LSPManager:
             },
         }
 
-        response = await self._send_request(state.socket_path, "textDocument/formatting", params)
+        response = await self._send_request(state.port, "textDocument/formatting", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -1112,9 +1109,7 @@ class LSPManager:
             "position": {"line": line, "character": character},
         }
 
-        response = await self._send_request(
-            state.socket_path, "textDocument/prepareCallHierarchy", params
-        )
+        response = await self._send_request(state.port, "textDocument/prepareCallHierarchy", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -1141,9 +1136,7 @@ class LSPManager:
         state = self._servers[server_id]
         params = {"item": _call_hierarchy_item_to_lsp(item)}
 
-        response = await self._send_request(
-            state.socket_path, "callHierarchy/incomingCalls", params
-        )
+        response = await self._send_request(state.port, "callHierarchy/incomingCalls", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -1176,9 +1169,7 @@ class LSPManager:
         state = self._servers[server_id]
         params = {"item": _call_hierarchy_item_to_lsp(item)}
 
-        response = await self._send_request(
-            state.socket_path, "callHierarchy/outgoingCalls", params
-        )
+        response = await self._send_request(state.port, "callHierarchy/outgoingCalls", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -1222,9 +1213,7 @@ class LSPManager:
             "position": {"line": line, "character": character},
         }
 
-        response = await self._send_request(
-            state.socket_path, "textDocument/prepareTypeHierarchy", params
-        )
+        response = await self._send_request(state.port, "textDocument/prepareTypeHierarchy", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -1251,7 +1240,7 @@ class LSPManager:
         state = self._servers[server_id]
         params = {"item": _type_hierarchy_item_to_lsp(item)}
 
-        response = await self._send_request(state.socket_path, "typeHierarchy/supertypes", params)
+        response = await self._send_request(state.port, "typeHierarchy/supertypes", params)
 
         if "error" in response or not response.get("result"):
             return []
@@ -1278,7 +1267,7 @@ class LSPManager:
         state = self._servers[server_id]
         params = {"item": _type_hierarchy_item_to_lsp(item)}
 
-        response = await self._send_request(state.socket_path, "typeHierarchy/subtypes", params)
+        response = await self._send_request(state.port, "typeHierarchy/subtypes", params)
 
         if "error" in response or not response.get("result"):
             return []

@@ -21,12 +21,12 @@ class LSPProxy:
         return _PROXY_SCRIPT_PATH
 
     @staticmethod
-    def get_start_command(lsp_command: str, socket_path: str) -> list[str]:
+    def get_start_command(lsp_command: str, port_file: str) -> list[str]:
         """Get command to start proxy as a background process.
 
         Args:
             lsp_command: The LSP server command (e.g., "pyright-langserver --stdio")
-            socket_path: Path for the Unix socket
+            port_file: Path for the port file (proxy writes its port here)
 
         Returns:
             Command and args for process_manager.start_process()
@@ -36,6 +36,6 @@ class LSPProxy:
             str(_PROXY_SCRIPT_PATH),
             "--command",
             lsp_command,
-            "--socket",
-            socket_path,
+            "--port-file",
+            port_file,
         ]

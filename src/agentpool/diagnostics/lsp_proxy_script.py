@@ -1,6 +1,6 @@
-"""LSP Proxy - Wraps stdio LSP server, exposes via Unix socket.
+"""LSP Proxy - Wraps stdio LSP server, exposes via TCP.
 
-This script is executed as a subprocess to proxy between Unix socket clients
+This script is executed as a subprocess to proxy between TCP clients
 and a stdio-based LSP server.
 """
 
@@ -16,21 +16,22 @@ from typing import Any
 
 
 class LSPProxy:
-    """Proxies between Unix socket clients and a stdio-based LSP server."""
+    """Proxies between TCP clients and a stdio-based LSP server."""
 
-    def __init__(self, command: list[str], socket_path: str):
+    def __init__(self, command: list[str], port_file: str):
         self.command = command
-        self.socket_path = socket_path
-        self._socket_path = Path(socket_path)
+        self.port_file = port_file
+        self._port_file_path = Path(port_file)
         self.process: asyncio.subprocess.Process | None = None
         self.lock = asyncio.Lock()
         self._request_id = 0
+        self.port: int | None = None
 
     async def start(self) -> None:
         """Start the LSP server subprocess."""
-        # Remove existing socket if present
-        if self._socket_path.exists():
-            self._socket_path.unlink()
+        # Remove existing port file if present
+        if self._port_file_path.exists():
+            self._port_file_path.unlink()
 
         # Use asyncio subprocess for native async I/O
         self.process = await asyncio.create_subprocess_exec(
@@ -121,7 +122,7 @@ class LSPProxy:
     async def handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ) -> None:
-        """Handle incoming client connection on Unix socket."""
+        """Handle incoming client connection."""
         try:
             while True:
                 # Read Content-Length header
@@ -173,14 +174,23 @@ class LSPProxy:
         await self.start()
 
         # Ensure parent directory exists
-        self._socket_path.parent.mkdir(parents=True, exist_ok=True)
+        self._port_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        server = await asyncio.start_unix_server(self.handle_client, path=self.socket_path)
+        # Start TCP server on localhost with dynamic port
+        server = await asyncio.start_server(self.handle_client, host="127.0.0.1", port=0)
+
+        # Get the assigned port
+        addr = server.sockets[0].getsockname()
+        self.port = addr[1]
+
+        # Write port to file so clients know where to connect
+        self._port_file_path.write_text(str(self.port))
 
         # Signal ready by creating a marker file
-        Path(self.socket_path + ".ready").touch()
+        ready_path = Path(str(self.port_file) + ".ready")
+        ready_path.touch()
 
-        print(f"LSP Proxy listening on {self.socket_path}", file=sys.stderr, flush=True)
+        print(f"LSP Proxy listening on 127.0.0.1:{self.port}", file=sys.stderr, flush=True)
 
         async with server:
             await server.serve_forever()
@@ -194,10 +204,10 @@ class LSPProxy:
             except TimeoutError:
                 self.process.kill()
 
-        # Cleanup socket
-        ready_path = Path(self.socket_path + ".ready")
-        if self._socket_path.exists():
-            self._socket_path.unlink()
+        # Cleanup files
+        ready_path = Path(str(self.port_file) + ".ready")
+        if self._port_file_path.exists():
+            self._port_file_path.unlink()
         if ready_path.exists():
             ready_path.unlink()
 
@@ -206,10 +216,10 @@ def main() -> None:
     """Entry point for the LSP proxy script."""
     parser = argparse.ArgumentParser(description="LSP Proxy Server")
     parser.add_argument("--command", required=True, help="LSP server command")
-    parser.add_argument("--socket", required=True, help="Unix socket path")
+    parser.add_argument("--port-file", required=True, help="File to write port number to")
     args = parser.parse_args()
 
-    proxy = LSPProxy(args.command.split(), args.socket)
+    proxy = LSPProxy(args.command.split(), args.port_file)
 
     with contextlib.suppress(KeyboardInterrupt):
         asyncio.run(proxy.run())

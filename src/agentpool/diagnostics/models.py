@@ -78,8 +78,8 @@ class LSPServerState:
     process_id: str
     """Process ID from ProcessManager."""
 
-    socket_path: str
-    """Unix socket path for communication."""
+    port: int
+    """TCP port for communication."""
 
     language: str
     """Primary language this server handles."""
