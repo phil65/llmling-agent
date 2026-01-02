@@ -29,7 +29,9 @@ logger = get_logger(__name__)
 
 
 ResourceType = Literal["tools", "prompts", "resources", "skills"]
-ProviderKind = Literal["base", "mcp", "tools", "prompts", "skills", "aggregating", "custom"]
+ProviderKind = Literal[
+    "base", "mcp", "mcp_run", "tools", "prompts", "skills", "aggregating", "custom"
+]
 
 
 @dataclass(frozen=True, slots=True)
