@@ -204,14 +204,6 @@ by broadcasting events via SSE.
 | [-] | GET | `/tui/control/next` | Wait for next control request (not needed) |
 | [-] | POST | `/tui/control/response` | Respond to control request (not needed) |
 
-### TUI SSE Event Types
-
-| Status | Event Type | Description |
-|--------|------------|-------------|
-| [x] | `tui.prompt.append` | Append text to prompt input |
-| [x] | `tui.command.execute` | Execute a TUI command |
-| [x] | `tui.toast.show` | Show toast notification |
-
 ---
 
 ## Auth
@@ -230,18 +222,45 @@ by broadcasting events via SSE.
 
 ### SSE Event Types
 
+All event types supported by the OpenCode protocol:
+
 | Status | Event Type | Description |
 |--------|------------|-------------|
-| [x] | `server.connected` | Server connected |
+| [x] | `server.connected` | Server connected (sent on SSE connect) |
+| [ ] | `global.disposed` | Global instance disposed |
+| [ ] | `installation.updated` | Installation updated |
+| [ ] | `installation.update-available` | Update available for installation |
+| [ ] | `project.updated` | Project configuration updated |
+| [ ] | `server.instance.disposed` | Server instance disposed |
+| [ ] | `lsp.updated` | LSP server status updated |
+| [ ] | `lsp.client.diagnostics` | LSP client diagnostics received |
 | [x] | `session.created` | Session created |
 | [x] | `session.updated` | Session updated |
 | [x] | `session.deleted` | Session deleted |
-| [x] | `session.status` | Session status changed |
-| [x] | `session.idle` | Session became idle (deprecated) |
-| [x] | `message.updated` | Message updated |
-| [x] | `message.part.updated` | Message part updated |
-| [x] | `permission.request` | Tool permission requested |
-| [x] | `permission.resolved` | Permission request resolved |
+| [x] | `session.status` | Session status changed (running/idle/error) |
+| [x] | `session.idle` | Session became idle (deprecated but used by TUI) |
+| [ ] | `session.compacted` | Session context was compacted/summarized |
+| [ ] | `session.diff` | Session file diff updated |
+| [ ] | `session.error` | Session encountered an error |
+| [x] | `message.updated` | Message created or updated |
+| [ ] | `message.removed` | Message removed |
+| [x] | `message.part.updated` | Message part (text, tool, etc.) updated |
+| [ ] | `message.part.removed` | Message part removed |
+| [x] | `permission.updated` | Tool permission requested (awaiting user response) |
+| [x] | `permission.replied` | Permission request resolved (user responded) |
+| [ ] | `todo.updated` | Todo list item updated |
+| [ ] | `file.edited` | File was edited |
+| [ ] | `file.watcher.updated` | File watcher status changed |
+| [ ] | `vcs.branch.updated` | VCS branch changed |
+| [ ] | `mcp.tools.changed` | MCP server tools changed |
+| [ ] | `command.executed` | Slash command executed |
+| [x] | `tui.prompt.append` | Append text to TUI prompt input |
+| [x] | `tui.command.execute` | Execute a TUI command |
+| [x] | `tui.toast.show` | Show toast notification in TUI |
+| [ ] | `pty.created` | PTY session created |
+| [ ] | `pty.updated` | PTY session updated |
+| [ ] | `pty.exited` | PTY process exited |
+| [ ] | `pty.deleted` | PTY session deleted |
 
 ---
 
