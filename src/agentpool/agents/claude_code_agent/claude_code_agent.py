@@ -268,6 +268,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._owns_bridge = False  # Track if we created the bridge (for cleanup)
         self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
 
+        # Track pending tool call for permission matching
+        # Maps tool_name to tool_call_id for matching permissions to tool call UI parts
+        self._pending_tool_call_ids: dict[str, str] = {}
+
     def get_context(self, data: Any = None) -> AgentContext:
         """Create a new context for this agent.
 
@@ -508,8 +512,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Create a dummy Tool for the confirmation dialog
             desc = f"Claude Code tool: {tool_name}"
             tool = Tool(callable=lambda: None, name=tool_name, description=desc)
+            # Get the tool call ID from our tracking dict (set from streaming events)
+            tool_call_id = self._pending_tool_call_ids.get(tool_name)
+            ctx = self.get_context()
+            # Attach tool_call_id to context for permission event
+            ctx.tool_call_id = tool_call_id  # type: ignore[attr-defined]
             result = await self._input_provider.get_tool_confirmation(
-                context=self.get_context(),
+                context=ctx,
                 tool=tool,
                 args=input_data,
             )
@@ -1001,6 +1010,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 tc_id = content_block.get("id", "")
                                 tool_name = content_block.get("name", "")
                                 tool_accumulator.start(tc_id, tool_name)
+                                # Track for permission matching - permission callback will use this
+                                self._pending_tool_call_ids[tool_name] = tc_id
 
                                 # Derive rich info with empty args for now
                                 from agentpool.agents.claude_code_agent.converters import (

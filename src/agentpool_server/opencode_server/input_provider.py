@@ -115,8 +115,12 @@ class OpenCodeInputProvider(InputProvider):
             if len(args) > max_preview_args:
                 args_preview += ", ..."
 
-            # Extract call_id from AgentContext if available
+            # Extract call_id from AgentContext if available (set by ClaudeCodeAgent from streaming)
+            # Fall back to a generated ID if not available
             call_id = getattr(context, "tool_call_id", None)
+            if call_id is None:
+                # Generate a synthetic call_id - won't match TUI tool parts but allows display
+                call_id = f"toolu_{permission_id}"
             # TODO: Extract message_id from context when available
 
             event = PermissionRequestEvent.create(
