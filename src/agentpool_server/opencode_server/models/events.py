@@ -378,6 +378,29 @@ class TodoUpdatedEvent(OpenCodeBaseModel):
         return cls(properties=TodoUpdatedProperties(session_id=session_id, todos=todos))
 
 
+# =============================================================================
+# VCS Events
+# =============================================================================
+
+
+class VcsBranchUpdatedProperties(OpenCodeBaseModel):
+    """Properties for VCS branch updated event."""
+
+    branch: str | None = None
+    """Current branch name, or None if detached HEAD."""
+
+
+class VcsBranchUpdatedEvent(OpenCodeBaseModel):
+    """VCS branch updated event - sent when git branch changes."""
+
+    type: Literal["vcs.branch.updated"] = "vcs.branch.updated"
+    properties: VcsBranchUpdatedProperties
+
+    @classmethod
+    def create(cls, branch: str | None) -> Self:
+        return cls(properties=VcsBranchUpdatedProperties(branch=branch))
+
+
 Event = (
     ServerConnectedEvent
     | SessionCreatedEvent
@@ -390,6 +413,7 @@ Event = (
     | PermissionRequestEvent
     | PermissionResolvedEvent
     | TodoUpdatedEvent
+    | VcsBranchUpdatedEvent
     | TuiPromptAppendEvent
     | TuiCommandExecuteEvent
     | TuiToastShowEvent

@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 VERSION = "0.1.0"
 
 
-def create_app(
+def create_app(  # noqa: PLR0915
     *,
     pool: AgentPool[Any],
     agent_name: str | None = None,
@@ -101,12 +101,34 @@ def create_app(
 
     pool.todos.on_change = on_todo_change
 
+    # Git branch watcher for VCS events
+    git_branch_watcher: Any = None
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        # Startup
+        nonlocal git_branch_watcher
+
+        # Startup - set up git branch watcher
+        from agentpool.utils.file_watcher import GitBranchWatcher
+        from agentpool_server.opencode_server.models.events import VcsBranchUpdatedEvent
+
+        async def on_branch_change(branch: str | None) -> None:
+            """Broadcast branch change to all subscribers."""
+            event = VcsBranchUpdatedEvent.create(branch=branch)
+            await state.broadcast_event(event)
+
+        git_branch_watcher = GitBranchWatcher(
+            repo_path=state.working_dir,
+            callback=on_branch_change,
+        )
+        await git_branch_watcher.start()
+
         yield
-        # Shutdown - clear callback
+
+        # Shutdown - clean up
         pool.todos.on_change = None
+        if git_branch_watcher:
+            await git_branch_watcher.stop()
 
     app = FastAPI(
         title="OpenCode-Compatible API",
