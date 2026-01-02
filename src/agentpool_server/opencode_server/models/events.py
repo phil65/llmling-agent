@@ -109,6 +109,23 @@ class SessionIdleEvent(OpenCodeBaseModel):
         return cls(properties=SessionIdleProperties(session_id=session_id))
 
 
+class SessionCompactedProperties(OpenCodeBaseModel):
+    """Properties for session compacted event."""
+
+    session_id: str = Field(alias="sessionID")
+
+
+class SessionCompactedEvent(OpenCodeBaseModel):
+    """Session compacted event - emitted when context compaction completes."""
+
+    type: Literal["session.compacted"] = "session.compacted"
+    properties: SessionCompactedProperties
+
+    @classmethod
+    def create(cls, session_id: str) -> Self:
+        return cls(properties=SessionCompactedProperties(sessionID=session_id))
+
+
 class MessageUpdatedEventProperties(OpenCodeBaseModel):
     """Properties for message updated event."""
 

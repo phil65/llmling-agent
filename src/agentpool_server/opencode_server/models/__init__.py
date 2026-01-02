@@ -97,6 +97,8 @@ from agentpool_server.opencode_server.models.events import (
     PartUpdatedEvent,
     PartUpdatedEventProperties,
     ServerConnectedEvent,
+    SessionCompactedEvent,
+    SessionCompactedProperties,
     SessionCreatedEvent,
     SessionDeletedEvent,
     SessionDeletedProperties,
@@ -173,6 +175,8 @@ __all__ = [
     "ServerConnectedEvent",
     # Session
     "Session",
+    "SessionCompactedEvent",
+    "SessionCompactedProperties",
     "SessionCreateRequest",
     "SessionCreatedEvent",
     "SessionDeletedEvent",

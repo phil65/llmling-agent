@@ -3,6 +3,7 @@
 from .events import (
     CommandCompleteEvent,
     CommandOutputEvent,
+    CompactionEvent,
     CustomEvent,
     DiffContentItem,
     FileContentItem,
@@ -36,6 +37,7 @@ __all__ = [
     "BaseTTSEventHandler",
     "CommandCompleteEvent",
     "CommandOutputEvent",
+    "CompactionEvent",
     "CustomEvent",
     "DiffContentItem",
     "EdgeTTSEventHandler",

@@ -239,7 +239,7 @@ All event types supported by the OpenCode protocol:
 | [x] | `session.deleted` | Session deleted |
 | [x] | `session.status` | Session status changed (running/idle/error) |
 | [x] | `session.idle` | Session became idle (deprecated but used by TUI) |
-| [ ] | `session.compacted` | Session context was compacted/summarized |
+| [x] | `session.compacted` | Session context was compacted/summarized |
 | [ ] | `session.diff` | Session file diff updated |
 | [ ] | `session.error` | Session encountered an error |
 | [x] | `message.updated` | Message created or updated |

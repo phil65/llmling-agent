@@ -53,6 +53,7 @@ from agentpool import Agent, AgentContext  # noqa: TC001
 from agentpool.agents import SlashedAgent
 from agentpool.agents.acp_agent import ACPAgent
 from agentpool.agents.events import (
+    CompactionEvent,
     PlanUpdateEvent,
     StreamCompleteEvent,
     ToolCallProgressEvent,
@@ -853,6 +854,25 @@ class ACPSession:
                     for e in entries
                 ]
                 await self.notifications.update_plan(acp_entries)
+
+            case CompactionEvent(trigger=trigger, phase=phase):
+                # Convert semantic CompactionEvent to text for ACP display
+                if phase == "starting":
+                    if trigger == "auto":
+                        text = (
+                            "\n\n---\n\n"
+                            "📦 **Context compaction** triggered. "
+                            "Summarizing conversation..."
+                            "\n\n---\n\n"
+                        )
+                    else:
+                        text = (
+                            "\n\n---\n\n"
+                            "📦 **Manual compaction** requested. "
+                            "Summarizing conversation..."
+                            "\n\n---\n\n"
+                        )
+                    await self.notifications.send_agent_text(text)
 
             case _:
                 self.log.debug("Unhandled event", event_type=type(event).__name__)

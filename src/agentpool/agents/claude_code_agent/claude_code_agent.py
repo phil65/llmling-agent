@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import asyncio
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 import uuid
 
 import anyio
@@ -388,23 +388,20 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             tool_use_id: str | None,
             context: HookContext,
         ) -> SyncHookJSONOutput:
-            """Handle PreCompact hook by emitting a text notification for auto-compaction."""
-            # input_data is PreCompactHookInput when hook_event_name == "PreCompact"
-            trigger = input_data.get("trigger", "auto")
+            """Handle PreCompact hook by emitting a CompactionEvent."""
+            from agentpool.agents.events import CompactionEvent
 
-            # Only show notification for auto-compaction
-            # Manual compaction is triggered via slash command which handles its own UI
-            if trigger == "auto":
-                text = (
-                    "\n\n---\n\n"
-                    "📦 **Context compaction** triggered. Summarizing conversation..."
-                    "\n\n---\n\n"
-                )
-                delta_event = PartDeltaEvent(
-                    index=0,
-                    delta=TextPartDelta(content_delta=text),
-                )
-                await self._event_queue.put(delta_event)
+            # input_data is PreCompactHookInput when hook_event_name == "PreCompact"
+            trigger_value = input_data.get("trigger", "auto")
+            trigger: Literal["auto", "manual"] = "manual" if trigger_value == "manual" else "auto"
+
+            # Emit semantic CompactionEvent - consumers handle display differently
+            compaction_event = CompactionEvent(
+                session_id=self.conversation_id,
+                trigger=trigger,
+                phase="starting",
+            )
+            await self._event_queue.put(compaction_event)
 
             return {"continue_": True}
 

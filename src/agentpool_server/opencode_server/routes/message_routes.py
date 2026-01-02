@@ -16,6 +16,7 @@ from pydantic_ai.messages import (
 
 from agentpool.agents.claude_code_agent.converters import derive_rich_tool_info
 from agentpool.agents.events import (
+    CompactionEvent,
     FileContentItem,
     StreamCompleteEvent,
     TextContentItem,
@@ -40,6 +41,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     MessageWithParts,
     Part,
     PartUpdatedEvent,
+    SessionCompactedEvent,
     SessionIdleEvent,
     SessionStatus,
     SessionStatusEvent,
@@ -498,6 +500,13 @@ async def send_message(  # noqa: PLR0915
                     if msg.cost_info and msg.cost_info.total_cost:
                         # Cost is in dollars, OpenCode expects micro-dollars (millionths)
                         total_cost = int(msg.cost_info.total_cost * 1_000_000)
+
+                # Compaction event - emit session.compacted SSE event
+                case CompactionEvent(session_id=compact_session_id, phase=phase):
+                    if phase == "completed":
+                        await state.broadcast_event(
+                            SessionCompactedEvent.create(session_id=compact_session_id)
+                        )
 
     except Exception as e:  # noqa: BLE001
         response_text = f"Error calling agent: {e}"

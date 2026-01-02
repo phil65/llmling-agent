@@ -543,6 +543,25 @@ class PlanUpdateEvent:
     """Event type identifier."""
 
 
+@dataclass(kw_only=True)
+class CompactionEvent:
+    """Event indicating context compaction is starting or completed.
+
+    This is a semantic event that consumers (ACP, OpenCode) handle differently:
+    - ACP: Converts to a text message for display
+    - OpenCode: Emits session.compacted SSE event
+    """
+
+    session_id: str
+    """The session ID being compacted."""
+    trigger: Literal["auto", "manual"] = "auto"
+    """What triggered the compaction (auto = context overflow, manual = slash command)."""
+    phase: Literal["starting", "completed"] = "starting"
+    """Current phase of compaction."""
+    event_kind: Literal["compaction"] = "compaction"
+    """Event type identifier."""
+
+
 type RichAgentStreamEvent[OutputDataT] = (
     AgentStreamEvent
     | StreamCompleteEvent[OutputDataT]
@@ -552,6 +571,7 @@ type RichAgentStreamEvent[OutputDataT] = (
     | ToolCallProgressEvent
     | ToolCallCompleteEvent
     | PlanUpdateEvent
+    | CompactionEvent
     | CustomEvent[Any]
 )
 
