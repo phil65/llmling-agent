@@ -138,8 +138,8 @@ Write an async main() function that returns the result.
 Example - inspect your own tools:
 ```python
 async def main():
-    tools = me.tools.list_tools()
-    return [t.name for t in tools]
+    tools = await me.tools.list_tools()
+    return list(tools.keys())
 ```
 
 Example - check pool state:
