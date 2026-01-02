@@ -544,6 +544,59 @@ class PtyDeletedEvent(OpenCodeBaseModel):
 
 
 # =============================================================================
+# LSP Events
+# =============================================================================
+
+
+class LspStatus(OpenCodeBaseModel):
+    """LSP server status information."""
+
+    id: str
+    """Server identifier (e.g., 'pyright', 'rust-analyzer')."""
+
+    name: str
+    """Server name."""
+
+    root: str
+    """Relative workspace root path."""
+
+    status: Literal["connected", "error"]
+    """Connection status."""
+
+
+class LspUpdatedEvent(OpenCodeBaseModel):
+    """LSP status updated event - sent when LSP server status changes."""
+
+    type: Literal["lsp.updated"] = "lsp.updated"
+    properties: EmptyProperties = Field(default_factory=EmptyProperties)
+
+    @classmethod
+    def create(cls) -> Self:
+        return cls()
+
+
+class LspClientDiagnosticsProperties(OpenCodeBaseModel):
+    """Properties for LSP client diagnostics event."""
+
+    server_id: str = Field(alias="serverID")
+    """LSP server ID that produced the diagnostics."""
+
+    path: str
+    """File path the diagnostics apply to."""
+
+
+class LspClientDiagnosticsEvent(OpenCodeBaseModel):
+    """LSP client diagnostics event - sent when diagnostics are published."""
+
+    type: Literal["lsp.client.diagnostics"] = "lsp.client.diagnostics"
+    properties: LspClientDiagnosticsProperties
+
+    @classmethod
+    def create(cls, server_id: str, path: str) -> Self:
+        return cls(properties=LspClientDiagnosticsProperties(serverID=server_id, path=path))
+
+
+# =============================================================================
 # VCS Events
 # =============================================================================
 
@@ -585,6 +638,8 @@ Event = (
     | PtyUpdatedEvent
     | PtyExitedEvent
     | PtyDeletedEvent
+    | LspUpdatedEvent
+    | LspClientDiagnosticsEvent
     | VcsBranchUpdatedEvent
     | TuiPromptAppendEvent
     | TuiCommandExecuteEvent

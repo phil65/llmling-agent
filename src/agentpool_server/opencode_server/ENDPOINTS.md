@@ -132,7 +132,11 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 
 | Status | Method | Path | Description |
 |--------|--------|------|-------------|
-| [~] | GET | `/lsp` | Get LSP server status |
+| [x] | GET | `/lsp` | Get LSP server status |
+| [x] | POST | `/lsp/start` | Start an LSP server |
+| [x] | POST | `/lsp/stop` | Stop an LSP server |
+| [x] | GET | `/lsp/servers` | List available LSP servers |
+| [x] | GET | `/lsp/diagnostics` | Get LSP diagnostics |
 | [~] | GET | `/formatter` | Get formatter status |
 | [~] | GET | `/mcp` | Get MCP server status |
 | [x] | POST | `/mcp` | Add MCP server dynamically |
@@ -232,8 +236,8 @@ All event types supported by the OpenCode protocol:
 | [x] | `installation.update-available` | Update available (via `tui.toast.show` workaround) |
 | [ ] | `project.updated` | Project configuration updated |
 | [-] | `server.instance.disposed` | Server instance disposed (multi-project, not needed) |
-| [ ] | `lsp.updated` | LSP server status updated |
-| [ ] | `lsp.client.diagnostics` | LSP client diagnostics received |
+| [x] | `lsp.updated` | LSP server status updated |
+| [~] | `lsp.client.diagnostics` | LSP client diagnostics received |
 | [x] | `session.created` | Session created |
 | [x] | `session.updated` | Session updated |
 | [x] | `session.deleted` | Session deleted |

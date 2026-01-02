@@ -23,6 +23,7 @@ from agentpool_server.opencode_server.routes import (
     config_router,
     file_router,
     global_router,
+    lsp_router,
     message_router,
     pty_router,
     session_router,
@@ -233,6 +234,9 @@ def create_app(  # noqa: PLR0915
             await git_branch_watcher.stop()
         if project_file_watcher:
             await project_file_watcher.stop()
+        # Clean up LSP servers
+        if state.lsp_manager is not None:
+            await state.lsp_manager.stop_all()
 
     app = FastAPI(
         title="OpenCode-Compatible API",
@@ -277,6 +281,7 @@ def create_app(  # noqa: PLR0915
     app.include_router(agent_router)
     app.include_router(pty_router)
     app.include_router(tui_router)
+    app.include_router(lsp_router)
 
     # OpenAPI doc redirect
     @app.get("/doc")

@@ -18,6 +18,7 @@ from agentpool.agents.claude_code_agent.converters import derive_rich_tool_info
 from agentpool.agents.events import (
     CompactionEvent,
     FileContentItem,
+    LocationContentItem,
     StreamCompleteEvent,
     TextContentItem,
     ToolCallCompleteEvent,
@@ -78,6 +79,54 @@ from agentpool_server.opencode_server.time_utils import now_ms
 
 if TYPE_CHECKING:
     from agentpool_server.opencode_server.state import ServerState
+
+
+def _warmup_lsp_for_files(state: ServerState, file_paths: list[str]) -> None:
+    """Warm up LSP servers for the given file paths.
+
+    This starts LSP servers asynchronously based on file extensions.
+    Like OpenCode's LSP.touchFile(), this triggers server startup without waiting.
+
+    Args:
+        state: Server state with LSP manager
+        file_paths: List of file paths that were accessed
+    """
+    try:
+        lsp_manager = state.get_or_create_lsp_manager()
+    except RuntimeError:
+        # No execution environment available for LSP
+        return
+
+    async def warmup_files() -> None:
+        """Start LSP servers for each file path."""
+        from agentpool_server.opencode_server.models.events import LspUpdatedEvent
+
+        servers_started = False
+        for path in file_paths:
+            # Find appropriate server for this file
+            server_info = lsp_manager.get_server_for_file(path)
+            if server_info is None:
+                continue
+
+            server_id = server_info.id
+            if lsp_manager.is_running(server_id):
+                continue
+
+            # Start server for workspace root
+            root_uri = f"file://{state.working_dir}"
+            try:
+                await lsp_manager.start_server(server_id, root_uri)
+                servers_started = True
+            except Exception:  # noqa: BLE001
+                # Don't fail on LSP startup errors
+                pass
+
+        # Emit lsp.updated event if any servers started
+        if servers_started:
+            await state.broadcast_event(LspUpdatedEvent.create())
+
+    # Run warmup in background (don't block the event handler)
+    state.create_background_task(warmup_files(), name="lsp-warmup")
 
 
 async def persist_message_to_storage(
@@ -392,11 +441,19 @@ async def send_message(  # noqa: PLR0915
                 ) if tool_call_id:
                     # Extract text content from items and accumulate
                     new_output = ""
+                    file_paths: list[str] = []
                     for item in items:
                         if isinstance(item, TextContentItem):
                             new_output += item.text
                         elif isinstance(item, FileContentItem):
                             new_output += item.content
+                            file_paths.append(item.path)
+                        elif isinstance(item, LocationContentItem):
+                            file_paths.append(item.path)
+
+                    # Warm up LSP servers for accessed files (async, don't wait)
+                    if file_paths:
+                        _warmup_lsp_for_files(state, file_paths)
 
                     # Accumulate output (OpenCode streams via metadata.output)
                     if new_output:

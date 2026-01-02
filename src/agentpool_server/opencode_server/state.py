@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
     from agentpool import AgentPool
     from agentpool.agents.base_agent import BaseAgent
+    from agentpool.diagnostics.lsp_manager import LSPManager
     from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
     from agentpool_server.opencode_server.models import (
         Event,
@@ -65,6 +66,9 @@ class ServerState:
     # Background tasks (for cleanup on shutdown)
     background_tasks: set[asyncio.Task[Any]] = field(default_factory=set)
 
+    # LSP manager for language server integration (initialized lazily)
+    lsp_manager: LSPManager | None = None
+
     def create_background_task(self, coro: Any, *, name: str | None = None) -> asyncio.Task[Any]:
         """Create and track a background task."""
         import asyncio
@@ -89,3 +93,29 @@ class ServerState:
         print(f"Broadcasting event: {event.type} to {len(self.event_subscribers)} subscribers")
         for queue in self.event_subscribers:
             await queue.put(event)
+
+    def get_or_create_lsp_manager(self) -> LSPManager:
+        """Get or create the LSP manager.
+
+        Creates the LSP manager lazily using the agent's execution environment.
+
+        Returns:
+            The LSP manager instance.
+
+        Raises:
+            RuntimeError: If the agent doesn't have an execution environment.
+        """
+        if self.lsp_manager is not None:
+            return self.lsp_manager
+
+        from agentpool.diagnostics.lsp_manager import LSPManager
+
+        # Get the execution environment from the agent
+        env = getattr(self.agent, "env", None)
+        if env is None:
+            msg = "Agent does not have an execution environment for LSP"
+            raise RuntimeError(msg)
+
+        self.lsp_manager = LSPManager(env=env)
+        self.lsp_manager.register_defaults()
+        return self.lsp_manager
