@@ -85,6 +85,68 @@ async def detect_grep_backend(env: ExecutionEnvironment) -> GrepBackend:
     return GrepBackend.PYTHON
 
 
+def _is_path_inside_ignored_dir(path: str) -> bool:
+    """Check if path is explicitly inside a commonly ignored directory.
+
+    Args:
+        path: The search path
+
+    Returns:
+        True if path is inside a directory that would typically be gitignored
+    """
+    # Common ignored directory patterns (without trailing slash)
+    ignored_dirs = [
+        ".venv",
+        "venv",
+        ".env",
+        "env",
+        "node_modules",
+        ".git",
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".tox",
+        ".nox",
+    ]
+    for ignored in ignored_dirs:
+        if (
+            path.startswith(f"{ignored}/")
+            or path.startswith(f"./{ignored}/")
+            or f"/{ignored}/" in path
+            or path == ignored
+        ):
+            return True
+    return False
+
+
+def _filter_exclude_patterns(path: str, exclude_patterns: list[str]) -> list[str]:
+    """Filter out exclude patterns that the search path is explicitly inside.
+
+    If user explicitly searches inside an excluded directory (e.g., .venv/),
+    don't exclude that directory from results.
+
+    Args:
+        path: The search path
+        exclude_patterns: List of patterns to potentially exclude
+
+    Returns:
+        Filtered list of exclude patterns
+    """
+    filtered = []
+    for pattern in exclude_patterns:
+        # Normalize pattern (remove trailing slash for comparison)
+        pattern_normalized = pattern.rstrip("/")
+        # Check if the search path starts with or contains this excluded dir
+        # e.g., path=".venv/lib/python" should not exclude ".venv/"
+        if not (
+            path.startswith(pattern_normalized)
+            or f"/{pattern_normalized}/" in path
+            or path.startswith(f"./{pattern_normalized}")
+        ):
+            filtered.append(pattern)
+    return filtered
+
+
 async def grep_with_subprocess(
     env: ExecutionEnvironment,
     pattern: str,
@@ -124,11 +186,23 @@ async def grep_with_subprocess(
         msg = "Subprocess grep requested but no grep/ripgrep found"
         raise ValueError(msg)
 
-    exclude = exclude_patterns or DEFAULT_EXCLUDE_PATTERNS
+    base_exclude = exclude_patterns or DEFAULT_EXCLUDE_PATTERNS
+    # Filter out patterns that the user is explicitly searching inside
+    exclude = _filter_exclude_patterns(path, base_exclude)
+
+    # Disable gitignore if explicitly searching inside an ignored directory
+    # (e.g., searching .venv/ when .venv is in .gitignore)
+    effective_use_gitignore = use_gitignore and not _is_path_inside_ignored_dir(path)
 
     if backend == GrepBackend.RIPGREP:
         cmd_list = _build_ripgrep_command(
-            pattern, path, case_sensitive, max_matches, exclude, use_gitignore, context_lines
+            pattern,
+            path,
+            case_sensitive,
+            max_matches,
+            exclude,
+            effective_use_gitignore,
+            context_lines,
         )
     else:
         cmd_list = _build_gnu_grep_command(
