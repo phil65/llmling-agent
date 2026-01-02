@@ -78,7 +78,12 @@ async def get_path(state: StateDep) -> PathInfo:
 
 @router.get("/vcs")
 async def get_vcs(state: StateDep) -> VcsInfo:
-    """Get VCS info."""
+    """Get VCS info.
+
+    TODO: For remote/ACP support, these git commands should run through
+    state.env.execute_command() instead of subprocess.run() so they
+    execute on the client side where the repository lives.
+    """
     git_dir = Path(state.working_dir) / ".git"
     if not git_dir.is_dir():
         return VcsInfo(branch=None, dirty=False, commit=None)

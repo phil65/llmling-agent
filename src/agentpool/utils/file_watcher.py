@@ -122,6 +122,10 @@ async def get_git_branch(repo_path: str | Path) -> str | None:
 
     Returns:
         Branch name or None if not a git repo or on detached HEAD
+
+    TODO: For remote/ACP support, this should accept an optional ExecutionEnvironment
+    and use env.execute_command() instead of subprocess. This would allow git commands
+    to run on the client side where the repository lives.
     """
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -164,6 +168,10 @@ class GitBranchWatcher:
         async with watcher:
             await asyncio.sleep(60)
         ```
+
+    TODO: For remote/ACP support, this should accept an ExecutionEnvironment
+    and run git commands through env.execute_command(). The polling would still
+    happen server-side, but the git commands would execute on the client.
     """
 
     repo_path: str | Path

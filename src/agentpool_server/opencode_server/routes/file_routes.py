@@ -10,14 +10,17 @@ from typing import TYPE_CHECKING, Any
 from fastapi import APIRouter, HTTPException, Query
 
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
-from agentpool_server.opencode_server.models import FileContent, FileNode, FindMatch
+from agentpool_server.opencode_server.models import (  # noqa: TC001
+    FileContent,
+    FileNode,
+    FindMatch,
+    Symbol,
+)
 from agentpool_server.opencode_server.models.file import SubmatchInfo
 
 
 if TYPE_CHECKING:
     from fsspec.asyn import AsyncFileSystem
-
-    from agentpool_server.opencode_server.models import Symbol
 
 
 router = APIRouter(tags=["file"])
