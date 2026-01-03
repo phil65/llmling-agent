@@ -1,6 +1,7 @@
 """Storage provider package."""
 
 from agentpool_storage.base import StorageProvider
+from agentpool_storage.claude_provider import ClaudeStorageProvider
 from agentpool_storage.project_store import (
     ProjectStore,
     detect_project_root,
@@ -11,6 +12,7 @@ from agentpool_storage.project_store import (
 from agentpool_storage.session_store import SQLSessionStore
 
 __all__ = [
+    "ClaudeStorageProvider",
     "ProjectStore",
     "SQLSessionStore",
     "StorageProvider",

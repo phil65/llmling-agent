@@ -170,8 +170,32 @@ class MemoryStorageConfig(BaseStorageProviderConfig):
     """In-memory storage configuration for testing."""
 
 
+class ClaudeStorageConfig(BaseStorageProviderConfig):
+    """Claude Code native storage format configuration.
+
+    Reads/writes to Claude Code's native JSONL format in ~/.claude/projects/.
+    Useful for sharing conversation history between agentpool and Claude Code CLI.
+    """
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Claude Storage"})
+
+    type: Literal["claude"] = Field("claude", init=False)
+    """Claude Code native storage configuration."""
+
+    path: str = Field(
+        default="~/.claude",
+        examples=["~/.claude", "/home/user/.claude"],
+        title="Claude data directory",
+    )
+    """Path to Claude data directory (default: ~/.claude)"""
+
+
 StorageProviderConfig = Annotated[
-    SQLStorageConfig | FileStorageConfig | TextLogConfig | MemoryStorageConfig,
+    SQLStorageConfig
+    | FileStorageConfig
+    | TextLogConfig
+    | MemoryStorageConfig
+    | ClaudeStorageConfig,
     Field(discriminator="type"),
 ]
 
