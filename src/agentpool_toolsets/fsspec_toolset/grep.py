@@ -110,8 +110,7 @@ def _is_path_inside_ignored_dir(path: str) -> bool:
     ]
     for ignored in ignored_dirs:
         if (
-            path.startswith(f"{ignored}/")
-            or path.startswith(f"./{ignored}/")
+            path.startswith((f"{ignored}/", f"./{ignored}/"))
             or f"/{ignored}/" in path
             or path == ignored
         ):
@@ -139,9 +138,8 @@ def _filter_exclude_patterns(path: str, exclude_patterns: list[str]) -> list[str
         # Check if the search path starts with or contains this excluded dir
         # e.g., path=".venv/lib/python" should not exclude ".venv/"
         if not (
-            path.startswith(pattern_normalized)
+            path.startswith((pattern_normalized, f"./{pattern_normalized}"))
             or f"/{pattern_normalized}/" in path
-            or path.startswith(f"./{pattern_normalized}")
         ):
             filtered.append(pattern)
     return filtered
