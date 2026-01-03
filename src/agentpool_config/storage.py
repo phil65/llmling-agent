@@ -190,12 +190,33 @@ class ClaudeStorageConfig(BaseStorageProviderConfig):
     """Path to Claude data directory (default: ~/.claude)"""
 
 
+class OpenCodeStorageConfig(BaseStorageProviderConfig):
+    """OpenCode native storage format configuration.
+
+    Reads from OpenCode's native JSON format in ~/.local/share/opencode/storage/.
+    Useful for importing conversation history from OpenCode.
+    """
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "OpenCode Storage"})
+
+    type: Literal["opencode"] = Field("opencode", init=False)
+    """OpenCode native storage configuration."""
+
+    path: str = Field(
+        default="~/.local/share/opencode/storage",
+        examples=["~/.local/share/opencode/storage"],
+        title="OpenCode storage directory",
+    )
+    """Path to OpenCode storage directory."""
+
+
 StorageProviderConfig = Annotated[
     SQLStorageConfig
     | FileStorageConfig
     | TextLogConfig
     | MemoryStorageConfig
-    | ClaudeStorageConfig,
+    | ClaudeStorageConfig
+    | OpenCodeStorageConfig,
     Field(discriminator="type"),
 ]
 
