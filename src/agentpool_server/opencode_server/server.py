@@ -14,7 +14,7 @@ from fastapi import FastAPI, Request  # noqa: TC002
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 
 from agentpool import AgentPool
 from agentpool_server.opencode_server.routes import (
@@ -290,6 +290,50 @@ def create_app(  # noqa: PLR0915
     async def get_doc() -> RedirectResponse:
         """Redirect to OpenAPI docs."""
         return RedirectResponse(url="/docs")
+
+    # Proxy catch-all for OpenCode's hosted web UI
+    # This must be registered LAST so it doesn't catch API routes
+    @app.api_route("/{path:path}", methods=["GET", "HEAD", "OPTIONS"])
+    async def proxy_web_ui(request: Request, path: str) -> Response:
+        """Proxy unmatched GET requests to OpenCode's hosted web UI.
+
+        This allows users to open http://localhost:4096 in a browser and get
+        the full OpenCode web interface, which then makes API calls back to
+        this local server for all data operations.
+        """
+        import httpx
+
+        # Build target URL
+        url = f"https://app.opencode.ai/{path}"
+        if request.url.query:
+            url += f"?{request.url.query}"
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Forward the request
+            response = await client.request(
+                method=request.method,
+                url=url,
+                headers={"host": "app.opencode.ai"},
+                follow_redirects=True,
+            )
+
+            # Filter out hop-by-hop headers that shouldn't be forwarded
+            excluded_headers = {
+                "content-encoding",
+                "content-length",
+                "transfer-encoding",
+                "connection",
+            }
+            headers = {
+                k: v for k, v in response.headers.items() if k.lower() not in excluded_headers
+            }
+
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=headers,
+                media_type=response.headers.get("content-type"),
+            )
 
     logfire.instrument_fastapi(app)
     return app
