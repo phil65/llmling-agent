@@ -83,6 +83,7 @@ class FSSpecTools(ResourceProvider):
         large_file_tokens: int = 12_000,
         map_max_tokens: int = 2048,
         edit_tool: Literal["simple", "batch", "agentic"] = "simple",
+        max_image_size: int | None = 2000,
     ) -> None:
         """Initialize with an fsspec filesystem or execution environment.
 
@@ -100,6 +101,8 @@ class FSSpecTools(ResourceProvider):
             large_file_tokens: Token threshold for switching to structure map (default: 12000)
             map_max_tokens: Maximum tokens for structure map output (default: 2048)
             edit_tool: Which edit_file variant to expose ("simple" or "batch")
+            max_image_size: Max width/height for images in pixels. Larger images are
+                auto-resized for better model compatibility. Set to None to disable.
         """
         from fsspec.asyn import AsyncFileSystem
         from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
@@ -131,6 +134,7 @@ class FSSpecTools(ResourceProvider):
         self._map_max_tokens = map_max_tokens
         self._repomap: RepoMap | None = None
         self._edit_tool = edit_tool
+        self._max_image_size = max_image_size
 
     def get_fs(self, agent_ctx: AgentContext) -> AsyncFileSystem:
         """Get filesystem, falling back to agent's env if not set.
@@ -355,7 +359,7 @@ class FSSpecTools(ResourceProvider):
         encoding: str = "utf-8",
         line: int | None = None,
         limit: int | None = None,
-    ) -> str | BinaryContent:
+    ) -> str | BinaryContent | list[str | BinaryContent]:
         """Read the context of a text file, or use vision capabilites to read images or documents.
 
         Args:
@@ -365,7 +369,8 @@ class FSSpecTools(ResourceProvider):
             limit: Optional maximum number of lines to read (text files only)
 
         Returns:
-            Text content for text files, BinaryContent for binary files, or dict with error
+            Text content for text files, BinaryContent for binary files (with optional
+            dimension note as list when image was resized), or dict with error
         """
         path = self._resolve_path(path, agent_ctx)
         msg = f"Reading file: {path}"
@@ -382,6 +387,16 @@ class FSSpecTools(ResourceProvider):
                 data = await self.get_fs(agent_ctx)._cat_file(path)
                 await agent_ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"
+                # Resize images if needed
+                if self._max_image_size and mime.startswith("image/"):
+                    from agentpool_toolsets.fsspec_toolset.image_utils import (
+                        resize_image_if_needed,
+                    )
+
+                    data, mime, note = resize_image_if_needed(data, mime, self._max_image_size)
+                    if note:
+                        # Return resized image with dimension note for coordinate mapping
+                        return [note, BinaryContent(data=data, media_type=mime, identifier=path)]
                 return BinaryContent(data=data, media_type=mime, identifier=path)
             # Read content and probe for binary (git-style null byte detection)
             data = await self.get_fs(agent_ctx)._cat_file(path)
@@ -389,6 +404,15 @@ class FSSpecTools(ResourceProvider):
                 # Binary file - return as BinaryContent for native model handling
                 await agent_ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"
+                # Resize images if needed
+                if self._max_image_size and mime.startswith("image/"):
+                    from agentpool_toolsets.fsspec_toolset.image_utils import (
+                        resize_image_if_needed,
+                    )
+
+                    data, mime, note = resize_image_if_needed(data, mime, self._max_image_size)
+                    if note:
+                        return [note, BinaryContent(data=data, media_type=mime, identifier=path)]
                 return BinaryContent(data=data, media_type=mime, identifier=path)
             content = data.decode(encoding)
 

@@ -481,6 +481,15 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     """Which edit tool to expose: "simple" (single replacement),
     "batch" (multiple replacements), or "agentic" (LLM-driven editing)."""
 
+    max_image_size: int | None = Field(
+        default=2000,
+        ge=100,
+        le=8192,
+        title="Maximum image dimension",
+    )
+    """Max width/height for images in pixels. Larger images are auto-resized
+    for better model compatibility. Set to None to disable resizing."""
+
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
         import fsspec
@@ -516,6 +525,7 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
             large_file_tokens=self.large_file_tokens,
             map_max_tokens=self.map_max_tokens,
             edit_tool=self.edit_tool,
+            max_image_size=self.max_image_size,
         )
 
 
