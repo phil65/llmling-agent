@@ -19,20 +19,22 @@ from pydantic import ValidationError
 from pydantic._internal import _typing_extra
 from pydantic_ai import (
     Agent as PydanticAgent,
-    AgentRunResultEvent,
     BaseToolCallPart,
+    CallToolsNode,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
-    PartDeltaEvent,
+    ModelRequestNode,
     PartStartEvent,
     RunContext,
-    TextPart,
-    TextPartDelta,
     ToolReturnPart,
 )
 
 from agentpool.agents.base_agent import BaseAgent
-from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallCompleteEvent
+from agentpool.agents.events import (
+    RunStartedEvent,
+    StreamCompleteEvent,
+    ToolCallCompleteEvent,
+)
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
@@ -49,6 +51,34 @@ from agentpool.utils.streams import FileTracker, merge_queue_into_iterator
 
 
 TResult = TypeVar("TResult")
+
+
+def _extract_text_from_messages(
+    messages: list[Any], include_interruption_note: bool = False
+) -> str:
+    """Extract text content from pydantic-ai messages.
+
+    Args:
+        messages: List of ModelRequest/ModelResponse messages
+        include_interruption_note: Whether to append interruption notice
+
+    Returns:
+        Concatenated text content from all ModelResponse TextParts
+    """
+    from pydantic_ai.messages import ModelResponse, TextPart as PydanticTextPart
+
+    content = "".join(
+        part.content
+        for msg in messages
+        if isinstance(msg, ModelResponse)
+        for part in msg.parts
+        if isinstance(part, PydanticTextPart)
+    )
+    if include_interruption_note:
+        if content:
+            content += "\n\n"
+        content += "[Request interrupted by user]"
+    return content
 
 
 if TYPE_CHECKING:
@@ -792,9 +822,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._cancelled = False
         self._current_stream_task = asyncio.current_task()
 
-        # Track accumulated content for partial message on cancellation
-        accumulated_text: list[str] = []
-
         # Execute pre-run hooks
         if self.hooks:
             pre_run_result = await self.hooks.run_pre_run_hooks(
@@ -815,6 +842,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         await handler(None, run_started)
         yield run_started
         try:
+            from pydantic_graph import End
+
             agentlet = await self.get_agentlet(tool_choice, model, output_type, input_provider)
             content = await convert_prompts(prompts)
             response_msg: ChatMessage[Any] | None = None
@@ -823,104 +852,104 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
             # Use provided usage_limits or fall back to default
             effective_limits = usage_limits or self._default_usage_limits
+            history = [m for run in history_list for m in run.to_pydantic_ai()]
 
-            stream_events = agentlet.run_stream_events(
+            # Track tool call starts to combine with results later
+            pending_tcs: dict[str, BaseToolCallPart] = {}
+            file_tracker = FileTracker()
+
+            async with agentlet.iter(
                 converted,
                 deps=deps,  # type: ignore[arg-type]
-                message_history=[m for run in history_list for m in run.to_pydantic_ai()],
+                message_history=history,
                 usage_limits=effective_limits,
                 instructions=instructions,
-            )
-
-            # Stream events through merge_queue for progress events
-            file_tracker = FileTracker()
-            async with merge_queue_into_iterator(stream_events, self._event_queue) as events:
-                # Track tool call starts to combine with results later
-                pending_tcs: dict[str, BaseToolCallPart] = {}
+            ) as agent_run:
                 try:
-                    async for event in file_tracker.track(events):
-                        # Check for cancellation
+                    async for node in agent_run:
                         if self._cancelled:
                             self.log.info("Stream cancelled by user")
                             break
+                        if isinstance(node, End):
+                            break
 
-                        # Call event handlers for all events
-                        await handler(None, event)
-                        yield event  # type: ignore[misc]
-
-                        # Accumulate text content for partial message
-                        match event:
-                            case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
-                                accumulated_text.append(delta)
-                            case PartStartEvent(part=TextPart(content=text)) if text:
-                                accumulated_text.append(text)
-
-                        match event:
-                            case (
-                                PartStartEvent(part=BaseToolCallPart() as tool_part)
-                                | FunctionToolCallEvent(part=tool_part)
+                        # Stream events from model request node
+                        if isinstance(node, ModelRequestNode):
+                            async with (
+                                node.stream(agent_run.ctx) as agent_stream,
+                                merge_queue_into_iterator(
+                                    agent_stream,  # pyright: ignore[reportArgumentType]
+                                    self._event_queue,
+                                ) as merged,
                             ):
-                                # Store tool call start info for later combination with result
-                                pending_tcs[tool_part.tool_call_id] = tool_part
-                            case FunctionToolResultEvent(tool_call_id=call_id) as result_event:
-                                # Check if we have a pending tool call to combine with
-                                if call_info := pending_tcs.pop(call_id, None):
-                                    # Create and yield combined event
-                                    combined_event = ToolCallCompleteEvent(
-                                        tool_name=call_info.tool_name,
-                                        tool_call_id=call_id,
-                                        tool_input=safe_args_as_dict(call_info),
-                                        tool_result=result_event.result.content
-                                        if isinstance(result_event.result, ToolReturnPart)
-                                        else result_event.result,
-                                        agent_name=self.name,
-                                        message_id=message_id,
+                                async for event in file_tracker.track(merged):
+                                    if self._cancelled:
+                                        break
+                                    await handler(None, event)
+                                    yield event  # type: ignore[misc]
+                                    combined = self._process_tool_event(
+                                        event, pending_tcs, message_id
                                     )
-                                    await handler(None, combined_event)
-                                    yield combined_event
-                            case AgentRunResultEvent():
-                                # Capture final result data, Build final response message
-                                response_time = time.perf_counter() - start_time
-                                response_msg = await ChatMessage.from_run_result(
-                                    event.result,
-                                    agent_name=self.name,
-                                    message_id=message_id,
-                                    conversation_id=conversation_id or user_msg.conversation_id,
-                                    parent_id=user_msg.message_id,
-                                    response_time=response_time,
-                                    metadata=file_tracker.get_metadata(),
-                                )
+                                    if combined:
+                                        await handler(None, combined)
+                                        yield combined
+
+                        # Stream events from tool call node
+                        elif isinstance(node, CallToolsNode):
+                            async with (
+                                node.stream(agent_run.ctx) as tool_stream,
+                                merge_queue_into_iterator(tool_stream, self._event_queue) as merged,
+                            ):
+                                async for event in file_tracker.track(merged):
+                                    if self._cancelled:
+                                        break
+                                    await handler(None, event)
+                                    yield event  # type: ignore[misc]
+                                    combined = self._process_tool_event(
+                                        event, pending_tcs, message_id
+                                    )
+                                    if combined:
+                                        await handler(None, combined)
+                                        yield combined
                 except asyncio.CancelledError:
                     self.log.info("Stream cancelled via task cancellation")
                     self._cancelled = True
 
-            # Handle cancellation - emit partial message
-            if self._cancelled:
+                # Build response message
                 response_time = time.perf_counter() - start_time
-                partial_content = "".join(accumulated_text)
-                if partial_content:
-                    partial_content += "\n\n"
-                partial_content += "[Request interrupted by user]"
-                response_msg = ChatMessage(
-                    content=partial_content,
-                    role="assistant",
-                    name=self.name,
-                    message_id=message_id,
-                    conversation_id=conversation_id or user_msg.conversation_id,
-                    parent_id=user_msg.message_id,
-                    response_time=response_time,
-                    finish_reason="stop",
-                )
-                complete_event = StreamCompleteEvent(message=response_msg)
-                await handler(None, complete_event)
-                yield complete_event
-                self._current_stream_task = None
-                return
+                if self._cancelled:
+                    partial_content = _extract_text_from_messages(
+                        agent_run.all_messages(), include_interruption_note=True
+                    )
+                    response_msg = ChatMessage(
+                        content=partial_content,
+                        role="assistant",
+                        name=self.name,
+                        message_id=message_id,
+                        conversation_id=conversation_id or user_msg.conversation_id,
+                        parent_id=user_msg.message_id,
+                        response_time=response_time,
+                        finish_reason="stop",
+                    )
+                    complete_event = StreamCompleteEvent(message=response_msg)
+                    await handler(None, complete_event)
+                    yield complete_event
+                    self._current_stream_task = None
+                    return
 
-            # Only finalize if we got a result (stream may exit early on error)
-            if response_msg is None:
-                msg = "Stream completed without producing a result"
-                raise RuntimeError(msg)  # noqa: TRY301
+                if agent_run.result:
+                    response_msg = await ChatMessage.from_run_result(
+                        agent_run.result,
+                        agent_name=self.name,
+                        message_id=message_id,
+                        conversation_id=conversation_id or user_msg.conversation_id,
+                        parent_id=user_msg.message_id,
+                        response_time=response_time,
+                        metadata=file_tracker.get_metadata(),
+                    )
+                else:
+                    msg = "Stream completed without producing a result"
+                    raise RuntimeError(msg)  # noqa: TRY301
 
             # Execute post-run hooks
             if self.hooks:
@@ -953,6 +982,41 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             raise
         finally:
             self._current_stream_task = None
+
+    def _process_tool_event(
+        self,
+        event: RichAgentStreamEvent[Any],
+        pending_tool_calls: dict[str, BaseToolCallPart],
+        message_id: str,
+    ) -> ToolCallCompleteEvent | None:
+        """Process tool-related events and return combined event when complete.
+
+        Args:
+            event: The streaming event to process
+            pending_tool_calls: Dict tracking in-progress tool calls by ID
+            message_id: Message ID for the combined event
+
+        Returns:
+            ToolCallCompleteEvent if a tool call completed, None otherwise
+        """
+        match event:
+            case PartStartEvent(part=BaseToolCallPart() as tool_part):
+                pending_tool_calls[tool_part.tool_call_id] = tool_part
+            case FunctionToolCallEvent(part=tool_part):
+                pending_tool_calls[tool_part.tool_call_id] = tool_part
+            case FunctionToolResultEvent(tool_call_id=call_id) as result_event:
+                if call_info := pending_tool_calls.pop(call_id, None):
+                    return ToolCallCompleteEvent(
+                        tool_name=call_info.tool_name,
+                        tool_call_id=call_id,
+                        tool_input=safe_args_as_dict(call_info),
+                        tool_result=result_event.result.content
+                        if isinstance(result_event.result, ToolReturnPart)
+                        else result_event.result,
+                        agent_name=self.name,
+                        message_id=message_id,
+                    )
+        return None
 
     async def run_iter(
         self,
