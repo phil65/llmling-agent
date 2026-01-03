@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     from agentpool.delegation.pool import AgentPool
     from agentpool.sessions.store import SessionStore
+    from agentpool.storage.manager import StorageManager
 
 logger = get_logger(__name__)
 
@@ -37,6 +38,7 @@ class SessionManager:
         pool: AgentPool[Any],
         store: SessionStore | None = None,
         pool_id: str | None = None,
+        storage: StorageManager | None = None,
     ) -> None:
         """Initialize session manager.
 
@@ -44,10 +46,12 @@ class SessionManager:
             pool: Agent pool for agent access
             store: Session persistence backend (defaults to MemorySessionStore)
             pool_id: Optional identifier for this pool (for multi-pool setups)
+            storage: Optional storage manager for project tracking
         """
         self._pool = pool
         self._store = store or MemorySessionStore()
         self._pool_id = pool_id
+        self._storage = storage
         self._active: dict[str, ClientSession] = {}
         self._lock = asyncio.Lock()
         logger.debug("Initialized session manager", pool_id=pool_id)
@@ -145,12 +149,31 @@ class SessionManager:
                 msg = f"Session '{session_id}' already exists"
                 raise ValueError(msg)
 
+            # Get or create project if cwd provided and storage available
+            project_id: str | None = None
+            if cwd and self._storage:
+                try:
+                    from agentpool_storage.project_store import ProjectStore
+
+                    project_store = ProjectStore(self._storage)
+                    project = await project_store.get_or_create(cwd)
+                    project_id = project.project_id
+                    logger.debug(
+                        "Associated session with project",
+                        session_id=session_id,
+                        project_id=project_id,
+                        worktree=project.worktree,
+                    )
+                except Exception:
+                    logger.exception("Failed to create/get project for session")
+
             # Create session data
             data = SessionData(
                 session_id=session_id,
                 agent_name=agent_name,
                 conversation_id=conversation_id or f"conv_{uuid4().hex[:12]}",
                 pool_id=self._pool_id,
+                project_id=project_id,
                 cwd=cwd,
                 metadata=metadata or {},
             )

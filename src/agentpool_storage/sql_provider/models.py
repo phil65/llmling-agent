@@ -237,6 +237,42 @@ class Session(AsyncAttrs, SQLModel, table=True):
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
 
 
+class Project(AsyncAttrs, SQLModel, table=True):
+    """Database model for project/worktree tracking."""
+
+    project_id: str = Field(primary_key=True)
+    """Unique identifier (hash of canonical worktree path)."""
+
+    worktree: str = Field(sa_column=Column(Text, index=True, unique=True))
+    """Absolute path to the project root/worktree."""
+
+    name: str | None = Field(default=None, index=True)
+    """Optional friendly name for the project."""
+
+    vcs: str | None = Field(default=None)
+    """Version control system type (git, hg, or None)."""
+
+    config_path: str | None = Field(default=None, sa_column=Column(Text))
+    """Path to the project's config file, or None for auto-discovery."""
+
+    created_at: datetime = Field(
+        sa_column=Column(UTCDateTime, index=True),
+        default_factory=get_now,
+    )
+    """When the project was first registered."""
+
+    last_active: datetime = Field(
+        sa_column=Column(UTCDateTime, index=True),
+        default_factory=get_now,
+    )
+    """Last activity timestamp."""
+
+    settings_json: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    """Project-specific settings overrides."""
+
+    model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]
+
+
 class Conversation(AsyncAttrs, SQLModel, table=True):
     """Database model for conversations."""
 

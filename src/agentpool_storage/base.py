@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
     from agentpool.common_types import JsonValue
     from agentpool.messaging import ChatMessage, TokenCost
+    from agentpool.sessions.models import ProjectData
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import BaseStorageProviderConfig
     from agentpool_storage.models import ConversationData, QueryFilters, StatsFilters
@@ -326,4 +327,87 @@ class StorageProvider:
             Number of messages deleted
         """
         msg = f"{self.__class__.__name__} does not support deleting messages"
+        raise NotImplementedError(msg)
+
+    # Project methods
+
+    async def save_project(self, project: ProjectData) -> None:
+        """Save or update a project.
+
+        Args:
+            project: Project data to persist
+        """
+        msg = f"{self.__class__.__name__} does not support project storage"
+        raise NotImplementedError(msg)
+
+    async def get_project(self, project_id: str) -> ProjectData | None:
+        """Get a project by ID.
+
+        Args:
+            project_id: Project identifier
+
+        Returns:
+            Project data if found, None otherwise
+        """
+        msg = f"{self.__class__.__name__} does not support project storage"
+        raise NotImplementedError(msg)
+
+    async def get_project_by_worktree(self, worktree: str) -> ProjectData | None:
+        """Get a project by worktree path.
+
+        Args:
+            worktree: Absolute path to the project worktree
+
+        Returns:
+            Project data if found, None otherwise
+        """
+        msg = f"{self.__class__.__name__} does not support project storage"
+        raise NotImplementedError(msg)
+
+    async def get_project_by_name(self, name: str) -> ProjectData | None:
+        """Get a project by friendly name.
+
+        Args:
+            name: Project name
+
+        Returns:
+            Project data if found, None otherwise
+        """
+        msg = f"{self.__class__.__name__} does not support project storage"
+        raise NotImplementedError(msg)
+
+    async def list_projects(
+        self,
+        limit: int | None = None,
+    ) -> list[ProjectData]:
+        """List all projects, ordered by last_active descending.
+
+        Args:
+            limit: Maximum number of projects to return
+
+        Returns:
+            List of project data objects
+        """
+        msg = f"{self.__class__.__name__} does not support project storage"
+        raise NotImplementedError(msg)
+
+    async def delete_project(self, project_id: str) -> bool:
+        """Delete a project.
+
+        Args:
+            project_id: Project identifier
+
+        Returns:
+            True if project was deleted, False if not found
+        """
+        msg = f"{self.__class__.__name__} does not support project storage"
+        raise NotImplementedError(msg)
+
+    async def touch_project(self, project_id: str) -> None:
+        """Update project's last_active timestamp.
+
+        Args:
+            project_id: Project identifier
+        """
+        msg = f"{self.__class__.__name__} does not support project storage"
         raise NotImplementedError(msg)

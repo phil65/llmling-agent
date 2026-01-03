@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from agentpool.common_types import JsonValue
+    from agentpool.sessions.models import ProjectData
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import BaseStorageProviderConfig, StorageConfig
     from agentpool_storage.base import StorageProvider
@@ -499,3 +500,136 @@ class StorageManager:
             return None
         else:
             return title
+
+    # Project methods
+
+    def get_project_provider(self) -> StorageProvider:
+        """Get provider capable of storing projects.
+
+        Returns:
+            First provider that supports project storage.
+
+        Raises:
+            RuntimeError: If no capable provider found.
+        """
+        for provider in self.providers:
+            # TextLogProvider doesn't support projects, others do
+            if hasattr(provider, "save_project") and not getattr(provider, "write_only", False):
+                return provider
+        msg = "No provider found that supports project storage"
+        raise RuntimeError(msg)
+
+    @method_spawner
+    async def save_project(self, project: ProjectData) -> None:
+        """Save or update a project in all capable providers.
+
+        Args:
+            project: Project data to persist
+        """
+        for provider in self.providers:
+            try:
+                await provider.save_project(project)
+            except NotImplementedError:
+                pass
+            except Exception:
+                logger.exception(
+                    "Error saving project",
+                    provider=provider.__class__.__name__,
+                    project_id=project.project_id,
+                )
+
+    @method_spawner
+    async def get_project(self, project_id: str) -> ProjectData | None:
+        """Get a project by ID.
+
+        Args:
+            project_id: Project identifier
+
+        Returns:
+            Project data if found, None otherwise
+        """
+        provider = self.get_project_provider()
+        return await provider.get_project(project_id)
+
+    @method_spawner
+    async def get_project_by_worktree(self, worktree: str) -> ProjectData | None:
+        """Get a project by worktree path.
+
+        Args:
+            worktree: Absolute path to the project worktree
+
+        Returns:
+            Project data if found, None otherwise
+        """
+        provider = self.get_project_provider()
+        return await provider.get_project_by_worktree(worktree)
+
+    @method_spawner
+    async def get_project_by_name(self, name: str) -> ProjectData | None:
+        """Get a project by friendly name.
+
+        Args:
+            name: Project name
+
+        Returns:
+            Project data if found, None otherwise
+        """
+        provider = self.get_project_provider()
+        return await provider.get_project_by_name(name)
+
+    @method_spawner
+    async def list_projects(self, limit: int | None = None) -> list[ProjectData]:
+        """List all projects, ordered by last_active descending.
+
+        Args:
+            limit: Maximum number of projects to return
+
+        Returns:
+            List of project data objects
+        """
+        provider = self.get_project_provider()
+        return await provider.list_projects(limit=limit)
+
+    @method_spawner
+    async def delete_project(self, project_id: str) -> bool:
+        """Delete a project from all providers.
+
+        Args:
+            project_id: Project identifier
+
+        Returns:
+            True if project was deleted from at least one provider
+        """
+        deleted = False
+        for provider in self.providers:
+            try:
+                if await provider.delete_project(project_id):
+                    deleted = True
+            except NotImplementedError:
+                pass
+            except Exception:
+                logger.exception(
+                    "Error deleting project",
+                    provider=provider.__class__.__name__,
+                    project_id=project_id,
+                )
+        return deleted
+
+    @method_spawner
+    async def touch_project(self, project_id: str) -> None:
+        """Update project's last_active timestamp in all providers.
+
+        Args:
+            project_id: Project identifier
+        """
+        for provider in self.providers:
+            try:
+                await provider.touch_project(project_id)
+            except NotImplementedError:
+                pass
+            except Exception:
+                logger.exception(
+                    "Error touching project",
+                    provider=provider.__class__.__name__,
+                    project_id=project_id,
+                )

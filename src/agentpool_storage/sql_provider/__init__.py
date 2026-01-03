@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from agentpool_storage.sql_provider.sql_provider import SQLModelProvider
 from agentpool_storage.sql_provider.models import (
-    Conversation,
-    Message,
     CommandHistory,
-    MessageLog,
+    Conversation,
     ConversationLog,
+    Message,
+    MessageLog,
+    Project,
 )
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "ConversationLog",
     "Message",
     "MessageLog",
+    "Project",
     "SQLModelProvider",
 ]

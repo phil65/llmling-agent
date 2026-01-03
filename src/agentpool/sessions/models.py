@@ -11,6 +11,47 @@ from schemez import Schema
 from agentpool.utils.now import get_now
 
 
+class ProjectData(Schema):
+    """Persistable project/worktree state.
+
+    Represents a codebase/worktree that agentpool operates on.
+    Sessions are associated with projects.
+    """
+
+    project_id: str
+    """Unique identifier (hash of canonical worktree path)."""
+
+    worktree: str
+    """Absolute path to the project root/worktree."""
+
+    name: str | None = None
+    """Optional friendly name for the project."""
+
+    vcs: str | None = None
+    """Version control system type ('git', 'hg', or None)."""
+
+    config_path: str | None = None
+    """Path to the project's config file, or None for auto-discovery."""
+
+    created_at: datetime = Field(default_factory=get_now)
+    """When the project was first registered."""
+
+    last_active: datetime = Field(default_factory=get_now)
+    """Last activity timestamp."""
+
+    settings: dict[str, Any] = Field(default_factory=dict)
+    """Project-specific settings overrides."""
+
+    def touch(self) -> ProjectData:
+        """Return copy with updated last_active timestamp."""
+        return self.model_copy(update={"last_active": get_now()})
+
+    def with_settings(self, **kwargs: Any) -> ProjectData:
+        """Return copy with updated settings."""
+        new_settings = {**self.settings, **kwargs}
+        return self.model_copy(update={"settings": new_settings, "last_active": get_now()})
+
+
 class SessionData(Schema):
     """Persistable session state.
 

@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from pydantic_ai import FinishReason
     from yamling import FormatType
 
+    from agentpool.sessions.models import ProjectData
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import FileStorageConfig
 
@@ -69,12 +70,26 @@ class CommandData(TypedDict):
     metadata: dict[str, JsonValue]
 
 
+class ProjectDataDict(TypedDict):
+    """Data structure for storing project information."""
+
+    project_id: str
+    worktree: str
+    name: str | None
+    vcs: str | None
+    config_path: str | None
+    created_at: str
+    last_active: str
+    settings: dict[str, JsonValue]
+
+
 class StorageData(TypedDict):
     """Data structure for storing storage information."""
 
     messages: list[MessageData]
     conversations: list[ConversationData]
     commands: list[CommandData]
+    projects: list[ProjectDataDict]
 
 
 class FileProvider(StorageProvider):
@@ -100,6 +115,7 @@ class FileProvider(StorageProvider):
             "messages": [],
             "conversations": [],
             "commands": [],
+            "projects": [],
         }
         self._load()
 
@@ -332,6 +348,7 @@ class FileProvider(StorageProvider):
                 "messages": [],
                 "conversations": [],
                 "commands": [],
+                "projects": [],
             }
             self._save()
             return conv_count, msg_count
@@ -393,3 +410,98 @@ class FileProvider(StorageProvider):
         if deleted > 0:
             self._save()
         return deleted
+
+    # Project methods
+
+    def _to_project_data(self, data: ProjectDataDict) -> ProjectData:
+        """Convert dict to ProjectData."""
+        from datetime import datetime
+
+        from agentpool.sessions.models import ProjectData
+
+        return ProjectData(
+            project_id=data["project_id"],
+            worktree=data["worktree"],
+            name=data["name"],
+            vcs=data["vcs"],
+            config_path=data["config_path"],
+            created_at=datetime.fromisoformat(data["created_at"]),
+            last_active=datetime.fromisoformat(data["last_active"]),
+            settings=data["settings"],
+        )
+
+    def _to_project_dict(self, project: ProjectData) -> ProjectDataDict:
+        """Convert ProjectData to dict."""
+        return ProjectDataDict(
+            project_id=project.project_id,
+            worktree=project.worktree,
+            name=project.name,
+            vcs=project.vcs,
+            config_path=project.config_path,
+            created_at=project.created_at.isoformat(),
+            last_active=project.last_active.isoformat(),
+            settings=project.settings,
+        )
+
+    async def save_project(self, project: ProjectData) -> None:
+        """Save or update a project."""
+        # Remove existing if present
+        self._data["projects"] = [
+            p for p in self._data.get("projects", []) if p["project_id"] != project.project_id
+        ]
+        # Add new/updated
+        self._data["projects"].append(self._to_project_dict(project))
+        self._save()
+        logger.debug("Saved project", project_id=project.project_id)
+
+    async def get_project(self, project_id: str) -> ProjectData | None:
+        """Get a project by ID."""
+        for p in self._data.get("projects", []):
+            if p["project_id"] == project_id:
+                return self._to_project_data(p)
+        return None
+
+    async def get_project_by_worktree(self, worktree: str) -> ProjectData | None:
+        """Get a project by worktree path."""
+        for p in self._data.get("projects", []):
+            if p["worktree"] == worktree:
+                return self._to_project_data(p)
+        return None
+
+    async def get_project_by_name(self, name: str) -> ProjectData | None:
+        """Get a project by friendly name."""
+        for p in self._data.get("projects", []):
+            if p["name"] == name:
+                return self._to_project_data(p)
+        return None
+
+    async def list_projects(self, limit: int | None = None) -> list[ProjectData]:
+        """List all projects, ordered by last_active descending."""
+        projects = sorted(
+            self._data.get("projects", []),
+            key=lambda p: p["last_active"],
+            reverse=True,
+        )
+        if limit is not None:
+            projects = projects[:limit]
+        return [self._to_project_data(p) for p in projects]
+
+    async def delete_project(self, project_id: str) -> bool:
+        """Delete a project."""
+        original_count = len(self._data.get("projects", []))
+        self._data["projects"] = [
+            p for p in self._data.get("projects", []) if p["project_id"] != project_id
+        ]
+        deleted = original_count > len(self._data["projects"])
+        if deleted:
+            self._save()
+            logger.debug("Deleted project", project_id=project_id)
+        return deleted
+
+    async def touch_project(self, project_id: str) -> None:
+        """Update project's last_active timestamp."""
+        for p in self._data.get("projects", []):
+            if p["project_id"] == project_id:
+                p["last_active"] = get_now().isoformat()
+                self._save()
+                return

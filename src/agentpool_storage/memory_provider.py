@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from agentpool.common_types import JsonValue
+    from agentpool.sessions.models import ProjectData
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import MemoryStorageConfig
     from agentpool_storage.models import MessageData, QueryFilters, StatsFilters, TokenUsage
@@ -31,12 +32,14 @@ class MemoryStorageProvider(StorageProvider):
         self.messages: list[dict[str, Any]] = []
         self.conversations: list[dict[str, Any]] = []
         self.commands: list[dict[str, Any]] = []
+        self.projects: dict[str, ProjectData] = {}
 
     def cleanup(self) -> None:
         """Clear all stored data."""
         self.messages.clear()
         self.conversations.clear()
         self.commands.clear()
+        self.projects.clear()
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages from memory."""
@@ -404,3 +407,51 @@ class MemoryStorageProvider(StorageProvider):
         original_count = len(self.messages)
         self.messages = [m for m in self.messages if m["conversation_id"] != conversation_id]
         return original_count - len(self.messages)
+
+    # Project methods
+
+    async def save_project(self, project: ProjectData) -> None:
+        """Save or update a project."""
+        self.projects[project.project_id] = project
+
+    async def get_project(self, project_id: str) -> ProjectData | None:
+        """Get a project by ID."""
+        return self.projects.get(project_id)
+
+    async def get_project_by_worktree(self, worktree: str) -> ProjectData | None:
+        """Get a project by worktree path."""
+        for project in self.projects.values():
+            if project.worktree == worktree:
+                return project
+        return None
+
+    async def get_project_by_name(self, name: str) -> ProjectData | None:
+        """Get a project by friendly name."""
+        for project in self.projects.values():
+            if project.name == name:
+                return project
+        return None
+
+    async def list_projects(self, limit: int | None = None) -> list[ProjectData]:
+        """List all projects, ordered by last_active descending."""
+        projects = sorted(
+            self.projects.values(),
+            key=lambda p: p.last_active,
+            reverse=True,
+        )
+        if limit is not None:
+            projects = projects[:limit]
+        return list(projects)
+
+    async def delete_project(self, project_id: str) -> bool:
+        """Delete a project."""
+        if project_id in self.projects:
+            del self.projects[project_id]
+            return True
+        return False
+
+    async def touch_project(self, project_id: str) -> None:
+        """Update project's last_active timestamp."""
+        if project_id in self.projects:
+            project = self.projects[project_id]
+            self.projects[project_id] = project.touch()

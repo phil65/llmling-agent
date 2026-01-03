@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import subprocess
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter
 
@@ -16,6 +17,11 @@ from agentpool_server.opencode_server.models import (
     ProjectTime,
     VcsInfo,
 )
+from agentpool_storage.project_store import ProjectStore
+
+
+if TYPE_CHECKING:
+    from agentpool.sessions.models import ProjectData
 
 
 router = APIRouter(tags=["app"])
@@ -39,29 +45,45 @@ async def get_app(state: StateDep) -> App:
     )
 
 
-def _make_project(state: StateDep) -> Project:
-    """Create a Project from current state."""
-    working_path = Path(state.working_dir)
-    git_dir = working_path / ".git"
+def _project_data_to_response(data: ProjectData) -> Project:
+    """Convert ProjectData to OpenCode Project response."""
+    working_path = Path(data.worktree)
+    vcs_dir: str | None = None
+    if data.vcs == "git":
+        vcs_dir = str(working_path / ".git")
+    elif data.vcs == "hg":
+        vcs_dir = str(working_path / ".hg")
+
     return Project(
-        id="default",
-        worktree=state.working_dir,
-        vcs_dir=str(git_dir) if git_dir.is_dir() else None,
-        vcs="git" if git_dir.is_dir() else None,
-        time=ProjectTime(created=int(state.start_time * 1000)),
+        id=data.project_id,
+        worktree=data.worktree,
+        vcs_dir=vcs_dir,
+        vcs=data.vcs,
+        time=ProjectTime(created=int(data.created_at.timestamp() * 1000)),
     )
+
+
+async def _get_current_project(state: StateDep) -> ProjectData:
+    """Get or create the current project from storage."""
+    storage = state.pool.storage
+    project_store = ProjectStore(storage)
+    return await project_store.get_or_create(state.working_dir)
 
 
 @router.get("/project")
 async def list_projects(state: StateDep) -> list[Project]:
     """List all projects."""
-    return [_make_project(state)]
+    storage = state.pool.storage
+    project_store = ProjectStore(storage)
+    projects = await project_store.list_recent(limit=50)
+    return [_project_data_to_response(p) for p in projects]
 
 
 @router.get("/project/current")
 async def get_project_current(state: StateDep) -> Project:
     """Get current project."""
-    return _make_project(state)
+    project = await _get_current_project(state)
+    return _project_data_to_response(project)
 
 
 @router.get("/path")
