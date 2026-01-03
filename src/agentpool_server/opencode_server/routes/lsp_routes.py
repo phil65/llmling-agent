@@ -218,8 +218,8 @@ async def get_diagnostics(
     # If a specific path is provided, run CLI diagnostics for it
     if path:
         # Make path absolute if needed
-        if not os.path.isabs(path):
-            path = os.path.join(state.working_dir, path)
+        if not os.path.isabs(path):  # noqa: PTH117
+            path = os.path.join(state.working_dir, path)  # noqa: PTH118
 
         # Find the appropriate server for this file
         server_info = lsp_manager.get_server_for_file(path)

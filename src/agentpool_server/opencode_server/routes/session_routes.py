@@ -702,8 +702,8 @@ async def respond_to_permission(
     await state.broadcast_event(
         PermissionResolvedEvent.create(
             session_id=session_id,
-            permission_id=permission_id,
-            response=request.response,
+            request_id=permission_id,
+            reply=request.response,
         )
     )
 

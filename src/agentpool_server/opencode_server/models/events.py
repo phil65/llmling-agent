@@ -162,7 +162,7 @@ class SessionErrorEvent(OpenCodeBaseModel):
         error_data = {"message": error_message} if error_message else None
         return cls(
             properties=SessionErrorProperties(
-                sessionID=session_id,
+                session_id=session_id,
                 error=SessionErrorInfo(name=error_name, data=error_data),
             )
         )
@@ -287,11 +287,11 @@ class PermissionRepliedProperties(OpenCodeBaseModel):
     session_id: str
     """Session ID."""
 
-    permission_id: str
-    """Permission ID."""
+    request_id: str
+    """Request/Permission ID."""
 
-    response: str
-    """Response: 'once' | 'always' | 'reject'."""
+    reply: Literal["once", "always", "reject"]
+    """Reply: 'once' | 'always' | 'reject'."""
 
 
 class PermissionResolvedEvent(OpenCodeBaseModel):
@@ -307,13 +307,13 @@ class PermissionResolvedEvent(OpenCodeBaseModel):
     def create(
         cls,
         session_id: str,
-        permission_id: str,
-        response: str,
+        request_id: str,
+        reply: Literal["once", "always", "reject"],
     ) -> Self:
         props = PermissionRepliedProperties(
             session_id=session_id,
-            permission_id=permission_id,
-            response=response,
+            request_id=request_id,
+            reply=reply,
         )
         return cls(properties=props)
 
