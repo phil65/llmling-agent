@@ -1050,60 +1050,6 @@
       "title": "AGUIAgentWorkerConfig",
       "type": "object"
     },
-    "AgentManagementToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for agent pool building tools.",
-      "properties": {
-        "namespace": {
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "examples": [
-            "web",
-            "files"
-          ],
-          "title": "Tool namespace",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "type": {
-          "const": "agent_management",
-          "default": "agent_management",
-          "description": "Agent pool building toolset (create_worker_agent, add_agent, add_team, connect_nodes).",
-          "title": "Type",
-          "type": "string"
-        },
-        "tools": {
-          "anyOf": [
-            {
-              "additionalProperties": {
-                "type": "boolean"
-              },
-              "propertyNames": {
-                "enum": [
-                  "create_worker_agent",
-                  "add_agent",
-                  "add_team",
-                  "connect_nodes"
-                ]
-              },
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional tool filter to enable/disable specific tools.",
-          "title": "Tool filter"
-        }
-      },
-      "title": "AgentManagementToolsetConfig",
-      "type": "object",
-      "x-doc-title": "Agent Management Toolset",
-      "x-icon": "octicon:people-16"
-    },
     "AgentOpsObservabilityConfig": {
       "additionalProperties": false,
       "description": "Configuration for AgentOps endpoint.",
@@ -3145,7 +3091,6 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "agent_management": "#/$defs/AgentManagementToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
@@ -3155,9 +3100,7 @@
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
-                "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
-                "integrations": "#/$defs/IntegrationToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -3167,7 +3110,6 @@
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
-                "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -3185,25 +3127,13 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/AgentManagementToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ToolManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
               },
               {
-                "$ref": "#/$defs/HistoryToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/SkillsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/IntegrationToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CodeToolsetConfig"
@@ -6751,7 +6681,6 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "agent_management": "#/$defs/AgentManagementToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
@@ -6761,9 +6690,7 @@
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
-                "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
-                "integrations": "#/$defs/IntegrationToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -6773,7 +6700,6 @@
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
-                "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -6791,25 +6717,13 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/AgentManagementToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ToolManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
               },
               {
-                "$ref": "#/$defs/HistoryToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/SkillsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/IntegrationToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CodeToolsetConfig"
@@ -7138,10 +7052,10 @@
           ],
           "title": "Fallback Model"
         },
-        "dangerously_skip_permissions": {
+        "auto_approve": {
           "default": false,
           "description": "Bypass all permission checks. Only for sandboxed environments.",
-          "title": "Dangerously Skip Permissions",
+          "title": "Auto Approve",
           "type": "boolean"
         },
         "output_type": {
@@ -7839,7 +7753,6 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "agent_management": "#/$defs/AgentManagementToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
@@ -7849,9 +7762,7 @@
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
-                "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
-                "integrations": "#/$defs/IntegrationToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -7861,7 +7772,6 @@
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
-                "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -7879,25 +7789,13 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/AgentManagementToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ToolManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
               },
               {
-                "$ref": "#/$defs/HistoryToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/SkillsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/IntegrationToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CodeToolsetConfig"
@@ -8291,7 +8189,6 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "agent_management": "#/$defs/AgentManagementToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
@@ -8301,9 +8198,7 @@
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
-                "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
-                "integrations": "#/$defs/IntegrationToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -8313,7 +8208,6 @@
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
-                "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -8331,25 +8225,13 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/AgentManagementToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ToolManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
               },
               {
-                "$ref": "#/$defs/HistoryToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/SkillsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/IntegrationToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CodeToolsetConfig"
@@ -9095,6 +8977,12 @@
             "string",
             "null"
           ]
+        },
+        "auto_approve": {
+          "default": false,
+          "description": "Automatically accept all actions (YOLO mode).",
+          "title": "Auto Approve",
+          "type": "boolean"
         },
         "sandbox_permissions": {
           "anyOf": [
@@ -10953,12 +10841,6 @@
           "description": "Debug toolset.",
           "title": "Type",
           "type": "string"
-        },
-        "install_log_handler": {
-          "default": true,
-          "description": "Whether to install the memory log handler for log inspection.",
-          "title": "Install log handler",
-          "type": "boolean"
         }
       },
       "title": "DebugToolsetConfig",
@@ -15269,6 +15151,21 @@
           ],
           "title": "Edit tool variant",
           "type": "string"
+        },
+        "max_image_size": {
+          "anyOf": [
+            {
+              "maximum": 8192,
+              "minimum": 100,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 2000,
+          "description": "Max width/height for images in pixels. Larger images are auto-resized\nfor better model compatibility. Set to None to disable resizing.",
+          "title": "Maximum image dimension"
         }
       },
       "title": "FSSpecToolsetConfig",
@@ -16832,7 +16729,6 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "agent_management": "#/$defs/AgentManagementToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
@@ -16842,9 +16738,7 @@
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
-                "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
-                "integrations": "#/$defs/IntegrationToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -16854,7 +16748,6 @@
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
-                "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -16872,25 +16765,13 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/AgentManagementToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ToolManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
               },
               {
-                "$ref": "#/$defs/HistoryToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/SkillsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/IntegrationToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CodeToolsetConfig"
@@ -18164,7 +18045,7 @@
     },
     "GeminiACPAgentConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Gemini CLI via ACP.\n\nProvides typed settings for the gemini CLI with ACP support.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: gemini\n        cwd: /path/to/project\n        model: gemini-2.5-pro\n        approval_mode: auto_edit\n        allowed_tools:\n          - read_file\n          - write_file\n          - terminal\n    ```",
+      "description": "Configuration for Gemini CLI via ACP.\n\nProvides typed settings for the gemini CLI with ACP support.\n\nNote:\n    Gemini CLI does not support runtime MCP server injection via config.\n    MCP servers must be pre-configured using `gemini mcp add` command.\n\nExample:\n    ```yaml\n    agents:\n      coder:\n        type: acp\n        provider: gemini\n        cwd: /path/to/project\n        model: gemini-2.5-pro\n        approval_mode: auto_edit\n        allowed_tools:\n          - read_file\n          - write_file\n          - terminal\n    ```",
       "properties": {
         "name": {
           "default": null,
@@ -18706,134 +18587,6 @@
           ],
           "title": "System Prompt"
         },
-        "toolsets": {
-          "description": "Toolsets to expose to this ACP agent via MCP bridge.\n\nThese toolsets will be started as an in-process MCP server and made\navailable to the external ACP agent. This allows ACP agents to use\ninternal agentpool toolsets like subagent delegation.",
-          "examples": [
-            [
-              {
-                "type": "subagent"
-              },
-              {
-                "type": "agent_management"
-              }
-            ]
-          ],
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "agent_management": "#/$defs/AgentManagementToolsetConfig",
-                "code": "#/$defs/CodeToolsetConfig",
-                "code_mode": "#/$defs/CodeModeToolsetConfig",
-                "composio": "#/$defs/ComposioToolSetConfig",
-                "config_creation": "#/$defs/ConfigCreationToolsetConfig",
-                "custom": "#/$defs/CustomToolsetConfig",
-                "debug": "#/$defs/DebugToolsetConfig",
-                "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
-                "file_access": "#/$defs/FSSpecToolsetConfig",
-                "history": "#/$defs/HistoryToolsetConfig",
-                "import_tools": "#/$defs/ImportToolsToolsetConfig",
-                "integrations": "#/$defs/IntegrationToolsetConfig",
-                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
-                "notifications": "#/$defs/NotificationsToolsetConfig",
-                "openapi": "#/$defs/OpenAPIToolsetConfig",
-                "plan": "#/$defs/PlanToolsetConfig",
-                "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
-                "search": "#/$defs/SearchToolsetConfig",
-                "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
-                "skills": "#/$defs/SkillsToolsetConfig",
-                "subagent": "#/$defs/SubagentToolsetConfig",
-                "tool_management": "#/$defs/ToolManagementToolsetConfig",
-                "user_interaction": "#/$defs/UserInteractionToolsetConfig",
-                "vfs": "#/$defs/VFSToolsetConfig",
-                "workers": "#/$defs/WorkersToolsetConfig"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/OpenAPIToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/EntryPointToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ComposioToolSetConfig"
-              },
-              {
-                "$ref": "#/$defs/AgentManagementToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ToolManagementToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/UserInteractionToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/HistoryToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/SkillsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/IntegrationToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/CodeToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/FSSpecToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/VFSToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/SubagentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/WorkersToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/CodeModeToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/SearchToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/NotificationsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/SemanticMemoryToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ConfigCreationToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ImportToolsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/PlanToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/DebugToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/CustomToolsetConfig"
-              }
-            ]
-          },
-          "title": "Toolsets",
-          "type": "array"
-        },
         "provider": {
           "const": "gemini",
           "default": "gemini",
@@ -18882,10 +18635,10 @@
           "title": "Sandbox",
           "type": "boolean"
         },
-        "yolo": {
+        "auto_approve": {
           "default": false,
           "description": "Automatically accept all actions.",
-          "title": "YOLO",
+          "title": "Auto Approve",
           "type": "boolean"
         },
         "allowed_tools": {
@@ -20504,58 +20257,6 @@
       "title": "Hadoop Configuration",
       "type": "object"
     },
-    "HistoryToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for history toolset.",
-      "properties": {
-        "namespace": {
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "examples": [
-            "web",
-            "files"
-          ],
-          "title": "Tool namespace",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "type": {
-          "const": "history",
-          "default": "history",
-          "description": "History toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "tools": {
-          "anyOf": [
-            {
-              "additionalProperties": {
-                "type": "boolean"
-              },
-              "propertyNames": {
-                "enum": [
-                  "search_history",
-                  "show_statistics"
-                ]
-              },
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional tool filter to enable/disable specific tools.",
-          "title": "Tool filter"
-        }
-      },
-      "title": "HistoryToolsetConfig",
-      "type": "object",
-      "x-doc-title": "History Toolset",
-      "x-icon": "octicon:history-16"
-    },
     "HooksConfig": {
       "additionalProperties": false,
       "description": "Configuration for agent lifecycle hooks.\n\nHooks allow intercepting and customizing agent behavior at key points\nin the execution lifecycle. They can add context, block operations,\nmodify inputs, or trigger side effects.\n\nCurrently supported events:\n- pre_run / post_run: Before/after agent.run() processes a prompt\n- pre_tool_use / post_tool_use: Before/after a tool is called",
@@ -21536,58 +21237,6 @@
       "title": "InputModelConfig",
       "type": "object",
       "x-doc-title": "Input model"
-    },
-    "IntegrationToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for integration toolset.",
-      "properties": {
-        "namespace": {
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "examples": [
-            "web",
-            "files"
-          ],
-          "title": "Tool namespace",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "type": {
-          "const": "integrations",
-          "default": "integrations",
-          "description": "Integration toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "tools": {
-          "anyOf": [
-            {
-              "additionalProperties": {
-                "type": "boolean"
-              },
-              "propertyNames": {
-                "enum": [
-                  "add_local_mcp_server",
-                  "add_remote_mcp_server"
-                ]
-              },
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional tool filter to enable/disable specific tools.",
-          "title": "Tool filter"
-        }
-      },
-      "title": "IntegrationToolsetConfig",
-      "type": "object",
-      "x-doc-title": "Integration Toolset",
-      "x-icon": "octicon:link-16"
     },
     "JigsawStackConfig": {
       "additionalProperties": false,
@@ -22670,7 +22319,6 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "agent_management": "#/$defs/AgentManagementToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
@@ -22680,9 +22328,7 @@
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
-                "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
-                "integrations": "#/$defs/IntegrationToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -22692,7 +22338,6 @@
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
-                "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -22710,25 +22355,13 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/AgentManagementToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ToolManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
               },
               {
-                "$ref": "#/$defs/HistoryToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/SkillsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/IntegrationToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CodeToolsetConfig"
@@ -22841,10 +22474,10 @@
             "null"
           ]
         },
-        "yolo": {
+        "auto_approve": {
           "default": false,
           "description": "Automatically approve all actions.",
-          "title": "YOLO",
+          "title": "Auto Approve",
           "type": "boolean"
         },
         "thinking": {
@@ -27638,7 +27271,6 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "agent_management": "#/$defs/AgentManagementToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
@@ -27648,9 +27280,7 @@
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
-                "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
-                "integrations": "#/$defs/IntegrationToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -27660,7 +27290,6 @@
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
-                "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -27678,25 +27307,13 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/AgentManagementToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ToolManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
               },
               {
-                "$ref": "#/$defs/HistoryToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/SkillsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/IntegrationToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CodeToolsetConfig"
@@ -28082,15 +27699,14 @@
             }
           ],
           "default": null,
-          "description": "List of model providers to use for model discovery.\n\nWhen set, the agent's get_available_models() will return models from these\nproviders. Common values: \"openai\", \"anthropic\", \"gemini\", \"mistral\", etc.\nIf not set, defaults to [\"openai\", \"anthropic\", \"gemini\"].",
+          "description": "List of model providers to use for model discovery.\n\nWhen set, the agent's get_available_models() will return models from these\nproviders. Common values: \"openai\", \"anthropic\", \"gemini\", \"mistral\", etc.\nIf not set, defaults to [\"models.dev\"].",
           "examples": [
             [
-              "openai",
-              "anthropic",
-              "gemini"
+              "models.dev"
             ],
             [
-              "anthropic"
+              "anthropic",
+              "openai"
             ]
           ],
           "title": "Model providers"
@@ -30978,6 +30594,17 @@
           "title": "Type",
           "type": "string"
         },
+        "mode": {
+          "default": "granular",
+          "description": "Tool mode:\n- 'granular': Separate tools (get/add/update/remove) - better for simpler models\n- 'declarative': Single set_plan tool with full list - fewer calls, suits capable models\n- 'hybrid': Both approaches available - model chooses most efficient per situation",
+          "enum": [
+            "granular",
+            "declarative",
+            "hybrid"
+          ],
+          "title": "Plan tool mode",
+          "type": "string"
+        },
         "tools": {
           "anyOf": [
             {
@@ -32365,7 +31992,6 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "agent_management": "#/$defs/AgentManagementToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
@@ -32375,9 +32001,7 @@
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
                 "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
-                "history": "#/$defs/HistoryToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
-                "integrations": "#/$defs/IntegrationToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                 "notifications": "#/$defs/NotificationsToolsetConfig",
                 "openapi": "#/$defs/OpenAPIToolsetConfig",
@@ -32387,7 +32011,6 @@
                 "semantic_memory": "#/$defs/SemanticMemoryToolsetConfig",
                 "skills": "#/$defs/SkillsToolsetConfig",
                 "subagent": "#/$defs/SubagentToolsetConfig",
-                "tool_management": "#/$defs/ToolManagementToolsetConfig",
                 "user_interaction": "#/$defs/UserInteractionToolsetConfig",
                 "vfs": "#/$defs/VFSToolsetConfig",
                 "workers": "#/$defs/WorkersToolsetConfig"
@@ -32405,25 +32028,13 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/AgentManagementToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/ToolManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
               },
               {
-                "$ref": "#/$defs/HistoryToolsetConfig"
-              },
-              {
                 "$ref": "#/$defs/SkillsToolsetConfig"
-              },
-              {
-                "$ref": "#/$defs/IntegrationToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CodeToolsetConfig"
@@ -33366,6 +32977,57 @@
           "exclusiveMinimum": 0,
           "title": "Server timeout",
           "type": "number"
+        },
+        "enabled_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "If set, only these tools will be available (whitelist).\nMutually exclusive with disabled_tools.",
+          "examples": [
+            [
+              "read_file",
+              "list_directory"
+            ],
+            [
+              "search",
+              "fetch"
+            ]
+          ],
+          "title": "Enabled tools"
+        },
+        "disabled_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tools to exclude from this server (blacklist). Mutually exclusive with enabled_tools.",
+          "examples": [
+            [
+              "delete_file",
+              "write_file"
+            ],
+            [
+              "dangerous_tool"
+            ]
+          ],
+          "title": "Disabled tools"
         },
         "url": {
           "description": "URL of the SSE server endpoint.",
@@ -36525,6 +36187,57 @@
           "title": "Server timeout",
           "type": "number"
         },
+        "enabled_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "If set, only these tools will be available (whitelist).\nMutually exclusive with disabled_tools.",
+          "examples": [
+            [
+              "read_file",
+              "list_directory"
+            ],
+            [
+              "search",
+              "fetch"
+            ]
+          ],
+          "title": "Enabled tools"
+        },
+        "disabled_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tools to exclude from this server (blacklist). Mutually exclusive with enabled_tools.",
+          "examples": [
+            [
+              "delete_file",
+              "write_file"
+            ],
+            [
+              "dangerous_tool"
+            ]
+          ],
+          "title": "Disabled tools"
+        },
         "command": {
           "description": "Command to execute (e.g. \"pipx\", \"python\", \"node\").",
           "examples": [
@@ -37596,6 +37309,57 @@
           "exclusiveMinimum": 0,
           "title": "Server timeout",
           "type": "number"
+        },
+        "enabled_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "If set, only these tools will be available (whitelist).\nMutually exclusive with disabled_tools.",
+          "examples": [
+            [
+              "read_file",
+              "list_directory"
+            ],
+            [
+              "search",
+              "fetch"
+            ]
+          ],
+          "title": "Enabled tools"
+        },
+        "disabled_tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Tools to exclude from this server (blacklist). Mutually exclusive with enabled_tools.",
+          "examples": [
+            [
+              "delete_file",
+              "write_file"
+            ],
+            [
+              "dangerous_tool"
+            ]
+          ],
+          "title": "Disabled tools"
         },
         "url": {
           "description": "URL of the HTTP server endpoint.",
@@ -39960,58 +39724,6 @@
       "title": "ToolHints",
       "type": "object"
     },
-    "ToolManagementToolsetConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for tool management toolset.",
-      "properties": {
-        "namespace": {
-          "default": null,
-          "description": "Optional namespace prefix for tool names",
-          "examples": [
-            "web",
-            "files"
-          ],
-          "title": "Tool namespace",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "type": {
-          "const": "tool_management",
-          "default": "tool_management",
-          "description": "Tool management toolset.",
-          "title": "Type",
-          "type": "string"
-        },
-        "tools": {
-          "anyOf": [
-            {
-              "additionalProperties": {
-                "type": "boolean"
-              },
-              "propertyNames": {
-                "enum": [
-                  "register_tool",
-                  "register_code_tool"
-                ]
-              },
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional tool filter to enable/disable specific tools.",
-          "title": "Tool filter"
-        }
-      },
-      "title": "ToolManagementToolsetConfig",
-      "type": "object",
-      "x-doc-title": "Tool Management Toolset",
-      "x-icon": "octicon:tools-16"
-    },
     "TreeSitterFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for tree-sitter code structure filesystem.",
@@ -42025,10 +41737,10 @@
             "null"
           ]
         },
-        "skip_confirmations": {
+        "auto_approve": {
           "default": false,
           "description": "Skip safety confirmations.",
-          "title": "Skip Confirmations",
+          "title": "Auto Approve",
           "type": "boolean"
         },
         "full_auto": {
@@ -43852,10 +43564,10 @@
                   "$ref": "#/$defs/CursorACPAgentConfig"
                 },
                 {
-                  "$ref": "#/$defs/ClaudeACPAgentConfig"
+                  "$ref": "#/$defs/GeminiACPAgentConfig"
                 },
                 {
-                  "$ref": "#/$defs/GeminiACPAgentConfig"
+                  "$ref": "#/$defs/ClaudeACPAgentConfig"
                 },
                 {
                   "$ref": "#/$defs/FastAgentACPAgentConfig"
@@ -43941,10 +43653,10 @@
                 "$ref": "#/$defs/CursorACPAgentConfig"
               },
               {
-                "$ref": "#/$defs/ClaudeACPAgentConfig"
+                "$ref": "#/$defs/GeminiACPAgentConfig"
               },
               {
-                "$ref": "#/$defs/GeminiACPAgentConfig"
+                "$ref": "#/$defs/ClaudeACPAgentConfig"
               },
               {
                 "$ref": "#/$defs/FastAgentACPAgentConfig"
