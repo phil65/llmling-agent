@@ -136,8 +136,8 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | [x] | POST | `/lsp/start` | Start an LSP server |
 | [x] | POST | `/lsp/stop` | Stop an LSP server |
 | [x] | GET | `/lsp/servers` | List available LSP servers |
-| [x] | GET | `/lsp/diagnostics` | Get LSP diagnostics |
-| [~] | GET | `/formatter` | Get formatter status |
+| [x] | GET | `/lsp/diagnostics` | Get LSP diagnostics (CLI-based) |
+| [x] | GET | `/formatter` | Get formatter status (stub) |
 | [~] | GET | `/mcp` | Get MCP server status |
 | [x] | POST | `/mcp` | Add MCP server dynamically |
 

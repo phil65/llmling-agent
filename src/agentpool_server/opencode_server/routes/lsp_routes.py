@@ -8,11 +8,58 @@ from __future__ import annotations
 
 from contextlib import suppress
 import os
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
 from agentpool_server.opencode_server.models.events import LspStatus, LspUpdatedEvent
+
+
+# =============================================================================
+# Diagnostic Models (matching OpenCode's LSP diagnostic format)
+# =============================================================================
+
+
+class DiagnosticPosition(BaseModel):
+    """Position in a text document."""
+
+    line: int
+    character: int
+
+
+class DiagnosticRange(BaseModel):
+    """Range in a text document."""
+
+    start: DiagnosticPosition
+    end: DiagnosticPosition
+
+
+class Diagnostic(BaseModel):
+    """LSP Diagnostic matching vscode-languageserver-types format."""
+
+    range: DiagnosticRange
+    message: str
+    severity: int | None = None  # 1=Error, 2=Warning, 3=Info, 4=Hint
+    code: str | int | None = None
+    source: str | None = None
+
+
+class FormatterStatus(BaseModel):
+    """Formatter status information."""
+
+    id: str
+    """Formatter identifier."""
+
+    name: str
+    """Formatter name."""
+
+    root: str
+    """Workspace root path."""
+
+    status: Literal["connected", "error"]
+    """Connection status."""
 
 
 router = APIRouter(tags=["lsp"])
@@ -145,35 +192,80 @@ async def stop_lsp_server(
 async def get_diagnostics(
     state: StateDep,
     path: str | None = Query(None, description="File path to get diagnostics for"),
-) -> dict[str, list[dict[str, object]]]:
+) -> dict[str, list[Diagnostic]]:
     """Get diagnostics from all active LSP servers.
 
     Returns diagnostics organized by file path. If a specific path is provided,
-    returns diagnostics only for that file.
+    returns diagnostics only for that file using CLI diagnostics.
+
+    This uses CLI-based diagnostic tools (pyright, mypy, etc.) which are more
+    reliable for on-demand checks than the LSP push model.
 
     Args:
         state: Server state dependency (injected).
-        path: Optional file path to filter diagnostics.
+        path: Optional file path to get diagnostics for.
 
     Returns:
         Dictionary mapping file paths to lists of diagnostic objects.
     """
-    # Validate we have LSP capability
     try:
-        _ = state.get_or_create_lsp_manager()
+        lsp_manager = state.get_or_create_lsp_manager()
     except RuntimeError:
         return {}
 
-    # Collect diagnostics from all servers
-    # Note: Full LSP diagnostics require the server to have processed files
-    # via textDocument/didOpen. For now, return empty dict as diagnostics
-    # are pushed via events, not pulled.
-    #
-    # In the future, this could aggregate diagnostics from CLI tools
-    # using run_cli_diagnostics() for on-demand checks.
-    _ = path  # Reserved for future filtering
+    results: dict[str, list[Diagnostic]] = {}
 
-    return {}
+    # If a specific path is provided, run CLI diagnostics for it
+    if path:
+        # Make path absolute if needed
+        if not os.path.isabs(path):
+            path = os.path.join(state.working_dir, path)
+
+        # Find the appropriate server for this file
+        server_info = lsp_manager.get_server_for_file(path)
+        if server_info and server_info.has_cli_diagnostics:
+            try:
+                result = await lsp_manager.run_cli_diagnostics(server_info.id, [path])
+                if result.success and result.diagnostics:
+                    for diag in result.diagnostics:
+                        file_path = diag.file or path
+                        if file_path not in results:
+                            results[file_path] = []
+                        # Convert from 1-based (CLI tools) to 0-based (LSP)
+                        results[file_path].append(
+                            Diagnostic(
+                                range=DiagnosticRange(
+                                    start=DiagnosticPosition(
+                                        line=max(0, diag.line - 1),
+                                        character=max(0, diag.column - 1),
+                                    ),
+                                    end=DiagnosticPosition(
+                                        line=max(0, (diag.end_line or diag.line) - 1),
+                                        character=max(0, (diag.end_column or diag.column) - 1),
+                                    ),
+                                ),
+                                message=diag.message,
+                                severity=_severity_to_lsp(diag.severity),
+                                code=diag.code,
+                                source=diag.source or server_info.id,
+                            )
+                        )
+            except Exception:  # noqa: BLE001
+                # CLI diagnostics failed, return empty
+                pass
+
+    return results
+
+
+def _severity_to_lsp(severity: str) -> int:
+    """Convert severity string to LSP severity number."""
+    mapping = {
+        "error": 1,
+        "warning": 2,
+        "info": 3,
+        "hint": 4,
+    }
+    return mapping.get(severity.lower(), 1)
 
 
 @router.get("/lsp/servers")
@@ -200,3 +292,28 @@ async def list_available_servers(state: StateDep) -> list[dict[str, object]]:
         })
 
     return servers
+
+
+# =============================================================================
+# Formatter Routes
+# =============================================================================
+
+
+@router.get("/formatter")
+async def list_formatters(state: StateDep) -> list[FormatterStatus]:
+    """List all active formatters.
+
+    Returns the status of all running formatters, including their
+    connection state and workspace root.
+
+    Note: This is currently a stub that returns an empty list.
+    Formatter support can be added in the future.
+
+    Returns:
+        List of formatter status objects.
+    """
+    # Stub implementation - formatters not yet implemented
+    # OpenCode has formatters like prettier, biome, etc.
+    # For now, return empty list
+    _ = state  # Reserved for future use
+    return []
