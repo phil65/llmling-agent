@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from platformdirs import user_log_path
 import typer as t
@@ -75,7 +75,7 @@ def acp_command(
         ),
     ] = True,
     transport: Annotated[
-        str,
+        Literal["stdio", "websocket"],
         t.Option(
             "--transport",
             "-t",
@@ -120,6 +120,7 @@ def acp_command(
     """
     from acp import StdioTransport, WebSocketTransport
     from agentpool import log
+    from agentpool.config_resources import ACP_ASSISTANT
     from agentpool_server.acp_server import ACPServer
 
     # Build transport config
@@ -159,8 +160,6 @@ def acp_command(
         )
     else:
         # Use default ACP assistant config
-        from agentpool.config_resources import ACP_ASSISTANT
-
         logger.info("Starting ACP server with default configuration", transport=transport)
         acp_server = ACPServer.from_config(
             ACP_ASSISTANT,
