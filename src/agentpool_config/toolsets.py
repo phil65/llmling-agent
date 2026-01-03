@@ -53,6 +53,7 @@ UserInteractionToolName = Literal["ask_user",]
 SkillsToolName = Literal["load_skill", "list_skills"]
 CodeToolName = Literal["format_code", "ast_grep"]
 PlanToolName = Literal["get_plan", "add_plan_entry", "update_plan_entry", "remove_plan_entry"]
+PlanToolMode = Literal["granular", "declarative", "hybrid"]
 
 
 class BaseToolsetConfig(Schema):
@@ -834,6 +835,16 @@ class PlanToolsetConfig(BaseToolsetConfig):
     type: Literal["plan"] = Field("plan", init=False)
     """Plan toolset."""
 
+    mode: PlanToolMode = Field(
+        default="granular",
+        title="Plan tool mode",
+    )
+    """Tool mode:
+    - 'granular': Separate tools (get/add/update/remove) - better for simpler models
+    - 'declarative': Single set_plan tool with full list - fewer calls, suits capable models
+    - 'hybrid': Both approaches available - model chooses most efficient per situation
+    """
+
     tools: dict[PlanToolName, bool] | None = Field(
         default=None,
         title="Tool filter",
@@ -844,7 +855,7 @@ class PlanToolsetConfig(BaseToolsetConfig):
         """Create plan tools provider."""
         from agentpool.resource_providers import PlanProvider
 
-        provider = PlanProvider()
+        provider = PlanProvider(mode=self.mode)
         if self.tools is not None:
             from agentpool.resource_providers import FilteringResourceProvider
 

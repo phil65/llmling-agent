@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.resource_providers import ResourceProvider
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 # Keep PlanEntry for backward compatibility with event emitting
 PlanEntryPriority = Literal["high", "medium", "low"]
 PlanEntryStatus = Literal["pending", "in_progress", "completed"]
+PlanToolMode = Literal["granular", "declarative", "hybrid"]
 
 
 @dataclass(kw_only=True)
@@ -58,9 +59,15 @@ class PlanProvider(ResourceProvider):
 
     kind = "tools"
 
-    def __init__(self) -> None:
-        """Initialize plan provider."""
+    def __init__(self, mode: PlanToolMode = "granular") -> None:
+        """Initialize plan provider.
+
+        Args:
+            mode: Tool mode - 'granular' for separate tools, 'declarative' for
+                  single set_plan tool, 'hybrid' for both approaches.
+        """
         super().__init__(name="plan")
+        self.mode = mode
 
     def _get_tracker(self, agent_ctx: AgentContext) -> TodoTracker | None:
         """Get the TodoTracker from the pool."""
@@ -69,13 +76,29 @@ class PlanProvider(ResourceProvider):
         return None
 
     async def get_tools(self) -> list[Tool]:
-        """Get plan management tools."""
-        return [
-            self.create_tool(self.get_plan, category="read"),
-            self.create_tool(self.add_plan_entry, category="other"),
-            self.create_tool(self.update_plan_entry, category="edit"),
-            self.create_tool(self.remove_plan_entry, category="delete"),
-        ]
+        """Get plan management tools based on mode."""
+        tools: list[Tool] = [self.create_tool(self.get_plan, category="read")]
+
+        if self.mode == "declarative":
+            # Single bulk tool for capable models
+            tools.append(self.create_tool(self.set_plan, category="other"))
+        elif self.mode == "hybrid":
+            # Both approaches - model chooses
+            tools.extend([
+                self.create_tool(self.set_plan, category="other"),
+                self.create_tool(self.add_plan_entry, category="other"),
+                self.create_tool(self.update_plan_entry, category="edit"),
+                self.create_tool(self.remove_plan_entry, category="delete"),
+            ])
+        else:
+            # granular mode (default) - separate tools for simpler models
+            tools.extend([
+                self.create_tool(self.add_plan_entry, category="other"),
+                self.create_tool(self.update_plan_entry, category="edit"),
+                self.create_tool(self.remove_plan_entry, category="delete"),
+            ])
+
+        return tools
 
     async def get_plan(self, agent_ctx: AgentContext) -> str:
         """Get the current plan formatted as markdown.
@@ -107,6 +130,47 @@ class PlanProvider(ResourceProvider):
             lines.append(f"{i}. {icon} {priority} {entry.content} *({entry.status})*")
 
         return "\n".join(lines)
+
+    async def set_plan(
+        self,
+        agent_ctx: AgentContext,
+        entries: list[dict[str, Any]],
+    ) -> str:
+        """Replace the entire plan with new entries (declarative/bulk update).
+
+        This is more efficient than multiple add/update calls when setting
+        or significantly modifying the plan.
+
+        Args:
+            agent_ctx: Agent execution context
+            entries: List of plan entries, each with:
+                - content (str, required): Task description
+                - priority (str, optional): "high", "medium", or "low" (default: "medium")
+                - status (str, optional): "pending", "in_progress", or "completed"
+                  (default: "pending")
+
+        Returns:
+            Success message indicating plan was updated
+        """
+        tracker = self._get_tracker(agent_ctx)
+        if tracker is None:
+            return "Error: No pool available for plan tracking"
+
+        # Clear existing entries
+        tracker.clear()
+
+        # Add all new entries
+        for entry in entries:
+            content = entry.get("content", "")
+            if not content:
+                continue
+            priority = entry.get("priority", "medium")
+            status = entry.get("status", "pending")
+            tracker.add(content, priority=priority, status=status)
+
+        await self._emit_plan_update(agent_ctx)
+
+        return f"Plan updated with {len(tracker.entries)} entries"
 
     async def add_plan_entry(
         self,
