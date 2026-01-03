@@ -66,6 +66,12 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
     )
     """Model override."""
 
+    auto_approve: bool = Field(
+        default=False,
+        title="Auto Approve",
+    )
+    """Automatically accept all actions (YOLO mode)."""
+
     sandbox_permissions: list[str] | None = Field(
         default=None,
         title="Sandbox Permissions",
@@ -99,6 +105,8 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
                 "-c",
                 f"shell_environment_policy.inherit={self.shell_environment_policy_inherit}",
             ])
+        if self.auto_approve:
+            args.extend(["-c", "approval_mode=yolo"])
 
         return args
 
@@ -603,7 +611,7 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
     )
     """Configuration file path."""
 
-    skip_confirmations: bool = Field(default=False, title="Skip Confirmations")
+    auto_approve: bool = Field(default=False, title="Auto Approve")
     """Skip safety confirmations."""
 
     full_auto: bool = Field(default=False, title="Full Auto")
@@ -643,7 +651,7 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
             args.extend(["--max-tool-calls", str(self.max_tool_calls)])
         if self.config:
             args.extend(["--config", self.config])
-        if self.skip_confirmations:
+        if self.auto_approve:
             args.append("--skip-confirmations")
         if self.full_auto:
             args.append("--full-auto")
@@ -807,7 +815,7 @@ class GeminiACPAgentConfig(BaseACPAgentConfig):
     sandbox: bool = Field(default=False, title="Sandbox")
     """Run in sandbox mode."""
 
-    yolo: bool = Field(default=False, title="YOLO")
+    auto_approve: bool = Field(default=False, title="Auto Approve")
     """Automatically accept all actions."""
 
     allowed_tools: list[str] | None = Field(
@@ -859,7 +867,7 @@ class GeminiACPAgentConfig(BaseACPAgentConfig):
             args.extend(["--approval-mode", self.approval_mode])
         if self.sandbox:
             args.append("--sandbox")
-        if self.yolo:
+        if self.auto_approve:
             args.append("--yolo")
         if self.allowed_tools:
             args.extend(["--allowed-tools", *self.allowed_tools])

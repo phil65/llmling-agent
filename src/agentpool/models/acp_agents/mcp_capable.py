@@ -211,9 +211,9 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
     )
     """Fallback model when default is overloaded."""
 
-    dangerously_skip_permissions: bool = Field(
+    auto_approve: bool = Field(
         default=False,
-        title="Dangerously Skip Permissions",
+        title="Auto Approve",
     )
     """Bypass all permission checks. Only for sandboxed environments."""
 
@@ -267,7 +267,7 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
                 args.extend(["--tools", ""])
         if self.fallback_model:
             args.extend(["--fallback-model", self.fallback_model])
-        if self.dangerously_skip_permissions:
+        if self.auto_approve:
             args.append("--dangerously-skip-permissions")
         if self.output_type:
             args.extend(["--output-format", "json"])
@@ -606,7 +606,7 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
     )
     """Working directory for the agent."""
 
-    yolo: bool = Field(default=False, title="YOLO")
+    auto_approve: bool = Field(default=False, title="Auto Approve")
     """Automatically approve all actions."""
 
     thinking: bool | None = Field(default=None, title="Thinking")
@@ -636,7 +636,7 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
         if mcp_json:
             args.extend(["--mcp-config", mcp_json])
 
-        if self.yolo:
+        if self.auto_approve:
             args.append("--yolo")
         if self.thinking is not None and self.thinking:
             args.append("--thinking")
