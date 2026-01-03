@@ -84,6 +84,7 @@ class FSSpecTools(ResourceProvider):
         map_max_tokens: int = 2048,
         edit_tool: Literal["simple", "batch", "agentic"] = "simple",
         max_image_size: int | None = 2000,
+        max_image_bytes: int | None = None,
     ) -> None:
         """Initialize with an fsspec filesystem or execution environment.
 
@@ -103,6 +104,9 @@ class FSSpecTools(ResourceProvider):
             edit_tool: Which edit_file variant to expose ("simple" or "batch")
             max_image_size: Max width/height for images in pixels. Larger images are
                 auto-resized for better model compatibility. Set to None to disable.
+            max_image_bytes: Max file size for images in bytes. Images exceeding this
+                are compressed using progressive quality/dimension reduction.
+                Default: 4.5MB (below Anthropic's 5MB limit).
         """
         from fsspec.asyn import AsyncFileSystem
         from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
@@ -135,6 +139,7 @@ class FSSpecTools(ResourceProvider):
         self._repomap: RepoMap | None = None
         self._edit_tool = edit_tool
         self._max_image_size = max_image_size
+        self._max_image_bytes = max_image_bytes
 
     def get_fs(self, agent_ctx: AgentContext) -> AsyncFileSystem:
         """Get filesystem, falling back to agent's env if not set.
@@ -393,7 +398,9 @@ class FSSpecTools(ResourceProvider):
                         resize_image_if_needed,
                     )
 
-                    data, mime, note = resize_image_if_needed(data, mime, self._max_image_size)
+                    data, mime, note = resize_image_if_needed(
+                        data, mime, self._max_image_size, self._max_image_bytes
+                    )
                     if note:
                         # Return resized image with dimension note for coordinate mapping
                         return [note, BinaryContent(data=data, media_type=mime, identifier=path)]
@@ -410,7 +417,9 @@ class FSSpecTools(ResourceProvider):
                         resize_image_if_needed,
                     )
 
-                    data, mime, note = resize_image_if_needed(data, mime, self._max_image_size)
+                    data, mime, note = resize_image_if_needed(
+                        data, mime, self._max_image_size, self._max_image_bytes
+                    )
                     if note:
                         return [note, BinaryContent(data=data, media_type=mime, identifier=path)]
                 return BinaryContent(data=data, media_type=mime, identifier=path)

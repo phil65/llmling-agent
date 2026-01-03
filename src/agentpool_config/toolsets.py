@@ -491,6 +491,16 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
     """Max width/height for images in pixels. Larger images are auto-resized
     for better model compatibility. Set to None to disable resizing."""
 
+    max_image_bytes: int | None = Field(
+        default=None,
+        ge=102400,
+        le=20971520,
+        title="Maximum image file size",
+    )
+    """Max file size for images in bytes. Images exceeding this are compressed
+    using progressive quality/dimension reduction. Default: 4.5MB (Anthropic limit).
+    Set to None to use the default 4.5MB limit."""
+
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
         import fsspec
@@ -527,6 +537,7 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
             map_max_tokens=self.map_max_tokens,
             edit_tool=self.edit_tool,
             max_image_size=self.max_image_size,
+            max_image_bytes=self.max_image_bytes,
         )
 
 
