@@ -109,6 +109,8 @@ def create_app(  # noqa: PLR0915
         ValueError: If specified agent_name not found or pool has no agents.
     """
     # Resolve the agent from the pool
+    import logfire
+
     if agent_name:
         agent = pool.all_agents.get(agent_name)
         if agent is None:
@@ -289,6 +291,7 @@ def create_app(  # noqa: PLR0915
         """Redirect to OpenAPI docs."""
         return RedirectResponse(url="/docs")
 
+    logfire.instrument_fastapi(app)
     return app
 
 
