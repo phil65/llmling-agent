@@ -40,7 +40,7 @@ SubagentToolName = Literal[
 ]
 ExecutionEnvironmentToolName = Literal[
     "execute_code",
-    "execute_command",
+    "bash",
     "start_process",
     "get_process_output",
     "wait_for_process",

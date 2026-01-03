@@ -276,7 +276,7 @@ async def test_execute_command(
 ):
     """Test executing a command directly."""
     tools = await execution_tools.get_tools()
-    cmd_tool = next(tool for tool in tools if tool.name == "execute_command")
+    cmd_tool = next(tool for tool in tools if tool.name == "bash")
 
     result = await cmd_tool.execute(
         agent_ctx=agent_ctx,

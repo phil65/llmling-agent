@@ -131,7 +131,7 @@ def generate_tool_title(tool_name: str, tool_input: dict[str, Any]) -> str:  # n
         return f"Editing: {path}"
 
     # Command/script execution - show the command
-    if any(k in name_lower for k in ["command", "execute", "run", "shell", "script"]) and (
+    if any(k in name_lower for k in ["command", "execute", "run", "shell", "script", "bash"]) and (
         cmd := tool_input.get("command")
     ):
         # Truncate long commands
@@ -244,7 +244,7 @@ def infer_tool_kind(tool_name: str) -> ToolCallKind:  # noqa: PLR0911
         return "move"
     if any(i in name_lower for i in ["search", "find", "query", "lookup"]):
         return "search"
-    if any(i in name_lower for i in ["execute", "run", "exec", "command", "shell"]):
+    if any(i in name_lower for i in ["execute", "run", "exec", "command", "shell", "bash"]):
         return "execute"
     if any(i in name_lower for i in ["think", "plan", "reason", "analyze"]):
         return "think"

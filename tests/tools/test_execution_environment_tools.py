@@ -166,7 +166,7 @@ class TestCodeExecution:
         )
         tools = ExecutionEnvironmentTools(env=env)
 
-        result = await tools.execute_command(agent_ctx, "echo hello world")
+        result = await tools.bash(agent_ctx, "echo hello world")
         # Tools now return formatted strings
         assert isinstance(result, str)
         assert "hello world" in result
@@ -194,7 +194,7 @@ class TestCodeExecution:
         )
         tools = ExecutionEnvironmentTools(env=env)
 
-        result = await tools.execute_command(agent_ctx, "echo", output_limit=100)
+        result = await tools.bash(agent_ctx, "echo", output_limit=100)
         # Tools now return formatted strings
         assert isinstance(result, str)
         # Output should be truncated
@@ -500,3 +500,7 @@ class TestEdgeCases:
         # Tools now return formatted strings
         assert isinstance(result, str)
         assert "Killed" in result
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-vv"])

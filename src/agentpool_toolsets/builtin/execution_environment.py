@@ -55,7 +55,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
         return [
             # Code execution tools
             self.create_tool(self.execute_code, category="execute"),
-            self.create_tool(self.execute_command, category="execute", open_world=True),
+            self.create_tool(self.bash, category="execute", open_world=True),
             # Process management tools
             self.create_tool(self.start_process, category="execute", open_world=True),
             self.create_tool(
@@ -124,7 +124,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 return f"{combined_output}\n\nExit code: {exit_code}"
             return combined_output
 
-    async def execute_command(  # noqa: PLR0915, D417
+    async def bash(  # noqa: PLR0915, D417
         self,
         agent_ctx: AgentContext,
         command: str,

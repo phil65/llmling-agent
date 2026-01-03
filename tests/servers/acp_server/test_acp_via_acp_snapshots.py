@@ -165,7 +165,7 @@ class TestExecuteCommandViaACP:
         toolset = ExecutionEnvironmentToolsetConfig(environment=mock_env)
 
         events = await harness.execute_tool(
-            tool_name="execute_command",
+            tool_name="bash",
             tool_args={"command": "echo hello"},
             toolsets=[toolset],
         )

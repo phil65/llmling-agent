@@ -10,7 +10,7 @@
       "sessionUpdate": "tool_call",
       "status": "pending",
       "title": "Running: cat bigfile",
-      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+      "toolCallId": "pyd_ai_tool_call_id__bash"
     },
     "type": "tool_call"
   },
@@ -25,7 +25,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Running: cat bigfile",
-      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+      "toolCallId": "pyd_ai_tool_call_id__bash"
     },
     "type": "tool_call_update"
   },
@@ -40,7 +40,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Output: line\nline\nline\nline\nline\nline\nline\nline\nline\nline\n...",
-      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+      "toolCallId": "pyd_ai_tool_call_id__bash"
     },
     "type": "tool_call_update"
   },
@@ -62,7 +62,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Process exited [✓ exit 0]",
-      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+      "toolCallId": "pyd_ai_tool_call_id__bash"
     },
     "type": "tool_call_update"
   },
@@ -71,7 +71,7 @@
       "rawOutput": "...[truncated]\nline\nline\nline\nline\nline\nline\nline\nline\nline\nline\n\n\n[output truncated]",
       "sessionUpdate": "tool_call_update",
       "status": "completed",
-      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+      "toolCallId": "pyd_ai_tool_call_id__bash"
     },
     "type": "tool_call_update"
   }

@@ -9,7 +9,7 @@
       "sessionUpdate": "tool_call",
       "status": "pending",
       "title": "Running: ls /nonexistent",
-      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+      "toolCallId": "pyd_ai_tool_call_id__bash"
     },
     "type": "tool_call"
   },
@@ -24,7 +24,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Running: ls /nonexistent",
-      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+      "toolCallId": "pyd_ai_tool_call_id__bash"
     },
     "type": "tool_call_update"
   },
@@ -39,7 +39,7 @@
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Output: ls: cannot access '/nonexistent': No such file or ...",
-      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+      "toolCallId": "pyd_ai_tool_call_id__bash"
     },
     "type": "tool_call_update"
   },
@@ -48,7 +48,7 @@
       "rawOutput": "ls: cannot access '/nonexistent': No such file or directory\n\n\nError: Command failed\nExit code: 2",
       "sessionUpdate": "tool_call_update",
       "status": "completed",
-      "toolCallId": "pyd_ai_tool_call_id__execute_command"
+      "toolCallId": "pyd_ai_tool_call_id__bash"
     },
     "type": "tool_call_update"
   }

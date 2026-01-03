@@ -187,7 +187,7 @@ class TestExecuteCommandSnapshots:
         )
 
         messages = await harness.execute_tool(
-            tool_name="execute_command",
+            tool_name="bash",
             tool_args={"command": "echo hello"},
             toolsets=[ExecutionEnvironmentToolsetConfig()],
         )
@@ -211,7 +211,7 @@ class TestExecuteCommandSnapshots:
         )
 
         messages = await harness.execute_tool(
-            tool_name="execute_command",
+            tool_name="bash",
             tool_args={"command": "ls /nonexistent"},
             toolsets=[ExecutionEnvironmentToolsetConfig()],
         )
@@ -230,7 +230,7 @@ class TestExecuteCommandSnapshots:
         )
 
         messages = await harness.execute_tool(
-            tool_name="execute_command",
+            tool_name="bash",
             tool_args={"command": "cat bigfile", "output_limit": 50},
             toolsets=[ExecutionEnvironmentToolsetConfig()],
         )
