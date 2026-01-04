@@ -86,7 +86,7 @@ class Tool[TOutputType = Any]:
     __repr__ = dataclasses_no_defaults_repr
 
     @abstractmethod
-    def get_callable(self) -> Callable[..., TOutputType]:
+    def get_callable(self) -> Callable[..., TOutputType | Awaitable[TOutputType]]:
         """Get the callable for this tool. Subclasses must implement."""
         ...
 
@@ -236,10 +236,10 @@ class Tool[TOutputType = Any]:
 class FunctionTool[TOutputType = Any](Tool[TOutputType]):
     """Tool wrapping a plain callable function."""
 
-    callable: Callable[..., TOutputType] = field(default=lambda: None)  # type: ignore[assignment]
+    callable: Callable[..., TOutputType | Awaitable[TOutputType]] = field(default=lambda: None)  # type: ignore[assignment]
     """The actual tool implementation."""
 
-    def get_callable(self) -> Callable[..., TOutputType]:
+    def get_callable(self) -> Callable[..., TOutputType | Awaitable[TOutputType]]:
         """Return the wrapped callable."""
         return self.callable
 

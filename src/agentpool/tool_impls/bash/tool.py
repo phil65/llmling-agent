@@ -1,0 +1,127 @@
+"""Bash command execution tool."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+import uuid
+
+from exxec.events import (
+    OutputEvent,
+    ProcessCompletedEvent,
+    ProcessErrorEvent,
+    ProcessStartedEvent,
+)
+
+from agentpool.agents.context import AgentContext  # noqa: TC001
+from agentpool.log import get_logger
+from agentpool.tool_impls.bash.helpers import format_output, truncate_output
+from agentpool.tools.base import Tool
+
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from exxec import ExecutionEnvironment
+
+
+logger = get_logger(__name__)
+
+
+@dataclass
+class BashTool(Tool[str]):
+    """Execute shell commands and return the output.
+
+    A standalone, configurable tool for running bash commands. Can be configured
+    with a specific execution environment and output limits.
+
+    Use create_bash_tool() factory for convenient instantiation with defaults.
+    """
+
+    # Tool-specific configuration
+    env: ExecutionEnvironment | None = None
+    """Execution environment to use. Falls back to agent.env if not set."""
+
+    output_limit: int | None = None
+    """Default maximum bytes of output to return."""
+
+    timeout: float | None = None
+    """Default command timeout in seconds. None means no timeout."""
+
+    def get_callable(self) -> Callable[..., Awaitable[str]]:
+        """Return the execute method as the callable."""
+        return self._execute
+
+    def _get_env(self, ctx: AgentContext) -> ExecutionEnvironment:
+        """Get execution environment, falling back to agent's env."""
+        if self.env is not None:
+            return self.env
+        return ctx.agent.env
+
+    async def _execute(
+        self,
+        ctx: AgentContext,
+        command: str,
+        output_limit: int | None = None,
+        timeout: float | None = None,
+    ) -> str:
+        """Execute a shell command and return the output.
+
+        Args:
+            ctx: Agent context for event emission and environment access
+            command: Shell command to execute
+            output_limit: Maximum bytes of output to return (overrides default)
+            timeout: Command timeout in seconds (overrides default)
+        """
+        effective_limit = output_limit or self.output_limit
+        effective_timeout = timeout if timeout is not None else self.timeout
+        process_id: str | None = None
+        stdout_parts: list[str] = []
+        stderr_parts: list[str] = []
+        exit_code: int | None = None
+        error_msg: str | None = None
+
+        try:
+            async for event in self._get_env(ctx).stream_command(
+                command, timeout=effective_timeout
+            ):
+                match event:
+                    case ProcessStartedEvent(process_id=pid, command=cmd):
+                        process_id = pid
+                        await ctx.events.process_started(pid, cmd, success=True)
+                    case OutputEvent(process_id=pid, data=data, stream=stream):
+                        if stream == "stderr":
+                            stderr_parts.append(data)
+                        else:
+                            stdout_parts.append(data)
+                        await ctx.events.process_output(pid, data)
+                    case ProcessCompletedEvent(process_id=pid, exit_code=code_):
+                        exit_code = code_
+                        combined = "".join(stdout_parts) + "".join(stderr_parts)
+                        await ctx.events.process_exit(pid, exit_code, final_output=combined)
+                    case ProcessErrorEvent(error=err, exit_code=code_):
+                        error_msg = err
+                        exit_code = code_
+
+            stdout = "".join(stdout_parts)
+            stderr = "".join(stderr_parts)
+
+            # Apply output limit if specified
+            truncated = False
+            if effective_limit:
+                stdout, stdout_truncated = truncate_output(stdout, effective_limit)
+                stderr, stderr_truncated = truncate_output(stderr, effective_limit)
+                truncated = stdout_truncated or stderr_truncated
+
+            # Format error response
+            if error_msg:
+                output = stdout + stderr if stdout or stderr else ""
+                return f"{output}\n\nError: {error_msg}\nExit code: {exit_code}"
+
+        except Exception as e:  # noqa: BLE001
+            error_id = process_id or f"cmd_{uuid.uuid4().hex[:8]}"
+            await ctx.events.process_started(error_id, command, success=False, error=str(e))
+            return f"Error executing command: {e}"
+
+        # Format success response
+        return format_output(stdout, stderr, exit_code, truncated)
