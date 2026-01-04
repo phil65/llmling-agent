@@ -13,6 +13,8 @@ from agentpool.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import httpx
     from upathtools import JoinablePathLike
 
@@ -41,7 +43,7 @@ class OpenAPITools(ResourceProvider):
         self._operations: dict[str, Any] = {}
         self._factory: OpenAPICallableFactory | None = None
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get all API operations as tools."""
         if not self._spec:
             await self._load_spec()

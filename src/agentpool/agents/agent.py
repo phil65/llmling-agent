@@ -117,6 +117,7 @@ if TYPE_CHECKING:
     from agentpool.models.agents import NativeAgentConfig, ToolMode
     from agentpool.prompts.prompts import PromptType
     from agentpool.resource_providers import ResourceProvider
+    from agentpool.tools.base import FunctionTool
     from agentpool.ui.base import InputProvider
     from agentpool_config.knowledge import Knowledge
     from agentpool_config.mcp_server import MCPServerConfig
@@ -598,7 +599,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         pass_message_history: bool = False,
         parent: Agent[Any, Any] | None = None,
         **_kwargs: Any,
-    ) -> Tool[OutputDataT]:
+    ) -> FunctionTool[OutputDataT]:
         """Create a tool from this agent.
 
         Args:
@@ -1262,7 +1263,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         for name in tools or []:
             tool = await self.tools.get_tool(name)
             meta = {"shared_from": self.name}
-            target.tools.register_tool(tool.callable, metadata=meta)
+            target.tools.register_tool(tool.get_callable(), metadata=meta)
 
         # Share history if requested
         if history:

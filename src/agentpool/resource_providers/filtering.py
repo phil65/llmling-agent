@@ -8,6 +8,8 @@ from agentpool.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from agentpool.tools.base import Tool
 
 
@@ -32,7 +34,7 @@ class FilteringResourceProvider(ResourceProvider):
         """Delegate attribute access to wrapped provider."""
         return getattr(self._provider, name)
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get filtered tools from wrapped provider.
 
         Returns only tools where the filter value is True. Tools not in the filter

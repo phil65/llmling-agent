@@ -17,6 +17,8 @@ from agentpool_toolsets.fsspec_toolset.toolset import FSSpecTools
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from schemez import ToolsetCodeGenerator
 
     from agentpool.resource_providers import ResourceProvider
@@ -46,7 +48,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         self._cached_tool: Tool | None = None
         self.usage_notes = usage_notes
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Return single meta-tool for Python execution with available tools."""
         # Always generate fresh toolset to reflect current tools
         toolset_generator = await self._get_code_generator()

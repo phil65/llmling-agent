@@ -41,7 +41,7 @@ def wrap_tool[TReturn](  # noqa: PLR0915
         agent_ctx: Agent context for confirmation handling and dependency injection.
         hooks: Optional AgentHooks for pre/post tool execution hooks.
     """
-    fn = tool.callable
+    fn = tool.get_callable()
     run_ctx_key = get_argument_key(fn, RunContext)
     agent_ctx_key = get_argument_key(fn, AgentContext)
 

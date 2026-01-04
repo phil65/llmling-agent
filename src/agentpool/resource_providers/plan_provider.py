@@ -11,6 +11,8 @@ from agentpool.utils.streams import TodoPriority, TodoStatus  # noqa: TC001
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from agentpool.tools.base import Tool
     from agentpool.utils.streams import TodoTracker
 
@@ -75,7 +77,7 @@ class PlanProvider(ResourceProvider):
             return agent_ctx.pool.todos
         return None
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get plan management tools based on mode."""
         tools: list[Tool] = [self.create_tool(self.get_plan, category="read")]
 

@@ -21,7 +21,6 @@ from acp.schema import (
     WriteTextFileResponse,
 )
 from agentpool.log import get_logger
-from agentpool.tools.base import Tool
 
 
 if TYPE_CHECKING:
@@ -227,7 +226,11 @@ class ACPClientHandler(Client):
             # Attach tool_call_id for permission event matching in TUI
             ctx.tool_call_id = params.tool_call.tool_call_id
             # Create a dummy tool representation from ACP params
-            tool = Tool(callable=lambda: None, name=params.tool_call.tool_call_id, description=name)
+            from agentpool.tools import FunctionTool
+
+            tool = FunctionTool(
+                callable=lambda: None, name=params.tool_call.tool_call_id, description=name
+            )
             # Extract arguments - ACP doesn't expose them in ToolCall
             try:
                 result = await self._input_provider.get_tool_confirmation(ctx, tool=tool, args={})

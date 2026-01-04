@@ -28,6 +28,8 @@ from agentpool.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from agentpool.agents.context import AgentContext
     from agentpool.mcp_server.registries.official_registry_client import RegistryServer
     from agentpool.tools.base import Tool
@@ -207,7 +209,7 @@ class MCPDiscoveryToolset(ResourceProvider):
                 logger.warning("Error closing connection", server=name, error=e)
         self._connections.clear()
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get the discovery tools."""
         if self._tools is not None:
             return self._tools

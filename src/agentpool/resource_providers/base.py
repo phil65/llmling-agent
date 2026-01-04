@@ -13,7 +13,7 @@ from agentpool_config.tools import ToolHints
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
     from types import TracebackType
 
     from pydantic_ai import ModelRequestPart
@@ -109,7 +109,7 @@ class ResourceProvider:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name={self.name!r})"
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get available tools. Override to provide tools."""
         return []
 

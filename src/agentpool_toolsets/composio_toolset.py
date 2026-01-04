@@ -10,7 +10,7 @@ from agentpool.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
     from agentpool.tools.base import Tool
 
@@ -52,7 +52,7 @@ class ComposioTools(ResourceProvider):
         handle_tool_call.__name__ = tool_slug
         return handle_tool_call
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get tools from composio."""
         # Return cached tools if available
         if self._tools is not None:

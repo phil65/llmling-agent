@@ -16,6 +16,8 @@ logger = log.get_logger(__name__)
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from exxec import ExecutionEnvironment
 
     from agentpool.tools.base import Tool
@@ -51,7 +53,7 @@ class ExecutionEnvironmentTools(ResourceProvider):
             return self._env
         return agent_ctx.agent.env
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         return [
             # Code execution tools
             self.create_tool(self.execute_code, category="execute"),

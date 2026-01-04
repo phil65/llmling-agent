@@ -12,6 +12,7 @@ from agentpool.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from types import TracebackType
 
     from mcp import ClientSession
@@ -89,7 +90,7 @@ class McpRunTools(ResourceProvider):
         self._tools = None
         await self.tools_changed.emit(self.create_change_event("tools"))
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get tools from MCP.run."""
         # Return cached tools if available
         if self._tools is not None:

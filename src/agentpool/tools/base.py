@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from dataclasses import dataclass, field
 import inspect
 from typing import TYPE_CHECKING, Any, Literal
@@ -47,10 +48,7 @@ ToolKind = Literal[
 
 @dataclass
 class Tool[TOutputType = Any]:
-    """Information about a registered tool."""
-
-    callable: Callable[..., TOutputType]
-    """The actual tool implementation"""
+    """Base class for tools. Subclass and implement get_callable() or use FunctionTool."""
 
     name: str
     """The name of the tool."""
@@ -87,14 +85,17 @@ class Tool[TOutputType = Any]:
 
     __repr__ = dataclasses_no_defaults_repr
 
+    @abstractmethod
+    def get_callable(self) -> Callable[..., TOutputType]:
+        """Get the callable for this tool. Subclasses must implement."""
+        ...
+
     def to_pydantic_ai(self) -> PydanticAiTool:
         """Convert tool to Pydantic AI tool."""
         metadata = {**self.metadata, "agent_name": self.agent_name, "category": self.category}
         return PydanticAiTool(
-            function=self.callable,
+            function=self.get_callable(),
             name=self.name,
-            # takes_ctx=self.takes_ctx,
-            # max_retries=self.max_retries,
             description=self.description,
             requires_approval=self.requires_confirmation,
             metadata=metadata,
@@ -108,7 +109,7 @@ class Tool[TOutputType = Any]:
         from agentpool.agents.context import AgentContext
 
         return schemez.create_schema(
-            self.callable,
+            self.get_callable(),
             name_override=self.name,
             description_override=self.description,
             exclude_types=[AgentContext, RunContext],
@@ -165,7 +166,7 @@ class Tool[TOutputType = Any]:
     @logfire.instrument("Executing tool {self.name} with args={args}, kwargs={kwargs}")
     async def execute(self, *args: Any, **kwargs: Any) -> Any:
         """Execute tool, handling both sync and async cases."""
-        return await execute(self.callable, *args, **kwargs, use_thread=True)
+        return await execute(self.get_callable(), *args, **kwargs, use_thread=True)
 
     @classmethod
     def from_code(
@@ -173,15 +174,17 @@ class Tool[TOutputType = Any]:
         code: str,
         name: str | None = None,
         description: str | None = None,
-    ) -> Tool[Any]:
-        """Create a tool from a code string."""
+    ) -> FunctionTool[Any]:
+        """Create a FunctionTool from a code string."""
         namespace: dict[str, Any] = {}
         exec(code, namespace)
         func = next((v for v in namespace.values() if callable(v)), None)
         if not func:
             msg = "No callable found in provided code"
             raise ValueError(msg)
-        return cls.from_callable(func, name_override=name, description_override=description)  # pyright: ignore[reportArgumentType]
+        return FunctionTool.from_callable(
+            func, name_override=name, description_override=description
+        )
 
     @classmethod
     def from_callable(
@@ -196,34 +199,17 @@ class Tool[TOutputType = Any]:
         enabled: bool = True,
         source: ToolSource | str | None = None,
         **kwargs: Any,
-    ) -> Tool[TOutputType]:
-        if isinstance(fn, str):
-            import_path = fn
-            from agentpool.utils import importing
-
-            callable_obj = importing.import_callable(fn)
-            name = getattr(callable_obj, "__name__", "unknown")
-            import_path = fn
-        else:
-            callable_obj = fn
-            module = fn.__module__
-            if hasattr(fn, "__qualname__"):  # Regular function
-                name = get_fn_name(fn)
-                import_path = f"{module}.{get_fn_qualname(fn)}"
-            else:  # Instance with __call__ method
-                name = fn.__class__.__name__
-                import_path = f"{module}.{fn.__class__.__qualname__}"
-
-        return cls(
-            callable=callable_obj,  # pyright: ignore[reportArgumentType]
-            name=name_override or name,
-            description=description_override or inspect.getdoc(callable_obj) or "",
-            import_path=import_path,
+    ) -> FunctionTool[TOutputType]:
+        """Create a FunctionTool from a callable or import path."""
+        return FunctionTool.from_callable(
+            fn,
+            name_override=name_override,
+            description_override=description_override,
             schema_override=schema_override,
+            hints=hints,
             category=category,
-            hints=hints or ToolHints(),
             enabled=enabled,
-            source=source or "dynamic",
+            source=source,
             **kwargs,
         )
 
@@ -243,6 +229,62 @@ class Tool[TOutputType = Any]:
                 idempotentHint=self.hints.idempotent if self.hints else None,
                 openWorldHint=self.hints.open_world if self.hints else None,
             ),
+        )
+
+
+@dataclass
+class FunctionTool[TOutputType = Any](Tool[TOutputType]):
+    """Tool wrapping a plain callable function."""
+
+    callable: Callable[..., TOutputType] = field(default=lambda: None)  # type: ignore[assignment]
+    """The actual tool implementation."""
+
+    def get_callable(self) -> Callable[..., TOutputType]:
+        """Return the wrapped callable."""
+        return self.callable
+
+    @classmethod
+    def from_callable(
+        cls,
+        fn: Callable[..., TOutputType | Awaitable[TOutputType]] | str,
+        *,
+        name_override: str | None = None,
+        description_override: str | None = None,
+        schema_override: schemez.OpenAIFunctionDefinition | None = None,
+        hints: ToolHints | None = None,
+        category: ToolKind | None = None,
+        enabled: bool = True,
+        source: ToolSource | str | None = None,
+        **kwargs: Any,
+    ) -> FunctionTool[TOutputType]:
+        """Create a FunctionTool from a callable or import path string."""
+        if isinstance(fn, str):
+            import_path = fn
+            from agentpool.utils import importing
+
+            callable_obj = importing.import_callable(fn)
+            name = getattr(callable_obj, "__name__", "unknown")
+        else:
+            callable_obj = fn
+            module = fn.__module__
+            if hasattr(fn, "__qualname__"):  # Regular function
+                name = get_fn_name(fn)
+                import_path = f"{module}.{get_fn_qualname(fn)}"
+            else:  # Instance with __call__ method
+                name = fn.__class__.__name__
+                import_path = f"{module}.{fn.__class__.__qualname__}"
+
+        return cls(
+            name=name_override or name,
+            description=description_override or inspect.getdoc(callable_obj) or "",
+            callable=callable_obj,  # pyright: ignore[reportArgumentType]
+            import_path=import_path,
+            schema_override=schema_override,
+            category=category,
+            hints=hints or ToolHints(),
+            enabled=enabled,
+            source=source or "dynamic",
+            **kwargs,
         )
 
 

@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from agentpool.storage import StorageManager
     from agentpool.talk import Talk, TeamTalk
     from agentpool.talk.stats import AggregatedMessageStats, MessageStats
-    from agentpool.tools.base import Tool
+    from agentpool.tools.base import FunctionTool
     from agentpool_config.forward_targets import ConnectionType
     from agentpool_config.mcp_server import MCPServerConfig
 
@@ -161,7 +161,7 @@ class MessageNode[TDeps, TResult](ABC):
 
     def to_tool(
         self, *, name: str | None = None, description: str | None = None, **kwargs: Any
-    ) -> Tool[TResult]:
+    ) -> FunctionTool[TResult]:
         """Convert node to a callable tool.
 
         Args:

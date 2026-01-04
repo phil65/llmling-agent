@@ -21,13 +21,13 @@ from agentpool_toolsets.fsspec_toolset.diagnostics import (
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from exxec.base import ExecutionEnvironment
     from fsspec.asyn import AsyncFileSystem
 
     from agentpool.tools.base import Tool
-    from agentpool_toolsets.fsspec_toolset.diagnostics import (
-        DiagnosticsConfig,
-    )
+    from agentpool_toolsets.fsspec_toolset.diagnostics import DiagnosticsConfig
 
 logger = get_logger(__name__)
 
@@ -149,7 +149,7 @@ class CodeTools(ResourceProvider):
             return str(Path(cwd) / path)
         return path
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get code analysis tools."""
         if self._tools is not None:
             return self._tools

@@ -9,9 +9,11 @@ from agentpool.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from agentpool import AgentPool
     from agentpool.prompts.prompts import BasePrompt
-    from agentpool.tools.base import Tool
+    from agentpool.tools import Tool
     from agentpool_config.resources import ResourceInfo
 
 logger = get_logger(__name__)
@@ -43,7 +45,7 @@ class PoolResourceProvider(ResourceProvider):
         self.zed_mode = zed_mode
         self.include_team_members = include_team_members
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get tools from all agents in pool."""
         team_tools = [team.to_tool() for team in self.pool.teams.values()]
         agents = list(self.pool.agents.values())

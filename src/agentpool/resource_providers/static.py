@@ -48,7 +48,7 @@ class StaticResourceProvider(ResourceProvider):
         self._prompts = list(prompts) if prompts else []
         self._resources = list(resources) if resources else []
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get pre-configured tools."""
         return self._tools
 

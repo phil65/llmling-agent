@@ -498,8 +498,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
 
-        from agentpool.tools.base import Tool
-
         # Auto-grant if confirmation mode is "never" (bypassPermissions)
         if self.tool_confirmation_mode == "never":
             return PermissionResultAllow()
@@ -520,7 +518,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if self._input_provider:
             # Create a dummy Tool for the confirmation dialog
             desc = f"Claude Code tool: {tool_name}"
-            tool = Tool(callable=lambda: None, name=tool_name, description=desc)
+            from agentpool.tools import FunctionTool
+
+            tool = FunctionTool(callable=lambda: None, name=tool_name, description=desc)
             # Get the tool call ID from our tracking dict (set from streaming events)
             # The dict is keyed by raw tool name (with MCP prefix)
             tool_call_id = self._pending_tool_call_ids.get(tool_name)

@@ -12,6 +12,8 @@ from agentpool.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from agentpool.tools.base import Tool
 
 
@@ -27,7 +29,7 @@ class EntryPointTools(ResourceProvider):
         self._tools: list[Tool] | None = None
         self.registry = EntryPointRegistry[Callable[..., Any]]("agentpool")
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get tools from entry points."""
         # Return cached tools if available
         if self._tools is not None:

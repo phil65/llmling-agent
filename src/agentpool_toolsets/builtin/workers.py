@@ -11,6 +11,8 @@ from agentpool.tools.exceptions import ToolError
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from agentpool.tools.base import Tool
     from agentpool_config.workers import WorkerConfig
 
@@ -35,7 +37,7 @@ class WorkersTools(ResourceProvider):
         super().__init__(name=name)
         self.workers = workers
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get tools for all configured workers."""
         return [self._create_worker_tool(i) for i in self.workers]
 

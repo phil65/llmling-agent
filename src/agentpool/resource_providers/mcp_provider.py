@@ -13,6 +13,7 @@ from agentpool_config.resources import ResourceInfo
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from typing import Literal
 
     from fastmcp.client.sampling import SamplingHandler
@@ -149,7 +150,7 @@ class MCPResourceProvider(ResourceProvider):
             logger.exception("Failed to refresh MCP tools cache")
             self._tools_cache = []
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get cached tools, refreshing if necessary."""
         if self._tools_cache is None:
             await self.refresh_tools_cache()

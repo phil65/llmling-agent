@@ -11,7 +11,7 @@ from agentpool.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
 
     from agentpool.tools.base import Tool
 
@@ -53,7 +53,7 @@ class NotificationsTools(ResourceProvider):
                 self._apprise.add(url, tag=channel_name)
                 logger.debug("Added notification URL", channel=channel_name, url=url[:30] + "...")
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get notification tools with dynamic schema based on configured channels."""
         if self._tools is not None:
             return self._tools

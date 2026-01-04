@@ -8,6 +8,8 @@ from agentpool.resource_providers.base import ResourceChangeEvent, ResourceProvi
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pydantic_ai import ModelRequestPart
 
     from agentpool.prompts.prompts import BasePrompt
@@ -78,7 +80,7 @@ class AggregatingResourceProvider(ResourceProvider):
         """Forward skills_changed signal from child provider."""
         await self.skills_changed.emit(event)
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get tools from all providers."""
         return [t for provider in self.providers for t in await provider.get_tools()]
 

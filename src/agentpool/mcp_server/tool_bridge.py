@@ -429,8 +429,8 @@ class ToolManagerBridge:
                 schema = tool.schema["function"]
                 input_schema = schema.get("parameters", {"type": "object", "properties": {}})
                 # Filter out context parameters - they're auto-injected by the bridge
-                context_params = _get_context_param_names(tool.callable)
-                run_context_params = _get_run_context_param_names(tool.callable)
+                context_params = _get_context_param_names(tool.get_callable())
+                run_context_params = _get_run_context_param_names(tool.get_callable())
                 all_context_params = context_params | run_context_params
                 filtered_schema = filter_schema_params(input_schema, all_context_params)
                 desc = tool.description or "No description"
@@ -481,7 +481,7 @@ class ToolManagerBridge:
 
         Handles tools that expect AgentContext, RunContext, or neither.
         """
-        fn = tool.callable
+        fn = tool.get_callable()
 
         # Inject AgentContext parameters
         context_param_names = _get_context_param_names(fn)

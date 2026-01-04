@@ -9,6 +9,8 @@ from agentpool.resource_providers import ResourceProvider
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from searchly.base import (
         CountryCode,
         LanguageCode,
@@ -178,7 +180,7 @@ class SearchTools(ResourceProvider):
 
         return formatted
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get search tools from configured providers."""
         tools: list[Tool] = []
         if self._web_provider:

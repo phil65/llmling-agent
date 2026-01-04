@@ -69,13 +69,13 @@ def tools_to_codegen(
     generators = [
         ToolCodeGenerator(
             schema=create_schema(
-                t.callable,
+                t.get_callable(),
                 name_override=t.name,
                 description_override=t.description,
                 mode="openai",
                 exclude_types=[AgentContext, RunContext],
             ),
-            callable=t.callable,
+            callable=t.get_callable(),
             name_override=t.name,
         )
         for t in tools

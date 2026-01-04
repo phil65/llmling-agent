@@ -47,6 +47,8 @@ from agentpool_toolsets.fsspec_toolset.streaming_diff_parser import (
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import fsspec
     from fsspec.asyn import AsyncFileSystem
     from pydantic_ai.messages import ModelRequest, ModelResponse
@@ -222,7 +224,7 @@ class FSSpecTools(ResourceProvider):
             return str(Path(cwd) / path)
         return path
 
-    async def get_tools(self) -> list[Tool]:
+    async def get_tools(self) -> Sequence[Tool]:
         """Get filesystem tools."""
         if self._tools is not None:
             return self._tools
