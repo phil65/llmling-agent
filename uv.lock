@@ -1464,7 +1464,7 @@ wheels = [
 
 [[package]]
 name = "docler"
-version = "2.1.0"
+version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv" },
@@ -1476,9 +1476,9 @@ dependencies = [
     { name = "schemez" },
     { name = "upathtools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f2/34/1714fce590ef0c2fc90915f7bf7d6c100ee6191dae6de8fd386ac05daf4e/docler-2.1.0.tar.gz", hash = "sha256:4203f59783ecd869dfbbd31ed38a1abe7807aa73aa7a8c1d9630b927c0400ca0", size = 1406236, upload-time = "2026-01-04T03:16:32.829Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d5/fa/9d0da5814fae67fc890613f1dcf00fca0b1aea4fbf430502a1f76a20e2fa/docler-2.1.1.tar.gz", hash = "sha256:e231309e648924e8218475e37838ea1b917799d3cb5dfa7c10e7d31851fb7354", size = 1406248, upload-time = "2026-01-04T03:40:00.131Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/26/1f/019e7a5ddbb9505d46152afa8452c2fab172d97f9b4f295aa6e840b20c1a/docler-2.1.0-py3-none-any.whl", hash = "sha256:f4fa7065e57c4a13cdb002299ef6a0cf5c882af7a145bb7c73e733d5f01f1dfd", size = 1443914, upload-time = "2026-01-04T03:16:30.081Z" },
+    { url = "https://files.pythonhosted.org/packages/44/64/f5901aa7e2029944de35b243164c0f01a45c06355d004a3b17cb0484de4b/docler-2.1.1-py3-none-any.whl", hash = "sha256:446d2476530017465519cb4d2da7d836a7b2cf531032bd16a3867549aef737ae", size = 1444038, upload-time = "2026-01-04T03:40:04.19Z" },
 ]
 
 [[package]]
@@ -1639,7 +1639,7 @@ wheels = [
 
 [[package]]
 name = "exxec"
-version = "0.3.0"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv" },
@@ -1648,9 +1648,9 @@ dependencies = [
     { name = "schemez" },
     { name = "upathtools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/bb/784636677bf204bb2d9d3ddff48269f29f87d01c34286211de1792591b16/exxec-0.3.0.tar.gz", hash = "sha256:5cb2e3ae59a658ae78bef0d5ba2e12a274670a7f8c0c72b49bb9ca0e5eca5051", size = 86915, upload-time = "2026-01-04T02:55:55.78Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b0/40/d21bb312d22ac2e526ce4f3cb7333e4cd717f589c84be8adaa89f244f2c4/exxec-0.3.1.tar.gz", hash = "sha256:17f66a515a83d50b0d1612c25b128e3f13a239d0992fd7d738c883c5a12f00a0", size = 86919, upload-time = "2026-01-04T03:43:48.661Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/e9/72ba2ba8521535de2996f764cae863cb3d29e0e3132b31feb624773ace6b/exxec-0.3.0-py3-none-any.whl", hash = "sha256:7db2e3a577906ccea6802f6a5e225043301c982a7995ec21ec237d5ca925d725", size = 121796, upload-time = "2026-01-04T02:55:52.099Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/d4/89779e3279c1385f7a847d8b6f086921896158b2c5cdcc7bf5a4cd4c43fe/exxec-0.3.1-py3-none-any.whl", hash = "sha256:3bf47acd506e7af595fedde9676f65745cab406f4a14e5218770132274322cc2", size = 121921, upload-time = "2026-01-04T03:43:50.704Z" },
 ]
 
 [[package]]
