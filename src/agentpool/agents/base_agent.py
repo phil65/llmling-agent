@@ -19,7 +19,7 @@ from agentpool.tools.manager import ToolManager
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
-    from evented.configs import EventConfig
+    from evented_config import EventConfig
     from exxec import ExecutionEnvironment
     from slashed import BaseCommand, CommandStore
     from tokonomics.model_discovery.model_info import ModelInfo

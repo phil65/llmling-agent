@@ -22,7 +22,7 @@ from agentpool_config.teams import TeamConfig
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Iterator, Sequence
 
-    from evented.configs import EventConfig
+    from evented_config import EventConfig
     from psygnal.containers._evented_list import ListEvents
     from toprompt import AnyPromptType
 

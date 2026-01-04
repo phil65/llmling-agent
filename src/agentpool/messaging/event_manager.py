@@ -10,8 +10,8 @@ from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, Any, Self
 
-from evented.configs import EmailConfig, FileWatchConfig, TimeEventConfig, WebhookConfig
 from evented.event_data import EventData, FunctionResultEventData
+from evented_config import EmailConfig, FileWatchConfig, TimeEventConfig, WebhookConfig
 from psygnal import Signal
 from pydantic import SecretStr
 
@@ -27,8 +27,8 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from evented.base import EventSource
-    from evented.configs import EventConfig
     from evented.timed_watcher import TimeEventSource
+    from evented_config import EventConfig
 
 
 logger = get_logger(__name__)

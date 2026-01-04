@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
-from evented.configs import EventConfig
+from evented_config import EventConfig
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 

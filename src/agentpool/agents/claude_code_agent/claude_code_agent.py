@@ -79,7 +79,7 @@ if TYPE_CHECKING:
         ToolUseBlock,
     )
     from claude_agent_sdk.types import HookContext, HookInput, SyncHookJSONOutput
-    from evented.configs import EventConfig
+    from evented_config import EventConfig
     from exxec import ExecutionEnvironment
     from slashed import BaseCommand, Command, CommandContext
     from tokonomics.model_discovery.model_info import ModelInfo

@@ -35,7 +35,7 @@ from typing import TYPE_CHECKING, Any, Literal
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
-    from evented.configs import EventConfig
+    from evented_config import EventConfig
 
     from agentpool.agents.acp_agent import ACPAgent
     from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler

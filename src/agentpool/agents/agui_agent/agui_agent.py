@@ -45,7 +45,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from ag_ui.core import Message, ToolMessage
-    from evented.configs import EventConfig
+    from evented_config import EventConfig
     from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 

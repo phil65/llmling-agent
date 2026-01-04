@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from evented.configs import TimeEventConfig
 from evented.event_data import EventData
+from evented_config import TimeEventConfig
 import pytest
 
 from agentpool.messaging import EventManager

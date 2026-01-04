@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from evented.configs import (
+from evented_config import (
     EmailConfig,
     EventSourceConfig,
     FileWatchConfig,

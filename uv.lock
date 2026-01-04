@@ -1547,16 +1547,16 @@ wheels = [
 
 [[package]]
 name = "evented"
-version = "1.0.9"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv" },
     { name = "pydantic" },
     { name = "schemez" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/93/83/a2b0329be9c2c3c049147d323ccc45eb8c13265510f181e56defa36529fc/evented-1.0.9.tar.gz", hash = "sha256:4bb03c6f354342a7327645b035cbd717656f1e34e294cc9da33a573ded403f59", size = 15370, upload-time = "2025-12-15T13:39:55.292Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/83/bb/8eb332b5cff32f01e6d719186dec43f94cc3cf44bb9043ffe567febc731f/evented-1.1.0.tar.gz", hash = "sha256:7cab246065417fcac8a5531c4a96ac7467ebe9f6eecddc2047e986cfb265a1ca", size = 16248, upload-time = "2026-01-04T07:12:23.393Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/d4/01896b0004c437c387d42e297baed1b2cbe14004629830591f0519b80fdf/evented-1.0.9-py3-none-any.whl", hash = "sha256:5a0df99d701960bac80eb44a9ad292d1662591c3c51572235851c69f8097d9a7", size = 18823, upload-time = "2025-12-15T13:39:53.95Z" },
+    { url = "https://files.pythonhosted.org/packages/a3/86/4246272170071672ddcb30b415edf32a71391b6eae93ba0365761eab0678/evented-1.1.0-py3-none-any.whl", hash = "sha256:ed8e0a30c54b24029851b2b8508cb7e4353b04bb919bf2db19dbaa57c5a06bed", size = 19801, upload-time = "2026-01-04T07:12:24.585Z" },
 ]
 
 [package.optional-dependencies]

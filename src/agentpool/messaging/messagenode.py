@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from datetime import timedelta
     from types import TracebackType
 
-    from evented.configs import EventConfig
     from evented.event_data import EventData
+    from evented_config import EventConfig
 
     from agentpool.common_types import (
         AnyTransformFn,

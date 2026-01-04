@@ -68,7 +68,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from anyio.abc import Process
-    from evented.configs import EventConfig
+    from evented_config import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import FinishReason
     from slashed import BaseCommand
