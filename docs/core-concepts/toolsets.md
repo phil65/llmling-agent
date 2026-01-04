@@ -52,7 +52,7 @@ agents:
 - `list_directory` - List directory contents with filtering
 - `write` - Write content to files
 - `delete_path` - Delete files or directories
-- `edit_file` - Edit files with smart matching
+- `edit` - Edit files with smart matching
 - `download_file` - Download files from URLs
 
 ### Resource Access (`resource_access`)

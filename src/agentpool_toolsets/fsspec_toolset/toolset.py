@@ -101,7 +101,7 @@ class FSSpecTools(ResourceProvider):
             enable_diagnostics: Run LSP CLI diagnostics after file writes (default: False)
             large_file_tokens: Token threshold for switching to structure map (default: 12000)
             map_max_tokens: Maximum tokens for structure map output (default: 2048)
-            edit_tool: Which edit_file variant to expose ("simple" or "batch")
+            edit_tool: Which edit variant to expose ("simple" or "batch")
             max_image_size: Max width/height for images in pixels. Larger images are
                 auto-resized for better model compatibility. Set to None to disable.
             max_image_bytes: Max file size for images in bytes. Images exceeding this
@@ -241,10 +241,10 @@ class FSSpecTools(ResourceProvider):
             self._tools.append(self.create_tool(self.agentic_edit, category="edit"))
         elif self._edit_tool == "batch":
             self._tools.append(
-                self.create_tool(self.edit_file_batch, category="edit", name_override="edit_file")
+                self.create_tool(self.edit_batch, category="edit", name_override="edit")
             )
         else:  # simple
-            self._tools.append(self.create_tool(self.edit_file, category="edit"))
+            self._tools.append(self.create_tool(self.edit, category="edit"))
 
         if self.converter:  # Only add read_as_markdown if converter is available
             self._tools.append(
@@ -659,7 +659,7 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation("delete", path=path, success=True)
             return result
 
-    async def edit_file(  # noqa: D417
+    async def edit(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         path: str,
@@ -687,7 +687,7 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Success message with edit summary
         """
-        return await self.edit_file_batch(
+        return await self.edit_batch(
             agent_ctx,
             path,
             replacements=[(old_string, new_string)],
@@ -696,7 +696,7 @@ class FSSpecTools(ResourceProvider):
             line_hint=line_hint,
         )
 
-    async def edit_file_batch(  # noqa: D417
+    async def edit_batch(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         path: str,
