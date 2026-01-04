@@ -36,6 +36,7 @@ class MCPManager:
         self,
         name: str = "mcp",
         owner: str | None = None,
+        sampling_model: str = "openai:gpt-5-nano",
         servers: Sequence[MCPServerConfig | str] | None = None,
         accessible_roots: list[str] | None = None,
     ) -> None:
@@ -45,6 +46,7 @@ class MCPManager:
         for server in servers or []:
             self.add_server_config(server)
         self.providers: list[MCPResourceProvider] = []
+        self.sampling_model = sampling_model
         self.aggregating_provider = AggregatingResourceProvider(
             providers=cast(list[ResourceProvider], self.providers),
             name=f"{name}_aggregated",
@@ -90,9 +92,9 @@ class MCPManager:
         from agentpool.mcp_server.conversions import sampling_messages_to_user_content
 
         prompts = sampling_messages_to_user_content(messages)
-        model = None
+        model = self.sampling_model
         if (prefs := params.modelPreferences) and prefs.hints and prefs.hints[0].name:
-            model = prefs.hints[0].name
+            model = prefs.hints[0].name  # Extract model from preferences
         # Create usage limits from sampling parameters
         limits = UsageLimits(output_tokens_limit=params.maxTokens, request_limit=1)
         # TODO: Apply temperature from params.temperature
