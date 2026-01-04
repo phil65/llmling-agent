@@ -14,9 +14,8 @@ from agentpool_server.opencode_server.models.events import PermissionRequestEven
 
 
 if TYPE_CHECKING:
-    from agentpool.agents.context import ConfirmationResult
+    from agentpool.agents.context import AgentContext, ConfirmationResult
     from agentpool.messaging import ChatMessage
-    from agentpool.messaging.context import NodeContext
     from agentpool.tools.base import Tool
     from agentpool_server.opencode_server.state import ServerState
 
@@ -68,7 +67,7 @@ class OpenCodeInputProvider(InputProvider):
 
     async def get_tool_confirmation(
         self,
-        context: NodeContext[Any],
+        context: AgentContext[Any],
         tool: Tool,
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,

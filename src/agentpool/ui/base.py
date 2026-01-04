@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from mcp import types
     from pydantic import BaseModel
 
-    from agentpool.agents.context import ConfirmationResult
+    from agentpool.agents.context import AgentContext, ConfirmationResult
     from agentpool.messaging import ChatMessage
     from agentpool.messaging.context import NodeContext
     from agentpool.tools.base import Tool
@@ -62,7 +62,7 @@ class InputProvider(ABC):
     @abstractmethod
     def get_tool_confirmation(
         self,
-        context: NodeContext[Any],
+        context: AgentContext[Any],
         tool: Tool,
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,

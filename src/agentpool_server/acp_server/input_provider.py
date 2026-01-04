@@ -15,9 +15,9 @@ from agentpool.ui.base import InputProvider
 
 if TYPE_CHECKING:
     from acp import RequestPermissionResponse
+    from agentpool import AgentContext
     from agentpool.agents.context import ConfirmationResult
     from agentpool.messaging import ChatMessage
-    from agentpool.messaging.context import NodeContext
     from agentpool.tools.base import Tool
     from agentpool_server.acp_server.session import ACPSession
 
@@ -100,7 +100,7 @@ class ACPInputProvider(InputProvider):
 
     async def get_tool_confirmation(
         self,
-        context: NodeContext[Any],
+        context: AgentContext[Any],
         tool: Tool,
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,
@@ -132,8 +132,17 @@ class ACPInputProvider(InputProvider):
 
             # Create a descriptive title for the permission request
             args_str = ", ".join(f"{k}={v}" for k, v in args.items())
+            # Use the tool_call_id from context - this must match the UI tool call
+            actual_tool_call_id = context.tool_call_id
+            if not actual_tool_call_id:
+                msg = (
+                    f"No tool_call_id in context for tool {tool.name!r}. "
+                    "This indicates a bug in tool call tracking."
+                )
+                logger.error(msg)
+                raise RuntimeError(msg)  # noqa: TRY301
             response = await self.session.requests.request_permission(
-                tool_call_id=f"{tool.name}_{hash(frozenset(args.items()))}",
+                tool_call_id=actual_tool_call_id,
                 title=f"Execute tool {tool.name!r} with args: {args_str}",
                 options=DEFAULT_PERMISSION_OPTIONS,
             )

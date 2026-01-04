@@ -17,7 +17,7 @@ from agentpool.ui.base import InputProvider
 if TYPE_CHECKING:
     from pydantic import BaseModel
 
-    from agentpool.agents.context import ConfirmationResult
+    from agentpool.agents.context import AgentContext, ConfirmationResult
     from agentpool.messaging import ChatMessage
     from agentpool.messaging.context import NodeContext
     from agentpool.tools.base import Tool
@@ -60,7 +60,7 @@ class StdlibInputProvider(InputProvider):
 
     async def get_tool_confirmation(
         self,
-        context: NodeContext,
+        context: AgentContext[Any],
         tool: Tool,
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,
