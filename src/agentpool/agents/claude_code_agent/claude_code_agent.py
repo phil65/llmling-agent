@@ -1285,11 +1285,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             mode: Confirmation mode - "always", "never", or "per_tool"
         """
         self.tool_confirmation_mode = mode
+        # Map confirmation mode to permission mode
+        if mode == "never":
+            self._permission_mode = "bypassPermissions"
+        elif mode == "always" or mode == "per_tool":
+            self._permission_mode = "default"
         # Update permission mode on client if connected
-        if self._client and mode == "never":
-            await self._client.set_permission_mode("bypassPermissions")
-        elif self._client and mode == "always":
-            await self._client.set_permission_mode("default")
+        if self._client and self._permission_mode:
+            await self._client.set_permission_mode(self._permission_mode)
 
     async def get_available_models(self) -> list[ModelInfo] | None:
         """Get available models for Claude Code agent.

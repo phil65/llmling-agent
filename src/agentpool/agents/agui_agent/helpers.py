@@ -16,8 +16,7 @@ if TYPE_CHECKING:
     from ag_ui.core import Event, ToolMessage
     import httpx
 
-    from agentpool.agents.context import ConfirmationResult
-    from agentpool.messaging.context import NodeContext
+    from agentpool.agents.context import AgentContext, ConfirmationResult
     from agentpool.tools import Tool
     from agentpool.ui.base import InputProvider
     from agentpool_config.nodes import ToolConfirmationMode
@@ -51,7 +50,7 @@ async def _get_tool_confirmation(
     tool: Tool,
     args: dict[str, Any],
     input_provider: InputProvider,
-    context: NodeContext[Any],
+    context: AgentContext[Any],
 ) -> ConfirmationResult:
     """Get confirmation for tool execution.
 
@@ -78,7 +77,7 @@ async def execute_tool_calls(
     *,
     confirmation_mode: ToolConfirmationMode = "never",
     input_provider: InputProvider | None = None,
-    context: NodeContext[Any] | None = None,
+    context: AgentContext[Any] | None = None,
 ) -> list[ToolMessage]:
     """Execute tool calls locally and return results.
 
