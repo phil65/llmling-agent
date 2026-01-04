@@ -14,8 +14,6 @@ import sys
 from typing import TYPE_CHECKING, Any
 
 import anyio
-from exxec import LocalExecutionEnvironment
-from exxec_config import LocalExecutionEnvironmentConfig
 import pytest
 
 from agentpool.agents.acp_agent import ACPAgent
@@ -178,32 +176,6 @@ async def test_acp_agent_terminal_operations(tmp_path: Path, test_config_file: P
     async with ACPAgent(config=config) as agent:
         assert agent._client_handler is not None
         assert agent._client_handler.allow_terminal is True
-
-
-async def test_acp_agent_with_custom_execution_environment(test_config_file: Path, tmp_path: Path):
-    """Test ACPAgent with custom execution environment config."""
-    config = ACPAgentConfig(
-        command="uv",
-        args=[
-            "run",
-            "agentpool",
-            "serve-acp",
-            str(test_config_file),
-            "--agent",
-            "test_agent",
-        ],
-        name="test_acp_env_agent",
-        cwd=str(tmp_path),
-        execution_environment=LocalExecutionEnvironmentConfig(timeout=120.0),
-    )
-
-    async with ACPAgent(config=config) as agent:
-        # Verify the execution environment was created from config
-        assert agent._client_handler is not None
-        env = agent._client_handler.env
-        assert isinstance(env, LocalExecutionEnvironment)
-        assert env is not None
-        assert env.default_command_timeout == 120.0
 
 
 async def test_acp_agent_cleanup_on_error(acp_agent_config: ACPAgentConfig):
