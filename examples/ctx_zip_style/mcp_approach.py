@@ -6,7 +6,7 @@ cloud sandboxes like E2B that can't reach localhost.
 """
 
 import anyio
-from exxec.configs import LocalExecutionEnvironmentConfig
+from exxec_config import LocalExecutionEnvironmentConfig
 
 from agentpool.resource_providers.codemode.remote_mcp_execution import RemoteMCPExecutor
 from agentpool.tools.base import Tool

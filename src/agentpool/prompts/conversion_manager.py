@@ -87,7 +87,7 @@ class ConversionManager:
 
 
 if __name__ == "__main__":
-    from docler.configs.converter_configs import MarkItDownConfig
+    from docler_config.converter_configs import MarkItDownConfig
 
     from agentpool_config.converters import ConversionConfig
 

@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 import anyio
 from exxec import LocalExecutionEnvironment
-from exxec.configs import LocalExecutionEnvironmentConfig
+from exxec_config import LocalExecutionEnvironmentConfig
 import pytest
 
 from agentpool.agents.acp_agent import ACPAgent

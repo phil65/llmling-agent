@@ -18,8 +18,8 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from exxec.base import ExecutionEnvironment
-    from exxec.configs import ExecutionEnvironmentConfig
     from exxec.models import ServerInfo
+    from exxec_config import ExecutionEnvironmentConfig
     from fastapi import FastAPI
     from schemez import ToolsetCodeGenerator
     import uvicorn
@@ -196,7 +196,7 @@ class ToolServerLifecycleHandler:
 
 
 if __name__ == "__main__":
-    from exxec.configs import LocalExecutionEnvironmentConfig
+    from exxec_config import LocalExecutionEnvironmentConfig
 
     from agentpool.tools.base import Tool
 

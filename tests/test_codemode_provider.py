@@ -1,6 +1,6 @@
 """Integration test for codemode providers."""
 
-from exxec.configs import LocalExecutionEnvironmentConfig
+from exxec_config import LocalExecutionEnvironmentConfig
 import pytest
 
 from agentpool import Agent

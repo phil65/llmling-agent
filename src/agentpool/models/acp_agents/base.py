@@ -8,7 +8,7 @@ import tempfile
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from exxec import ExecutionEnvironmentStr, get_environment  # noqa: TC002
-from exxec.configs import (
+from exxec_config import (
     E2bExecutionEnvironmentConfig,
     ExecutionEnvironmentConfig,  # noqa: TC002
 )

@@ -16,8 +16,8 @@ import sys
 import tempfile
 from typing import TYPE_CHECKING, Any
 
-from exxec.configs import MockExecutionEnvironmentConfig
 from exxec.models import ExecutionResult
+from exxec_config import MockExecutionEnvironmentConfig
 import pytest
 from syrupy.extensions.json import JSONSnapshotExtension
 import yaml

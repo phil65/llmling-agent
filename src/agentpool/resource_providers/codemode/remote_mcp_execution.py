@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from exxec.base import ExecutionEnvironment
-    from exxec.configs import ExecutionEnvironmentConfig
+    from exxec_config import ExecutionEnvironmentConfig
     from schemez import ToolsetCodeGenerator
 
     from agentpool.tools.base import Tool
@@ -103,7 +103,7 @@ class RemoteMCPExecutor:
 
 if __name__ == "__main__":
     import anyio
-    from exxec.configs import LocalExecutionEnvironmentConfig
+    from exxec_config import LocalExecutionEnvironmentConfig
 
     from agentpool.tools.base import Tool
 

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, assert_never
 from uuid import UUID
 
-from exxec.configs import ExecutionEnvironmentConfig  # noqa: TC002
+from exxec_config import ExecutionEnvironmentConfig  # noqa: TC002
 from llmling_models.configs import AnyModelConfig  # noqa: TC002
 from pydantic import ConfigDict, Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002

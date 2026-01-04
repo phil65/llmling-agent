@@ -5,7 +5,7 @@ to make tools available in sandbox environments, especially useful for
 cloud sandboxes like E2B that can't reach localhost.
 """
 
-from exxec.configs import LocalExecutionEnvironmentConfig
+from exxec_config import LocalExecutionEnvironmentConfig
 
 from agentpool import Agent
 from agentpool.resource_providers import StaticResourceProvider

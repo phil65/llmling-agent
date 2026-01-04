@@ -6,7 +6,7 @@ import asyncio
 import contextlib
 from typing import TYPE_CHECKING, Any, Self
 
-from exxec.configs import LocalExecutionEnvironmentConfig
+from exxec_config import LocalExecutionEnvironmentConfig
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.log import get_logger
@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from exxec.configs import ExecutionEnvironmentConfig
+    from exxec_config import ExecutionEnvironmentConfig
 
     from agentpool.resource_providers import ResourceProvider
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     import webbrowser
 
     import anyio
-    from exxec.configs import LocalExecutionEnvironmentConfig
+    from exxec_config import LocalExecutionEnvironmentConfig
 
     from agentpool import Agent, log
     from agentpool.resource_providers import StaticResourceProvider
