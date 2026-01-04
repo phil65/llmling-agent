@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import UTC, datetime
 from decimal import Decimal
-import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from pydantic import BaseModel, Field
+import anyenv
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from pydantic_ai import RunUsage
 from pydantic_ai.messages import (
     ModelRequest,
@@ -74,7 +75,7 @@ class OpenCodeModel(BaseModel):
     provider_id: str = Field(alias="providerID")
     model_id: str = Field(alias="modelID")
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class OpenCodePath(BaseModel):
@@ -104,7 +105,7 @@ class OpenCodeSession(BaseModel):
     time: OpenCodeTime
     summary: OpenCodeSummary = Field(default_factory=OpenCodeSummary)
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class OpenCodeMessage(BaseModel):
@@ -126,7 +127,7 @@ class OpenCodeMessage(BaseModel):
     tokens: OpenCodeTokens | None = None
     finish: FinishReason | None = None
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class OpenCodeToolState(BaseModel):
@@ -148,7 +149,7 @@ class OpenCodePartBase(BaseModel):
     message_id: str = Field(alias="messageID")
     type: PartType
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class OpenCodeTextPart(OpenCodePartBase):
@@ -264,9 +265,9 @@ class OpenCodeStorageProvider(StorageProvider):
         if not session_path.exists():
             return None
         try:
-            data = json.loads(session_path.read_text(encoding="utf-8"))
-            return OpenCodeSession.model_validate(data)
-        except (json.JSONDecodeError, ValueError) as e:
+            content = session_path.read_text(encoding="utf-8")
+            return anyenv.load_json(content, return_type=OpenCodeSession)
+        except anyenv.JsonLoadError as e:
             logger.warning("Failed to parse session", path=str(session_path), error=str(e))
             return None
 
@@ -279,16 +280,15 @@ class OpenCodeStorageProvider(StorageProvider):
 
         for msg_file in sorted(msg_dir.glob("*.json")):
             try:
-                data = json.loads(msg_file.read_text(encoding="utf-8"))
-                messages.append(OpenCodeMessage.model_validate(data))
-            except (json.JSONDecodeError, ValueError) as e:
+                content = msg_file.read_text(encoding="utf-8")
+                data = anyenv.load_json(content, return_type=OpenCodeMessage)
+                messages.append(data)
+            except anyenv.JsonLoadError as e:
                 logger.warning("Failed to parse message", path=str(msg_file), error=str(e))
         return messages
 
     def _read_parts(self, message_id: str) -> list[OpenCodePart]:
         """Read all parts for a message."""
-        from pydantic import TypeAdapter
-
         parts: list[OpenCodePart] = []
         parts_dir = self.parts_path / message_id
         if not parts_dir.exists():
@@ -297,9 +297,10 @@ class OpenCodeStorageProvider(StorageProvider):
         adapter = TypeAdapter[Any](OpenCodePart)
         for part_file in sorted(parts_dir.glob("*.json")):
             try:
-                data = json.loads(part_file.read_text(encoding="utf-8"))
+                content = part_file.read_text(encoding="utf-8")
+                data = anyenv.load_json(content)
                 parts.append(adapter.validate_python(data))
-            except (json.JSONDecodeError, ValueError) as e:
+            except anyenv.JsonLoadError as e:
                 logger.warning("Failed to parse part", path=str(part_file), error=str(e))
         return parts
 
@@ -419,23 +420,18 @@ class OpenCodeStorageProvider(StorageProvider):
                 response_parts.append(ThinkingPart(content=part.text))
             elif isinstance(part, OpenCodeToolPart):
                 # Add tool call to response
-                response_parts.append(
-                    ToolCallPart(
-                        tool_name=part.tool,
-                        args=part.state.input or {},
-                        tool_call_id=part.call_id,
-                    )
-                )
+                args = part.state.input or {}
+                tc_part = ToolCallPart(tool_name=part.tool, args=args, tool_call_id=part.call_id)
+                response_parts.append(tc_part)
                 # If completed, also create a tool return
                 if part.state.status == "completed" and part.state.output:
-                    tool_return_parts.append(
-                        ToolReturnPart(
-                            tool_name=part.tool,
-                            content=part.state.output,
-                            tool_call_id=part.call_id,
-                            timestamp=timestamp,
-                        )
+                    return_part = ToolReturnPart(
+                        tool_name=part.tool,
+                        content=part.state.output,
+                        tool_call_id=part.call_id,
+                        timestamp=timestamp,
                     )
+                    tool_return_parts.append(return_part)
 
         # Add the response if we have parts
         if response_parts:
@@ -486,22 +482,17 @@ class OpenCodeStorageProvider(StorageProvider):
                 # Apply filters
                 if query.agents and chat_msg.name not in query.agents:
                     continue
-
                 cutoff = query.get_time_cutoff()
                 if query.since and cutoff and chat_msg.timestamp < cutoff:
                     continue
-
                 if query.until:
                     until_dt = datetime.fromisoformat(query.until)
                     if chat_msg.timestamp > until_dt:
                         continue
-
                 if query.contains and query.contains not in chat_msg.content:
                     continue
-
                 if query.roles and chat_msg.role not in query.roles:
                     continue
-
                 messages.append(chat_msg)
 
                 if query.limit and len(messages) >= query.limit:
@@ -552,7 +543,6 @@ class OpenCodeStorageProvider(StorageProvider):
 
         result: list[tuple[ConvData, Sequence[ChatMessage[str]]]] = []
         sessions = self._list_sessions()
-
         for session_id, session_path in sessions:
             session = self._read_session(session_path)
             if not session:
@@ -653,8 +643,6 @@ class OpenCodeStorageProvider(StorageProvider):
         filters: StatsFilters,
     ) -> dict[str, dict[str, Any]]:
         """Get conversation statistics."""
-        from collections import defaultdict
-
         stats: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"total_tokens": 0, "messages": 0, "models": set(), "total_cost": 0.0}
         )
