@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING, Any, Literal, Self, get_args, get_origin
 from uuid import uuid4
 
 import anyio
-from fastmcp.tools import Tool as FastMCPTool
 from pydantic import BaseModel, HttpUrl
 
 from agentpool.agents import Agent
@@ -417,6 +416,57 @@ class ToolManagerBridge:
         """Register a single tool with the FastMCP server."""
         if not self._mcp:
             return
+        from fastmcp.tools import Tool as FastMCPTool
+
+        class _BridgeTool(FastMCPTool):
+            """Custom FastMCP Tool that wraps a agentpool Tool.
+
+            This allows us to use our own schema and invoke tools with AgentContext.
+            """
+
+            def __init__(self, tool: Tool, bridge: ToolManagerBridge) -> None:
+                # Get input schema from our tool
+                schema = tool.schema["function"]
+                input_schema = schema.get("parameters", {"type": "object", "properties": {}})
+                # Filter out context parameters - they're auto-injected by the bridge
+                context_params = _get_context_param_names(tool.callable)
+                run_context_params = _get_run_context_param_names(tool.callable)
+                all_context_params = context_params | run_context_params
+                filtered_schema = filter_schema_params(input_schema, all_context_params)
+                desc = tool.description or "No description"
+                super().__init__(name=tool.name, description=desc, parameters=filtered_schema)
+                # Set these AFTER super().__init__() to avoid being overwritten
+                self._tool = tool
+                self._bridge = bridge
+
+            async def run(self, arguments: dict[str, Any]) -> ToolResult:
+                """Execute the wrapped tool with context bridging."""
+                from fastmcp.server.dependencies import get_context
+
+                # Get FastMCP context from context variable (not passed as parameter)
+                try:
+                    mcp_context: Context | None = get_context()
+                except LookupError:
+                    mcp_context = None
+
+                # Try to get Claude's original tool_call_id from request metadata
+                tool_call_id = _extract_tool_call_id(mcp_context)
+                # Get deps from bridge (set by run_stream on the agent)
+                current_deps = self._bridge.current_deps
+                # Create context with tool-specific metadata from node's context.
+                ctx = replace(
+                    self._bridge.node.get_context(data=current_deps),
+                    tool_name=self._tool.name,
+                    tool_call_id=tool_call_id,
+                    tool_input=arguments,
+                )
+                # Invoke with context - copy arguments since invoke_tool_with_context
+                # modifies kwargs in-place to inject context parameters
+                result = await self._bridge.invoke_tool_with_context(
+                    self._tool, ctx, arguments.copy()
+                )
+                return _convert_to_tool_result(result)
+
         # Create a custom FastMCP Tool that wraps our tool
         bridge_tool = _BridgeTool(tool=tool, bridge=self)
         self._mcp.add_tool(bridge_tool)
@@ -483,57 +533,6 @@ class ToolManagerBridge:
         await anyio.sleep(0.1)  # Wait briefly for server to start
         msg = "ToolManagerBridge started"
         logger.info(msg, url=self.url, transport=self.config.transport)
-
-
-class _BridgeTool(FastMCPTool):
-    """Custom FastMCP Tool that wraps a agentpool Tool.
-
-    This allows us to use our own schema and invoke tools with AgentContext.
-    """
-
-    def __init__(self, tool: Tool, bridge: ToolManagerBridge) -> None:
-        # Get input schema from our tool
-        schema = tool.schema["function"]
-        input_schema = schema.get("parameters", {"type": "object", "properties": {}})
-        # Filter out context parameters - they're auto-injected by the bridge
-        context_params = _get_context_param_names(tool.callable)
-        run_context_params = _get_run_context_param_names(tool.callable)
-        all_context_params = context_params | run_context_params
-        filtered_schema = filter_schema_params(input_schema, all_context_params)
-        desc = tool.description or "No description"
-        super().__init__(name=tool.name, description=desc, parameters=filtered_schema)
-        # Set these AFTER super().__init__() to avoid being overwritten
-        self._tool = tool
-        self._bridge = bridge
-
-    async def run(self, arguments: dict[str, Any]) -> ToolResult:
-        """Execute the wrapped tool with context bridging."""
-        from fastmcp.server.dependencies import get_context
-
-        # Get FastMCP context from context variable (not passed as parameter)
-        try:
-            mcp_context: Context | None = get_context()
-        except LookupError:
-            mcp_context = None
-
-        # Try to get Claude's original tool_call_id from request metadata
-        tool_call_id = _extract_tool_call_id(mcp_context)
-
-        # Get deps from bridge (set by run_stream on the agent)
-        current_deps = self._bridge.current_deps
-
-        # Create context with tool-specific metadata from node's context.
-        ctx = replace(
-            self._bridge.node.get_context(data=current_deps),
-            tool_name=self._tool.name,
-            tool_call_id=tool_call_id,
-            tool_input=arguments,
-        )
-
-        # Invoke with context - copy arguments since invoke_tool_with_context
-        # modifies kwargs in-place to inject context parameters
-        result = await self._bridge.invoke_tool_with_context(self._tool, ctx, arguments.copy())
-        return _convert_to_tool_result(result)
 
 
 @asynccontextmanager

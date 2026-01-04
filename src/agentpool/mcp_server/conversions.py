@@ -5,16 +5,6 @@ from __future__ import annotations
 import base64
 from typing import TYPE_CHECKING, Any, assert_never
 
-from mcp.types import (
-    AudioContent,
-    BlobResourceContents,
-    EmbeddedResource,
-    ImageContent,
-    PromptMessage,
-    ResourceLink,
-    TextContent,
-    TextResourceContents,
-)
 from pydantic_ai import (
     AudioUrl,
     BinaryContent,
@@ -35,9 +25,13 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from fastmcp import Client
-    from mcp.types import ContentBlock
+    from mcp.types import (
+        BlobResourceContents,
+        ContentBlock,
+        PromptMessage,
+        TextResourceContents,
+    )
     from pydantic_ai import ModelRequestPart, ModelResponsePart
-
 
 logger = get_logger(__name__)
 
@@ -46,6 +40,13 @@ def to_mcp_messages(
     part: ModelRequestPart | ModelResponsePart,
 ) -> list[PromptMessage]:
     """Convert internal PromptMessage to MCP PromptMessage."""
+    from mcp.types import (
+        AudioContent,
+        ImageContent,
+        PromptMessage,
+        TextContent,
+    )
+
     messages = []
     match part:
         case UserPromptPart(content=str() as c):
@@ -103,6 +104,16 @@ async def from_mcp_content(
     If a FastMCP client is given, this function will try to resolve the ResourceLinks.
 
     """
+    from mcp.types import (
+        AudioContent,
+        BlobResourceContents,
+        EmbeddedResource,
+        ImageContent,
+        ResourceLink,
+        TextContent,
+        TextResourceContents,
+    )
+
     contents: list[Any] = []
 
     for block in mcp_content:
@@ -151,6 +162,17 @@ async def from_mcp_content(
 
 
 def content_block_as_text(content: ContentBlock) -> str:
+
+    from mcp.types import (
+        AudioContent,
+        BlobResourceContents,
+        EmbeddedResource,
+        ImageContent,
+        ResourceLink,
+        TextContent,
+        TextResourceContents,
+    )
+
     match content:
         case TextContent(text=text):
             return text

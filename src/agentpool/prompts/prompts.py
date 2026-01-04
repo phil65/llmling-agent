@@ -8,7 +8,6 @@ import inspect
 import os
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, assert_never
 
-from mcp.types import Prompt as MCPPrompt, PromptArgument
 from pydantic import ConfigDict, Field
 from pydantic_ai import BinaryContent, ImageUrl, SystemPromptPart, UserPromptPart
 from schemez import Schema
@@ -24,8 +23,8 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from fastmcp.prompts.prompt import FunctionPrompt, Prompt as FastMCPPrompt
+    from mcp.types import Prompt as MCPPrompt, PromptArgument
     from pydantic_ai import ModelRequestPart
-
 
 logger = get_logger(__name__)
 
@@ -421,6 +420,8 @@ class MCPClientPrompt(BasePrompt):
 
     def to_mcp_prompt(self) -> MCPPrompt:
         """Convert to MCP Prompt."""
+        from mcp.types import Prompt as MCPPrompt, PromptArgument
+
         args = [
             PromptArgument(name=i["name"], description=i["description"], required=i["required"])
             for i in self.arguments
@@ -516,6 +517,8 @@ class FilePrompt(BasePrompt):
 
     def to_mcp_prompt(self) -> MCPPrompt:
         """Convert to MCP Prompt."""
+        from mcp.types import Prompt as MCPPrompt
+
         return MCPPrompt(
             name=self.name or to_upath(self.path).name,
             description=self.description,
