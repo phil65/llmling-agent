@@ -12,8 +12,9 @@ from agentpool_toolsets.fsspec_toolset import FSSpecTools
 @pytest.fixture
 def agent_ctx() -> AgentContext:
     """Create a fresh mock context for each test."""
+    agent = Agent(name="test_agent", model="test")
     return AgentContext(
-        node=Agent(name="test_agent"), config=NativeAgentConfig(), definition=AgentsManifest()
+        node=agent, config=NativeAgentConfig(model="test"), definition=AgentsManifest()
     )
 
 

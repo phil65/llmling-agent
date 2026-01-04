@@ -41,7 +41,7 @@ def get_progress_events(agent: Agent) -> list[ToolCallProgressEvent]:
 @pytest.fixture
 def test_agent() -> Agent[None]:
     """Create a minimal agent for testing event emission."""
-    return Agent(name="test_agent")
+    return Agent(name="test_agent", model="test")
 
 
 @pytest.fixture
@@ -49,7 +49,7 @@ def agent_ctx(test_agent: Agent[None]) -> AgentContext:
     """Create a real AgentContext for testing."""
     return AgentContext(
         node=test_agent,
-        config=NativeAgentConfig(name="test_agent"),
+        config=NativeAgentConfig(name="test_agent", model="test"),
         definition=AgentsManifest(),
         tool_call_id="test_call_123",
         tool_name="test_tool",

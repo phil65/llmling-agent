@@ -21,6 +21,7 @@ def agent():
     """Create a test agent with some tools."""
     agent = Agent(
         name="tester",
+        model="test",
         description="A test agent",
         system_prompt=[
             "Be helpful",
