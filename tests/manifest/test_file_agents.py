@@ -50,6 +50,7 @@ Focus on:
 MINIMAL_CLAUDE_AGENT = """\
 ---
 description: A minimal agent
+model: openai:gpt-4o-mini
 ---
 
 Just a simple system prompt.
@@ -70,15 +71,17 @@ Extended agent prompt.
 AGENT_WITH_INHERIT_MODEL = """\
 ---
 description: Agent that inherits model
-model: inherit
+model: openai:gpt-4o-mini
+inherits: parent_agent
 ---
 
-This agent inherits the model.
+This agent inherits from parent_agent.
 """
 
 AGENT_WITH_UNKNOWN_PERMISSION = """\
 ---
 description: Agent with unknown permission mode
+model: openai:gpt-4o-mini
 permissionMode: plan
 ---
 
@@ -125,6 +128,7 @@ OPENCODE_AGENT_WITH_MAXSTEPS = """\
 ---
 description: Fast reasoning with limited iterations
 mode: subagent
+model: anthropic/claude-sonnet-4-20250514
 maxSteps: 5
 ---
 
@@ -157,7 +161,7 @@ def test_parse_minimal_agent():
         config = parse_agent_file(f.name)
 
         assert config.description == "A minimal agent"
-        assert config.model is None
+        assert config.model.identifier == "openai:gpt-4o-mini"
         assert config.system_prompt is not None
         assert "simple system prompt" in str(config.system_prompt)
 
@@ -177,14 +181,15 @@ def test_parse_agent_with_agentpool_extensions():
 
 
 def test_parse_agent_inherit_model():
-    """Test that 'inherit' model value results in None."""
+    """Test that agent can use inherits field."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write(AGENT_WITH_INHERIT_MODEL)
         f.flush()
 
         config = parse_agent_file(f.name)
 
-        assert config.model is None
+        assert config.model.identifier == "openai:gpt-4o-mini"
+        assert config.inherits == "parent_agent"
 
 
 def test_parse_agent_unknown_permission_mode(caplog):
@@ -279,6 +284,7 @@ def test_manifest_file_agents_mixed(tmp_path: Path):
     manifest = AgentsManifest(
         agents={
             "inline_agent": NativeAgentConfig(
+                model="openai:gpt-4o-mini",
                 description="Inline agent",
                 system_prompt="You are inline",
             ),
