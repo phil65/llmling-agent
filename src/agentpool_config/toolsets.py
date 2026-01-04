@@ -644,41 +644,6 @@ class NotificationsToolsetConfig(BaseToolsetConfig):
         return NotificationsTools(channels=self.channels)
 
 
-class SemanticMemoryToolsetConfig(BaseToolsetConfig):
-    """Configuration for semantic memory / knowledge processing toolset."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "x-icon": "octicon:database-16",
-            "x-doc-title": "Semantic Memory Toolset",
-        }
-    )
-
-    type: Literal["semantic_memory"] = Field("semantic_memory", init=False)
-    """Semantic memory toolset using TypeAgent's KnowPro."""
-
-    model: str | ModelId | AnyModelConfig | None = Field(
-        default=None,
-        examples=["openai:gpt-4o", "anthropic:claude-sonnet-4-20250514"],
-        title="Model for LLM sampling",
-    )
-    """Model to use for query translation and answer generation."""
-
-    dbname: str | None = Field(
-        default=None,
-        examples=["knowledge.db", "/path/to/memory.db"],
-        title="Database path",
-    )
-    """SQLite database path for persistent storage, or None for in-memory."""
-
-    def get_provider(self) -> ResourceProvider:
-        """Create semantic memory tools provider."""
-        from agentpool_toolsets.semantic_memory_toolset import SemanticMemoryTools
-
-        model = m if isinstance(m := self.model, str) or m is None else m.get_model()
-        return SemanticMemoryTools(model=model, dbname=self.dbname)
-
-
 class CustomToolsetConfig(BaseToolsetConfig):
     """Configuration for custom toolsets."""
 
@@ -966,7 +931,6 @@ ToolsetConfig = Annotated[
     | RemoteCodeModeToolsetConfig
     | SearchToolsetConfig
     | NotificationsToolsetConfig
-    | SemanticMemoryToolsetConfig
     | ConfigCreationToolsetConfig
     | ImportToolsToolsetConfig
     | PlanToolsetConfig

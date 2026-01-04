@@ -59,12 +59,6 @@ agents:
 | [Code Mode](./code-mode.md) | Wrap toolsets for code-based interaction |
 | [Remote Code Mode](./remote-code-mode.md) | Remote code-based interaction |
 
-### Memory
-
-| Toolset | Description |
-|---------|-------------|
-| [Semantic Memory](./semantic-memory.md) | Vector-based semantic memory |
-
 ### Utility
 
 | Toolset | Description |
