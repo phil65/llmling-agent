@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Annotated, Any, Self
 
 from pydantic import ConfigDict, Field, model_validator
 from schemez import Schema
-from upathtools.configs import FilesystemConfigType
-from upathtools.configs.base import URIFileSystemConfig
+from upathtools_config import FilesystemConfigType
+from upathtools_config.base import URIFileSystemConfig
 
 from agentpool import log
 from agentpool.models.acp_agents import ACPAgentConfigTypes

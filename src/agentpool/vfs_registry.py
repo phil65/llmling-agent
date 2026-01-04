@@ -87,7 +87,7 @@ class VFSRegistry:
         Returns:
             The registered filesystem instance
         """
-        from upathtools.configs.base import FileSystemConfig, URIFileSystemConfig
+        from upathtools_config.base import FileSystemConfig, URIFileSystemConfig
 
         match config:
             case str() as uri:

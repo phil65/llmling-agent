@@ -18,8 +18,8 @@ from searchly.config import (
 )
 from tokonomics.model_names import ModelId
 from upathtools import UPath
-from upathtools.configs import FilesystemConfigType
-from upathtools.configs.base import FileSystemConfig
+from upathtools_config import FilesystemConfigType
+from upathtools_config.base import FileSystemConfig
 
 from agentpool_config.converters import ConversionConfig
 from agentpool_config.tools import ImportToolConfig
