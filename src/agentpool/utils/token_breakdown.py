@@ -293,3 +293,169 @@ async def get_token_breakdown(
         runs=run_usages,
         approximate=approximate,
     )
+
+
+def format_breakdown(breakdown: TokenBreakdown, detailed: bool = False) -> str:
+    """Format a token breakdown for display."""
+    lines: list[str] = []
+    # Header
+    approx_marker = " (approximate)" if breakdown.approximate else ""
+    lines.append(f"Token Breakdown{approx_marker}")
+    lines.append("=" * 50)
+    # Summary
+    lines.append(f"Total tokens: {breakdown.total_tokens:,}")
+    lines.append("")
+    # Category breakdown
+    lines.append("By category:")
+    lines.append(f"  System prompts: {breakdown.system_prompts_tokens:,} tokens")
+    lines.append(f"  Tool definitions: {breakdown.tool_definitions_tokens:,} tokens")
+    lines.append(f"  Conversation: {breakdown.conversation_tokens:,} tokens")
+    if detailed:
+        lines.append("")
+        lines.append("-" * 50)
+        # System prompts detail
+        if breakdown.system_prompts:
+            lines.append("")
+            lines.append("System Prompts:")
+            for sp in breakdown.system_prompts:
+                lines.append(f"  [{sp.token_count:,} tokens] {sp.label}")  # noqa: PERF401
+        # Tool definitions detail
+        if breakdown.tool_definitions:
+            lines.append("")
+            lines.append("Tool Definitions:")
+            for tool in breakdown.tool_definitions:
+                lines.append(f"  [{tool.token_count:,} tokens] {tool.label}")  # noqa: PERF401
+        # Runs detail
+        if breakdown.runs:
+            lines.append("")
+            lines.append("Conversation by Run:")
+            for run in breakdown.runs:
+                run_label = run.run_id[:8] + "..." if run.run_id else "(no run_id)"
+                lines.append(
+                    f"  [{run.token_count:,} tokens] {run_label} ({run.request_count} requests)"
+                )
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    from pydantic_ai.messages import (
+        ImageUrl,
+        ModelRequest,
+        ModelResponse,
+        SystemPromptPart,
+        TextPart,
+        ToolCallPart,
+        ToolReturnPart,
+        UserPromptPart,
+    )
+    from pydantic_ai.models.test import TestModel
+    from pydantic_ai.tools import ToolDefinition
+
+    async def main() -> None:
+        # Create sample tool definitions
+        tool_definitions = [
+            ToolDefinition(
+                name="get_weather",
+                description="Get the current weather for a city.",
+                parameters_json_schema={
+                    "type": "object",
+                    "properties": {
+                        "city": {"type": "string", "description": "The city name"},
+                    },
+                    "required": ["city"],
+                },
+            ),
+            ToolDefinition(
+                name="search_database",
+                description="Search a database with a complex query. Supports filtering, sorting, and pagination.",  # noqa: E501
+                parameters_json_schema={
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "Search query"},
+                        "filters": {
+                            "type": "object",
+                            "description": "Filter conditions",
+                            "additionalProperties": True,
+                        },
+                        "sort_by": {"type": "string", "description": "Field to sort by"},
+                        "limit": {"type": "integer", "description": "Max results"},
+                        "offset": {"type": "integer", "description": "Skip N results"},
+                    },
+                    "required": ["query"],
+                },
+            ),
+        ]
+
+        # Create sample message history simulating two runs
+        messages: list[ModelMessage] = [
+            # First run
+            ModelRequest(
+                parts=[
+                    SystemPromptPart(
+                        content="You are a helpful assistant with access to weather and time tools."
+                    ),
+                    UserPromptPart(content="What's the weather in Paris?"),
+                ],
+                run_id="run-001-abc",
+            ),
+            ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        tool_name="get_weather", args={"city": "Paris"}, tool_call_id="call-1"
+                    ),
+                ],
+                run_id="run-001-abc",
+            ),
+            ModelRequest(
+                parts=[
+                    ToolReturnPart(
+                        tool_name="get_weather",
+                        content="Sunny, 22°C in Paris",
+                        tool_call_id="call-1",
+                    ),
+                ],
+                run_id="run-001-abc",
+            ),
+            ModelResponse(
+                parts=[
+                    TextPart(content="The weather in Paris is sunny with a temperature of 22°C."),
+                ],
+                run_id="run-001-abc",
+            ),
+            # Second run (continuing conversation) - includes an image
+            ModelRequest(
+                parts=[
+                    UserPromptPart(
+                        content=[
+                            "What time is it in Tokyo?",
+                            ImageUrl(url="https://example.com/tokyo-clock.jpg"),
+                        ]
+                    ),
+                ],
+                run_id="run-002-def",
+            ),
+            ModelResponse(
+                parts=[
+                    TextPart(content="The current time in Tokyo is 14:30 JST."),
+                ],
+                run_id="run-002-def",
+            ),
+        ]
+
+        # Get the breakdown using TestModel (will use tiktoken fallback)
+        model = TestModel()
+        breakdown = await get_token_breakdown(
+            model=model, messages=messages, tool_schemas=tool_definitions
+        )
+        # Print summary view
+        print("SUMMARY VIEW")
+        print(format_breakdown(breakdown, detailed=False))
+        # Print detailed view
+        print("DETAILED VIEW")
+        print(format_breakdown(breakdown, detailed=True))
+
+    asyncio.run(main())
