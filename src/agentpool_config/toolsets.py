@@ -9,7 +9,7 @@ from exxec_config import ExecutionEnvironmentConfig
 from llmling_models.configs.model_configs import AnyModelConfig
 from pydantic import ConfigDict, EmailStr, Field, HttpUrl, SecretStr
 from schemez import Schema
-from searchly.config import (
+from searchly_config import (
     NewsSearchProviderConfig,
     NewsSearchProviderName,
     WebSearchProviderConfig,

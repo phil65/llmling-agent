@@ -5559,7 +5559,7 @@ codegen = [
 
 [[package]]
 name = "searchly"
-version = "2.0.5"
+version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyenv", extra = ["httpx"] },
@@ -5567,9 +5567,9 @@ dependencies = [
     { name = "schemez" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/51/b6bfa258bf7428abf047938bb39ef7f1edd4870e278b97c4bc77bf472a66/searchly-2.0.5.tar.gz", hash = "sha256:8c7a8339c6d97ef89a9da02e67bc9655fb4c47b5a9681fe10613ca61d83a0330", size = 16943, upload-time = "2025-12-13T15:32:24.513Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/99/adf947a5815289e0aea96080e2714b31212331701647cc8a12789ffd91cf/searchly-2.1.0.tar.gz", hash = "sha256:63b861aecfb2938b5484a4566eeb4e8909cd6b8ea468d80490af69bbd490fe7c", size = 17852, upload-time = "2026-01-04T06:50:14.096Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fc/a7/cfaf4ecffc8a40324410d833d9646337662eb7057b2bd8d13c40d3726ac3/searchly-2.0.5-py3-none-any.whl", hash = "sha256:ac9d611c521d01bfe7285742809f39263db982ce5f6aee6b583c3283268dcd5b", size = 32018, upload-time = "2025-12-13T15:32:23.06Z" },
+    { url = "https://files.pythonhosted.org/packages/67/69/02d619394e196cc4b57b841790f769c6fcf2050ad0249880a0e1b9064ab6/searchly-2.1.0-py3-none-any.whl", hash = "sha256:70272f8e7e6c08ffd6ac2963e9c7aba6769afe97295b1030fe88abc8cea6c310", size = 32982, upload-time = "2026-01-04T06:50:15.455Z" },
 ]
 
 [package.optional-dependencies]
