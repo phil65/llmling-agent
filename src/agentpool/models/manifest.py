@@ -5,6 +5,7 @@ from __future__ import annotations
 from functools import cached_property
 from typing import TYPE_CHECKING, Annotated, Any, Self
 
+from llmling_models_config import AnyModelConfig, StringModelConfig
 from pydantic import ConfigDict, Field, model_validator
 from schemez import Schema
 from upathtools_config import FilesystemConfigType
@@ -220,6 +221,52 @@ class AgentsManifest(Schema):
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/response_configuration/
     """
 
+    model_variants: dict[str, AnyModelConfig] = Field(
+        default_factory=dict,
+        examples=[
+            {
+                "thinking_high": {
+                    "type": "anthropic",
+                    "model": "claude-sonnet-4-5",
+                    "max_thinking_tokens": 10000,
+                },
+                "fast_gpt": {
+                    "type": "string",
+                    "model": "openai:gpt-4o-mini",
+                    "temperature": 0.3,
+                },
+            }
+        ],
+    )
+    """Named model variants with pre-configured settings.
+
+    Define reusable model configurations that can be referenced by name
+    in agent configs. Each variant specifies a base model and its settings.
+
+    Note: Currently only applies to native agents.
+
+    Example:
+        ```yaml
+        model_variants:
+          thinking_high:
+            type: anthropic
+            model: claude-sonnet-4-5
+            max_thinking_tokens: 10000
+
+          fast_gpt:
+            type: string
+            model: openai:gpt-4o-mini
+            temperature: 0.3
+        ```
+
+    Then use in agents:
+        ```yaml
+        agents:
+          assistant:
+            model: thinking_high  # References the variant
+        ```
+    """
+
     jobs: dict[str, Job[Any]] = Field(default_factory=dict)
     """Pre-defined jobs, ready to be used by nodes."""
 
@@ -420,6 +467,25 @@ class AgentsManifest(Schema):
         for name, config in self.resources.items():
             registry.register_from_config(name, config)
         return registry
+
+    def resolve_model(self, model: AnyModelConfig | str) -> AnyModelConfig:
+        """Resolve a model specification to a model config.
+
+        If model is a string, checks model_variants first, then wraps in StringModelConfig.
+        If model is already an AnyModelConfig, returns it unchanged.
+
+        Args:
+            model: Model identifier, variant name, or config
+
+        Returns:
+            AnyModelConfig
+        """
+        if isinstance(model, str):
+            if model in self.model_variants:
+                return self.model_variants[model]
+            return StringModelConfig(identifier=model)
+        # Already a config
+        return model
 
     def clone_agent_config(
         self,

@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any, Literal, Self, Unpack, overload
 
 from anyenv import ProcessManager
 import anyio
-from llmling_models_config import BaseModelConfig
 from upathtools import UPath
 
 from agentpool.agents import Agent
@@ -980,16 +979,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             *config_handlers,
             *(event_handlers or []),
         ]
-        match config.model:
-            case str():
-                model: Model | str | None = config.model
-                model_settings: ModelSettings | None = None
-            case BaseModelConfig():
-                model = config.model.get_model()
-                model_settings = config.model.get_model_settings()
-            case _:
-                model = None
-                model_settings = None
+        # Resolve model (handles variants and wraps strings)
+        resolved_model = self.manifest.resolve_model(config.model)
+        model: Model | str = resolved_model.get_model()
+        model_settings: ModelSettings | None = resolved_model.get_model_settings()
         # Extract pydantic-ai builtin tools from config
         builtin_tools = config.get_builtin_tools()
 

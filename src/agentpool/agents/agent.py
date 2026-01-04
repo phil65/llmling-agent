@@ -27,6 +27,7 @@ from pydantic_ai import (
     RunContext,
     ToolReturnPart,
 )
+from pydantic_ai.models import Model
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import (
@@ -86,6 +87,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from exxec import ExecutionEnvironment
+    from llmling_models_config import AnyModelConfig
     from pydantic_ai import UsageLimits
     from pydantic_ai.builtin_tools import AbstractBuiltinTool
     from pydantic_ai.output import OutputSpec
@@ -171,13 +173,13 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     run_failed = Signal(str, Exception)
     agent_reset = Signal(AgentReset)
 
-    def __init__(
+    def __init__(  # noqa: PLR0915
         # we dont use AgentKwargs here so that we can work with explicit ones in the ctor
         self,
         name: str = "agentpool",
         *,
         deps_type: type[TDeps] | None = None,
-        model: ModelType = None,
+        model: ModelType,
         output_type: OutputSpec[OutputDataT] = str,  # type: ignore[assignment]
         # context: AgentContext[TDeps] | None = None,
         session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
@@ -254,8 +256,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 Defaults to ["models.dev"] if not specified.
             commands: Slash commands
         """
-        from llmling_models import infer_model
-
         from agentpool.agents.interactions import Interactions
         from agentpool.agents.sys_prompts import SystemPrompts
         from agentpool.models.agents import NativeAgentConfig
@@ -291,7 +291,26 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         )
 
         # Store config for context creation
-        self._agent_config = agent_config or NativeAgentConfig(name=name)
+        # Convert model to proper config type for NativeAgentConfig
+        from llmling_models_config import StringModelConfig
+
+        config_model: AnyModelConfig
+        if isinstance(model, Model):
+            config_model = StringModelConfig(
+                identifier=model.model_name,
+                **({"model_settings": model._settings} if model._settings else {}),
+            )
+        elif isinstance(model, str):
+            config_model = StringModelConfig(
+                identifier=model,
+                **({"model_settings": model_settings} if model_settings else {}),
+            )
+        else:
+            config_model = model
+        self._agent_config = agent_config or NativeAgentConfig(
+            name=name,
+            model=config_model,
+        )
 
         # Store builtin tools for pydantic-ai
         self._builtin_tools = list(builtin_tools) if builtin_tools else []
@@ -315,7 +334,12 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             session_config=memory_cfg,
             resources=resources,
         )
-        self._model = infer_model(model) if isinstance(model, str) else model
+        if isinstance(model, str):
+            self._model, settings = self._resolve_model_string(model)
+            if settings:
+                self.model_settings = settings
+        else:
+            self._model = model
         self._retries = retries
         self._end_strategy: EndStrategy = end_strategy
         self._output_retries = output_retries
@@ -512,6 +536,25 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             data=data,
         )
 
+    def _resolve_model_string(self, model: str) -> tuple[Model, ModelSettings | None]:
+        """Resolve a model string, checking variants first.
+
+        Args:
+            model: Model identifier or variant name
+
+        Returns:
+            Tuple of (Model instance, ModelSettings or None)
+            Settings are only returned for variants.
+        """
+        from llmling_models import infer_model
+
+        # Check if it's a variant
+        if self.agent_pool and model in self.agent_pool.manifest.model_variants:
+            config = self.agent_pool.manifest.model_variants[model]
+            return config.get_model(), config.get_model_settings()
+        # Regular model string - no settings
+        return infer_model(model), None
+
     def to_structured[NewOutputDataT](
         self,
         output_type: type[NewOutputDataT],
@@ -606,21 +649,22 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     async def get_agentlet[AgentOutputType](
         self,
         tool_choice: str | list[str] | None,
-        model: ModelType,
+        model: ModelType | None,
         output_type: type[AgentOutputType] | None,
         input_provider: InputProvider | None = None,
     ) -> PydanticAgent[TDeps, AgentOutputType]:
         """Create pydantic-ai agent from current state."""
         # Monkey patch pydantic-ai to recognize AgentContext
 
-        from llmling_models import infer_model
-
         from agentpool.agents.tool_wrapping import wrap_tool
 
         tools = await self.tools.get_tools(state="enabled", names=tool_choice)
         final_type = to_type(output_type) if output_type not in [None, str] else self._output_type
         actual_model = model or self._model
-        model_ = infer_model(actual_model) if isinstance(actual_model, str) else actual_model
+        if isinstance(actual_model, str):
+            model_, _settings = self._resolve_model_string(actual_model)
+        else:
+            model_ = actual_model
         agent = PydanticAgent(
             name=self.name,
             model=model_,
@@ -657,7 +701,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
         output_type: None = None,
-        model: ModelType = None,
+        model: ModelType | None = None,
         store_history: bool = True,
         tool_choice: str | list[str] | None = None,
         usage_limits: UsageLimits | None = None,
@@ -675,7 +719,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
         output_type: type[OutputTypeT],
-        model: ModelType = None,
+        model: ModelType | None = None,
         store_history: bool = True,
         tool_choice: str | list[str] | None = None,
         usage_limits: UsageLimits | None = None,
@@ -693,7 +737,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
         output_type: type[Any] | None = None,
-        model: ModelType = None,
+        model: ModelType | None = None,
         store_history: bool = True,
         tool_choice: str | list[str] | None = None,
         usage_limits: UsageLimits | None = None,
@@ -762,7 +806,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompt: PromptCompatible,
         output_type: type[OutputDataT] | None = None,
-        model: ModelType = None,
+        model: ModelType | None = None,
         tool_choice: str | list[str] | None = None,
         store_history: bool = True,
         usage_limits: UsageLimits | None = None,
@@ -1027,7 +1071,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompt_groups: Sequence[PromptCompatible],
         output_type: type[OutputDataT] | None = None,
-        model: ModelType = None,
+        model: ModelType | None = None,
         store_history: bool = True,
         wait_for_connections: bool | None = None,
     ) -> AsyncIterator[ChatMessage[OutputDataT]]:
@@ -1247,16 +1291,19 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             parent=self if pass_message_history else None,
         )
 
-    async def set_model(self, model: ModelType) -> None:
+    async def set_model(self, model: Model | str) -> None:
         """Set the model for this agent.
 
         Args:
             model: New model to use (name or instance)
 
         """
-        from llmling_models import infer_model
-
-        self._model = infer_model(model) if isinstance(model, str) else model
+        if isinstance(model, str):
+            self._model, settings = self._resolve_model_string(model)
+            if settings:
+                self.model_settings = settings
+        else:
+            self._model = model
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set the tool confirmation mode for this agent.
@@ -1311,9 +1358,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             pause_routing: Whether to pause message routing
             model: Temporary model override
         """
-        from llmling_models import infer_model
-
         old_model = self._model
+        old_settings = self.model_settings
         if output_type:
             old_type = self._output_type
             self.to_structured(output_type)
@@ -1336,14 +1382,21 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             if pause_routing:  # Routing
                 await stack.enter_async_context(self.connections.paused_routing())
 
-            elif model is not None:  # Model
-                self._model = infer_model(model) if isinstance(model, str) else model
+            if model is not None:  # Model
+                if isinstance(model, str):
+                    self._model, settings = self._resolve_model_string(model)
+                    if settings:
+                        self.model_settings = settings
+                else:
+                    self._model = model
 
             try:
                 yield self
-            finally:  # Restore model
-                if model is not None and old_model:
-                    self._model = old_model
+            finally:  # Restore model and settings
+                if model is not None:
+                    if old_model:
+                        self._model = old_model
+                    self.model_settings = old_settings
                 if output_type:
                     self.to_structured(old_type)
 

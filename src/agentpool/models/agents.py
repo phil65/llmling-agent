@@ -65,8 +65,8 @@ class NativeAgentConfig(BaseAgentConfig):
     inherits: str | None = Field(default=None, title="Inheritance source")
     """Name of agent config to inherit from"""
 
-    model: AnyModelConfig | ModelId | str | None = Field(
-        default=None,
+    model: AnyModelConfig | ModelId | str = Field(
+        ...,
         examples=["openai:gpt-5-nano"],
         title="Model configuration or name",
         json_schema_extra={

@@ -77,7 +77,7 @@ class CreateAgentCommand(NodeCommand):
             # Create and register the new agent
             await ctx.context.pool.add_agent(
                 name=agent_name,
-                model=model or current_agent.model_name,
+                model=model or current_agent.model_name or "openai:gpt-4o-mini",
                 system_prompt=system_prompt or (),
                 description=description,
                 tools=tool_list,
