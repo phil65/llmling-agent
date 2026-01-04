@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self, Unpack, overload
 
 from anyenv import ProcessManager
 import anyio
-from llmling_models.configs.model_configs import BaseModelConfig
+from llmling_models_config import BaseModelConfig
 from upathtools import UPath
 
 from agentpool.agents import Agent

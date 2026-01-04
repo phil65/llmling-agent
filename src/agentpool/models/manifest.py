@@ -693,7 +693,7 @@ class AgentsManifest(Schema):
 
 
 if __name__ == "__main__":
-    from llmling_models.configs import InputModelConfig
+    from llmling_models_config import InputModelConfig
 
     model = InputModelConfig()
     agent_cfg = NativeAgentConfig(name="test_agent", model=model)

@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock
 
 from exxec import MockExecutionEnvironment
-from llmling_models.configs import TestModelConfig
+from llmling_models_config import TestModelConfig
 
 from acp import ClientCapabilities
 from acp.client.implementations import HeadlessACPClient

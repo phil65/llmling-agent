@@ -6,7 +6,7 @@ import os
 from typing import TYPE_CHECKING, Annotated, Literal, cast
 
 from exxec_config import ExecutionEnvironmentConfig
-from llmling_models.configs.model_configs import AnyModelConfig
+from llmling_models_config import AnyModelConfig
 from pydantic import ConfigDict, EmailStr, Field, HttpUrl, SecretStr
 from schemez import Schema
 from searchly_config import (
