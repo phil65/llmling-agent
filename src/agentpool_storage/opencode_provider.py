@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 from pydantic_ai import RunUsage
@@ -21,11 +21,11 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.usage import RequestUsage
 
-from agentpool.common_types import MessageRole
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.utils.now import get_now
 from agentpool_storage.base import StorageProvider
+from agentpool_storage.models import TokenUsage
 
 
 if TYPE_CHECKING:
@@ -38,7 +38,6 @@ if TYPE_CHECKING:
         MessageData,
         QueryFilters,
         StatsFilters,
-        TokenUsage,
     )
 
 logger = get_logger(__name__)
@@ -295,7 +294,7 @@ class OpenCodeStorageProvider(StorageProvider):
         if not parts_dir.exists():
             return parts
 
-        adapter = TypeAdapter(OpenCodePart)
+        adapter = TypeAdapter[Any](OpenCodePart)
         for part_file in sorted(parts_dir.glob("*.json")):
             try:
                 data = json.loads(part_file.read_text(encoding="utf-8"))
@@ -352,7 +351,7 @@ class OpenCodeStorageProvider(StorageProvider):
         return ChatMessage[str](
             content=content,
             conversation_id=conversation_id,
-            role=cast(MessageRole, msg.role),
+            role=msg.role,
             message_id=msg.id,
             name=msg.agent,
             model_name=model_name,
@@ -612,17 +611,17 @@ class OpenCodeStorageProvider(StorageProvider):
                     "parent_id": chat_msg.parent_id,
                     "model": chat_msg.model_name,
                     "name": chat_msg.name,
-                    "token_usage": {
-                        "total": chat_msg.cost_info.token_usage.total_tokens
+                    "token_usage": TokenUsage(
+                        total=chat_msg.cost_info.token_usage.total_tokens
                         if chat_msg.cost_info
                         else 0,
-                        "prompt": chat_msg.cost_info.token_usage.input_tokens
+                        prompt=chat_msg.cost_info.token_usage.input_tokens
                         if chat_msg.cost_info
                         else 0,
-                        "completion": chat_msg.cost_info.token_usage.output_tokens
+                        completion=chat_msg.cost_info.token_usage.output_tokens
                         if chat_msg.cost_info
                         else 0,
-                    }
+                    )
                     if chat_msg.cost_info
                     else None,
                     "cost": float(chat_msg.cost_info.total_cost) if chat_msg.cost_info else None,

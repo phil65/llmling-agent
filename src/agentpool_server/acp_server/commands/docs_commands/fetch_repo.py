@@ -66,10 +66,7 @@ class FetchRepoCommand(NodeCommand):
         """
         session = ctx.context.data
         assert session
-
-        # Generate tool call ID
-        tool_call_id = f"fetch-repo-{uuid.uuid4().hex[:8]}"
-
+        tc_id = f"fetch-repo-{uuid.uuid4().hex[:8]}"
         try:
             # Build URL
             base_url = f"https://uithub.com/{repo}"
@@ -113,7 +110,7 @@ class FetchRepoCommand(NodeCommand):
                 display_path += f":{path}"
 
             await session.notifications.tool_call_start(
-                tool_call_id=tool_call_id,
+                tool_call_id=tc_id,
                 title=f"Fetching repository: {display_path}",
                 kind="fetch",
             )
@@ -134,11 +131,10 @@ class FetchRepoCommand(NodeCommand):
                 content=f"Repository contents from {display_path}:\n\n{content}"
             )
             session.staged_content.add([staged_part])
-
             # Send successful result - wrap in code block for proper display
             staged_count = len(session.staged_content)
             await session.notifications.tool_call_progress(
-                tool_call_id=tool_call_id,
+                tool_call_id=tc_id,
                 status="completed",
                 title=f"Repository {display_path} fetched and staged ({staged_count} total parts)",
                 content=[f"```\n{content}\n```"],
@@ -149,21 +145,25 @@ class FetchRepoCommand(NodeCommand):
                 "HTTP error fetching repository", repo=repo, status=e.response.status_code
             )
             await session.notifications.tool_call_progress(
-                tool_call_id=tool_call_id,
+                tool_call_id=tc_id,
                 status="failed",
                 title=f"HTTP {e.response.status_code}: Failed to fetch {repo}",
             )
         except httpx.RequestError as e:
             logger.exception("Request error fetching repository", repo=repo)
             await session.notifications.tool_call_progress(
-                tool_call_id=tool_call_id,
+                tool_call_id=tc_id,
                 status="failed",
                 title=f"Network error: {e}",
             )
         except Exception as e:
             logger.exception("Unexpected error fetching repository", repo=repo)
             await session.notifications.tool_call_progress(
-                tool_call_id=tool_call_id,
+                tool_call_id=tc_id,
                 status="failed",
                 title=f"Error: {e}",
             )
+
+
+if __name__ == "__main__":
+    cmd = FetchRepoCommand()

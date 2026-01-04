@@ -878,7 +878,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                             async with (
                                 node.stream(agent_run.ctx) as agent_stream,
                                 merge_queue_into_iterator(
-                                    agent_stream,  # pyright: ignore[reportArgumentType]
+                                    agent_stream,  # type: ignore[arg-type]
                                     self._event_queue,
                                 ) as merged,
                             ):
@@ -886,7 +886,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                     if self._cancelled:
                                         break
                                     await handler(None, event)
-                                    yield event  # type: ignore[misc]
+                                    yield event
                                     combined = self._process_tool_event(
                                         event, pending_tcs, message_id
                                     )
@@ -904,7 +904,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                     if self._cancelled:
                                         break
                                     await handler(None, event)
-                                    yield event  # type: ignore[misc]
+                                    yield event
                                     combined = self._process_tool_event(
                                         event, pending_tcs, message_id
                                     )

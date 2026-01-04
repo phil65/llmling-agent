@@ -8,7 +8,8 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic.alias_generators import to_camel
 from pydantic_ai import RunUsage
 from pydantic_ai.messages import (
     ModelRequest,
@@ -26,6 +27,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.utils.now import get_now
 from agentpool_storage.base import StorageProvider
+from agentpool_storage.models import TokenUsage
 
 
 if TYPE_CHECKING:
@@ -35,13 +37,7 @@ if TYPE_CHECKING:
 
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import ClaudeStorageConfig
-    from agentpool_storage.models import (
-        ConversationData,
-        MessageData,
-        QueryFilters,
-        StatsFilters,
-        TokenUsage,
-    )
+    from agentpool_storage.models import ConversationData, MessageData, QueryFilters, StatsFilters
 
 logger = get_logger(__name__)
 
@@ -54,6 +50,12 @@ MessageType = Literal[
     "user", "assistant", "queue-operation", "system", "summary", "file-history-snapshot"
 ]
 UserType = Literal["external", "internal"]
+
+
+class ClaudeBaseModel(BaseModel):
+    """Base class for Claude history models."""
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
 class ClaudeUsage(BaseModel):
@@ -106,31 +108,29 @@ class ClaudeUserMessage(BaseModel):
     content: str | list[ClaudeMessageContent]
 
 
-class ClaudeMessageEntryBase(BaseModel):
+class ClaudeMessageEntryBase(ClaudeBaseModel):
     """Base for user/assistant message entries."""
 
     uuid: str
-    parent_uuid: str | None = Field(default=None, alias="parentUuid")
+    parent_uuid: str | None = None
     session_id: str = Field(alias="sessionId")
     timestamp: str
     message: ClaudeApiMessage | ClaudeUserMessage
 
     # Context (NOT USED directly)
     cwd: str = ""
-    git_branch: str = Field(default="", alias="gitBranch")
+    git_branch: str = ""
     version: str = ""
 
     # Metadata (NOT USED)
-    user_type: UserType = Field(default="external", alias="userType")
-    is_sidechain: bool = Field(default=False, alias="isSidechain")
-    request_id: str | None = Field(default=None, alias="requestId")
-    agent_id: str | None = Field(default=None, alias="agentId")
+    user_type: UserType = "external"
+    is_sidechain: bool = False
+    request_id: str | None = None
+    agent_id: str | None = None
     # toolUseResult can be list, dict, or string (error message)
-    tool_use_result: list[dict[str, Any]] | dict[str, Any] | str | None = Field(
-        default=None, alias="toolUseResult"
-    )
+    tool_use_result: list[dict[str, Any]] | dict[str, Any] | str | None = None
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ClaudeUserEntry(ClaudeMessageEntryBase):
@@ -145,61 +145,61 @@ class ClaudeAssistantEntry(ClaudeMessageEntryBase):
     type: Literal["assistant"]
 
 
-class ClaudeQueueOperationEntry(BaseModel):
+class ClaudeQueueOperationEntry(ClaudeBaseModel):
     """Queue operation entry (not a message)."""
 
     type: Literal["queue-operation"]
-    session_id: str = Field(alias="sessionId")
+    session_id: str
     timestamp: str
     operation: str
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
 
-class ClaudeSystemEntry(BaseModel):
+class ClaudeSystemEntry(ClaudeBaseModel):
     """System message entry (context, prompts, etc.)."""
 
     type: Literal["system"]
     uuid: str
-    parent_uuid: str | None = Field(default=None, alias="parentUuid")
-    session_id: str = Field(alias="sessionId")
+    parent_uuid: str | None = None
+    session_id: str
     timestamp: str
     content: str
     subtype: str | None = None
     slug: str | None = None
     level: int | str | None = None
-    is_meta: bool = Field(default=False, alias="isMeta")
-    logical_parent_uuid: str | None = Field(default=None, alias="logicalParentUuid")
-    compact_metadata: dict[str, Any] | None = Field(default=None, alias="compactMetadata")
+    is_meta: bool = False
+    logical_parent_uuid: str | None = None
+    compact_metadata: dict[str, Any] | None = None
     # Common fields
     cwd: str = ""
-    git_branch: str = Field(default="", alias="gitBranch")
+    git_branch: str = ""
     version: str = ""
-    user_type: UserType = Field(default="external", alias="userType")
-    is_sidechain: bool = Field(default=False, alias="isSidechain")
+    user_type: UserType = "external"
+    is_sidechain: bool = False
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
 
-class ClaudeSummaryEntry(BaseModel):
+class ClaudeSummaryEntry(ClaudeBaseModel):
     """Summary entry (conversation summary)."""
 
     type: Literal["summary"]
-    leaf_uuid: str = Field(alias="leafUuid")
+    leaf_uuid: str
     summary: str
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
 
-class ClaudeFileHistoryEntry(BaseModel):
+class ClaudeFileHistoryEntry(ClaudeBaseModel):
     """File history snapshot entry."""
 
     type: Literal["file-history-snapshot"]
-    message_id: str = Field(alias="messageId")
+    message_id: str
     snapshot: dict[str, Any]
-    is_snapshot_update: bool = Field(default=False, alias="isSnapshotUpdate")
+    is_snapshot_update: bool = False
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
 
 
 # Discriminated union for all entry types
@@ -306,7 +306,7 @@ class ClaudeStorageProvider(StorageProvider):
         if not session_path.exists():
             return entries
 
-        adapter = TypeAdapter(ClaudeJSONLEntry)
+        adapter = TypeAdapter[Any](ClaudeJSONLEntry)
         with session_path.open("r", encoding="utf-8") as f:
             for raw_line in f:
                 stripped = raw_line.strip()
@@ -408,7 +408,7 @@ class ClaudeStorageProvider(StorageProvider):
         return ChatMessage[str](
             content=content,
             conversation_id=conversation_id,
-            role=cast(MessageRole, entry.type),
+            role=entry.type,
             message_id=entry.uuid,
             name="claude" if isinstance(entry, ClaudeAssistantEntry) else None,
             model_name=model,
@@ -765,13 +765,11 @@ class ClaudeStorageProvider(StorageProvider):
                     "parent_id": msg.parent_id,
                     "model": msg.model_name,
                     "name": msg.name,
-                    "token_usage": {
-                        "total": msg.cost_info.token_usage.total_tokens if msg.cost_info else 0,
-                        "prompt": msg.cost_info.token_usage.input_tokens if msg.cost_info else 0,
-                        "completion": msg.cost_info.token_usage.output_tokens
-                        if msg.cost_info
-                        else 0,
-                    }
+                    "token_usage": TokenUsage(
+                        total=msg.cost_info.token_usage.total_tokens if msg.cost_info else 0,
+                        prompt=msg.cost_info.token_usage.input_tokens if msg.cost_info else 0,
+                        completion=msg.cost_info.token_usage.output_tokens if msg.cost_info else 0,
+                    )
                     if msg.cost_info
                     else None,
                     "cost": float(msg.cost_info.total_cost) if msg.cost_info else None,
