@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, assert_never, overload
 
-from upathtools import AsyncUPath, UnionFileSystem, list_files, read_folder, read_path
+from upathtools import AsyncUPath, list_files, read_folder, read_path
 
 from agentpool.log import get_logger
 from agentpool.utils.baseregistry import AgentPoolError
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
     from fsspec import AbstractFileSystem
     from upathtools import AsyncUPath, UPath
+    from upathtools.filesystems import UnionFileSystem
 
     from agentpool.models.manifest import ResourceConfig
 
@@ -25,6 +26,8 @@ class VFSRegistry:
 
     def __init__(self) -> None:
         """Initialize empty VFS registry."""
+        from upathtools.filesystems import UnionFileSystem
+
         self._union_fs = UnionFileSystem({})
         logger.debug("Initialized VFS registry")
 
@@ -236,6 +239,8 @@ class VFSRegistry:
 
     def reset(self) -> None:
         """Reset registry to empty state."""
+        from upathtools.filesystems import UnionFileSystem
+
         logger.debug("Resetting VFS registry")
         self._union_fs = UnionFileSystem({})
 

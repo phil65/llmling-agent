@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import fsspec
 import pytest
-from upathtools import UnionFileSystem
+from upathtools.filesystems import UnionFileSystem
 import yamling
 
 from agentpool.models import AgentsManifest
