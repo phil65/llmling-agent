@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
-from fastmcp import FastMCP
 from fastmcp.server.middleware.caching import ResponseCachingMiddleware
 from key_value.aio.stores.disk import DiskStore
 import mcp
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
     from contextlib import AbstractAsyncContextManager
 
+    from fastmcp import FastMCP
     from mcp.server.lowlevel.server import LifespanResultT
     from pydantic import AnyUrl
 
@@ -71,6 +71,8 @@ class MCPServer(BaseServer):
             instructions: Instructions for server usage
             raise_exceptions: Whether to raise exceptions during server start
         """
+        from fastmcp import FastMCP
+
         from agentpool.resource_providers.pool import PoolResourceProvider
 
         super().__init__(pool, name=name, raise_exceptions=raise_exceptions)

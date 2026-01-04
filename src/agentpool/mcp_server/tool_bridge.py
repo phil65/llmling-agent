@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING, Any, Literal, Self, get_args, get_origin
 from uuid import uuid4
 
 import anyio
-from fastmcp import FastMCP
 from fastmcp.tools import Tool as FastMCPTool
 from pydantic import BaseModel, HttpUrl
 
@@ -33,7 +32,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable
 
     from claude_agent_sdk.types import McpServerConfig
-    from fastmcp import Context
+    from fastmcp import Context, FastMCP
     from fastmcp.tools.tool import ToolResult
     from pydantic_ai import RunContext
     from uvicorn import Server
@@ -271,6 +270,8 @@ class ToolManagerBridge:
 
     async def start(self) -> None:
         """Start the HTTP MCP server in the background."""
+        from fastmcp import FastMCP
+
         self._mcp = FastMCP(name=self.config.server_name)
         await self._register_tools()
         self._subscribe_to_tool_changes()
