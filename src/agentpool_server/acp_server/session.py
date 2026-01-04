@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 import re
 from typing import TYPE_CHECKING, Any
 
+import anyio
 from exxec.acp_provider import ACPExecutionEnvironment
 import logfire
 from pydantic_ai import (
@@ -553,6 +554,8 @@ class ACPSession:
 
                     event_count += 1
                     await self.handle_event(event)
+                    # Yield control to allow notifications to be sent immediately
+                    await anyio.sleep(0.01)
                 self.log.info("Streaming finished", events_processed=event_count)
 
             except asyncio.CancelledError:
