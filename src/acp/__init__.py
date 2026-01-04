@@ -3,7 +3,6 @@
 from acp.client import DefaultACPClient, HeadlessACPClient, NoOpClient, ClientSideConnection
 from acp.agent import AgentSideConnection
 from acp.bridge import ACPBridge, BridgeSettings
-from acp.filesystem import ACPFileSystem, ACPPath
 from acp.agent.protocol import Agent
 from acp.client.protocol import Client
 from acp.terminal_handle import TerminalHandle
@@ -173,9 +172,6 @@ __all__ = [  # noqa: RUF022
     "FileSystemCapability",
     # stdio helper
     "stdio_streams",
-    # filesystem
-    "ACPFileSystem",
-    "ACPPath",
     # transport
     "serve",
     "StdioTransport",

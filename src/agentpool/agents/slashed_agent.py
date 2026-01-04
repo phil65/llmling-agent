@@ -7,10 +7,6 @@ import re
 from typing import TYPE_CHECKING, Any, cast
 
 import anyio
-from slashed.events import (
-    CommandExecutedEvent,
-    CommandOutputEvent as SlashedCommandOutputEvent,
-)
 
 from agentpool.agents.events import CommandCompleteEvent, CommandOutputEvent
 from agentpool.log import get_logger
@@ -112,6 +108,11 @@ class SlashedAgent[TDeps, OutputDataT]:
         Yields:
             Command output and completion events
         """
+        from slashed.events import (
+            CommandExecutedEvent,
+            CommandOutputEvent as SlashedCommandOutputEvent,
+        )
+
         parsed = _parse_slash_command(command_text)
         if not parsed:
             logger.warning("Invalid slash command", command=command_text)
