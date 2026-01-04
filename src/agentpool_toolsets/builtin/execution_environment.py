@@ -1,11 +1,8 @@
-"""Provider for execution environment tools with event emission."""
+"""Provider for process management tools with event emission."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-import uuid
-
-from exxec.events import OutputEvent, ProcessCompletedEvent, ProcessErrorEvent, ProcessStartedEvent
 
 from agentpool import log
 from agentpool.agents.context import AgentContext  # noqa: TC001
@@ -23,21 +20,22 @@ if TYPE_CHECKING:
     from agentpool.tools.base import Tool
 
 
-class ExecutionEnvironmentTools(ResourceProvider):
-    """Provider for execution environment tools.
+class ProcessManagementTools(ResourceProvider):
+    """Provider for background process management tools.
 
-    Combines code execution and process management capabilities
-    using any ExecutionEnvironment backend. Emits events via AgentContext.
+    Provides tools for starting, monitoring, and controlling background processes.
+    Uses any ExecutionEnvironment backend and emits events via AgentContext.
 
-    NOTE: The ACP execution environment used handles the Terminal events of the protocol,
-    the toolset should deal with the ToolCall events for UI display purposes.
+    For code execution and bash commands, use the standalone tools:
+    - agentpool.tool_impls.bash.BashTool
+    - agentpool.tool_impls.execute_code.ExecuteCodeTool
     """
 
-    def __init__(self, env: ExecutionEnvironment | None = None, name: str = "execution") -> None:
-        """Initialize execution environment toolset.
+    def __init__(self, env: ExecutionEnvironment | None = None, name: str = "process") -> None:
+        """Initialize process management toolset.
 
         Args:
-            env: Execution environment to use (defaults to LocalExecutionEnvironment)
+            env: Execution environment to use (defaults to agent.env)
             name: The name of the toolset
         """
         super().__init__(name=name)
@@ -55,10 +53,6 @@ class ExecutionEnvironmentTools(ResourceProvider):
 
     async def get_tools(self) -> Sequence[Tool]:
         return [
-            # Code execution tools
-            self.create_tool(self.execute_code, category="execute"),
-            self.create_tool(self.bash, category="execute", open_world=True),
-            # Process management tools
             self.create_tool(self.start_process, category="execute", open_world=True),
             self.create_tool(
                 self.get_process_output, category="execute", read_only=True, idempotent=True
@@ -72,151 +66,6 @@ class ExecutionEnvironmentTools(ResourceProvider):
                 self.list_processes, category="search", read_only=True, idempotent=True
             ),
         ]
-
-    async def execute_code(self, agent_ctx: AgentContext, code: str) -> str:  # noqa: D417
-        """Execute Python code and return the result.
-
-        Args:
-            code: Python code to execute
-        """
-        process_id: str | None = None
-        output_parts: list[str] = []
-        exit_code: int | None = None
-        error_msg: str | None = None
-        try:
-            async for event in self.get_env(agent_ctx).stream_code(code):
-                match event:
-                    case ProcessStartedEvent(process_id=pid, command=cmd):
-                        process_id = pid  # save for later on.
-                        await agent_ctx.events.process_started(pid, cmd, success=True)
-                    case OutputEvent(data=data):
-                        output_parts.append(data)
-                        if process_id:
-                            await agent_ctx.events.process_output(process_id, data)
-                    case ProcessCompletedEvent(exit_code=code_):
-                        exit_code = code_
-                        out = "".join(output_parts)
-                        if process_id:
-                            await agent_ctx.events.process_exit(
-                                process_id, exit_code, final_output=out
-                            )
-                    case ProcessErrorEvent(error=err, exit_code=code_):
-                        error_msg = err
-                        exit_code = code_
-                        if process_id:
-                            await agent_ctx.events.process_exit(
-                                process_id, exit_code or 1, final_output=err
-                            )
-
-            combined_output = "".join(output_parts)
-
-            # Format as plain text for LLM
-            if error_msg:
-                return f"{combined_output}\n\nError: {error_msg}\nExit code: {exit_code}"
-
-        except Exception as e:  # noqa: BLE001
-            error_id = process_id or f"code_{uuid.uuid4().hex[:8]}"
-            await agent_ctx.events.process_started(
-                error_id, "execute_code", success=False, error=str(e)
-            )
-            return f"Error executing code: {e}"
-        else:
-            # Return just output if success, add exit code only if non-zero
-            if exit_code and exit_code != 0:
-                return f"{combined_output}\n\nExit code: {exit_code}"
-            return combined_output
-
-    async def bash(  # noqa: PLR0915, D417
-        self,
-        agent_ctx: AgentContext,
-        command: str,
-        output_limit: int | None = None,
-    ) -> str:
-        """Execute a shell command and return the output.
-
-        Args:
-            command: Shell command to execute
-            output_limit: Maximum bytes of output to return
-        """
-        # process_id comes from exxec events (is terminal_id when using ACP)
-        process_id: str | None = None
-        stdout_parts: list[str] = []
-        stderr_parts: list[str] = []
-        exit_code: int | None = None
-        error_msg: str | None = None
-        try:
-            async for event in self.get_env(agent_ctx).stream_command(command):
-                match event:
-                    case ProcessStartedEvent(process_id=pid, command=cmd):
-                        process_id = pid
-                        if pid:
-                            await agent_ctx.events.process_started(pid, cmd, success=True)
-                        else:
-                            logger.warning("ProcessStartedEvent missing process_id", command=cmd)
-                    case OutputEvent(process_id=pid, data=data, stream=stream):
-                        if stream == "stderr":
-                            stderr_parts.append(data)
-                        else:
-                            stdout_parts.append(data)
-                        if pid:
-                            await agent_ctx.events.process_output(pid, data)
-                        else:
-                            logger.warning("OutputEvent missing process_id", stream=stream)
-                    case ProcessCompletedEvent(process_id=pid, exit_code=code_):
-                        exit_code = code_
-                        combined = "".join(stdout_parts) + "".join(stderr_parts)
-                        if pid:
-                            await agent_ctx.events.process_exit(
-                                pid, exit_code, final_output=combined
-                            )
-                        else:
-                            msg = "ProcessCompletedEvent missing process_id,"
-                            logger.warning(msg, exit_code=code_)
-                    case ProcessErrorEvent(process_id=pid, error=err, exit_code=code_):
-                        error_msg = err
-                        exit_code = code_
-
-            stdout = "".join(stdout_parts)
-            stderr = "".join(stderr_parts)
-
-            # Apply output limit if specified
-            truncated = False
-            if output_limit:
-                if len(stdout.encode()) > output_limit:
-                    out = stdout.encode()[-output_limit:].decode(errors="ignore")
-                    stdout = "...[truncated]\n" + out
-                    truncated = True
-                if len(stderr.encode()) > output_limit:
-                    out = stderr.encode()[-output_limit:].decode(errors="ignore")
-                    stderr = "...[truncated]\n" + out
-                    truncated = True
-
-            # Format as plain text for LLM
-            if error_msg:
-                output = stdout + stderr if stdout or stderr else ""
-                return f"{output}\n\nError: {error_msg}\nExit code: {exit_code}"
-
-        except Exception as e:  # noqa: BLE001
-            # Use process_id from events if available, otherwise generate fallback
-            error_id = process_id or f"cmd_{uuid.uuid4().hex[:8]}"
-            await agent_ctx.events.process_started(error_id, command, success=False, error=str(e))
-            return f"Error executing command: {e}"
-        else:
-            # Combine stdout and stderr for output
-            output = stdout
-            if stderr:
-                output = f"{stdout}\n\nSTDERR:\n{stderr}" if stdout else f"STDERR:\n{stderr}"
-
-            # Add metadata only when relevant
-            suffix_parts = []
-            if truncated:
-                suffix_parts.append("[output truncated]")
-            if exit_code and exit_code != 0:
-                suffix_parts.append(f"Exit code: {exit_code}")
-
-            if suffix_parts:
-                return f"{output}\n\n{' | '.join(suffix_parts)}"
-            return output
 
     async def start_process(  # noqa: D417
         self,

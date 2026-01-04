@@ -235,8 +235,8 @@ class WorkersToolsetConfig(BaseToolsetConfig):
         return WorkersTools(workers=self.workers, name="workers")
 
 
-class ExecutionEnvironmentToolsetConfig(BaseToolsetConfig):
-    """Configuration for execution environment toolset (code + process management)."""
+class ProcessManagementToolsetConfig(BaseToolsetConfig):
+    """Configuration for process management toolset (code + process management)."""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -262,10 +262,10 @@ class ExecutionEnvironmentToolsetConfig(BaseToolsetConfig):
 
     def get_provider(self) -> ResourceProvider:
         """Create execution environment tools provider."""
-        from agentpool_toolsets.builtin import ExecutionEnvironmentTools
+        from agentpool_toolsets.builtin import ProcessManagementTools
 
         env = self.environment.get_provider() if self.environment else None
-        provider = ExecutionEnvironmentTools(env=env, name="execution")
+        provider = ProcessManagementTools(env=env, name="execution")
         if self.tools is not None:
             from agentpool.resource_providers import FilteringResourceProvider
 
@@ -919,7 +919,7 @@ ToolsetConfig = Annotated[
     OpenAPIToolsetConfig
     | EntryPointToolsetConfig
     | ComposioToolSetConfig
-    | ExecutionEnvironmentToolsetConfig
+    | ProcessManagementToolsetConfig
     | UserInteractionToolsetConfig
     | SkillsToolsetConfig
     | CodeToolsetConfig

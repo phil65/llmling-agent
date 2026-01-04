@@ -1,0 +1,109 @@
+"""Python code execution tool."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+import uuid
+
+from exxec.events import (
+    OutputEvent,
+    ProcessCompletedEvent,
+    ProcessErrorEvent,
+    ProcessStartedEvent,
+)
+
+from agentpool.agents.context import AgentContext  # noqa: TC001
+from agentpool.log import get_logger
+from agentpool.tools.base import Tool
+
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from exxec import ExecutionEnvironment
+
+
+logger = get_logger(__name__)
+
+
+@dataclass
+class ExecuteCodeTool(Tool[str]):
+    """Execute Python code and return the result.
+
+    A standalone tool for executing Python code in a sandboxed environment.
+
+    Use create_execute_code_tool() factory for convenient instantiation with defaults.
+    """
+
+    # Tool-specific configuration
+    env: ExecutionEnvironment | None = None
+    """Execution environment to use. Falls back to agent.env if not set."""
+
+    def get_callable(self) -> Callable[..., Awaitable[str]]:
+        """Return the execute method as the callable."""
+        return self._execute
+
+    def _get_env(self, ctx: AgentContext) -> ExecutionEnvironment:
+        """Get execution environment, falling back to agent's env."""
+        if self.env is not None:
+            return self.env
+        return ctx.agent.env
+
+    async def _execute(
+        self,
+        ctx: AgentContext,
+        code: str,
+    ) -> str:
+        """Execute Python code and return the result.
+
+        Args:
+            ctx: Agent context for event emission and environment access
+            code: Python code to execute
+        """
+        process_id: str | None = None
+        output_parts: list[str] = []
+        exit_code: int | None = None
+        error_msg: str | None = None
+
+        try:
+            async for event in self._get_env(ctx).stream_code(code):
+                match event:
+                    case ProcessStartedEvent(process_id=pid, command=cmd):
+                        process_id = pid
+                        await ctx.events.process_started(pid, cmd, success=True)
+
+                    case OutputEvent(data=data):
+                        output_parts.append(data)
+                        if process_id:
+                            await ctx.events.process_output(process_id, data)
+
+                    case ProcessCompletedEvent(exit_code=code_):
+                        exit_code = code_
+                        out = "".join(output_parts)
+                        if process_id:
+                            await ctx.events.process_exit(process_id, exit_code, final_output=out)
+
+                    case ProcessErrorEvent(error=err, exit_code=code_):
+                        error_msg = err
+                        exit_code = code_
+                        if process_id:
+                            await ctx.events.process_exit(
+                                process_id, exit_code or 1, final_output=err
+                            )
+
+            combined_output = "".join(output_parts)
+
+            # Format error response
+            if error_msg:
+                return f"{combined_output}\n\nError: {error_msg}\nExit code: {exit_code}"
+
+        except Exception as e:  # noqa: BLE001
+            error_id = process_id or f"code_{uuid.uuid4().hex[:8]}"
+            await ctx.events.process_started(error_id, "execute_code", success=False, error=str(e))
+            return f"Error executing code: {e}"
+
+        # Return just output if success, add exit code only if non-zero
+        if exit_code and exit_code != 0:
+            return f"{combined_output}\n\nExit code: {exit_code}"
+        return combined_output

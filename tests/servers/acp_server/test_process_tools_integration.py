@@ -1,4 +1,4 @@
-"""Test integration of ExecutionEnvironmentTools with MockExecutionEnvironment."""
+"""Test integration of ProcessManagementTools with MockExecutionEnvironment."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from agentpool import Agent, AgentContext
 from agentpool.agents.events import ToolCallProgressEvent
 from agentpool.models.agents import NativeAgentConfig
 from agentpool.models.manifest import AgentsManifest
-from agentpool_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
+from agentpool_toolsets.builtin.execution_environment import ProcessManagementTools
 
 
 if TYPE_CHECKING:
@@ -88,13 +88,13 @@ def mock_env() -> MockExecutionEnvironment:
 
 
 @pytest.fixture
-def execution_tools(mock_env: MockExecutionEnvironment) -> ExecutionEnvironmentTools:
+def execution_tools(mock_env: MockExecutionEnvironment) -> ProcessManagementTools:
     """Create execution environment tools with mock environment."""
-    return ExecutionEnvironmentTools(env=mock_env, name="test_execution_tools")
+    return ProcessManagementTools(env=mock_env, name="test_execution_tools")
 
 
 async def test_start_process(
-    execution_tools: ExecutionEnvironmentTools,
+    execution_tools: ProcessManagementTools,
     agent_ctx: AgentContext,
     test_agent: Agent[None],
 ):
@@ -123,7 +123,7 @@ async def test_start_process(
 
 
 async def test_get_process_output(
-    execution_tools: ExecutionEnvironmentTools,
+    execution_tools: ProcessManagementTools,
     mock_env: MockExecutionEnvironment,
     agent_ctx: AgentContext,
     test_agent: Agent[None],
@@ -152,7 +152,7 @@ async def test_get_process_output(
 
 
 async def test_kill_process(
-    execution_tools: ExecutionEnvironmentTools,
+    execution_tools: ProcessManagementTools,
     mock_env: MockExecutionEnvironment,
     agent_ctx: AgentContext,
     test_agent: Agent[None],
@@ -183,7 +183,7 @@ async def test_kill_process(
 
 
 async def test_wait_for_process(
-    execution_tools: ExecutionEnvironmentTools,
+    execution_tools: ProcessManagementTools,
     mock_env: MockExecutionEnvironment,
     agent_ctx: AgentContext,
     test_agent: Agent[None],
@@ -213,7 +213,7 @@ async def test_wait_for_process(
 
 
 async def test_release_process(
-    execution_tools: ExecutionEnvironmentTools,
+    execution_tools: ProcessManagementTools,
     mock_env: MockExecutionEnvironment,
     agent_ctx: AgentContext,
     test_agent: Agent[None],
@@ -248,7 +248,7 @@ async def test_release_process(
 
 
 async def test_list_processes(
-    execution_tools: ExecutionEnvironmentTools,
+    execution_tools: ProcessManagementTools,
     mock_env: MockExecutionEnvironment,
     agent_ctx: AgentContext,
 ):
@@ -270,7 +270,7 @@ async def test_list_processes(
 
 
 async def test_execute_command(
-    execution_tools: ExecutionEnvironmentTools,
+    execution_tools: ProcessManagementTools,
     agent_ctx: AgentContext,
     test_agent: Agent[None],
 ):
@@ -293,7 +293,7 @@ async def test_execute_command(
 
 
 async def test_process_not_found(
-    execution_tools: ExecutionEnvironmentTools,
+    execution_tools: ProcessManagementTools,
     agent_ctx: AgentContext,
 ):
     """Test error handling for non-existent process."""

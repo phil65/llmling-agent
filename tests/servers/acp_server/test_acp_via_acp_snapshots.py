@@ -23,7 +23,7 @@ from syrupy.extensions.json import JSONSnapshotExtension
 import yaml
 
 from agentpool.agents.acp_agent import ACPAgent
-from agentpool_config.toolsets import ExecutionEnvironmentToolsetConfig
+from agentpool_config.toolsets import ProcessManagementToolsetConfig
 
 
 if TYPE_CHECKING:
@@ -50,7 +50,7 @@ def create_config_file(
     temp_dir: Path,
     tool_name: str,
     tool_args: dict[str, Any],
-    toolsets: list[ExecutionEnvironmentToolsetConfig],
+    toolsets: list[ProcessManagementToolsetConfig],
 ) -> Path:
     """Create a YAML config file for the subprocess agent.
 
@@ -92,7 +92,7 @@ class ACPViaACPHarness:
         self,
         tool_name: str,
         tool_args: dict[str, Any],
-        toolsets: list[ExecutionEnvironmentToolsetConfig],
+        toolsets: list[ProcessManagementToolsetConfig],
     ) -> list[dict[str, Any]]:
         """Execute a tool via ACP subprocess and capture full event details.
 
@@ -162,7 +162,7 @@ class TestExecuteCommandViaACP:
                 )
             },
         )
-        toolset = ExecutionEnvironmentToolsetConfig(environment=mock_env)
+        toolset = ProcessManagementToolsetConfig(environment=mock_env)
 
         events = await harness.execute_tool(
             tool_name="bash",
@@ -202,7 +202,7 @@ class TestExecuteCodeViaACP:
                 )
             },
         )
-        toolset = ExecutionEnvironmentToolsetConfig(environment=mock_env)
+        toolset = ProcessManagementToolsetConfig(environment=mock_env)
 
         events = await harness.execute_tool(
             tool_name="execute_code",

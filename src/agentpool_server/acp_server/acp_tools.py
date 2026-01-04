@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from exxec.acp_provider import ACPExecutionEnvironment
 
 from agentpool.resource_providers import PlanProvider
-from agentpool_toolsets.builtin import CodeTools, ExecutionEnvironmentTools
+from agentpool_toolsets.builtin import CodeTools, ProcessManagementTools
 from agentpool_toolsets.fsspec_toolset import FSSpecTools
 
 
@@ -33,7 +33,7 @@ def get_acp_provider(session: ACPSession) -> AggregatingResourceProvider:
 
     providers = [
         PlanProvider(),
-        ExecutionEnvironmentTools(env=execution_env, name=f"acp_execution_{session.session_id}"),
+        ProcessManagementTools(env=execution_env, name=f"acp_execution_{session.session_id}"),
         FSSpecTools(execution_env, name=f"acp_fs_{session.session_id}", cwd=session.cwd),
         CodeTools(execution_env, name=f"acp_code_{session.session_id}", cwd=session.cwd),
     ]

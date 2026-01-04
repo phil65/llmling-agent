@@ -56,25 +56,8 @@ class BaseToolConfig(Schema):
     requires_confirmation: bool = Field(default=False, title="Requires confirmation")
     """Whether tool execution needs confirmation."""
 
-    metadata: dict[str, str] = Field(
-        default_factory=dict,
-        examples=[
-            {"category": "web", "version": "1.0"},
-            {"author": "system", "tags": "search,utility"},
-            {"priority": "high", "environment": "production"},
-        ],
-        title="Tool metadata",
-    )
+    metadata: dict[str, str] = Field(default_factory=dict, title="Tool metadata")
     """Additional tool metadata."""
-
-    hints: ToolHints | None = Field(
-        default=None,
-        title="Execution hints",
-        examples=[
-            {"read_only": True, "destructive": False, "open_world": True, "idempotent": False},
-        ],
-    )
-    """Hints for tool execution."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -94,6 +77,15 @@ class ImportToolConfig(BaseToolConfig):
         title="Import path",
     )
     """Import path to the tool function."""
+
+    hints: ToolHints | None = Field(
+        default=None,
+        title="Execution hints",
+        examples=[
+            {"read_only": True, "destructive": False, "open_world": True, "idempotent": False},
+        ],
+    )
+    """Hints for tool execution."""
 
     def get_tool(self) -> Tool:
         """Import and create tool from configuration."""

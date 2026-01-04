@@ -14,7 +14,9 @@ import pytest
 from agentpool import Agent, AgentContext, NativeAgentConfig
 from agentpool.agents.events import ToolCallProgressEvent
 from agentpool.models.manifest import AgentsManifest
-from agentpool_toolsets.builtin.execution_environment import ExecutionEnvironmentTools
+from agentpool.tool_impls.bash import BashTool
+from agentpool.tool_impls.execute_code import ExecuteCodeTool
+from agentpool_toolsets.builtin.execution_environment import ProcessManagementTools
 
 
 if TYPE_CHECKING:
@@ -72,12 +74,12 @@ class TestToolsInitialization:
     def test_custom_env_is_used(self):
         """Test that custom environment is properly set."""
         env = MockExecutionEnvironment()
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
         assert tools._env is env
 
     def test_default_env_is_created(self):
-        """Test that ExecutionEnvironmentTools creates default LocalExecutionEnvironment."""
-        tools = ExecutionEnvironmentTools()
+        """Test that ProcessManagementTools creates default LocalExecutionEnvironment."""
+        tools = ProcessManagementTools()
         assert tools._env is None  # None means fallback to agent's env
 
 
@@ -98,9 +100,9 @@ class TestCodeExecution:
                 ),
             },
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tool = ExecuteCodeTool(name="execute_code", env=env)
 
-        result = await tools.execute_code(agent_ctx, "print(42)")
+        result = await tool._execute(agent_ctx, "print(42)")
         # Tools now return formatted strings
         assert isinstance(result, str)
         assert "42" in result
@@ -125,9 +127,9 @@ class TestCodeExecution:
                 ),
             },
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tool = ExecuteCodeTool(name="execute_code", env=env)
 
-        result = await tools.execute_code(agent_ctx, "print(x)")
+        result = await tool._execute(agent_ctx, "print(x)")
         # Tools now return formatted strings
         assert isinstance(result, str)
         assert "NameError" in result
@@ -143,9 +145,9 @@ class TestCodeExecution:
                 "bad code": RuntimeError("Execution failed"),
             },
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tool = ExecuteCodeTool(name="execute_code", env=env)
 
-        result = await tools.execute_code(agent_ctx, "bad code")
+        result = await tool._execute(agent_ctx, "bad code")
         # Tools now return formatted strings
         assert isinstance(result, str)
         assert "Execution failed" in result
@@ -164,9 +166,9 @@ class TestCodeExecution:
                 ),
             },
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tool = BashTool(name="bash", env=env)
 
-        result = await tools.bash(agent_ctx, "echo hello world")
+        result = await tool._execute(agent_ctx, "echo hello world")
         # Tools now return formatted strings
         assert isinstance(result, str)
         assert "hello world" in result
@@ -192,9 +194,9 @@ class TestCodeExecution:
                 ),
             },
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tool = BashTool(name="bash", env=env)
 
-        result = await tools.bash(agent_ctx, "echo", output_limit=100)
+        result = await tool._execute(agent_ctx, "echo", output_limit=100)
         # Tools now return formatted strings
         assert isinstance(result, str)
         # Output should be truncated
@@ -207,7 +209,7 @@ class TestProcessLifecycle:
     async def test_start_process_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test successful process start."""
         env = MockExecutionEnvironment()
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         result = await tools.start_process(
             agent_ctx,
@@ -235,7 +237,7 @@ class TestProcessLifecycle:
             raise FileNotFoundError("Command not found")
 
         env.process_manager.start_process = failing_start
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         result = await tools.start_process(agent_ctx, command="nonexistent")
         # Tools now return formatted strings
@@ -256,7 +258,7 @@ class TestProcessLifecycle:
                 exit_code=None,
             ),
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="sleep", args=["10"])
@@ -282,7 +284,7 @@ class TestProcessLifecycle:
                 exit_code=0,
             ),
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="echo", args=["done"])
@@ -304,7 +306,7 @@ class TestProcessLifecycle:
                 exit_code=0,
             ),
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="echo", args=["done"])
@@ -331,7 +333,7 @@ class TestProcessLifecycle:
                 exit_code=1,
             ),
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="false")
@@ -345,7 +347,7 @@ class TestProcessLifecycle:
     async def test_kill_process_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test killing a process."""
         env = MockExecutionEnvironment()
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="sleep", args=["100"])
@@ -366,7 +368,7 @@ class TestProcessLifecycle:
     async def test_kill_process_not_found(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test killing nonexistent process."""
         env = MockExecutionEnvironment()
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         result = await tools.kill_process(agent_ctx, "invalid")
         # Tools now return formatted strings
@@ -380,7 +382,7 @@ class TestProcessLifecycle:
     async def test_release_process_success(self, agent_ctx: AgentContext, test_agent: Agent):
         """Test releasing process resources."""
         env = MockExecutionEnvironment()
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="echo")
@@ -401,7 +403,7 @@ class TestProcessLifecycle:
     async def test_list_processes_empty(self, agent_ctx: AgentContext):
         """Test listing when no processes running."""
         env = MockExecutionEnvironment()
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         result = await tools.list_processes(agent_ctx)
         # Tools now return formatted strings
@@ -411,7 +413,7 @@ class TestProcessLifecycle:
     async def test_list_processes_with_results(self, agent_ctx: AgentContext):
         """Test listing active processes."""
         env = MockExecutionEnvironment()
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         # Start two processes
         await tools.start_process(agent_ctx, command="sleep", args=["60"], cwd="/tmp")
@@ -427,7 +429,7 @@ class TestProcessLifecycle:
     async def test_list_processes_partial_failure(self, agent_ctx: AgentContext):
         """Test listing when some process info fails."""
         env = MockExecutionEnvironment()
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         # Start a process
         await tools.start_process(agent_ctx, command="sleep", args=[])
@@ -468,7 +470,7 @@ class TestEdgeCases:
                 exit_code=None,
             ),
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="big_command")
@@ -490,7 +492,7 @@ class TestEdgeCases:
                 signal="15",
             ),
         )
-        tools = ExecutionEnvironmentTools(env=env)
+        tools = ProcessManagementTools(env=env)
 
         # Start a process first
         start_result = await tools.start_process(agent_ctx, command="killed_proc")

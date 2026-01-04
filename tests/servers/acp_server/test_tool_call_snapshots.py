@@ -12,7 +12,7 @@ from exxec.models import ExecutionResult
 import pytest
 from syrupy.extensions.json import JSONSnapshotExtension
 
-from agentpool_config.toolsets import ExecutionEnvironmentToolsetConfig, FSSpecToolsetConfig
+from agentpool_config.toolsets import FSSpecToolsetConfig, ProcessManagementToolsetConfig
 
 from .tool_call_harness import ToolCallTestHarness
 
@@ -124,7 +124,7 @@ class TestExecuteCodeSnapshots:
         messages = await harness.execute_tool(
             tool_name="execute_code",
             tool_args={"code": "print('hello')"},
-            toolsets=[ExecutionEnvironmentToolsetConfig()],
+            toolsets=[ProcessManagementToolsetConfig()],
         )
 
         assert messages == json_snapshot
@@ -148,7 +148,7 @@ class TestExecuteCodeSnapshots:
         messages = await harness.execute_tool(
             tool_name="execute_code",
             tool_args={"code": "raise ValueError('test error')"},
-            toolsets=[ExecutionEnvironmentToolsetConfig()],
+            toolsets=[ProcessManagementToolsetConfig()],
         )
 
         assert messages == json_snapshot
@@ -167,7 +167,7 @@ class TestExecuteCodeSnapshots:
         messages = await harness.execute_tool(
             tool_name="execute_code",
             tool_args={"code": code},
-            toolsets=[ExecutionEnvironmentToolsetConfig()],
+            toolsets=[ProcessManagementToolsetConfig()],
         )
 
         assert messages == json_snapshot
@@ -189,7 +189,7 @@ class TestExecuteCommandSnapshots:
         messages = await harness.execute_tool(
             tool_name="bash",
             tool_args={"command": "echo hello"},
-            toolsets=[ExecutionEnvironmentToolsetConfig()],
+            toolsets=[ProcessManagementToolsetConfig()],
         )
 
         assert messages == json_snapshot
@@ -213,7 +213,7 @@ class TestExecuteCommandSnapshots:
         messages = await harness.execute_tool(
             tool_name="bash",
             tool_args={"command": "ls /nonexistent"},
-            toolsets=[ExecutionEnvironmentToolsetConfig()],
+            toolsets=[ProcessManagementToolsetConfig()],
         )
 
         assert messages == json_snapshot
@@ -232,7 +232,7 @@ class TestExecuteCommandSnapshots:
         messages = await harness.execute_tool(
             tool_name="bash",
             tool_args={"command": "cat bigfile", "output_limit": 50},
-            toolsets=[ExecutionEnvironmentToolsetConfig()],
+            toolsets=[ProcessManagementToolsetConfig()],
         )
 
         assert messages == json_snapshot

@@ -10,8 +10,8 @@ from agentpool.delegation.pool import AgentPool
 from agentpool.models.agents import NativeAgentConfig
 from agentpool.models.manifest import AgentsManifest
 from agentpool_config.toolsets import (
-    ExecutionEnvironmentToolsetConfig,
     FSSpecToolsetConfig,
+    ProcessManagementToolsetConfig,
 )
 
 
@@ -49,7 +49,7 @@ def process_manifest():
     agent_cfg = NativeAgentConfig(
         name="ProcessAgent",
         model="test",
-        toolsets=[ExecutionEnvironmentToolsetConfig(), FSSpecToolsetConfig()],
+        toolsets=[ProcessManagementToolsetConfig(), FSSpecToolsetConfig()],
     )
     return AgentsManifest(agents={"process_agent": agent_cfg})
 

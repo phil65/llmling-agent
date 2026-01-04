@@ -3098,7 +3098,7 @@
                 "custom": "#/$defs/CustomToolsetConfig",
                 "debug": "#/$defs/DebugToolsetConfig",
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "execution": "#/$defs/ProcessManagementToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
@@ -3127,7 +3127,7 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
@@ -6688,7 +6688,7 @@
                 "custom": "#/$defs/CustomToolsetConfig",
                 "debug": "#/$defs/DebugToolsetConfig",
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "execution": "#/$defs/ProcessManagementToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
@@ -6717,7 +6717,7 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
@@ -7760,7 +7760,7 @@
                 "custom": "#/$defs/CustomToolsetConfig",
                 "debug": "#/$defs/DebugToolsetConfig",
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "execution": "#/$defs/ProcessManagementToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
@@ -7789,7 +7789,7 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
@@ -8196,7 +8196,7 @@
                 "custom": "#/$defs/CustomToolsetConfig",
                 "debug": "#/$defs/DebugToolsetConfig",
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "execution": "#/$defs/ProcessManagementToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
@@ -8225,7 +8225,7 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
@@ -13794,7 +13794,7 @@
       "title": "ExaConfig",
       "type": "object"
     },
-    "ExecutionEnvironmentToolsetConfig": {
+    "ProcessManagementToolsetConfig": {
       "additionalProperties": false,
       "description": "Configuration for execution environment toolset (code + process management).",
       "properties": {
@@ -13914,7 +13914,7 @@
           "title": "Tool filter"
         }
       },
-      "title": "ExecutionEnvironmentToolsetConfig",
+      "title": "ProcessManagementToolsetConfig",
       "type": "object",
       "x-doc-title": "Execution Environment Toolset",
       "x-icon": "octicon:terminal-16"
@@ -16736,7 +16736,7 @@
                 "custom": "#/$defs/CustomToolsetConfig",
                 "debug": "#/$defs/DebugToolsetConfig",
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "execution": "#/$defs/ProcessManagementToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
@@ -16765,7 +16765,7 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
@@ -22326,7 +22326,7 @@
                 "custom": "#/$defs/CustomToolsetConfig",
                 "debug": "#/$defs/DebugToolsetConfig",
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "execution": "#/$defs/ProcessManagementToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
@@ -22355,7 +22355,7 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
@@ -27278,7 +27278,7 @@
                 "custom": "#/$defs/CustomToolsetConfig",
                 "debug": "#/$defs/DebugToolsetConfig",
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "execution": "#/$defs/ProcessManagementToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
@@ -27307,7 +27307,7 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
@@ -31999,7 +31999,7 @@
                 "custom": "#/$defs/CustomToolsetConfig",
                 "debug": "#/$defs/DebugToolsetConfig",
                 "entry_points": "#/$defs/EntryPointToolsetConfig",
-                "execution": "#/$defs/ExecutionEnvironmentToolsetConfig",
+                "execution": "#/$defs/ProcessManagementToolsetConfig",
                 "file_access": "#/$defs/FSSpecToolsetConfig",
                 "import_tools": "#/$defs/ImportToolsToolsetConfig",
                 "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
@@ -32028,7 +32028,7 @@
                 "$ref": "#/$defs/ComposioToolSetConfig"
               },
               {
-                "$ref": "#/$defs/ExecutionEnvironmentToolsetConfig"
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
               },
               {
                 "$ref": "#/$defs/UserInteractionToolsetConfig"
