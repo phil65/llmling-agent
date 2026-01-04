@@ -50,7 +50,7 @@ def extract_process_id(result: str) -> str:
 @pytest.fixture
 def test_agent() -> Agent[None]:
     """Create a minimal agent for testing event emission."""
-    return Agent(name="test_agent")
+    return Agent(name="test_agent", model="test")
 
 
 @pytest.fixture
