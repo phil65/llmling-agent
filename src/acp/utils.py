@@ -6,6 +6,7 @@ import base64
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import BinaryContent, FileUrl, ToolReturn
+import structlog
 
 from acp.schema import (
     AudioContentBlock,
@@ -16,7 +17,6 @@ from acp.schema import (
     ResourceContentBlock,
     TextContentBlock,
 )
-from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from acp.schema import ContentBlock, ToolCallKind
 
 
-logger = get_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 DEFAULT_PERMISSION_OPTIONS = [

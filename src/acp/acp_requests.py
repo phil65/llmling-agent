@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+import structlog
+
 from acp.schema import (
     CreateTerminalRequest,
     EnvVariable,
@@ -19,7 +21,6 @@ from acp.schema import (
     WriteTextFileRequest,
 )
 from acp.terminal_handle import TerminalHandle
-from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:
@@ -30,7 +31,7 @@ if TYPE_CHECKING:
         WaitForTerminalExitResponse,
     )
 
-logger = get_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 RULES_FILE_NAMES = [

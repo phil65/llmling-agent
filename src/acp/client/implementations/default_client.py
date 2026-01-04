@@ -9,9 +9,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import structlog
+
 from acp.client import Client
 from acp.schema import ReadTextFileResponse, RequestPermissionResponse, WriteTextFileResponse
-from agentpool import log
 
 
 if TYPE_CHECKING:
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
         WriteTextFileRequest,
     )
 
-logger = log.get_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class DefaultACPClient(Client):

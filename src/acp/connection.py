@@ -15,6 +15,7 @@ import anyenv
 import anyio
 from anyio.streams.text import TextReceiveStream
 from pydantic import BaseModel, ValidationError
+import structlog
 
 from acp.exceptions import RequestError
 from acp.task import (
@@ -31,7 +32,6 @@ from acp.task import (
     RpcTaskKind,
     TaskSupervisor,
 )
-from agentpool import log
 
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ DispatcherFactory = Callable[
 ]
 
 
-logger = log.get_logger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 StreamDirection = Literal["incoming", "outgoing"]

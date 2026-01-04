@@ -7,12 +7,12 @@ making it ideal for testing and standalone usage.
 
 from __future__ import annotations
 
-from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 import uuid
 
 from anyenv import ProcessManager
+import structlog
 
 from acp.client.protocol import Client
 from acp.schema import (
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
         WriteTextFileRequest,
     )
 
-logger = getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 class HeadlessACPClient(Client):

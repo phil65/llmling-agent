@@ -7,7 +7,7 @@ from collections.abc import Callable
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any
 
-from agentpool import log
+import structlog
 
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 __all__ = ["TaskSupervisor"]
 
-logger = log.get_logger(__name__)
+logger = structlog.get_logger(__name__)
 ErrorHandler = Callable[[asyncio.Task[Any], BaseException], None]
 
 

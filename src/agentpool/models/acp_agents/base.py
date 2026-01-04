@@ -7,10 +7,10 @@ import os
 import tempfile
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from exxec import ExecutionEnvironmentStr  # noqa: TC002
 from exxec_config import (
     E2bExecutionEnvironmentConfig,
     ExecutionEnvironmentConfig,  # noqa: TC002
+    ExecutionEnvironmentStr,  # noqa: TC002
 )
 from pydantic import ConfigDict, Field
 
