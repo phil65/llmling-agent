@@ -203,7 +203,7 @@ async def test_acp_agent_with_custom_execution_environment(test_config_file: Pat
         env = agent._client_handler.env
         assert isinstance(env, LocalExecutionEnvironment)
         assert env is not None
-        assert env.timeout == 120.0
+        assert env.default_command_timeout == 120.0
 
 
 async def test_acp_agent_cleanup_on_error(acp_agent_config: ACPAgentConfig):
