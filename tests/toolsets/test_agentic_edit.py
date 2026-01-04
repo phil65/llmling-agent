@@ -15,7 +15,7 @@ from agentpool_toolsets.fsspec_toolset import FSSpecTools
 if TYPE_CHECKING:
     from tokonomics.model_names import ModelId
 
-pytestmark = [pytest.mark.integration]
+pytestmark = [pytest.mark.integration, pytest.mark.slow]
 EDIT_MODEL: ModelId = "openrouter:anthropic/claude-haiku-4.5"
 
 
