@@ -29,9 +29,10 @@ if TYPE_CHECKING:
         BlobResourceContents,
         ContentBlock,
         PromptMessage,
+        SamplingMessage,
         TextResourceContents,
     )
-    from pydantic_ai import ModelRequestPart, ModelResponsePart
+    from pydantic_ai import ModelRequestPart, ModelResponsePart, UserContent
 
 logger = get_logger(__name__)
 
@@ -93,6 +94,24 @@ def _url_from_mime_type(uri: str, mime_type: str | None) -> FileUrl:
     if mime_type.startswith("video/"):
         return VideoUrl(url=uri)
     return DocumentUrl(url=uri)
+
+
+def sampling_messages_to_user_content(msgs: list[SamplingMessage]) -> list[UserContent]:
+    from mcp import types
+
+    # Convert messages to prompts for the agent
+    prompts: list[UserContent] = []
+    for mcp_msg in msgs:
+        match mcp_msg.content:
+            case types.TextContent(text=text):
+                prompts.append(text)
+            case types.ImageContent(data=data, mimeType=mime_type):
+                binary_data = base64.b64decode(data)
+                prompts.append(BinaryImage(data=binary_data, media_type=mime_type))
+            case types.AudioContent(data=data, mimeType=mime_type):
+                binary_data = base64.b64decode(data)
+                prompts.append(BinaryContent(data=binary_data, media_type=mime_type))
+    return prompts
 
 
 async def from_mcp_content(

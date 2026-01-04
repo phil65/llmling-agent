@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-import base64
 from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Any, Self, cast
 
 import anyio
-from pydantic_ai import BinaryContent, BinaryImage, UsageLimits
+from pydantic_ai import UsageLimits
 
 from agentpool.log import get_logger
 from agentpool.resource_providers import AggregatingResourceProvider, ResourceProvider
@@ -23,7 +22,6 @@ if TYPE_CHECKING:
     from mcp import types
     from mcp.shared.context import RequestContext
     from mcp.types import SamplingMessage
-    from pydantic_ai import UserContent
 
     from agentpool_config.mcp_server import MCPServerConfig
 
@@ -88,24 +86,10 @@ class MCPManager:
         context: RequestContext[Any, Any, Any],
     ) -> str:
         """Handle MCP sampling by creating a new agent with specified preferences."""
-        from mcp import types
-
         from agentpool.agents import Agent
+        from agentpool.mcp_server.conversions import sampling_messages_to_user_content
 
-        # Convert messages to prompts for the agent
-        prompts: list[UserContent] = []
-        for mcp_msg in messages:
-            match mcp_msg.content:
-                case types.TextContent(text=text):
-                    prompts.append(text)
-                case types.ImageContent(data=data, mimeType=mime_type):
-                    binary_data = base64.b64decode(data)
-                    prompts.append(BinaryImage(data=binary_data, media_type=mime_type))
-                case types.AudioContent(data=data, mimeType=mime_type):
-                    binary_data = base64.b64decode(data)
-                    prompts.append(BinaryContent(data=binary_data, media_type=mime_type))
-
-        # Extract model from preferences
+        prompts = sampling_messages_to_user_content(messages)
         model = None
         if (prefs := params.modelPreferences) and prefs.hints and prefs.hints[0].name:
             model = prefs.hints[0].name
