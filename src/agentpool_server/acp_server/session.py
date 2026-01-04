@@ -1025,11 +1025,7 @@ class ACPSession:
             )
 
     def register_update_callback(self, callback: Callable[[], None]) -> None:
-        """Register callback for command updates.
-
-        Args:
-            callback: Function to call when commands are updated
-        """
+        """Register callback for command updates."""
         self._update_callbacks.append(callback)
 
     def create_mcp_command(self, prompt: MCPClientPrompt) -> Command:
@@ -1050,7 +1046,6 @@ class ACPSession:
         ) -> None:
             """Execute the MCP prompt with parsed arguments."""
             # Map parsed args to prompt parameters
-
             result = {}
             # Map positional args to prompt parameter names
             for i, arg_value in enumerate(args):
@@ -1058,8 +1053,7 @@ class ACPSession:
                     param_name = prompt.arguments[i]["name"]
                     result[param_name] = arg_value
             result.update(kwargs)
-            try:
-                # Get prompt components
+            try:  # Get prompt components
                 components = await prompt.get_components(result or None)
                 self.staged_content.add(components)
                 # Send confirmation
@@ -1070,15 +1064,13 @@ class ACPSession:
                 logger.exception("MCP prompt execution failed", prompt=prompt.name)
                 await ctx.print(f"❌ Prompt error: {e}")
 
-        usage_hint = (
-            " ".join(f"<{arg['name']}>" for arg in prompt.arguments) if prompt.arguments else None
-        )
+        usage = " ".join(f"<{i['name']}>" for i in args) if (args := prompt.arguments) else None
         return Command.from_raw(
             execute_prompt,
             name=prompt.name,
             description=prompt.description or f"MCP prompt: {prompt.name}",
             category="mcp",
-            usage=usage_hint,
+            usage=usage,
         )
 
     def create_prompt_hub_command(
