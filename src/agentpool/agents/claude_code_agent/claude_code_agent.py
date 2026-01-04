@@ -500,32 +500,36 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         from agentpool.tools.base import Tool
 
-        # Auto-grant if confirmation mode is "never"
+        # Auto-grant if confirmation mode is "never" (bypassPermissions)
         if self.tool_confirmation_mode == "never":
             return PermissionResultAllow()
 
-        # Auto-grant tools from our own bridge - they already show ToolCallStartEvent in UI
-        # Bridge tools are named like: mcp__agentpool-{agent_name}-tools__{tool}
-        if self._tool_bridge:
-            bridge_prefix = f"mcp__{self._tool_bridge.config.server_name}__"
-            if tool_name.startswith(bridge_prefix):
+        # For "acceptEdits" mode: auto-allow edit/write tools only
+        if self._permission_mode == "acceptEdits":
+            # Extract the actual tool name from MCP-style names
+            # e.g., "mcp__agentpool-claude-tools__edit" -> "edit"
+            actual_tool_name = tool_name
+            if "__" in tool_name:
+                actual_tool_name = tool_name.rsplit("__", 1)[-1]
+            # Auto-allow file editing tools
+            if actual_tool_name.lower() in ("edit", "write", "edit_file", "write_file"):
                 return PermissionResultAllow()
 
-        # Auto-grant tools from configured external MCP servers
-        # These are explicitly configured by the user, so they should be trusted
-        # Tool names are like: mcp__{server_name}__{tool_name}
-        if tool_name.startswith("mcp__") and self._mcp_servers:
-            for server_name in self._mcp_servers:
-                if tool_name.startswith(f"mcp__{server_name}__"):
-                    return PermissionResultAllow()
-
-        # Use input provider if available
+        # For "default" mode and non-edit tools in "acceptEdits" mode:
+        # Ask for confirmation via input provider
         if self._input_provider:
             # Create a dummy Tool for the confirmation dialog
             desc = f"Claude Code tool: {tool_name}"
             tool = Tool(callable=lambda: None, name=tool_name, description=desc)
             # Get the tool call ID from our tracking dict (set from streaming events)
+            # The dict is keyed by raw tool name (with MCP prefix)
             tool_call_id = self._pending_tool_call_ids.get(tool_name)
+            self.log.debug(
+                "Permission lookup",
+                tool_name=tool_name,
+                tool_call_id=tool_call_id,
+                pending_keys=list(self._pending_tool_call_ids.keys()),
+            )
             ctx = self.get_context()
             # Attach tool_call_id to context for permission event
             ctx.tool_call_id = tool_call_id

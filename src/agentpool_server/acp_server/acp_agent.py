@@ -27,10 +27,6 @@ from acp.schema import (
 )
 from agentpool.log import get_logger
 from agentpool.utils.tasks import TaskManager
-from agentpool_server.acp_server.converters import (
-    # agent_to_mode,  # TODO: Re-enable when supporting agent switching via modes
-    mode_id_to_confirmation_mode,
-)
 from agentpool_server.acp_server.session_manager import ACPSessionManager
 
 
@@ -626,14 +622,13 @@ class AgentPoolACPAgent(ACPAgent):
     ) -> SetSessionModeResponse | None:
         """Set the session mode (change tool confirmation level).
 
-        Maps ACP mode IDs to ToolConfirmationMode and calls set_tool_confirmation_mode
-        on the session's agent. Each agent type handles the mode change appropriately:
-        - Agent/AGUIAgent: Updates local confirmation mode
-        - ACPAgent: Updates local mode AND forwards to remote ACP server
+        Calls set_mode directly on the agent with the mode_id, allowing the agent
+        to handle mode-specific logic (e.g., acceptEdits auto-allowing edit tools).
 
-        Mode mappings:
-        - "default": per_tool (confirm tools marked as requiring it)
-        - "acceptEdits": never (auto-approve all tool calls)
+        Mode meanings:
+        - "default": Ask for confirmation on all tools
+        - "acceptEdits": Auto-allow edit/write tools, ask for others
+        - "bypassPermissions": Auto-approve all tool calls
         """
         from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
 
@@ -643,15 +638,8 @@ class AgentPoolACPAgent(ACPAgent):
                 logger.warning("Session not found for mode switch", session_id=params.session_id)
                 return None
 
-            # Map mode_id to confirmation mode
-            confirmation_mode = mode_id_to_confirmation_mode(params.mode_id)
-            if not confirmation_mode:
-                logger.error("Invalid mode_id", mode_id=params.mode_id)
-                return None
-
-            # All agent types support set_tool_confirmation_mode
-            # ACPAgent handles forwarding to remote server internally
-            await session.agent.set_tool_confirmation_mode(confirmation_mode)
+            # Call set_mode directly - agent handles mode-specific logic
+            await session.agent.set_mode(params.mode_id)
 
             # Update stored mode state for ACPAgent
             if (
@@ -662,9 +650,8 @@ class AgentPoolACPAgent(ACPAgent):
                 session.agent._state.modes.current_mode_id = params.mode_id
 
             logger.info(
-                "Set tool confirmation mode",
+                "Set mode",
                 mode_id=params.mode_id,
-                confirmation_mode=confirmation_mode,
                 session_id=params.session_id,
                 agent_type=type(session.agent).__name__,
             )
