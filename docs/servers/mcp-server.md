@@ -105,7 +105,7 @@ All enabled tools from configured toolsets:
 ```yaml
 toolsets:
   - type: file_access    # read, write, list_directory
-  - type: execution      # run_command, run_python
+  - type: process_management      # run_command, run_python
   - type: search         # web_search, news_search
   - type: subagent       # delegate_to, ask_agent, list_nodes
 ```

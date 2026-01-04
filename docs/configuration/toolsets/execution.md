@@ -14,7 +14,7 @@ The Execution Environment toolset provides tools for executing code and shell co
 agents:
   coder:
     toolsets:
-      - type: execution
+      - type: process_management
         environment:
           type: local
 ```
@@ -29,7 +29,7 @@ Execute on the local machine:
 
 ```yaml
 toolsets:
-  - type: execution
+  - type: process_management
     environment:
       type: local
       cwd: /workspace
@@ -41,7 +41,7 @@ Execute in a Docker container:
 
 ```yaml
 toolsets:
-  - type: execution
+  - type: process_management
     environment:
       type: docker
       image: python:3.12
@@ -69,7 +69,7 @@ You can limit which tools are exposed:
 
 ```yaml
 toolsets:
-  - type: execution
+  - type: process_management
     environment:
       type: local
     tools:

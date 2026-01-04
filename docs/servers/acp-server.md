@@ -77,7 +77,7 @@ agents:
     system_prompt: "You are a helpful coding assistant."
     toolsets:
       - type: file_access
-      - type: execution
+      - type: process_management
       - type: search
 ```
 

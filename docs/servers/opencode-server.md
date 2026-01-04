@@ -142,7 +142,7 @@ agents:
     toolsets:
       - type: file_access
         edit_tool: batch
-      - type: execution
+      - type: process_management
       - type: code
       - type: search
 ```

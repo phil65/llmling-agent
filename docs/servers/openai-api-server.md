@@ -271,7 +271,7 @@ agents:
     model: anthropic:claude-sonnet-4-20250514
     toolsets:
       - type: file_access
-      - type: execution
+      - type: process_management
 ```
 
 Agents are accessible as models: `gpt-4-custom`, `claude-coder`, etc.

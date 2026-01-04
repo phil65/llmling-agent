@@ -140,7 +140,7 @@ agents:
     display_name: "AI Assistant"
     toolsets:
       - type: file_access
-      - type: execution
+      - type: process_management
       - type: search
 ```
 

@@ -8,6 +8,9 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
+from agentpool_config.agentpool_tools import AgentpoolToolConfig
+from agentpool_config.builtin_tools import BuiltinToolConfig
+
 
 if TYPE_CHECKING:
     from agentpool.tools.base import Tool
@@ -101,10 +104,12 @@ class ImportToolConfig(BaseToolConfig):
         )
 
 
-from agentpool_config.builtin_tools import BuiltinToolConfig  # noqa: E402
-
-
 ToolConfig = Annotated[
-    ImportToolConfig | BuiltinToolConfig,
+    ImportToolConfig | AgentpoolToolConfig,
+    Field(discriminator="type"),
+]
+
+NativeAgentToolConfig = Annotated[
+    ToolConfig | BuiltinToolConfig,
     Field(discriminator="type"),
 ]

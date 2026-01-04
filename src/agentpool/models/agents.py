@@ -27,7 +27,7 @@ from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from agentpool_config.session import MemoryConfig, SessionQuery
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
-from agentpool_config.tools import BaseToolConfig, ToolConfig  # noqa: TC001
+from agentpool_config.tools import BaseToolConfig, NativeAgentToolConfig  # noqa: TC001
 from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
 from agentpool_config.workers import WorkerConfig  # noqa: TC001
 
@@ -79,7 +79,7 @@ class NativeAgentConfig(BaseAgentConfig):
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/model_configuration/
     """
 
-    tools: list[ToolConfig | str] = Field(
+    tools: list[NativeAgentToolConfig | str] = Field(
         default_factory=list,
         examples=[
             ["webbrowser:open", "builtins:print"],

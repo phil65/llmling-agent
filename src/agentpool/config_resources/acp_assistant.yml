@@ -18,7 +18,7 @@ agents:
         You can help with coding, writing, analysis, file operations, and more.
         Be concise but thorough in your responses.
     toolsets:
-      - type: execution
+      - type: process_management
       - type: file_access
       - type: code
       - type: search

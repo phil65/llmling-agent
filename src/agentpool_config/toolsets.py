@@ -241,18 +241,18 @@ class ProcessManagementToolsetConfig(BaseToolsetConfig):
     model_config = ConfigDict(
         json_schema_extra={
             "x-icon": "octicon:terminal-16",
-            "x-doc-title": "Execution Environment Toolset",
+            "x-doc-title": "Process management Toolset",
         }
     )
 
     type: Literal["execution"] = Field("execution", init=False)
-    """Execution environment toolset."""
+    """Process management toolset."""
 
     environment: ExecutionEnvironmentConfig | None = Field(
         default=None,
-        title="Execution environment",
+        title="Process management",
     )
-    """Optional execution environment configuration (defaults to local)."""
+    """Optional Process management configuration (defaults to local)."""
 
     tools: dict[ExecutionEnvironmentToolName, bool] | None = Field(
         default=None,
@@ -261,11 +261,11 @@ class ProcessManagementToolsetConfig(BaseToolsetConfig):
     """Optional tool filter to enable/disable specific tools."""
 
     def get_provider(self) -> ResourceProvider:
-        """Create execution environment tools provider."""
+        """Create Process management tools provider."""
         from agentpool_toolsets.builtin import ProcessManagementTools
 
         env = self.environment.get_provider() if self.environment else None
-        provider = ProcessManagementTools(env=env, name="execution")
+        provider = ProcessManagementTools(env=env, name="process_management")
         if self.tools is not None:
             from agentpool.resource_providers import FilteringResourceProvider
 

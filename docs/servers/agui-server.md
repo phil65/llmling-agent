@@ -136,7 +136,7 @@ agents:
     model: anthropic:claude-sonnet-4-20250514
     toolsets:
       - type: file_access
-      - type: execution
+      - type: process_management
 ```
 
 Each agent becomes available at its own route (`/assistant`, `/coder`, etc.).

@@ -11,7 +11,7 @@ agents:
       ANTHROPIC_API_KEY: ""
     description: "Claude code agent with enhanced tools"
     toolsets:
-      - type: execution
+      - type: process_management
       - type: file_access
         edit_tool: batch
       - type: code
