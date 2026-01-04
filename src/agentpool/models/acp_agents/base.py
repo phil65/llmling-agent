@@ -7,7 +7,7 @@ import os
 import tempfile
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from exxec import ExecutionEnvironmentStr, get_environment  # noqa: TC002
+from exxec import ExecutionEnvironmentStr  # noqa: TC002
 from exxec_config import (
     E2bExecutionEnvironmentConfig,
     ExecutionEnvironmentConfig,  # noqa: TC002
@@ -223,6 +223,8 @@ class BaseACPAgentConfig(NodeConfig):
 
     def get_execution_environment(self) -> ExecutionEnvironment:
         """Create execution environment from config."""
+        from exxec import get_environment
+
         if isinstance(self.execution_environment, str):
             return get_environment(self.execution_environment)
         return self.execution_environment.get_provider()
@@ -232,6 +234,8 @@ class BaseACPAgentConfig(NodeConfig):
 
         Returns None if not configured (caller should fall back to main env).
         """
+        from exxec import get_environment
+
         if self.client_execution_environment is None:
             return None
         if isinstance(self.client_execution_environment, str):

@@ -7,6 +7,7 @@ making it ideal for testing and standalone usage.
 
 from __future__ import annotations
 
+from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 import uuid
@@ -24,7 +25,6 @@ from acp.schema import (
     WaitForTerminalExitResponse,
     WriteTextFileResponse,
 )
-from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
         WriteTextFileRequest,
     )
 
-logger = get_logger(__name__)
+logger = getLogger(__name__)
 
 
 class HeadlessACPClient(Client):

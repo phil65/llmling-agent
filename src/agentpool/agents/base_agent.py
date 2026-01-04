@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from anyenv import MultiEventHandler
 from anyenv.signals import BoundSignal
-from exxec import LocalExecutionEnvironment
 
 from agentpool.agents.events import resolve_event_handlers
 from agentpool.log import get_logger
@@ -97,6 +96,8 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             event_handlers: Event handlers for this agent
             commands: Slash commands to register with this agent
         """
+        from exxec import LocalExecutionEnvironment
+
         super().__init__(
             name=name,
             description=description,
