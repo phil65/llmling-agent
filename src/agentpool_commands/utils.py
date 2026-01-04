@@ -25,7 +25,7 @@ class CopyClipboardCommand(NodeCommand):
     - Token limit for context size
     - Custom format templates
 
-    Requires clipman package to be installed.
+    Requires copykitten package to be installed.
     """
 
     name = "copy-clipboard"
@@ -50,9 +50,9 @@ class CopyClipboardCommand(NodeCommand):
             format_template: Custom format template
         """
         try:
-            import clipman  # type: ignore[import-untyped]
+            import copykitten
         except ImportError as e:
-            msg = "clipman package required for clipboard operations"
+            msg = "copykitten package required for clipboard operations"
             raise CommandError(msg) from e
 
         content = await ctx.context.agent.conversation.format_history(
@@ -67,8 +67,7 @@ class CopyClipboardCommand(NodeCommand):
             return
 
         try:
-            clipman.init()
-            clipman.copy(content)
+            copykitten.copy(content)
             await ctx.print("📋 **Messages copied to clipboard**")
         except Exception as e:
             msg = f"Failed to copy to clipboard: {e}"
@@ -76,8 +75,8 @@ class CopyClipboardCommand(NodeCommand):
 
     @classmethod
     def condition(cls) -> bool:
-        """Check if clipman is available."""
-        return importlib.util.find_spec("clipman") is not None
+        """Check if copykitten is available."""
+        return importlib.util.find_spec("copykitten") is not None
 
 
 class EditAgentFileCommand(NodeCommand):

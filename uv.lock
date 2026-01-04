@@ -98,7 +98,7 @@ claude = [
     { name = "claude-agent-sdk" },
 ]
 clipboard = [
-    { name = "clipman" },
+    { name = "copykitten" },
 ]
 coding = [
     { name = "ast-grep-py" },
@@ -216,8 +216,8 @@ requires-dist = [
     { name = "braintrust", marker = "extra == 'braintrust'" },
     { name = "claude-agent-sdk", marker = "extra == 'claude'", specifier = ">=0.1.18" },
     { name = "claude-agent-sdk", marker = "extra == 'default'" },
-    { name = "clipman", marker = "extra == 'clipboard'" },
     { name = "composio", marker = "extra == 'composio'" },
+    { name = "copykitten", marker = "extra == 'clipboard'" },
     { name = "docler", specifier = ">=1.0.3" },
     { name = "docstring-parser", specifier = ">=0.17.0" },
     { name = "epregistry" },
@@ -1102,18 +1102,6 @@ wheels = [
 ]
 
 [[package]]
-name = "clipman"
-version = "3.3.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "dbus-next" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/a5/ca13f5e436b5eb968c41165d3adc4c5c7146f11ace92ef830ec7618f9884/clipman-3.3.3.tar.gz", hash = "sha256:80341d718ef3e5344001167e50173b2946516f8970b9180335d2de95d57f403c", size = 20087, upload-time = "2025-06-22T15:49:00.654Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a5/d7/f89edba3e01ce24a4e52328f5b469f116284a1d0f792c0a05fbebdec0eda/clipman-3.3.3-py3-none-any.whl", hash = "sha256:a023b44fcf4e67de6ca7b98b6bf7d86278fe56544a87a7bbdc4f69c7453a5f6e", size = 18805, upload-time = "2025-06-22T15:48:59.478Z" },
-]
-
-[[package]]
 name = "cloudpickle"
 version = "3.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1202,6 +1190,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/44/a7/81fe217a855992ee3854acd07939c0eed893d9b8019ea544e28fd0aa1b86/composio_client-1.22.0.tar.gz", hash = "sha256:13dd4ecf3b1289cfd6acdb538f9144d123d0344c03b387aa411d6fb0f1dec6d0", size = 185804, upload-time = "2025-12-24T09:43:31.17Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/1f/2abe83f3363edc3d5be94002f97eafed9ea95d7129fe6ea1c33655751aeb/composio_client-1.22.0-py3-none-any.whl", hash = "sha256:3afe32fd3206c3bd2a7183d729817908fdc4bfac2b52da22144334fab2384932", size = 201474, upload-time = "2025-12-24T09:43:29.737Z" },
+]
+
+[[package]]
+name = "copykitten"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c1/72/57a5dee794b29c940f6bc429ff731c3d0b9f7af0aad94bd88bafbc3db07f/copykitten-2.0.0.tar.gz", hash = "sha256:bda13d614ffb38147d4fce5217d4f2397967514f5ea09fb8d5c5cf5d16028e58", size = 19712, upload-time = "2025-09-21T02:48:24.848Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3f/24/2ff5084b1fe4825d47246de8f81fa738245ca6d6645b31dfc686bcbed51e/copykitten-2.0.0-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:191c202d19962fa5dbed5296d83bfa844b36609e30f0fb19cf1706b136f170e8", size = 381118, upload-time = "2025-09-21T02:48:17.65Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/aa/51d0d24435846eb8c41a5f68874a2a39d367e22c58eb3a955455b1e0c7bf/copykitten-2.0.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:1fb3118f5b3d9bc70442ae62f5d0b5fdd22243f2b4f2811e0680cbb4dfca112a", size = 359839, upload-time = "2025-09-21T02:48:19.422Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/3c/ba4ce92ffe21c695d1492fe495032eb2356a5ade4a497d238f7efd277cea/copykitten-2.0.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6be53c8c45bb85bda1679ea2d890e24303096d2a9d9a1022e159b7cfd350b2c0", size = 453897, upload-time = "2025-09-21T02:48:21.055Z" },
+    { url = "https://files.pythonhosted.org/packages/98/59/5800f845f87f5841f467082698ccbe40e7eb000b1e069bdf24134c91c14c/copykitten-2.0.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:65b799e46da487e3380248065e5684d39e9f8f0f53b1124edba5e4fd2dc5a273", size = 502975, upload-time = "2025-09-21T02:48:22.428Z" },
+    { url = "https://files.pythonhosted.org/packages/60/45/22e1d8ffecadcfb0f57ba5189b6c2a7850621ad2045cbdf23a4d7f1f1849/copykitten-2.0.0-cp38-abi3-win_amd64.whl", hash = "sha256:00d09e79fe8031dbdfaefd843d60e48f2b63e6ea9a823d25e07a17469f25017e", size = 267324, upload-time = "2025-09-21T02:48:23.512Z" },
 ]
 
 [[package]]
@@ -1380,15 +1381,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5e/06/fa5c863037f6056eead4e515f981068d076e3a946abd5f0127cc2e164c8b/datamodel_code_generator-0.52.1.tar.gz", hash = "sha256:0f3a13887dde2677c4ffe440149d73937d083f8616e672cfeb63bd1cc1353f94", size = 786634, upload-time = "2026-01-03T17:50:42.423Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/63/79/7f4fd3661547e7ac399634e805969bd790573ee4ed46d5a27e198f7190d0/datamodel_code_generator-0.52.1-py3-none-any.whl", hash = "sha256:2ae0d908d9e928d1e72eaf08a83ea2931e612490f327f216c35eace7e099b197", size = 248315, upload-time = "2026-01-03T17:50:40.549Z" },
-]
-
-[[package]]
-name = "dbus-next"
-version = "0.2.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ce/45/6a40fbe886d60a8c26f480e7d12535502b5ba123814b3b9a0b002ebca198/dbus_next-0.2.3.tar.gz", hash = "sha256:f4eae26909332ada528c0a3549dda8d4f088f9b365153952a408e28023a626a5", size = 71112, upload-time = "2021-07-25T22:11:28.398Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d2/fc/c0a3f4c4eaa5a22fbef91713474666e13d0ea2a69c84532579490a9f2cc8/dbus_next-0.2.3-py3-none-any.whl", hash = "sha256:58948f9aff9db08316734c0be2a120f6dc502124d9642f55e90ac82ffb16a18b", size = 57885, upload-time = "2021-07-25T22:11:25.466Z" },
 ]
 
 [[package]]
