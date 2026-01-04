@@ -12,7 +12,6 @@ from uuid import uuid4
 
 from anyenv import method_spawner
 import anyio
-from llmling_models import function_to_model, infer_model
 import logfire
 from psygnal import Signal
 from pydantic import ValidationError
@@ -255,6 +254,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 Defaults to ["models.dev"] if not specified.
             commands: Slash commands
         """
+        from llmling_models import infer_model
+
         from agentpool.agents.interactions import Interactions
         from agentpool.agents.sys_prompts import SystemPrompts
         from agentpool.models.agents import NativeAgentConfig
@@ -468,6 +469,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             name: Optional name for the agent
             kwargs: Additional arguments for agent
         """
+        from llmling_models import function_to_model
+
         name = name or callback.__name__ or "processor"
         model = function_to_model(callback)
         return_type = _typing_extra.get_function_type_hints(callback).get("return")
@@ -609,6 +612,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     ) -> PydanticAgent[TDeps, AgentOutputType]:
         """Create pydantic-ai agent from current state."""
         # Monkey patch pydantic-ai to recognize AgentContext
+
+        from llmling_models import infer_model
 
         from agentpool.agents.tool_wrapping import wrap_tool
 
@@ -1249,6 +1254,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             model: New model to use (name or instance)
 
         """
+        from llmling_models import infer_model
+
         self._model = infer_model(model) if isinstance(model, str) else model
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
@@ -1304,6 +1311,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             pause_routing: Whether to pause message routing
             model: Temporary model override
         """
+        from llmling_models import infer_model
+
         old_model = self._model
         if output_type:
             old_type = self._output_type
