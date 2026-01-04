@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import asyncio
 from decimal import Decimal
+import re
 from typing import TYPE_CHECKING, Any, Literal, Self
 import uuid
 
@@ -104,14 +105,18 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Prefix to strip from tool names for cleaner UI display
-_MCP_TOOL_PREFIX = "mcp__agentpool-claude-tools__"
+# Pattern to strip MCP server prefix from tool names
+# Format: mcp__agentpool-{agent_name}-tools__{tool_name}
+_MCP_TOOL_PATTERN = re.compile(r"^mcp__agentpool-(.+)-tools__(.+)$")
 
 
 def _strip_mcp_prefix(tool_name: str) -> str:
-    """Strip MCP server prefix from tool names for cleaner UI display."""
-    if tool_name.startswith(_MCP_TOOL_PREFIX):
-        return tool_name[len(_MCP_TOOL_PREFIX) :]
+    """Strip MCP server prefix from tool names for cleaner UI display.
+
+    Handles dynamic prefixes like mcp__agentpool-{agent_name}-tools__{tool}
+    """
+    if match := _MCP_TOOL_PATTERN.match(tool_name):
+        return match.group(2)  # group(1) is agent name, group(2) is tool name
     return tool_name
 
 
