@@ -494,7 +494,7 @@ if __name__ == "__main__":
     from agentpool import Agent
 
     async def main() -> None:
-        async with Agent() as agent:
+        async with Agent(model="openai:gpt-5-nano") as agent:
             await agent.conversation.add_context_from_path("E:/mcp_zed.yml")
             print(agent.conversation.get_history())
 

@@ -308,10 +308,10 @@ class ConnectionManager:
 if __name__ == "__main__":
     from agentpool.agents import Agent
 
-    agent = Agent("test_agent")
-    agent_2 = Agent("test_agent_2")
-    agent_3 = Agent("test_agent_3")
-    agent_4 = Agent("test_agent_4")
+    agent = Agent("test_agent", model="openai:gpt-5-nano")
+    agent_2 = Agent("test_agent_2", model="openai:gpt-5-nano")
+    agent_3 = Agent("test_agent_3", model="openai:gpt-5-nano")
+    agent_4 = Agent("test_agent_4", model="openai:gpt-5-nano")
     _conn_1 = agent >> agent_2
     _conn_2 = agent >> agent_3
     _conn_3 = agent_2 >> agent_4

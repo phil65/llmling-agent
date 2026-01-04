@@ -115,7 +115,7 @@ def create(
             from upathtools import to_upath
 
             super().__init__()
-            agent = Agent(output_type=YAMLCode)
+            agent = Agent(output_type=YAMLCode, model="openai:gpt-5-nano")
             self.agent = agent
             self.current_config: str | None = None
             self.output_path = to_upath(output_path) if output_path else None
