@@ -1288,7 +1288,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Map confirmation mode to permission mode
         if mode == "never":
             self._permission_mode = "bypassPermissions"
-        elif mode == "always" or mode == "per_tool":
+        elif mode in {"always", "per_tool"}:
             self._permission_mode = "default"
         # Update permission mode on client if connected
         if self._client and self._permission_mode:
