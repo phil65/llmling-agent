@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, assert_never
+from typing import TYPE_CHECKING, Any, assert_never
 
-from agentpool.agents.context import AgentContext
+from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.tools.base import Tool
+
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 
 @dataclass
