@@ -7,15 +7,19 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
 
+from agentpool import log
+from agentpool.resource_providers import StaticResourceProvider
 from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
+from agentpool_config.tools import BaseToolConfig, ToolConfig  # noqa: TC001
 from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from agentpool.resource_providers import ResourceProvider
 
+logger = log.get_logger(__name__)
 
 PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
 ToolName = Literal[
@@ -260,6 +264,28 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     which passes the FastMCP server instance directly without HTTP overhead.
     """
 
+    tools: list[ToolConfig | str] = Field(
+        default_factory=list,
+        examples=[
+            ["webbrowser:open", "builtins:print"],
+            [
+                {
+                    "type": "import",
+                    "import_path": "webbrowser:open",
+                    "name": "web_browser",
+                }
+            ],
+        ],
+        title="Tool configurations",
+        json_schema_extra={
+            "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/tool_configuration/"
+        },
+    )
+    """A list of tools to register with this agent.
+
+    Docs: https://phil65.github.io/agentpool/YAML%20Configuration/tool_configuration/
+    """
+
     def get_toolset_providers(self) -> list[ResourceProvider]:
         """Get resource providers for all configured toolsets.
 
@@ -267,3 +293,27 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
             List of initialized ResourceProvider instances
         """
         return [toolset.get_provider() for toolset in self.toolsets]
+
+    def get_tool_provider(self) -> ResourceProvider | None:
+        """Get tool provider for this agent (excludes builtin tools)."""
+        from agentpool.tools.base import Tool
+
+        # Create provider for static tools
+        if not self.tools:
+            return None
+        static_tools: list[Tool] = []
+        for tool_config in self.tools:
+            try:
+                match tool_config:
+                    case str():
+                        tool = Tool.from_callable(tool_config)
+                        static_tools.append(tool)
+                    case BaseToolConfig():
+                        static_tools.append(tool_config.get_tool())
+            except Exception:
+                logger.exception("Failed to load tool", config=tool_config)
+                continue
+
+        if not static_tools:
+            return None
+        return StaticResourceProvider(name="builtin", tools=static_tools)
