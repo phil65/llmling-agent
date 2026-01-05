@@ -13,6 +13,7 @@ storage:
 
 agents:
   fan:
+    type: native
     display_name: "Async Agent Fan"
     description: "The #1 supporter of all agents!"
     toolsets:
