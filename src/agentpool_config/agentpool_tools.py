@@ -58,6 +58,32 @@ class BashToolConfig(BaseToolConfig):
         )
 
 
+class AskUserToolConfig(BaseToolConfig):
+    """Configuration for user interaction tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: ask_user
+        ```
+    """
+
+    model_config = ConfigDict(title="Ask User Tool")
+
+    type: Literal["ask_user"] = Field("ask_user", init=False)
+    """User interaction tool."""
+
+    def get_tool(self) -> Tool:
+        """Convert config to AskUserTool instance."""
+        from agentpool.tool_impls.ask_user import create_ask_user_tool
+
+        return create_ask_user_tool(
+            name=self.name or "ask_user",
+            description=self.description or "Ask the user a clarifying question.",
+            requires_confirmation=self.requires_confirmation,
+        )
+
+
 class ExecuteCodeToolConfig(BaseToolConfig):
     """Configuration for Python code execution tool.
 
@@ -86,4 +112,4 @@ class ExecuteCodeToolConfig(BaseToolConfig):
 
 
 # Union type for agentpool tool configs
-AgentpoolToolConfig = BashToolConfig | ExecuteCodeToolConfig
+AgentpoolToolConfig = AskUserToolConfig | BashToolConfig | ExecuteCodeToolConfig

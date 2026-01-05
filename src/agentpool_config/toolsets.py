@@ -49,7 +49,6 @@ ExecutionEnvironmentToolName = Literal[
     "list_processes",
 ]
 
-UserInteractionToolName = Literal["ask_user",]
 SkillsToolName = Literal["load_skill", "list_skills"]
 CodeToolName = Literal["format_code", "ast_grep"]
 PlanToolName = Literal["get_plan", "add_plan_entry", "update_plan_entry", "remove_plan_entry"]
@@ -266,37 +265,6 @@ class ProcessManagementToolsetConfig(BaseToolsetConfig):
 
         env = self.environment.get_provider() if self.environment else None
         provider = ProcessManagementTools(env=env, name="process_management")
-        if self.tools is not None:
-            from agentpool.resource_providers import FilteringResourceProvider
-
-            return FilteringResourceProvider(provider, cast(dict[str, bool], self.tools))
-        return provider
-
-
-class UserInteractionToolsetConfig(BaseToolsetConfig):
-    """Configuration for user interaction toolset."""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "x-icon": "octicon:comment-discussion-16",
-            "x-doc-title": "User Interaction Toolset",
-        }
-    )
-
-    type: Literal["user_interaction"] = Field("user_interaction", init=False)
-    """User interaction toolset."""
-
-    tools: dict[UserInteractionToolName, bool] | None = Field(
-        default=None,
-        title="Tool filter",
-    )
-    """Optional tool filter to enable/disable specific tools."""
-
-    def get_provider(self) -> ResourceProvider:
-        """Create user interaction tools provider."""
-        from agentpool_toolsets.builtin import UserInteractionTools
-
-        provider = UserInteractionTools(name="user_interaction")
         if self.tools is not None:
             from agentpool.resource_providers import FilteringResourceProvider
 
@@ -920,7 +888,6 @@ ToolsetConfig = Annotated[
     | EntryPointToolsetConfig
     | ComposioToolSetConfig
     | ProcessManagementToolsetConfig
-    | UserInteractionToolsetConfig
     | SkillsToolsetConfig
     | CodeToolsetConfig
     | FSSpecToolsetConfig
