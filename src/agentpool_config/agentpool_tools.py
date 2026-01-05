@@ -58,6 +58,32 @@ class BashToolConfig(BaseToolConfig):
         )
 
 
+class AgentCliToolConfig(BaseToolConfig):
+    """Configuration for agent CLI tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: agent_cli
+        ```
+    """
+
+    model_config = ConfigDict(title="Agent CLI Tool")
+
+    type: Literal["agent_cli"] = Field("agent_cli", init=False)
+    """Agent CLI tool."""
+
+    def get_tool(self) -> Tool:
+        """Convert config to AgentCliTool instance."""
+        from agentpool.tool_impls.agent_cli import create_agent_cli_tool
+
+        return create_agent_cli_tool(
+            name=self.name or "agent_cli",
+            description=self.description or "Execute an internal agent management command.",
+            requires_confirmation=self.requires_confirmation,
+        )
+
+
 class AskUserToolConfig(BaseToolConfig):
     """Configuration for user interaction tool.
 
@@ -112,4 +138,6 @@ class ExecuteCodeToolConfig(BaseToolConfig):
 
 
 # Union type for agentpool tool configs
-AgentpoolToolConfig = AskUserToolConfig | BashToolConfig | ExecuteCodeToolConfig
+AgentpoolToolConfig = (
+    AgentCliToolConfig | AskUserToolConfig | BashToolConfig | ExecuteCodeToolConfig
+)

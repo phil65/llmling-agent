@@ -59,77 +59,6 @@ async def list_skills(ctx: AgentContext) -> str:
     return "\n".join(lines)
 
 
-class _StringOutputWriter:
-    """Output writer that captures output to a string buffer."""
-
-    def __init__(self) -> None:
-        from io import StringIO
-
-        self._buffer = StringIO()
-
-    async def print(self, message: str) -> None:
-        """Write a message to the buffer."""
-        self._buffer.write(message)
-        self._buffer.write("\n")
-
-    def getvalue(self) -> str:
-        """Get the captured output."""
-        return self._buffer.getvalue()
-
-
-async def run_command(ctx: AgentContext, command: str) -> str:  # noqa: D417
-    """Execute an internal command.
-
-    This provides access to the agent's internal CLI for management operations.
-
-    IMPORTANT: Before using any command for the first time, call "help <command>" to learn
-    the correct syntax and available options. Commands have specific argument orders and
-    flags that must be followed exactly.
-
-    Discovery commands:
-    - "help" - list all available commands
-    - "help <command>" - get detailed usage for a specific command (ALWAYS do this first!)
-
-    Command categories:
-    - Agent/team management: create-agent, create-team, list-agents
-    - Tool management: list-tools, register-tool, enable-tool, disable-tool
-    - MCP servers: add-mcp-server, add-remote-mcp-server, list-mcp-servers
-    - Connections: connect, disconnect, connections
-    - Workers: add-worker, remove-worker, list-workers
-
-    Args:
-        command: The command to execute. Leading slash is optional.
-
-    Returns:
-        Command output or error message
-    """
-    from slashed import CommandContext
-
-    if not ctx.agent.command_store:
-        return "No command store available"
-
-    # Remove leading slash if present (slashed expects command name without /)
-    cmd = command.lstrip("/")
-
-    # Create output capture
-    output = _StringOutputWriter()
-
-    # Create CommandContext with output capture and AgentContext as data
-    cmd_ctx = CommandContext(
-        output=output,
-        data=ctx,
-        command_store=ctx.agent.command_store,
-    )
-
-    try:
-        await ctx.agent.command_store.execute_command(cmd, cmd_ctx)
-        result = output.getvalue()
-    except Exception as e:  # noqa: BLE001
-        return f"Command failed: {e}"
-    else:
-        return result if result else "Command executed successfully."
-
-
 class SkillsTools(StaticResourceProvider):
     """Provider for skills and commands tools.
 
@@ -150,10 +79,4 @@ class SkillsTools(StaticResourceProvider):
         self._tools = [
             self.create_tool(load_skill, category="read", read_only=True, idempotent=True),
             self.create_tool(list_skills, category="read", read_only=True, idempotent=True),
-            self.create_tool(
-                run_command,
-                category="other",
-                read_only=False,
-                idempotent=False,
-            ),
         ]
