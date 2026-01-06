@@ -12,9 +12,6 @@ if TYPE_CHECKING:
 
 
 YAML_BASE = """
-agents:
-  base_agent:
-    model: test
 prompts:
   system_prompts:
     reviewer:
@@ -27,9 +24,6 @@ prompts:
 
 YAML_CHILD = """
 INHERIT: {base_path}
-agents:
-  child_agent:
-    inherits: base_agent
 prompts:
   system_prompts:
     reviewer:
@@ -37,20 +31,6 @@ prompts:
     analyzer:  # Add new
       content: "New analyzer prompt"
       category: task
-"""
-
-YAML_TEMPLATE = """
-prompts:
-    system_prompts:
-    role1:
-        content: "Role one"
-        category: role
-    role2:
-        content: "Role two"
-        category: role
-    check:
-        content: "Quality check"
-        category: quality
 """
 
 
