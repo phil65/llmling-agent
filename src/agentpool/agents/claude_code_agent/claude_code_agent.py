@@ -585,6 +585,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             ctx.tool_call_id = tool_call_id
             # Also pass tool input for ACPInputProvider to generate proper title
             ctx.tool_input = input_data
+            ctx.tool_name = tool_name
             result = await self._input_provider.get_tool_confirmation(
                 context=ctx,
                 tool=tool,
