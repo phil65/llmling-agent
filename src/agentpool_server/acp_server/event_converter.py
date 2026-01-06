@@ -349,14 +349,25 @@ class ACPEventConverter:
                         locations=acp_locations or None,
                     )
 
-            # Tool progress event
+            # Tool progress event - create state if needed (tool may emit progress before SDK event)
             case ToolCallProgressEvent(
                 tool_call_id=tool_call_id,
                 title=title,
                 status=status,
                 items=items,
-            ) if tool_call_id and tool_call_id in self._tool_states:
-                state = self._tool_states[tool_call_id]
+            ) if tool_call_id:
+                # Get or create state - handles race where tool emits before SDK event
+                state = self._get_or_create_tool_state(tool_call_id, "unknown", {})
+                # Emit start if this is the first event for this tool call
+                if not state.started:
+                    state.started = True
+                    yield ToolCallStart(
+                        tool_call_id=tool_call_id,
+                        title=title or state.title,
+                        kind=state.kind,
+                        raw_input=state.raw_input,
+                        status="pending",
+                    )
                 from agentpool_server.acp_server.syntax_detection import format_zed_code_block
 
                 acp_content: list[ToolCallContent] = []
