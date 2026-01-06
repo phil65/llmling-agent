@@ -97,6 +97,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             commands: Slash commands to register with this agent
         """
         from exxec import LocalExecutionEnvironment
+        from slashed import CommandStore
+
+        from agentpool_commands import get_commands
 
         super().__init__(
             name=name,
@@ -120,22 +123,14 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self.event_handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
             resolved_handlers
         )
-
-        # Cancellation infrastructure
         self._cancelled = False
         self._current_stream_task: asyncio.Task[Any] | None = None
-
         # State change signal - emitted when mode/model/commands change
         # Uses union type for different state update kinds
         self.state_updated: BoundSignal[StateUpdate] = BoundSignal()
-
-        # Command store for slash commands
-        from slashed import CommandStore
-
-        from agentpool_commands import get_commands
-
         self._command_store: CommandStore = CommandStore()
-
+        # Initialize store (registers builtin help/exit commands)
+        self._command_store._initialize_sync()
         # Register default agent commands
         for command in get_commands():
             self._command_store.register_command(command)
