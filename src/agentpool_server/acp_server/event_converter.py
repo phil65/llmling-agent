@@ -202,10 +202,10 @@ class ACPEventConverter:
             # Builtin tool completed
             case PartStartEvent(part=BuiltinToolReturnPart() as part):
                 tool_call_id = part.tool_call_id
-                state = self._tool_states.get(tool_call_id)
+                tool_state = self._tool_states.get(tool_call_id)
                 final_output = part.content
 
-                if state and state.has_content:
+                if tool_state and tool_state.has_content:
                     yield ToolCallProgress(
                         tool_call_id=tool_call_id,
                         status="completed",
@@ -285,8 +285,8 @@ class ACPEventConverter:
                 else:
                     final_output = result.content
 
-                state = self._tool_states.get(tool_call_id)
-                if state and state.has_content:
+                tool_state = self._tool_states.get(tool_call_id)
+                if tool_state and tool_state.has_content:
                     yield ToolCallProgress(
                         tool_call_id=tool_call_id,
                         status="completed",

@@ -196,7 +196,6 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
             """Wrap a node's stream events in SubAgentEvent."""
             if not isinstance(node, SupportsRunStream):
                 return
-            source_type = "team" if hasattr(node, "nodes") else "agent"
             async for event in node.run_stream(*prompts, **kwargs):
                 # Handle already-wrapped SubAgentEvents (nested teams)
                 if isinstance(event, SubAgentEvent):
@@ -209,7 +208,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
                 else:
                     yield SubAgentEvent(
                         source_name=node.name,
-                        source_type=source_type,
+                        source_type="team" if isinstance(node, BaseTeam) else "agent",
                         event=event,
                         depth=1,
                     )

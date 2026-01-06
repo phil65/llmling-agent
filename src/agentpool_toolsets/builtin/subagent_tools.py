@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from agentpool.agents.events import RichAgentStreamEvent
+    from agentpool.messaging import MessageNode
 
 
 logger = get_logger(__name__)
@@ -279,7 +280,7 @@ class SubagentTools(StaticResourceProvider):
         # Determine source type and get node
         if agent_or_team_name in ctx.pool.teams:
             source_type: Literal["agent", "team"] = "team"
-            node = ctx.pool.teams[agent_or_team_name]
+            node: MessageNode[Any, Any] = ctx.pool.teams[agent_or_team_name]
         else:
             source_type = "agent"
             node = ctx.pool.all_agents[agent_or_team_name]

@@ -293,8 +293,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                     msg = f"Node {node.name} does not support streaming"
                     raise TypeError(msg)  # noqa: TRY301
 
-                source_type = "team" if hasattr(node, "nodes") else "agent"
-
                 async for event in node.run_stream(*current_message, **kwargs):
                     # Handle already-wrapped SubAgentEvents (nested teams)
                     if isinstance(event, SubAgentEvent):
@@ -307,7 +305,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                     else:
                         yield SubAgentEvent(
                             source_name=node.name,
-                            source_type=source_type,
+                            source_type="team" if isinstance(node, BaseTeam) else "agent",
                             event=event,
                             depth=1,
                         )
