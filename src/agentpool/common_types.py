@@ -29,11 +29,8 @@ if TYPE_CHECKING:
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.messaging import ChatMessage
-    from agentpool.messaging.messagenode import MessageNode
     from agentpool.tools.base import Tool
 
-    # Type alias for team streaming return type (node + event tuples)
-    type TeamStreamEvent = tuple[MessageNode[Any, Any], RichAgentStreamEvent[Any]]
     type AnyTransformFn[T] = Callable[[T], T | Awaitable[T]]
     type OptionalAwaitable[T] = T | Awaitable[T]
     type ToolType = str | AnyCallable | Tool
@@ -114,15 +111,13 @@ class SupportsRunStream[TResult](Protocol):
     """Protocol for nodes that support streaming via run_stream().
 
     Used by Team and TeamRun to check if a node can be streamed.
-
-    Return type is a union because:
-    - Agent returns `AsyncIterator[RichAgentStreamEvent[TResult]]`
-    - Team/TeamRun return `AsyncIterator[tuple[MessageNode, RichAgentStreamEvent]]`
+    All streaming nodes return RichAgentStreamEvent, with subagent/team
+    activity wrapped in SubAgentEvent.
     """
 
     def run_stream(
         self, *prompts: Any, **kwargs: Any
-    ) -> AsyncIterator[RichAgentStreamEvent[TResult] | TeamStreamEvent]: ...
+    ) -> AsyncIterator[RichAgentStreamEvent[TResult]]: ...
 
 
 class BaseCode(BaseModel):

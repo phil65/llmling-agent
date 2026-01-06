@@ -9,11 +9,9 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 from uuid import uuid4
 
 import anyio
-from pydantic_ai import PartDeltaEvent, TextPartDelta
 
 from agentpool.common_types import SupportsRunStream
 from agentpool.delegation.base_team import BaseTeam
-from agentpool.delegation.team import normalize_stream_for_teams
 from agentpool.log import get_logger
 from agentpool.messaging import AgentResponse, ChatMessage, TeamResponse
 from agentpool.messaging.processing import finalize_message, prepare_prompts
@@ -274,7 +272,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         *prompts: PromptCompatible,
         require_all: bool = True,
         **kwargs: Any,
-    ) -> AsyncIterator[tuple[MessageNode[Any, Any], RichAgentStreamEvent[Any]]]:
+    ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
         """Stream responses through the chain of team members.
 
         Args:
@@ -284,50 +282,53 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             kwargs: Additional arguments passed to each agent
 
         Yields:
-            Tuples of (agent, event) where agent is the Agent instance
-            and event is the streaming event.
+            RichAgentStreamEvent, with member events wrapped in SubAgentEvent
         """
-        from agentpool.agents.events import StreamCompleteEvent
+        from agentpool.agents.events import StreamCompleteEvent, SubAgentEvent
 
         current_message = prompts
-        collected_content = []
-        for agent in self.nodes:
+        for node in self.nodes:
             try:
-                agent_content = []
-
-                # Use wrapper to normalize all streaming nodes to (agent, event) tuples
-                if not isinstance(agent, SupportsRunStream):
-                    msg = f"Agent {agent.name} does not support streaming"
+                if not isinstance(node, SupportsRunStream):
+                    msg = f"Node {node.name} does not support streaming"
                     raise TypeError(msg)  # noqa: TRY301
 
-                stream = normalize_stream_for_teams(agent, *current_message, **kwargs)
+                source_type = "team" if hasattr(node, "nodes") else "agent"
 
-                async for agent_event_tuple in stream:
-                    actual_agent, event = agent_event_tuple
-                    match event:
-                        case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
-                            agent_content.append(delta)
-                            collected_content.append(delta)
-                            yield (actual_agent, event)  # Yield tuple with agent context
-                        case StreamCompleteEvent(message=message):
-                            # Use complete response as input for next agent
-                            current_message = (message.content,)
-                            yield (actual_agent, event)  # Yield tuple with agent context
-                        case _:
-                            yield (actual_agent, event)  # Yield tuple with agent context
+                async for event in node.run_stream(*current_message, **kwargs):
+                    # Handle already-wrapped SubAgentEvents (nested teams)
+                    if isinstance(event, SubAgentEvent):
+                        yield SubAgentEvent(
+                            source_name=event.source_name,
+                            source_type=event.source_type,
+                            event=event.event,
+                            depth=event.depth + 1,
+                        )
+                    else:
+                        yield SubAgentEvent(
+                            source_name=node.name,
+                            source_type=source_type,
+                            event=event,
+                            depth=1,
+                        )
+
+                        # Extract content for next agent in chain
+                        if isinstance(event, StreamCompleteEvent):
+                            current_message = (event.message.content,)
 
             except Exception as e:
                 if require_all:
-                    msg = f"Chain broken at {agent.name}: {e}"
+                    msg = f"Chain broken at {node.name}: {e}"
                     logger.exception(msg)
                     raise ValueError(msg) from e
-                logger.warning("Chain handler failed", name=agent.name, error=e)
+                logger.warning("Chain handler failed", name=node.name, error=e)
 
 
 if __name__ == "__main__":
 
     async def main() -> None:
         from agentpool import Agent, Team
+        from agentpool.agents.events import SubAgentEvent
 
         agent1 = Agent(name="Agent1", model="test")
         agent2 = Agent(name="Agent2", model="test")
@@ -336,8 +337,13 @@ if __name__ == "__main__":
         outer_run = TeamRun([inner_team, agent3], name="Sequential")
         print("Testing TeamRun containing Team...")
         try:
-            async for node, event in outer_run.run_stream("test"):
-                print(f"{node.name}: {type(event).__name__}")
+            async for event in outer_run.run_stream("test"):
+                if isinstance(event, SubAgentEvent):
+                    print(
+                        f"[depth={event.depth}] {event.source_name}: {type(event.event).__name__}"
+                    )
+                else:
+                    print(f"Event: {type(event).__name__}")
         except Exception as e:  # noqa: BLE001
             print(f"Error: {e}")
 

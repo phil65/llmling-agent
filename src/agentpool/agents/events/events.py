@@ -544,6 +544,26 @@ class PlanUpdateEvent:
 
 
 @dataclass(kw_only=True)
+class SubAgentEvent:
+    """Event wrapping activity from a subagent or team member.
+
+    Used to propagate events from delegated agents/teams into the parent stream,
+    allowing the consumer (UI/server) to decide how to render nested activity.
+    """
+
+    source_name: str
+    """Name of the agent or team that produced this event."""
+    source_type: Literal["agent", "team"]
+    """Whether the source is an agent or team."""
+    event: RichAgentStreamEvent[Any]
+    """The actual event from the subagent/team."""
+    depth: int = 1
+    """Nesting depth (1 = direct child, 2 = grandchild, etc.)."""
+    event_kind: Literal["subagent"] = "subagent"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
 class CompactionEvent:
     """Event indicating context compaction is starting or completed.
 
@@ -572,6 +592,7 @@ type RichAgentStreamEvent[OutputDataT] = (
     | ToolCallCompleteEvent
     | PlanUpdateEvent
     | CompactionEvent
+    | SubAgentEvent
     | CustomEvent[Any]
 )
 

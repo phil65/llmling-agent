@@ -5,18 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import (
-    FunctionToolCallEvent,
-    FunctionToolResultEvent,
     ModelRetry,
     PartDeltaEvent,
-    PartStartEvent,
-    RetryPromptPart,
-    TextPart,
     TextPartDelta,
-    ThinkingPart,
     ThinkingPartDelta,
     ToolCallPartDelta,
-    ToolReturnPart,
 )
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
@@ -129,58 +122,60 @@ async def batch_stream_deltas(  # noqa: PLR0915
         yield _make_batched_event()
 
 
-async def _stream_agent_with_progress(
+async def _stream_subagent(
     ctx: AgentContext,
+    source_name: str,
+    source_type: Literal["agent", "team"],
     stream: AsyncIterator[RichAgentStreamEvent[Any]],
     *,
     batch_deltas: bool = False,
+    depth: int = 1,
 ) -> str:
-    """Stream an agent's execution and emit progress events.
+    """Stream a subagent's execution, emitting SubAgentEvents into parent stream.
 
     Args:
         ctx: Agent context for emitting events
+        source_name: Name of the subagent/team
+        source_type: Whether source is "agent" or "team"
         stream: Async iterator of stream events from agent.run_stream()
         batch_deltas: If True, batch consecutive text/thinking deltas for fewer UI updates
+        depth: Nesting depth for nested delegation
 
     Returns:
-        Aggregated content from the stream
+        Final text content from the stream
     """
+    from agentpool.agents.events import StreamCompleteEvent, SubAgentEvent
+
     if batch_deltas:
         stream = batch_stream_deltas(stream)
 
-    aggregated: list[str] = []
+    final_content: str = ""
     async for event in stream:
-        match event:
-            case (
-                PartStartEvent(part=TextPart(content=delta))
-                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
-            ):
-                aggregated.append(delta)
-                await ctx.events.tool_call_progress("".join(aggregated))
-            case (
-                PartStartEvent(part=ThinkingPart(content=delta))
-                | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
-            ):
-                if delta:
-                    aggregated.append(f"💭 {delta}")
-                    await ctx.events.tool_call_progress("".join(aggregated))
-            case FunctionToolCallEvent(part=part):
-                aggregated.append(f"\n🔧 Using tool: {part.tool_name}\n")
-                await ctx.events.tool_call_progress("".join(aggregated))
-            case FunctionToolResultEvent(
-                result=ToolReturnPart(content=content, tool_name=tool_name),
-            ):
-                aggregated.append(f"✅ {tool_name}: {content}\n")
-                await ctx.events.tool_call_progress("".join(aggregated))
+        # Handle nested SubAgentEvents - increment depth
+        if isinstance(event, SubAgentEvent):
+            nested_event = SubAgentEvent(
+                source_name=event.source_name,
+                source_type=event.source_type,
+                event=event.event,
+                depth=event.depth + depth,
+            )
+            await ctx.events.emit_event(nested_event)
+        else:
+            # Wrap the event in SubAgentEvent
+            subagent_event = SubAgentEvent(
+                source_name=source_name,
+                source_type=source_type,
+                event=event,
+                depth=depth,
+            )
+            await ctx.events.emit_event(subagent_event)
 
-            case FunctionToolResultEvent(result=RetryPromptPart(tool_name=tool_name) as result):
-                error_message = result.model_response()
-                aggregated.append(f"❌ {tool_name or 'unknown'}: {error_message}\n")
-                await ctx.events.tool_call_progress("".join(aggregated))
-            case _:
-                pass
+            # Extract final content from StreamCompleteEvent
+            if isinstance(event, StreamCompleteEvent):
+                content = event.message.content
+                final_content = str(content) if content else ""
 
-    return "".join(aggregated).strip()
+    return final_content
 
 
 class SubagentTools(StaticResourceProvider):
@@ -279,14 +274,27 @@ class SubagentTools(StaticResourceProvider):
             )
             raise ModelRetry(msg)
 
-        # For teams, use simple run() - no streaming support yet
+        from agentpool.common_types import SupportsRunStream
+
+        # Determine source type and get node
         if agent_or_team_name in ctx.pool.teams:
-            result = await ctx.pool.teams[agent_or_team_name].run(prompt)
-            return result.format(style="detailed", show_costs=True)
-        # For agents (regular or ACP), stream with progress events
-        agent = ctx.pool.all_agents[agent_or_team_name]
-        return await _stream_agent_with_progress(
-            ctx, agent.run_stream(prompt), batch_deltas=self._batch_stream_deltas
+            source_type: Literal["agent", "team"] = "team"
+            node = ctx.pool.teams[agent_or_team_name]
+        else:
+            source_type = "agent"
+            node = ctx.pool.all_agents[agent_or_team_name]
+
+        if not isinstance(node, SupportsRunStream):
+            msg = f"Node {agent_or_team_name} does not support streaming"
+            raise ToolError(msg)
+
+        # Stream with SubAgentEvent wrapping
+        return await _stream_subagent(
+            ctx,
+            source_name=agent_or_team_name,
+            source_type=source_type,
+            stream=node.run_stream(prompt),
+            batch_deltas=self._batch_stream_deltas,
         )
 
     async def ask_agent(  # noqa: D417
@@ -315,9 +323,12 @@ class SubagentTools(StaticResourceProvider):
 
         agent = ctx.pool.all_agents[agent_name]
         try:
-            stream = agent.run_stream(message)
-            return await _stream_agent_with_progress(
-                ctx, stream, batch_deltas=self._batch_stream_deltas
+            return await _stream_subagent(
+                ctx,
+                source_name=agent_name,
+                source_type="agent",
+                stream=agent.run_stream(message),
+                batch_deltas=self._batch_stream_deltas,
             )
         except Exception as e:
             msg = f"Failed to ask agent {agent_name}: {e}"

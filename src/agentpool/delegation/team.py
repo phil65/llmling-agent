@@ -33,36 +33,6 @@ if TYPE_CHECKING:
     from agentpool_config.task import Job
 
 
-async def normalize_stream_for_teams(
-    node: MessageNode[Any, Any],
-    *args: Any,
-    **kwargs: Any,
-) -> AsyncIterator[tuple[MessageNode[Any, Any], RichAgentStreamEvent[Any]]]:
-    """Normalize any streaming node to yield (node, event) tuples for team composition.
-
-    Args:
-        node: The streaming node (Agent, Team, etc.)
-        *args: Arguments to pass to run_stream
-        **kwargs: Keyword arguments to pass to run_stream
-
-    Yields:
-        Tuples of (node, event) where node is the MessageNode instance
-        and event is the streaming event from that node.
-    """
-    if not isinstance(node, SupportsRunStream):
-        msg = f"Node {node.name} does not support streaming"
-        raise TypeError(msg)
-
-    stream = node.run_stream(*args, **kwargs)
-    async for item in stream:
-        if isinstance(item, tuple):
-            # Already normalized (from Team or other composite node)
-            yield item
-        else:
-            # Raw event (from Agent) - wrap it with the source node
-            yield (node, item)
-
-
 class Team[TDeps = None](BaseTeam[TDeps, Any]):
     """Group of agents that can execute together."""
 
@@ -203,7 +173,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         self,
         *prompts: PromptCompatible,
         **kwargs: Any,
-    ) -> AsyncIterator[tuple[MessageNode[Any, Any], RichAgentStreamEvent[Any]]]:
+    ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
         """Stream responses from all team members in parallel.
 
         Args:
@@ -211,23 +181,44 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
             kwargs: Additional arguments passed to each agent
 
         Yields:
-            Tuples of (agent, event) where agent is the Agent instance
-            and event is the streaming event from that agent.
+            RichAgentStreamEvent, with member events wrapped in SubAgentEvent
         """
+        from agentpool.agents.events import SubAgentEvent
+
         # Get nodes to run
         combined_prompt = "\n".join([await to_prompt(p) for p in prompts])
         all_nodes = list(await self.pick_agents(combined_prompt))
 
-        # Create list of streams that yield (agent, event) tuples
-        agent_streams = [
-            normalize_stream_for_teams(agent, *prompts, **kwargs)
-            for agent in all_nodes
-            if isinstance(agent, SupportsRunStream)
-        ]
+        # Create list of streams
+        async def wrap_stream(
+            node: MessageNode[Any, Any],
+        ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
+            """Wrap a node's stream events in SubAgentEvent."""
+            if not isinstance(node, SupportsRunStream):
+                return
+            source_type = "team" if hasattr(node, "nodes") else "agent"
+            async for event in node.run_stream(*prompts, **kwargs):
+                # Handle already-wrapped SubAgentEvents (nested teams)
+                if isinstance(event, SubAgentEvent):
+                    yield SubAgentEvent(
+                        source_name=event.source_name,
+                        source_type=event.source_type,
+                        event=event.event,
+                        depth=event.depth + 1,
+                    )
+                else:
+                    yield SubAgentEvent(
+                        source_name=node.name,
+                        source_type=source_type,
+                        event=event,
+                        depth=1,
+                    )
 
-        # Merge all agent streams
-        async for agent_event_tuple in as_generated(agent_streams):
-            yield agent_event_tuple
+        streams = [wrap_stream(node) for node in all_nodes]
+
+        # Merge all streams
+        async for event in as_generated(streams):
+            yield event
 
     async def run_job[TJobResult](
         self,
@@ -311,6 +302,7 @@ if __name__ == "__main__":
 
     async def main() -> None:
         from agentpool import Agent, TeamRun
+        from agentpool.agents.events import SubAgentEvent
 
         agent_a = Agent(name="A", model="test")
         agent_b = Agent(name="B", model="test")
@@ -320,7 +312,10 @@ if __name__ == "__main__":
         outer_team = Team([inner_run, agent_c], name="Parallel")
 
         print("Testing Team containing TeamRun...")
-        async for node, event in outer_team.run_stream("test"):
-            print(f"{node.name}: {type(event).__name__}")
+        async for event in outer_team.run_stream("test"):
+            if isinstance(event, SubAgentEvent):
+                print(f"[depth={event.depth}] {event.source_name}: {type(event.event).__name__}")
+            else:
+                print(f"Event: {type(event).__name__}")
 
     anyio.run(main)

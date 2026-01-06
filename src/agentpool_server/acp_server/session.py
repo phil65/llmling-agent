@@ -10,7 +10,7 @@ import asyncio
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import anyio
 from exxec.acp_provider import ACPExecutionEnvironment
@@ -57,6 +57,7 @@ from agentpool.agents.events import (
     CompactionEvent,
     PlanUpdateEvent,
     StreamCompleteEvent,
+    SubAgentEvent,
     ToolCallProgressEvent,
     ToolCallStartEvent,
 )
@@ -246,6 +247,12 @@ class ACPSession:
     manager: ACPSessionManager | None = None
     """Session manager for managing sessions. Used for session management commands."""
 
+    subagent_display_mode: Literal["inline", "tool_box"] = "tool_box"
+    """How to display subagent output:
+    - 'inline': Subagent output flows into main message stream
+    - 'tool_box': Subagent output contained in the tool call's progress box (default)
+    """
+
     def __post_init__(self) -> None:
         """Initialize session state and set up providers."""
         from agentpool_server.acp_server.commands import get_commands as get_acp_commands
@@ -257,6 +264,8 @@ class ACPSession:
         self._title_generation_triggered = False
         self._current_tool_inputs: dict[str, dict[str, Any]] = {}
         self._tool_call_states: dict[str, ToolCallState] = {}
+        self._subagent_headers: set[str] = set()  # Track which subagent headers have been sent
+        self._subagent_content: dict[str, list[str]] = {}  # Accumulated content per subagent
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         cmds = [
             *get_commands(
@@ -877,8 +886,184 @@ class ACPSession:
                         )
                     await self.notifications.send_agent_text(text)
 
+            case SubAgentEvent(
+                source_name=source_name,
+                source_type=source_type,
+                event=inner_event,
+                depth=depth,
+            ):
+                # Handle subagent events based on display mode
+                if self.subagent_display_mode == "tool_box":
+                    await self._handle_subagent_tool_box(
+                        source_name, source_type, inner_event, depth
+                    )
+                else:
+                    await self._handle_subagent_inline(source_name, source_type, inner_event, depth)
+
             case _:
                 self.log.debug("Unhandled event", event_type=type(event).__name__)
+
+    async def _handle_subagent_inline(
+        self,
+        source_name: str,
+        source_type: Literal["agent", "team"],
+        inner_event: RichAgentStreamEvent[Any],
+        depth: int,
+    ) -> None:
+        """Handle subagent event by streaming into main message flow."""
+        indent = "  " * depth
+        icon = "🤖" if source_type == "agent" else "👥"
+
+        match inner_event:
+            case (
+                PartStartEvent(part=TextPart(content=delta))
+                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
+            ):
+                # For first text from this source, add header
+                header_key = f"{source_name}:{depth}"
+                if header_key not in self._subagent_headers:
+                    self._subagent_headers.add(header_key)
+                    await self.notifications.send_agent_text(
+                        f"\n{indent}{icon} **{source_name}**: "
+                    )
+                await self.notifications.send_agent_text(delta)
+
+            case (
+                PartStartEvent(part=ThinkingPart(content=delta))
+                | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
+            ):
+                await self.notifications.send_agent_thought(
+                    f"{indent}[{source_name}] {delta or ''}"
+                )
+
+            case FunctionToolCallEvent(part=part):
+                await self.notifications.send_agent_text(
+                    f"\n{indent}🔧 [{source_name}] Using tool: {part.tool_name}\n"
+                )
+
+            case FunctionToolResultEvent(
+                result=ToolReturnPart(content=content, tool_name=tool_name),
+            ):
+                result_str = str(content)
+                if len(result_str) > 200:  # noqa: PLR2004
+                    result_str = result_str[:200] + "..."
+                await self.notifications.send_agent_text(
+                    f"{indent}✅ [{source_name}] {tool_name}: {result_str}\n"
+                )
+
+            case FunctionToolResultEvent(
+                result=RetryPromptPart(tool_name=tool_name) as result,
+            ):
+                error_msg = result.model_response()
+                await self.notifications.send_agent_text(
+                    f"{indent}❌ [{source_name}] {tool_name}: {error_msg}\n"
+                )
+
+            case StreamCompleteEvent():
+                header_key = f"{source_name}:{depth}"
+                self._subagent_headers.discard(header_key)
+                await self.notifications.send_agent_text(f"\n{indent}---\n")
+
+            case _:
+                self.log.debug(
+                    "Subagent event (inline)",
+                    source=source_name,
+                    event_type=type(inner_event).__name__,
+                )
+
+    async def _handle_subagent_tool_box(
+        self,
+        source_name: str,
+        source_type: Literal["agent", "team"],
+        inner_event: RichAgentStreamEvent[Any],
+        depth: int,
+    ) -> None:
+        """Handle subagent event by accumulating in tool call progress box."""
+        # Use a unique key for this subagent's accumulated content
+        state_key = f"subagent:{source_name}:{depth}"
+        icon = "🤖" if source_type == "agent" else "👥"
+
+        # Get or initialize accumulated content for this subagent
+        if state_key not in self._subagent_content:
+            self._subagent_content[state_key] = []
+
+        accumulated = self._subagent_content[state_key]
+
+        match inner_event:
+            case (
+                PartStartEvent(part=TextPart(content=delta))
+                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
+            ):
+                accumulated.append(delta)
+                title = f"{icon} {source_name}"
+                await self._emit_subagent_progress(state_key, title, accumulated)
+
+            case (
+                PartStartEvent(part=ThinkingPart(content=delta))
+                | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
+            ):
+                if delta:
+                    accumulated.append(f"💭 {delta}")
+                    title = f"{icon} {source_name}"
+                    await self._emit_subagent_progress(state_key, title, accumulated)
+
+            case FunctionToolCallEvent(part=part):
+                accumulated.append(f"\n🔧 Using tool: {part.tool_name}\n")
+                title = f"{icon} {source_name}"
+                await self._emit_subagent_progress(state_key, title, accumulated)
+
+            case FunctionToolResultEvent(
+                result=ToolReturnPart(content=content, tool_name=tool_name),
+            ):
+                result_str = str(content)
+                if len(result_str) > 200:  # noqa: PLR2004
+                    result_str = result_str[:200] + "..."
+                accumulated.append(f"✅ {tool_name}: {result_str}\n")
+                title = f"{icon} {source_name}"
+                await self._emit_subagent_progress(state_key, title, accumulated)
+
+            case FunctionToolResultEvent(
+                result=RetryPromptPart(tool_name=tool_name) as result,
+            ):
+                error_msg = result.model_response()
+                accumulated.append(f"❌ {tool_name}: {error_msg}\n")
+                title = f"{icon} {source_name}"
+                await self._emit_subagent_progress(state_key, title, accumulated)
+
+            case StreamCompleteEvent():
+                # Clean up accumulated content
+                self._subagent_content.pop(state_key, None)
+
+            case _:
+                self.log.debug(
+                    "Subagent event (tool_box)",
+                    source=source_name,
+                    event_type=type(inner_event).__name__,
+                )
+
+    async def _emit_subagent_progress(
+        self,
+        state_key: str,
+        title: str,
+        accumulated: list[str],
+    ) -> None:
+        """Emit tool call progress for subagent content."""
+        # Get or create tool call state for this subagent
+        if state_key not in self._tool_call_states:
+            state = self._get_or_create_tool_state(
+                tool_call_id=state_key,
+                tool_name="delegate",
+                tool_input={},
+            )
+            await state.start()
+
+        if progress_state := self._tool_call_states.get(state_key):
+            content = "".join(accumulated)
+            await progress_state.update(
+                title=title,
+                status="in_progress",
+                content=[ContentToolCallContent.text(text=content)],
+            )
 
     async def close(self) -> None:
         """Close the session and cleanup resources."""
