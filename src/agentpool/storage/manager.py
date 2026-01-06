@@ -13,10 +13,13 @@ from agentpool.messaging import ChatMessage
 from agentpool.storage.serialization import serialize_messages
 from agentpool.utils.tasks import TaskManager
 from agentpool_config.storage import (
+    ClaudeStorageConfig,
     FileStorageConfig,
     MemoryStorageConfig,
+    OpenCodeStorageConfig,
     SQLStorageConfig,
     TextLogConfig,
+    ZedStorageConfig,
 )
 
 
@@ -90,7 +93,7 @@ class StorageManager:
                 logger.exception("Error cleaning up provider", provider=provider)
         self.providers.clear()
 
-    def _create_provider(self, config: BaseStorageProviderConfig) -> StorageProvider:
+    def _create_provider(self, config: BaseStorageProviderConfig) -> StorageProvider:  # noqa: PLR0911
         """Create provider instance from configuration."""
         # Extract common settings from BaseStorageProviderConfig
         match self.config.filter_mode:
@@ -133,6 +136,18 @@ class StorageManager:
                 from agentpool_storage.memory_provider import MemoryStorageProvider
 
                 return MemoryStorageProvider(provider_config)
+            case ClaudeStorageConfig():
+                from agentpool_storage.claude_provider import ClaudeStorageProvider
+
+                return ClaudeStorageProvider(provider_config)
+            case OpenCodeStorageConfig():
+                from agentpool_storage.opencode_provider import OpenCodeStorageProvider
+
+                return OpenCodeStorageProvider(provider_config)
+            case ZedStorageConfig():
+                from agentpool_storage.zed_provider import ZedStorageProvider
+
+                return ZedStorageProvider(provider_config)
             case _:
                 msg = f"Unknown provider type: {provider_config}"
                 raise ValueError(msg)

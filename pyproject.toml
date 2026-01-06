@@ -137,6 +137,7 @@ oauth = [
   "keyring>=25.6.0"
 ]  # OAuth functionality (will be fixed dep for FastMCP >2.13)
 promptlayer = ["promptlayer"]  # PromptLayer Prompt Hub
+zed = ["zstandard>=0.23.0"]  # Zed IDE storage provider
 server = [
   "logfire[fastapi]",
   "fastapi",

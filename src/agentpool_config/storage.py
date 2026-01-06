@@ -210,13 +210,36 @@ class OpenCodeStorageConfig(BaseStorageProviderConfig):
     """Path to OpenCode storage directory."""
 
 
+class ZedStorageConfig(BaseStorageProviderConfig):
+    """Zed IDE native storage format configuration.
+
+    Reads from Zed's native SQLite + zstd-compressed JSON format.
+    Useful for importing conversation history from Zed's AI assistant.
+
+    This is a READ-ONLY provider - it cannot write back to Zed's format.
+    """
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Zed Storage"})
+
+    type: Literal["zed"] = Field("zed", init=False)
+    """Zed IDE native storage configuration."""
+
+    path: str = Field(
+        default="~/.local/share/zed/threads/threads.db",
+        examples=["~/.local/share/zed/threads/threads.db", "~/.local/share/zed"],
+        title="Zed threads database path",
+    )
+    """Path to Zed threads database (or parent directory)."""
+
+
 StorageProviderConfig = Annotated[
     SQLStorageConfig
     | FileStorageConfig
     | TextLogConfig
     | MemoryStorageConfig
     | ClaudeStorageConfig
-    | OpenCodeStorageConfig,
+    | OpenCodeStorageConfig
+    | ZedStorageConfig,
     Field(discriminator="type"),
 ]
 
