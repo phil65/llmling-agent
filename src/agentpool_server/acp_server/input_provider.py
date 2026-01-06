@@ -150,15 +150,22 @@ class ACPInputProvider(InputProvider):
             # Ensure tool call is registered with client before requesting permission.
             # The SDK's permission callback may run before our streaming events are processed,
             # so we need to register the tool call with Zed first.
-            tool_state = self.session._get_or_create_tool_state(
+            from acp.utils import generate_tool_title, infer_tool_kind
+
+            title = generate_tool_title(tool.name, args)
+            kind = infer_tool_kind(tool.name)
+            # Send tool call start notification
+            await self.session.notifications.tool_call_start(
                 tool_call_id=actual_tool_call_id,
-                tool_name=tool.name,
-                tool_input=args,
+                title=title,
+                kind=kind,
+                raw_input=args,
             )
-            # Start the tool call (sends initial notification to client)
-            await tool_state.start()
             # Set status to pending (awaiting permission)
-            await tool_state.update(status="pending")
+            await self.session.notifications.tool_call_progress(
+                tool_call_id=actual_tool_call_id,
+                status="pending",
+            )
 
             # Small delay to ensure client processes the tool call notification
             # before we send the permission request. Without this, the client may
