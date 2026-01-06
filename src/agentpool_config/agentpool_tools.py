@@ -90,7 +90,7 @@ class AgentCliToolConfig(BaseToolConfig):
         from agentpool.tool_impls.agent_cli import create_agent_cli_tool
 
         return create_agent_cli_tool(
-            name=self.name or "agent_cli",
+            name=self.name or "run_agent_cli_command",
             description=self.description or "Execute an internal agent management command.",
             requires_confirmation=self.requires_confirmation,
         )

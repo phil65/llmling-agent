@@ -108,19 +108,22 @@ async def test_team_creation(default_model: str):
     """Test that an agent can create other agents and form them into a team via commands."""
     # default_model = "openrouter:anthropic/claude-haiku-4.5"
     async with AgentPool() as pool:
-        # Create creator agent with skills toolset (provides run_command tool)
-        from agentpool_config.toolsets import SkillsToolsetConfig
+        # Create creator agent with agent_cli tool (provides run_command-like functionality)
+        from agentpool_config.agentpool_tools import AgentCliToolConfig
 
-        toolsets = [SkillsToolsetConfig()]
-        toolset_providers = [config.get_provider() for config in toolsets]
-        creator = await pool.add_agent(
-            name="creator", model=default_model, toolsets=toolset_providers
-        )
+        tools = [AgentCliToolConfig()]
+        tool_instances = [config.get_tool() for config in tools]
+        creator = await pool.add_agent(name="creator", model=default_model, tools=tool_instances)
         # Ask it to create agents and form a team
         result = await creator.run("""
+            Use the run_agent_cli_command tool to:
             1. Create two agents named "alice" and "bob"
             2. Then create a team called "crew" with those agents
         """)
+
+        # Debug
+        print(f"Tool calls: {result.get_tool_calls()}")
+        print(f"Content: {result.content}")
 
         # Verify agents were created
         assert "alice" in pool.agents
