@@ -52,7 +52,7 @@ ExecutionEnvironmentToolName = Literal[
 SkillsToolName = Literal["load_skill", "list_skills"]
 CodeToolName = Literal["format_code", "ast_grep"]
 PlanToolName = Literal["get_plan", "add_plan_entry", "update_plan_entry", "remove_plan_entry"]
-PlanToolMode = Literal["granular", "declarative", "hybrid"]
+PlanToolMode = Literal["granular", "declarative"]
 
 
 class BaseToolsetConfig(Schema):
@@ -786,7 +786,6 @@ class PlanToolsetConfig(BaseToolsetConfig):
     """Tool mode:
     - 'granular': Separate tools (get/add/update/remove) - better for simpler models
     - 'declarative': Single set_plan tool with full list - fewer calls, suits capable models
-    - 'hybrid': Both approaches available - model chooses most efficient per situation
     """
 
     tools: dict[PlanToolName, bool] | None = Field(

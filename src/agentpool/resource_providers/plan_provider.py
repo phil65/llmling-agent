@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
+from agentpool.agents.events import TextContentItem
 from agentpool.resource_providers import ResourceProvider
 from agentpool.utils.streams import TodoPriority, TodoStatus  # noqa: TC001
 
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 # Keep PlanEntry for backward compatibility with event emitting
 PlanEntryPriority = Literal["high", "medium", "low"]
 PlanEntryStatus = Literal["pending", "in_progress", "completed"]
-PlanToolMode = Literal["granular", "declarative", "hybrid"]
+PlanToolMode = Literal["granular", "declarative"]
 
 
 @dataclass(kw_only=True)
@@ -61,12 +62,12 @@ class PlanProvider(ResourceProvider):
 
     kind = "tools"
 
-    def __init__(self, mode: PlanToolMode = "granular") -> None:
+    def __init__(self, mode: PlanToolMode = "declarative") -> None:
         """Initialize plan provider.
 
         Args:
             mode: Tool mode - 'granular' for separate tools, 'declarative' for
-                  single set_plan tool, 'hybrid' for both approaches.
+                  single set_plan tool.
         """
         super().__init__(name="plan")
         self.mode = mode
@@ -84,14 +85,6 @@ class PlanProvider(ResourceProvider):
         if self.mode == "declarative":
             # Single bulk tool for capable models
             tools.append(self.create_tool(self.set_plan, category="other"))
-        elif self.mode == "hybrid":
-            # Both approaches - model chooses
-            tools.extend([
-                self.create_tool(self.set_plan, category="other"),
-                self.create_tool(self.add_plan_entry, category="other"),
-                self.create_tool(self.update_plan_entry, category="edit"),
-                self.create_tool(self.remove_plan_entry, category="delete"),
-            ])
         else:
             # granular mode (default) - separate tools for simpler models
             tools.extend([
@@ -172,7 +165,25 @@ class PlanProvider(ResourceProvider):
 
         await self._emit_plan_update(agent_ctx)
 
-        return f"Plan updated with {len(tracker.entries)} entries"
+        # Build summary for user feedback
+        entry_count = len(tracker.entries)
+        title = f"Plan set with {entry_count} {'entry' if entry_count == 1 else 'entries'}"
+
+        # Format entries list for details
+        if tracker.entries:
+            lines = ["**New Plan:**"]
+            for i, e in enumerate(tracker.entries):
+                lines.append(f"{i}. [{e.priority}] {e.content} ({e.status})")
+            details = "\n".join(lines)
+        else:
+            details = "*Plan is empty*"
+
+        await agent_ctx.events.tool_call_progress(
+            title=title,
+            items=[TextContentItem(text=details)],
+        )
+
+        return f"Plan updated with {entry_count} entries"
 
     async def add_plan_entry(
         self,
@@ -200,6 +211,14 @@ class PlanProvider(ResourceProvider):
         entry_index = tracker.entries.index(entry)
 
         await self._emit_plan_update(agent_ctx)
+
+        # User feedback
+        title = f"Added entry {entry_index} [{priority}] (pending)"
+        details = f"**Entry {entry_index}**: {content}"
+        await agent_ctx.events.tool_call_progress(
+            title=title,
+            items=[TextContentItem(text=details)],
+        )
 
         return f"Added plan entry at index {entry_index}: {content!r} (priority={priority!r})"
 
@@ -244,6 +263,18 @@ class PlanProvider(ResourceProvider):
         tracker.update_by_index(index, content=content, status=status, priority=priority)
 
         await self._emit_plan_update(agent_ctx)
+
+        # Build title with key info
+        entry = tracker.entries[index]
+        title = f"Updated entry {index} [{entry.priority}] ({entry.status})"
+
+        # Send detailed content
+        details = f"**Entry {index}**: {entry.content}\n\nChanges: {', '.join(updates)}"
+        await agent_ctx.events.tool_call_progress(
+            title=title,
+            items=[TextContentItem(text=details)],
+        )
+
         return f"Updated entry {index}: {', '.join(updates)}"
 
     async def remove_plan_entry(self, agent_ctx: AgentContext, index: int) -> str:
@@ -268,6 +299,15 @@ class PlanProvider(ResourceProvider):
 
         if removed_entry is None:
             return f"Error: Could not remove entry at index {index}"
+
+        # User feedback
+        remaining = len(tracker.entries)
+        title = f"Removed entry {index} [{removed_entry.priority}]"
+        details = f"**Removed**: {removed_entry.content}\n\nRemaining entries: {remaining}"
+        await agent_ctx.events.tool_call_progress(
+            title=title,
+            items=[TextContentItem(text=details)],
+        )
 
         if tracker.entries:
             return f"Removed entry {index}: {removed_entry.content!r}, remaining entries reindexed"
