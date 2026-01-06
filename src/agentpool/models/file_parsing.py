@@ -41,7 +41,6 @@ PERMISSION_MODE_MAP: dict[str, Literal["always", "never", "per_tool"]] = {
 
 # Fields that pass through directly to NativeAgentConfig
 PASSTHROUGH_FIELDS = {
-    "inherits",
     "toolsets",
     "session",
     "output_type",

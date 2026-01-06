@@ -68,16 +68,6 @@ avatar: https://example.com/avatar.png
 Extended agent prompt.
 """
 
-AGENT_WITH_INHERIT_MODEL = """\
----
-description: Agent that inherits model
-model: openai:gpt-4o-mini
-inherits: parent_agent
----
-
-This agent inherits from parent_agent.
-"""
-
 AGENT_WITH_UNKNOWN_PERMISSION = """\
 ---
 description: Agent with unknown permission mode
@@ -178,18 +168,6 @@ def test_parse_agent_with_agentpool_extensions():
         assert get_model_identifier(config.model) == CLAUDE_MODEL_ALIASES["opus"]
         assert config.retries == 3
         assert config.avatar == "https://example.com/avatar.png"
-
-
-def test_parse_agent_inherit_model():
-    """Test that agent can use inherits field."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-        f.write(AGENT_WITH_INHERIT_MODEL)
-        f.flush()
-
-        config = parse_agent_file(f.name)
-
-        assert config.model.identifier == "openai:gpt-4o-mini"
-        assert config.inherits == "parent_agent"
 
 
 def test_parse_agent_unknown_permission_mode(caplog):

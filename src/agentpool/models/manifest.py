@@ -535,52 +535,6 @@ class AgentsManifest(Schema):
         self.agents[actual_name] = config
         return actual_name
 
-    @model_validator(mode="before")
-    @classmethod
-    def resolve_inheritance(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Resolve agent inheritance chains."""
-        nodes = data.get("agents", {})
-        resolved: dict[str, dict[str, Any]] = {}
-        seen: set[str] = set()
-
-        def resolve_node(name: str) -> dict[str, Any] | Any:
-            if name in resolved:
-                return resolved[name]
-
-            node = nodes[name]
-            # Skip model instances - they're already validated
-            if not isinstance(node, dict):
-                return node
-
-            if name in seen:
-                msg = f"Circular inheritance detected: {name}"
-                raise ValueError(msg)
-
-            seen.add(name)
-            config = node.copy()
-            inherit = config.get("inherits")
-            if inherit:
-                if inherit not in nodes:
-                    msg = f"Parent agent {inherit} not found"
-                    raise ValueError(msg)
-
-                parent = resolve_node(inherit)  # Get resolved parent config
-                if isinstance(parent, dict):
-                    merged = parent.copy()
-                    merged.update(config)
-                    config = merged
-
-            seen.remove(name)
-            resolved[name] = config
-            return config
-
-        for name in nodes:
-            resolved[name] = resolve_node(name)
-
-        # Update nodes with resolved configs
-        data["agents"] = resolved
-        return data
-
     @cached_property
     def _loaded_file_agents(self) -> dict[str, NativeAgentConfig]:
         """Load and cache file-based agent configurations.

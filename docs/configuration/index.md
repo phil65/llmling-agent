@@ -103,7 +103,7 @@ The manifest supports YAML inheritance using the `INHERIT` key at the top level,
     INHERIT: base-config.yml
     agents:
       my_agent:
-        inherits: base_agent
+        model: openai:gpt-5
         description: "Specialized agent"
     ```
 

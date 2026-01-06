@@ -43,7 +43,7 @@ agents:
       - type: "resource_access"
   
   specialized_agent:
-    inherits: "base_agent"
+    model: "openai:gpt-4o"
     description: "Specialized version"
     system_prompt: "You are a specialized agent..."
 ```
@@ -81,7 +81,6 @@ agents:
 | [`mcp_servers`](../mcp.md) | List of MCP server configurations |
 | [`input_provider`](agent.md#input-provider) | Provider for human-input-handling |
 | [`event_handlers`](observability.md#event-handlers) | Event handlers for processing agent stream events |
-| [`inherits`](inheritance.md) | Name of agent config to inherit from |
 | [`model`](model.md) | The model to use for this agent |
 | [`toolsets`](../toolsets/index.md) | Toolset configurations for extensible tool collections |
 | [`session`](session.md) | Session configuration for conversation recovery |

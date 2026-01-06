@@ -49,4 +49,10 @@ agents:
       2. Report the EXACT download results from the agents including speeds and sizes
 
   file_getter_2:
-    inherits: file_getter_1
+    type: native
+    display_name: "File Downloader 2"
+    description: "Downloads files from URLs"
+    model: openai:gpt-5-nano
+    system_prompt: "You have ONE job: use the download_file tool to download files."
+    toolsets:
+      - type: file_access
