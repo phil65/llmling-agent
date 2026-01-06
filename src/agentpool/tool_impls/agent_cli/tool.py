@@ -6,13 +6,12 @@ from dataclasses import dataclass
 from io import StringIO
 from typing import TYPE_CHECKING
 
+from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.tools.base import Tool
 
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
-
-    from agentpool.agents.context import AgentContext
 
 
 class _StringOutputWriter:
