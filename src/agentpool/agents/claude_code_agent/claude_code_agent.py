@@ -8,6 +8,39 @@ The ClaudeCodeAgent acts as a client to the Claude Code CLI, enabling:
 - Tool permission handling via callbacks
 - Integration with agentpool's event system
 
+Tool Call Event Flow
+--------------------
+The SDK streams events in a specific order. Understanding this is critical for
+avoiding race conditions with permission dialogs:
+
+1. **content_block_start** (StreamEvent)
+   - Contains tool_use_id, tool name
+   - We emit ToolCallStartEvent here (early, with empty args)
+   - ACP converter sends `tool_call` notification to client
+
+2. **content_block_delta** (StreamEvent, multiple)
+   - Contains input_json_delta with partial JSON args
+   - We emit PartDeltaEvent(ToolCallPartDelta) for streaming
+   - ACP converter accumulates args, doesn't send notifications
+
+3. **AssistantMessage** with ToolUseBlock
+   - Contains complete tool call info (id, name, full args)
+   - We do NOT emit events here (would race with permission)
+   - Just track file modifications silently
+
+4. **content_block_stop**, **message_delta**, **message_stop** (StreamEvent)
+   - Signal completion of the message
+
+5. **can_use_tool callback** (~100ms after message_stop)
+   - SDK calls our permission callback
+   - We send permission request to ACP client
+   - Client shows permission dialog to user
+   - IMPORTANT: No notifications should be sent while dialog is open!
+
+6. **Tool execution or denial**
+   - If allowed: tool runs, emits ToolCallCompleteEvent
+   - If denied: SDK receives denial, continues with next turn
+
 Example:
     ```python
     async with ClaudeCodeAgent(
@@ -908,27 +941,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         file_tracker.process_event(tool_start_event)
                                         await handler(None, tool_start_event)
                                         yield tool_start_event
-                                    else:
-                                        # Already emitted early - emit update with full args
-                                        from agentpool.agents.claude_code_agent.converters import (
-                                            derive_rich_tool_info,
-                                        )
-
-                                        rich_info = derive_rich_tool_info(name, input_data)
-                                        updated_event = ToolCallStartEvent(
-                                            tool_call_id=tc_id,
-                                            tool_name=display_name,
-                                            title=rich_info.title,
-                                            kind=rich_info.kind,
-                                            locations=rich_info.locations,
-                                            content=rich_info.content,
-                                            raw_input=input_data,
-                                        )
-                                        # Track file modifications using derived info
-                                        file_tracker.process_event(updated_event)
-                                        await handler(None, updated_event)
-                                        yield updated_event
-                                    # Clean up from accumulator
+                                    # Already emitted ToolCallStartEvent early via streaming.
+                                    # Dont emit a progress update here - it races with
+                                    # permission requests and causes Zed to cancel the dialog.
+                                    # Just track file modifications.
+                                    elif file_path := file_tracker.extractor(
+                                        display_name, input_data
+                                    ):
+                                        file_tracker.touched_files.add(file_path)
+                                    # Clean up from accumulator (always, both branches)
                                     tool_accumulator.complete(tc_id)
                                 case ToolResultBlock(tool_use_id=tc_id, content=content):
                                     # Tool result received - flush response parts and add request

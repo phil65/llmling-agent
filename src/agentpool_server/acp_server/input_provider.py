@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any
 import webbrowser
 
@@ -147,61 +146,55 @@ class ACPInputProvider(InputProvider):
                 tool_name=tool.name,
                 tool_call_id=actual_tool_call_id,
             )
-            # Ensure tool call is registered with client before requesting permission.
-            # The SDK's permission callback may run before our streaming events are processed,
-            # so we need to register the tool call with Zed first.
-            from acp.utils import generate_tool_title, infer_tool_kind
+            # Note: We no longer send tool_call_start/progress notifications here.
+            # The streaming loop (via ACPEventConverter) already sends ToolCallStart
+            # before the permission callback is invoked, so Zed already knows about
+            # the tool call. Sending duplicates was causing sync issues.
+
+            from acp.utils import generate_tool_title
 
             title = generate_tool_title(tool.name, args)
-            kind = infer_tool_kind(tool.name)
-            # Send tool call start notification
-            await self.session.notifications.tool_call_start(
-                tool_call_id=actual_tool_call_id,
-                title=title,
-                kind=kind,
-                raw_input=args,
-            )
-            # Set status to pending (awaiting permission)
-            await self.session.notifications.tool_call_progress(
-                tool_call_id=actual_tool_call_id,
-                status="pending",
-            )
-
-            # Small delay to ensure client processes the tool call notification
-            # before we send the permission request. Without this, the client may
-            # cancel the permission request for an "unknown" tool_call_id.
-            await asyncio.sleep(0.05)
-
             response = await self.session.requests.request_permission(
                 tool_call_id=actual_tool_call_id,
-                title=f"Execute tool {tool.name!r} with args: {args_str}",
+                title=title,
                 options=DEFAULT_PERMISSION_OPTIONS,
             )
-            logger.debug(
+            logger.info(
                 "Permission response received",
                 tool_name=tool.name,
                 outcome=response.outcome,
+                outcome_type=type(response.outcome).__name__,
             )
             # Map ACP permission response to our confirmation result
             if isinstance(response.outcome, AllowedOutcome):
+                logger.info(
+                    "AllowedOutcome detected",
+                    option_id=response.outcome.option_id,
+                    tool_name=tool.name,
+                )
                 return self._handle_permission_response(response.outcome.option_id, tool.name)
             if response.outcome.outcome == "cancelled":
                 logger.debug("Permission cancelled", tool_name=tool.name)
                 return "skip"
-            # Handle other outcomes
+            # Handle other unexpected outcomes
             logger.warning("Unexpected permission outcome", outcome=response.outcome.outcome)
+            return "skip"  # Default to skip for unknown outcomes
 
         except Exception:
             logger.exception("Failed to get tool confirmation")
             # Default to abort on error to be safe
-            return "abort_run"
-        else:
             return "abort_run"
 
     def _handle_permission_response(self, option_id: str, tool_name: str) -> ConfirmationResult:
         """Handle permission response and update tool approval state."""
         # Normalize to hyphen format for matching
         normalized = option_id.replace("_", "-")
+        logger.info(
+            "Handling permission response",
+            option_id=option_id,
+            normalized=normalized,
+            tool_name=tool_name,
+        )
         match normalized:
             case "allow-once":
                 return "allow"
