@@ -42,6 +42,7 @@ from agentpool_server.acp_server.session import ACPSession
 
 if TYPE_CHECKING:
     from acp.schema import SessionNotification
+    from agentpool_config.tools import BaseToolConfig
     from agentpool_config.toolsets import ToolsetConfig
 
 
@@ -111,7 +112,8 @@ class ToolCallTestHarness:
         self,
         tool_name: str,
         tool_args: dict[str, Any],
-        toolsets: list[ToolsetConfig],
+        toolsets: list[ToolsetConfig] | None = None,
+        tools: list[BaseToolConfig] | None = None,
         prompt: str = "Execute the tool",
     ) -> list[dict[str, Any]]:
         """Execute a tool and return the captured tool call messages.
@@ -120,6 +122,7 @@ class ToolCallTestHarness:
             tool_name: Name of the tool to call
             tool_args: Arguments to pass to the tool
             toolsets: List of toolset configs that provide the tool
+            tools: List of standalone tool configs
             prompt: Text prompt to send (content doesn't matter, model is configured)
 
         Returns:
@@ -131,7 +134,8 @@ class ToolCallTestHarness:
         agent_config = NativeAgentConfig(
             name="harness_test_agent",
             model=model_config,
-            toolsets=toolsets,
+            toolsets=toolsets or [],
+            tools=tools or [],
         )
         manifest = AgentsManifest(agents={"harness_test_agent": agent_config})
         # Create pool and session
