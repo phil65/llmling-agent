@@ -270,16 +270,17 @@ async def test_list_processes(
 
 
 async def test_execute_command(
-    execution_tools: ProcessManagementTools,
+    mock_env: MockExecutionEnvironment,
     agent_ctx: AgentContext,
     test_agent: Agent[None],
 ):
     """Test executing a command directly."""
-    tools = await execution_tools.get_tools()
-    cmd_tool = next(tool for tool in tools if tool.name == "bash")
+    from agentpool.tool_impls.bash import create_bash_tool
 
-    result = await cmd_tool.execute(
-        agent_ctx=agent_ctx,
+    bash_tool = create_bash_tool(env=mock_env)
+
+    result = await bash_tool.execute(
+        ctx=agent_ctx,
         command="echo hello world",
     )
 
