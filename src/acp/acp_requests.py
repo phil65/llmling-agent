@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
@@ -251,6 +251,7 @@ class ACPRequests:
         tool_call_id: str,
         *,
         title: str | None = None,
+        raw_input: Any | None = None,
         options: list[PermissionOption] | None = None,
     ) -> RequestPermissionResponse:
         """Request permission from user before executing a tool call.
@@ -258,6 +259,7 @@ class ACPRequests:
         Args:
             tool_call_id: Unique identifier for the tool call
             title: Human-readable description of the operation
+            raw_input: The raw input parameters for the tool call
             options: Available permission options (defaults to allow/reject once)
 
         Returns:
@@ -277,7 +279,7 @@ class ACPRequests:
                 ),
             ]
 
-        tool_call = ToolCall(tool_call_id=tool_call_id, title=title)
+        tool_call = ToolCall(tool_call_id=tool_call_id, title=title, raw_input=raw_input)
         request = RequestPermissionRequest(
             session_id=self.id,
             tool_call=tool_call,
