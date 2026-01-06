@@ -47,6 +47,7 @@ responses:
 
 agents:
   url_opener:
+    type: native
     tools:
       - type: import
         import_path: "webbrowser.open"
@@ -63,6 +64,7 @@ agents:
         Always confirm what you're about to open.
 
   system_inspector:
+    type: native
     tools:
       - type: import
         import_path: "platform.platform"
@@ -84,6 +86,7 @@ agents:
         Format it using the template from the system_template resource.
 
   file_explorer:
+    type: native
     tools:
       - type: import
         import_path: "os.listdir"

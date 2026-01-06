@@ -17,5 +17,6 @@ agents:
       - type: file_access
 
   file_getter_2:
+    type: native
     display_name: "File Downloader Worker 2"
     inherits: file_getter_1
