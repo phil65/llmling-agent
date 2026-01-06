@@ -7,7 +7,6 @@ between agents and ACP clients through the JSON-RPC protocol.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 import re
 from typing import TYPE_CHECKING, Any, Literal
@@ -16,20 +15,6 @@ import anyio
 from exxec.acp_provider import ACPExecutionEnvironment
 import logfire
 from pydantic_ai import (
-    BuiltinToolCallPart,
-    BuiltinToolReturnPart,
-    FinalResultEvent,
-    FunctionToolCallEvent,
-    FunctionToolResultEvent,
-    PartDeltaEvent,
-    PartStartEvent,
-    RetryPromptPart,
-    TextPart,
-    TextPartDelta,
-    ThinkingPart,
-    ThinkingPartDelta,
-    ToolCallPartDelta,
-    ToolReturnPart,
     UsageLimitExceeded,
     UserPromptPart,
 )
@@ -43,33 +28,20 @@ from acp.notifications import ACPNotifications
 from acp.schema import (
     AvailableCommand,
     ClientCapabilities,
-    ContentToolCallContent,
-    PlanEntry,
-    TerminalToolCallContent,
-    ToolCallLocation,
+    SessionNotification,
 )
-from acp.tool_call_state import ToolCallState
-from acp.utils import generate_tool_title, infer_tool_kind, to_acp_content_blocks
 from agentpool import Agent, AgentContext  # noqa: TC001
 from agentpool.agents import SlashedAgent
 from agentpool.agents.acp_agent import ACPAgent
-from agentpool.agents.events import (
-    CompactionEvent,
-    PlanUpdateEvent,
-    StreamCompleteEvent,
-    SubAgentEvent,
-    ToolCallProgressEvent,
-    ToolCallStartEvent,
-)
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
-from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool_commands import get_commands
 from agentpool_commands.base import NodeCommand
 from agentpool_server.acp_server.converters import (
     convert_acp_mcp_server_to_config,
     from_acp_content,
 )
+from agentpool_server.acp_server.event_converter import ACPEventConverter
 from agentpool_server.acp_server.input_provider import ACPInputProvider
 
 
@@ -94,7 +66,6 @@ if TYPE_CHECKING:
     from agentpool import AgentPool
     from agentpool.agents import AGUIAgent
     from agentpool.agents.claude_code_agent import ClaudeCodeAgent
-    from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.prompts.manager import PromptManager
     from agentpool.prompts.prompts import MCPClientPrompt
     from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
@@ -262,10 +233,6 @@ class ACPSession:
         self._task_lock = asyncio.Lock()
         self._cancelled = False
         self._title_generation_triggered = False
-        self._current_tool_inputs: dict[str, dict[str, Any]] = {}
-        self._tool_call_states: dict[str, ToolCallState] = {}
-        self._subagent_headers: set[str] = set()  # Track which subagent headers have been sent
-        self._subagent_content: dict[str, list[str]] = {}  # Accumulated content per subagent
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         cmds = [
             *get_commands(
@@ -370,39 +337,6 @@ class ACPSession:
         """Initialize async resources. Must be called after construction."""
         await self.acp_env.__aenter__()
 
-    def _get_or_create_tool_state(
-        self,
-        tool_call_id: str,
-        tool_name: str,
-        tool_input: dict[str, Any],
-    ) -> ToolCallState:
-        """Get existing tool call state or create a new one.
-
-        Args:
-            tool_call_id: Unique identifier for the tool call
-            tool_name: Name of the tool being called
-            tool_input: Input parameters for the tool
-
-        Returns:
-            ToolCallState instance (existing or newly created)
-        """
-        if tool_call_id not in self._tool_call_states:
-            state = ToolCallState(
-                notifications=self.notifications,
-                tool_call_id=tool_call_id,
-                tool_name=tool_name,
-                title=generate_tool_title(tool_name, tool_input),
-                kind=infer_tool_kind(tool_name),
-                raw_input=tool_input,
-            )
-            self._tool_call_states[tool_call_id] = state
-        return self._tool_call_states[tool_call_id]
-
-    def _cleanup_tool_state(self, tool_call_id: str) -> None:
-        """Remove tool call state after completion."""
-        self._tool_call_states.pop(tool_call_id, None)
-        self._current_tool_inputs.pop(tool_call_id, None)
-
     async def initialize_mcp_servers(self) -> None:
         """Initialize MCP servers if any are configured."""
         if not self.mcp_servers:
@@ -502,10 +436,6 @@ class ACPSession:
         self._cancelled = True
         self.log.info("Session cancelled, interrupting agent")
 
-        # Clear pending tool call states to avoid stale data on next prompt
-        self._tool_call_states.clear()
-        self._current_tool_inputs.clear()
-
         # Actively interrupt the agent's stream
         try:
             await self.agent.interrupt()
@@ -551,7 +481,8 @@ class ACPSession:
                 has_staged=staged is not None,
             )
             event_count = 0
-            self._current_tool_inputs.clear()  # Reset tool inputs for new stream
+            # Create a new event converter for this prompt
+            converter = ACPEventConverter(subagent_display_mode=self.subagent_display_mode)
 
             try:  # Use the session's persistent input provider
                 async for event in self.agent.run_stream(
@@ -562,7 +493,11 @@ class ACPSession:
                         return "cancelled"
 
                     event_count += 1
-                    await self.handle_event(event)
+                    async for update in converter.convert(event):
+                        notification = SessionNotification(
+                            session_id=self.session_id, update=update
+                        )
+                        await self.client.session_update(notification)
                     # Yield control to allow notifications to be sent immediately
                     await anyio.sleep(0.01)
                 self.log.info("Streaming finished", events_processed=event_count)
@@ -633,443 +568,8 @@ class ACPSession:
         except Exception:
             self.log.exception("Failed to send error notification")
 
-    async def handle_event(self, event: RichAgentStreamEvent[Any]) -> None:  # noqa: PLR0915
-        # Don't send notifications after cancellation to avoid stale updates
-        if self._cancelled:
-            return
-
-        match event:
-            case (
-                PartStartEvent(part=TextPart(content=delta))
-                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
-            ):
-                await self.notifications.send_agent_text(delta)
-
-            case (
-                PartStartEvent(part=ThinkingPart(content=delta))
-                | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
-            ):
-                await self.notifications.send_agent_thought(delta or "\n")
-
-            # Builtin tool call started (e.g., WebSearchTool, CodeExecutionTool)
-            case PartStartEvent(part=BuiltinToolCallPart() as part):
-                tool_call_id = part.tool_call_id
-                tool_input = safe_args_as_dict(part, default={})
-                self._current_tool_inputs[tool_call_id] = tool_input
-                state = self._get_or_create_tool_state(
-                    tool_call_id=tool_call_id,
-                    tool_name=part.tool_name,
-                    tool_input=tool_input,
-                )
-                await state.start()
-
-            # Builtin tool completed
-            case PartStartEvent(part=BuiltinToolReturnPart() as part):
-                tool_call_id = part.tool_call_id
-                if complete_state := self._tool_call_states.get(tool_call_id):
-                    final_output = part.content
-                    if complete_state.has_content:
-                        await complete_state.complete(raw_output=final_output)
-                    else:
-                        converted_blocks = to_acp_content_blocks(final_output)
-                        content_items = [
-                            ContentToolCallContent(content=block) for block in converted_blocks
-                        ]
-                        await complete_state.complete(
-                            raw_output=final_output,
-                            content=content_items,
-                        )
-                self._cleanup_tool_state(tool_call_id)
-
-            case PartStartEvent(part=part):
-                self.log.debug("Received unhandled PartStartEvent", part=part)
-
-            # Tool call streaming delta - create/update state and start notification
-            case PartDeltaEvent(delta=ToolCallPartDelta() as delta):
-                if delta_part := delta.as_part():
-                    tool_call_id = delta_part.tool_call_id
-                    try:
-                        tool_input = delta_part.args_as_dict()
-                    except ValueError:
-                        # Args still streaming, not valid JSON yet - skip this delta
-                        pass
-                    else:
-                        self._current_tool_inputs[tool_call_id] = tool_input
-                        # Create state and send initial notification
-                        state = self._get_or_create_tool_state(
-                            tool_call_id=tool_call_id,
-                            tool_name=delta_part.tool_name,
-                            tool_input=tool_input,
-                        )
-                        await state.start()
-
-            # Tool call started - create/update state and start notification
-            case FunctionToolCallEvent(part=part):
-                tool_call_id = part.tool_call_id
-                tool_input = safe_args_as_dict(part, default={})
-                self._current_tool_inputs[tool_call_id] = tool_input
-                # Create state and send initial notification
-                state = self._get_or_create_tool_state(
-                    tool_call_id=tool_call_id,
-                    tool_name=part.tool_name,
-                    tool_input=tool_input,
-                )
-                await state.start()
-
-            # Tool completed successfully - update state and finalize
-            case FunctionToolResultEvent(
-                result=ToolReturnPart(content=content, tool_name=tool_name) as result,
-                tool_call_id=tool_call_id,
-            ):
-                if isinstance(content, AsyncGenerator):
-                    full_content = ""
-                    async for chunk in content:
-                        full_content += str(chunk)
-                        # Stream progress through state
-                        if tool_state := self._tool_call_states.get(tool_call_id):
-                            await tool_state.update(status="in_progress", raw_output=chunk)
-
-                    # Replace the AsyncGenerator with the full content to prevent errors
-                    result.content = full_content
-                    final_output = full_content
-                else:
-                    final_output = result.content
-
-                # Complete tool call through state (preserves accumulated content/locations)
-                if complete_state := self._tool_call_states.get(tool_call_id):
-                    # Only add return value as content if no content was emitted during execution
-                    if complete_state.has_content:
-                        # Content already provided via progress events - just set raw_output
-                        await complete_state.complete(raw_output=final_output)
-                    else:
-                        # No content yet - convert return value for display
-                        converted_blocks = to_acp_content_blocks(final_output)
-                        content_items = [
-                            ContentToolCallContent(content=block) for block in converted_blocks
-                        ]
-                        await complete_state.complete(
-                            raw_output=final_output,
-                            content=content_items,
-                        )
-                self._cleanup_tool_state(tool_call_id)
-
-            # Tool failed with retry - update state with error
-            case FunctionToolResultEvent(
-                result=RetryPromptPart(tool_name=tool_name) as result,
-                tool_call_id=tool_call_id,
-            ):
-                error_message = result.model_response()
-                if fail_state := self._tool_call_states.get(tool_call_id):
-                    await fail_state.fail(error=error_message)
-                self._cleanup_tool_state(tool_call_id)
-
-            # Tool emits its own start event - update state with better title/content
-            case ToolCallStartEvent(
-                tool_call_id=tool_call_id,
-                tool_name=tool_name,
-                title=title,
-                kind=kind,
-                locations=loc_items,
-                raw_input=raw_input,
-            ):
-                self.log.debug(
-                    "Tool call start event", tool_name=tool_name, tool_call_id=tool_call_id
-                )
-                # Get or create state (may already exist from FunctionToolCallEvent)
-                state = self._get_or_create_tool_state(
-                    tool_call_id=tool_call_id,
-                    tool_name=tool_name,
-                    tool_input=raw_input or {},
-                )
-                # Convert LocationContentItem objects to ACP format
-                acp_locations = [
-                    ToolCallLocation(path=loc.path, line=loc.line) for loc in loc_items
-                ]
-                # Update state with tool-provided details (better title, content, locations)
-                await state.update(title=title, kind=kind, locations=acp_locations or None)
-
-            # Tool progress event - update state with title and content
-            case ToolCallProgressEvent(
-                tool_call_id=tool_call_id,
-                title=title,
-                status=status,
-                items=items,
-            ) if tool_call_id and tool_call_id in self._tool_call_states:
-                progress_state = self._tool_call_states[tool_call_id]
-                self.log.debug("Progress event", tool_call_id=tool_call_id, title=title)
-
-                # Convert items to ACP content
-                from agentpool.agents.events import (
-                    DiffContentItem,
-                    FileContentItem,
-                    LocationContentItem,
-                    TerminalContentItem,
-                    TextContentItem,
-                )
-                from agentpool_server.acp_server.syntax_detection import (
-                    format_zed_code_block,
-                )
-
-                acp_content: list[Any] = []
-                location_paths: list[str] = []
-
-                for item in items:
-                    match item:
-                        case TerminalContentItem(terminal_id=tid):
-                            acp_content.append(TerminalToolCallContent(terminal_id=tid))
-                        case TextContentItem(text=text):
-                            acp_content.append(ContentToolCallContent.text(text=text))
-                        case FileContentItem(
-                            content=file_content,
-                            path=file_path,
-                            start_line=start_line,
-                            end_line=end_line,
-                        ):
-                            # Format as Zed-compatible code block with clickable path
-                            formatted = format_zed_code_block(
-                                file_content, file_path, start_line, end_line
-                            )
-                            acp_content.append(ContentToolCallContent.text(text=formatted))
-                            # Also add path to locations for "follow along" feature
-                            location_paths.append(file_path)
-                        case DiffContentItem(path=diff_path, old_text=old, new_text=new):
-                            # Send diff via direct notification
-                            await self.notifications.file_edit_progress(
-                                tool_call_id=tool_call_id,
-                                path=diff_path,
-                                old_text=old or "",
-                                new_text=new,
-                                status=status,
-                                changed_lines=[],
-                            )
-                            # Mark content as sent so completion doesn't override
-                            progress_state._has_content = True
-                        case LocationContentItem(path=loc_path):
-                            location_paths.append(loc_path)
-
-                await progress_state.update(
-                    title=title,
-                    status="in_progress",
-                    content=acp_content if acp_content else None,
-                    locations=location_paths if location_paths else None,
-                )
-
-            case FinalResultEvent():
-                self.log.debug("Final result received")
-
-            case StreamCompleteEvent():
-                pass
-
-            case PlanUpdateEvent(entries=entries, tool_call_id=tool_call_id):
-                acp_entries = [
-                    PlanEntry(content=e.content, priority=e.priority, status=e.status)
-                    for e in entries
-                ]
-                await self.notifications.update_plan(acp_entries)
-
-            case CompactionEvent(trigger=trigger, phase=phase):
-                # Convert semantic CompactionEvent to text for ACP display
-                if phase == "starting":
-                    if trigger == "auto":
-                        text = (
-                            "\n\n---\n\n"
-                            "📦 **Context compaction** triggered. "
-                            "Summarizing conversation..."
-                            "\n\n---\n\n"
-                        )
-                    else:
-                        text = (
-                            "\n\n---\n\n"
-                            "📦 **Manual compaction** requested. "
-                            "Summarizing conversation..."
-                            "\n\n---\n\n"
-                        )
-                    await self.notifications.send_agent_text(text)
-
-            case SubAgentEvent(
-                source_name=source_name,
-                source_type=source_type,
-                event=inner_event,
-                depth=depth,
-            ):
-                # Handle subagent events based on display mode
-                if self.subagent_display_mode == "tool_box":
-                    await self._handle_subagent_tool_box(
-                        source_name, source_type, inner_event, depth
-                    )
-                else:
-                    await self._handle_subagent_inline(source_name, source_type, inner_event, depth)
-
-            case _:
-                self.log.debug("Unhandled event", event_type=type(event).__name__)
-
-    async def _handle_subagent_inline(
-        self,
-        source_name: str,
-        source_type: Literal["agent", "team"],
-        inner_event: RichAgentStreamEvent[Any],
-        depth: int,
-    ) -> None:
-        """Handle subagent event by streaming into main message flow."""
-        indent = "  " * depth
-        icon = "🤖" if source_type == "agent" else "👥"
-
-        match inner_event:
-            case (
-                PartStartEvent(part=TextPart(content=delta))
-                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
-            ):
-                # For first text from this source, add header
-                header_key = f"{source_name}:{depth}"
-                if header_key not in self._subagent_headers:
-                    self._subagent_headers.add(header_key)
-                    await self.notifications.send_agent_text(
-                        f"\n{indent}{icon} **{source_name}**: "
-                    )
-                await self.notifications.send_agent_text(delta)
-
-            case (
-                PartStartEvent(part=ThinkingPart(content=delta))
-                | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
-            ):
-                await self.notifications.send_agent_thought(
-                    f"{indent}[{source_name}] {delta or ''}"
-                )
-
-            case FunctionToolCallEvent(part=part):
-                await self.notifications.send_agent_text(
-                    f"\n{indent}🔧 [{source_name}] Using tool: {part.tool_name}\n"
-                )
-
-            case FunctionToolResultEvent(
-                result=ToolReturnPart(content=content, tool_name=tool_name),
-            ):
-                result_str = str(content)
-                if len(result_str) > 200:  # noqa: PLR2004
-                    result_str = result_str[:200] + "..."
-                await self.notifications.send_agent_text(
-                    f"{indent}✅ [{source_name}] {tool_name}: {result_str}\n"
-                )
-
-            case FunctionToolResultEvent(
-                result=RetryPromptPart(tool_name=tool_name) as result,
-            ):
-                error_msg = result.model_response()
-                await self.notifications.send_agent_text(
-                    f"{indent}❌ [{source_name}] {tool_name}: {error_msg}\n"
-                )
-
-            case StreamCompleteEvent():
-                header_key = f"{source_name}:{depth}"
-                self._subagent_headers.discard(header_key)
-                await self.notifications.send_agent_text(f"\n{indent}---\n")
-
-            case _:
-                self.log.debug(
-                    "Subagent event (inline)",
-                    source=source_name,
-                    event_type=type(inner_event).__name__,
-                )
-
-    async def _handle_subagent_tool_box(
-        self,
-        source_name: str,
-        source_type: Literal["agent", "team"],
-        inner_event: RichAgentStreamEvent[Any],
-        depth: int,
-    ) -> None:
-        """Handle subagent event by accumulating in tool call progress box."""
-        # Use a unique key for this subagent's accumulated content
-        state_key = f"subagent:{source_name}:{depth}"
-        icon = "🤖" if source_type == "agent" else "👥"
-
-        # Get or initialize accumulated content for this subagent
-        if state_key not in self._subagent_content:
-            self._subagent_content[state_key] = []
-
-        accumulated = self._subagent_content[state_key]
-
-        match inner_event:
-            case (
-                PartStartEvent(part=TextPart(content=delta))
-                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
-            ):
-                accumulated.append(delta)
-                title = f"{icon} {source_name}"
-                await self._emit_subagent_progress(state_key, title, accumulated)
-
-            case (
-                PartStartEvent(part=ThinkingPart(content=delta))
-                | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
-            ):
-                if delta:
-                    accumulated.append(f"💭 {delta}")
-                    title = f"{icon} {source_name}"
-                    await self._emit_subagent_progress(state_key, title, accumulated)
-
-            case FunctionToolCallEvent(part=part):
-                accumulated.append(f"\n🔧 Using tool: {part.tool_name}\n")
-                title = f"{icon} {source_name}"
-                await self._emit_subagent_progress(state_key, title, accumulated)
-
-            case FunctionToolResultEvent(
-                result=ToolReturnPart(content=content, tool_name=tool_name),
-            ):
-                result_str = str(content)
-                if len(result_str) > 200:  # noqa: PLR2004
-                    result_str = result_str[:200] + "..."
-                accumulated.append(f"✅ {tool_name}: {result_str}\n")
-                title = f"{icon} {source_name}"
-                await self._emit_subagent_progress(state_key, title, accumulated)
-
-            case FunctionToolResultEvent(
-                result=RetryPromptPart(tool_name=tool_name) as result,
-            ):
-                error_msg = result.model_response()
-                accumulated.append(f"❌ {tool_name}: {error_msg}\n")
-                title = f"{icon} {source_name}"
-                await self._emit_subagent_progress(state_key, title, accumulated)
-
-            case StreamCompleteEvent():
-                # Clean up accumulated content
-                self._subagent_content.pop(state_key, None)
-
-            case _:
-                self.log.debug(
-                    "Subagent event (tool_box)",
-                    source=source_name,
-                    event_type=type(inner_event).__name__,
-                )
-
-    async def _emit_subagent_progress(
-        self,
-        state_key: str,
-        title: str,
-        accumulated: list[str],
-    ) -> None:
-        """Emit tool call progress for subagent content."""
-        # Get or create tool call state for this subagent
-        if state_key not in self._tool_call_states:
-            state = self._get_or_create_tool_state(
-                tool_call_id=state_key,
-                tool_name="delegate",
-                tool_input={},
-            )
-            await state.start()
-
-        if progress_state := self._tool_call_states.get(state_key):
-            content = "".join(accumulated)
-            await progress_state.update(
-                title=title,
-                status="in_progress",
-                content=[ContentToolCallContent.text(text=content)],
-            )
-
     async def close(self) -> None:
         """Close the session and cleanup resources."""
-        self._current_tool_inputs.clear()
-        self._tool_call_states.clear()
-
         try:
             await self.acp_env.__aexit__(None, None, None)
         except Exception:
