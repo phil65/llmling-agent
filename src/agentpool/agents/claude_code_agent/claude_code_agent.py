@@ -517,20 +517,36 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # For "default" mode and non-edit tools in "acceptEdits" mode:
         # Ask for confirmation via input provider
         if self._input_provider:
+            # Get tool_use_id from SDK context if available (requires SDK >= 0.1.19)
+            # TODO: Remove fallback once claude-agent-sdk with tool_use_id is released
+            if hasattr(context, "tool_use_id") and context.tool_use_id:
+                tool_call_id = context.tool_use_id
+            else:
+                # Fallback: look up from streaming events or generate our own
+                tool_call_id = self._pending_tool_call_ids.get(tool_name)
+                if not tool_call_id:
+                    import uuid
+
+                    tool_call_id = f"perm_{uuid.uuid4().hex[:12]}"
+                    self._pending_tool_call_ids[tool_name] = tool_call_id
+                    self.log.debug(
+                        "Generated fallback tool_call_id",
+                        tool_name=tool_name,
+                        tool_call_id=tool_call_id,
+                    )
+
+            display_name = _strip_mcp_prefix(tool_name)
+            self.log.debug(
+                "Permission request",
+                tool_name=display_name,
+                tool_call_id=tool_call_id,
+            )
+
             # Create a dummy Tool for the confirmation dialog
             desc = f"Claude Code tool: {tool_name}"
             from agentpool.tools import FunctionTool
 
-            tool = FunctionTool(callable=lambda: None, name=tool_name, description=desc)
-            # Get the tool call ID from our tracking dict (set from streaming events)
-            # The dict is keyed by raw tool name (with MCP prefix)
-            tool_call_id = self._pending_tool_call_ids.get(tool_name)
-            self.log.debug(
-                "Permission lookup",
-                tool_name=tool_name,
-                tool_call_id=tool_call_id,
-                pending_keys=list(self._pending_tool_call_ids.keys()),
-            )
+            tool = FunctionTool(callable=lambda: None, name=display_name, description=desc)
             ctx = self.get_context()
             # Attach tool_call_id to context for permission event
             ctx.tool_call_id = tool_call_id
