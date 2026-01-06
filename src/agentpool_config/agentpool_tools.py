@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
-from exxec_config import ExecutionEnvironmentConfig
+from exxec_config import ExecutionEnvironmentConfig  # noqa: TC002
 from pydantic import ConfigDict, Field
 
 from agentpool_config.tools import BaseToolConfig

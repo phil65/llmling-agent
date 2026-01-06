@@ -353,7 +353,7 @@ class ACPEventConverter:
             case ToolCallProgressEvent(
                 tool_call_id=tool_call_id,
                 title=title,
-                status=status,
+                # status=status,
                 items=items,
                 progress=progress,
                 total=total,

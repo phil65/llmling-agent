@@ -24,11 +24,12 @@ import yaml
 
 from agentpool.agents.acp_agent import ACPAgent
 from agentpool_config.agentpool_tools import BashToolConfig, ExecuteCodeToolConfig
-from agentpool_config.tools import BaseToolConfig
 
 
 if TYPE_CHECKING:
     from syrupy.assertion import SnapshotAssertion
+
+    from agentpool_config.tools import BaseToolConfig
 
 # Skip on Windows due to temp file locking issues with subprocesses
 pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="Windows temp file locking")
