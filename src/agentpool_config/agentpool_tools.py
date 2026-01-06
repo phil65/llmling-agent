@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
+from exxec_config import ExecutionEnvironmentConfig
 from pydantic import ConfigDict, Field
 
 from agentpool_config.tools import BaseToolConfig
@@ -23,6 +24,9 @@ class BashToolConfig(BaseToolConfig):
             timeout: 30.0
             output_limit: 10000
             requires_confirmation: true
+            environment:
+              type: mock
+              deterministic_ids: true
         ```
     """
 
@@ -45,11 +49,19 @@ class BashToolConfig(BaseToolConfig):
     )
     """Maximum bytes of output to return."""
 
+    environment: ExecutionEnvironmentConfig | None = Field(
+        default=None,
+        title="Execution environment",
+    )
+    """Execution environment for command execution. Falls back to agent's env if not set."""
+
     def get_tool(self) -> Tool:
         """Convert config to BashTool instance."""
         from agentpool.tool_impls.bash import create_bash_tool
 
+        env = self.environment.get_provider() if self.environment else None
         return create_bash_tool(
+            env=env,
             timeout=self.timeout,
             output_limit=self.output_limit,
             name=self.name or "bash",
@@ -118,6 +130,9 @@ class ExecuteCodeToolConfig(BaseToolConfig):
         tools:
           - type: execute_code
             requires_confirmation: true
+            environment:
+              type: mock
+              deterministic_ids: true
         ```
     """
 
@@ -126,11 +141,19 @@ class ExecuteCodeToolConfig(BaseToolConfig):
     type: Literal["execute_code"] = Field("execute_code", init=False)
     """Python code execution tool."""
 
+    environment: ExecutionEnvironmentConfig | None = Field(
+        default=None,
+        title="Execution environment",
+    )
+    """Execution environment for code execution. Falls back to agent's env if not set."""
+
     def get_tool(self) -> Tool:
         """Convert config to ExecuteCodeTool instance."""
         from agentpool.tool_impls.execute_code import create_execute_code_tool
 
+        env = self.environment.get_provider() if self.environment else None
         return create_execute_code_tool(
+            env=env,
             name=self.name or "execute_code",
             description=self.description or "Execute Python code and return the result.",
             requires_confirmation=self.requires_confirmation,
