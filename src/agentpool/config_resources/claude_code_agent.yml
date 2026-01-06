@@ -10,6 +10,8 @@ agents:
     env:
       ANTHROPIC_API_KEY: ""
     description: "Claude code agent with enhanced tools"
+    tools:
+      - type: bash
     toolsets:
       - type: process_management
       - type: file_access
