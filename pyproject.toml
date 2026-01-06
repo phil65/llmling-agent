@@ -137,7 +137,6 @@ oauth = [
   "keyring>=25.6.0"
 ]  # OAuth functionality (will be fixed dep for FastMCP >2.13)
 promptlayer = ["promptlayer"]  # PromptLayer Prompt Hub
-zed = ["zstandard>=0.23.0"]  # Zed IDE storage provider
 server = [
   "logfire[fastapi]",
   "fastapi",
@@ -146,6 +145,7 @@ server = [
 textual = ["textual>=1.0.0"]  # Textual CLI app to create configs
 tiktoken = ["tiktoken"]  # Exact token counting
 tts = ["anyvoice[tts-edge,openai]>=0.0.2"]  # Text-to-Speech using AnyVoice
+zed = ["zstandard>=0.23.0"]  # Zed IDE storage provider
 
 [dependency-groups]
 dev = [
