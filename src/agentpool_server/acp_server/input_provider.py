@@ -157,6 +157,7 @@ class ACPInputProvider(InputProvider):
             response = await self.session.requests.request_permission(
                 tool_call_id=actual_tool_call_id,
                 title=title,
+                raw_input=args,
                 options=DEFAULT_PERMISSION_OPTIONS,
             )
             logger.info(
