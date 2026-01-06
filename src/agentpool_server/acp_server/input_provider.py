@@ -131,7 +131,7 @@ class ACPInputProvider(InputProvider):
                     return "skip"
 
             # Create a descriptive title for the permission request
-            args_str = ", ".join(f"{k}={v}" for k, v in args.items())
+            # args_str = ", ".join(f"{k}={v}" for k, v in args.items())
             # Use the tool_call_id from context - this must match the UI tool call
             actual_tool_call_id = getattr(context, "tool_call_id", None)
             if not actual_tool_call_id:
@@ -179,12 +179,13 @@ class ACPInputProvider(InputProvider):
                 return "skip"
             # Handle other unexpected outcomes
             logger.warning("Unexpected permission outcome", outcome=response.outcome.outcome)
-            return "skip"  # Default to skip for unknown outcomes
 
         except Exception:
             logger.exception("Failed to get tool confirmation")
             # Default to abort on error to be safe
             return "abort_run"
+        else:
+            return "skip"  # Default to skip for unknown outcomes
 
     def _handle_permission_response(self, option_id: str, tool_name: str) -> ConfirmationResult:
         """Handle permission response and update tool approval state."""

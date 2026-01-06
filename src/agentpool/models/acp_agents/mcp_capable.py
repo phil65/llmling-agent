@@ -23,6 +23,7 @@ ClaudeCodeToolName = Literal[
     "Bash",
     "BashOutput",
     "Edit",
+    "EnterPlanMode",
     "ExitPlanMode",
     "Glob",
     "Grep",

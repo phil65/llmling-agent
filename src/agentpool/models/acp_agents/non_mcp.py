@@ -13,29 +13,6 @@ if TYPE_CHECKING:
     from agentpool.prompts.manager import PromptManager
 
 
-ClaudeCodeModelName = Literal["default", "sonnet", "opus", "haiku", "sonnet[1m]", "opusplan"]
-ClaudeCodeToolName = Literal[
-    "AskUserQuestion",
-    "Bash",
-    "BashOutput",
-    "Edit",
-    "ExitPlanMode",
-    "Glob",
-    "Grep",
-    "KillShell",
-    "NotebookEdit",
-    "Read",
-    "Skill",
-    "SlashCommand",
-    "Task",
-    "TodoWrite",
-    "WebFetch",
-    "WebSearch",
-    "Write",
-]
-ClaudeCodePermissionmode = Literal["default", "acceptEdits", "bypassPermissions", "dontAsk", "plan"]
-
-
 class CodexACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Zed Codex via ACP.
 
