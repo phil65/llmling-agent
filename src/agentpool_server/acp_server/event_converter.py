@@ -355,6 +355,9 @@ class ACPEventConverter:
                 title=title,
                 status=status,
                 items=items,
+                progress=progress,
+                total=total,
+                message=message,
             ) if tool_call_id:
                 # Get or create state - handles race where tool emits before SDK event
                 state = self._get_or_create_tool_state(tool_call_id, "unknown", {})
@@ -402,6 +405,7 @@ class ACPEventConverter:
                                     new_text=new,
                                 )
                             )
+                            location_paths.append(diff_path)
                             state.has_content = True
                         case LocationContentItem(path=loc_path):
                             location_paths.append(loc_path)
@@ -409,10 +413,25 @@ class ACPEventConverter:
                 locations = (
                     [ToolCallLocation(path=p) for p in location_paths] if location_paths else None
                 )
+
+                # Build title: use provided title, or format MCP numeric progress
+                effective_title = title
+                if not effective_title and (progress is not None or message):
+                    # MCP-style numeric progress - format into title
+                    if progress is not None and total:
+                        pct = int(progress / total * 100)
+                        effective_title = f"{message} ({pct}%)" if message else f"Progress: {pct}%"
+                    elif message:
+                        effective_title = message
+
+                # TODO: Progress events shouldn't control completion status.
+                # The file_operation helper sets status="completed" on success, but that's
+                # emitted mid-operation (before content display). Only FunctionToolResultEvent
+                # should mark a tool as completed. For now, hardcode in_progress.
                 yield ToolCallProgress(
                     tool_call_id=tool_call_id,
-                    title=title,
-                    status=status,
+                    title=effective_title,
+                    status="in_progress",
                     content=acp_content or None,
                     locations=locations,
                 )
