@@ -244,7 +244,7 @@ class ProcessManagementToolsetConfig(BaseToolsetConfig):
         }
     )
 
-    type: Literal["execution"] = Field("execution", init=False)
+    type: Literal["process_management"] = Field("process_management", init=False)
     """Process management toolset."""
 
     environment: ExecutionEnvironmentConfig | None = Field(
