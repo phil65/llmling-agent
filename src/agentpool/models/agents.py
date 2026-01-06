@@ -20,6 +20,7 @@ from agentpool import log
 from agentpool.common_types import EndStrategy  # noqa: TC001
 from agentpool.prompts.prompts import PromptMessage, StaticPrompt
 from agentpool.resource_providers import StaticResourceProvider
+from agentpool_config import BaseToolConfig, NativeAgentToolConfig  # noqa: TC001
 from agentpool_config.builtin_tools import BaseBuiltinToolConfig
 from agentpool_config.hooks import HooksConfig  # noqa: TC001
 from agentpool_config.knowledge import Knowledge  # noqa: TC001
@@ -27,7 +28,6 @@ from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from agentpool_config.session import MemoryConfig, SessionQuery
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
-from agentpool_config.tools import BaseToolConfig, NativeAgentToolConfig  # noqa: TC001
 from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
 from agentpool_config.workers import WorkerConfig  # noqa: TC001
 

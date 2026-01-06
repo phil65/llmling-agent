@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+
+from typing import Annotated
+from pydantic import Field
+
+from agentpool_config.tools import ImportToolConfig, BaseToolConfig
+from agentpool_config.agentpool_tools import AgentpoolToolConfig
+from agentpool_config.builtin_tools import BuiltinToolConfig
+
 from agentpool_config.resources import ResourceInfo
 from agentpool_config.forward_targets import ForwardingTarget
 from agentpool_config.session import SessionQuery
@@ -29,10 +37,21 @@ from agentpool_config.hooks import (
     PromptHookConfig,
 )
 
+
+ToolConfig = Annotated[
+    ImportToolConfig | AgentpoolToolConfig,
+    Field(discriminator="type"),
+]
+
+NativeAgentToolConfig = Annotated[
+    ToolConfig | BuiltinToolConfig,
+    Field(discriminator="type"),
+]
 __all__ = [
     "BaseEventHandlerConfig",
     "BaseHookConfig",
     "BaseMCPServerConfig",
+    "BaseToolConfig",
     "CallableHookConfig",
     "CallbackEventHandlerConfig",
     "CommandHookConfig",
@@ -41,6 +60,7 @@ __all__ = [
     "HookConfig",
     "HooksConfig",
     "MCPServerConfig",
+    "NativeAgentToolConfig",
     "PromptHookConfig",
     "ResourceInfo",
     "SSEMCPServerConfig",
@@ -49,5 +69,6 @@ __all__ = [
     "StdoutEventHandlerConfig",
     "StreamableHTTPMCPServerConfig",
     "TeamConfig",
+    "ToolConfig",
     "resolve_handler_configs",
 ]

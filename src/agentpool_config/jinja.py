@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from schemez import Schema
 
-from agentpool_config.tools import ToolConfig
+from agentpool_config import ToolConfig
 
 
 if TYPE_CHECKING:

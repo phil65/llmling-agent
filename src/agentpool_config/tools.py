@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
-
-from agentpool_config.agentpool_tools import AgentpoolToolConfig
-from agentpool_config.builtin_tools import BuiltinToolConfig
 
 
 if TYPE_CHECKING:
@@ -102,14 +99,3 @@ class ImportToolConfig(BaseToolConfig):
             requires_confirmation=self.requires_confirmation,
             metadata=self.metadata,
         )
-
-
-ToolConfig = Annotated[
-    ImportToolConfig | AgentpoolToolConfig,
-    Field(discriminator="type"),
-]
-
-NativeAgentToolConfig = Annotated[
-    ToolConfig | BuiltinToolConfig,
-    Field(discriminator="type"),
-]

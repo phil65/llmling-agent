@@ -9,10 +9,10 @@ from pydantic import ConfigDict, Field
 
 from agentpool import log
 from agentpool.resource_providers import StaticResourceProvider
+from agentpool_config import BaseToolConfig, ToolConfig  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
-from agentpool_config.tools import BaseToolConfig, ToolConfig  # noqa: TC001
 from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
 
 

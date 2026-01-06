@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from io import StringIO
+from typing import TYPE_CHECKING
 
-from agentpool.agents.context import AgentContext
 from agentpool.tools.base import Tool
+
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from agentpool.agents.context import AgentContext
 
 
 class _StringOutputWriter:

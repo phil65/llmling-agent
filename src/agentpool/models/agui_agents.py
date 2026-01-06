@@ -6,8 +6,8 @@ from typing import Literal
 
 from pydantic import ConfigDict, Field
 
+from agentpool_config import ToolConfig  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
-from agentpool_config.tools import ToolConfig  # noqa: TC001
 
 
 class AGUIAgentConfig(BaseAgentConfig):
