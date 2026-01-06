@@ -23,7 +23,8 @@ from syrupy.extensions.json import JSONSnapshotExtension
 import yaml
 
 from agentpool.agents.acp_agent import ACPAgent
-from agentpool_config.toolsets import ProcessManagementToolsetConfig
+from agentpool_config.agentpool_tools import BashToolConfig, ExecuteCodeToolConfig
+from agentpool_config.tools import BaseToolConfig
 
 
 if TYPE_CHECKING:
@@ -50,7 +51,7 @@ def create_config_file(
     temp_dir: Path,
     tool_name: str,
     tool_args: dict[str, Any],
-    toolsets: list[ProcessManagementToolsetConfig],
+    tools: list[BaseToolConfig] | None = None,
 ) -> Path:
     """Create a YAML config file for the subprocess agent.
 
@@ -58,7 +59,7 @@ def create_config_file(
         temp_dir: Directory to write config file to
         tool_name: Name of the tool to call
         tool_args: Arguments for the tool
-        toolsets: List of toolset configs
+        tools: List of tool configs (tools should include their own environment if needed)
     """
     agent_config: dict[str, Any] = {
         "type": "native",
@@ -67,8 +68,10 @@ def create_config_file(
             "call_tools": [tool_name],
             "tool_args": {tool_name: tool_args},
         },
-        "toolsets": [t.model_dump(mode="json") for t in toolsets],
     }
+
+    if tools:
+        agent_config["tools"] = [t.model_dump(mode="json") for t in tools]
 
     config = {"agents": {"test_agent": agent_config}}
 
@@ -92,20 +95,20 @@ class ACPViaACPHarness:
         self,
         tool_name: str,
         tool_args: dict[str, Any],
-        toolsets: list[ProcessManagementToolsetConfig],
+        tools: list[BaseToolConfig] | None = None,
     ) -> list[dict[str, Any]]:
         """Execute a tool via ACP subprocess and capture full event details.
 
         Args:
             tool_name: Name of tool to execute
             tool_args: Arguments to pass to tool
-            toolsets: Toolset configurations
+            tools: Standalone tool configurations (tools should include their own environment)
         """
         config_path = create_config_file(
             self.temp_dir,
             tool_name,
             tool_args,
-            toolsets,
+            tools=tools,
         )
 
         self.recorded_events.clear()
@@ -162,12 +165,11 @@ class TestExecuteCommandViaACP:
                 )
             },
         )
-        toolset = ProcessManagementToolsetConfig(environment=mock_env)
 
         events = await harness.execute_tool(
             tool_name="bash",
             tool_args={"command": "echo hello"},
-            toolsets=[toolset],
+            tools=[BashToolConfig(environment=mock_env)],
         )
 
         # Filter to tool call messages for stable comparison
@@ -202,12 +204,11 @@ class TestExecuteCodeViaACP:
                 )
             },
         )
-        toolset = ProcessManagementToolsetConfig(environment=mock_env)
 
         events = await harness.execute_tool(
             tool_name="execute_code",
             tool_args={"code": "print('hello')"},
-            toolsets=[toolset],
+            tools=[ExecuteCodeToolConfig(environment=mock_env)],
         )
 
         # Filter to tool call messages for stable comparison

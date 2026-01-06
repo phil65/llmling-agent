@@ -1,7 +1,6 @@
 [
   {
     "payload": {
-      "content": [],
       "kind": "edit",
       "rawInput": {
         "content": "New content here",
@@ -45,14 +44,6 @@
           "path": "/test/new_file.txt"
         }
       ],
-      "sessionUpdate": "tool_call_update",
-      "status": "in_progress",
-      "toolCallId": "pyd_ai_tool_call_id__write"
-    },
-    "type": "tool_call_update"
-  },
-  {
-    "payload": {
       "sessionUpdate": "tool_call_update",
       "status": "in_progress",
       "title": "Wrote: /test/new_file.txt",

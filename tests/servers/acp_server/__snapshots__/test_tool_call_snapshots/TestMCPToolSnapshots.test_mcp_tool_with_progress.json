@@ -1,0 +1,60 @@
+[
+  {
+    "payload": {
+      "kind": "other",
+      "rawInput": {
+        "message": "hello"
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Calling test_progress",
+      "toolCallId": "pyd_ai_tool_call_id__test_progress"
+    },
+    "type": "tool_call"
+  },
+  {
+    "payload": {
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "first step (0%)",
+      "toolCallId": "pyd_ai_tool_call_id__test_progress"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "second step (50%)",
+      "toolCallId": "pyd_ai_tool_call_id__test_progress"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "third step (99%)",
+      "toolCallId": "pyd_ai_tool_call_id__test_progress"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "content": {
+            "text": "Progress test completed with message: hello",
+            "type": "text"
+          },
+          "type": "content"
+        }
+      ],
+      "rawOutput": "Progress test completed with message: hello",
+      "sessionUpdate": "tool_call_update",
+      "status": "completed",
+      "toolCallId": "pyd_ai_tool_call_id__test_progress"
+    },
+    "type": "tool_call_update"
+  }
+]

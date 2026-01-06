@@ -2,12 +2,7 @@
 
 from __future__ import annotations
 
-from agentpool_config.toolsets import (
-    CodeToolsetConfig,
-    SkillsToolsetConfig,
-    SubagentToolsetConfig,
-    UserInteractionToolsetConfig,
-)
+from agentpool_config.toolsets import CodeToolsetConfig, SkillsToolsetConfig, SubagentToolsetConfig
 
 
 async def test_subagent_tool_filtering():
@@ -20,17 +15,6 @@ async def test_subagent_tool_filtering():
     assert "delegate_to" in tool_names
     assert "list_available_nodes" in tool_names  # not in filter, defaults to True
     assert "ask_agent" not in tool_names
-
-
-async def test_user_interaction_tool_filtering():
-    """Test filtering tools in user interaction toolset."""
-    config = UserInteractionToolsetConfig(tools={"ask_user": False})
-    provider = config.get_provider()
-    tools = await provider.get_tools()
-    tool_names = {t.name for t in tools}
-
-    assert "ask_user" not in tool_names
-    assert len(tool_names) == 0
 
 
 async def test_skills_tool_filtering():

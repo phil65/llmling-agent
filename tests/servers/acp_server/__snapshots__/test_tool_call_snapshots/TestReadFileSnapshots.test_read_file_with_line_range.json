@@ -1,7 +1,6 @@
 [
   {
     "payload": {
-      "content": [],
       "kind": "read",
       "rawInput": {
         "limit": 2,

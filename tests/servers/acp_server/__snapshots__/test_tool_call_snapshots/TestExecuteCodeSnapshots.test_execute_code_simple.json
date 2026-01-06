@@ -1,7 +1,6 @@
 [
   {
     "payload": {
-      "content": [],
       "kind": "execute",
       "rawInput": {
         "code": "print('hello')"

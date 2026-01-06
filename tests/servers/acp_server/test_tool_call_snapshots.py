@@ -12,7 +12,8 @@ from exxec.models import ExecutionResult
 import pytest
 from syrupy.extensions.json import JSONSnapshotExtension
 
-from agentpool_config.toolsets import FSSpecToolsetConfig, ProcessManagementToolsetConfig
+from agentpool_config.agentpool_tools import BashToolConfig, ExecuteCodeToolConfig
+from agentpool_config.toolsets import FSSpecToolsetConfig
 
 from .tool_call_harness import ToolCallTestHarness
 
@@ -124,7 +125,7 @@ class TestExecuteCodeSnapshots:
         messages = await harness.execute_tool(
             tool_name="execute_code",
             tool_args={"code": "print('hello')"},
-            toolsets=[ProcessManagementToolsetConfig()],
+            tools=[ExecuteCodeToolConfig()],
         )
 
         assert messages == json_snapshot
@@ -148,7 +149,7 @@ class TestExecuteCodeSnapshots:
         messages = await harness.execute_tool(
             tool_name="execute_code",
             tool_args={"code": "raise ValueError('test error')"},
-            toolsets=[ProcessManagementToolsetConfig()],
+            tools=[ExecuteCodeToolConfig()],
         )
 
         assert messages == json_snapshot
@@ -167,7 +168,7 @@ class TestExecuteCodeSnapshots:
         messages = await harness.execute_tool(
             tool_name="execute_code",
             tool_args={"code": code},
-            toolsets=[ProcessManagementToolsetConfig()],
+            tools=[ExecuteCodeToolConfig()],
         )
 
         assert messages == json_snapshot
@@ -189,7 +190,7 @@ class TestExecuteCommandSnapshots:
         messages = await harness.execute_tool(
             tool_name="bash",
             tool_args={"command": "echo hello"},
-            toolsets=[ProcessManagementToolsetConfig()],
+            tools=[BashToolConfig()],
         )
 
         assert messages == json_snapshot
@@ -213,7 +214,7 @@ class TestExecuteCommandSnapshots:
         messages = await harness.execute_tool(
             tool_name="bash",
             tool_args={"command": "ls /nonexistent"},
-            toolsets=[ProcessManagementToolsetConfig()],
+            tools=[BashToolConfig()],
         )
 
         assert messages == json_snapshot
@@ -232,7 +233,36 @@ class TestExecuteCommandSnapshots:
         messages = await harness.execute_tool(
             tool_name="bash",
             tool_args={"command": "cat bigfile", "output_limit": 50},
-            toolsets=[ProcessManagementToolsetConfig()],
+            tools=[BashToolConfig()],
+        )
+
+        assert messages == json_snapshot
+
+
+class TestMCPToolSnapshots:
+    """Snapshot tests for MCP tool calls."""
+
+    async def test_mcp_tool_with_progress(
+        self,
+        harness: ToolCallTestHarness,
+        json_snapshot: SnapshotAssertion,
+    ) -> None:
+        """Test MCP tool with progress notifications produces expected messages."""
+        from pathlib import Path
+
+        from agentpool_config.mcp_server import StdioMCPServerConfig
+
+        server_path = Path(__file__).parent.parent.parent / "mcp_server" / "server.py"
+        mcp_server = StdioMCPServerConfig(
+            name="test_server",
+            command="uv",
+            args=["run", str(server_path)],
+        )
+
+        messages = await harness.execute_tool(
+            tool_name="test_progress",
+            tool_args={"message": "hello"},
+            mcp_servers=[mcp_server],
         )
 
         assert messages == json_snapshot
