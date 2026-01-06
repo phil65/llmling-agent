@@ -534,6 +534,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             ctx = self.get_context()
             # Attach tool_call_id to context for permission event
             ctx.tool_call_id = tool_call_id
+            # Also pass tool input for ACPInputProvider to generate proper title
+            ctx.tool_input = input_data
             result = await self._input_provider.get_tool_confirmation(
                 context=ctx,
                 tool=tool,
