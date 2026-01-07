@@ -862,7 +862,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             result.append(toko_model)
         return result
 
-    def get_modes(self) -> list[ModeCategory]:
+    async def get_modes(self) -> list[ModeCategory]:
         """Get available modes from the ACP session state.
 
         Passthrough from remote ACP server's mode state.

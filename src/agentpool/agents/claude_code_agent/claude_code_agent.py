@@ -1396,7 +1396,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             ),
         ]
 
-    def get_modes(self) -> list[ModeCategory]:
+    async def get_modes(self) -> list[ModeCategory]:
         """Get available mode categories for Claude Code agent.
 
         Claude Code exposes permission modes from the SDK.

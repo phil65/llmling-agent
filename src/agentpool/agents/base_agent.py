@@ -294,18 +294,18 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         ...
 
     @abstractmethod
-    def get_modes(self) -> list[ModeCategory]:
+    async def get_modes(self) -> list[ModeCategory]:
         """Get available mode categories for this agent.
 
         Returns a list of mode categories that can be switched. Each category
         represents a group of mutually exclusive modes (e.g., permissions,
-        behavior presets).
+        models, behavior presets).
 
         Different agent types expose different modes:
-        - Native Agent: Tool confirmation modes (default, acceptEdits)
-        - ClaudeCodeAgent: Claude Code SDK modes (plan, code, etc.)
+        - Native Agent: permissions + model selection
+        - ClaudeCodeAgent: permissions + model selection
         - ACPAgent: Passthrough from remote server
-        - AGUIAgent: Empty list (no modes)
+        - AGUIAgent: model selection (if applicable)
 
         Returns:
             List of ModeCategory, empty list if no modes supported

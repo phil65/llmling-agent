@@ -1438,7 +1438,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             self.log.exception("Failed to discover models")
             return None
 
-    def get_modes(self) -> list[ModeCategory]:
+    async def get_modes(self) -> list[ModeCategory]:
         """Get available mode categories for this agent.
 
         Native agents expose tool confirmation modes.

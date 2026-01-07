@@ -705,10 +705,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             )
         ]
 
-    def get_modes(self) -> list[ModeCategory]:
+    async def get_modes(self) -> list[ModeCategory]:
         """Get available modes for AG-UI agent.
 
-        AG-UI doesn't expose mode information, so returns an empty list.
+        AG-UI doesn't expose any configurable modes - model is server-controlled.
 
         Returns:
             Empty list - no modes supported
@@ -718,16 +718,16 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
     async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
         """Set a mode for AG-UI agent.
 
-        AG-UI doesn't support modes, so this always raises an error.
+        AG-UI doesn't support mode switching - model is controlled by remote server.
 
         Args:
             mode: The mode to set (not supported)
-            category_id: Optional category ID (not supported)
+            category_id: Category ID (not supported)
 
         Raises:
             ValueError: Always - AG-UI doesn't support modes
         """
-        msg = "AG-UI agent does not support modes"
+        msg = "AG-UI agent does not support mode switching - model is controlled by remote server"
         raise ValueError(msg)
 
 
