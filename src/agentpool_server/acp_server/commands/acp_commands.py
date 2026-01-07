@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pydantic_ai import ModelRequest, ModelResponse  # noqa: TC002
 from slashed import CommandContext  # noqa: TC002
 
@@ -9,6 +11,47 @@ from agentpool.messaging.context import NodeContext  # noqa: TC001
 from agentpool_commands.base import NodeCommand
 from agentpool_config.session import SessionQuery
 from agentpool_server.acp_server.session import ACPSession  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from agentpool.storage import StorageManager
+
+
+async def _get_message_counts(
+    storage: StorageManager | None,
+    conversation_ids: list[str],
+) -> dict[str, int]:
+    """Get message counts for multiple conversations efficiently.
+
+    Args:
+        storage: Storage manager instance
+        conversation_ids: List of conversation IDs to count
+
+    Returns:
+        Dict mapping conversation_id to message count
+    """
+    if not storage or not conversation_ids:
+        return {}
+
+    counts: dict[str, int] = {}
+    for conv_id in conversation_ids:
+        try:
+            query = SessionQuery(name=conv_id)
+            messages = await storage.filter_messages(query)
+            count = len(messages)
+
+            # If no messages found and conv_id has "conv_" prefix,
+            # try without prefix (older format compatibility)
+            if count == 0 and conv_id.startswith("conv_"):
+                session_id = conv_id[5:]  # Remove "conv_" prefix
+                query = SessionQuery(name=session_id)
+                messages = await storage.filter_messages(query)
+                count = len(messages)
+
+            counts[conv_id] = count
+        except Exception:  # noqa: BLE001
+            counts[conv_id] = 0
+    return counts
 
 
 class ListSessionsCommand(NodeCommand):
@@ -71,7 +114,8 @@ class ListSessionsCommand(NodeCommand):
             output_lines = ["## 📋 ACP Sessions\n"]
 
             # Collect all sessions to paginate
-            all_sessions: list[tuple[str, str, dict[str, str | None]]] = []  # (id, type, info)
+            # (id, type, info) where info includes conversation_id for message counting
+            all_sessions: list[tuple[str, str, dict[str, str | None]]] = []
 
             # Collect active sessions
             if active:
@@ -79,6 +123,7 @@ class ListSessionsCommand(NodeCommand):
                 for session_id, sess in active_sessions.items():
                     session_data = await session.manager.session_manager.store.load(session_id)
                     title = session_data.title if session_data else None
+                    conv_id = session_data.conversation_id if session_data else None
                     is_current = session_id == session.session_id
                     all_sessions.append((
                         session_id,
@@ -87,6 +132,7 @@ class ListSessionsCommand(NodeCommand):
                             "agent_name": sess.current_agent_name,
                             "cwd": sess.cwd or "unknown",
                             "title": title,
+                            "conversation_id": conv_id,
                             "is_current": "yes" if is_current else None,
                             "last_active": None,
                         },
@@ -112,6 +158,7 @@ class ListSessionsCommand(NodeCommand):
                                     "agent_name": session_data.agent_name,
                                     "cwd": session_data.cwd or "unknown",
                                     "title": session_data.title,
+                                    "conversation_id": session_data.conversation_id,
                                     "is_current": None,
                                     "last_active": session_data.last_active.strftime(
                                         "%Y-%m-%d %H:%M"
@@ -121,7 +168,23 @@ class ListSessionsCommand(NodeCommand):
                 except Exception as e:  # noqa: BLE001
                     output_lines.append(f"*Error loading stored sessions: {e}*\n")
 
-            # Calculate pagination
+            # Get message counts for ALL sessions to filter properly
+            all_conv_ids = [
+                info["conversation_id"]
+                for _, _, info in all_sessions
+                if info.get("conversation_id")
+            ]
+            msg_counts = await _get_message_counts(session.agent_pool.storage, all_conv_ids)
+
+            # Filter out sessions with 0 messages (unless showing detail view)
+            if not detail:
+                all_sessions = [
+                    (sid, stype, info)
+                    for sid, stype, info in all_sessions
+                    if msg_counts.get(info.get("conversation_id") or "", 0) > 0
+                ]
+
+            # Calculate pagination AFTER filtering
             total_count = len(all_sessions)
             total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 1
             page = min(page, total_pages)
@@ -159,15 +222,22 @@ class ListSessionsCommand(NodeCommand):
                     output_lines.append("")
             else:
                 # Compact table view (default)
-                output_lines.append("| Title | Agent | Last Active |")
-                output_lines.append("|-------|-------|-------------|")
+                # Table with multi-line session cell (title + ID using <br>)
+                output_lines.append("| Session | Agent | Msgs | Last Active |")
+                output_lines.append("|---------|-------|------|-------------|")
                 for session_id, _session_type, info in page_sessions:
-                    title = info["title"] or session_id[:16]
+                    title = info["title"] or "(untitled)"
                     if info["is_current"]:
                         title = f"▶️ {title}"
                     agent = info["agent_name"]
+                    conv_id = info.get("conversation_id") or ""
+                    msg_count = msg_counts.get(conv_id, 0)
                     last_active = info["last_active"] or "-"
-                    output_lines.append(f"| {title} | {agent} | {last_active} |")
+                    # Two lines in session cell: title and ID
+                    session_cell = f"{title}<br>`{session_id}`"
+                    output_lines.append(
+                        f"| {session_cell} | {agent} | {msg_count} | {last_active} |"
+                    )
                 output_lines.append("")
 
             # Add pagination info
