@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-import uuid
 
 import anyio
 
@@ -78,7 +77,7 @@ class ACPClientHandler(Client):
         self.state = state
         self._input_provider = input_provider
         self._update_event = asyncio.Event()
-        # Map ACP terminal IDs to process manager IDs
+        # Map ACP terminal IDs to process manager IDs (for local execution only)
         self._terminal_to_process: dict[str, str] = {}
         # Copy tool confirmation mode from agent (can be updated via set_tool_confirmation_mode)
         self.tool_confirmation_mode: ToolConfirmationMode = agent.tool_confirmation_mode
@@ -297,11 +296,18 @@ class ACPClientHandler(Client):
             raise
 
     async def create_terminal(self, params: CreateTerminalRequest) -> CreateTerminalResponse:
-        """Create a new terminal session via ProcessManager."""
+        """Create a new terminal session via the configured ExecutionEnvironment.
+
+        The ProcessManager implementation determines where the terminal runs
+        (local, Docker, E2B, SSH, or forwarded to parent ACP client like Zed).
+
+        The terminal_id returned by process_manager.start_process() is used directly.
+        """
         if not self.allow_terminal:
             raise RuntimeError("Terminal operations not allowed")
+
         try:
-            process_id = await self.env.process_manager.start_process(
+            terminal_id = await self.env.process_manager.start_process(
                 command=params.command,
                 args=list(params.args) if params.args else None,
                 cwd=params.cwd,
@@ -311,10 +317,10 @@ class ACPClientHandler(Client):
             logger.exception("Failed to create terminal", command=params.command)
             raise
         else:
-            terminal_id = f"term_{uuid.uuid4().hex[:8]}"
-            self._terminal_to_process[terminal_id] = process_id
-            msg = "Created terminal"
-            logger.info(msg, terminal_id=terminal_id, process_id=process_id, cmd=params.command)
+            # Use the ID from process_manager directly - for ACPProcessManager this
+            # is already the parent's terminal ID (e.g., Zed's)
+            self._terminal_to_process[terminal_id] = terminal_id
+            logger.info("Created terminal", terminal_id=terminal_id, command=params.command)
             return CreateTerminalResponse(terminal_id=terminal_id)
 
     async def terminal_output(self, params: TerminalOutputRequest) -> TerminalOutputResponse:
@@ -326,8 +332,7 @@ class ACPClientHandler(Client):
         if terminal_id not in self._terminal_to_process:
             raise ValueError(f"Terminal {terminal_id} not found")
 
-        process_id = self._terminal_to_process[terminal_id]
-        proc_output = await self.env.process_manager.get_output(process_id)
+        proc_output = await self.env.process_manager.get_output(terminal_id)
         output = proc_output.combined or proc_output.stdout or ""
         return TerminalOutputResponse(output=output, truncated=proc_output.truncated)
 
@@ -342,8 +347,7 @@ class ACPClientHandler(Client):
         if terminal_id not in self._terminal_to_process:
             raise ValueError(f"Terminal {terminal_id} not found")
 
-        process_id = self._terminal_to_process[terminal_id]
-        exit_code = await self.env.process_manager.wait_for_exit(process_id)
+        exit_code = await self.env.process_manager.wait_for_exit(terminal_id)
         logger.debug("Terminal exited", terminal_id=terminal_id, exit_code=exit_code)
         return WaitForTerminalExitResponse(exit_code=exit_code)
 
@@ -358,8 +362,7 @@ class ACPClientHandler(Client):
         if terminal_id not in self._terminal_to_process:
             raise ValueError(f"Terminal {terminal_id} not found")
 
-        process_id = self._terminal_to_process[terminal_id]
-        await self.env.process_manager.kill_process(process_id)
+        await self.env.process_manager.kill_process(terminal_id)
         logger.info("Killed terminal", terminal_id=terminal_id)
         return KillTerminalCommandResponse()
 
@@ -371,8 +374,8 @@ class ACPClientHandler(Client):
         terminal_id = params.terminal_id
         if terminal_id not in self._terminal_to_process:
             raise ValueError(f"Terminal {terminal_id} not found")
-        process_id = self._terminal_to_process[terminal_id]
-        await self.env.process_manager.release_process(process_id)
+
+        await self.env.process_manager.release_process(terminal_id)
         del self._terminal_to_process[terminal_id]
         logger.info("Released terminal", terminal_id=terminal_id)
         return ReleaseTerminalResponse()
