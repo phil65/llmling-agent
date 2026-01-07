@@ -149,6 +149,49 @@ class ArizePhoenixObservabilityConfig(BaseObservabilityConfig):
             object.__setattr__(self, "_headers", headers)
 
 
+class AxiomObservabilityConfig(BaseObservabilityConfig):
+    """Configuration for Axiom endpoint."""
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Axiom"})
+
+    type: Literal["axiom"] = "axiom"
+    """Axiom observability configuration."""
+
+    api_token: SecretStr | None = Field(default=None, title="Axiom API token")
+    """Axiom API token with ingest permissions."""
+
+    dataset: str = Field(
+        examples=["traces", "otel-traces", "my-service-traces"],
+        title="Dataset name",
+    )
+    """Axiom dataset name where traces are sent."""
+
+    region: Literal["us", "eu"] | None = Field(
+        default=None,
+        examples=["us", "eu"],
+        title="Region",
+    )
+    """Axiom region. If not set, uses default cloud endpoint."""
+
+    _endpoint: str = PrivateAttr()
+    _headers: dict[str, str] = PrivateAttr(default_factory=dict)
+
+    def model_post_init(self, __context: Any, /) -> None:
+        """Compute private attributes from user config."""
+        # Axiom uses /v1/traces endpoint for OTLP
+        if self.region == "eu":
+            endpoint = "https://api.eu.axiom.co/v1/traces"
+        else:
+            endpoint = "https://api.axiom.co/v1/traces"
+        object.__setattr__(self, "_endpoint", endpoint)
+
+        headers: dict[str, str] = {}
+        if self.api_token:
+            headers["Authorization"] = f"Bearer {self.api_token.get_secret_value()}"
+        headers["X-Axiom-Dataset"] = self.dataset
+        object.__setattr__(self, "_headers", headers)
+
+
 class CustomObservabilityConfig(BaseObservabilityConfig):
     """Configuration for custom OTEL endpoint."""
 
@@ -173,6 +216,7 @@ ObservabilityProviderConfig = Annotated[
     | LangsmithObservabilityConfig
     | AgentOpsObservabilityConfig
     | ArizePhoenixObservabilityConfig
+    | AxiomObservabilityConfig
     | CustomObservabilityConfig,
     Field(discriminator="type"),
 ]
