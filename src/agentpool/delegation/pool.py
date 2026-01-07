@@ -851,7 +851,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str,
         deps_type: type[TAgentDeps] | None = None,
         input_provider: InputProvider | None = None,
-        pool: AgentPool[Any] | None = None,
         event_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> Agent[TAgentDeps, Any]:
         from agentpool import Agent
@@ -957,7 +956,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             input_provider=input_provider,
             output_type=resolved_output_type,
             event_handlers=merged_handlers or None,
-            agent_pool=pool,
+            agent_pool=self,
             tool_mode=config.tool_mode,
             knowledge=config.knowledge,
             toolsets=toolsets_list,
