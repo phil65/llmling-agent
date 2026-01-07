@@ -134,11 +134,11 @@ class ACPNotifications:
     async def tool_call(
         self,
         tool_name: str,
+        tool_call_id: str,
         *,
         tool_input: dict[str, Any],
         tool_output: Any,
         status: ToolCallStatus = "completed",
-        tool_call_id: str | None = None,
     ) -> None:
         """Send tool execution as ACP tool call update.
 
@@ -176,11 +176,10 @@ class ACPNotifications:
 
         # Generate a descriptive title from tool name and inputs
         title = generate_tool_title(tool_name, tool_input)
-
         # Use appropriate notification type based on status
         if status == "pending":
             await self.tool_call_start(
-                tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
+                tool_call_id=tool_call_id,
                 title=title,
                 kind=infer_tool_kind(tool_name),
                 locations=locations or None,
@@ -190,7 +189,7 @@ class ACPNotifications:
         else:
             # For in_progress, completed, and failed statuses
             await self.tool_call_progress(
-                tool_call_id=tool_call_id or f"{tool_name}_{hash(str(tool_input))}",
+                tool_call_id=tool_call_id,
                 title=title,
                 status=status,
                 locations=locations or None,
@@ -678,10 +677,10 @@ class ACPNotifications:
                     tool_input = self._tool_call_inputs.get(tool_call_id, {})
                     await self.tool_call(
                         tool_name=tool_name,
+                        tool_call_id=tool_call_id,
                         tool_input=tool_input,
                         tool_output=converted_content,
                         status="completed",
-                        tool_call_id=tool_call_id,
                     )
                     # Clean up stored input
                     self._tool_call_inputs.pop(tool_call_id, None)
