@@ -606,36 +606,24 @@ class ACPNotifications:
                             match block:
                                 case TextContentBlock(text=text):
                                     await self.send_user_message(text)
-                                case ImageContentBlock() as img_block:
+                                case ImageContentBlock(annotations=annots) as img_block:
                                     await self.send_user_image(
                                         data=img_block.data,
                                         mime_type=img_block.mime_type,
                                         uri=img_block.uri,
-                                        audience=img_block.annotations.audience
-                                        if img_block.annotations
-                                        else None,
-                                        last_modified=img_block.annotations.last_modified
-                                        if img_block.annotations
-                                        else None,
-                                        priority=img_block.annotations.priority
-                                        if img_block.annotations
-                                        else None,
+                                        audience=annots.audience if annots else None,
+                                        last_modified=annots.last_modified if annots else None,
+                                        priority=annots.priority if annots else None,
                                     )
-                                case AudioContentBlock() as audio_block:
+                                case AudioContentBlock(annotations=annots) as audio_block:
                                     await self.send_user_audio(
                                         data=audio_block.data,
                                         mime_type=audio_block.mime_type,
-                                        audience=audio_block.annotations.audience
-                                        if audio_block.annotations
-                                        else None,
-                                        last_modified=audio_block.annotations.last_modified
-                                        if audio_block.annotations
-                                        else None,
-                                        priority=audio_block.annotations.priority
-                                        if audio_block.annotations
-                                        else None,
+                                        audience=annots.audience if annots else None,
+                                        last_modified=annots.last_modified if annots else None,
+                                        priority=annots.priority if annots else None,
                                     )
-                                case ResourceContentBlock() as resource_block:
+                                case ResourceContentBlock(annotations=annots) as resource_block:
                                     await self.send_user_resource(
                                         uri=resource_block.uri,
                                         name=resource_block.name,
@@ -643,15 +631,9 @@ class ACPNotifications:
                                         mime_type=resource_block.mime_type,
                                         size=resource_block.size,
                                         title=resource_block.title,
-                                        audience=resource_block.annotations.audience
-                                        if resource_block.annotations
-                                        else None,
-                                        last_modified=resource_block.annotations.last_modified
-                                        if resource_block.annotations
-                                        else None,
-                                        priority=resource_block.annotations.priority
-                                        if resource_block.annotations
-                                        else None,
+                                        audience=annots.audience if annots else None,
+                                        last_modified=annots.last_modified if annots else None,
+                                        priority=annots.priority if annots else None,
                                     )
                                 case EmbeddedResourceContentBlock() as embedded_block:
                                     # Handle embedded resources with proper
@@ -682,9 +664,7 @@ class ACPNotifications:
                         tool_output=converted_content,
                         status="completed",
                     )
-                    # Clean up stored input
                     self._tool_call_inputs.pop(tool_call_id, None)
-
                 case _:
                     typ = type(part).__name__
                     self.log.debug("Unhandled request part type", part_type=typ)
@@ -752,16 +732,6 @@ class ACPNotifications:
         update = CurrentModeUpdate(current_mode_id=mode_id)
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
-
-    # async def update_session_model(self, model_id: str) -> None:
-    #     """Send a session model update notification.
-
-    #     Args:
-    #         model_id: Unique identifier for the model
-    #     """
-    #     update = CurrentModelUpdate(current_model_id=model_id)
-    #     notification = SessionNotification(session_id=self.id, update=update)
-    #     await self.client.session_update(notification)
 
     async def send_agent_audio(
         self,
