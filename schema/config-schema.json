@@ -4675,7 +4675,7 @@
     },
     "BashToolConfig": {
       "additionalProperties": false,
-      "description": "Configuration for bash command execution tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: bash\n        timeout: 30.0\n        output_limit: 10000\n        requires_confirmation: true\n    ```",
+      "description": "Configuration for bash command execution tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: bash\n        timeout: 30.0\n        output_limit: 10000\n        requires_confirmation: true\n        environment:\n          type: mock\n          deterministic_ids: true\n    ```",
       "properties": {
         "type": {
           "const": "bash",
@@ -4758,6 +4758,73 @@
             "integer",
             "null"
           ]
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for command execution. Falls back to agent's env if not set.",
+          "title": "Execution environment"
         }
       },
       "title": "Bash Tool",
@@ -7001,6 +7068,7 @@
                       "Bash",
                       "BashOutput",
                       "Edit",
+                      "EnterPlanMode",
                       "ExitPlanMode",
                       "Glob",
                       "Grep",
@@ -7054,6 +7122,7 @@
                       "Bash",
                       "BashOutput",
                       "Edit",
+                      "EnterPlanMode",
                       "ExitPlanMode",
                       "Glob",
                       "Grep",
@@ -7136,6 +7205,7 @@
                       "Bash",
                       "BashOutput",
                       "Edit",
+                      "EnterPlanMode",
                       "ExitPlanMode",
                       "Glob",
                       "Grep",
@@ -13994,7 +14064,7 @@
     },
     "ExecuteCodeToolConfig": {
       "additionalProperties": false,
-      "description": "Configuration for Python code execution tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: execute_code\n        requires_confirmation: true\n    ```",
+      "description": "Configuration for Python code execution tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: execute_code\n        requires_confirmation: true\n        environment:\n          type: mock\n          deterministic_ids: true\n    ```",
       "properties": {
         "type": {
           "const": "execute_code",
@@ -14049,6 +14119,73 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for code execution. Falls back to agent's env if not set.",
+          "title": "Execution environment"
         }
       },
       "title": "Execute Code Tool",
@@ -30815,11 +30952,10 @@
         },
         "mode": {
           "default": "granular",
-          "description": "Tool mode:\n- 'granular': Separate tools (get/add/update/remove) - better for simpler models\n- 'declarative': Single set_plan tool with full list - fewer calls, suits capable models\n- 'hybrid': Both approaches available - model chooses most efficient per situation",
+          "description": "Tool mode:\n- 'granular': Separate tools (get/add/update/remove) - better for simpler models\n- 'declarative': Single set_plan tool with full list - fewer calls, suits capable models",
           "enum": [
             "granular",
-            "declarative",
-            "hybrid"
+            "declarative"
           ],
           "title": "Plan tool mode",
           "type": "string"
