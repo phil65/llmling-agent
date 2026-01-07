@@ -437,7 +437,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
         from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
-        if not self._client or not self._thread_id:
+        if not self._client:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
@@ -445,11 +445,20 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._cancelled = False
         self._current_stream_task = asyncio.current_task()
 
+        # Initialize conversation_id on first run and log to storage
+        if self.conversation_id is None:
+            self.conversation_id = str(uuid4())
+            await self.log_conversation()
+
+        # Set thread_id from conversation_id (needed for AG-UI protocol)
+        if self._thread_id is None:
+            self._thread_id = self.conversation_id
+
         conversation = message_history if message_history is not None else self.conversation
         # Get parent_id from last message in history for tree structure
         last_msg_id = conversation.get_last_message_id()
         user_msg, processed_prompts, _original_message = await prepare_prompts(
-            *prompts, parent_id=last_msg_id
+            *prompts, parent_id=last_msg_id, conversation_id=self.conversation_id
         )
         self._run_id = str(uuid4())  # New run ID for each run
         self._chunk_transformer.reset()  # Reset chunk transformer

@@ -311,7 +311,8 @@ class Talk[TTransmittedData = Any]:
                 prompts: list[PromptCompatible] = [message]
                 if prompt:
                     prompts.append(prompt)
-                return await target.run(*prompts)
+                # Pass conversation_id from source message to maintain chain tracking
+                return await target.run(*prompts, conversation_id=message.conversation_id)
 
             case "context":
                 meta = {

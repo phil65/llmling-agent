@@ -485,7 +485,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
             # Emit semantic CompactionEvent - consumers handle display differently
             compaction_event = CompactionEvent(
-                session_id=self.conversation_id,
+                session_id=self.conversation_id or "unknown",
                 trigger=trigger,
                 phase="starting",
             )
@@ -869,9 +869,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         #       session_id = message.data.get('session_id')
         # The SDK manages its own session persistence. To resume, pass:
         #   ClaudeAgentOptions(resume=session_id)
-        # if self.conversation_id is None:
-        #     self.conversation_id = session_id  # from init message
-        #     await self.log_conversation()
+        # For now, generate our own ID to satisfy type requirements.
+        # Later we could replace with SDK session_id if we decide to store CC sessions.
+        if self.conversation_id is None:
+            self.conversation_id = str(uuid.uuid4())
+            # await self.log_conversation()  # Uncomment if storing CC sessions
 
         # Update input provider if provided
         if input_provider is not None:

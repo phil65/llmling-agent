@@ -49,7 +49,8 @@ async def test_agui_agent_initialization():
     agent = AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent")
     assert agent.endpoint == "http://localhost:8000/run"
     assert agent.name == "test-agent"
-    assert agent.conversation_id is not None
+    # conversation_id is None until first run (lazy initialization)
+    assert agent.conversation_id is None
     assert agent._client is None
     assert agent._thread_id is None
 
@@ -58,7 +59,8 @@ async def test_agui_agent_context_manager():
     """Test AGUIAgent context manager."""
     async with AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent") as agent:
         assert agent._client is not None
-        assert agent._thread_id is not None
+        # _thread_id is None until first run (lazy initialization of conversation_id)
+        assert agent._thread_id is None
 
     # After exit, should be cleaned up
     assert agent._client is None

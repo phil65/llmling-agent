@@ -1004,17 +1004,31 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             handler = self.event_handler
         message_id = message_id or str(uuid4())
         run_id = str(uuid4())
-        # Get parent_id from last message in history for tree structure
-        last_msg_id = conversation.get_last_message_id()
-        user_msg, prompts, original_message = await prepare_prompts(*prompt, parent_id=last_msg_id)
-        self.message_received.emit(user_msg)
-        start_time = time.perf_counter()
-        history_list = conversation.get_history()
-        pending_parts = conversation.get_pending_parts()
 
         # Reset cancellation state and track current task
         self._cancelled = False
         self._current_stream_task = asyncio.current_task()
+
+        # Initialize conversation_id on first run and log to storage
+        # Use passed conversation_id if provided (e.g., from chained agents)
+        if self.conversation_id is None:
+            if conversation_id:
+                # Passed from another agent - conversation already logged
+                self.conversation_id = conversation_id
+            else:
+                # New conversation - generate ID and log it
+                self.conversation_id = str(uuid4())
+                await self.log_conversation()
+
+        # Get parent_id from last message in history for tree structure
+        last_msg_id = conversation.get_last_message_id()
+        user_msg, prompts, original_message = await prepare_prompts(
+            *prompt, parent_id=last_msg_id, conversation_id=self.conversation_id
+        )
+        self.message_received.emit(user_msg)
+        start_time = time.perf_counter()
+        history_list = conversation.get_history()
+        pending_parts = conversation.get_pending_parts()
 
         # Execute pre-run hooks
         if self.hooks:
@@ -1023,7 +1037,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 prompt=user_msg.content
                 if isinstance(user_msg.content, str)
                 else str(user_msg.content),
-                conversation_id=conversation_id,
+                conversation_id=self.conversation_id,
             )
             if pre_run_result.get("decision") == "deny":
                 reason = pre_run_result.get("reason", "Blocked by pre-run hook")
@@ -1120,7 +1134,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                         role="assistant",
                         name=self.name,
                         message_id=message_id,
-                        conversation_id=conversation_id or user_msg.conversation_id,
+                        conversation_id=self.conversation_id,
                         parent_id=user_msg.message_id,
                         response_time=response_time,
                         finish_reason="stop",
@@ -1136,7 +1150,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                         agent_run.result,
                         agent_name=self.name,
                         message_id=message_id,
-                        conversation_id=conversation_id or user_msg.conversation_id,
+                        conversation_id=self.conversation_id,
                         parent_id=user_msg.message_id,
                         response_time=response_time,
                         metadata=file_tracker.get_metadata(),
@@ -1154,7 +1168,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     agent_name=self.name,
                     prompt=prompt_str,
                     result=response_msg.content,
-                    conversation_id=conversation_id,
+                    conversation_id=self.conversation_id,
                 )
 
             # Apply forwarding logic if needed

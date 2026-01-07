@@ -5,7 +5,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
-from uuid import uuid4
 
 from psygnal import Signal
 
@@ -86,18 +85,23 @@ class MessageNode[TDeps, TResult](ABC):
         name_ = f"node_{self._name}"
         self.mcp = MCPManager(name_, servers=mcp_servers, owner=self.name)
         self.enable_db_logging = enable_logging
-        self.conversation_id = str(uuid4())
-        # Connect to the combined signal to capture all messages
-        # TODO: need to check this
-        # node.message_received.connect(self.log_message)
+        self.conversation_id: str | None = None
 
-    async def __aenter__(self) -> Self:
-        """Initialize base message node."""
-        if self.enable_db_logging and self.storage:
+    async def log_conversation(self) -> None:
+        """Log conversation to storage if enabled.
+
+        Should be called at the start of run_stream() after conversation_id is set.
+        For native agents, generate conversation_id first with uuid4().
+        For wrapped agents (Claude Code), set conversation_id from SDK session first.
+        """
+        if self.enable_db_logging and self.storage and self.conversation_id:
             await self.storage.log_conversation(
                 conversation_id=self.conversation_id,
                 node_name=self.name,
             )
+
+    async def __aenter__(self) -> Self:
+        """Initialize base message node."""
         try:
             await self._events.__aenter__()
             await self.mcp.__aenter__()

@@ -540,11 +540,17 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             )
         else:
             handler = self.event_handler
+
+        # Initialize conversation_id on first run and log to storage
+        if self.conversation_id is None:
+            self.conversation_id = str(uuid.uuid4())
+            await self.log_conversation()
+
         # Prepare user message for history and convert to ACP content blocks
         # Get parent_id from last message in history for tree structure
         last_msg_id = conversation.get_last_message_id()
         user_msg, processed_prompts, _original_message = await prepare_prompts(
-            *prompts, parent_id=last_msg_id
+            *prompts, parent_id=last_msg_id, conversation_id=self.conversation_id
         )
         run_id = str(uuid.uuid4())
         self._state.clear()  # Reset state
