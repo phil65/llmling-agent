@@ -16,6 +16,8 @@ from acp.schema import (
     NewSessionResponse,
     PromptResponse,
     ResumeSessionResponse,
+    SessionConfigOption,
+    SessionConfigSelectOption,
     SessionInfo,
     SessionMode,
     SessionModelState,
@@ -125,7 +127,7 @@ async def get_session_mode_state(agent: Any) -> SessionModeState | None:
     """Get SessionModeState from an agent using its get_modes() method.
 
     Converts agentpool ModeCategory to ACP SessionModeState format.
-    Currently uses the first mode category (ACP only supports one dropdown for now).
+    Uses the first category that looks like permissions (not model).
 
     Args:
         agent: Any agent with get_modes() method
@@ -147,8 +149,10 @@ async def get_session_mode_state(agent: Any) -> SessionModeState | None:
     if not mode_categories:
         return None
 
-    # Use first category for now (ACP currently only supports single mode dropdown)
-    category = mode_categories[0]
+    # Find the permissions category (not model)
+    category = next((c for c in mode_categories if c.id != "model"), None)
+    if not category:
+        return None
 
     # Convert ModeInfo to ACP SessionMode
     acp_modes = [
@@ -164,6 +168,55 @@ async def get_session_mode_state(agent: Any) -> SessionModeState | None:
         available_modes=acp_modes,
         current_mode_id=category.current_mode_id,
     )
+
+
+async def get_session_config_options(agent: Any) -> list[SessionConfigOption]:
+    """Get SessionConfigOptions from an agent using its get_modes() method.
+
+    Converts all agentpool ModeCategories to ACP SessionConfigOption format.
+
+    Args:
+        agent: Any agent with get_modes() method
+
+    Returns:
+        List of SessionConfigOption from agent's mode categories
+    """
+    from agentpool.agents.base_agent import BaseAgent
+
+    if not isinstance(agent, BaseAgent):
+        return []
+
+    try:
+        mode_categories = await agent.get_modes()
+    except Exception:
+        logger.exception("Failed to get modes from agent")
+        return []
+
+    if not mode_categories:
+        return []
+
+    # Convert each ModeCategory to a SessionConfigOption
+    config_options: list[SessionConfigOption] = []
+    for category in mode_categories:
+        options = [
+            SessionConfigSelectOption(
+                value=mode.id,
+                name=mode.name,
+                description=mode.description,
+            )
+            for mode in category.available_modes
+        ]
+        config_options.append(
+            SessionConfigOption(
+                id=category.id,
+                name=category.name,
+                description=None,
+                current_value=category.current_mode_id,
+                options=options,
+            )
+        )
+
+    return config_options
 
 
 @dataclass
@@ -272,6 +325,7 @@ class AgentPoolACPAgent(ACPAgent):
 
             state: SessionModeState | None = None
             models: SessionModelState | None = None
+            config_options: list[SessionConfigOption] = []
 
             if session := self.session_manager.get_session(session_id):
                 if isinstance(session.agent, ACPAgentClient):
@@ -279,10 +333,13 @@ class AgentPoolACPAgent(ACPAgent):
                     if session.agent._state:
                         models = session.agent._state.models
                         state = session.agent._state.modes
+                    # Also get config_options from nested agent
+                    config_options = await get_session_config_options(session.agent)
                 else:
                     # Use unified helpers for all other agents
                     models = await get_session_model_state(session.agent, session.agent.model_name)
                     state = await get_session_mode_state(session.agent)
+                    config_options = await get_session_config_options(session.agent)
         except Exception:
             logger.exception("Failed to create new session")
             raise
@@ -302,7 +359,7 @@ class AgentPoolACPAgent(ACPAgent):
                 session_id=session_id,
                 modes=state,
                 models=models,
-                # config_options can be populated dynamically based on agent capabilities
+                config_options=config_options if config_options else None,
             )
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
@@ -353,16 +410,19 @@ class AgentPoolACPAgent(ACPAgent):
 
             mode_state: SessionModeState | None = None
             models: SessionModelState | None = None
+            config_options: list[SessionConfigOption] = []
 
             if isinstance(session.agent, ACPAgentClient):
                 # Nested ACP agent - pass through its state directly
                 if session.agent._state:
                     mode_state = session.agent._state.modes
                     models = session.agent._state.models
+                config_options = await get_session_config_options(session.agent)
             elif session.agent:
                 # Use unified helpers for all other agents
                 mode_state = await get_session_mode_state(session.agent)
                 models = await get_session_model_state(session.agent, session.agent.model_name)
+                config_options = await get_session_config_options(session.agent)
             else:
                 models = None
             # Schedule post-load initialization tasks
@@ -371,7 +431,11 @@ class AgentPoolACPAgent(ACPAgent):
             # Replay conversation history via ACP notifications
             self.tasks.create_task(self._replay_conversation_history(session))
             logger.info("Session loaded successfully", agent=session.current_agent_name)
-            return LoadSessionResponse(models=models, modes=mode_state)
+            return LoadSessionResponse(
+                models=models,
+                modes=mode_state,
+                config_options=config_options if config_options else None,
+            )
 
         except Exception:
             logger.exception("Failed to load session", session_id=params.session_id)
@@ -733,11 +797,12 @@ class AgentPoolACPAgent(ACPAgent):
     ) -> SetSessionConfigOptionResponse | None:
         """Set a session config option.
 
-        Currently returns the same static config options with updated value.
+        Forwards the config option change to the agent's set_mode method
+        and returns the updated config options.
         """
         try:
             session = self.session_manager.get_session(params.session_id)
-            if not session:
+            if not session or not session.agent:
                 msg = "Session not found for config option change"
                 logger.warning(msg, session_id=params.session_id)
                 return None
@@ -749,10 +814,13 @@ class AgentPoolACPAgent(ACPAgent):
                 session_id=params.session_id,
             )
 
-            # TODO: Implement dynamic config option handling
-            # For now, return empty list - actual implementation would update
-            # session state and return the updated config options
-            return SetSessionConfigOptionResponse(config_options=[])
+            # Forward to agent's set_mode method
+            # config_id maps to category_id, value_id maps to mode_id
+            await session.agent.set_mode(params.value_id, category_id=params.config_id)
+
+            # Return updated config options
+            config_options = await get_session_config_options(session.agent)
+            return SetSessionConfigOptionResponse(config_options=config_options)
         except Exception:
             logger.exception("Failed to set session config option", session_id=params.session_id)
             return None

@@ -1441,14 +1441,16 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     async def get_modes(self) -> list[ModeCategory]:
         """Get available mode categories for this agent.
 
-        Native agents expose tool confirmation modes.
+        Native agents expose permission modes and model selection.
 
         Returns:
-            List with single ModeCategory for tool confirmation
+            List of ModeCategory for permissions and models
         """
         from agentpool.agents.modes import ModeCategory, ModeInfo
 
-        # Map current confirmation mode to mode ID
+        categories: list[ModeCategory] = []
+
+        # Permission modes
         mode_id_map = {
             "per_tool": "default",
             "always": "default",
@@ -1456,66 +1458,102 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         }
         current_id = mode_id_map.get(self.tool_confirmation_mode, "default")
 
-        category_id = "permissions"
-        return [
+        categories.append(
             ModeCategory(
-                id=category_id,
+                id="permissions",
                 name="Permissions",
                 available_modes=[
                     ModeInfo(
                         id="default",
                         name="Default",
                         description="Require confirmation for tools marked as needing it",
-                        category_id=category_id,
+                        category_id="permissions",
                     ),
                     ModeInfo(
                         id="acceptEdits",
                         name="Accept Edits",
                         description="Auto-approve all tool calls without confirmation",
-                        category_id=category_id,
+                        category_id="permissions",
                     ),
                 ],
                 current_mode_id=current_id,
             )
-        ]
+        )
+
+        # Model selection
+        models = await self.get_available_models()
+        if models:
+            current_model = self.model_name or (models[0].id if models else "")
+            categories.append(
+                ModeCategory(
+                    id="model",
+                    name="Model",
+                    available_modes=[
+                        ModeInfo(
+                            id=m.id,
+                            name=m.name or m.id,
+                            description=m.description or "",
+                            category_id="model",
+                        )
+                        for m in models
+                    ],
+                    current_mode_id=current_model,
+                )
+            )
+
+        return categories
 
     async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
         """Set a mode for this agent.
 
-        Native agents support the "permissions" category with modes:
-        - "default": per_tool confirmation
-        - "acceptEdits": never confirm (auto-approve)
+        Native agents support:
+        - "permissions" category: default, acceptEdits
+        - "model" category: any available model ID
 
         Args:
             mode: Mode to activate - ModeInfo object or mode ID string
-            category_id: Optional category (only "permissions" supported)
+            category_id: Category ID ("permissions" or "model")
 
         Raises:
-            ValueError: If mode_id is invalid
+            ValueError: If mode_id or category_id is invalid
         """
         # Extract mode_id and category from ModeInfo if provided
         if isinstance(mode, ModeInfo):
             mode_id = mode.id
-            category_id = category_id or mode.category_id or None
+            category_id = category_id or mode.category_id
         else:
             mode_id = mode
 
-        # Validate category if provided
-        if category_id is not None and category_id != "permissions":
-            msg = f"Unknown category: {category_id}. Only 'permissions' is supported."
+        # Default to permissions if no category specified
+        if category_id is None:
+            category_id = "permissions"
+
+        if category_id == "permissions":
+            # Map mode_id to confirmation mode
+            mode_map: dict[str, ToolConfirmationMode] = {
+                "default": "per_tool",
+                "acceptEdits": "never",
+            }
+            if mode_id not in mode_map:
+                msg = f"Unknown permission mode: {mode_id}. Available: {list(mode_map.keys())}"
+                raise ValueError(msg)
+            await self.set_tool_confirmation_mode(mode_map[mode_id])
+
+        elif category_id == "model":
+            # Validate model exists
+            models = await self.get_available_models()
+            if models:
+                valid_ids = {m.id for m in models}
+                if mode_id not in valid_ids:
+                    msg = f"Unknown model: {mode_id}. Available: {valid_ids}"
+                    raise ValueError(msg)
+            # Set the model using set_model method
+            await self.set_model(mode_id)
+            self.log.info("Model changed", model=mode_id)
+
+        else:
+            msg = f"Unknown category: {category_id}. Available: permissions, model"
             raise ValueError(msg)
-
-        # Map mode_id to confirmation mode
-        mode_map: dict[str, ToolConfirmationMode] = {
-            "default": "per_tool",
-            "acceptEdits": "never",
-        }
-
-        if mode_id not in mode_map:
-            msg = f"Unknown mode: {mode_id}. Available: {list(mode_map.keys())}"
-            raise ValueError(msg)
-
-        await self.set_tool_confirmation_mode(mode_map[mode_id])
 
 
 if __name__ == "__main__":

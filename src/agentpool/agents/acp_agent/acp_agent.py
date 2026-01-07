@@ -865,77 +865,123 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     async def get_modes(self) -> list[ModeCategory]:
         """Get available modes from the ACP session state.
 
-        Passthrough from remote ACP server's mode state.
+        Passthrough from remote ACP server's mode and model state.
 
         Returns:
             List of ModeCategory from remote server, empty if not available
         """
         from agentpool.agents.modes import ModeCategory, ModeInfo
 
-        if not self._state or not self._state.modes:
-            return []
+        categories: list[ModeCategory] = []
 
-        # Convert ACP SessionModeState to our ModeCategory
-        acp_modes = self._state.modes
-        category_id = "remote"
-        modes = [
-            ModeInfo(
-                id=m.id,
-                name=m.name,
-                description=m.description or "",
-                category_id=category_id,
+        # Convert ACP SessionModeState to ModeCategory
+        if self._state and self._state.modes:
+            acp_modes = self._state.modes
+            modes = [
+                ModeInfo(
+                    id=m.id,
+                    name=m.name,
+                    description=m.description or "",
+                    category_id="permissions",
+                )
+                for m in acp_modes.available_modes
+            ]
+            categories.append(
+                ModeCategory(
+                    id="permissions",
+                    name="Mode",
+                    available_modes=modes,
+                    current_mode_id=acp_modes.current_mode_id,
+                )
             )
-            for m in acp_modes.available_modes
-        ]
 
-        return [
-            ModeCategory(
-                id=category_id,
-                name="Mode",
-                available_modes=modes,
-                current_mode_id=acp_modes.current_mode_id,
+        # Convert ACP SessionModelState to ModeCategory
+        if self._state and self._state.models:
+            acp_models = self._state.models
+            models = [
+                ModeInfo(
+                    id=m.model_id,
+                    name=m.name,
+                    description=m.description or "",
+                    category_id="model",
+                )
+                for m in acp_models.available_models
+            ]
+            categories.append(
+                ModeCategory(
+                    id="model",
+                    name="Model",
+                    available_modes=models,
+                    current_mode_id=acp_models.current_model_id,
+                )
             )
-        ]
+
+        return categories
 
     async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
         """Set a mode on the remote ACP server.
 
-        For ACPAgent, this forwards the mode change to the remote ACP server.
+        For ACPAgent, this forwards the mode/model change to the remote ACP server.
 
         Args:
             mode: The mode to set - ModeInfo object or mode ID string
-            category_id: Optional category ID (ignored for ACP, only one category)
+            category_id: Category ID ("permissions" or "model")
 
         Raises:
             RuntimeError: If not connected to ACP server
             ValueError: If mode is not available
         """
-        from acp.schema import SetSessionModeRequest
+        from acp.schema import SetSessionModelRequest, SetSessionModeRequest
 
-        # Extract mode_id from ModeInfo if provided
-        mode_id = mode.id if isinstance(mode, ModeInfo) else mode
+        # Extract mode_id and category from ModeInfo if provided
+        if isinstance(mode, ModeInfo):
+            mode_id = mode.id
+            category_id = category_id or mode.category_id
+        else:
+            mode_id = mode
 
         if not self._connection or not self._session_id:
             msg = "Not connected to ACP server"
             raise RuntimeError(msg)
 
+        # Default to permissions if no category specified
+        if category_id is None:
+            category_id = "permissions"
+
         # Validate mode is available
         available_modes = await self.get_modes()
-        if available_modes:
-            valid_ids = {m.id for cat in available_modes for m in cat.available_modes}
+        matching_category = next((c for c in available_modes if c.id == category_id), None)
+        if matching_category:
+            valid_ids = {m.id for m in matching_category.available_modes}
             if mode_id not in valid_ids:
-                msg = f"Unknown mode: {mode_id}. Available: {valid_ids}"
+                msg = f"Unknown {category_id}: {mode_id}. Available: {valid_ids}"
                 raise ValueError(msg)
 
-        # Forward mode change to remote ACP server
-        request = SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id)
-        await self._connection.set_session_mode(request)
+        if category_id == "permissions":
+            # Forward mode change to remote ACP server
+            mode_request = SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id)
+            await self._connection.set_session_mode(mode_request)
 
-        # Update local state
-        if self._state and self._state.modes:
-            self._state.modes.current_mode_id = mode_id
+            # Update local state
+            if self._state and self._state.modes:
+                self._state.modes.current_mode_id = mode_id
 
-        self.log.info("Mode changed on remote ACP server", mode_id=mode_id)
+            self.log.info("Mode changed on remote ACP server", mode_id=mode_id)
+
+        elif category_id == "model":
+            # Forward model change to remote ACP server
+            model_request = SetSessionModelRequest(session_id=self._session_id, model_id=mode_id)
+            await self._connection.set_session_model(model_request)
+
+            # Update local state
+            if self._state and self._state.models:
+                self._state.models.current_model_id = mode_id
+
+            self.log.info("Model changed on remote ACP server", model_id=mode_id)
+
+        else:
+            msg = f"Unknown category: {category_id}. Available: permissions, model"
+            raise ValueError(msg)
 
 
 if __name__ == "__main__":

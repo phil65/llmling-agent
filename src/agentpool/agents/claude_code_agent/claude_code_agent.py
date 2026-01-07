@@ -1399,61 +1399,87 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     async def get_modes(self) -> list[ModeCategory]:
         """Get available mode categories for Claude Code agent.
 
-        Claude Code exposes permission modes from the SDK.
+        Claude Code exposes permission modes and model selection.
 
         Returns:
-            List with single ModeCategory for Claude Code permission modes
+            List of ModeCategory for permissions and models
         """
         from agentpool.agents.modes import ModeCategory, ModeInfo
 
-        # Get current mode - map our confirmation mode to Claude's permission mode
+        categories: list[ModeCategory] = []
+
+        # Permission modes
         current_id = self._permission_mode or "default"
         if self.tool_confirmation_mode == "never":
             current_id = "bypassPermissions"
 
-        category_id = "permissions"
-        return [
+        categories.append(
             ModeCategory(
-                id=category_id,
+                id="permissions",
                 name="Mode",
                 available_modes=[
                     ModeInfo(
                         id="default",
                         name="Default",
                         description="Require confirmation for tool usage",
-                        category_id=category_id,
+                        category_id="permissions",
                     ),
                     ModeInfo(
                         id="acceptEdits",
                         name="Accept Edits",
                         description="Auto-approve file edits without confirmation",
-                        category_id=category_id,
+                        category_id="permissions",
                     ),
                     ModeInfo(
                         id="plan",
                         name="Plan",
                         description="Planning mode - no tool execution",
-                        category_id=category_id,
+                        category_id="permissions",
                     ),
                     ModeInfo(
                         id="bypassPermissions",
                         name="Bypass Permissions",
                         description="Skip all permission checks (use with caution)",
-                        category_id=category_id,
+                        category_id="permissions",
                     ),
                 ],
                 current_mode_id=current_id,
             )
-        ]
+        )
+
+        # Model selection
+        models = await self.get_available_models()
+        if models:
+            current_model = self.model_name or (models[0].id if models else "")
+            categories.append(
+                ModeCategory(
+                    id="model",
+                    name="Model",
+                    available_modes=[
+                        ModeInfo(
+                            id=m.id,
+                            name=m.name or m.id,
+                            description=m.description or "",
+                            category_id="model",
+                        )
+                        for m in models
+                    ],
+                    current_mode_id=current_model,
+                )
+            )
+
+        return categories
 
     async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
         """Set a mode within a category.
 
-        For Claude Code, this handles permission modes from the SDK.
+        For Claude Code, this handles:
+        - "permissions" category: permission modes from the SDK
+        - "model" category: model selection
 
         Args:
             mode: The mode to set - ModeInfo object or mode ID string
-            category_id: Optional category ID (defaults to "permissions")
+            category_id: Category ID ("permissions" or "model")
 
         Raises:
             ValueError: If the category or mode is unknown
@@ -1461,37 +1487,55 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Extract mode_id and category from ModeInfo if provided
         if isinstance(mode, ModeInfo):
             mode_id = mode.id
-            category_id = category_id or mode.category_id or None
+            category_id = category_id or mode.category_id
         else:
             mode_id = mode
 
-        # Default to first (and only) category
+        # Default to permissions if no category specified
         if category_id is None:
             category_id = "permissions"
 
-        if category_id != "permissions":
-            msg = f"Unknown category: {category_id}. Only 'permissions' is supported."
+        if category_id == "permissions":
+            # Map mode_id to PermissionMode
+            valid_modes: set[PermissionMode] = {
+                "default",
+                "acceptEdits",
+                "plan",
+                "bypassPermissions",
+            }
+            if mode_id not in valid_modes:
+                msg = f"Unknown permission mode: {mode_id}. Available: {list(valid_modes)}"
+                raise ValueError(msg)
+
+            permission_mode: PermissionMode = mode_id  # type: ignore[assignment]
+            self._permission_mode = permission_mode
+
+            # Update tool confirmation mode based on permission mode
+            if mode_id == "bypassPermissions":
+                self.tool_confirmation_mode = "never"
+            elif mode_id in ("default", "plan"):
+                self.tool_confirmation_mode = "always"
+
+            # Update SDK client if connected
+            if self._client:
+                await self._client.set_permission_mode(permission_mode)
+                self.log.info("Permission mode changed", mode=mode_id)
+
+        elif category_id == "model":
+            # Validate model exists
+            models = await self.get_available_models()
+            if models:
+                valid_ids = {m.id for m in models}
+                if mode_id not in valid_ids:
+                    msg = f"Unknown model: {mode_id}. Available: {valid_ids}"
+                    raise ValueError(msg)
+            # Set the model using set_model method
+            await self.set_model(mode_id)
+            self.log.info("Model changed", model=mode_id)
+
+        else:
+            msg = f"Unknown category: {category_id}. Available: permissions, model"
             raise ValueError(msg)
-
-        # Map mode_id to PermissionMode
-        valid_modes: set[PermissionMode] = {"default", "acceptEdits", "plan", "bypassPermissions"}
-        if mode_id not in valid_modes:
-            msg = f"Unknown mode: {mode_id}. Available: {list(valid_modes)}"
-            raise ValueError(msg)
-
-        permission_mode: PermissionMode = mode_id  # type: ignore[assignment]
-        self._permission_mode = permission_mode
-
-        # Update tool confirmation mode based on permission mode
-        if mode_id == "bypassPermissions":
-            self.tool_confirmation_mode = "never"
-        elif mode_id in ("default", "plan"):
-            self.tool_confirmation_mode = "always"
-
-        # Update SDK client if connected
-        if self._client:
-            await self._client.set_permission_mode(permission_mode)
-            self.log.info("Permission mode changed", mode=mode_id)
 
 
 if __name__ == "__main__":
