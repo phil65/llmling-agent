@@ -115,6 +115,7 @@ from agentpool_server.opencode_server.models.events import (
 from agentpool_server.opencode_server.models.mcp import (
     LogRequest,
     MCPStatus,
+    McpResource,
 )
 from agentpool_server.opencode_server.models.config import (
     Config,
@@ -146,6 +147,7 @@ __all__ = [
     # MCP
     "LogRequest",
     "MCPStatus",
+    "McpResource",
     "MessagePath",
     "MessageRequest",
     "MessageTime",

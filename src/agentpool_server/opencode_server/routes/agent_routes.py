@@ -26,6 +26,7 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     Agent,
     Command,
     LogRequest,
+    McpResource,
     MCPStatus,
 )
 
@@ -176,6 +177,36 @@ async def log(request: LogRequest, state: StateDep) -> bool:
     _ = state  # unused for now
     print(f"[{request.level}] {request.service}: {request.message}")
     return True
+
+
+@router.get("/experimental/resource")
+async def list_mcp_resources(state: StateDep) -> dict[str, McpResource]:
+    """Get all available MCP resources from connected servers.
+
+    Returns a dictionary mapping resource keys to McpResource objects.
+    Keys are formatted as "{client}:{resource_name}" for uniqueness.
+    """
+    try:
+        resources = await state.agent.tools.list_resources()
+        result: dict[str, McpResource] = {}
+
+        for resource in resources:
+            # Create unique key: sanitize client and resource names
+            client_name = (resource.client or "unknown").replace("/", "_")
+            resource_name = resource.name.replace("/", "_")
+            key = f"{client_name}:{resource_name}"
+
+            result[key] = McpResource(
+                name=resource.name,
+                uri=resource.uri,
+                description=resource.description,
+                mime_type=resource.mime_type,
+                client=resource.client or "unknown",
+            )
+
+        return result
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 @router.get("/experimental/tool/ids")

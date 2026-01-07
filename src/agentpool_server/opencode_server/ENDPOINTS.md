@@ -140,6 +140,7 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | [x] | GET | `/formatter` | Get formatter status (stub) |
 | [~] | GET | `/mcp` | Get MCP server status |
 | [x] | POST | `/mcp` | Add MCP server dynamically |
+| [x] | GET | `/experimental/resource` | List MCP resources from connected servers |
 
 ---
 
