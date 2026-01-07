@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Any, Self
 
 from agentpool.log import get_logger
 from agentpool.resource_providers import ResourceProvider
+from agentpool.resource_providers.resource_info import ResourceInfo
 from agentpool_config.mcp_server import BaseMCPServerConfig
-from agentpool_config.resources import ResourceInfo
 
 
 if TYPE_CHECKING:
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from fastmcp.client.sampling import SamplingHandler
+    from mcp.types import ResourceTemplate
 
     from agentpool.prompts.prompts import MCPClientPrompt
     from agentpool.tools.base import Tool
@@ -194,7 +195,11 @@ class MCPResourceProvider(ResourceProvider):
 
             for resource in result:
                 try:
-                    converted = await ResourceInfo.from_mcp_resource(resource)
+                    converted = await ResourceInfo.from_mcp_resource(
+                        resource,
+                        client_name=self.name,
+                        reader=self.read_resource,
+                    )
                     all_resources.append(converted)
                 except Exception:
                     logger.exception("Failed to convert resource", name=resource.name)
@@ -212,6 +217,59 @@ class MCPResourceProvider(ResourceProvider):
             await self.refresh_resources_cache()
 
         return self._resources_cache or []
+
+    async def read_resource(self, uri: str) -> list[str]:
+        """Read resource content by URI.
+
+        Args:
+            uri: URI of the resource to read
+
+        Returns:
+            List of text contents from the resource
+
+        Raises:
+            RuntimeError: If resource cannot be read
+        """
+        contents = await self.client.read_resource(uri)
+        result: list[str] = []
+        for content in contents:
+            if hasattr(content, "text") and content.text is not None:
+                result.append(str(content.text))
+            elif hasattr(content, "blob") and content.blob is not None:
+                # Binary content - return placeholder or base64
+                import base64
+
+                blob_data = content.blob
+                if isinstance(blob_data, str):
+                    result.append(f"[Binary data: {len(blob_data)} bytes]")
+                elif isinstance(blob_data, bytes):
+                    encoded = base64.b64encode(blob_data).decode("utf-8")
+                    result.append(encoded)
+                else:
+                    result.append("[Binary data: unknown format]")
+        return result
+
+    async def list_resource_templates(self) -> list[ResourceTemplate]:
+        """Get available resource templates from the MCP server.
+
+        Resource templates define URI patterns with placeholders that can be
+        expanded into concrete resource URIs. For example:
+        - Template: "file:///{path}" with path="config.json"
+        - Expands to: "file:///config.json"
+
+        TODO: Decide on integration strategy:
+        - Option 1: Templates as separate concept with expand() -> ResourceInfo
+        - Option 2: Unified ResourceInfo with is_template flag and read(**kwargs)
+        - Option 3: ResourceTemplateInfo class that produces ResourceInfo
+
+        Returns:
+            List of ResourceTemplate objects from the server
+        """
+        try:
+            return await self.client.list_resource_templates()
+        except Exception:
+            logger.exception("Failed to list resource templates")
+            return []
 
     def get_status(self) -> dict[str, str]:
         """Get connection status for this MCP server.

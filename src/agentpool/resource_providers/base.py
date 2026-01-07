@@ -20,9 +20,9 @@ if TYPE_CHECKING:
     from schemez import OpenAIFunctionDefinition
 
     from agentpool.prompts.prompts import BasePrompt
+    from agentpool.resource_providers.resource_info import ResourceInfo
     from agentpool.skills.skill import Skill
     from agentpool.tools.base import ToolKind
-    from agentpool_config.resources import ResourceInfo
 
 
 logger = get_logger(__name__)

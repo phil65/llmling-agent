@@ -56,6 +56,7 @@ if TYPE_CHECKING:
         Implementation,
         Prompt as MCPPrompt,
         Resource as MCPResource,
+        ResourceTemplate,
         TextResourceContents,
         Tool as MCPTool,
     )
@@ -282,6 +283,56 @@ class MCPClient:
             return await self._client.list_resources()
         except Exception as e:
             msg = f"Failed to list resources: {e}"
+            raise RuntimeError(msg) from e
+
+    async def list_resource_templates(self) -> list[ResourceTemplate]:
+        """Get available resource templates from the server.
+
+        Resource templates are URI patterns with placeholders that can be
+        expanded to create concrete resource URIs.
+
+        Example template: "file:///{path}" -> expand with path="config.json"
+        -> "file:///config.json" which can then be read.
+
+        TODO: Integrate resource templates into the ResourceInfo system.
+        Currently templates are separate from resources - we need to decide:
+        - Should templates appear in list_resources() with a flag?
+        - Should ResourceInfo.read() accept kwargs for template expansion?
+        - Should templates have their own ResourceTemplateInfo class?
+
+        Returns:
+            List of resource templates from the server
+        """
+        if not self.connected:
+            msg = "Not connected to MCP server"
+            raise RuntimeError(msg)
+
+        try:
+            return await self._client.list_resource_templates()
+        except Exception as e:
+            msg = f"Failed to list resource templates: {e}"
+            raise RuntimeError(msg) from e
+
+    async def read_resource(self, uri: str) -> list[TextResourceContents | BlobResourceContents]:
+        """Read resource content by URI.
+
+        Args:
+            uri: URI of the resource to read
+
+        Returns:
+            List of resource contents (text or blob)
+
+        Raises:
+            RuntimeError: If not connected or read fails
+        """
+        if not self.connected:
+            msg = "Not connected to MCP server"
+            raise RuntimeError(msg)
+
+        try:
+            return await self._client.read_resource(uri)
+        except Exception as e:
+            msg = f"Failed to read resource {uri!r}: {e}"
             raise RuntimeError(msg) from e
 
     async def get_prompt(

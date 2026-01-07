@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from agentpool.prompts.prompts import MCPClientPrompt
     from agentpool.resource_providers import ResourceProvider
     from agentpool.resource_providers.codemode.provider import CodeModeResourceProvider
+    from agentpool.resource_providers.resource_info import ResourceInfo
 
 
 logger = get_logger(__name__)
@@ -200,6 +201,48 @@ class ToolManager:
                     logger.exception("Failed to get prompts from provider", provider=provider)
 
         return all_prompts
+
+    async def list_resources(self) -> list[ResourceInfo]:
+        """Get all resources from all providers.
+
+        Returns:
+            List of ResourceInfo objects from all providers
+        """
+        all_resources: list[ResourceInfo] = []
+        # Get resources from all providers concurrently
+        provider_coroutines = [provider.get_resources() for provider in self.providers]
+        results = await asyncio.gather(*provider_coroutines, return_exceptions=True)
+
+        for provider, result in zip(self.providers, results, strict=False):
+            if isinstance(result, BaseException):
+                logger.warning(
+                    "Failed to get resources from provider",
+                    provider=provider.name,
+                    error=str(result),
+                )
+                continue
+            all_resources.extend(result)
+
+        return all_resources
+
+    async def get_resource(self, name: str) -> ResourceInfo:
+        """Get a specific resource by name.
+
+        Args:
+            name: Name of the resource to find
+
+        Returns:
+            ResourceInfo for the requested resource
+
+        Raises:
+            ToolError: If resource not found
+        """
+        resources = await self.list_resources()
+        resource: ResourceInfo | None = next((r for r in resources if r.name == name), None)
+        if not resource:
+            msg = f"Resource not found: {name}"
+            raise ToolError(msg)
+        return resource
 
     @asynccontextmanager
     async def temporary_tools(

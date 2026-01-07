@@ -14,8 +14,8 @@ if TYPE_CHECKING:
     from agentpool import Agent, MessageNode
     from agentpool.common_types import ToolSource, ToolType
     from agentpool.prompts.prompts import BasePrompt
+    from agentpool.resource_providers.resource_info import ResourceInfo
     from agentpool.tools.base import Tool
-    from agentpool_config.resources import ResourceInfo
 
 
 class StaticResourceProvider(ResourceProvider):

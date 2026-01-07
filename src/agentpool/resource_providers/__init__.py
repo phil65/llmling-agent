@@ -6,6 +6,7 @@ from agentpool.resource_providers.base import (
     ResourceProvider,
     ResourceType,
 )
+from agentpool.resource_providers.resource_info import ResourceInfo
 from agentpool.resource_providers.static import StaticResourceProvider
 from agentpool.resource_providers.filtering import FilteringResourceProvider
 from agentpool.resource_providers.aggregating import AggregatingResourceProvider
@@ -19,6 +20,7 @@ __all__ = [
     "PlanProvider",
     "ProviderKind",
     "ResourceChangeEvent",
+    "ResourceInfo",
     "ResourceProvider",
     "ResourceType",
     "StaticResourceProvider",

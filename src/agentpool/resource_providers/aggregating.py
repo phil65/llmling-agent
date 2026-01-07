@@ -13,8 +13,8 @@ if TYPE_CHECKING:
     from pydantic_ai import ModelRequestPart
 
     from agentpool.prompts.prompts import BasePrompt
+    from agentpool.resource_providers.resource_info import ResourceInfo
     from agentpool.tools.base import Tool
-    from agentpool_config.resources import ResourceInfo
 
 _ = ResourceChangeEvent  # Used at runtime in method signatures
 

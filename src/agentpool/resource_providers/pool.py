@@ -13,8 +13,8 @@ if TYPE_CHECKING:
 
     from agentpool import AgentPool
     from agentpool.prompts.prompts import BasePrompt
+    from agentpool.resource_providers.resource_info import ResourceInfo
     from agentpool.tools import Tool
-    from agentpool_config.resources import ResourceInfo
 
 logger = get_logger(__name__)
 
