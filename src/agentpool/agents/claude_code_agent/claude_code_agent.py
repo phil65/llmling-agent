@@ -320,6 +320,45 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Maps tool_name to tool_call_id for matching permissions to tool call UI parts
         self._pending_tool_call_ids: dict[str, str] = {}
 
+    @classmethod
+    def from_config(
+        cls,
+        config: ClaudeCodeAgentConfig,
+        *,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        input_provider: InputProvider | None = None,
+        agent_pool: AgentPool[Any] | None = None,
+        output_type: type[TResult] | None = None,
+    ) -> Self:
+        """Create a ClaudeCodeAgent from a config object.
+
+        This is the preferred way to instantiate a ClaudeCodeAgent from configuration.
+
+        Args:
+            config: Claude Code agent configuration
+            event_handlers: Optional event handlers (merged with config handlers)
+            input_provider: Optional input provider for user interactions
+            agent_pool: Optional agent pool for coordination
+            output_type: Optional output type for structured output
+
+        Returns:
+            Configured ClaudeCodeAgent instance
+        """
+        # Merge config-level handlers with provided handlers
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *(event_handlers or []),
+        ]
+        return cls(
+            config=config,
+            event_handlers=merged_handlers or None,
+            input_provider=input_provider,
+            agent_pool=agent_pool,
+            tool_confirmation_mode=config.requires_tool_confirmation,
+            output_type=output_type,
+        )
+
     def get_context(self, data: Any = None) -> AgentContext:
         """Create a new context for this agent.
 

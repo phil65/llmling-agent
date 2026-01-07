@@ -115,6 +115,7 @@ if TYPE_CHECKING:
     from agentpool.delegation import AgentPool, Team, TeamRun
     from agentpool.hooks import AgentHooks
     from agentpool.models.agents import NativeAgentConfig, ToolMode
+    from agentpool.models.manifest import AgentsManifest
     from agentpool.prompts.prompts import PromptType
     from agentpool.resource_providers import ResourceProvider
     from agentpool.tools.base import FunctionTool
@@ -377,6 +378,149 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             parts.append(f"Description: {self.description}")
         parts.extend([await self.tools.__prompt__(), self.conversation.__prompt__()])
         return "\n".join(parts)
+
+    @classmethod
+    def from_config(  # noqa: PLR0915
+        cls,
+        config: NativeAgentConfig,
+        *,
+        name: str | None = None,
+        manifest: AgentsManifest | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        input_provider: InputProvider | None = None,
+        agent_pool: AgentPool[Any] | None = None,
+        deps_type: type[TDeps] | None = None,
+    ) -> Self:
+        """Create a native Agent from a config object.
+
+        This is the preferred way to instantiate an Agent from configuration.
+        Handles system prompt resolution, model resolution, toolsets setup, etc.
+
+        Args:
+            config: Native agent configuration
+            name: Optional name override (used for manifest lookups, defaults to config.name)
+            manifest: Optional manifest for resolving prompts, models, output types.
+                     If not provided, uses agent_pool.manifest or creates empty one.
+            event_handlers: Optional event handlers (merged with config handlers)
+            input_provider: Optional input provider for user interactions
+            agent_pool: Optional agent pool for coordination
+            deps_type: Optional dependency type
+
+        Returns:
+            Configured Agent instance
+        """
+        from pathlib import Path
+
+        from agentpool.models.manifest import AgentsManifest
+        from agentpool.utils.result_utils import to_type
+        from agentpool_config.system_prompts import (
+            FilePromptConfig,
+            FunctionPromptConfig,
+            LibraryPromptConfig,
+            StaticPromptConfig,
+        )
+
+        # Get manifest from pool or create empty one
+        if manifest is None:
+            manifest = agent_pool.manifest if agent_pool else AgentsManifest()
+
+        # Use provided name, fall back to config.name, then default
+        name = name or config.name or "agent"
+
+        # Normalize system_prompt to a list for iteration
+        sys_prompts: list[str] = []
+        prompt_source = config.system_prompt
+        if prompt_source is not None:
+            prompts_to_process = (
+                [prompt_source] if isinstance(prompt_source, str) else prompt_source
+            )
+            for prompt in prompts_to_process:
+                match prompt:
+                    case (str() as sys_prompt) | StaticPromptConfig(content=sys_prompt):
+                        sys_prompts.append(sys_prompt)
+                    case FilePromptConfig(path=path, variables=variables):
+                        template_path = Path(path)
+                        if not template_path.is_absolute() and config.config_file_path:
+                            template_path = Path(config.config_file_path).parent / path
+                        template_content = template_path.read_text("utf-8")
+                        if variables:
+                            from jinja2 import Template
+
+                            template = Template(template_content)
+                            content = template.render(**variables)
+                        else:
+                            content = template_content
+                        sys_prompts.append(content)
+                    case LibraryPromptConfig(reference=reference):
+                        try:
+                            content = manifest.prompt_manager.get.sync(reference)
+                            sys_prompts.append(content)
+                        except Exception as e:
+                            msg = f"Failed to load library prompt {reference!r} for agent {name}"
+                            logger.exception(msg)
+                            raise ValueError(msg) from e
+                    case FunctionPromptConfig(function=function, arguments=arguments):
+                        content = function(**arguments)
+                        sys_prompts.append(content)
+
+        # Prepare toolsets list
+        toolsets_list = config.get_toolsets()
+        if config_tool_provider := config.get_tool_provider():
+            toolsets_list.append(config_tool_provider)
+
+        # Convert workers config to a toolset (backwards compatibility)
+        if config.workers:
+            from agentpool_toolsets.builtin.workers import WorkersTools
+
+            workers_provider = WorkersTools(workers=list(config.workers), name="workers")
+            toolsets_list.append(workers_provider)
+
+        # Resolve output type
+        agent_output_type = manifest.get_output_type(name) or str
+        resolved_output_type = to_type(agent_output_type, manifest.responses)
+
+        # Merge event handlers
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *(event_handlers or []),
+        ]
+
+        # Resolve model
+        resolved_model = manifest.resolve_model(config.model)
+        model = resolved_model.get_model()
+        model_settings = resolved_model.get_model_settings()
+
+        # Extract builtin tools
+        builtin_tools = config.get_builtin_tools()
+
+        return cls(
+            model=model,
+            model_settings=model_settings,
+            system_prompt=sys_prompts,
+            name=name,
+            display_name=config.display_name,
+            deps_type=deps_type,
+            env=config.environment.get_provider() if config.environment else None,
+            description=config.description,
+            retries=config.retries,
+            session=config.get_session_config(),
+            output_retries=config.output_retries,
+            end_strategy=config.end_strategy,
+            agent_config=config,
+            input_provider=input_provider,
+            output_type=resolved_output_type,  # type: ignore[arg-type]
+            event_handlers=merged_handlers or None,
+            agent_pool=agent_pool,
+            tool_mode=config.tool_mode,
+            knowledge=config.knowledge,
+            toolsets=toolsets_list,
+            hooks=config.hooks.get_agent_hooks() if config.hooks else None,
+            tool_confirmation_mode=config.requires_tool_confirmation,
+            builtin_tools=builtin_tools or None,
+            usage_limits=config.usage_limits,
+            providers=config.model_providers,
+        )
 
     async def __aenter__(self) -> Self:
         """Enter async context and set up MCP servers."""

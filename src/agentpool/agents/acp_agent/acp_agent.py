@@ -12,12 +12,14 @@ and communicating with it via JSON-RPC over stdio. This allows:
 
 Example:
     ```python
+    from agentpool.models.acp_agents import ACPAgentConfig
+
     config = ACPAgentConfig(
         command="claude-code-acp",
         name="claude_coder",
         cwd="/path/to/project",
     )
-    async with ACPAgent(config) as agent:
+    async with ACPAgent(config=config) as agent:
         result = await agent.run("Write a hello world program")
         print(result.content)
     ```
@@ -29,7 +31,7 @@ import asyncio
 import os
 from pathlib import Path
 import subprocess
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Self
 import uuid
 
 import anyio
@@ -85,6 +87,7 @@ if TYPE_CHECKING:
     )
     from acp.schema.mcp import McpServer
     from agentpool.agents import AgentContext
+    from agentpool.agents.base_agent import ToolConfirmationMode
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
@@ -98,7 +101,6 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageHistory
     from agentpool.models.acp_agents import BaseACPAgentConfig
     from agentpool.ui.base import InputProvider
-    from agentpool_config.nodes import ToolConfirmationMode
 
 logger = get_logger(__name__)
 
@@ -127,57 +129,16 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     Supports both blocking `run()` and streaming `run_iter()` execution modes.
 
-    Example with config:
+    Example:
         ```python
+        # From config
         config = ClaudeACPAgentConfig(cwd="/project", model="sonnet")
-        agent = ACPAgent(config, agent_pool=pool)
-        ```
+        agent = ACPAgent(config=config, agent_pool=pool)
 
-    Example with kwargs:
-        ```python
-        agent = ACPAgent(
-            command="claude-code-acp",
-            cwd="/project",
-            providers=["anthropic"],
-        )
+        # From kwargs
+        agent = ACPAgent(command="claude-code-acp", cwd="/project")
         ```
     """
-
-    @overload
-    def __init__(
-        self,
-        *,
-        config: BaseACPAgentConfig,
-        input_provider: InputProvider | None = None,
-        agent_pool: AgentPool[Any] | None = None,
-        enable_logging: bool = True,
-        event_configs: Sequence[EventConfig] | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
-        commands: Sequence[BaseCommand] | None = None,
-    ) -> None: ...
-
-    @overload
-    def __init__(
-        self,
-        *,
-        command: str,
-        name: str | None = None,
-        description: str | None = None,
-        display_name: str | None = None,
-        args: list[str] | None = None,
-        cwd: str | None = None,
-        env_vars: dict[str, str] | None = None,
-        env: ExecutionEnvironment | None = None,
-        allow_file_operations: bool = True,
-        allow_terminal: bool = True,
-        input_provider: InputProvider | None = None,
-        agent_pool: AgentPool[Any] | None = None,
-        enable_logging: bool = True,
-        event_configs: Sequence[EventConfig] | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
-        tool_confirmation_mode: ToolConfirmationMode = "always",
-        commands: Sequence[BaseCommand] | None = None,
-    ) -> None: ...
 
     def __init__(
         self,
@@ -190,7 +151,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         args: list[str] | None = None,
         cwd: str | None = None,
         env_vars: dict[str, str] | None = None,
-        env: ExecutionEnvironment | None = None,
         allow_file_operations: bool = True,
         allow_terminal: bool = True,
         input_provider: InputProvider | None = None,
@@ -222,12 +182,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         super().__init__(
             name=name or config.name or config.get_command(),
             description=description or config.description,
-            display_name=display_name,
+            display_name=display_name or config.display_name,
             mcp_servers=config.mcp_servers,
             agent_pool=agent_pool,
             enable_logging=enable_logging,
             event_configs=event_configs or list(config.triggers),
-            env=env or config.get_execution_environment(),
+            env=config.get_execution_environment(),
             input_provider=input_provider,
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
@@ -253,6 +213,41 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._client_env: ExecutionEnvironment | None = config.get_client_execution_environment()
         # Track the prompt task for cancellation
         self._prompt_task: asyncio.Task[Any] | None = None
+
+    @classmethod
+    def from_config(
+        cls,
+        config: BaseACPAgentConfig,
+        *,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        input_provider: InputProvider | None = None,
+        agent_pool: AgentPool[Any] | None = None,
+    ) -> Self:
+        """Create an ACPAgent from a config object.
+
+        This is the preferred way to instantiate an ACPAgent from configuration.
+
+        Args:
+            config: ACP agent configuration
+            event_handlers: Optional event handlers (merged with config handlers)
+            input_provider: Optional input provider for user interactions
+            agent_pool: Optional agent pool for coordination
+
+        Returns:
+            Configured ACPAgent instance
+        """
+        # Merge config-level handlers with provided handlers
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *(event_handlers or []),
+        ]
+        return cls(
+            config=config,
+            event_handlers=merged_handlers or None,
+            input_provider=input_provider,
+            agent_pool=agent_pool,
+        )
 
     @property
     def client_env(self) -> ExecutionEnvironment:
@@ -985,12 +980,16 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
 
 if __name__ == "__main__":
+    from agentpool.models.acp_agents import ACPAgentConfig
 
     async def main() -> None:
         """Demo: Basic call to an ACP agent."""
-        args = ["run", "agentpool", "serve-acp"]
-        cwd = str(Path.cwd())
-        async with ACPAgent(command="uv", args=args, cwd=cwd, event_handlers=["detailed"]) as agent:
+        config = ACPAgentConfig(
+            command="uv",
+            args=["run", "agentpool", "serve-acp"],
+            cwd=str(Path.cwd()),
+        )
+        async with ACPAgent(config=config, event_handlers=["detailed"]) as agent:
             print("Response (streaming): ", end="", flush=True)
             async for chunk in agent.run_stream("Say hello briefly."):
                 print(chunk, end="", flush=True)

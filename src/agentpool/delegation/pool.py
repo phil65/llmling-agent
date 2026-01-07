@@ -56,12 +56,7 @@ if TYPE_CHECKING:
     from agentpool.delegation.base_team import BaseTeam
     from agentpool.mcp_server.tool_bridge import ToolManagerBridge
     from agentpool.messaging.compaction import CompactionPipeline
-    from agentpool.models import (
-        AGUIAgentConfig,
-        AnyAgentConfig,
-        BaseACPAgentConfig,
-        ClaudeCodeAgentConfig,
-    )
+    from agentpool.models import AnyAgentConfig
     from agentpool.models.manifest import AgentsManifest
     from agentpool.ui.base import InputProvider
     from agentpool_config.session import SessionQuery
@@ -806,92 +801,50 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         match config:
             case NativeAgentConfig():
-                return self.create_agent(
-                    name,
-                    deps_type=deps_type,
-                    input_provider=self._input_provider,
-                    pool=self,
+                from agentpool import Agent
+
+                return Agent.from_config(
+                    config,
+                    name=name,  # Pass dict key for manifest lookups
+                    manifest=self.manifest,
                     event_handlers=self.event_handlers,
+                    input_provider=self._input_provider,
+                    agent_pool=self,
+                    deps_type=deps_type,
                 )
             case AGUIAgentConfig():
-                return self._create_agui_agent_from_config(config, deps_type)
+                from agentpool.agents.agui_agent import AGUIAgent
+
+                return AGUIAgent.from_config(
+                    config,
+                    event_handlers=self.event_handlers,
+                    agent_pool=self,
+                )
             case ClaudeCodeAgentConfig():
-                return self._create_claude_code_agent_from_config(config, deps_type)
+                from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+                from agentpool.utils.result_utils import to_type
+
+                output_type: type | None = None
+                if config.output_type:
+                    output_type = to_type(config.output_type, self.manifest.responses)
+                return ClaudeCodeAgent.from_config(
+                    config,
+                    event_handlers=self.event_handlers,
+                    input_provider=self._input_provider,
+                    agent_pool=self,
+                    output_type=output_type,
+                )
             case BaseACPAgentConfig():
-                return self._create_acp_agent_from_config(config, deps_type)
+                from agentpool.agents.acp_agent import ACPAgent
+
+                return ACPAgent.from_config(
+                    config,
+                    event_handlers=self.event_handlers,
+                    agent_pool=self,
+                )
             case _:
                 msg = f"Unknown agent config type: {type(config)}"
                 raise TypeError(msg)
-
-    def _create_acp_agent_from_config[TDeps](
-        self,
-        config: BaseACPAgentConfig,
-        deps_type: type[TDeps] | None = None,
-    ) -> ACPAgent[TDeps]:
-        """Create an ACPAgent from config object."""
-        from agentpool.agents.acp_agent import ACPAgent
-
-        config_handlers = config.get_event_handlers()
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
-            *config_handlers,
-            *self.event_handlers,
-        ]
-        return ACPAgent(config=config, event_handlers=merged_handlers or None)
-
-    def _create_agui_agent_from_config[TDeps](
-        self,
-        config: AGUIAgentConfig,
-        deps_type: type[TDeps] | None = None,
-    ) -> AGUIAgent[TDeps]:
-        """Create an AGUIAgent from config object."""
-        from agentpool.agents.agui_agent import AGUIAgent
-
-        config_handlers = config.get_event_handlers()
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
-            *config_handlers,
-            *self.event_handlers,
-        ]
-        return AGUIAgent(
-            endpoint=config.endpoint,
-            name=config.name or "agui-agent",
-            description=config.description,
-            display_name=config.display_name,
-            event_handlers=merged_handlers or None,
-            timeout=config.timeout,
-            headers=config.headers,
-            startup_command=config.startup_command,
-            startup_delay=config.startup_delay,
-            tools=[tool_config.get_tool() for tool_config in config.tools],
-            mcp_servers=config.mcp_servers,
-            tool_confirmation_mode=config.requires_tool_confirmation,
-        )
-
-    def _create_claude_code_agent_from_config[TDeps, TResult](
-        self,
-        config: ClaudeCodeAgentConfig,
-        deps_type: type[TDeps] | None = None,
-    ) -> ClaudeCodeAgent[TDeps, TResult]:
-        """Create a ClaudeCodeAgent from config object."""
-        from agentpool.agents.claude_code_agent import ClaudeCodeAgent
-        from agentpool.utils.result_utils import to_type
-
-        config_handlers = config.get_event_handlers()
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
-            *config_handlers,
-            *self.event_handlers,
-        ]
-        # Resolve output type if configured
-        output_type: type | None = None
-        if config.output_type:
-            output_type = to_type(config.output_type, self.manifest.responses)
-        return ClaudeCodeAgent(
-            config=config,
-            event_handlers=merged_handlers or None,
-            input_provider=self._input_provider,
-            tool_confirmation_mode=config.requires_tool_confirmation,
-            output_type=output_type,
-            agent_pool=self,
-        )
 
     def create_agent[TAgentDeps](  # noqa: PLR0915
         self,
@@ -1035,13 +988,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # Ensure name is set on config
         if config.name is None:
             config = config.model_copy(update={"name": name})
-        # Merge pool-level handlers with config-level handlers
-        config_handlers = config.get_event_handlers()
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
-            *config_handlers,
-            *self.event_handlers,
-        ]
-        return ACPAgent(config=config, event_handlers=merged_handlers or None)
+        return ACPAgent.from_config(
+            config,
+            event_handlers=self.event_handlers,
+            agent_pool=self,
+        )
 
     def create_agui_agent[TDeps](
         self,
@@ -1063,25 +1014,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # Ensure name is set on config
         if config.name is None:
             config = config.model_copy(update={"name": name})
-        # Merge pool-level handlers with config-level handlers
-        config_handlers = config.get_event_handlers()
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
-            *config_handlers,
-            *self.event_handlers,
-        ]
-        return AGUIAgent(
-            endpoint=config.endpoint,
-            name=config.name or "agui-agent",
-            description=config.description,
-            display_name=config.display_name,
-            event_handlers=merged_handlers or None,
-            timeout=config.timeout,
-            headers=config.headers,
-            startup_command=config.startup_command,
-            startup_delay=config.startup_delay,
-            tools=[tool_config.get_tool() for tool_config in config.tools],
-            mcp_servers=config.mcp_servers,
-            tool_confirmation_mode=config.requires_tool_confirmation,
+        return AGUIAgent.from_config(
+            config,
+            event_handlers=self.event_handlers,
+            agent_pool=self,
         )
 
     def create_claude_code_agent[TDeps](
@@ -1092,11 +1028,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """Create a ClaudeCodeAgent from configuration.
 
         Args:
-            name: Name of the Claude Code agent in the manifest
-            deps_type: Optional dependency type (not used by Claude Code agents currently)
+                    name: Name of the Claude Code agent in the manifest
+                    deps_type: Optional dependency type (not used by Claude Code agents currently)
 
         Returns:
-            Configured ClaudeCodeAgent instance
+        Configured ClaudeCodeAgent instance
         """
         from agentpool.agents.claude_code_agent import ClaudeCodeAgent
 
@@ -1104,17 +1040,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # Ensure name is set on config
         if config.name is None:
             config = config.model_copy(update={"name": name})
-        # Merge pool-level handlers with config-level handlers
-        config_handlers = config.get_event_handlers()
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
-            *config_handlers,
-            *self.event_handlers,
-        ]
-        return ClaudeCodeAgent(
-            config=config,
-            event_handlers=merged_handlers or None,
+        return ClaudeCodeAgent.from_config(
+            config,
+            event_handlers=self.event_handlers,
             input_provider=self._input_provider,
-            tool_confirmation_mode=config.requires_tool_confirmation,
             agent_pool=self,
         )
 

@@ -61,6 +61,7 @@ if TYPE_CHECKING:
     )
     from agentpool.delegation import AgentPool
     from agentpool.messaging import MessageHistory
+    from agentpool.models.agui_agents import AGUIAgentConfig
     from agentpool.tools import Tool
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
@@ -193,6 +194,50 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Chunk transformer for normalizing CHUNK events
         self._chunk_transformer = ChunkTransformer()
+
+    @classmethod
+    def from_config(
+        cls,
+        config: AGUIAgentConfig,
+        *,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        input_provider: InputProvider | None = None,
+        agent_pool: AgentPool[Any] | None = None,
+    ) -> Self:
+        """Create an AGUIAgent from a config object.
+
+        This is the preferred way to instantiate an AGUIAgent from configuration.
+
+        Args:
+            config: AG-UI agent configuration
+            event_handlers: Optional event handlers (merged with config handlers)
+            input_provider: Optional input provider for user interactions
+            agent_pool: Optional agent pool for coordination
+
+        Returns:
+            Configured AGUIAgent instance
+        """
+        # Merge config-level handlers with provided handlers
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+            *config_handlers,
+            *(event_handlers or []),
+        ]
+        return cls(
+            endpoint=config.endpoint,
+            name=config.name or "agui-agent",
+            description=config.description,
+            display_name=config.display_name,
+            event_handlers=merged_handlers or None,
+            timeout=config.timeout,
+            headers=config.headers,
+            startup_command=config.startup_command,
+            startup_delay=config.startup_delay,
+            tools=[tool_config.get_tool() for tool_config in config.tools],
+            mcp_servers=config.mcp_servers,
+            tool_confirmation_mode=config.requires_tool_confirmation,
+            agent_pool=agent_pool,
+        )
 
     def get_context(self, data: Any = None) -> AgentContext:
         """Create a new context for this agent.
