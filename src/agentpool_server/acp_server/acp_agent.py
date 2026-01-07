@@ -121,7 +121,7 @@ async def get_session_model_state(
     return SessionModelState(available_models=acp_models, current_model_id=current_model_id)
 
 
-def get_session_mode_state(agent: Any) -> SessionModeState | None:
+async def get_session_mode_state(agent: Any) -> SessionModeState | None:
     """Get SessionModeState from an agent using its get_modes() method.
 
     Converts agentpool ModeCategory to ACP SessionModeState format.
@@ -139,7 +139,7 @@ def get_session_mode_state(agent: Any) -> SessionModeState | None:
         return None
 
     try:
-        mode_categories = agent.get_modes()
+        mode_categories = await agent.get_modes()
     except Exception:
         logger.exception("Failed to get modes from agent")
         return None
@@ -282,7 +282,7 @@ class AgentPoolACPAgent(ACPAgent):
                 else:
                     # Use unified helpers for all other agents
                     models = await get_session_model_state(session.agent, session.agent.model_name)
-                    state = get_session_mode_state(session.agent)
+                    state = await get_session_mode_state(session.agent)
         except Exception:
             logger.exception("Failed to create new session")
             raise
@@ -361,7 +361,7 @@ class AgentPoolACPAgent(ACPAgent):
                     models = session.agent._state.models
             elif session.agent:
                 # Use unified helpers for all other agents
-                mode_state = get_session_mode_state(session.agent)
+                mode_state = await get_session_mode_state(session.agent)
                 models = await get_session_model_state(session.agent, session.agent.model_name)
             else:
                 models = None

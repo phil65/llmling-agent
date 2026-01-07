@@ -920,7 +920,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             raise RuntimeError(msg)
 
         # Validate mode is available
-        available_modes = self.get_modes()
+        available_modes = await self.get_modes()
         if available_modes:
             valid_ids = {m.id for cat in available_modes for m in cat.available_modes}
             if mode_id not in valid_ids:
