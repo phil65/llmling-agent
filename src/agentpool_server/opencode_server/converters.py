@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 import uuid
+
+
+logger = logging.getLogger(__name__)
 
 from pydantic_ai import (
     TextPart as PydanticTextPart,
@@ -377,6 +381,73 @@ def extract_user_prompt_from_parts(
         elif part_type == "file":
             content = _convert_file_part_to_user_content(part)
             result.append(content)
+
+        elif part_type == "agent":
+            # Agent mention - inject instruction to delegate to sub-agent
+            # This mirrors OpenCode's server-side behavior: inject a synthetic
+            # text instruction telling the LLM to call the task tool
+            agent_name = part.get("name", "")
+            if agent_name:
+                # TODO: Implement proper agent delegation via task tool
+                # For now, we add the instruction as text that the LLM will see
+                instruction = (
+                    f"Use the above message and context to generate a prompt "
+                    f"and call the task tool with subagent: {agent_name}"
+                )
+                result.append(instruction)
+
+        elif part_type == "snapshot":
+            # File system snapshot reference
+            # TODO: Implement snapshot restoration/reference
+            snapshot_id = part.get("snapshot", "")
+            logger.debug("Ignoring snapshot part: %s", snapshot_id)
+
+        elif part_type == "patch":
+            # Diff/patch content
+            # TODO: Implement patch application
+            patch_hash = part.get("hash", "")
+            files = part.get("files", [])
+            logger.debug("Ignoring patch part: hash=%s, files=%s", patch_hash, files)
+
+        elif part_type == "reasoning":
+            # Extended thinking/reasoning content from the model
+            # Include as text context since it contains useful reasoning
+            reasoning_text = part.get("text", "")
+            if reasoning_text:
+                result.append(f"[Reasoning]: {reasoning_text}")
+
+        elif part_type == "compaction":
+            # Marks where conversation was compacted
+            # TODO: Handle compaction markers for context management
+            auto = part.get("auto", False)
+            logger.debug("Ignoring compaction part: auto=%s", auto)
+
+        elif part_type == "subtask":
+            # References a spawned subtask
+            # TODO: Implement subtask tracking/results
+            subtask_agent = part.get("agent", "")
+            subtask_desc = part.get("description", "")
+            logger.debug(
+                "Ignoring subtask part: agent=%s, description=%s", subtask_agent, subtask_desc
+            )
+
+        elif part_type == "retry":
+            # Marks a retry of a failed operation
+            # TODO: Handle retry tracking
+            attempt = part.get("attempt", 0)
+            logger.debug("Ignoring retry part: attempt=%s", attempt)
+
+        elif part_type == "step-start":
+            # Step start marker - informational only
+            logger.debug("Ignoring step-start part")
+
+        elif part_type == "step-finish":
+            # Step finish marker - informational only
+            logger.debug("Ignoring step-finish part")
+
+        else:
+            # Unknown part type
+            logger.warning("Unknown part type: %s", part_type)
 
     # If only text parts, join them as a single string for simplicity
     if all(isinstance(item, str) for item in result):

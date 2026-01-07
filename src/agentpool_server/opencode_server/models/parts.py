@@ -148,6 +148,131 @@ class FilePart(OpenCodeBaseModel):
     source: FileSource | None = None
 
 
+class AgentPartSource(OpenCodeBaseModel):
+    """Agent part source location in original text."""
+
+    value: str
+    start: int
+    end: int
+
+
+class AgentPart(OpenCodeBaseModel):
+    """Agent mention part - references a sub-agent to delegate to.
+
+    When a user types @agent-name in the prompt, this part is created.
+    The server should inject a synthetic instruction to call the task tool
+    with the specified agent.
+    """
+
+    id: str
+    type: Literal["agent"] = "agent"
+    message_id: str
+    session_id: str
+    name: str
+    """Name of the agent to delegate to."""
+    source: AgentPartSource | None = None
+    """Source location in the original prompt text."""
+
+
+class SnapshotPart(OpenCodeBaseModel):
+    """File system snapshot reference."""
+
+    id: str
+    type: Literal["snapshot"] = "snapshot"
+    message_id: str
+    session_id: str
+    snapshot: str
+    """Snapshot identifier."""
+
+
+class PatchPart(OpenCodeBaseModel):
+    """Diff/patch content part."""
+
+    id: str
+    type: Literal["patch"] = "patch"
+    message_id: str
+    session_id: str
+    hash: str
+    """Hash of the patch."""
+    files: list[str] = Field(default_factory=list)
+    """List of files affected by this patch."""
+
+
+class ReasoningPart(OpenCodeBaseModel):
+    """Extended thinking/reasoning content part.
+
+    Used for models that support extended thinking (e.g., Claude with thinking tokens).
+    """
+
+    id: str
+    type: Literal["reasoning"] = "reasoning"
+    message_id: str
+    session_id: str
+    text: str
+    """The reasoning/thinking content."""
+    metadata: dict[str, Any] | None = None
+    time: TimeStartEndOptional | None = None
+
+
+class CompactionPart(OpenCodeBaseModel):
+    """Marks where conversation was compacted/summarized."""
+
+    id: str
+    type: Literal["compaction"] = "compaction"
+    message_id: str
+    session_id: str
+    auto: bool = False
+    """Whether this was an automatic compaction."""
+
+
+class SubtaskPart(OpenCodeBaseModel):
+    """References a spawned subtask."""
+
+    id: str
+    type: Literal["subtask"] = "subtask"
+    message_id: str
+    session_id: str
+    prompt: str
+    """The prompt for the subtask."""
+    description: str
+    """Description of what the subtask does."""
+    agent: str
+    """The agent handling this subtask."""
+    command: str | None = None
+    """Optional command associated with the subtask."""
+
+
+class APIErrorInfo(OpenCodeBaseModel):
+    """API error information for retry parts."""
+
+    message: str
+    status_code: int | None = None
+    is_retryable: bool = False
+    response_headers: dict[str, str] | None = None
+    response_body: str | None = None
+    metadata: dict[str, str] | None = None
+
+
+class TimeCreated(OpenCodeBaseModel):
+    """Time with created timestamp."""
+
+    created: int
+
+
+class RetryPart(OpenCodeBaseModel):
+    """Marks a retry of a failed operation."""
+
+    id: str
+    type: Literal["retry"] = "retry"
+    message_id: str
+    session_id: str
+    attempt: int
+    """Which retry attempt this is."""
+    error: APIErrorInfo
+    """Error information from the failed attempt."""
+    time: TimeCreated
+
+
 class StepStartPart(OpenCodeBaseModel):
     """Step start marker."""
 
@@ -187,4 +312,17 @@ class StepFinishPart(OpenCodeBaseModel):
     tokens: StepFinishTokens = Field(default_factory=StepFinishTokens)
 
 
-Part = TextPart | ToolPart | FilePart | StepStartPart | StepFinishPart
+Part = (
+    TextPart
+    | ToolPart
+    | FilePart
+    | AgentPart
+    | SnapshotPart
+    | PatchPart
+    | ReasoningPart
+    | CompactionPart
+    | SubtaskPart
+    | RetryPart
+    | StepStartPart
+    | StepFinishPart
+)
