@@ -203,26 +203,8 @@ class PartUpdatedEvent(OpenCodeBaseModel):
         return cls(properties=PartUpdatedEventProperties(part=part, delta=delta))
 
 
-class PermissionTimeInfo(OpenCodeBaseModel):
-    """Time information for permission event."""
-
-    created: int
-
-
-class PermissionUpdatedProperties(OpenCodeBaseModel):
-    """Properties for permission updated event.
-
-    Matches OpenCode's Permission.Info schema.
-    """
-
-    id: str
-    """Permission ID."""
-
-    type: str
-    """Tool type/name."""
-
-    session_id: str
-    """Session ID."""
+class PermissionToolInfo(OpenCodeBaseModel):
+    """Tool information for permission event."""
 
     message_id: str
     """Message ID."""
@@ -230,27 +212,43 @@ class PermissionUpdatedProperties(OpenCodeBaseModel):
     call_id: str | None = None
     """Optional tool call ID."""
 
-    title: str
-    """Human-readable title for the permission request."""
+
+class PermissionAskedProperties(OpenCodeBaseModel):
+    """Properties for permission.asked event.
+
+    Matches OpenCode's PermissionNext.Event.Asked schema.
+    """
+
+    id: str
+    """Permission request ID."""
+
+    session_id: str
+    """Session ID."""
+
+    permission: str
+    """Tool/permission type name."""
+
+    patterns: list[str]
+    """Patterns for matching (e.g., file paths, commands)."""
 
     metadata: dict[str, Any]
     """Arbitrary metadata about the tool call."""
 
-    time: PermissionTimeInfo
-    """Timestamp information."""
+    always: list[str]
+    """Patterns that would be approved for future requests if user selects 'always'."""
 
-    pattern: str | list[str] | None = None
-    """Optional pattern for matching."""
+    tool: PermissionToolInfo
+    """Tool call information."""
 
 
 class PermissionRequestEvent(OpenCodeBaseModel):
     """Permission request event - sent when a tool needs user confirmation.
 
-    Uses 'permission.updated' event type for OpenCode TUI compatibility.
+    Uses 'permission.asked' event type for OpenCode TUI compatibility.
     """
 
-    type: Literal["permission.updated"] = "permission.updated"
-    properties: PermissionUpdatedProperties
+    type: Literal["permission.asked"] = "permission.asked"
+    properties: PermissionAskedProperties
 
     @classmethod
     def create(
@@ -263,17 +261,17 @@ class PermissionRequestEvent(OpenCodeBaseModel):
         message_id: str = "",
         call_id: str | None = None,
     ) -> Self:
-        import time
+        # Create pattern from tool name and args
+        pattern = f"{tool_name}: {args_preview}" if args_preview else tool_name
 
-        props = PermissionUpdatedProperties(
+        props = PermissionAskedProperties(
             id=permission_id,
-            type=tool_name,
             session_id=session_id,
-            message_id=message_id,
-            call_id=call_id,
-            title=message,
+            permission=tool_name,
+            patterns=[pattern],
             metadata={"args_preview": args_preview},
-            time=PermissionTimeInfo(created=int(time.time() * 1000)),
+            always=[pattern],  # Same pattern for "always" approval
+            tool=PermissionToolInfo(message_id=message_id, call_id=call_id),
         )
         return cls(properties=props)
 

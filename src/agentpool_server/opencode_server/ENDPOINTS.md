@@ -251,7 +251,7 @@ All event types supported by the OpenCode protocol:
 | [ ] | `message.removed` | Message removed |
 | [x] | `message.part.updated` | Message part (text, tool, etc.) updated |
 | [ ] | `message.part.removed` | Message part removed |
-| [x] | `permission.updated` | Tool permission requested (awaiting user response) |
+| [x] | `permission.asked` | Tool permission requested (awaiting user response) |
 | [x] | `permission.replied` | Permission request resolved (user responded) |
 | [x] | `todo.updated` | Todo list item updated |
 | [ ] | `file.edited` | File was edited |
