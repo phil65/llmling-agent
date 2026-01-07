@@ -24,6 +24,8 @@ if TYPE_CHECKING:
         PromptResponse,
         ResumeSessionRequest,
         ResumeSessionResponse,
+        SetSessionConfigOptionRequest,
+        SetSessionConfigOptionResponse,
         SetSessionModelRequest,
         SetSessionModelResponse,
         SetSessionModeRequest,
@@ -59,6 +61,10 @@ class Agent(Protocol):
     async def set_session_model(
         self, params: SetSessionModelRequest
     ) -> SetSessionModelResponse | None: ...
+
+    async def set_session_config_option(
+        self, params: SetSessionConfigOptionRequest
+    ) -> SetSessionConfigOptionResponse | None: ...
 
     async def ext_method(self, method: str, params: dict[str, Any]) -> dict[str, Any]: ...
 

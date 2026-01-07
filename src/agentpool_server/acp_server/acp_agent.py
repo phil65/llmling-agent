@@ -20,6 +20,7 @@ from acp.schema import (
     SessionMode,
     SessionModelState,
     SessionModeState,
+    SetSessionConfigOptionResponse,
     SetSessionModelRequest,
     SetSessionModelResponse,
     SetSessionModeRequest,
@@ -46,6 +47,7 @@ if TYPE_CHECKING:
         NewSessionRequest,
         PromptRequest,
         ResumeSessionRequest,
+        SetSessionConfigOptionRequest,
         SetSessionModelRequest,
         SetSessionModeRequest,
     )
@@ -295,7 +297,13 @@ class AgentPoolACPAgent(ACPAgent):
                     coro_4 = session.init_client_skills()
                     self.tasks.create_task(coro_4, name=f"init_client_skills_{session_id}")
             logger.info("Created session", session_id=session_id)
-            return NewSessionResponse(session_id=session_id, modes=state, models=models)
+
+            return NewSessionResponse(
+                session_id=session_id,
+                modes=state,
+                models=models,
+                # config_options can be populated dynamically based on agent capabilities
+            )
 
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
         """Load an existing session from storage.
@@ -718,6 +726,35 @@ class AgentPoolACPAgent(ACPAgent):
             return SetSessionModelResponse()
         except Exception:
             logger.exception("Failed to set session model", session_id=params.session_id)
+            return None
+
+    async def set_session_config_option(
+        self, params: SetSessionConfigOptionRequest
+    ) -> SetSessionConfigOptionResponse | None:
+        """Set a session config option.
+
+        Currently returns the same static config options with updated value.
+        """
+        try:
+            session = self.session_manager.get_session(params.session_id)
+            if not session:
+                msg = "Session not found for config option change"
+                logger.warning(msg, session_id=params.session_id)
+                return None
+
+            logger.info(
+                "Set config option",
+                config_id=params.config_id,
+                value=params.value_id,
+                session_id=params.session_id,
+            )
+
+            # TODO: Implement dynamic config option handling
+            # For now, return empty list - actual implementation would update
+            # session state and return the updated config options
+            return SetSessionConfigOptionResponse(config_options=[])
+        except Exception:
+            logger.exception("Failed to set session config option", session_id=params.session_id)
             return None
 
     async def swap_pool(self, config_path: str, agent: str | None = None) -> list[str]:

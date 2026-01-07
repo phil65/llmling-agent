@@ -30,6 +30,7 @@ from acp.schema import (
     RequestPermissionRequest,
     RequestPermissionResponse,
     SessionNotification,
+    SetSessionConfigOptionRequest,
     SetSessionModelRequest,
     SetSessionModeRequest,
     TerminalOutputRequest,
@@ -241,6 +242,13 @@ async def _agent_handler(  # noqa: PLR0911
             return (
                 model_result.model_dump(by_alias=True, exclude_none=True)
                 if (model_result := await agent.set_session_model(set_model_request))
+                else {}
+            )
+        case "session/set_config_option":
+            set_config_request = SetSessionConfigOptionRequest.model_validate(params)
+            return (
+                config_result.model_dump(by_alias=True, exclude_none=True)
+                if (config_result := await agent.set_session_config_option(set_config_request))
                 else {}
             )
         case "authenticate":

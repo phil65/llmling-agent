@@ -7,8 +7,35 @@ from typing import TYPE_CHECKING, Any, Self
 
 import logfire
 
+from acp.agent.protocol import Agent
+from acp.connection import Connection
+from acp.exceptions import RequestError
+from acp.schema import (
+    AuthenticateResponse,
+    CreateTerminalRequest,
+    ForkSessionResponse,
+    InitializeResponse,
+    KillTerminalCommandRequest,
+    ListSessionsResponse,
+    LoadSessionResponse,
+    NewSessionResponse,
+    PromptResponse,
+    ReadTextFileRequest,
+    ReleaseTerminalRequest,
+    RequestPermissionRequest,
+    ResumeSessionResponse,
+    SessionNotification,
+    SetSessionConfigOptionResponse,
+    SetSessionModelResponse,
+    SetSessionModeResponse,
+    TerminalOutputRequest,
+    WaitForTerminalExitRequest,
+    WriteTextFileRequest,
+)
+
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from types import TracebackType
 
     from anyio.abc import ByteReceiveStream, ByteSendStream
@@ -31,41 +58,13 @@ if TYPE_CHECKING:
         ReleaseTerminalResponse,
         RequestPermissionResponse,
         ResumeSessionRequest,
+        SetSessionConfigOptionRequest,
         SetSessionModelRequest,
         SetSessionModeRequest,
         TerminalOutputResponse,
         WaitForTerminalExitResponse,
         WriteTextFileResponse,
     )
-
-from acp.agent.protocol import Agent
-from acp.connection import Connection
-from acp.exceptions import RequestError
-from acp.schema import (
-    AuthenticateResponse,
-    CreateTerminalRequest,
-    ForkSessionResponse,
-    InitializeResponse,
-    KillTerminalCommandRequest,
-    ListSessionsResponse,
-    LoadSessionResponse,
-    NewSessionResponse,
-    PromptResponse,
-    ReadTextFileRequest,
-    ReleaseTerminalRequest,
-    RequestPermissionRequest,
-    ResumeSessionResponse,
-    SessionNotification,
-    SetSessionModelResponse,
-    SetSessionModeResponse,
-    TerminalOutputRequest,
-    WaitForTerminalExitRequest,
-    WriteTextFileRequest,
-)
-
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 
 class ClientSideConnection(Agent):
@@ -150,6 +149,16 @@ class ClientSideConnection(Agent):
         resp = await self._conn.send_request("session/set_model", dct)
         payload = resp if isinstance(resp, dict) else {}
         return SetSessionModelResponse.model_validate(payload)
+
+    async def set_session_config_option(
+        self, params: SetSessionConfigOptionRequest
+    ) -> SetSessionConfigOptionResponse:
+        dct = params.model_dump(
+            mode="json", by_alias=True, exclude_none=True, exclude_defaults=True
+        )
+        resp = await self._conn.send_request("session/set_config_option", dct)
+        payload = resp if isinstance(resp, dict) else {}
+        return SetSessionConfigOptionResponse.model_validate(payload)
 
     async def authenticate(self, params: AuthenticateRequest) -> AuthenticateResponse:
         dct = params.model_dump(

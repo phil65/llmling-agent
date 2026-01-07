@@ -9,6 +9,7 @@ from acp.schema.base import Response
 from acp.schema.capabilities import AgentCapabilities
 from acp.schema.common import AuthMethod, Implementation  # noqa: TC001
 from acp.schema.session_state import (  # noqa: TC001
+    SessionConfigOption,
     SessionInfo,
     SessionModelState,
     SessionModeState,
@@ -56,6 +57,14 @@ class NewSessionResponse(Response):
     """Initial mode state if supported by the Agent
 
     See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
+    """
+
+    config_options: Sequence[SessionConfigOption] | None = None
+    """**UNSTABLE**
+
+    Configuration options for this session.
+
+    See RFD: Session Config Options
     """
 
     session_id: str
@@ -134,6 +143,9 @@ class SetSessionModeResponse(Response):
 
 class SetSessionConfigOptionResponse(Response):
     """Response to `session/set_config_option` method."""
+
+    config_options: Sequence[SessionConfigOption] = []
+    """The full list of config options with updated values."""
 
 
 class PromptResponse(Response):

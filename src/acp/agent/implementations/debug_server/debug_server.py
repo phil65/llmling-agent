@@ -190,6 +190,10 @@ class MockAgent(Agent):
         """Mock session model change."""
         logger.info("Mock session model change")
 
+    async def set_session_config_option(self, params: Any) -> None:
+        """Mock session config option change."""
+        logger.info("Mock session config option change")
+
     async def ext_notification(self, method: str, params: dict[str, Any]) -> None:
         """Mock extensibility notification."""
         logger.info("Mock ext notification", method=method)

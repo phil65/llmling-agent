@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Annotated, Literal
+from typing import Literal
 
 from pydantic import Field
 
@@ -98,63 +98,76 @@ class SessionInfo(AnnotatedObject):
 class SessionConfigSelectOption(AnnotatedObject):
     """A possible value for a configuration selector."""
 
-    id: SessionConfigValueId
-    """Unique identifier for this value."""
+    value: SessionConfigValueId
+    """Unique identifier for this option value."""
 
-    label: str
-    """Human-readable label for this value."""
+    name: str
+    """Human-readable label for this option value."""
 
     description: str | None = None
-    """Optional description explaining this value."""
+    """Optional description for this option value."""
 
 
 class SessionConfigSelectGroup(AnnotatedObject):
     """A group of possible values for a configuration selector."""
 
-    id: SessionConfigGroupId
+    group: SessionConfigGroupId
     """Unique identifier for this group."""
 
-    label: str
+    name: str
     """Human-readable label for this group."""
 
     options: Sequence[SessionConfigSelectOption]
-    """The options within this group."""
+    """The set of option values in this group."""
 
 
-SessionConfigSelectOptions = Sequence[SessionConfigSelectOption | SessionConfigSelectGroup]
+SessionConfigSelectOptions = (
+    Sequence[SessionConfigSelectOption] | Sequence[SessionConfigSelectGroup]
+)
 """The possible values for a configuration selector, optionally organized into groups."""
 
 
 class SessionConfigSelect(AnnotatedObject):
-    """A configuration option that allows selecting a single value from a list.
+    """A single-value selector (dropdown) session configuration option payload."""
 
-    Similar to a dropdown/select UI element.
-    """
+    current_value: SessionConfigValueId
+    """The currently selected value."""
+
+    options: SessionConfigSelectOptions
+    """The set of selectable options."""
+
+
+class SessionConfigKind(AnnotatedObject):
+    """Type-specific session configuration option payload."""
 
     type: Literal["select"] = Field(default="select", init=False)
     """Discriminator for the config option type."""
 
-    id: SessionConfigId
-    """Unique identifier for this configuration option."""
-
-    label: str
-    """Human-readable label for this option."""
-
-    description: str | None = None
-    """Optional description explaining this option."""
+    # Flattened SessionConfigSelect fields
+    current_value: SessionConfigValueId
+    """The currently selected value."""
 
     options: SessionConfigSelectOptions
-    """The possible values for this option."""
-
-    value: SessionConfigValueId
-    """The currently selected value ID."""
+    """The set of selectable options."""
 
 
-SessionConfigOption = Annotated[
-    SessionConfigSelect,
-    Field(discriminator="type"),
-]
-"""A session configuration option.
+class SessionConfigOption(AnnotatedObject):
+    """A session configuration option selector and its current state."""
 
-Currently only supports select-type options, but designed for extensibility.
-"""
+    id: SessionConfigId
+    """Unique identifier for the configuration option."""
+
+    name: str
+    """Human-readable label for the option."""
+
+    description: str | None = None
+    """Optional description for the Client to display to the user."""
+
+    type: Literal["select"] = Field(default="select", init=False)
+    """Discriminator for the config option type (flattened from kind)."""
+
+    current_value: SessionConfigValueId
+    """The currently selected value (flattened from kind.select)."""
+
+    options: SessionConfigSelectOptions
+    """The set of selectable options (flattened from kind.select)."""
