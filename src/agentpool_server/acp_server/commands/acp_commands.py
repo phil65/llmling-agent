@@ -170,9 +170,7 @@ class ListSessionsCommand(NodeCommand):
 
             # Get message counts for ALL sessions to filter properly
             all_conv_ids = [
-                info["conversation_id"]
-                for _, _, info in all_sessions
-                if info.get("conversation_id")
+                conv_id for _, _, info in all_sessions if (conv_id := info.get("conversation_id"))
             ]
             msg_counts = await _get_message_counts(session.agent_pool.storage, all_conv_ids)
 
