@@ -190,16 +190,10 @@ class ClientSession:
 
         self._agent = self._pool.get_agent(agent_name)
         self._data = self._data.with_agent(agent_name)
-
         # Persist the change
         if self._manager:
             await self._manager.save(self._data)
-
-        logger.info(
-            "Switched agent",
-            session_id=self.session_id,
-            agent=agent_name,
-        )
+        logger.info("Switched agent", session_id=self.session_id, agent=agent_name)
 
     async def touch(self) -> None:
         """Update last_active timestamp and persist."""
