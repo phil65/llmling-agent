@@ -862,6 +862,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Reset cancellation state
         self._cancelled = False
         self._current_stream_task = asyncio.current_task()
+
+        # TODO: decide whether we should store CC sessions ourselves
+        # For Claude Code, session_id comes from the SDK's init message:
+        #   if hasattr(message, 'subtype') and message.subtype == 'init':
+        #       session_id = message.data.get('session_id')
+        # The SDK manages its own session persistence. To resume, pass:
+        #   ClaudeAgentOptions(resume=session_id)
+        # if self.conversation_id is None:
+        #     self.conversation_id = session_id  # from init message
+        #     await self.log_conversation()
+
         # Update input provider if provided
         if input_provider is not None:
             self._input_provider = input_provider
