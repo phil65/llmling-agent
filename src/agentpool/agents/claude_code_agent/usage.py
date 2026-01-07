@@ -8,12 +8,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-import json
 from pathlib import Path
 import subprocess
 import sys
 from typing import Any
 
+import anyenv
 import httpx
 
 
@@ -151,10 +151,13 @@ def _get_credentials_path() -> Path | None:
 def _get_access_token_from_file(path: Path) -> str | None:
     """Read access token from credentials file."""
     try:
-        data = json.loads(path.read_text())
-        return data.get("claudeAiOauth", {}).get("accessToken")
-    except (json.JSONDecodeError, OSError):
+        data = anyenv.load_json(path.read_text(), return_type=dict)
+        val = data.get("claudeAiOauth", {}).get("accessToken")
+    except (anyenv.JsonLoadError, OSError):
         return None
+    else:
+        assert isinstance(val, str)
+        return val
 
 
 def _get_access_token_from_keychain() -> str | None:
@@ -169,10 +172,13 @@ def _get_access_token_from_keychain() -> str | None:
             text=True,
             check=True,
         )
-        data = json.loads(result.stdout.strip())
-        return data.get("claudeAiOauth", {}).get("accessToken")
-    except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError):
+        data = anyenv.load_json(result.stdout.strip(), return_type=dict)
+        val = data.get("claudeAiOauth", {}).get("accessToken")
+    except (subprocess.CalledProcessError, anyenv.JsonLoadError, FileNotFoundError):
         return None
+    else:
+        assert isinstance(val, str)
+        return val
 
 
 def get_access_token() -> str | None:
@@ -189,7 +195,6 @@ def get_access_token() -> str | None:
         token = _get_access_token_from_file(creds_path)
         if token:
             return token
-
     # Fall back to macOS Keychain
     return _get_access_token_from_keychain()
 

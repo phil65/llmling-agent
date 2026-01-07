@@ -203,10 +203,10 @@ async def list_mcp_resources(state: StateDep) -> dict[str, McpResource]:
                 mime_type=resource.mime_type,
                 client=resource.client or "unknown",
             )
-
-        return result
     except Exception:  # noqa: BLE001
         return {}
+    else:
+        return result
 
 
 @router.get("/experimental/tool/ids")

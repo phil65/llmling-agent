@@ -6,18 +6,18 @@ import logging
 from typing import TYPE_CHECKING, Any
 import uuid
 
-
-logger = logging.getLogger(__name__)
-
 from pydantic_ai import (
-    TextPart as PydanticTextPart,
-    ToolCallPart as PydanticToolCallPart,
-)
-from pydantic_ai.messages import (
+    AudioUrl,
+    BinaryContent,
+    DocumentUrl,
+    ImageUrl,
     ModelRequest,
     ModelResponse,
+    TextPart as PydanticTextPart,
+    ToolCallPart as PydanticToolCallPart,
     ToolReturnPart as PydanticToolReturnPart,
     UserPromptPart,
+    VideoUrl,
 )
 
 from agentpool_server.opencode_server.models import (
@@ -65,6 +65,8 @@ if TYPE_CHECKING:
     from agentpool.messaging.messages import ChatMessage
     from agentpool_server.opencode_server.models import Part
 
+
+logger = logging.getLogger(__name__)
 
 # Parameter name mapping from snake_case to camelCase for OpenCode TUI compatibility
 _PARAM_NAME_MAP: dict[str, str] = {
@@ -324,14 +326,6 @@ def _convert_file_part_to_user_content(part: dict[str, Any]) -> Any:
     Returns:
         Appropriate pydantic-ai content type
     """
-    from pydantic_ai.messages import (
-        AudioUrl,
-        BinaryContent,
-        DocumentUrl,
-        ImageUrl,
-        VideoUrl,
-    )
-
     mime = part.get("mime", "")
     url = part.get("url", "")
 
