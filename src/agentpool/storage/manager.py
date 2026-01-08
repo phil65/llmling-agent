@@ -169,11 +169,7 @@ class StorageManager:
         # Function to find capable provider by name
         def find_provider(name: str) -> StorageProvider | None:
             for p in self.providers:
-                if (
-                    not getattr(p, "write_only", False)
-                    and p.can_load_history
-                    and p.__class__.__name__.lower() == name.lower()
-                ):
+                if p.can_load_history and p.__class__.__name__.lower() == name.lower():
                     return p
             return None
 
@@ -190,7 +186,7 @@ class StorageManager:
 
         # Find first capable provider
         for provider in self.providers:
-            if not getattr(provider, "write_only", False) and provider.can_load_history:
+            if provider.can_load_history:
                 return provider
 
         msg = "No capable provider found for loading history"
@@ -516,10 +512,8 @@ class StorageManager:
         Raises:
             RuntimeError: If no capable provider found.
         """
-        for provider in self.providers:
-            # TextLogProvider doesn't support projects, others do
-            if hasattr(provider, "save_project") and not getattr(provider, "write_only", False):
-                return provider
+        if self.providers:
+            return self.providers[0]
         msg = "No provider found that supports project storage"
         raise RuntimeError(msg)
 

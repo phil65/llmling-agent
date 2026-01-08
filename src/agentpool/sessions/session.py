@@ -61,12 +61,7 @@ class ClientSession:
         self._title_task: asyncio.Task[None] | None = None
         # Session owns conversation history - agent is stateless
         self._history = MessageHistory()
-
-        logger.debug(
-            "Created client session",
-            session_id=data.session_id,
-            agent=data.agent_name,
-        )
+        logger.debug("Created client session", session_id=data.session_id, agent=data.agent_name)
 
     @property
     def session_id(self) -> str:
@@ -168,10 +163,7 @@ class ClientSession:
                     self._data = self._data.with_title(title)
                     await self._manager.save(self._data)
         except Exception:
-            logger.exception(
-                "Failed to generate conversation title",
-                conversation_id=self.conversation_id,
-            )
+            logger.exception("Failed to generate session title", session_id=self.conversation_id)
 
     async def switch_agent(self, agent_name: str) -> None:
         """Switch to a different agent.
