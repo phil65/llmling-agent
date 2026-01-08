@@ -434,7 +434,7 @@ class StorageManager:
             try:
                 query = SessionQuery(name=conv_id)
                 messages = await self.filter_messages(query)
-                counts[conv_id] = len(messages)
+                counts[conv_id] = len(messages) if messages else 0
             except Exception:  # noqa: BLE001
                 counts[conv_id] = 0
         return counts
