@@ -40,14 +40,6 @@ async def _get_message_counts(
             messages = await storage.filter_messages(query)
             count = len(messages)
 
-            # If no messages found and conv_id has "conv_" prefix,
-            # try without prefix (older format compatibility)
-            if count == 0 and conv_id.startswith("conv_"):
-                session_id = conv_id[5:]  # Remove "conv_" prefix
-                query = SessionQuery(name=session_id)
-                messages = await storage.filter_messages(query)
-                count = len(messages)
-
             counts[conv_id] = count
         except Exception:  # noqa: BLE001
             counts[conv_id] = 0

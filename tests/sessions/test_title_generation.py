@@ -65,7 +65,7 @@ class TestSessionDataTitle:
         data = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="conv_123",
+            conversation_id="ses_test123",
             title="My Conversation",
         )
         assert data.title == "My Conversation"
@@ -75,7 +75,7 @@ class TestSessionDataTitle:
         data = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="conv_123",
+            conversation_id="ses_test123",
         )
         assert data.title is None
 
@@ -84,7 +84,7 @@ class TestSessionDataTitle:
         original = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="conv_123",
+            conversation_id="ses_test123",
         )
         updated = original.with_title("New Title")
 
@@ -223,7 +223,7 @@ class TestClientSessionTitleGeneration:
         async with manager:
             session = await manager.create(
                 agent_name="test_agent",
-                conversation_id="conv_flag_test",
+                conversation_id="ses_flag_test",
             )
             # Flag should be False before any run
             assert not session._title_generation_triggered
@@ -238,7 +238,7 @@ class TestClientSessionTitleGeneration:
         async with manager:
             session = await manager.create(
                 agent_name="test_agent",
-                conversation_id="conv_title_flag",
+                conversation_id="ses_title_flag",
             )
 
             # Log the conversation to storage first
@@ -267,7 +267,7 @@ class TestClientSessionTitleGeneration:
         async with manager:
             session = await manager.create(
                 agent_name="test_agent",
-                conversation_id="conv_flag_stays",
+                conversation_id="ses_flag_stays",
             )
 
             if pool_with_storage.storage:
@@ -457,7 +457,7 @@ class TestConversationDataTitle:
         """Test that ConversationData TypedDict includes title field."""
         # Create ConversationData with title
         data: ConversationData = {
-            "id": "conv_123",
+            "id": "ses_test123",
             "agent": "test_agent",
             "title": "My Conversation",
             "start_time": "2024-01-01T00:00:00",
@@ -469,7 +469,7 @@ class TestConversationDataTitle:
     def test_conversation_data_title_none(self) -> None:
         """Test that ConversationData can have None title."""
         data: ConversationData = {
-            "id": "conv_456",
+            "id": "ses_test456",
             "agent": "test_agent",
             "title": None,
             "start_time": "2024-01-01T00:00:00",

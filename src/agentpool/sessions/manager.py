@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, Any, Self
-from uuid import uuid4
 
 from agentpool.log import get_logger
 from agentpool.sessions.models import SessionData
@@ -171,7 +170,7 @@ class SessionManager:
             data = SessionData(
                 session_id=session_id,
                 agent_name=agent_name,
-                conversation_id=conversation_id or f"conv_{uuid4().hex[:12]}",
+                conversation_id=conversation_id or session_id,
                 pool_id=self._pool_id,
                 project_id=project_id,
                 cwd=cwd,

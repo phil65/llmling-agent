@@ -92,7 +92,7 @@ class ACPSessionManager:
             data = SessionData(
                 session_id=session_id,
                 agent_name=default_agent_name,
-                conversation_id=f"conv_{session_id}",
+                conversation_id=session_id,
                 cwd=cwd,
                 metadata={
                     "protocol": "acp",
