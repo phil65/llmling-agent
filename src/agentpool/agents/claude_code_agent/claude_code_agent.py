@@ -588,8 +588,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if self._input_provider:
             # Get tool_use_id from SDK context if available (requires SDK >= 0.1.19)
             # TODO: Remove fallback once claude-agent-sdk with tool_use_id is released
-            if hasattr(context, "tool_use_id") and context.tool_use_id:
-                tool_call_id = context.tool_use_id
+            if hasattr(context, "tool_use_id") and (tc_id := context.tool_use_id):  # pyright: ignore[reportAttributeAccessIssue]
+                tool_call_id = tc_id
             else:
                 # Fallback: look up from streaming events or generate our own
                 tool_call_id = self._pending_tool_call_ids.get(tool_name)
