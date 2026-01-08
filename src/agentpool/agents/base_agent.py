@@ -125,6 +125,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         )
         self._cancelled = False
         self._current_stream_task: asyncio.Task[Any] | None = None
+        # Deferred initialization support - subclasses set True in __aenter__,
+        # override ensure_initialized() to do actual connection
+        self._connect_pending: bool = False
         # State change signal - emitted when mode/model/commands change
         # Uses union type for different state update kinds
         self.state_updated: BoundSignal[StateUpdate] = BoundSignal()
@@ -196,6 +199,25 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             mode: Confirmation mode - "always", "never", or "per_tool"
         """
         self.tool_confirmation_mode = mode
+
+    def is_initializing(self) -> bool:
+        """Check if agent is still initializing.
+
+        Returns:
+            True if deferred initialization is pending
+        """
+        return self._connect_pending
+
+    async def ensure_initialized(self) -> None:
+        """Wait for deferred initialization to complete.
+
+        Subclasses that use deferred init should:
+        1. Set `self._connect_pending = True` in `__aenter__`
+        2. Override this method to do actual connection work
+        3. Set `self._connect_pending = False` when done
+
+        The base implementation is a no-op for agents without deferred init.
+        """
 
     def is_cancelled(self) -> bool:
         """Check if the agent has been cancelled.

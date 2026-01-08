@@ -643,7 +643,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         return PermissionResultDeny(message="No input provider configured")
 
     async def __aenter__(self) -> Self:
-        """Connect to Claude Code."""
+        """Connect to Claude Code with deferred client connection."""
         from claude_agent_sdk import ClaudeSDKClient
 
         await super().__aenter__()
@@ -651,9 +651,23 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         formatted_prompt = await self.sys_prompts.format_system_prompt(self)
         options = self._build_options(formatted_system_prompt=formatted_prompt)
         self._client = ClaudeSDKClient(options=options)
-        await self._client.connect()
-        self.log.info("Claude Code client connected")
+        # Defer connection - will be awaited in run_stream/ensure_initialized
+        # Note: We can't use create_task here because the SDK's internal task groups
+        # must be entered and exited from the same task (anyio limitation)
+        self._connect_pending = True
         return self
+
+    async def _do_connect(self) -> None:
+        """Actually connect the client. Must be called from the task that will use it."""
+        if not self._connect_pending:
+            return
+        await self._client.connect()
+        self._connect_pending = False
+        self.log.info("Claude Code client connected")
+
+    async def ensure_initialized(self) -> None:
+        """Wait for client connection to complete."""
+        await self._do_connect()
 
     async def __aexit__(
         self,
@@ -683,6 +697,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Commands that are not supported or not useful for external use
         are filtered out (e.g., login, logout, context, cost).
         """
+        # Ensure client is connected
+        await self.ensure_initialized()
+
         if not self._client:
             self.log.warning("Cannot populate commands: not connected")
             return
@@ -866,6 +883,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             UserMessage,
         )
         from claude_agent_sdk.types import StreamEvent
+
+        # Ensure client is connected (waits for deferred init if needed)
+        await self.ensure_initialized()
 
         # Reset cancellation state
         self._cancelled = False

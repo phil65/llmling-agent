@@ -296,18 +296,34 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._extra_mcp_servers.append(mcp_config)
 
     async def __aenter__(self) -> Self:
-        """Start subprocess and initialize ACP connection."""
+        """Start subprocess and defer ACP connection."""
         await super().__aenter__()
         await self._setup_toolsets()  # Setup toolsets before session creation
-        process = await self._start_process()
+        await self._start_process()
+        # Defer connection - will be awaited in run_stream/ensure_initialized
+        self._connect_pending = True
+        return self
+
+    async def _do_connect(self) -> None:
+        """Actually initialize and create session. Must be called from the task that will use it."""
+        if not self._connect_pending:
+            return
+        if not self._process:
+            msg = "Process not started - call __aenter__ first"
+            raise RuntimeError(msg)
         try:
-            async with monitor_process(process, context="ACP initialization"):
+            async with monitor_process(self._process, context="ACP initialization"):
                 await self._initialize()
                 await self._create_session()
+            await anyio.sleep(0.3)  # Small delay to let subprocess fully initialize
+            self._connect_pending = False
+            self.log.info("ACP connection established")
         except SubprocessError as e:
             raise RuntimeError(str(e)) from e
-        await anyio.sleep(0.3)  # Small delay to let subprocess fully initialize
-        return self
+
+    async def ensure_initialized(self) -> None:
+        """Wait for ACP connection to complete."""
+        await self._do_connect()
 
     async def __aexit__(
         self,
@@ -525,6 +541,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """
         from acp.schema import PromptRequest
         from acp.utils import to_acp_content_blocks
+
+        # Ensure ACP connection is established (waits for deferred init if needed)
+        await self.ensure_initialized()
 
         # Update input provider if provided
         if input_provider is not None:
