@@ -13,7 +13,7 @@ Tools for code analysis and manipulation.
 ```yaml
 agents:
   coder:
-    toolsets:
+    tools:
       - type: code
 ```
 

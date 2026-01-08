@@ -13,7 +13,7 @@ Import arbitrary Python functions as agent tools via import paths.
 ```yaml
 agents:
   my_agent:
-    toolsets:
+    tools:
       - type: import_tools
         tools:
           - import_path: os.listdir

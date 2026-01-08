@@ -49,7 +49,7 @@ def process_manifest():
     agent_cfg = NativeAgentConfig(
         name="ProcessAgent",
         model="test",
-        toolsets=[ProcessManagementToolsetConfig(), FSSpecToolsetConfig()],
+        tools=[ProcessManagementToolsetConfig(), FSSpecToolsetConfig()],
     )
     return AgentsManifest(agents={"process_agent": agent_cfg})
 

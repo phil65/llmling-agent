@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence  # noqa: TC003
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, assert_never
+from typing import TYPE_CHECKING, Annotated, Any, Literal, assert_never
 from uuid import UUID
 
 from exxec_config import ExecutionEnvironmentConfig  # noqa: TC002
@@ -20,7 +20,7 @@ from agentpool import log
 from agentpool.common_types import EndStrategy  # noqa: TC001
 from agentpool.prompts.prompts import PromptMessage, StaticPrompt
 from agentpool.resource_providers import StaticResourceProvider
-from agentpool_config import BaseToolConfig, NativeAgentToolConfig  # noqa: TC001
+from agentpool_config import BaseToolConfig, NativeAgentToolConfig
 from agentpool_config.builtin_tools import BaseBuiltinToolConfig
 from agentpool_config.hooks import HooksConfig  # noqa: TC001
 from agentpool_config.knowledge import Knowledge  # noqa: TC001
@@ -28,7 +28,7 @@ from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from agentpool_config.session import MemoryConfig, SessionQuery
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
-from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
+from agentpool_config.toolsets import BaseToolsetConfig, ToolsetConfig
 from agentpool_config.workers import WorkerConfig  # noqa: TC001
 
 
@@ -41,6 +41,12 @@ if TYPE_CHECKING:
 ToolMode = Literal["codemode"]
 
 logger = log.get_logger(__name__)
+
+# Unified type for all tool configurations (single tools + toolsets)
+AnyToolConfig = Annotated[
+    NativeAgentToolConfig | ToolsetConfig,
+    Field(discriminator="type"),
+]
 
 
 class NativeAgentConfig(BaseAgentConfig):
@@ -76,7 +82,7 @@ class NativeAgentConfig(BaseAgentConfig):
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/model_configuration/
     """
 
-    tools: list[NativeAgentToolConfig | str] = Field(
+    tools: list[AnyToolConfig | str] = Field(
         default_factory=list,
         examples=[
             ["webbrowser:open", "builtins:print"],
@@ -85,7 +91,17 @@ class NativeAgentConfig(BaseAgentConfig):
                     "type": "import",
                     "import_path": "webbrowser:open",
                     "name": "web_browser",
-                }
+                },
+                {
+                    "type": "bash",
+                    "timeout": 30.0,
+                },
+                {
+                    "type": "file_access",
+                },
+                {
+                    "type": "process_management",
+                },
             ],
         ],
         title="Tool configurations",
@@ -93,38 +109,12 @@ class NativeAgentConfig(BaseAgentConfig):
             "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/tool_configuration/"
         },
     )
-    """A list of tools to register with this agent.
+    """A list of tools and toolsets to register with this agent.
+
+    Supports both single tools (bash, import, web_search, etc.) and
+    toolsets (file_access, process_management, code, etc.).
 
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/tool_configuration/
-    """
-
-    toolsets: list[ToolsetConfig] = Field(
-        default_factory=list,
-        examples=[
-            [
-                {
-                    "type": "openapi",
-                    "spec": "https://api.example.com/openapi.json",
-                    "namespace": "api",
-                },
-                {
-                    "type": "file_access",
-                },
-                {
-                    "type": "composio",
-                    "user_id": "user123@example.com",
-                    "toolsets": ["github", "slack"],
-                },
-            ],
-        ],
-        title="Toolset configurations",
-        json_schema_extra={
-            "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/toolset_configuration/"
-        },
-    )
-    """Toolset configurations for extensible tool collections.
-
-    Docs: https://phil65.github.io/agentpool/YAML%20Configuration/toolset_configuration/
     """
 
     session: str | SessionQuery | MemoryConfig | None = Field(
@@ -294,48 +284,61 @@ class NativeAgentConfig(BaseAgentConfig):
             data["model"] = {"type": "string", "identifier": model}
         return data
 
-    def get_toolsets(self) -> list[ResourceProvider]:
-        """Get all resource providers for this agent."""
-        providers: list[ResourceProvider] = []
+    def get_tool_providers(self) -> list[ResourceProvider]:
+        """Get all resource providers for this agent's tools.
 
-        # Add providers from toolsets
-        for toolset_config in self.toolsets:
-            try:
-                provider = toolset_config.get_provider()
-                providers.append(provider)
-            except Exception as e:
-                msg = "Failed to create provider for toolset"
-                logger.exception(msg, toolset_config)
-                raise ValueError(msg) from e
+        Processes the unified tools list, separating:
+        - Toolsets: Each becomes its own ResourceProvider
+        - Single tools: Aggregated into a single StaticResourceProvider
 
-        return providers
-
-    def get_tool_provider(self) -> ResourceProvider | None:
-        """Get tool provider for this agent (excludes builtin tools)."""
+        Returns:
+            List of ResourceProvider instances
+        """
         from agentpool.tools.base import Tool
 
-        # Create provider for static tools
-        if not self.tools:
-            return None
+        providers: list[ResourceProvider] = []
         static_tools: list[Tool] = []
+
         for tool_config in self.tools:
             # Skip builtin tools - they're handled via get_builtin_tools()
             if isinstance(tool_config, BaseBuiltinToolConfig):
                 continue
+
             try:
-                match tool_config:
-                    case str():
-                        tool = Tool.from_callable(tool_config)
-                        static_tools.append(tool)
-                    case BaseToolConfig():
-                        static_tools.append(tool_config.get_tool())
+                if isinstance(tool_config, BaseToolsetConfig):
+                    # Toolset -> get its provider directly
+                    providers.append(tool_config.get_provider())
+                elif isinstance(tool_config, str):
+                    # String import path -> single tool
+                    static_tools.append(Tool.from_callable(tool_config))
+                elif isinstance(tool_config, BaseToolConfig):
+                    # Single tool config -> single tool
+                    static_tools.append(tool_config.get_tool())
             except Exception:
                 logger.exception("Failed to load tool", config=tool_config)
                 continue
 
-        if not static_tools:
-            return None
-        return StaticResourceProvider(name="builtin", tools=static_tools)
+        # Wrap all single tools in one provider
+        if static_tools:
+            providers.append(StaticResourceProvider(name="tools", tools=static_tools))
+
+        return providers
+
+    # Keep old methods for backward compatibility during transition
+    def get_toolsets(self) -> list[ResourceProvider]:
+        """Get toolset providers. Deprecated: use get_tool_providers() instead."""
+        return [
+            p
+            for p in self.get_tool_providers()
+            if not isinstance(p, StaticResourceProvider) or p.name != "tools"
+        ]
+
+    def get_tool_provider(self) -> ResourceProvider | None:
+        """Get single tools provider. Deprecated: use get_tool_providers() instead."""
+        for p in self.get_tool_providers():
+            if isinstance(p, StaticResourceProvider) and p.name == "tools":
+                return p
+        return None
 
     def get_builtin_tools(self) -> list[Any]:
         """Get pydantic-ai builtin tools from config.

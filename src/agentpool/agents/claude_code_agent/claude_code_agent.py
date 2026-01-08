@@ -392,15 +392,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self._mcp_servers.update(external_configs)
             self.log.info("External MCP servers configured", server_count=len(external_configs))
 
-        if not self._config.toolsets:
+        if not self._config.tools:
             return
 
-        # Create providers from toolset configs and add to tool manager
-        for toolset_config in self._config.toolsets:
-            provider = toolset_config.get_provider()
+        # Create providers from tool configs and add to tool manager
+        for provider in self._config.get_tool_providers():
             self.tools.add_provider(provider)
-        if config_tool_provider := self._config.get_tool_provider():
-            self.tools.add_provider(config_tool_provider)
         server_name = f"agentpool-{self.name}-tools"
         config = BridgeConfig(transport="streamable-http", server_name=server_name)
         self._tool_bridge = ToolManagerBridge(node=self, config=config)
@@ -409,7 +406,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Get Claude SDK-compatible MCP config and merge into our servers dict
         mcp_config = self._tool_bridge.get_claude_mcp_server_config()
         self._mcp_servers.update(mcp_config)
-        self.log.info("Toolsets initialized", toolset_count=len(self._config.toolsets))
+        self.log.info("Tools initialized", tool_count=len(self._config.tools))
 
     async def add_tool_bridge(self, bridge: ToolManagerBridge) -> None:
         """Add an external tool bridge to expose its tools via MCP.

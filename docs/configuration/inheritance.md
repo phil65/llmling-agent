@@ -17,7 +17,7 @@ Using Yamling's inheritance system, entire YAML files can inherit from other fil
     agents:
       assistant:
         model: openai:gpt-5
-        toolsets:
+        tools:
           - type: resource_access
     
     storage:
@@ -37,7 +37,7 @@ Using Yamling's inheritance system, entire YAML files can inherit from other fil
         model: openai:gpt-5
         description: "Specializes in code review"
         system_prompt: "Focus on code quality and best practices."
-        toolsets:
+        tools:
           - type: code_execution
     ```
 
@@ -77,7 +77,7 @@ file_agents:
 ```markdown title="agents/worker.md"
 ---
 model: openai:gpt-5-nano
-toolsets:
+tools:
   - type: file_access
 ---
 You are a file processing worker.

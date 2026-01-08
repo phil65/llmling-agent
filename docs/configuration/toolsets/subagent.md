@@ -13,7 +13,7 @@ The Subagent toolset enables agents to delegate tasks to other agents in the poo
 ```yaml
 agents:
   coordinator:
-    toolsets:
+    tools:
       - type: subagent
 ```
 
@@ -38,7 +38,7 @@ print(generate_tool_docs(toolset))
 ```yaml
 agents:
   coordinator:
-    toolsets:
+    tools:
       - type: subagent
     system_prompt: You coordinate work between specialized agents.
   

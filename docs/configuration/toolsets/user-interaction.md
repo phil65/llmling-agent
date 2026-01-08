@@ -13,7 +13,7 @@ Tools for agents to interact with users during execution.
 ```yaml
 agents:
   my_agent:
-    toolsets:
+    tools:
       - type: user_interaction
 ```
 

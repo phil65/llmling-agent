@@ -81,7 +81,7 @@ agents:
   coordinator:
     type: native
     model: openai:gpt-4o
-    toolsets:
+    tools:
       - type: subagent  # Can delegate to all other agents
     system_prompt: "Coordinate tasks between available agents."
 
@@ -149,7 +149,7 @@ agents:
     model:
       type: fallback
       models: [openai:gpt-4o, anthropic:claude-sonnet-4-0]
-    toolsets:
+    tools:
       - type: subagent
       - type: resource_access
     mcp_servers:

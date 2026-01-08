@@ -13,7 +13,7 @@ Tools for creating and managing agent configurations programmatically.
 ```yaml
 agents:
   admin:
-    toolsets:
+    tools:
       - type: config_creation
 ```
 

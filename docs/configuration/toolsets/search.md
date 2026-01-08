@@ -13,7 +13,7 @@ The Search toolset provides web and news search capabilities using various searc
 ```yaml
 agents:
   researcher:
-    toolsets:
+    tools:
       - type: search
         provider: tavily
 ```
@@ -40,7 +40,7 @@ agents:
 ### Web Search Only
 
 ```yaml
-toolsets:
+tools:
   - type: search
     provider: tavily
     api_key: ${TAVILY_API_KEY}
@@ -49,7 +49,7 @@ toolsets:
 ### News Search Only
 
 ```yaml
-toolsets:
+tools:
   - type: search
     news_provider: newsapi
     news_api_key: ${NEWSAPI_KEY}
@@ -58,7 +58,7 @@ toolsets:
 ### Both Web and News
 
 ```yaml
-toolsets:
+tools:
   - type: search
     provider: brave
     api_key: ${BRAVE_API_KEY}

@@ -21,7 +21,7 @@ Workers allow building hierarchies where a manager agent can delegate specialize
 ```yaml
 agents:
   manager:
-    toolsets:
+    tools:
       - type: workers
         workers:
           - name: code_reviewer
@@ -46,7 +46,7 @@ This creates tools `ask_code_reviewer` and `ask_researcher` for the manager agen
 Standard agents with history management options:
 
 ```yaml
-toolsets:
+tools:
   - type: workers
     workers:
       - name: helper_agent
@@ -65,7 +65,7 @@ toolsets:
 Use entire teams as workers:
 
 ```yaml
-toolsets:
+tools:
   - type: workers
     workers:
       - name: research_team
@@ -79,7 +79,7 @@ Team workers return formatted output with all team member responses.
 Use external ACP-compatible agents (Claude Code, Gemini CLI, etc.):
 
 ```yaml
-toolsets:
+tools:
   - type: workers
     workers:
       - name: claude_code
@@ -91,7 +91,7 @@ toolsets:
 Use remote AG-UI protocol servers:
 
 ```yaml
-toolsets:
+tools:
   - type: workers
     workers:
       - name: remote_agent
@@ -119,7 +119,7 @@ agents:
   manager:
     model: openai:gpt-4o
     system_prompt: "You coordinate tasks between specialists."
-    toolsets:
+    tools:
       - type: workers
         workers:
           - name: code_expert

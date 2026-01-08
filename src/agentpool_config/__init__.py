@@ -35,6 +35,7 @@ from agentpool_config.hooks import (
     HooksConfig,
     PromptHookConfig,
 )
+from agentpool_config.toolsets import ToolsetConfig
 
 
 ToolConfig = Annotated[
@@ -46,7 +47,14 @@ NativeAgentToolConfig = Annotated[
     ToolConfig | BuiltinToolConfig,
     Field(discriminator="type"),
 ]
+
+# Unified type for all tool configurations (single tools + toolsets)
+AnyToolConfig = Annotated[
+    NativeAgentToolConfig | ToolsetConfig,
+    Field(discriminator="type"),
+]
 __all__ = [
+    "AnyToolConfig",
     "BaseEventHandlerConfig",
     "BaseHookConfig",
     "BaseMCPServerConfig",
@@ -68,5 +76,6 @@ __all__ = [
     "StreamableHTTPMCPServerConfig",
     "TeamConfig",
     "ToolConfig",
+    "ToolsetConfig",
     "resolve_handler_configs",
 ]

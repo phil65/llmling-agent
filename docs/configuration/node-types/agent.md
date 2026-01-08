@@ -39,7 +39,7 @@ agents:
   base_agent:
     model: "openai:gpt-4o"
     retries: 2
-    toolsets:
+    tools:
       - type: "resource_access"
   
   specialized_agent:

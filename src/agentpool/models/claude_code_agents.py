@@ -9,11 +9,13 @@ from pydantic import ConfigDict, Field
 
 from agentpool import log
 from agentpool.resource_providers import StaticResourceProvider
-from agentpool_config import BaseToolConfig, ToolConfig  # noqa: TC001
+from agentpool_config import (
+    AnyToolConfig,  # noqa: TC001
+    BaseToolConfig,
+)
 from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
-from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -244,76 +246,75 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     )
     """Bypass all permission checks. Only for sandboxed environments."""
 
-    toolsets: list[ToolsetConfig] = Field(
+    tools: list[AnyToolConfig | str] = Field(
         default_factory=list,
-        title="Toolsets",
+        title="Tools",
         examples=[
             [
                 {"type": "subagent"},
                 {"type": "agent_management"},
-            ],
-        ],
-    )
-    """Toolsets to expose to this Claude Code agent via MCP bridge.
-
-    These toolsets will be started as an in-process MCP server and made
-    available to Claude Code. This allows Claude Code to use internal
-    agentpool toolsets like subagent delegation, agent management, etc.
-
-    The toolsets are exposed using the Claude SDK's native MCP support,
-    which passes the FastMCP server instance directly without HTTP overhead.
-    """
-
-    tools: list[ToolConfig | str] = Field(
-        default_factory=list,
-        examples=[
-            ["webbrowser:open", "builtins:print"],
-            [
+                "webbrowser:open",
                 {
                     "type": "import",
                     "import_path": "webbrowser:open",
                     "name": "web_browser",
-                }
+                },
             ],
         ],
-        title="Tool configurations",
-        json_schema_extra={
-            "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/tool_configuration/"
-        },
     )
-    """A list of tools to register with this agent.
+    """Tools and toolsets to expose to this Claude Code agent via MCP bridge.
+
+    Supports both single tools and toolsets. These will be started as an
+    in-process MCP server and made available to Claude Code.
 
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/tool_configuration/
     """
 
-    def get_toolset_providers(self) -> list[ResourceProvider]:
-        """Get resource providers for all configured toolsets.
+    def get_tool_providers(self) -> list[ResourceProvider]:
+        """Get all resource providers for this agent's tools.
+
+        Processes the unified tools list, separating:
+        - Toolsets: Each becomes its own ResourceProvider
+        - Single tools: Aggregated into a single StaticResourceProvider
 
         Returns:
-            List of initialized ResourceProvider instances
+            List of ResourceProvider instances
         """
-        return [toolset.get_provider() for toolset in self.toolsets]
-
-    def get_tool_provider(self) -> ResourceProvider | None:
-        """Get tool provider for this agent (excludes builtin tools)."""
         from agentpool.tools.base import Tool
+        from agentpool_config.toolsets import BaseToolsetConfig
 
-        # Create provider for static tools
-        if not self.tools:
-            return None
+        providers: list[ResourceProvider] = []
         static_tools: list[Tool] = []
+
         for tool_config in self.tools:
             try:
-                match tool_config:
-                    case str():
-                        tool = Tool.from_callable(tool_config)
-                        static_tools.append(tool)
-                    case BaseToolConfig():
-                        static_tools.append(tool_config.get_tool())
+                if isinstance(tool_config, BaseToolsetConfig):
+                    providers.append(tool_config.get_provider())
+                elif isinstance(tool_config, str):
+                    static_tools.append(Tool.from_callable(tool_config))
+                elif isinstance(tool_config, BaseToolConfig):
+                    static_tools.append(tool_config.get_tool())
             except Exception:
                 logger.exception("Failed to load tool", config=tool_config)
                 continue
 
-        if not static_tools:
-            return None
-        return StaticResourceProvider(name="builtin", tools=static_tools)
+        if static_tools:
+            providers.append(StaticResourceProvider(name="tools", tools=static_tools))
+
+        return providers
+
+    # Backward compatibility
+    def get_toolset_providers(self) -> list[ResourceProvider]:
+        """Deprecated: use get_tool_providers() instead."""
+        return [
+            p
+            for p in self.get_tool_providers()
+            if not isinstance(p, StaticResourceProvider) or p.name != "tools"
+        ]
+
+    def get_tool_provider(self) -> ResourceProvider | None:
+        """Deprecated: use get_tool_providers() instead."""
+        for p in self.get_tool_providers():
+            if isinstance(p, StaticResourceProvider) and p.name == "tools":
+                return p
+        return None

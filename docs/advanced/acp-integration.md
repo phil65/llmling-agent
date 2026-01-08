@@ -236,7 +236,7 @@ agents:
   coordinator:
     type: native
     model: openai:gpt-5-mini
-    toolsets:
+    tools:
       - type: agent_management  # Enables delegation to ACP agents
 ```
 
@@ -498,7 +498,7 @@ agents:
     provider: claude
     description: "Claude with delegation capabilities"
     permission_mode: acceptEdits
-    toolsets:
+    tools:
       # Subagent delegation tools
       - type: subagent
       
@@ -597,7 +597,7 @@ agents:
   claude_advanced:
     type: acp
     provider: claude
-    toolsets:
+    tools:
       - type: subagent
         # Toolset-specific config here
         

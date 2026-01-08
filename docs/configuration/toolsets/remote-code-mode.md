@@ -13,7 +13,7 @@ Similar to Code Mode, but executes code in a remote environment.
 ```yaml
 agents:
   remote_coder:
-    toolsets:
+    tools:
       - type: remote_code_mode
         toolsets:
           - type: file_access

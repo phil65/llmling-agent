@@ -9,12 +9,14 @@ import anyenv
 from pydantic import BaseModel, ConfigDict, Field
 
 from agentpool.models.acp_agents.base import BaseACPAgentConfig
+from agentpool_config import AnyToolConfig, BaseToolConfig  # noqa: TC001
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
-from agentpool_config.toolsets import ToolsetConfig  # noqa: TC001
+from agentpool_config.toolsets import BaseToolsetConfig
 
 
 if TYPE_CHECKING:
     from agentpool.prompts.manager import PromptManager
+    from agentpool.resource_providers import ResourceProvider
 
 
 ClaudeCodeModelName = Literal["default", "sonnet", "opus", "haiku", "sonnet[1m]", "opusplan"]
@@ -48,22 +50,50 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
     that can be exposed via an internal MCP bridge.
     """
 
-    toolsets: list[ToolsetConfig] = Field(
+    tools: list[AnyToolConfig | str] = Field(
         default_factory=list,
-        title="Toolsets",
+        title="Tools",
         examples=[
             [
                 {"type": "subagent"},
                 {"type": "agent_management"},
+                "webbrowser:open",
             ],
         ],
     )
-    """Toolsets to expose to this ACP agent via MCP bridge.
+    """Tools and toolsets to expose to this ACP agent via MCP bridge.
 
-    These toolsets will be started as an in-process MCP server and made
-    available to the external ACP agent. This allows ACP agents to use
-    internal agentpool toolsets like subagent delegation.
+    Supports both single tools and toolsets. These will be started as an
+    in-process MCP server and made available to the external ACP agent.
     """
+
+    def get_tool_providers(self) -> list[ResourceProvider]:
+        """Get all resource providers for this agent's tools.
+
+        Returns:
+            List of ResourceProvider instances
+        """
+        from agentpool.resource_providers import StaticResourceProvider
+        from agentpool.tools.base import Tool
+
+        providers: list[ResourceProvider] = []
+        static_tools: list[Tool] = []
+
+        for tool_config in self.tools:
+            try:
+                if isinstance(tool_config, BaseToolsetConfig):
+                    providers.append(tool_config.get_provider())
+                elif isinstance(tool_config, str):
+                    static_tools.append(Tool.from_callable(tool_config))
+                elif isinstance(tool_config, BaseToolConfig):
+                    static_tools.append(tool_config.get_tool())
+            except Exception:  # noqa: BLE001
+                continue
+
+        if static_tools:
+            providers.append(StaticResourceProvider(name="tools", tools=static_tools))
+
+        return providers
 
     def build_mcp_config_json(self) -> str | None:
         """Convert inherited mcp_servers to standard MCP config JSON format.
@@ -198,12 +228,12 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
     )
     """Additional directories to allow tool access to."""
 
-    tools: list[ClaudeCodeToolName | str] | None = Field(
+    builtin_tools: list[ClaudeCodeToolName | str] | None = Field(
         default=None,
-        title="Tools",
+        title="Built-in Tools",
         examples=[["Bash", "Edit", "Read"], []],
     )
-    """Available tools from built-in set. Empty list disables all tools."""
+    """Available tools from Claude's built-in set. Empty list disables all tools."""
 
     fallback_model: ClaudeCodeModelName | None = Field(
         default=None,
@@ -261,9 +291,9 @@ class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
             args.append("--strict-mcp-config")
         if self.add_dir:
             args.extend(["--add-dir", *self.add_dir])
-        if self.tools is not None:
-            if self.tools:
-                args.extend(["--tools", ",".join(self.tools)])
+        if self.builtin_tools is not None:
+            if self.builtin_tools:
+                args.extend(["--tools", ",".join(self.builtin_tools)])
             else:
                 args.extend(["--tools", ""])
         if self.fallback_model:
@@ -308,7 +338,7 @@ class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
             provider: fast-agent
             cwd: /path/to/project
             model: claude-3.5-sonnet-20241022
-            toolsets:
+            tools:
               - type: subagent
               - type: agent_management
             skills_dir: ./my-skills

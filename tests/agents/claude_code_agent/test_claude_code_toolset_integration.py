@@ -37,7 +37,7 @@ def claude_code_config_with_subagent() -> ClaudeCodeAgentConfig:
         cwd=str(Path.cwd()),
         model="haiku",
         permission_mode="acceptEdits",
-        toolsets=[SubagentToolsetConfig()],
+        tools=[SubagentToolsetConfig()],
         builtin_tools=[],  # Disable builtin tools for focused testing
         env={"ANTHROPIC_API_KEY": ""},  # Use subscription, not direct API key
     )
@@ -108,7 +108,7 @@ async def test_claude_code_multiple_toolsets():
         name="claude_code_multi",
         cwd=str(Path.cwd()),
         permission_mode="acceptEdits",
-        toolsets=[SubagentToolsetConfig(), SkillsToolsetConfig()],
+        tools=[SubagentToolsetConfig(), SkillsToolsetConfig()],
         builtin_tools=[],
     )
 
@@ -149,7 +149,7 @@ async def test_claude_code_mcp_servers_config():
         name="claude_code_mixed",
         cwd=str(Path.cwd()),
         permission_mode="acceptEdits",
-        toolsets=[SubagentToolsetConfig()],
+        tools=[SubagentToolsetConfig()],
         mcp_servers=[
             StdioMCPServerConfig(
                 name="external_test",

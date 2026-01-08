@@ -13,7 +13,7 @@ The File Access toolset provides tools for reading, writing, and editing files o
 ```yaml
 agents:
   my_agent:
-    toolsets:
+    tools:
       - type: file_access
         fs: "file:///workspace"
 ```
@@ -25,7 +25,7 @@ The `fs` field accepts either a URI string or a full filesystem configuration:
 ### URI String
 
 ```yaml
-toolsets:
+tools:
   - type: file_access
     fs: "file:///home/user/project"
 ```
@@ -33,7 +33,7 @@ toolsets:
 ### Filesystem Config
 
 ```yaml
-toolsets:
+tools:
   - type: file_access
     fs:
       type: github
@@ -47,7 +47,7 @@ toolsets:
 Mount multiple filesystems together using the `mounts` type:
 
 ```yaml
-toolsets:
+tools:
   - type: file_access
     fs:
       type: mounts
@@ -80,7 +80,7 @@ print(generate_tool_docs(toolset))
 ### Local Development
 
 ```yaml
-toolsets:
+tools:
   - type: file_access
     fs: "file:///home/user/project"
     max_file_size_kb: 128
@@ -89,7 +89,7 @@ toolsets:
 ### GitHub Repository Access
 
 ```yaml
-toolsets:
+tools:
   - type: file_access
     fs:
       type: github
@@ -101,7 +101,7 @@ toolsets:
 ### Multi-Source Documentation
 
 ```yaml
-toolsets:
+tools:
   - type: file_access
     fs:
       type: mounts

@@ -139,7 +139,7 @@ agents:
   assistant:
     type: claude_code
     display_name: "AI Assistant"
-    toolsets:
+    tools:
       - type: file_access
         edit_tool: batch
       - type: process_management

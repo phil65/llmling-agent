@@ -17,7 +17,7 @@ Toolsets are configured in your manifest under the agent's `toolsets` field:
 ```yaml
 agents:
   my_agent:
-    toolsets:
+    tools:
       - type: file_access
         fs: "file:///workspace"
       - type: search
@@ -74,7 +74,7 @@ agents:
 All toolsets share these base options:
 
 ```yaml
-toolsets:
+tools:
   - type: <toolset_type>
     namespace: optional_prefix  # Prefix for tool names
 ```

@@ -83,7 +83,7 @@ agents:
     type: native
     model: anthropic:claude-sonnet-4
     system_prompt: You coordinate between local and remote agents
-    toolsets:
+    tools:
       - type: agent_management
 
 # Teams mixing native and AG-UI agents

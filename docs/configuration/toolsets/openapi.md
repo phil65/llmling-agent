@@ -13,7 +13,7 @@ The OpenAPI toolset automatically generates tools from OpenAPI/Swagger specifica
 ```yaml
 agents:
   api_agent:
-    toolsets:
+    tools:
       - type: openapi
         spec: https://api.example.com/openapi.json
 ```
@@ -23,7 +23,7 @@ agents:
 ### From URL
 
 ```yaml
-toolsets:
+tools:
   - type: openapi
     spec: https://petstore.swagger.io/v2/swagger.json
 ```
@@ -31,7 +31,7 @@ toolsets:
 ### From Local File
 
 ```yaml
-toolsets:
+tools:
   - type: openapi
     spec: ./specs/my-api.yaml
 ```
@@ -39,7 +39,7 @@ toolsets:
 ### With Authentication
 
 ```yaml
-toolsets:
+tools:
   - type: openapi
     spec: https://api.example.com/openapi.json
     base_url: https://api.example.com/v1

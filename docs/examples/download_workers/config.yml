@@ -13,7 +13,7 @@ agents:
     description: "Downloads files from URLs"
     model: openai:gpt-5-nano
     system_prompt: "You download files from URLs using the download_file tool."
-    toolsets:
+    tools:
       - type: file_access
 
   file_getter_2:
@@ -22,5 +22,5 @@ agents:
     description: "Downloads files from URLs"
     model: openai:gpt-5-nano
     system_prompt: "You download files from URLs using the download_file tool."
-    toolsets:
+    tools:
       - type: file_access

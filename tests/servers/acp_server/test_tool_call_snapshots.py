@@ -48,7 +48,7 @@ class TestReadFileSnapshots:
         messages = await harness.execute_tool(
             tool_name="read",
             tool_args={"path": "/test/hello.txt"},
-            toolsets=[FSSpecToolsetConfig()],
+            tools=[FSSpecToolsetConfig()],
         )
 
         assert messages == json_snapshot
@@ -65,7 +65,7 @@ class TestReadFileSnapshots:
         messages = await harness.execute_tool(
             tool_name="read",
             tool_args={"path": "/test/lines.txt", "line": 3, "limit": 2},
-            toolsets=[FSSpecToolsetConfig()],
+            tools=[FSSpecToolsetConfig()],
         )
 
         assert messages == json_snapshot
@@ -83,7 +83,7 @@ class TestWriteFileSnapshots:
         messages = await harness.execute_tool(
             tool_name="write",
             tool_args={"path": "/test/new_file.txt", "content": "New content here"},
-            toolsets=[FSSpecToolsetConfig()],
+            tools=[FSSpecToolsetConfig()],
         )
 
         assert messages == json_snapshot
@@ -103,7 +103,7 @@ class TestWriteFileSnapshots:
                 "content": "Updated content",
                 "overwrite": True,
             },
-            toolsets=[FSSpecToolsetConfig()],
+            tools=[FSSpecToolsetConfig()],
         )
 
         assert messages == json_snapshot

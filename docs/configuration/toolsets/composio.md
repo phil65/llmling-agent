@@ -13,7 +13,7 @@ Integration with the [Composio](https://composio.dev) platform for accessing pre
 ```yaml
 agents:
   my_agent:
-    toolsets:
+    tools:
       - type: composio
         apps:
           - github

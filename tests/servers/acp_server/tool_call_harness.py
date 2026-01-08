@@ -13,7 +13,7 @@ Example usage:
         messages = await harness.execute_tool(
             tool_name="my_tool",
             tool_args={"arg1": "value1"},
-            toolsets=[MyToolsetConfig()],
+            tools=[MyToolsetConfig()],
         )
 
         assert messages == snapshot
@@ -113,8 +113,7 @@ class ToolCallTestHarness:
         self,
         tool_name: str,
         tool_args: dict[str, Any],
-        toolsets: list[ToolsetConfig] | None = None,
-        tools: list[BaseToolConfig] | None = None,
+        tools: list[ToolsetConfig | BaseToolConfig] | None = None,
         mcp_servers: list[MCPServerConfig] | None = None,
         prompt: str = "Execute the tool",
     ) -> list[dict[str, Any]]:
@@ -123,8 +122,7 @@ class ToolCallTestHarness:
         Args:
             tool_name: Name of the tool to call
             tool_args: Arguments to pass to the tool
-            toolsets: List of toolset configs that provide the tool
-            tools: List of standalone tool configs
+            tools: List of tool/toolset configs that provide the tool
             mcp_servers: List of MCP server configs that provide the tool
             prompt: Text prompt to send (content doesn't matter, model is configured)
 
@@ -137,7 +135,6 @@ class ToolCallTestHarness:
         agent_config = NativeAgentConfig(
             name="harness_test_agent",
             model=model_config,
-            toolsets=toolsets or [],
             tools=tools or [],
             mcp_servers=mcp_servers or [],
         )
@@ -165,26 +162,26 @@ class ToolCallTestHarness:
 
     async def execute_tools(
         self,
-        tools: dict[str, dict[str, Any]],
-        toolsets: list[ToolsetConfig],
+        tool_calls: dict[str, dict[str, Any]],
+        tools: list[ToolsetConfig | BaseToolConfig],
         prompt: str = "Execute the tools",
     ) -> list[dict[str, Any]]:
         """Execute multiple tools and return the captured messages.
 
         Args:
-            tools: Dict mapping tool_name -> tool_args
-            toolsets: List of toolset configs that provide the tools
+            tool_calls: Dict mapping tool_name -> tool_args
+            tools: List of tool/toolset configs that provide the tools
             prompt: Text prompt to send
 
         Returns:
             List of tool call notification messages in wire format
         """
-        tool_names = list(tools.keys())
-        model_config = TestModelConfig(call_tools=tool_names, tool_args=tools)
+        tool_names = list(tool_calls.keys())
+        model_config = TestModelConfig(call_tools=tool_names, tool_args=tool_calls)
         agent_config = NativeAgentConfig(
             name="harness_test_agent",
             model=model_config,
-            toolsets=toolsets,
+            tools=tools,
         )
         manifest = AgentsManifest(agents={"harness_test_agent": agent_config})
         pool = AgentPool(manifest)

@@ -165,7 +165,7 @@ agents:
     name: "Text Analyzer"
     model: openai:gpt-4o
     description: "Analyzes text and provides structured output"
-    toolsets:
+    tools:
       - type: file_access
 ```
 

@@ -4,15 +4,16 @@ agents:
     type: native
     model: openai:gpt-5
     system_prompt: "You help users manage their files and directories."
-    toolsets:
-      - type: import_tools
-        tools:
-          - import_path: os.listdir
-            name: list_files
-            description: "List directory contents"
-          - import_path: os.remove
-            name: delete_file
-            description: "Delete a file"
-          - import_path: custom_tools.modify_file
-            name: modify_file
-            description: "Modify file contents"
+    tools:
+      - type: import
+        import_path: os.listdir
+        name: list_files
+        description: "List directory contents"
+      - type: import
+        import_path: os.remove
+        name: delete_file
+        description: "Delete a file"
+      - type: import
+        import_path: custom_tools.modify_file
+        name: modify_file
+        description: "Modify file contents"

@@ -69,7 +69,7 @@ agents:
     model: anthropic:claude-sonnet
     system_prompt: "Expert in API design"
     
-toolsets:
+tools:
   - type: subagent  # Exposes delegate_to, ask_agent
 ```
 
@@ -103,7 +103,7 @@ agentpool serve-mcp --config agent.yml
 All enabled tools from configured toolsets:
 
 ```yaml
-toolsets:
+tools:
   - type: file_access    # read, write, list_directory
   - type: process_management      # run_command, run_python
   - type: search         # web_search, news_search

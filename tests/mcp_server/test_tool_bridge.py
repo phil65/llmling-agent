@@ -201,7 +201,7 @@ async def test_acp_agent_toolsets_adds_providers():
     """Test that toolsets from config are added to ToolManager."""
     async with AgentPool() as pool:
         toolsets = [SubagentToolsetConfig(), SkillsToolsetConfig()]
-        config = ClaudeACPAgentConfig(name="test_acp", toolsets=toolsets)
+        config = ClaudeACPAgentConfig(name="test_acp", tools=toolsets)
         agent = ACPAgent(config=config, agent_pool=pool)
         await agent._setup_toolsets()
         # Check that providers were added

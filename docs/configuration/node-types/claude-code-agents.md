@@ -110,7 +110,7 @@ Expose AgentPool's internal toolsets to Claude Code via MCP:
 claude_code_agents:
   coordinator:
     cwd: /path/to/project
-    toolsets:
+    tools:
       - type: subagent
         agents:
           - researcher
@@ -198,7 +198,7 @@ This enables powerful workflows:
 claude_code_agents:
   smart_coder:
     cwd: /path/to/project
-    toolsets:
+    tools:
       # Delegate to specialized agents
       - type: subagent
         agents:

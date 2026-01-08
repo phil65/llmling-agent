@@ -13,9 +13,9 @@ Wraps other toolsets to enable code-based tool invocation, allowing agents to ca
 ```yaml
 agents:
   coder:
-    toolsets:
+    tools:
       - type: code_mode
-        toolsets:
+        tools:
           - type: file_access
             fs: "file:///workspace"
 ```

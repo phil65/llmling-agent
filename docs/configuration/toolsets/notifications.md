@@ -13,7 +13,7 @@ Send notifications through various channels like email, Slack, or webhooks.
 ```yaml
 agents:
   notifier:
-    toolsets:
+    tools:
       - type: notifications
         email:
           smtp_host: smtp.gmail.com

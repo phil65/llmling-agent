@@ -9,7 +9,7 @@ agents:
     env: # override to make sure subscription is used
       ANTHROPIC_API_KEY: ""
 
-    toolsets:
+    tools:
       - type: code
       - type: subagent
   codex:

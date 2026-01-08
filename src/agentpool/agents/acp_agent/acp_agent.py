@@ -283,11 +283,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Initialize toolsets from config and create bridge if needed."""
         from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
 
-        if not isinstance(self.config, MCPCapableACPAgentConfig) or not self.config.toolsets:
+        if not isinstance(self.config, MCPCapableACPAgentConfig) or not self.config.tools:
             return
-        # Create providers from toolset configs and add to tool manager
-        for toolset_config in self.config.toolsets:
-            provider = toolset_config.get_provider()
+        # Create providers from tool configs and add to tool manager
+        for provider in self.config.get_tool_providers():
             self.tools.add_provider(provider)
         # Auto-create bridge to expose tools via MCP
         config = BridgeConfig(transport="sse", server_name=f"agentpool-{self.name}-tools")

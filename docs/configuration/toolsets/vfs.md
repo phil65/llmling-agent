@@ -26,7 +26,7 @@ Then enable the VFS toolset:
 ```yaml
 agents:
   my_agent:
-    toolsets:
+    tools:
       - type: vfs
 ```
 

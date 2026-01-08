@@ -13,7 +13,6 @@ agents:
     tools:
       - type: bash
       - type: agent_cli
-    toolsets:
       - type: file_access
         edit_tool: batch
       - type: code

@@ -37,7 +37,7 @@ def claude_config_with_subagent() -> ClaudeACPAgentConfig:
         cwd=str(Path.cwd()),
         model="haiku",
         permission_mode="acceptEdits",
-        toolsets=[SubagentToolsetConfig()],
+        tools=[SubagentToolsetConfig()],
         env={"ANTHROPIC_API_KEY": ""},  # Use subscription, not direct API key
     )
 
@@ -113,7 +113,7 @@ async def test_claude_acp_multiple_toolsets():
         name="claude_multi",
         cwd=str(Path.cwd()),
         permission_mode="acceptEdits",
-        toolsets=[SubagentToolsetConfig(), DebugToolsetConfig()],
+        tools=[SubagentToolsetConfig(), DebugToolsetConfig()],
     )
 
     async with AgentPool() as pool:

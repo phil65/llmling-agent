@@ -13,7 +13,7 @@ Load custom toolset implementations from Python code.
 ```yaml
 agents:
   my_agent:
-    toolsets:
+    tools:
       - type: custom
         import_path: mypackage.toolsets:MyCustomToolset
 ```

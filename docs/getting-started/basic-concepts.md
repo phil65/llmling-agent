@@ -84,7 +84,7 @@ agents:
     analyzer:
         model: "openai:gpt-5"
         system_prompt: ...
-        toolsets: [...]
+        tools: [...]
   planner:
     model: "anthropic:claude-sonnet-4-0"
     ...

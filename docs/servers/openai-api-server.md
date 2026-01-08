@@ -269,7 +269,7 @@ agents:
   claude-coder:
     type: claude_code
     model: anthropic:claude-sonnet-4-20250514
-    toolsets:
+    tools:
       - type: file_access
       - type: process_management
 ```

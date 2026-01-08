@@ -13,7 +13,7 @@ Load and execute skills - reusable prompt-based capabilities.
 ```yaml
 agents:
   my_agent:
-    toolsets:
+    tools:
       - type: skills
 ```
 

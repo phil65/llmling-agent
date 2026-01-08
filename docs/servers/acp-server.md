@@ -75,7 +75,7 @@ agents:
     model: openai:gpt-4o
     display_name: "AI Assistant"
     system_prompt: "You are a helpful coding assistant."
-    toolsets:
+    tools:
       - type: file_access
       - type: process_management
       - type: search
@@ -122,7 +122,7 @@ agents:
   coordinator:
     type: native
     model: openai:gpt-4o
-    toolsets:
+    tools:
       - type: agent_management  # Can delegate to claude
 ```
 
@@ -175,7 +175,7 @@ agents:
   claude_orchestrator:
     type: acp
     provider: claude
-    toolsets:
+    tools:
       - type: subagent        # Delegation tools
       - type: agent_management # Lifecycle tools
       - type: search          # Web search

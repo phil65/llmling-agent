@@ -19,7 +19,7 @@ Enables agents to discover, coordinate with, and manage other agents:
 ```yaml
 agents:
   coordinator:
-    toolsets:
+    tools:
       - type: agent_management
 ```
 
@@ -42,7 +42,7 @@ File system operations via fsspec (supports local, S3, GCS, etc.):
 ```yaml
 agents:
   reader:
-    toolsets:
+    tools:
       - type: file_access  # Local filesystem by default, or use url: s3://bucket, etc.
 ```
 
@@ -62,7 +62,7 @@ Access to AgentPool resources and configurations:
 ```yaml
 agents:
   assistant:
-    toolsets:
+    tools:
       - type: resource_access
 ```
 
@@ -78,7 +78,7 @@ Execute Python code and system commands:
 ```yaml
 agents:
   developer:
-    toolsets:
+    tools:
       - type: code_execution
 ```
 
@@ -94,7 +94,7 @@ Start and manage background processes:
 ```yaml
 agents:
   build_manager:
-    toolsets:
+    tools:
       - type: process_management
 ```
 
@@ -114,7 +114,7 @@ Register and manage tools dynamically:
 ```yaml
 agents:
   admin:
-    toolsets:
+    tools:
       - type: tool_management
 ```
 
@@ -130,7 +130,7 @@ Direct interaction with users:
 ```yaml
 agents:
   assistant:
-    toolsets:
+    tools:
       - type: user_interaction
 ```
 
@@ -145,7 +145,7 @@ Access conversation history and statistics:
 ```yaml
 agents:
   analyst:
-    toolsets:
+    tools:
       - type: history
 ```
 
@@ -161,7 +161,7 @@ External service integrations:
 ```yaml
 agents:
   integrator:
-    toolsets:
+    tools:
       - type: integrations
 ```
 
@@ -179,7 +179,7 @@ agents:
 agents:
   assistant:
     model: openai:gpt-4
-    toolsets:
+    tools:
       - type: resource_access
       - type: file_access
       - type: user_interaction
@@ -191,7 +191,7 @@ agents:
 agents:
   coordinator:
     model: openai:gpt-4
-    toolsets:
+    tools:
       - type: agent_management
       - type: history
     system_prompt: You coordinate tasks across multiple agents
@@ -203,24 +203,12 @@ agents:
 agents:
   developer:
     model: anthropic:claude-3-5-sonnet-20241022
-    toolsets:
+    tools:
       - type: file_access
       - type: code_execution
       - type: process_management
       - type: tool_management
     system_prompt: You are a software developer with full system access
-```
-
-### Restricted Agent
-
-```yaml
-agents:
-  restricted:
-    model: openai:gpt-4-mini
-    toolsets: []  # No toolsets = only predefined tools
-    tools:
-      - calculator
-      - web_search
 ```
 
 
@@ -231,7 +219,7 @@ You can also create custom toolsets by implementing your own provider:
 ```yaml
 agents:
   specialized:
-    toolsets:
+    tools:
       - type: custom
         import_path: "mypackage.toolsets.SpecializedTools"
 ```

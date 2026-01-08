@@ -13,7 +13,7 @@ Load tools registered through Python entry points, enabling plugin-style tool di
 ```yaml
 agents:
   my_agent:
-    toolsets:
+    tools:
       - type: entry_points
         group: my_package.tools
 ```
