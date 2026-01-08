@@ -880,17 +880,17 @@ class OpenCodeStorageProvider(StorageProvider):
         new_session_path = new_session_dir / f"{new_conversation_id}.json"
 
         # Create new session metadata
+        fork_title = f"{source_session.title} (fork)" if source_session.title else "Forked Session"
         new_session = OpenCodeSession(
             id=new_conversation_id,
             project_id=project_id,
+            directory=source_session.directory,  # Same project directory as source
+            title=fork_title,
             time=OpenCodeTime(
                 created=int(get_now().timestamp() * 1000),
             ),
-            status="active",
             summary=OpenCodeSummary(
-                title=f"{source_session.summary.title or 'Session'} (fork)"
-                if source_session.summary.title
-                else None,
+                title=fork_title,
             ),
         )
 
