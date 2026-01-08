@@ -374,7 +374,7 @@ class ACPEventConverter:
                 from agentpool_server.acp_server.syntax_detection import format_zed_code_block
 
                 acp_content: list[ToolCallContent] = []
-                location_paths: list[str] = []
+                progress_locations: list[ToolCallLocation] = []
 
                 for item in items:
                     match item:
@@ -394,7 +394,9 @@ class ACPEventConverter:
                                 file_content, file_path, start_line, end_line
                             )
                             acp_content.append(ContentToolCallContent.text(text=formatted))
-                            location_paths.append(file_path)
+                            progress_locations.append(
+                                ToolCallLocation(path=file_path, line=start_line)
+                            )
                         case DiffContentItem(path=diff_path, old_text=old, new_text=new):
                             from acp.schema import FileEditToolCallContent
 
@@ -405,14 +407,12 @@ class ACPEventConverter:
                                     new_text=new,
                                 )
                             )
-                            location_paths.append(diff_path)
+                            progress_locations.append(ToolCallLocation(path=diff_path))
                             state.has_content = True
-                        case LocationContentItem(path=loc_path):
-                            location_paths.append(loc_path)
-
-                locations = (
-                    [ToolCallLocation(path=p) for p in location_paths] if location_paths else None
-                )
+                        case LocationContentItem(path=loc_path, line=loc_line):
+                            progress_locations.append(
+                                ToolCallLocation(path=loc_path, line=loc_line)
+                            )
 
                 # Build title: use provided title, or format MCP numeric progress
                 effective_title = title
@@ -433,7 +433,7 @@ class ACPEventConverter:
                     title=effective_title,
                     status="in_progress",
                     content=acp_content or None,
-                    locations=locations,
+                    locations=progress_locations or None,
                 )
                 if acp_content:
                     state.has_content = True
