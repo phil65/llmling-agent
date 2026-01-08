@@ -153,7 +153,7 @@ if __name__ == "__main__":
     async def main() -> None:
         tools = [Tool.from_callable(open_browser)]
         static_provider = StaticResourceProvider(tools=tools)
-        config = LocalExecutionEnvironmentConfig(timeout=30.0)
+        config = LocalExecutionEnvironmentConfig(default_command_timeout=30.0)
         provider = RemoteCodeModeResourceProvider(
             providers=[static_provider],
             execution_config=config,
