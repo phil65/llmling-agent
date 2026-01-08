@@ -55,8 +55,8 @@ class StreamProcessor(Protocol):
     """
 
     def __call__(
-        self, stream: AsyncIterator[RichAgentStreamEvent]
-    ) -> AsyncIterator[RichAgentStreamEvent]:
+        self, stream: AsyncIterator[RichAgentStreamEvent[Any]]
+    ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
         """Process an event stream.
 
         Args:
@@ -94,8 +94,8 @@ class StreamPipeline:
     processors: list[StreamProcessorCallable | StreamProcessor] = field(default_factory=list)
 
     def __call__(
-        self, stream: AsyncIterator[RichAgentStreamEvent]
-    ) -> AsyncIterator[RichAgentStreamEvent]:
+        self, stream: AsyncIterator[RichAgentStreamEvent[Any]]
+    ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
         """Run events through all processors in sequence.
 
         Args:
@@ -169,7 +169,7 @@ class FileTrackingProcessor:
     extractor: Callable[[str, dict[str, Any]], str | None] = extract_file_path_from_tool_call
     """Function to extract file path from tool call. Can be customized."""
 
-    def process_event(self, event: RichAgentStreamEvent) -> None:
+    def process_event(self, event: RichAgentStreamEvent[Any]) -> None:
         """Process an event and track any file modifications.
 
         Args:
@@ -219,7 +219,7 @@ class FileTrackingProcessor:
 
 
 def event_handler_processor(
-    handler: Callable[[Any, RichAgentStreamEvent], Coroutine[Any, Any, None]],
+    handler: Callable[[Any, RichAgentStreamEvent[Any]], Coroutine[Any, Any, None]],
 ) -> StreamProcessorCallable:
     """Create a processor that calls an event handler for each event.
 
