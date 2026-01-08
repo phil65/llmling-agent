@@ -306,6 +306,163 @@ class OpenCodeStorageProvider(StorageProvider):
                 logger.warning("Failed to parse part", path=str(part_file), error=str(e))
         return parts
 
+    async def _write_message(
+        self,
+        *,
+        message_id: str,
+        conversation_id: str,
+        role: str,
+        model_messages: list[ModelRequest | ModelResponse],
+        parent_id: str | None = None,
+        model: str | None = None,
+        cost_info: TokenCost | None = None,
+        finish_reason: Any | None = None,
+    ) -> None:
+        """Write a message in OpenCode format."""
+        now_ms = int(get_now().timestamp() * 1000)
+
+        # Ensure message directory exists
+        msg_dir = self.messages_path / conversation_id
+        msg_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create OpenCode message
+        oc_message = OpenCodeMessage(
+            id=message_id,
+            session_id=conversation_id,
+            parent_id=parent_id,
+            role=role,
+            time={"created": now_ms},
+            model_id=model,
+            tokens={
+                "input": cost_info.token_usage.request_tokens if cost_info else 0,
+                "output": cost_info.token_usage.response_tokens if cost_info else 0,
+            }
+            if cost_info
+            else None,
+            cost=float(cost_info.total_cost) if cost_info else None,
+        )
+
+        # Write message file
+        msg_file = msg_dir / f"{message_id}.json"
+        msg_file.write_text(
+            anyenv.dump_json(oc_message.model_dump(by_alias=True), indent=True),
+            encoding="utf-8",
+        )
+
+        # Convert model messages to OpenCode parts
+        parts_dir = self.parts_path / message_id
+        parts_dir.mkdir(parents=True, exist_ok=True)
+
+        part_counter = 0
+        for msg in model_messages:
+            if isinstance(msg, ModelRequest):
+                # User prompt parts
+                for part in msg.parts:
+                    if isinstance(part, UserPromptPart):
+                        part_id = f"{message_id}-{part_counter}"
+                        part_counter += 1
+                        text_part = OpenCodeTextPart(
+                            id=part_id,
+                            session_id=conversation_id,
+                            message_id=message_id,
+                            type="text",
+                            text=part.content,
+                            time={"created": now_ms},
+                        )
+                        part_file = parts_dir / f"{part_id}.json"
+                        part_file.write_text(
+                            anyenv.dump_json(text_part.model_dump(by_alias=True), indent=True),
+                            encoding="utf-8",
+                        )
+                    elif isinstance(part, ToolReturnPart):
+                        # Tool return - update existing tool part with output
+                        tool_part_file = None
+                        # Find the tool part with matching call_id
+                        for existing_file in parts_dir.glob("*.json"):
+                            try:
+                                content = anyenv.load_json(
+                                    existing_file.read_text(encoding="utf-8"),
+                                    return_type=dict,
+                                )
+                                if (
+                                    content.get("type") == "tool"
+                                    and content.get("callID") == part.tool_call_id
+                                ):
+                                    tool_part_file = existing_file
+                                    break
+                            except Exception:  # noqa: BLE001
+                                continue
+
+                        if tool_part_file:
+                            # Update the tool part with output
+                            tool_part = anyenv.load_json(
+                                tool_part_file.read_text(encoding="utf-8"),
+                                return_type=OpenCodeToolPart,
+                            )
+                            tool_part.state.output = str(part.content)
+                            tool_part.state.status = "completed"
+                            tool_part_file.write_text(
+                                anyenv.dump_json(tool_part.model_dump(by_alias=True), indent=True),
+                                encoding="utf-8",
+                            )
+
+            elif isinstance(msg, ModelResponse):
+                # Model response parts
+                for part in msg.parts:  # type: ignore[assignment]
+                    part_id = f"{message_id}-{part_counter}"
+                    part_counter += 1
+
+                    if isinstance(part, TextPart):
+                        text_part = OpenCodeTextPart(
+                            id=part_id,
+                            session_id=conversation_id,
+                            message_id=message_id,
+                            type="text",
+                            text=part.content,
+                            time={"created": now_ms},
+                        )
+                        part_file = parts_dir / f"{part_id}.json"
+                        part_file.write_text(
+                            anyenv.dump_json(text_part.model_dump(by_alias=True), indent=True),
+                            encoding="utf-8",
+                        )
+
+                    elif isinstance(part, ThinkingPart):
+                        reasoning_part = OpenCodeReasoningPart(
+                            id=part_id,
+                            session_id=conversation_id,
+                            message_id=message_id,
+                            type="reasoning",
+                            text=part.content,
+                            time={"created": now_ms},
+                        )
+                        part_file = parts_dir / f"{part_id}.json"
+                        part_file.write_text(
+                            anyenv.dump_json(reasoning_part.model_dump(by_alias=True), indent=True),
+                            encoding="utf-8",
+                        )
+
+                    elif isinstance(part, ToolCallPart):
+                        # Create tool part with pending status
+                        tool_part = OpenCodeToolPart(
+                            id=part_id,
+                            session_id=conversation_id,
+                            message_id=message_id,
+                            type="tool",
+                            call_id=part.tool_call_id,
+                            tool=part.tool_name,
+                            state=OpenCodeToolState(
+                                status="pending",
+                                input=part.args,
+                                time={"created": now_ms},
+                            ),
+                        )
+                        part_file = parts_dir / f"{part_id}.json"
+                        part_file.write_text(
+                            anyenv.dump_json(tool_part.model_dump(by_alias=True), indent=True),
+                            encoding="utf-8",
+                        )
+
     def _build_tool_id_mapping(self, parts: list[OpenCodePart]) -> dict[str, str]:
         """Build mapping from tool callID to tool name."""
         mapping: dict[str, str] = {}
@@ -519,11 +676,30 @@ class OpenCodeStorageProvider(StorageProvider):
         messages: str | None = None,
         finish_reason: Any | None = None,
     ) -> None:
-        """Log a message to OpenCode format.
+        """Log a message to OpenCode format."""
+        if not messages:
+            logger.debug("No structured messages to log, skipping")
+            return
 
-        Note: Writing to OpenCode format is not fully implemented.
-        """
-        logger.warning("Writing to OpenCode format is not fully supported")
+        try:
+            # Deserialize pydantic-ai messages
+            from agentpool.storage.serialization import messages_adapter
+
+            model_messages = messages_adapter.validate_json(messages)
+
+            # Convert to OpenCode format and write
+            await self._write_message(
+                message_id=message_id,
+                conversation_id=conversation_id,
+                role=role,
+                model_messages=model_messages,
+                parent_id=parent_id,
+                model=model,
+                cost_info=cost_info,
+                finish_reason=finish_reason,
+            )
+        except Exception as e:
+            logger.exception("Failed to write OpenCode message", error=str(e))
 
     async def log_conversation(
         self,
