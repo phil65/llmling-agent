@@ -385,7 +385,7 @@ class FSSpecTools(ResourceProvider):
 
         await agent_ctx.events.tool_call_progress(
             title=msg,
-            items=[LocationContentItem(path=path)],
+            items=[LocationContentItem(path=path, line=line or 0)],
         )
         try:
             mime_type = guess_type(path)
