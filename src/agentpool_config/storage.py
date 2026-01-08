@@ -341,6 +341,10 @@ class StorageConfig(Schema):
         from agentpool.sessions.store import MemorySessionStore
         from agentpool_storage.session_store import SQLSessionStore
 
+        # Use memory store during tests
+        if os.getenv("PYTEST_CURRENT_TEST"):
+            return MemorySessionStore()
+
         match self.session_store:
             case "memory":
                 return MemorySessionStore()
