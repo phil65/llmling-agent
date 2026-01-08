@@ -305,8 +305,12 @@ class StorageConfig(Schema):
     """Whether to log additions to the context."""
 
     title_generation_model: ModelId | str | None = Field(
-        default="google-gla:gemini-2.5-flash-lite",
-        examples=["google-gla:gemini-2.5-flash-lite", None],
+        default="google-gla:gemini-2.5-flash-lite,openrouter:deepseek/deepseek-r1-0528:free",
+        examples=[
+            "google-gla:gemini-2.5-flash-lite",
+            "google-gla:gemini-2.5-flash-lite,openrouter:deepseek/deepseek-r1-0528:free",
+            None,
+        ],
         title="Title generation model",
     )
     """Model to use for generating conversation titles.
