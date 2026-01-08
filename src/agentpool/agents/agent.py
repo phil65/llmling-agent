@@ -1024,7 +1024,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 self.conversation_id = conversation_id
             else:
                 # New conversation - generate ID and log it
-                self.conversation_id = str(uuid4())
+                from agentpool.utils.identifiers import generate_session_id
+
+                self.conversation_id = generate_session_id()
                 await self.log_conversation()
 
         # Use provided parent_id or fall back to last message in history

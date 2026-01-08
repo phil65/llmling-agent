@@ -462,6 +462,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
+        conversation_id: str | None = None,
+        parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
     ) -> ChatMessage[str]:
@@ -470,6 +472,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         Args:
             prompts: Prompts to send (will be joined with spaces)
             message_id: Optional message id for the returned message
+            conversation_id: Optional conversation id (uses agent's if not provided)
+            parent_id: Optional parent message id for threading
             input_provider: Optional input provider for permission requests
             message_history: Optional MessageHistory to use instead of agent's own
 
@@ -481,6 +485,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         async for event in self.run_stream(
             *prompts,
             message_id=message_id,
+            conversation_id=conversation_id,
+            parent_id=parent_id,
             input_provider=input_provider,
             message_history=message_history,
         ):
@@ -497,6 +503,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
+        conversation_id: str | None = None,
+        parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
@@ -507,6 +515,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         Args:
             prompts: Prompts to send (will be joined with spaces)
             message_id: Optional message id for the final message
+            conversation_id: Optional conversation id (uses agent's if not provided)
+            parent_id: Optional parent message id for threading
             input_provider: Optional input provider for permission requests
             message_history: Optional MessageHistory to use instead of agent's own
             deps: Optional dependencies accessible via ctx.data in tools
@@ -541,15 +551,24 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             handler = self.event_handler
 
         # Initialize conversation_id on first run and log to storage
+        # Use passed conversation_id if provided (e.g., from chained agents)
         if self.conversation_id is None:
-            self.conversation_id = str(uuid.uuid4())
+            if conversation_id:
+                self.conversation_id = conversation_id
+            else:
+                from agentpool.utils.identifiers import generate_session_id
+
+                self.conversation_id = generate_session_id()
             await self.log_conversation()
 
         # Prepare user message for history and convert to ACP content blocks
         # Get parent_id from last message in history for tree structure
-        last_msg_id = conversation.get_last_message_id()
+        # Use passed parent_id if provided, otherwise get from conversation history
+        effective_parent_id = (
+            parent_id if parent_id is not None else conversation.get_last_message_id()
+        )
         user_msg, processed_prompts = await prepare_prompts(
-            *prompts, parent_id=last_msg_id, conversation_id=self.conversation_id
+            *prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
         )
         run_id = str(uuid.uuid4())
         self._state.clear()  # Reset state

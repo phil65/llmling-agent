@@ -792,6 +792,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
+        conversation_id: str | None = None,
+        parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
     ) -> ChatMessage[TResult]:
@@ -800,6 +802,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Args:
             prompts: Prompts to send
             message_id: Optional message ID for the returned message
+            conversation_id: Optional conversation id (uses agent's if not provided)
+            parent_id: Optional parent message id for threading
             input_provider: Optional input provider for permission requests
             message_history: Optional MessageHistory to use instead of agent's own
 
@@ -810,6 +814,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         async for event in self.run_stream(
             *prompts,
             message_id=message_id,
+            conversation_id=conversation_id,
+            parent_id=parent_id,
             input_provider=input_provider,
             message_history=message_history,
         ):
@@ -826,6 +832,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
+        conversation_id: str | None = None,
+        parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
@@ -836,6 +844,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Args:
             prompts: Prompts to send
             message_id: Optional message ID for the final message
+            conversation_id: Optional conversation id (uses agent's if not provided)
+            parent_id: Optional parent message id for threading
             input_provider: Optional input provider for permission requests
             message_history: Optional MessageHistory to use instead of agent's own
             deps: Optional dependencies accessible via ctx.data in tools
@@ -860,6 +870,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._cancelled = False
         self._current_stream_task = asyncio.current_task()
 
+        # Initialize conversation_id on first run and log to storage
+        # Use passed conversation_id if provided (e.g., from chained agents)
         # TODO: decide whether we should store CC sessions ourselves
         # For Claude Code, session_id comes from the SDK's init message:
         #   if hasattr(message, 'subtype') and message.subtype == 'init':
@@ -869,7 +881,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # For now, generate our own ID to satisfy type requirements.
         # Later we could replace with SDK session_id if we decide to store CC sessions.
         if self.conversation_id is None:
-            self.conversation_id = str(uuid.uuid4())
+            if conversation_id:
+                self.conversation_id = conversation_id
+            else:
+                from agentpool.utils.identifiers import generate_session_id
+
+                self.conversation_id = generate_session_id()
             # await self.log_conversation()  # Uncomment if storing CC sessions
 
         # Update input provider if provided
@@ -892,8 +909,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             handler = self.event_handler
         # Prepare prompts
         # Get parent_id from last message in history for tree structure
-        last_msg_id = conversation.get_last_message_id()
-        user_msg, processed_prompts = await prepare_prompts(*prompts, parent_id=last_msg_id)
+        # Use passed parent_id if provided, otherwise get from conversation history
+        effective_parent_id = (
+            parent_id if parent_id is not None else conversation.get_last_message_id()
+        )
+        user_msg, processed_prompts = await prepare_prompts(*prompts, parent_id=effective_parent_id)
         # Get pending parts from conversation (staged content)
         pending_parts = conversation.get_pending_parts()
         # Combine pending parts with new prompts, then join into single string for Claude SDK
