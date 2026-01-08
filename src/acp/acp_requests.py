@@ -34,17 +34,7 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 
-RULES_FILE_NAMES = [
-    ".rules",
-    "CLAUDE.md",
-    "AGENT.md",
-    "AGENTS.md",
-    "GEMINI.md",
-    ".cursorrules",
-    ".windsurfrules",
-    ".clinerules",
-    ".github/copilot-instructions.md",
-]
+RULES_FILE_NAMES = ["CLAUDE.md", "AGENTS.md"]
 
 
 class ACPRequests:
@@ -55,12 +45,7 @@ class ACPRequests:
     """
 
     def __init__(self, client: Client, session_id: str) -> None:
-        """Initialize requests helper.
-
-        Args:
-            client: ACP client
-            session_id: Session ID
-        """
+        """Initialize requests helper."""
         self.client = client
         self.id = session_id
 
@@ -81,12 +66,7 @@ class ACPRequests:
         Returns:
             File content as string
         """
-        request = ReadTextFileRequest(
-            session_id=self.id,
-            path=path,
-            limit=limit,
-            line=line,
-        )
+        request = ReadTextFileRequest(session_id=self.id, path=path, limit=limit, line=line)
         response = await self.client.read_text_file(request)
         return response.content
 
@@ -105,12 +85,7 @@ class ACPRequests:
         return None
 
     async def write_text_file(self, path: str, content: str) -> None:
-        """Write text content to a file.
-
-        Args:
-            path: File path to write
-            content: Text content to write
-        """
+        """Write text content to a file."""
         request = WriteTextFileRequest(session_id=self.id, path=path, content=content)
         await self.client.write_text_file(request)
 
@@ -147,47 +122,22 @@ class ACPRequests:
         return TerminalHandle(terminal_id=response.terminal_id, requests=self)
 
     async def terminal_output(self, terminal_id: str) -> TerminalOutputResponse:
-        """Get output from a terminal session.
-
-        Args:
-            terminal_id: Terminal identifier
-
-        Returns:
-            Terminal output response
-        """
+        """Get output from a terminal session."""
         request = TerminalOutputRequest(session_id=self.id, terminal_id=terminal_id)
         return await self.client.terminal_output(request)
 
-    async def wait_for_terminal_exit(
-        self,
-        terminal_id: str,
-    ) -> WaitForTerminalExitResponse:
-        """Wait for a terminal to exit.
-
-        Args:
-            terminal_id: Terminal identifier
-
-        Returns:
-            Terminal exit response with exit_code
-        """
+    async def wait_for_terminal_exit(self, terminal_id: str) -> WaitForTerminalExitResponse:
+        """Wait for a terminal to exit."""
         request = WaitForTerminalExitRequest(session_id=self.id, terminal_id=terminal_id)
         return await self.client.wait_for_terminal_exit(request)
 
     async def kill_terminal(self, terminal_id: str) -> None:
-        """Kill a terminal session.
-
-        Args:
-            terminal_id: Terminal identifier to kill
-        """
+        """Kill a terminal session."""
         request = KillTerminalCommandRequest(session_id=self.id, terminal_id=terminal_id)
         await self.client.kill_terminal(request)
 
     async def release_terminal(self, terminal_id: str) -> None:
-        """Release a terminal session.
-
-        Args:
-            terminal_id: Terminal identifier to release
-        """
+        """Release a terminal session."""
         request = ReleaseTerminalRequest(session_id=self.id, terminal_id=terminal_id)
         await self.client.release_terminal(request)
 
@@ -229,10 +179,8 @@ class ACPRequests:
         try:
             if timeout_seconds:  # Wait for completion (with optional timeout)
                 try:
-                    exit_result = await asyncio.wait_for(
-                        self.wait_for_terminal_exit(terminal_id),
-                        timeout=timeout_seconds,
-                    )
+                    coro = self.wait_for_terminal_exit(terminal_id)
+                    exit_result = await asyncio.wait_for(coro, timeout=timeout_seconds)
                 except TimeoutError:  # Kill on timeout and get partial output
                     await self.kill_terminal(terminal_id)
                     output_response = await self.terminal_output(terminal_id)
@@ -267,16 +215,8 @@ class ACPRequests:
         """
         if options is None:
             options = [
-                PermissionOption(
-                    option_id="allow-once",
-                    name="Allow once",
-                    kind="allow_once",
-                ),
-                PermissionOption(
-                    option_id="reject-once",
-                    name="Reject",
-                    kind="reject_once",
-                ),
+                PermissionOption(option_id="allow-once", name="Allow once", kind="allow_once"),
+                PermissionOption(option_id="reject-once", name="Reject", kind="reject_once"),
             ]
 
         tool_call = ToolCall(tool_call_id=tool_call_id, title=title, raw_input=raw_input)
