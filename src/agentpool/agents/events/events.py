@@ -460,7 +460,6 @@ class ToolCallProgressEvent:
         """
         items: list[ToolCallContentItem] = [
             DiffContentItem(path=path, old_text=old_text, new_text=new_text),
-            LocationContentItem(path=path),
         ]
 
         return cls(

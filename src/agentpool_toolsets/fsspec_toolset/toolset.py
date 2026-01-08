@@ -748,9 +748,6 @@ class FSSpecTools(ResourceProvider):
             if old_str == new_str:
                 return f"Error: old_string and new_string must be different: {old_str!r}"
 
-        # Send initial pending notification
-        await agent_ctx.events.file_operation("edit", path=path, success=True)
-
         try:  # Read current file content
             original_content = await self._read(agent_ctx, path)
             if isinstance(original_content, bytes):
