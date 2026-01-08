@@ -486,7 +486,10 @@ class ACPSession:
 
             try:  # Use the session's persistent input provider
                 async for event in self.agent.run_stream(
-                    *all_content, input_provider=self.input_provider, deps=self
+                    *all_content,
+                    input_provider=self.input_provider,
+                    deps=self,
+                    conversation_id=self.session_id,
                 ):
                     if self._cancelled:
                         self.log.info("Cancelled during event loop")
