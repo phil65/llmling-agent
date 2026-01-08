@@ -118,9 +118,6 @@ class NodeConnectionConfig(ConnectionConfig):
 
 DEFAULT_MESSAGE_TEMPLATE = """
 [{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}] {{ message.name }}: {{ message.content }}
-{%- if message.forwarded_from %}
-(via: {{ message.forwarded_from|join(' -> ') }})
-{%- endif %}
 """
 
 
@@ -135,7 +132,7 @@ class FileConnectionConfig(ConnectionConfig):
     - role: Message role (user/assistant/system)
     - model: Model used (if any)
     - cost_info: Token usage and cost info
-    - forwarded_from: Chain of message forwarding
+    - parent_id: ID of parent message for tracking chains
     """
 
     model_config = ConfigDict(json_schema_extra={"title": "File Connection Configuration"})

@@ -103,9 +103,6 @@ class SessionQuery(Schema):
     limit: int | None = Field(default=None, examples=[10, 50, 100], title="Message limit")
     """Maximum number of messages to return."""
 
-    include_forwarded: bool = Field(default=True, title="Include forwarded messages")
-    """Whether to include messages forwarded through agents."""
-
     model_config = ConfigDict(frozen=True)
 
     def get_time_cutoff(self) -> datetime | None:

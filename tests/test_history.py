@@ -97,7 +97,6 @@ async def sample_data(provider: SQLModelProvider):
             model=model,
             cost_info=cost_info,
             response_time=None,
-            forwarded_from=None,
         )
 
 

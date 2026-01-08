@@ -358,6 +358,30 @@ class MessageNode[TDeps, TResult](ABC):
     async def run(self, *prompts: Any, **kwargs: Any) -> ChatMessage[TResult]:
         """Execute node with prompts. Implementation-specific run logic."""
 
+    async def run_message(
+        self,
+        message: ChatMessage[Any],
+        **kwargs: Any,
+    ) -> ChatMessage[TResult]:
+        """Run with an incoming ChatMessage (e.g., from Talk routing).
+
+        Extracts content from the message, preserves conversation_id,
+        and sets parent_id to track the message chain.
+
+        Args:
+            message: The incoming ChatMessage to process
+            **kwargs: Additional arguments passed to run()
+
+        Returns:
+            Response ChatMessage with message chain tracked via parent_id
+        """
+        return await self.run(
+            message.content,
+            conversation_id=message.conversation_id,
+            parent_id=message.message_id,
+            **kwargs,
+        )
+
     async def get_message_history(self, limit: int | None = None) -> list[ChatMessage[Any]]:
         """Get message history from storage."""
         from agentpool_config.session import SessionQuery

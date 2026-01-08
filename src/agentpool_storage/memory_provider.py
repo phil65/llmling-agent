@@ -52,14 +52,7 @@ class MemoryStorageProvider(StorageProvider):
                 continue
 
             # Skip if agent name doesn't match
-            if query.agents and not (
-                msg["name"] in query.agents
-                or (
-                    query.include_forwarded
-                    and msg["forwarded_from"]
-                    and any(a in query.agents for a in msg["forwarded_from"])
-                )
-            ):
+            if query.agents and msg["name"] not in query.agents:
                 continue
 
             # Skip if before cutoff time
@@ -93,7 +86,6 @@ class MemoryStorageProvider(StorageProvider):
                 model_name=msg["model"],
                 cost_info=cost_info,
                 response_time=msg["response_time"],
-                forwarded_from=msg["forwarded_from"] or [],
                 timestamp=msg["timestamp"],
                 provider_name=msg["provider_name"],
                 provider_response_id=msg["provider_response_id"],
@@ -119,7 +111,6 @@ class MemoryStorageProvider(StorageProvider):
         cost_info: TokenCost | None = None,
         model: str | None = None,
         response_time: float | None = None,
-        forwarded_from: list[str] | None = None,
         provider_name: str | None = None,
         provider_response_id: str | None = None,
         messages: str | None = None,
@@ -140,7 +131,6 @@ class MemoryStorageProvider(StorageProvider):
             "cost_info": cost_info.token_usage if cost_info else None,
             "model": model,
             "response_time": response_time,
-            "forwarded_from": forwarded_from,
             "provider_name": provider_name,
             "provider_response_id": provider_response_id,
             "messages": messages,
@@ -265,7 +255,6 @@ class MemoryStorageProvider(StorageProvider):
                     model_name=msg["model"],
                     cost_info=cost_info,
                     response_time=msg["response_time"],
-                    forwarded_from=msg["forwarded_from"],
                     timestamp=msg["timestamp"],
                 )
                 conv_messages.append(chat_msg)

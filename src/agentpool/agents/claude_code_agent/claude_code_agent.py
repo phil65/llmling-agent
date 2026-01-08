@@ -896,9 +896,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Prepare prompts
         # Get parent_id from last message in history for tree structure
         last_msg_id = conversation.get_last_message_id()
-        user_msg, processed_prompts, _original_message = await prepare_prompts(
-            *prompts, parent_id=last_msg_id
-        )
+        user_msg, processed_prompts = await prepare_prompts(*prompts, parent_id=last_msg_id)
         # Get pending parts from conversation (staged content)
         pending_parts = conversation.get_pending_parts()
         # Combine pending parts with new prompts, then join into single string for Claude SDK

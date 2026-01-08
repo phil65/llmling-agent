@@ -133,7 +133,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
     ) -> ChatMessage[list[Any]]:
         """Run all agents in parallel and return combined message."""
         # Prepare prompts and create user message
-        user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
+        user_msg, processed_prompts = await prepare_prompts(*prompts)
         self.message_received.emit(user_msg)
 
         # Execute team logic
@@ -165,7 +165,6 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
             user_msg,
             self,
             self.connections,
-            original_message,
             wait_for_connections,
         )
 

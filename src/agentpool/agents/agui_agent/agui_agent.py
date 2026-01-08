@@ -457,7 +457,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         conversation = message_history if message_history is not None else self.conversation
         # Get parent_id from last message in history for tree structure
         last_msg_id = conversation.get_last_message_id()
-        user_msg, processed_prompts, _original_message = await prepare_prompts(
+        user_msg, processed_prompts = await prepare_prompts(
             *prompts, parent_id=last_msg_id, conversation_id=self.conversation_id
         )
         self._run_id = str(uuid4())  # New run ID for each run

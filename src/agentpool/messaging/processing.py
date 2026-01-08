@@ -17,13 +17,11 @@ if TYPE_CHECKING:
 
 
 async def prepare_prompts(
-    *prompt: PromptCompatible | ChatMessage[Any],
+    *prompt: PromptCompatible,
     parent_id: str | None = None,
     conversation_id: str | None = None,
-) -> tuple[ChatMessage[Any], list[UserContent], ChatMessage[Any] | None]:
+) -> tuple[ChatMessage[Any], list[UserContent]]:
     """Prepare prompts for processing.
-
-    Extracted from MessageNode.pre_run logic.
 
     Args:
         *prompt: The prompt(s) to prepare.
@@ -32,23 +30,14 @@ async def prepare_prompts(
 
     Returns:
         A tuple of:
-            - Either incoming message, or a constructed incoming message based
-              on the prompt(s).
+            - A ChatMessage representing the user prompt.
             - A list of prompts to be sent to the model.
-            - The original ChatMessage if forwarded, None otherwise
     """
-    if len(prompt) == 1 and isinstance(prompt[0], ChatMessage):
-        original_msg = prompt[0]
-        # Update received message's chain to show it came through its source
-        user_msg = original_msg.forwarded(original_msg).to_request()
-        prompts = await convert_prompts([user_msg.content])
-        # clear cost info to avoid double-counting
-        return user_msg, prompts, original_msg
     prompts = await convert_prompts(prompt)
     user_msg = ChatMessage.user_prompt(
         message=prompts, parent_id=parent_id, conversation_id=conversation_id
     )
-    return user_msg, prompts, None
+    return user_msg, prompts
 
 
 async def finalize_message(
@@ -56,7 +45,6 @@ async def finalize_message(
     previous_message: ChatMessage[Any] | None,
     node: MessageNode[Any, Any],
     connections: ConnectionManager,
-    original_message: ChatMessage[Any] | None,
     wait_for_connections: bool | None = None,
 ) -> ChatMessage[Any]:
     """Handle message finalization and routing.
@@ -66,15 +54,11 @@ async def finalize_message(
         previous_message: The original user message (if any)
         node: The message node that produced the message
         connections: Connection manager for routing
-        original_message: The original ChatMessage if forwarded, None otherwise
         wait_for_connections: Whether to wait for connected nodes
 
     Returns:
         The finalized message
     """
-    # For chain processing, update the response's chain if input was forwarded
-    if original_message:
-        message = message.forwarded(original_message)
     node.message_sent.emit(message)  # Emit signals
     await node.log_message(message)  # Log message if enabled
     # Route to connections

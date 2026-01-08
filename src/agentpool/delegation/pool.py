@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     )
     from agentpool.delegation.base_team import BaseTeam
     from agentpool.mcp_server.tool_bridge import ToolManagerBridge
+    from agentpool.messaging import ChatMessage
     from agentpool.messaging.compaction import CompactionPipeline
     from agentpool.models import AnyAgentConfig
     from agentpool.models.manifest import AgentsManifest
@@ -150,7 +151,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         for name, task in self.manifest.jobs.items():
             self._tasks.register(name, task)
         self.process_manager = ProcessManager()
-        self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
         self.file_ops = FileOpsTracker()
         # Todo/plan tracker for task management
         self.todos = TodoTracker()
@@ -163,7 +163,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self._create_teams()
         if connect_nodes:
             self._connect_nodes()
-
+        self.pool_talk = TeamTalk[Any].from_nodes(list(self.nodes.values()))
         self._enter_lock = Lock()  # Initialize async safety fields
         self._running_count = 0
 
@@ -773,6 +773,55 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                         lines.append(f"    {source}-->{target.name}")
 
         return "\n".join(lines)
+
+    def get_message_chain(self, message: ChatMessage[Any]) -> list[str]:
+        """Get the chain of agent names that processed a message.
+
+        Reconstructs the forwarding chain by walking parent_id references
+        across all agents' conversations in the pool.
+
+        Args:
+            message: The message to trace back
+
+        Returns:
+            List of agent names in order from origin to current message's agent.
+            Empty list if message has no parent or parent not found.
+        """
+        # Build index of all messages by ID across all agents
+        message_index: dict[str, tuple[ChatMessage[Any], str]] = {}
+        for agent in self.agents.values():
+            for msg in agent.conversation.chat_messages:
+                message_index[msg.message_id] = (msg, agent.name)
+
+        # Walk back through parent_id chain
+        chain: list[str] = []
+        current_id = message.parent_id
+
+        while current_id and current_id in message_index:
+            parent_msg, agent_name = message_index[current_id]
+            # Only add agent name if it's different from previous (avoid duplicates)
+            if not chain or chain[-1] != agent_name:
+                chain.append(agent_name)
+            current_id = parent_msg.parent_id
+
+        # Reverse to get origin -> current order
+        chain.reverse()
+        return chain
+
+    def find_message_by_id(self, message_id: str) -> ChatMessage[Any] | None:
+        """Find a message by ID across all agents in the pool.
+
+        Args:
+            message_id: The message ID to search for
+
+        Returns:
+            The ChatMessage if found, None otherwise
+        """
+        for agent in self.agents.values():
+            for msg in agent.conversation.chat_messages:
+                if msg.message_id == message_id:
+                    return msg
+        return None
 
     def _create_agent_from_config[TAgentDeps](
         self,

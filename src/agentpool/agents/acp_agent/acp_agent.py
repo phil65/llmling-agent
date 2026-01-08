@@ -549,7 +549,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Prepare user message for history and convert to ACP content blocks
         # Get parent_id from last message in history for tree structure
         last_msg_id = conversation.get_last_message_id()
-        user_msg, processed_prompts, _original_message = await prepare_prompts(
+        user_msg, processed_prompts = await prepare_prompts(
             *prompts, parent_id=last_msg_id, conversation_id=self.conversation_id
         )
         run_id = str(uuid.uuid4())

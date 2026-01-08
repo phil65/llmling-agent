@@ -167,9 +167,8 @@ class TestParentIdForwarding:
             agent2_history = agent2.conversation.get_history()
             forwarded_user_msg = next(m for m in agent2_history if m.role == "user")
 
-            # Should have forwarding chain
-            assert forwarded_user_msg.forwarded_from
-            assert "agent-1" in forwarded_user_msg.forwarded_from
+            # Message was forwarded (tracked via parent_id now)
+            assert forwarded_user_msg.parent_id is not None
 
 
 class TestParentIdWithRun:
@@ -207,13 +206,6 @@ class TestChatMessageParentId:
         """ChatMessage.user_prompt should default parent_id to None."""
         msg = ChatMessage.user_prompt("Hello")
         assert msg.parent_id is None
-
-    def test_forwarded_preserves_parent_id(self):
-        """ChatMessage.forwarded() should preserve parent_id."""
-        original = ChatMessage.user_prompt("Hello", parent_id="original-parent")
-        forwarded = original.forwarded(original)
-
-        assert forwarded.parent_id == "original-parent"
 
     def test_from_pydantic_ai_accepts_parent_id(self):
         """ChatMessage.from_pydantic_ai should accept parent_id parameter."""

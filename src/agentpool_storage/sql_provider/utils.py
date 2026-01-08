@@ -8,8 +8,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunUsage
-from sqlalchemy import JSON, Column, and_, or_
-from sqlalchemy.sql import expression
+from sqlalchemy import Column, and_
 from sqlmodel import select
 
 from agentpool.messaging import ChatMessage, TokenCost
@@ -68,7 +67,6 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
         model_name=db_message.model,
         cost_info=cost_info,
         response_time=db_message.response_time,
-        forwarded_from=db_message.forwarded_from or [],
         timestamp=db_message.timestamp,
         provider_name=db_message.provider_name,
         provider_response_id=db_message.provider_response_id,
@@ -168,15 +166,7 @@ def build_message_query(query: SessionQuery) -> SelectOfScalar[Any]:
     if query.name:
         conditions.append(Message.conversation_id == query.name)
     if query.agents:
-        agent_conditions = [Column("name").in_(query.agents)]
-        if query.include_forwarded:
-            agent_conditions.append(
-                and_(
-                    Column("forwarded_from").isnot(None),
-                    expression.cast(Column("forwarded_from"), JSON).contains(list(query.agents)),  # type: ignore
-                )
-            )
-        conditions.append(or_(*agent_conditions))
+        conditions.append(Column("name").in_(query.agents))
     if query.since and (cutoff := query.get_time_cutoff()):
         conditions.append(Message.timestamp >= cutoff)
     if query.until:

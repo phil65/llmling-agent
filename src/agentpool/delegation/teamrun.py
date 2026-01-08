@@ -145,7 +145,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
     ) -> ChatMessage[TResult]:
         """Run agents sequentially and return combined message."""
         # Prepare prompts and create user message
-        user_msg, processed_prompts, original_message = await prepare_prompts(*prompts)
+        user_msg, processed_prompts = await prepare_prompts(*prompts)
         self.message_received.emit(user_msg)
         # Execute sequential logic
         message_id = str(uuid4())  # Always generate unique response ID
@@ -185,7 +185,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             user_msg,
             self,
             self.connections,
-            original_message,
             wait_for_connections,
         )
 

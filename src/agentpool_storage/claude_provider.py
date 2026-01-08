@@ -652,7 +652,6 @@ class ClaudeStorageProvider(StorageProvider):
         cost_info: TokenCost | None = None,
         model: str | None = None,
         response_time: float | None = None,
-        forwarded_from: list[str] | None = None,
         provider_name: str | None = None,
         provider_response_id: str | None = None,
         messages: str | None = None,

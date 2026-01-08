@@ -852,6 +852,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
+        parent_id: str | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
@@ -870,6 +871,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
+        parent_id: str | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
@@ -888,6 +890,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
+        parent_id: str | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
@@ -907,6 +910,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
+            parent_id: Parent message id
             message_history: Optional MessageHistory object to
                              use instead of agent's own conversation
             deps: Optional dependencies for the agent
@@ -931,6 +935,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             usage_limits=usage_limits,
             message_id=message_id,
             conversation_id=conversation_id,
+            parent_id=parent_id,
             message_history=message_history,
             deps=deps,
             input_provider=input_provider,
@@ -957,6 +962,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
+        parent_id: str | None = None,
         message_history: MessageHistory | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
@@ -977,6 +983,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
+            parent_id: Parent message id
             message_history: Optional MessageHistory to use instead of agent's own
             input_provider: Optional input provider for the agent
             wait_for_connections: Whether to wait for connected agents to complete
@@ -1020,10 +1027,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 self.conversation_id = str(uuid4())
                 await self.log_conversation()
 
-        # Get parent_id from last message in history for tree structure
-        last_msg_id = conversation.get_last_message_id()
-        user_msg, prompts, original_message = await prepare_prompts(
-            *prompt, parent_id=last_msg_id, conversation_id=self.conversation_id
+        # Use provided parent_id or fall back to last message in history
+        effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()
+        user_msg, prompts = await prepare_prompts(
+            *prompt, parent_id=effective_parent_id, conversation_id=self.conversation_id
         )
         self.message_received.emit(user_msg)
         start_time = time.perf_counter()
@@ -1171,9 +1178,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     conversation_id=self.conversation_id,
                 )
 
-            # Apply forwarding logic if needed
-            if original_message:
-                response_msg = response_msg.forwarded(original_message)
             # Send additional enriched completion event
             complete_event = StreamCompleteEvent(message=response_msg)
             await handler(None, complete_event)

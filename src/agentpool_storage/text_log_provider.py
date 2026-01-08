@@ -39,9 +39,6 @@ Cost: ${{ "%.4f"|format(msg.cost_info.total_cost) }}
 {%- if msg.response_time %}
 Response time: {{ "%.1f"|format(msg.response_time) }}s
 {%- endif %}
-{%- if msg.forwarded_from %}
-Forwarded via: {{ msg.forwarded_from|join(' -> ') }}
-{%- endif %}
 
 {%- for tool in tool_calls if tool.message_id == msg.id %}
 Tool Call: {{ tool.tool_name }}
@@ -72,9 +69,6 @@ Cost: ${{ "%.4f"|format(entry.cost_info.total_cost) }}
 {%- endif %}
 {%- if entry.response_time %}
 Response time: {{ "%.1f"|format(entry.response_time) }}s
-{%- endif %}
-{%- if entry.forwarded_from %}
-Forwarded via: {{ entry.forwarded_from|join(' -> ') }}
 {%- endif %}
 
 {%- elif entry.type == "tool_call" %}
@@ -191,7 +185,6 @@ class TextLogProvider(StorageProvider):
         cost_info: Any | None = None,
         model: str | None = None,
         response_time: float | None = None,
-        forwarded_from: list[str] | None = None,
         provider_name: str | None = None,
         provider_response_id: str | None = None,
         messages: str | None = None,
@@ -210,7 +203,6 @@ class TextLogProvider(StorageProvider):
             "model": model,
             "cost_info": cost_info,
             "response_time": response_time,
-            "forwarded_from": forwarded_from,
             "provider_name": provider_name,
             "provider_response_id": provider_response_id,
             "messages": messages,

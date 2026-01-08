@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import itertools
 from typing import TYPE_CHECKING, Any, Literal
 
 from psygnal.containers import EventedList
@@ -145,36 +144,13 @@ class ChatMessageList(EventedList[ChatMessage[Any]]):
             message: Message to build flow DAG for
 
         Returns:
-            Root DAGNode of the graph
+            Root DAGNode of the graph, or None
+
+        Note:
+            forwarded_from has been removed. This method now returns None.
+            Flow tracking can be reconstructed from parent_id chain or pool history.
         """
-        from agentpool.utils.dag import DAGNode
-
-        # Get messages from this conversation
-        conv_messages = [m for m in self if m.conversation_id == message.conversation_id]
-        nodes: dict[str, DAGNode] = {}
-        for msg in conv_messages:  # First create all nodes
-            if msg.forwarded_from:
-                chain = [*msg.forwarded_from, msg.name or "unknown"]
-                for name in chain:
-                    if name not in nodes:
-                        nodes[name] = DAGNode(name)
-
-        # Then set up parent relationships
-        for msg in conv_messages:
-            if msg.forwarded_from:
-                chain = [*msg.forwarded_from, msg.name or "unknown"]
-                # Connect consecutive nodes
-                for parent_name, child_name in itertools.pairwise(chain):
-                    parent = nodes[parent_name]
-                    child = nodes[child_name]
-                    if parent not in child.parents:
-                        child.add_parent(parent)
-
-        # Find root nodes (those without parents)
-        roots = [node for node in nodes.values() if node.is_root]
-        if not roots:
-            return None
-        return roots[0]  # Return first root for now
+        return None
 
     def to_mermaid_graph(
         self,

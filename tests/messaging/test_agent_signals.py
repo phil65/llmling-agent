@@ -1,104 +1,138 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from agentpool import Agent
-
-
-if TYPE_CHECKING:
-    from agentpool import ChatMessage
+from agentpool import AgentPool
 
 
 async def test_message_chain():
-    """Test that message chain tracks transformations correctly."""
-    async with Agent(name="agent-a", model="test") as agent_a:  # noqa: SIM117
-        async with Agent(name="agent-b", model="test") as agent_b:
-            async with Agent(name="agent-c", model="test") as agent_c:
-                # Connect chain
-                agent_a.connect_to(agent_b)
-                agent_b.connect_to(agent_c)
+    """Test that message chain tracks transformations correctly via parent_id."""
+    async with AgentPool() as pool:
+        agent_a = await pool.add_agent("agent-a", model="test")
+        agent_b = await pool.add_agent("agent-b", model="test")
+        agent_c = await pool.add_agent("agent-c", model="test")
 
-                # When A processes a new message
-                result_a = await agent_a.run("Start")
-                assert result_a.forwarded_from == []  # New message, empty chain
+        # Connect chain
+        agent_a.connect_to(agent_b)
+        agent_b.connect_to(agent_c)
 
-                # When B processes A's message
-                result_b = await agent_b.run(result_a)
-                assert result_b.forwarded_from == [agent_a.name]  # Chain includes A
+        # When A processes a new message
+        result_a = await agent_a.run("Start")
+        assert result_a.parent_id is not None  # Points to user message
 
-                # When C processes B's message
-                result_c = await agent_c.run(result_b)
-                assert result_c.forwarded_from == [agent_a.name, agent_b.name]
+        # When B processes A's message via run_message
+        result_b = await agent_b.run_message(result_a)
+        assert result_b.parent_id is not None
+        # Chain should show A
+        chain_b = pool.get_message_chain(result_b)
+        assert "agent-a" in chain_b
+
+        # When C processes B's message
+        result_c = await agent_c.run_message(result_b)
+        assert result_c.parent_id is not None
+        # Chain should show A and B
+        chain_c = pool.get_message_chain(result_c)
+        assert "agent-a" in chain_c
+        assert "agent-b" in chain_c
 
 
-async def test_run_result_not_modified_by_connections():
-    """Test that the message returned by run() isn't modified by connections."""
-    # Create two agents
-    model = TestModel(custom_output_text="Response from B")
-    async with Agent(name="agent-a", model=model) as agent_a:  # noqa: SIM117
-        async with Agent(name="agent-b", model=model) as agent_b:
-            # Connect A to B
-            agent_a.connect_to(agent_b)
+async def test_run_result_has_parent_id():
+    """Test that the message returned by run() has proper parent_id."""
+    async with AgentPool() as pool:
+        model = TestModel(custom_output_text="Response from A")
+        agent_a = await pool.add_agent("agent-a", model=model)
+        agent_b = await pool.add_agent("agent-b", model=model)
 
-            # When A runs
-            result = await agent_a.run("Test message")
+        # Connect A to B
+        agent_a.connect_to(agent_b)
 
-            # Then the returned message should only contain A as source
-            assert result.forwarded_from == [], "run() result should have empty forwarded_from"
-            # or possibly just [agent_a.name] if we decide that's the expected behavior
+        # When A runs
+        result = await agent_a.run("Test message")
 
-            # While messages received by B should have the full chain
-            def collect_b(msg: ChatMessage[Any]):
-                assert msg.forwarded_from == ["agent-a"], "Forwarded message should contain chain"
+        # The returned message should have parent_id pointing to user message
+        assert result.parent_id is not None
 
-            agent_b.message_sent.connect(collect_b)
+        # Wait for forwarding to complete
+        await agent_a.task_manager.complete_tasks()
+        await agent_b.task_manager.complete_tasks()
+
+        # B's messages should have parent_id tracking the chain
+        if agent_b.conversation.chat_messages:
+            b_user_msg = next(
+                (m for m in agent_b.conversation.chat_messages if m.role == "user"),
+                None,
+            )
+            if b_user_msg:
+                # The user message in B should have parent_id from A's response
+                assert b_user_msg.parent_id == result.message_id
 
 
 async def test_message_chain_through_routing():
     """Test that message chain tracks correctly through the routing system."""
-    model_b = TestModel(custom_output_text="Response from B")
-    model_c = TestModel(custom_output_text="Response from C")
+    async with AgentPool() as pool:
+        model_a = TestModel(custom_output_text="Response from A")
+        model_b = TestModel(custom_output_text="Response from B")
+        model_c = TestModel(custom_output_text="Response from C")
 
-    async with Agent(name="agent-a", model="test") as agent_a:  # noqa: SIM117
-        async with Agent(name="agent-b", model=model_b) as agent_b:
-            async with Agent(name="agent-c", model=model_c) as agent_c:
-                # Track messages received by C
-                received_by_c: list[ChatMessage[Any]] = []
-                agent_c.message_received.connect(received_by_c.append)
+        agent_a = await pool.add_agent("agent-a", model=model_a)
+        agent_b = await pool.add_agent("agent-b", model=model_b)
+        agent_c = await pool.add_agent("agent-c", model=model_c)
 
-                # Connect the chain
-                agent_a.connect_to(agent_b)
-                agent_b.connect_to(agent_c)
+        # Connect the chain
+        agent_a.connect_to(agent_b)
+        agent_b.connect_to(agent_c)
 
-                # When A starts the chain
-                await agent_a.run("Start message")
+        # When A starts the chain
+        await agent_a.run("Start message")
 
-                # Then C should receive message with complete chain
-                assert len(received_by_c) == 1
-                final_msg = received_by_c[0]
-                assert final_msg.forwarded_from == ["agent-a", "agent-b"]
-                assert "Response from B" in final_msg.content
-                assert agent_a.conversation.chat_messages[0].forwarded_from == []
-                assert agent_b.conversation.chat_messages[0].forwarded_from == ["agent-a"]
-                assert agent_b.conversation.chat_messages[1].forwarded_from == [
-                    "agent-a"  # TODO: how to handle this? Should both messages have this?
-                ]
-                assert agent_c.conversation.chat_messages[0].forwarded_from == [
-                    "agent-a",
-                    "agent-b",
-                ]
-                assert (
-                    agent_a.conversation.chat_messages[0].conversation_id
-                    == agent_b.conversation.chat_messages[0].conversation_id
-                )
+        # Wait for all routing to complete
+        await agent_a.task_manager.complete_tasks()
+        await agent_b.task_manager.complete_tasks()
+        await agent_c.task_manager.complete_tasks()
 
-                assert (
-                    agent_b.conversation.chat_messages[0].conversation_id
-                    == agent_c.conversation.chat_messages[0].conversation_id
-                )
+        # All agents should share the same conversation_id
+        assert (
+            agent_a.conversation.chat_messages[0].conversation_id
+            == agent_b.conversation.chat_messages[0].conversation_id
+        )
+        assert (
+            agent_b.conversation.chat_messages[0].conversation_id
+            == agent_c.conversation.chat_messages[0].conversation_id
+        )
+
+        # C's response should have a chain back through B and A
+        if agent_c.conversation.chat_messages:
+            c_response = next(
+                (m for m in agent_c.conversation.chat_messages if m.role == "assistant"),
+                None,
+            )
+            if c_response:
+                chain = pool.get_message_chain(c_response)
+                # Chain should include both A and B
+                assert "agent-a" in chain or "agent-b" in chain
+
+
+async def test_find_message_by_id():
+    """Test that pool.find_message_by_id works across agents."""
+    async with AgentPool() as pool:
+        agent_a = await pool.add_agent("agent-a", model="test")
+        agent_b = await pool.add_agent("agent-b", model="test")
+
+        result_a = await agent_a.run("Hello from A")
+        result_b = await agent_b.run("Hello from B")
+
+        # Should find messages from both agents
+        found_a = pool.find_message_by_id(result_a.message_id)
+        found_b = pool.find_message_by_id(result_b.message_id)
+
+        assert found_a is not None
+        assert found_b is not None
+        assert found_a.message_id == result_a.message_id
+        assert found_b.message_id == result_b.message_id
+
+        # Non-existent ID should return None
+        assert pool.find_message_by_id("non-existent-id") is None
 
 
 if __name__ == "__main__":

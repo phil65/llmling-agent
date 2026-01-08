@@ -42,7 +42,6 @@ class MessageData(TypedDict):
     cost: Decimal | None
     token_usage: TokenUsage | None
     response_time: float | None
-    forwarded_from: list[str] | None
     provider_name: str | None
     provider_response_id: str | None
     messages: str | None
@@ -149,14 +148,7 @@ class FileProvider(StorageProvider):
             # Apply filters
             if query.name and msg["conversation_id"] != query.name:
                 continue
-            if query.agents and not (
-                msg["name"] in query.agents
-                or (
-                    query.include_forwarded
-                    and msg["forwarded_from"]
-                    and any(a in query.agents for a in msg["forwarded_from"])
-                )
-            ):
+            if query.agents and msg["name"] not in query.agents:
                 continue
             cutoff = query.get_time_cutoff()
             timestamp = datetime.fromisoformat(msg["timestamp"])
@@ -192,7 +184,6 @@ class FileProvider(StorageProvider):
                 model_name=msg["model"],
                 cost_info=cost_info,
                 response_time=msg["response_time"],
-                forwarded_from=msg["forwarded_from"] or [],
                 timestamp=datetime.fromisoformat(msg["timestamp"]),
                 provider_name=msg["provider_name"],
                 provider_response_id=msg["provider_response_id"],
@@ -217,7 +208,6 @@ class FileProvider(StorageProvider):
         cost_info: TokenCost | None = None,
         model: str | None = None,
         response_time: float | None = None,
-        forwarded_from: list[str] | None = None,
         provider_name: str | None = None,
         provider_response_id: str | None = None,
         messages: str | None = None,
@@ -240,7 +230,6 @@ class FileProvider(StorageProvider):
                 total=cost_info.token_usage.total_tokens if cost_info else 0,
             ),
             "response_time": response_time,
-            "forwarded_from": forwarded_from,
             "provider_name": provider_name,
             "provider_response_id": provider_response_id,
             "messages": messages,

@@ -72,9 +72,7 @@ Metadata:
   {{ key }}: {{ value }}
 {%- endfor %}
 {%- endif %}
-{%- if forwarded_from %}
-Forwarded via: {{ forwarded_from|join(' -> ') }}
-{%- endif %}"""
+"""
 
 MARKDOWN_TEMPLATE = """## {{ name or role.title() }}
 *{{ timestamp.strftime('%Y-%m-%d %H:%M:%S') }}*
@@ -98,10 +96,7 @@ MARKDOWN_TEMPLATE = """## {{ name or role.title() }}
 ```
 {%- endif %}
 
-{% if forwarded_from %}
-
-*Forwarded via: {{ forwarded_from|join(' → ') }}*
-{% endif %}"""
+"""
 
 MESSAGE_TEMPLATES = {
     "simple": SIMPLE_TEMPLATE,
@@ -215,9 +210,6 @@ class ChatMessage[TContent]:
 
     name: str | None = None
     """Display name for the message sender in UI."""
-
-    forwarded_from: list[str] = field(default_factory=list)
-    """List of agent names (the chain) that forwarded this message to the sender."""
 
     provider_details: dict[str, Any] = field(default_factory=dict)
     """Provider specific metadata / extra information."""
@@ -335,7 +327,6 @@ class ChatMessage[TContent]:
         message: ModelMessage,
         conversation_id: str | None = None,
         name: str | None = None,
-        forwarded_from: list[str] | None = None,
         parent_id: str | None = None,
     ) -> ChatMessage[TContentType]:
         """Convert a Pydantic model to a ChatMessage."""
@@ -346,8 +337,6 @@ class ChatMessage[TContent]:
                     content=content,
                     role="user",
                     message_id=run_id or str(uuid.uuid4()),
-                    # instructions=instructions,
-                    forwarded_from=forwarded_from or [],
                     name=name,
                     parent_id=parent_id,
                 )
@@ -375,7 +364,6 @@ class ChatMessage[TContent]:
                     finish_reason=finish_reason,
                     provider_response_id=provider_response_id,
                     name=name,
-                    forwarded_from=forwarded_from or [],
                     parent_id=parent_id,
                 )
             case _ as unreachable:
@@ -442,18 +430,6 @@ class ChatMessage[TContent]:
             provider_details={},
             metadata=metadata or {},
         )
-
-    def forwarded(self, previous_message: ChatMessage[Any]) -> Self:
-        """Create new message showing it was forwarded from another message.
-
-        Args:
-            previous_message: The message that led to this one's creation
-
-        Returns:
-            New message with updated chain showing the path through previous message
-        """
-        from_ = [*previous_message.forwarded_from, previous_message.name or "unknown"]
-        return replace(self, forwarded_from=from_)
 
     @property
     def response(self) -> ModelResponse:

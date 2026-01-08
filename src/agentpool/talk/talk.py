@@ -308,11 +308,9 @@ class Talk[TTransmittedData = Any]:
 
         match self.connection_type:
             case "run":
-                prompts: list[PromptCompatible] = [message]
-                if prompt:
-                    prompts.append(prompt)
-                # Pass conversation_id from source message to maintain chain tracking
-                return await target.run(*prompts, conversation_id=message.conversation_id)
+                # Use run_message to handle ChatMessage routing
+                # It extracts content, preserves conversation_id, and applies forwarding
+                return await target.run_message(message)
 
             case "context":
                 meta = {
