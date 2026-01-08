@@ -12,6 +12,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.storage.serialization import serialize_messages
 from agentpool.utils.tasks import TaskManager
+from agentpool_config.session import SessionQuery
 from agentpool_config.storage import (
     ClaudeStorageConfig,
     FileStorageConfig,
@@ -30,7 +31,6 @@ if TYPE_CHECKING:
 
     from agentpool.common_types import JsonValue
     from agentpool.sessions.models import ProjectData
-    from agentpool_config.session import SessionQuery
     from agentpool_config.storage import BaseStorageProviderConfig, StorageConfig
     from agentpool_storage.base import StorageProvider
 
@@ -238,8 +238,16 @@ class StorageManager:
         conversation_id: str,
         node_name: str,
         start_time: datetime | None = None,
+        initial_prompt: str | None = None,
     ) -> None:
-        """Log conversation to all providers."""
+        """Log conversation to all providers.
+
+        Args:
+            conversation_id: Unique conversation identifier
+            node_name: Name of the node/agent
+            start_time: Optional start time
+            initial_prompt: Optional initial prompt to trigger title generation
+        """
         if not self.config.log_conversations:
             return
 
@@ -248,6 +256,13 @@ class StorageManager:
                 conversation_id=conversation_id,
                 node_name=node_name,
                 start_time=start_time,
+            )
+
+        # Trigger title generation if prompt provided and model configured
+        if initial_prompt and self.config.title_generation_model:
+            self.task_manager.create_task(
+                self._generate_title_from_prompt(conversation_id, initial_prompt),
+                name=f"title_gen_{conversation_id[:8]}",
             )
 
     @method_spawner
@@ -375,6 +390,55 @@ class StorageManager:
         provider = self.get_history_provider()
         return await provider.get_conversation_title(conversation_id)
 
+    async def get_conversation_titles(
+        self,
+        conversation_ids: list[str],
+    ) -> dict[str, str | None]:
+        """Get titles for multiple conversations.
+
+        Args:
+            conversation_ids: List of conversation IDs
+
+        Returns:
+            Dict mapping conversation_id to title (or None if not set)
+        """
+        if not conversation_ids:
+            return {}
+
+        provider = self.get_history_provider()
+        titles: dict[str, str | None] = {}
+        for conv_id in conversation_ids:
+            try:
+                titles[conv_id] = await provider.get_conversation_title(conv_id)
+            except Exception:  # noqa: BLE001
+                titles[conv_id] = None
+        return titles
+
+    async def get_message_counts(
+        self,
+        conversation_ids: list[str],
+    ) -> dict[str, int]:
+        """Get message counts for multiple conversations.
+
+        Args:
+            conversation_ids: List of conversation IDs
+
+        Returns:
+            Dict mapping conversation_id to message count
+        """
+        if not conversation_ids:
+            return {}
+
+        counts: dict[str, int] = {}
+        for conv_id in conversation_ids:
+            try:
+                query = SessionQuery(name=conv_id)
+                messages = await self.filter_messages(query)
+                counts[conv_id] = len(messages)
+            except Exception:  # noqa: BLE001
+                counts[conv_id] = 0
+        return counts
+
     @method_spawner
     async def delete_conversation_messages(
         self,
@@ -454,6 +518,48 @@ class StorageManager:
             added += 1
 
         return deleted, added
+
+    async def _generate_title_from_prompt(
+        self,
+        conversation_id: str,
+        prompt: str,
+    ) -> str | None:
+        """Generate title from initial prompt (internal, fire-and-forget).
+
+        Called automatically by log_conversation when initial_prompt is provided.
+
+        Args:
+            conversation_id: ID of the conversation to title
+            prompt: The initial user prompt
+
+        Returns:
+            The generated title, or None if generation fails/disabled.
+        """
+        if not self.config.title_generation_model:
+            return None
+
+        # Check if title already exists
+        existing = await self.get_conversation_title(conversation_id)
+        if existing:
+            return existing
+
+        try:
+            from llmling_models.models.helpers import infer_model
+
+            model = infer_model(self.config.title_generation_model)
+            agent: Agent[None, str] = Agent(
+                model=model,
+                instructions=self.config.title_generation_prompt,
+            )
+            # Just use the prompt directly - simpler than formatting messages
+            result = await agent.run(f"user: {prompt[:500]}")
+            title = result.output.strip().strip("\"'")  # Remove quotes if present
+            await self.update_conversation_title(conversation_id, title)
+            logger.debug("Generated session title", conversation_id=conversation_id, title=title)
+            return title
+        except Exception:
+            logger.exception("Failed to generate session title", conversation_id=conversation_id)
+            return None
 
     async def generate_conversation_title(
         self,
