@@ -43,6 +43,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# OpenCode version we're emulating
+OPENCODE_VERSION = "1.1.7"
 
 # OpenCode data models
 
@@ -98,7 +100,7 @@ class OpenCodeSession(BaseModel):
     """OpenCode session metadata."""
 
     id: str
-    version: str
+    version: str = OPENCODE_VERSION
     project_id: str = Field(alias="projectID")
     directory: str
     title: str
@@ -894,7 +896,7 @@ class OpenCodeStorageProvider(StorageProvider):
 
         # Write session file
         new_session_path.write_text(
-            anyenv.dump_json(new_session.model_dump(by_alias=True), indent=2),
+            anyenv.dump_json(new_session.model_dump(by_alias=True), indent=True),
             encoding="utf-8",
         )
 
