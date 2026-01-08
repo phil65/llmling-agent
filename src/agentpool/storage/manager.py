@@ -485,11 +485,7 @@ class StorageManager:
             return existing
 
         # Format messages for the prompt
-        formatted = "\n".join(
-            f"{msg.role}: {msg.content[:500]}"
-            for msg in messages[:4]  # Limit context
-        )
-
+        formatted = "\n".join(f"{i.role}: {i.content[:500]}" for i in messages[:4])  # Limit context
         try:
             from llmling_models.models.helpers import infer_model
 
@@ -500,19 +496,11 @@ class StorageManager:
             )
             result = await agent.run(formatted)
             title = result.output.strip().strip("\"'")  # Remove quotes if present
-
             # Store the title
             await self.update_conversation_title(conversation_id, title)
-            logger.debug(
-                "Generated conversation title",
-                conversation_id=conversation_id,
-                title=title,
-            )
+            logger.debug("Generated session title", conversation_id=conversation_id, title=title)
         except Exception:
-            logger.exception(
-                "Failed to generate conversation title",
-                conversation_id=conversation_id,
-            )
+            logger.exception("Failed to generate session title", conversation_id=conversation_id)
             return None
         else:
             return title
