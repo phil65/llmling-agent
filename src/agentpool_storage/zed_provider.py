@@ -8,7 +8,7 @@ import io
 import json
 from pathlib import Path
 import sqlite3
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import AliasChoices, BaseModel, Field
 from pydantic_ai.messages import (
@@ -104,7 +104,7 @@ class ZedToolResult(BaseModel):
     tool_name: str
     is_error: bool = False
     content: dict[str, Any] | str | None = None
-    output: str | None = None
+    output: dict[str, Any] | str | None = None
 
 
 class ZedUserMessage(BaseModel):
@@ -158,7 +158,7 @@ class ZedThread(BaseModel):
 
     # v0.3.0 uses "title", v0.2.0 uses "summary"
     title: str = Field(alias="title", validation_alias=AliasChoices("title", "summary"))
-    messages: list[ZedMessage]
+    messages: list[ZedMessage | Literal["Resume"]]  # Control messages
     updated_at: str
     version: str | None = None
     detailed_summary: str | None = None  # v0.3.0 field
@@ -402,8 +402,11 @@ class ZedStorageProvider(StorageProvider):
                 output = result.get("output", "")
                 content = result.get("content", {})
 
+                # Handle output being a dict like {"Text": "..."}
+                if isinstance(output, dict) and "Text" in output:
+                    output = output["Text"]
                 # Extract text content if available
-                if isinstance(content, dict) and "Text" in content:
+                elif isinstance(content, dict) and "Text" in content:
                     output = content["Text"]
                 elif isinstance(content, str):
                     output = content
@@ -411,7 +414,7 @@ class ZedStorageProvider(StorageProvider):
                 parts.append(
                     ToolReturnPart(
                         tool_name=tool_name,
-                        content=output,
+                        content=output or "",
                         tool_call_id=tool_id,
                     )
                 )
@@ -438,6 +441,8 @@ class ZedStorageProvider(StorageProvider):
             model_name = f"{thread.model.provider}:{thread.model.model}"
 
         for idx, msg in enumerate(thread.messages):
+            if msg == "Resume":
+                continue  # Skip control messages
             msg_id = f"{thread_id}_{idx}"
 
             if msg.User is not None:
@@ -736,3 +741,41 @@ class ZedStorageProvider(StorageProvider):
         if thread is None:
             return None
         return thread.title
+
+
+if __name__ == "__main__":
+    import asyncio
+    import datetime as dt
+
+    from agentpool_config.storage import ZedStorageConfig
+    from agentpool_storage.models import QueryFilters, StatsFilters
+
+    async def main() -> None:
+        config = ZedStorageConfig()
+        provider = ZedStorageProvider(config)
+
+        print(f"Database: {provider.db_path}")
+        print(f"Exists: {provider.db_path.exists()}")
+
+        # List conversations
+        filters = QueryFilters(limit=10)
+        conversations = await provider.get_conversations(filters)
+        print(f"\nFound {len(conversations)} conversations")
+
+        for conv_data, messages in conversations[:5]:
+            print(f"  - {conv_data['id'][:8]}... | {conv_data['title'] or 'Untitled'}")
+            print(f"    Messages: {len(messages)}, Updated: {conv_data['start_time']}")
+
+        # Get counts
+        conv_count, msg_count = await provider.get_conversation_counts()
+        print(f"\nTotal: {conv_count} conversations, {msg_count} messages")
+
+        # Get stats
+        stats_filters = StatsFilters(
+            cutoff=dt.datetime.now(dt.UTC) - dt.timedelta(days=30),
+            group_by="day",
+        )
+        stats = await provider.get_conversation_stats(stats_filters)
+        print(f"\nStats: {stats}")
+
+    asyncio.run(main())

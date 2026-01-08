@@ -727,3 +727,41 @@ class OpenCodeStorageProvider(StorageProvider):
                 msg_count += len(oc_messages)
 
         return conv_count, msg_count
+
+
+if __name__ == "__main__":
+    import asyncio
+    import datetime as dt
+
+    from agentpool_config.storage import OpenCodeStorageConfig
+    from agentpool_storage.models import QueryFilters, StatsFilters
+
+    async def main() -> None:
+        config = OpenCodeStorageConfig()
+        provider = OpenCodeStorageProvider(config)
+
+        print(f"Base path: {provider.base_path}")
+        print(f"Exists: {provider.base_path.exists()}")
+
+        # List conversations
+        filters = QueryFilters(limit=10)
+        conversations = await provider.get_conversations(filters)
+        print(f"\nFound {len(conversations)} conversations")
+
+        for conv_data, messages in conversations[:5]:
+            print(f"  - {conv_data['id'][:8]}... | {conv_data['title'] or 'Untitled'}")
+            print(f"    Messages: {len(messages)}, Updated: {conv_data['start_time']}")
+
+        # Get counts
+        conv_count, msg_count = await provider.get_conversation_counts()
+        print(f"\nTotal: {conv_count} conversations, {msg_count} messages")
+
+        # Get stats
+        stats_filters = StatsFilters(
+            cutoff=dt.datetime.now(dt.UTC) - dt.timedelta(days=30),
+            group_by="day",
+        )
+        stats = await provider.get_conversation_stats(stats_filters)
+        print(f"\nStats: {stats}")
+
+    asyncio.run(main())
