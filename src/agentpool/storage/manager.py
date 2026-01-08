@@ -491,8 +491,11 @@ class StorageManager:
         )
 
         try:
+            from llmling_models.models.helpers import infer_model
+
+            model = infer_model(self.config.title_generation_model)
             agent: Agent[None, str] = Agent(
-                model=self.config.title_generation_model,
+                model=model,
                 instructions=self.config.title_generation_prompt,
             )
             result = await agent.run(formatted)
