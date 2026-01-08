@@ -21,7 +21,6 @@ from agentpool_config.storage import (
     MemoryStorageConfig,
     OpenCodeStorageConfig,
     SQLStorageConfig,
-    TextLogConfig,
     ZedStorageConfig,
 )
 
@@ -108,7 +107,7 @@ class StorageManager:
                 logger.exception("Error cleaning up provider", provider=provider)
         self.providers.clear()
 
-    def _create_provider(self, config: BaseStorageProviderConfig) -> StorageProvider:  # noqa: PLR0911
+    def _create_provider(self, config: BaseStorageProviderConfig) -> StorageProvider:
         """Create provider instance from configuration."""
         # Extract common settings from BaseStorageProviderConfig
         match self.config.filter_mode:
@@ -142,11 +141,6 @@ class StorageManager:
                 from agentpool_storage.file_provider import FileProvider
 
                 return FileProvider(provider_config)
-            case TextLogConfig():
-                from agentpool_storage.text_log_provider import TextLogProvider
-
-                return TextLogProvider(provider_config)
-
             case MemoryStorageConfig():
                 from agentpool_storage.memory_provider import MemoryStorageProvider
 
