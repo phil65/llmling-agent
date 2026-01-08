@@ -66,8 +66,14 @@ class ExecuteCodeTool(Tool[str]):
         exit_code: int | None = None
         error_msg: str | None = None
 
+        # Check if we're running in ACP - terminal streams client-side
+        from exxec.acp_provider import ACPExecutionEnvironment
+
+        env = self._get_env(ctx)
+        is_acp = isinstance(env, ACPExecutionEnvironment)
+
         try:
-            async for event in self._get_env(ctx).stream_code(code):
+            async for event in env.stream_code(code):
                 match event:
                     case ProcessStartedEvent(process_id=pid, command=cmd):
                         process_id = pid
@@ -75,19 +81,22 @@ class ExecuteCodeTool(Tool[str]):
 
                     case OutputEvent(data=data):
                         output_parts.append(data)
-                        if process_id:
+                        # Skip progress events for ACP - terminal streams client-side
+                        if process_id and not is_acp:
                             await ctx.events.process_output(process_id, data)
 
                     case ProcessCompletedEvent(exit_code=code_):
                         exit_code = code_
-                        out = "".join(output_parts)
-                        if process_id:
+                        # Skip exit event for ACP - completion handled by FunctionToolResultEvent
+                        if process_id and not is_acp:
+                            out = "".join(output_parts)
                             await ctx.events.process_exit(process_id, exit_code, final_output=out)
 
                     case ProcessErrorEvent(error=err, exit_code=code_):
                         error_msg = err
                         exit_code = code_
-                        if process_id:
+                        # Skip exit event for ACP - completion handled by FunctionToolResultEvent
+                        if process_id and not is_acp:
                             await ctx.events.process_exit(
                                 process_id, exit_code or 1, final_output=err
                             )

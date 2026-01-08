@@ -81,6 +81,12 @@ class BashTool(Tool[str]):
         exit_code: int | None = None
         error_msg: str | None = None
         env = self._get_env(ctx)
+
+        # Check if we're running in ACP - terminal streams client-side
+        from exxec.acp_provider import ACPExecutionEnvironment
+
+        is_acp = isinstance(env, ACPExecutionEnvironment)
+
         try:
             async for event in env.stream_command(command, timeout=effective_timeout):
                 match event:
@@ -92,11 +98,15 @@ class BashTool(Tool[str]):
                             stderr_parts.append(data)
                         else:
                             stdout_parts.append(data)
-                        await ctx.events.process_output(pid, data)
+                        # Skip progress events for ACP - terminal streams client-side
+                        if not is_acp:
+                            await ctx.events.process_output(pid, data)
                     case ProcessCompletedEvent(process_id=pid, exit_code=code_):
                         exit_code = code_
-                        combined = "".join(stdout_parts) + "".join(stderr_parts)
-                        await ctx.events.process_exit(pid, exit_code, final_output=combined)
+                        # Skip exit event for ACP - completion handled by FunctionToolResultEvent
+                        if not is_acp:
+                            combined = "".join(stdout_parts) + "".join(stderr_parts)
+                            await ctx.events.process_exit(pid, exit_code, final_output=combined)
                     case ProcessErrorEvent(error=err, exit_code=code_):
                         error_msg = err
                         exit_code = code_
