@@ -458,6 +458,91 @@ class StorageManager:
         return counts
 
     @method_spawner
+    async def get_conversation_messages(
+        self,
+        conversation_id: str,
+        *,
+        include_ancestors: bool = False,
+    ) -> list[ChatMessage[str]]:
+        """Get all messages for a conversation.
+
+        Args:
+            conversation_id: ID of the conversation
+            include_ancestors: If True, also include messages from ancestor
+                conversations by following the parent_id chain. Useful for
+                forked conversations.
+
+        Returns:
+            List of messages ordered by timestamp.
+        """
+        provider = self.get_history_provider()
+        return await provider.get_conversation_messages(
+            conversation_id, include_ancestors=include_ancestors
+        )
+
+    @method_spawner
+    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+        """Get a single message by ID.
+
+        Args:
+            message_id: ID of the message
+
+        Returns:
+            The message if found, None otherwise.
+        """
+        provider = self.get_history_provider()
+        return await provider.get_message(message_id)
+
+    @method_spawner
+    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+        """Get the ancestry chain of a message.
+
+        Traverses the parent_id chain to build full history leading to this message.
+
+        Args:
+            message_id: ID of the message
+
+        Returns:
+            List of messages from oldest ancestor to the specified message.
+        """
+        provider = self.get_history_provider()
+        return await provider.get_message_ancestry(message_id)
+
+    @method_spawner
+    async def fork_conversation(
+        self,
+        *,
+        source_conversation_id: str,
+        new_conversation_id: str,
+        fork_from_message_id: str | None = None,
+        new_agent_name: str | None = None,
+    ) -> str | None:
+        """Fork a conversation at a specific point.
+
+        Creates a new conversation that branches from the source. New messages
+        in the forked conversation should use the returned fork_point_id as
+        their parent_id to maintain the history chain.
+
+        Args:
+            source_conversation_id: ID of the conversation to fork from
+            new_conversation_id: ID for the new forked conversation
+            fork_from_message_id: Message ID to fork from. If None, forks from
+                the last message.
+            new_agent_name: Agent name for the new conversation.
+
+        Returns:
+            The message_id of the fork point (use as parent_id for new messages),
+            or None if the source conversation is empty.
+        """
+        provider = self.get_history_provider()
+        return await provider.fork_conversation(
+            source_conversation_id=source_conversation_id,
+            new_conversation_id=new_conversation_id,
+            fork_from_message_id=fork_from_message_id,
+            new_agent_name=new_agent_name,
+        )
+
+    @method_spawner
     async def delete_conversation_messages(
         self,
         conversation_id: str,

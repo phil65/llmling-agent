@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, TypedDict, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
-from pydantic_ai import RunUsage
+from pydantic_ai import FinishReason, RunUsage  # noqa: TC002
 from upathtools import to_upath
 
 from agentpool.common_types import JsonValue, MessageRole  # noqa: TC001
@@ -19,7 +19,6 @@ from agentpool_storage.models import TokenUsage
 
 
 if TYPE_CHECKING:
-    from pydantic_ai import FinishReason
     from yamling import FormatType
 
     from agentpool.sessions.models import ProjectData
@@ -276,6 +275,152 @@ class FileProvider(StorageProvider):
             if conv["id"] == conversation_id:
                 return conv.get("title")
         return None
+
+    async def get_conversation_messages(
+        self,
+        conversation_id: str,
+        *,
+        include_ancestors: bool = False,
+    ) -> list[ChatMessage[str]]:
+        """Get all messages for a conversation."""
+        messages: list[ChatMessage[str]] = []
+        for msg in self._data["messages"]:
+            if msg["conversation_id"] != conversation_id:
+                continue
+            chat_msg = self._to_chat_message(msg)
+            messages.append(chat_msg)
+
+        # Sort by timestamp
+        messages.sort(key=lambda m: m.timestamp or get_now())
+
+        if not include_ancestors or not messages:
+            return messages
+
+        # Get ancestor chain if first message has parent_id
+        first_msg = messages[0]
+        if first_msg.parent_id:
+            ancestors = await self.get_message_ancestry(first_msg.parent_id)
+            return ancestors + messages
+
+        return messages
+
+    def _to_chat_message(self, msg: MessageData) -> ChatMessage[str]:
+        """Convert stored message data to ChatMessage."""
+        cost_info = None
+        if msg.get("token_usage"):
+            usage = msg["token_usage"]
+            cost_info = TokenCost(
+                token_usage=RunUsage(
+                    input_tokens=usage.get("prompt", 0) if usage else 0,
+                    output_tokens=usage.get("completion", 0) if usage else 0,
+                ),
+                total_cost=Decimal(str(msg.get("cost") or 0)),
+            )
+
+        # Build kwargs, only including timestamp/message_id if they have values
+        kwargs: dict[str, Any] = {
+            "content": msg["content"],
+            "role": cast(MessageRole, msg["role"]),
+            "name": msg.get("name"),
+            "model_name": msg.get("model"),
+            "cost_info": cost_info,
+            "response_time": msg.get("response_time"),
+            "parent_id": msg.get("parent_id"),
+            "conversation_id": msg.get("conversation_id"),
+            "messages": deserialize_messages(msg.get("messages")),
+            "finish_reason": msg.get("finish_reason"),
+        }
+        if msg.get("timestamp"):
+            kwargs["timestamp"] = datetime.fromisoformat(msg["timestamp"])
+        if msg.get("message_id"):
+            kwargs["message_id"] = msg["message_id"]
+
+        return ChatMessage[str](**kwargs)
+
+    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+        """Get a single message by ID."""
+        for msg in self._data["messages"]:
+            if msg.get("message_id") == message_id:
+                return self._to_chat_message(msg)
+        return None
+
+    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+        """Get the ancestry chain of a message."""
+        ancestors: list[ChatMessage[str]] = []
+        current_id: str | None = message_id
+
+        while current_id:
+            msg = await self.get_message(current_id)
+            if not msg:
+                break
+            ancestors.append(msg)
+            current_id = msg.parent_id
+
+        # Reverse to get oldest first
+        ancestors.reverse()
+        return ancestors
+
+    async def fork_conversation(
+        self,
+        *,
+        source_conversation_id: str,
+        new_conversation_id: str,
+        fork_from_message_id: str | None = None,
+        new_agent_name: str | None = None,
+    ) -> str | None:
+        """Fork a conversation at a specific point."""
+        # Find source conversation
+        source_conv = next(
+            (c for c in self._data["conversations"] if c["id"] == source_conversation_id),
+            None,
+        )
+        if not source_conv:
+            msg = f"Source conversation not found: {source_conversation_id}"
+            raise ValueError(msg)
+
+        # Determine fork point
+        fork_point_id: str | None = None
+        if fork_from_message_id:
+            # Verify message exists in source conversation
+            msg_exists = any(
+                m.get("message_id") == fork_from_message_id
+                and m["conversation_id"] == source_conversation_id
+                for m in self._data["messages"]
+            )
+            if not msg_exists:
+                err = f"Message {fork_from_message_id} not found in conversation"
+                raise ValueError(err)
+            fork_point_id = fork_from_message_id
+        else:
+            # Find last message in source conversation
+            conv_messages = [
+                m for m in self._data["messages"] if m["conversation_id"] == source_conversation_id
+            ]
+            if conv_messages:
+                conv_messages.sort(
+                    key=lambda m: (
+                        datetime.fromisoformat(m["timestamp"]) if m.get("timestamp") else get_now()
+                    )
+                )
+                fork_point_id = conv_messages[-1].get("message_id")
+
+        # Create new conversation
+        agent_name = new_agent_name or source_conv["agent_name"]
+        title = (
+            f"{source_conv.get('title') or 'Conversation'} (fork)"
+            if source_conv.get("title")
+            else None
+        )
+        new_conv: ConversationData = {
+            "id": new_conversation_id,
+            "agent_name": agent_name,
+            "title": title,
+            "start_time": get_now().isoformat(),
+        }
+        self._data["conversations"].append(new_conv)
+        self._save()
+
+        return fork_point_id
 
     async def log_command(
         self,

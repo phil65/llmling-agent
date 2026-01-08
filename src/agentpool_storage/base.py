@@ -144,6 +144,87 @@ class StorageProvider:
         """
         return None
 
+    async def get_conversation_messages(
+        self,
+        conversation_id: str,
+        *,
+        include_ancestors: bool = False,
+    ) -> list[ChatMessage[str]]:
+        """Get all messages for a conversation.
+
+        Args:
+            conversation_id: ID of the conversation
+            include_ancestors: If True, also include messages from ancestor
+                conversations (following parent_id chain). Useful for forked
+                conversations where you want the full history.
+
+        Returns:
+            List of messages ordered by timestamp.
+        """
+        msg = f"{self.__class__.__name__} does not support getting conversation messages"
+        raise NotImplementedError(msg)
+
+    async def get_message(
+        self,
+        message_id: str,
+    ) -> ChatMessage[str] | None:
+        """Get a single message by ID.
+
+        Args:
+            message_id: ID of the message
+
+        Returns:
+            The message if found, None otherwise.
+        """
+        return None
+
+    async def get_message_ancestry(
+        self,
+        message_id: str,
+    ) -> list[ChatMessage[str]]:
+        """Get the ancestry chain of a message.
+
+        Traverses the parent_id chain to build full history leading to this message.
+        Useful for forked conversations where you need context from the fork point.
+
+        Args:
+            message_id: ID of the message to get ancestry for
+
+        Returns:
+            List of messages from oldest ancestor to the specified message.
+        """
+        msg = f"{self.__class__.__name__} does not support message ancestry"
+        raise NotImplementedError(msg)
+
+    async def fork_conversation(
+        self,
+        *,
+        source_conversation_id: str,
+        new_conversation_id: str,
+        fork_from_message_id: str | None = None,
+        new_agent_name: str | None = None,
+    ) -> str | None:
+        """Fork a conversation at a specific point.
+
+        Creates a new conversation that branches from the source conversation.
+        The new conversation's first message will have parent_id pointing to
+        the fork point, allowing history traversal.
+
+        Args:
+            source_conversation_id: ID of the conversation to fork from
+            new_conversation_id: ID for the new forked conversation
+            fork_from_message_id: Message ID to fork from. If None, forks from
+                the last message in the source conversation.
+            new_agent_name: Agent name for the new conversation. If None,
+                inherits from source.
+
+        Returns:
+            The message_id of the fork point (the parent for new messages),
+            or None if the source conversation is empty.
+        """
+        msg = f"{self.__class__.__name__} does not support forking conversations"
+        raise NotImplementedError(msg)
+
     async def log_command(
         self,
         *,

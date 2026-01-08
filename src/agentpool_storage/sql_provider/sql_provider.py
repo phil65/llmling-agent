@@ -208,6 +208,141 @@ class SQLModelProvider(StorageProvider):
             )
             return result.scalar_one_or_none()
 
+    async def get_conversation_messages(
+        self,
+        conversation_id: str,
+        *,
+        include_ancestors: bool = False,
+    ) -> list[ChatMessage[str]]:
+        """Get all messages for a conversation.
+
+        Args:
+            conversation_id: ID of the conversation
+            include_ancestors: If True, traverse parent_id chain to include
+                messages from ancestor conversations (for forked convos).
+
+        Returns:
+            List of messages ordered by timestamp.
+        """
+        async with AsyncSession(self.engine) as session:
+            # Get messages for this conversation
+            result = await session.execute(
+                select(Message)
+                .where(Message.conversation_id == conversation_id)
+                .order_by(Message.timestamp.asc())  # type: ignore
+            )
+            messages = [to_chat_message(m) for m in result.scalars().all()]
+
+            if not include_ancestors or not messages:
+                return messages
+
+            # Find the first message's parent_id to get ancestor chain
+            first_msg = messages[0]
+            if first_msg.parent_id:
+                ancestors = await self.get_message_ancestry(first_msg.parent_id)
+                return ancestors + messages
+
+            return messages
+
+    async def get_message(
+        self,
+        message_id: str,
+    ) -> ChatMessage[str] | None:
+        """Get a single message by ID."""
+        async with AsyncSession(self.engine) as session:
+            result = await session.execute(select(Message).where(Message.id == message_id))
+            msg = result.scalar_one_or_none()
+            return to_chat_message(msg) if msg else None
+
+    async def get_message_ancestry(
+        self,
+        message_id: str,
+    ) -> list[ChatMessage[str]]:
+        """Get the ancestry chain of a message.
+
+        Traverses parent_id chain to build full history.
+        """
+        ancestors: list[ChatMessage[str]] = []
+        current_id: str | None = message_id
+
+        async with AsyncSession(self.engine) as session:
+            while current_id:
+                result = await session.execute(select(Message).where(Message.id == current_id))
+                msg = result.scalar_one_or_none()
+                if not msg:
+                    break
+                ancestors.append(to_chat_message(msg))
+                current_id = msg.parent_id
+
+        # Reverse to get oldest first
+        ancestors.reverse()
+        return ancestors
+
+    async def fork_conversation(
+        self,
+        *,
+        source_conversation_id: str,
+        new_conversation_id: str,
+        fork_from_message_id: str | None = None,
+        new_agent_name: str | None = None,
+    ) -> str | None:
+        """Fork a conversation at a specific point.
+
+        Creates a new conversation record. The fork point message_id is returned
+        so callers can set it as parent_id for new messages.
+        """
+        async with AsyncSession(self.engine) as session:
+            # Get source conversation
+            result = await session.execute(
+                select(Conversation).where(Conversation.id == source_conversation_id)
+            )
+            source_conv = result.scalar_one_or_none()
+            if not source_conv:
+                msg = f"Source conversation not found: {source_conversation_id}"
+                raise ValueError(msg)
+
+            # Determine fork point
+            fork_point_id: str | None = None
+            if fork_from_message_id:
+                # Verify the message exists and belongs to the source conversation
+                msg_result = await session.execute(
+                    select(Message).where(
+                        Message.id == fork_from_message_id,
+                        Message.conversation_id == source_conversation_id,
+                    )
+                )
+                fork_msg = msg_result.scalar_one_or_none()
+                if not fork_msg:
+                    err = f"Message {fork_from_message_id} not found in conversation"
+                    raise ValueError(err)
+                fork_point_id = fork_from_message_id
+            else:
+                # Fork from the last message
+                msg_result = await session.execute(
+                    select(Message)
+                    .where(Message.conversation_id == source_conversation_id)
+                    .order_by(desc(Message.timestamp))
+                    .limit(1)
+                )
+                last_msg = msg_result.scalar_one_or_none()
+                if last_msg:
+                    fork_point_id = last_msg.id
+
+            # Create new conversation
+            agent_name = new_agent_name or source_conv.agent_name
+            new_conv = Conversation(
+                id=new_conversation_id,
+                agent_name=agent_name,
+                title=f"{source_conv.title or 'Conversation'} (fork)"
+                if source_conv.title
+                else None,
+                start_time=get_now(),
+            )
+            session.add(new_conv)
+            await session.commit()
+
+            return fork_point_id
+
     async def log_command(
         self,
         *,

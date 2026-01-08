@@ -125,6 +125,7 @@ class MemoryStorageProvider(StorageProvider):
         self.messages.append({
             "conversation_id": conversation_id,
             "message_id": message_id,
+            "parent_id": parent_id,
             "content": content,
             "role": role,
             "name": name,
@@ -176,6 +177,135 @@ class MemoryStorageProvider(StorageProvider):
             if conv["id"] == conversation_id:
                 return conv.get("title")
         return None
+
+    def _dict_to_chat_message(self, msg: dict[str, Any]) -> ChatMessage[str]:
+        """Convert a stored message dict to ChatMessage."""
+        cost_info = None
+        if msg.get("cost_info"):
+            cost_info = TokenCost(token_usage=msg["cost_info"], total_cost=msg.get("cost", 0.0))
+
+        # Build kwargs, only including timestamp/message_id if they exist
+        kwargs: dict[str, Any] = {
+            "content": msg["content"],
+            "role": msg["role"],
+            "name": msg.get("name"),
+            "model_name": msg.get("model"),
+            "cost_info": cost_info,
+            "response_time": msg.get("response_time"),
+            "parent_id": msg.get("parent_id"),
+            "conversation_id": msg.get("conversation_id"),
+        }
+        if msg.get("timestamp"):
+            kwargs["timestamp"] = msg["timestamp"]
+        if msg.get("message_id"):
+            kwargs["message_id"] = msg["message_id"]
+
+        return ChatMessage[str](**kwargs)
+
+    async def get_conversation_messages(
+        self,
+        conversation_id: str,
+        *,
+        include_ancestors: bool = False,
+    ) -> list[ChatMessage[str]]:
+        """Get all messages for a conversation."""
+        messages: list[ChatMessage[str]] = []
+        for msg in self.messages:
+            if msg.get("conversation_id") != conversation_id:
+                continue
+            messages.append(self._dict_to_chat_message(msg))
+
+        # Sort by timestamp
+        messages.sort(key=lambda m: m.timestamp or get_now())
+
+        if not include_ancestors or not messages:
+            return messages
+
+        # Get ancestor chain if first message has parent_id
+        first_msg = messages[0]
+        if first_msg.parent_id:
+            ancestors = await self.get_message_ancestry(first_msg.parent_id)
+            return ancestors + messages
+
+        return messages
+
+    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+        """Get a single message by ID."""
+        for msg in self.messages:
+            if msg.get("message_id") == message_id:
+                return self._dict_to_chat_message(msg)
+        return None
+
+    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+        """Get the ancestry chain of a message."""
+        ancestors: list[ChatMessage[str]] = []
+        current_id: str | None = message_id
+
+        while current_id:
+            msg = await self.get_message(current_id)
+            if not msg:
+                break
+            ancestors.append(msg)
+            current_id = msg.parent_id
+
+        # Reverse to get oldest first
+        ancestors.reverse()
+        return ancestors
+
+    async def fork_conversation(
+        self,
+        *,
+        source_conversation_id: str,
+        new_conversation_id: str,
+        fork_from_message_id: str | None = None,
+        new_agent_name: str | None = None,
+    ) -> str | None:
+        """Fork a conversation at a specific point."""
+        # Find source conversation
+        source_conv = next(
+            (c for c in self.conversations if c["id"] == source_conversation_id), None
+        )
+        if not source_conv:
+            msg = f"Source conversation not found: {source_conversation_id}"
+            raise ValueError(msg)
+
+        # Determine fork point
+        fork_point_id: str | None = None
+        if fork_from_message_id:
+            # Verify message exists in source conversation
+            msg_exists = any(
+                m.get("message_id") == fork_from_message_id
+                and m["conversation_id"] == source_conversation_id
+                for m in self.messages
+            )
+            if not msg_exists:
+                err = f"Message {fork_from_message_id} not found in conversation"
+                raise ValueError(err)
+            fork_point_id = fork_from_message_id
+        else:
+            # Find last message in source conversation
+            conv_messages = [
+                m for m in self.messages if m["conversation_id"] == source_conversation_id
+            ]
+            if conv_messages:
+                conv_messages.sort(key=lambda m: m.get("timestamp") or get_now())
+                fork_point_id = conv_messages[-1].get("message_id")
+
+        # Create new conversation
+        agent_name = new_agent_name or source_conv["agent_name"]
+        title = (
+            f"{source_conv.get('title') or 'Conversation'} (fork)"
+            if source_conv.get("title")
+            else None
+        )
+        self.conversations.append({
+            "id": new_conversation_id,
+            "agent_name": agent_name,
+            "title": title,
+            "start_time": get_now(),
+        })
+
+        return fork_point_id
 
     async def log_command(
         self,

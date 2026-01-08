@@ -742,6 +742,109 @@ class ZedStorageProvider(StorageProvider):
             return None
         return thread.title
 
+    async def get_conversation_messages(
+        self,
+        conversation_id: str,
+        *,
+        include_ancestors: bool = False,
+    ) -> list[ChatMessage[str]]:
+        """Get all messages for a conversation.
+
+        Args:
+            conversation_id: Thread ID (conversation ID in Zed format)
+            include_ancestors: If True, traverse parent_id chain to include
+                messages from ancestor conversations (not supported in Zed format)
+
+        Returns:
+            List of messages ordered by timestamp
+
+        Note:
+            Zed threads don't have parent_id chain, so include_ancestors has no effect.
+        """
+        thread = self._load_thread(conversation_id)
+        if thread is None:
+            return []
+
+        messages = self._thread_to_chat_messages(thread, conversation_id)
+
+        # Sort by timestamp (though they should already be in order)
+        messages.sort(key=lambda m: m.timestamp or get_now())
+
+        return messages
+
+    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+        """Get a single message by ID.
+
+        Args:
+            message_id: ID of the message
+
+        Returns:
+            The message if found, None otherwise
+
+        Note:
+            Zed doesn't store individual message IDs, so this searches all threads.
+            This is inefficient for large datasets.
+        """
+        threads = self._list_threads()
+
+        for thread_id, _summary, _updated_at in threads:
+            thread = self._load_thread(thread_id)
+            if thread is None:
+                continue
+
+            messages = self._thread_to_chat_messages(thread, thread_id)
+            for msg in messages:
+                if msg.message_id == message_id:
+                    return msg
+
+        return None
+
+    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+        """Get the ancestry chain of a message.
+
+        Args:
+            message_id: ID of the message
+
+        Returns:
+            List of messages from oldest ancestor to the specified message
+
+        Note:
+            Zed threads don't support parent_id chains, so this only returns
+            the single message if found.
+        """
+        msg = await self.get_message(message_id)
+        return [msg] if msg else []
+
+    async def fork_conversation(
+        self,
+        *,
+        source_conversation_id: str,
+        new_conversation_id: str,
+        fork_from_message_id: str | None = None,
+        new_agent_name: str | None = None,
+    ) -> str | None:
+        """Fork a conversation at a specific point.
+
+        Args:
+            source_conversation_id: Source thread ID
+            new_conversation_id: New thread ID
+            fork_from_message_id: Message ID to fork from (not used - Zed is read-only)
+            new_agent_name: Not used in Zed format
+
+        Returns:
+            None, as Zed storage is read-only
+
+        Note:
+            This is a READ-ONLY provider. Forking creates no persistent state.
+            Returns None to indicate no fork point is available.
+        """
+        logger.warning(
+            "Fork conversation not supported for Zed storage (read-only)",
+            source=source_conversation_id,
+            new=new_conversation_id,
+        )
+        return None
+
 
 if __name__ == "__main__":
     import asyncio

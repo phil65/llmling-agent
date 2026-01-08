@@ -728,6 +728,182 @@ class OpenCodeStorageProvider(StorageProvider):
 
         return conv_count, msg_count
 
+    async def get_conversation_messages(
+        self,
+        conversation_id: str,
+        *,
+        include_ancestors: bool = False,
+    ) -> list[ChatMessage[str]]:
+        """Get all messages for a conversation.
+
+        Args:
+            conversation_id: Session ID (conversation ID in OpenCode format)
+            include_ancestors: If True, traverse parent_id chain to include
+                messages from ancestor conversations
+
+        Returns:
+            List of messages ordered by timestamp
+        """
+        # Read messages for this session
+        oc_messages = self._read_messages(conversation_id)
+
+        messages: list[ChatMessage[str]] = []
+        for oc_msg in oc_messages:
+            parts = self._read_parts(oc_msg.id)
+            tool_mapping = self._build_tool_id_mapping(parts)
+            chat_msg = self._message_to_chat_message(oc_msg, parts, conversation_id, tool_mapping)
+            messages.append(chat_msg)
+
+        # Sort by timestamp
+        messages.sort(key=lambda m: m.timestamp or get_now())
+
+        if not include_ancestors or not messages:
+            return messages
+
+        # Get ancestor chain if first message has parent_id
+        first_msg = messages[0]
+        if first_msg.parent_id:
+            ancestors = await self.get_message_ancestry(first_msg.parent_id)
+            return ancestors + messages
+
+        return messages
+
+    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+        """Get a single message by ID.
+
+        Args:
+            message_id: ID of the message
+
+        Returns:
+            The message if found, None otherwise
+        """
+        # Search all sessions for the message
+        sessions = self._list_sessions()
+
+        for session_id, _session_path in sessions:
+            oc_messages = self._read_messages(session_id)
+            for oc_msg in oc_messages:
+                if oc_msg.id == message_id:
+                    parts = self._read_parts(oc_msg.id)
+                    tool_mapping = self._build_tool_id_mapping(parts)
+                    return self._message_to_chat_message(oc_msg, parts, session_id, tool_mapping)
+
+        return None
+
+    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+        """Get the ancestry chain of a message.
+
+        Traverses parent_id chain to build full history.
+
+        Args:
+            message_id: ID of the message
+
+        Returns:
+            List of messages from oldest ancestor to the specified message
+        """
+        ancestors: list[ChatMessage[str]] = []
+        current_id: str | None = message_id
+
+        while current_id:
+            msg = await self.get_message(current_id)
+            if not msg:
+                break
+            ancestors.append(msg)
+            current_id = msg.parent_id
+
+        # Reverse to get oldest first
+        ancestors.reverse()
+        return ancestors
+
+    async def fork_conversation(
+        self,
+        *,
+        source_conversation_id: str,
+        new_conversation_id: str,
+        fork_from_message_id: str | None = None,
+        new_agent_name: str | None = None,
+    ) -> str | None:
+        """Fork a conversation at a specific point.
+
+        Creates a new session directory. The fork point message_id is returned
+        so callers can set it as parent_id for new messages.
+
+        Args:
+            source_conversation_id: Source session ID
+            new_conversation_id: New session ID
+            fork_from_message_id: Message ID to fork from. If None, forks from last
+            new_agent_name: Not directly stored in OpenCode session format
+
+        Returns:
+            The ID of the fork point message
+        """
+        # Find source session
+        sessions = self._list_sessions()
+        source_session = None
+        source_path = None
+        for session_id, session_path in sessions:
+            if session_id == source_conversation_id:
+                source_session = self._read_session(session_path)
+                source_path = session_path
+                break
+
+        if not source_session or not source_path:
+            msg = f"Source conversation not found: {source_conversation_id}"
+            raise ValueError(msg)
+
+        # Read source messages
+        oc_messages = self._read_messages(source_conversation_id)
+
+        # Find fork point
+        fork_point_id: str | None = None
+        if fork_from_message_id:
+            # Verify message exists
+            found = any(m.id == fork_from_message_id for m in oc_messages)
+            if not found:
+                err = f"Message {fork_from_message_id} not found in conversation"
+                raise ValueError(err)
+            fork_point_id = fork_from_message_id
+        # Fork from last message
+        elif oc_messages:
+            # Messages are already in time order from _read_messages
+            fork_point_id = oc_messages[-1].id
+
+        # Create new session directory structure
+        # Determine project from source path structure
+        project_id = source_path.parent.name
+        new_session_dir = self.sessions_path / project_id
+        new_session_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create empty session file (will be populated when messages added)
+        new_session_path = new_session_dir / f"{new_conversation_id}.json"
+
+        # Create new session metadata
+        new_session = OpenCodeSession(
+            id=new_conversation_id,
+            project_id=project_id,
+            time=OpenCodeTime(
+                created=int(get_now().timestamp() * 1000),
+            ),
+            status="active",
+            summary=OpenCodeSummary(
+                title=f"{source_session.summary.title or 'Session'} (fork)"
+                if source_session.summary.title
+                else None,
+            ),
+        )
+
+        # Write session file
+        new_session_path.write_text(
+            anyenv.dump_json(new_session.model_dump(by_alias=True), indent=2),
+            encoding="utf-8",
+        )
+
+        # Create message and part directories
+        (self.messages_path / new_conversation_id).mkdir(parents=True, exist_ok=True)
+        (self.parts_path / new_conversation_id).mkdir(parents=True, exist_ok=True)
+
+        return fork_point_id
+
 
 if __name__ == "__main__":
     import asyncio

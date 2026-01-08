@@ -904,3 +904,172 @@ class ClaudeStorageProvider(StorageProvider):
                 msg_count += len(message_entries)
 
         return conv_count, msg_count
+
+    async def get_conversation_messages(
+        self,
+        conversation_id: str,
+        *,
+        include_ancestors: bool = False,
+    ) -> list[ChatMessage[str]]:
+        """Get all messages for a conversation.
+
+        Args:
+            conversation_id: Session ID (conversation ID in Claude format)
+            include_ancestors: If True, traverse parent_uuid chain to include
+                messages from ancestor conversations
+
+        Returns:
+            List of messages ordered by timestamp
+        """
+        # Find the session file
+        sessions = self._list_sessions()
+        session_path = None
+        for sid, spath in sessions:
+            if sid == conversation_id:
+                session_path = spath
+                break
+
+        if not session_path:
+            return []
+
+        # Read entries and convert to messages
+        entries = self._read_session(session_path)
+        tool_mapping = self._build_tool_id_mapping(entries)
+
+        messages: list[ChatMessage[str]] = []
+        for entry in entries:
+            msg = self._entry_to_chat_message(entry, conversation_id, tool_mapping)
+            if msg:
+                messages.append(msg)
+
+        # Sort by timestamp
+        messages.sort(key=lambda m: m.timestamp or get_now())
+
+        if not include_ancestors or not messages:
+            return messages
+
+        # Get ancestor chain if first message has parent_id
+        first_msg = messages[0]
+        if first_msg.parent_id:
+            ancestors = await self.get_message_ancestry(first_msg.parent_id)
+            return ancestors + messages
+
+        return messages
+
+    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+        """Get a single message by ID.
+
+        Args:
+            message_id: UUID of the message
+
+        Returns:
+            The message if found, None otherwise
+        """
+        # Search all sessions for the message
+        sessions = self._list_sessions()
+
+        for session_id, session_path in sessions:
+            entries = self._read_session(session_path)
+            tool_mapping = self._build_tool_id_mapping(entries)
+
+            for entry in entries:
+                if (
+                    isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry))
+                    and entry.uuid == message_id
+                ):
+                    return self._entry_to_chat_message(entry, session_id, tool_mapping)
+
+        return None
+
+    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+        """Get the ancestry chain of a message.
+
+        Traverses parent_uuid chain to build full history.
+
+        Args:
+            message_id: UUID of the message
+
+        Returns:
+            List of messages from oldest ancestor to the specified message
+        """
+        ancestors: list[ChatMessage[str]] = []
+        current_id: str | None = message_id
+
+        while current_id:
+            msg = await self.get_message(current_id)
+            if not msg:
+                break
+            ancestors.append(msg)
+            current_id = msg.parent_id
+
+        # Reverse to get oldest first
+        ancestors.reverse()
+        return ancestors
+
+    async def fork_conversation(
+        self,
+        *,
+        source_conversation_id: str,
+        new_conversation_id: str,
+        fork_from_message_id: str | None = None,
+        new_agent_name: str | None = None,
+    ) -> str | None:
+        """Fork a conversation at a specific point.
+
+        Creates a new session file. The fork point message_id is returned
+        so callers can set it as parent_uuid for new messages.
+
+        Args:
+            source_conversation_id: Source session ID
+            new_conversation_id: New session ID
+            fork_from_message_id: UUID to fork from. If None, forks from last message
+            new_agent_name: Not used in Claude format (no agent metadata in sessions)
+
+        Returns:
+            The UUID of the fork point message
+        """
+        # Find source session
+        sessions = self._list_sessions()
+        source_path = None
+        for sid, spath in sessions:
+            if sid == source_conversation_id:
+                source_path = spath
+                break
+
+        if not source_path:
+            msg = f"Source conversation not found: {source_conversation_id}"
+            raise ValueError(msg)
+
+        # Read source entries
+        entries = self._read_session(source_path)
+
+        # Find fork point
+        fork_point_id: str | None = None
+        if fork_from_message_id:
+            # Verify message exists
+            found = False
+            for entry in entries:
+                if isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry)):
+                    if entry.uuid == fork_from_message_id:
+                        found = True
+                        fork_point_id = fork_from_message_id
+                        break
+            if not found:
+                err = f"Message {fork_from_message_id} not found in conversation"
+                raise ValueError(err)
+        else:
+            # Find last message
+            message_entries = [
+                e for e in entries if isinstance(e, (ClaudeUserEntry, ClaudeAssistantEntry))
+            ]
+            if message_entries:
+                fork_point_id = message_entries[-1].uuid
+
+        # Create new session file (empty for now - will be populated when messages added)
+        # Determine project from source path structure
+        project_name = source_path.parent.name
+        new_path = self.projects_path / project_name / f"{new_conversation_id}.jsonl"
+        new_path.parent.mkdir(parents=True, exist_ok=True)
+        new_path.touch()
+
+        return fork_point_id
