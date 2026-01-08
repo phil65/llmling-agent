@@ -310,6 +310,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Client state
         self._client: ClaudeSDKClient | None = None
         self._current_model: str | None = self._model
+        self._sdk_session_id: str | None = None  # Session ID from Claude SDK init message
         self.deps_type = type(None)
 
         # ToolBridge state for exposing toolsets via MCP
@@ -879,6 +880,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             AssistantMessage,
             Message,
             ResultMessage,
+            SystemMessage,
             TextBlock,
             ThinkingBlock,
             ToolResultBlock,
@@ -911,7 +913,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 from agentpool.utils.identifiers import generate_session_id
 
                 self.conversation_id = generate_session_id()
-            # await self.log_conversation()  # Uncomment if storing CC sessions
+            # Extract text from prompts for title generation
+            initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
+            await self.log_conversation(initial_prompt or None)
 
         # Update input provider if provided
         if input_provider is not None:
@@ -987,6 +991,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         continue
 
                     message = event_or_message
+
+                    # Capture SDK session ID from init message
+                    if isinstance(message, SystemMessage):
+                        if message.subtype == "init" and "session_id" in message.data:
+                            self._sdk_session_id = message.data["session_id"]
+                        continue
+
                     # Process assistant messages - extract parts incrementally
                     if isinstance(message, AssistantMessage):
                         # Update model name from first assistant message
@@ -1272,6 +1283,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         except asyncio.CancelledError:
             self.log.info("Stream cancelled via CancelledError")
             # Emit partial response on cancellation
+            # Build metadata with file tracking and SDK session ID
+            metadata = file_tracker.get_metadata()
+            if self._sdk_session_id:
+                metadata["sdk_session_id"] = self._sdk_session_id
+
             response_msg = ChatMessage[TResult](
                 content="".join(text_chunks),  # type: ignore[arg-type]
                 role="assistant",
@@ -1282,7 +1298,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 model_name=self.model_name,
                 messages=model_messages,
                 finish_reason="stop",
-                metadata=file_tracker.get_metadata(),
+                metadata=metadata,
             )
             complete_event = StreamCompleteEvent(message=response_msg)
             await handler(None, complete_event)
@@ -1338,6 +1354,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             )
 
         # Determine finish reason - check if we were cancelled
+        # Build metadata with file tracking and SDK session ID
+        metadata = file_tracker.get_metadata()
+        if self._sdk_session_id:
+            metadata["sdk_session_id"] = self._sdk_session_id
+
         chat_message = ChatMessage[TResult](
             content=final_content,
             role="assistant",
@@ -1351,7 +1372,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             usage=request_usage or RequestUsage(),
             response_time=result_message.duration_ms / 1000 if result_message else None,
             finish_reason="stop" if self._cancelled else None,
-            metadata=file_tracker.get_metadata(),
+            metadata=metadata,
         )
 
         # Emit stream complete
