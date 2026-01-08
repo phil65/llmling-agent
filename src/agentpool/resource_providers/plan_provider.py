@@ -167,13 +167,22 @@ class PlanProvider(ResourceProvider):
 
         # Build summary for user feedback
         entry_count = len(tracker.entries)
-        title = f"Plan set with {entry_count} {'entry' if entry_count == 1 else 'entries'}"
+        if entry_count == 0:
+            title = "Cleared plan"
+        elif entry_count == 1:
+            title = "Set plan with 1 task"
+        else:
+            title = f"Set plan with {entry_count} tasks"
 
         # Format entries list for details
         if tracker.entries:
             lines = ["**New Plan:**"]
             for i, e in enumerate(tracker.entries):
-                lines.append(f"{i}. [{e.priority}] {e.content} ({e.status})")
+                priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(e.priority, "")
+                status_emoji = {"pending": "⬚", "in_progress": "◐", "completed": "✓"}.get(
+                    e.status, ""
+                )
+                lines.append(f"{i + 1}. {priority_emoji} {status_emoji} {e.content}")
             details = "\n".join(lines)
         else:
             details = "*Plan is empty*"
@@ -213,8 +222,9 @@ class PlanProvider(ResourceProvider):
         await self._emit_plan_update(agent_ctx)
 
         # User feedback
-        title = f"Added entry {entry_index} [{priority}] (pending)"
-        details = f"**Entry {entry_index}**: {content}"
+        priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(priority, "")
+        title = f"Added task {entry_index + 1} {priority_emoji}"
+        details = f"**Task {entry_index + 1}**: {content}"
         await agent_ctx.events.tool_call_progress(
             title=title,
             items=[TextContentItem(text=details)],
@@ -266,10 +276,11 @@ class PlanProvider(ResourceProvider):
 
         # Build title with key info
         entry = tracker.entries[index]
-        title = f"Updated entry {index} [{entry.priority}] ({entry.status})"
+        status_emoji = {"pending": "⬚", "in_progress": "◐", "completed": "✓"}.get(entry.status, "")
+        title = f"Updated task {index + 1} {status_emoji}"
 
         # Send detailed content
-        details = f"**Entry {index}**: {entry.content}\n\nChanges: {', '.join(updates)}"
+        details = f"**Task {index + 1}**: {entry.content}\n\nChanges: {', '.join(updates)}"
         await agent_ctx.events.tool_call_progress(
             title=title,
             items=[TextContentItem(text=details)],
@@ -302,8 +313,8 @@ class PlanProvider(ResourceProvider):
 
         # User feedback
         remaining = len(tracker.entries)
-        title = f"Removed entry {index} [{removed_entry.priority}]"
-        details = f"**Removed**: {removed_entry.content}\n\nRemaining entries: {remaining}"
+        title = f"Removed task {index + 1}"
+        details = f"**Removed**: {removed_entry.content}\n\nRemaining tasks: {remaining}"
         await agent_ctx.events.tool_call_progress(
             title=title,
             items=[TextContentItem(text=details)],
