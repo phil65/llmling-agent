@@ -18,7 +18,7 @@
     "payload": {
       "locations": [
         {
-          "line": 0,
+          "line": 3,
           "path": "/test/lines.txt"
         }
       ],
@@ -33,7 +33,7 @@
     "payload": {
       "locations": [
         {
-          "line": 0,
+          "line": 3,
           "path": "/test/lines.txt"
         }
       ],
@@ -49,7 +49,7 @@
       "content": [
         {
           "content": {
-            "text": "```/test/lines.txt\nLine 3\nLine 4\n```",
+            "text": "```/test/lines.txt#L3\nLine 3\nLine 4\n```",
             "type": "text"
           },
           "type": "content"
@@ -57,7 +57,7 @@
       ],
       "locations": [
         {
-          "line": 0,
+          "line": 3,
           "path": "/test/lines.txt"
         }
       ],

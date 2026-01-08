@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
-import anyio
-from pydantic_ai.models.test import TestModel
 import pytest
 
 from agentpool import AgentPool
 from agentpool.models.agents import NativeAgentConfig
 from agentpool.models.manifest import AgentsManifest
-from agentpool.sessions import SessionData, SessionManager
 from agentpool.storage.manager import StorageManager
 from agentpool_config.storage import MemoryStorageConfig, StorageConfig
 
@@ -22,12 +21,6 @@ if TYPE_CHECKING:
 
 
 GENERATED_TITLE = "Test Conversation Title"
-
-
-@pytest.fixture
-def title_model() -> TestModel:
-    """Model for title generation that returns a fixed title."""
-    return TestModel(custom_output_text=GENERATED_TITLE)
 
 
 @pytest.fixture
@@ -57,77 +50,28 @@ async def pool_with_storage(storage_config: StorageConfig):
         yield pool
 
 
-class TestSessionDataTitle:
-    """Tests for SessionData title field and methods."""
-
-    def test_session_data_title_field(self) -> None:
-        """Test that SessionData has title field."""
-        data = SessionData(
-            session_id="test_session",
-            agent_name="test_agent",
-            conversation_id="ses_test123",
-            title="My Conversation",
-        )
-        assert data.title == "My Conversation"
-
-    def test_session_data_title_default_none(self) -> None:
-        """Test that SessionData title defaults to None."""
-        data = SessionData(
-            session_id="test_session",
-            agent_name="test_agent",
-            conversation_id="ses_test123",
-        )
-        assert data.title is None
-
-    def test_with_title(self) -> None:
-        """Test SessionData.with_title returns copy with updated title."""
-        original = SessionData(
-            session_id="test_session",
-            agent_name="test_agent",
-            conversation_id="ses_test123",
-        )
-        updated = original.with_title("New Title")
-
-        # Original unchanged
-        assert original.title is None
-        # New instance has title
-        assert updated.title == "New Title"
-        # Other fields preserved
-        assert updated.session_id == original.session_id
-        assert updated.agent_name == original.agent_name
-        assert updated.conversation_id == original.conversation_id
-
-
 class TestStorageManagerTitleGeneration:
     """Tests for StorageManager title generation methods."""
 
-    async def test_generate_title_stores_title(self) -> None:
-        """Test that generate_conversation_title generates and stores a title."""
-        from agentpool.messaging import ChatMessage
-
+    async def test_generate_title_from_prompt_stores_title(self) -> None:
+        """Test that _generate_title_from_prompt generates and stores a title."""
         config = StorageConfig(
             providers=[MemoryStorageConfig()],
             title_generation_model="test",
         )
         async with StorageManager(config) as manager:
-            # Create a conversation first
             conv_id = "test_conv_123"
+
+            # First create the conversation
             await manager.log_conversation(
                 conversation_id=conv_id,
                 node_name="test_agent",
             )
 
-            # Create test messages
-            messages = [
-                ChatMessage.user_prompt("What is the weather today?"),
-                ChatMessage(
-                    content="The weather is sunny with a high of 75°F.",
-                    role="assistant",
-                ),
-            ]
-
-            # Generate title (using TestModel via pydantic-ai)
-            title = await manager.generate_conversation_title(conv_id, messages)
+            # Directly call the title generation method (bypasses PYTEST check)
+            title = await manager._generate_title_from_prompt(
+                conv_id, "What is the weather today?", None
+            )
 
             # Title should be generated
             assert title is not None
@@ -139,37 +83,33 @@ class TestStorageManagerTitleGeneration:
 
     async def test_generate_title_disabled(self) -> None:
         """Test that title generation is skipped when model is None."""
-        from agentpool.messaging import ChatMessage
-
         config = StorageConfig(
             providers=[MemoryStorageConfig()],
             title_generation_model=None,
         )
         async with StorageManager(config) as manager:
             conv_id = "test_conv_456"
+
+            # Create conversation
             await manager.log_conversation(
                 conversation_id=conv_id,
                 node_name="test_agent",
             )
 
-            messages = [
-                ChatMessage.user_prompt("Hello"),
-                ChatMessage(content="Hi there!", role="assistant"),
-            ]
-
-            title = await manager.generate_conversation_title(conv_id, messages)
+            # Direct call should return None when model is not configured
+            title = await manager._generate_title_from_prompt(conv_id, "Hello", None)
             assert title is None
 
     async def test_generate_title_already_exists(self) -> None:
         """Test that existing title is returned without regenerating."""
-        from agentpool.messaging import ChatMessage
-
         config = StorageConfig(
             providers=[MemoryStorageConfig()],
             title_generation_model="test",
         )
         async with StorageManager(config) as manager:
             conv_id = "test_conv_789"
+
+            # Create conversation
             await manager.log_conversation(
                 conversation_id=conv_id,
                 node_name="test_agent",
@@ -179,13 +119,8 @@ class TestStorageManagerTitleGeneration:
             existing_title = "Existing Title"
             await manager.update_conversation_title(conv_id, existing_title)
 
-            messages = [
-                ChatMessage.user_prompt("New message"),
-                ChatMessage(content="New response", role="assistant"),
-            ]
-
-            # Should return existing title without calling model
-            title = await manager.generate_conversation_title(conv_id, messages)
+            # Direct call should return existing title without calling model
+            title = await manager._generate_title_from_prompt(conv_id, "New message", None)
             assert title == existing_title
 
     async def test_update_and_get_title(self) -> None:
@@ -209,93 +144,17 @@ class TestStorageManagerTitleGeneration:
             title = await manager.get_conversation_title(conv_id)
             assert title == "My Title"
 
-
-class TestClientSessionTitleGeneration:
-    """Tests for ClientSession title generation integration."""
-
-    async def test_title_generation_flag_initially_false(
-        self,
-        pool_with_storage: AgentPool,
-    ) -> None:
-        """Test that title generation flag is initially False."""
-        manager = SessionManager(pool_with_storage)
-
-        async with manager:
-            session = await manager.create(
-                agent_name="test_agent",
-                conversation_id="ses_flag_test",
-            )
-            # Flag should be False before any run
-            assert not session._title_generation_triggered
-
-    async def test_title_generation_flag_set_after_run(
-        self,
-        pool_with_storage: AgentPool,
-    ) -> None:
-        """Test that title generation flag is set after first run."""
-        manager = SessionManager(pool_with_storage)
-
-        async with manager:
-            session = await manager.create(
-                agent_name="test_agent",
-                conversation_id="ses_title_flag",
-            )
-
-            # Log the conversation to storage first
-            if pool_with_storage.storage:
-                await pool_with_storage.storage.log_conversation(
-                    conversation_id=session.conversation_id,
-                    node_name="test_agent",
-                )
-
-            # Run the agent - this should trigger title generation
-            await session.run("Hello, how are you?")
-
-            # Flag should be set after run
-            assert session._title_generation_triggered
-
-            # Wait briefly for background task
-            await anyio.sleep(0.1)
-
-    async def test_title_generation_flag_stays_true(
-        self,
-        pool_with_storage: AgentPool,
-    ) -> None:
-        """Test that title generation flag remains True after multiple runs."""
-        manager = SessionManager(pool_with_storage)
-
-        async with manager:
-            session = await manager.create(
-                agent_name="test_agent",
-                conversation_id="ses_flag_stays",
-            )
-
-            if pool_with_storage.storage:
-                await pool_with_storage.storage.log_conversation(
-                    conversation_id=session.conversation_id,
-                    node_name="test_agent",
-                )
-
-            # First run sets the flag
-            await session.run("First message")
-            assert session._title_generation_triggered
-
-            # Second run should keep flag True
-            await session.run("Second message")
-            assert session._title_generation_triggered
-
-    async def test_generate_title_method_directly(self) -> None:
-        """Test the _generate_title method directly via StorageManager."""
+    async def test_generate_conversation_title_from_messages(self) -> None:
+        """Test the generate_conversation_title method with messages."""
         from agentpool.messaging import ChatMessage
 
         config = StorageConfig(
             providers=[MemoryStorageConfig()],
             title_generation_model="test",
         )
-
-        async with StorageManager(config) as storage:
-            conv_id = "direct_title_test"
-            await storage.log_conversation(
+        async with StorageManager(config) as manager:
+            conv_id = "msg_title_test"
+            await manager.log_conversation(
                 conversation_id=conv_id,
                 node_name="test_agent",
             )
@@ -309,13 +168,48 @@ class TestClientSessionTitleGeneration:
                 ),
             ]
 
-            # Generate title
-            title = await storage.generate_conversation_title(conv_id, messages)
+            # Generate title from messages
+            title = await manager.generate_conversation_title(conv_id, messages)
             assert title is not None
 
             # Verify it was stored
-            stored = await storage.get_conversation_title(conv_id)
+            stored = await manager.get_conversation_title(conv_id)
             assert stored == title
+
+    async def test_log_conversation_triggers_title_gen_without_pytest_env(self) -> None:
+        """Test that log_conversation triggers title gen when not in pytest."""
+        config = StorageConfig(
+            providers=[MemoryStorageConfig()],
+            title_generation_model="test",
+        )
+        async with StorageManager(config) as manager:
+            conv_id = "test_trigger_123"
+            title_result: str | None = None
+
+            def on_title(title: str) -> None:
+                nonlocal title_result
+                title_result = title
+
+            # Temporarily remove PYTEST env var to test the trigger
+            with patch.dict(os.environ, {}, clear=False):
+                # Remove the pytest marker if it exists
+                os.environ.pop("PYTEST_CURRENT_TEST", None)
+
+                await manager.log_conversation(
+                    conversation_id=conv_id,
+                    node_name="test_agent",
+                    initial_prompt="What is the weather?",
+                    on_title_generated=on_title,
+                )
+
+                # Wait for background task
+                import anyio
+
+                await anyio.sleep(0.3)
+
+            # Title should have been generated
+            stored_title = await manager.get_conversation_title(conv_id)
+            assert stored_title is not None
 
 
 class TestMemoryProviderTitleSupport:
