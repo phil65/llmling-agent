@@ -13,6 +13,7 @@ from pydantic_ai import (
     ImageUrl,
     ModelRequest,
     ModelResponse,
+    RetryPromptPart,
     TextPart as PydanticTextPart,
     ToolCallPart as PydanticToolCallPart,
     ToolReturnPart as PydanticToolReturnPart,
@@ -41,6 +42,8 @@ from agentpool_server.opencode_server.models import (
 from agentpool_server.opencode_server.models.common import TimeCreated
 from agentpool_server.opencode_server.models.message import UserMessageModel
 from agentpool_server.opencode_server.models.parts import (
+    APIErrorInfo,
+    RetryPart,
     StepFinishPart,
     StepFinishTokens,
     StepStartPart,
@@ -660,9 +663,52 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         parts.append(tool_part)
 
             elif isinstance(model_msg, ModelRequest):
-                # Check for tool returns in requests (they come after responses)
+                # Check for tool returns and retries in requests (they come after responses)
                 for part in model_msg.parts:
-                    if isinstance(part, PydanticToolReturnPart):
+                    if isinstance(part, RetryPromptPart):
+                        # Track retry attempts - count RetryPromptParts in message history
+                        retry_count = sum(
+                            1
+                            for m in msg.messages
+                            if isinstance(m, ModelRequest)
+                            for p in m.parts
+                            if isinstance(p, RetryPromptPart)
+                        )
+
+                        # Create error info from retry content
+                        error_message = part.model_response()
+
+                        # Try to extract more info if we have structured error details
+                        is_retryable = True
+                        if isinstance(part.content, list):
+                            # Validation errors - always retryable
+                            error_type = "validation_error"
+                        elif part.tool_name:
+                            # Tool-related retry
+                            error_type = "tool_error"
+                        else:
+                            # Generic retry
+                            error_type = "retry"
+
+                        api_error = APIErrorInfo(
+                            message=error_message,
+                            status_code=None,  # Not available from pydantic-ai
+                            is_retryable=is_retryable,
+                            metadata={"error_type": error_type} if error_type else None,
+                        )
+
+                        parts.append(
+                            RetryPart(
+                                id=generate_part_id(),
+                                message_id=message_id,
+                                session_id=session_id,
+                                attempt=retry_count,
+                                error=api_error,
+                                time=TimeCreated(created=int(part.timestamp.timestamp() * 1000)),
+                            )
+                        )
+
+                    elif isinstance(part, PydanticToolReturnPart):
                         call_id = part.tool_call_id or ""
                         existing = tool_calls.get(call_id)
 
