@@ -52,15 +52,13 @@ from agentpool.agents.acp_agent.client_handler import ACPClientHandler
 from agentpool.agents.acp_agent.session_state import ACPSessionState
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallStartEvent
+from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
-from agentpool.utils.streams import (
-    FileTracker,
-    merge_queue_into_iterator,
-)
+from agentpool.utils.streams import merge_queue_into_iterator
 from agentpool.utils.subprocess_utils import SubprocessError, monitor_process
 from agentpool.utils.token_breakdown import calculate_usage_from_parts
 
@@ -635,7 +633,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             async with merge_queue_into_iterator(
                 poll_acp_events(), self._event_queue
             ) as merged_events:
-                async for event in file_tracker.track(merged_events):
+                async for event in file_tracker(merged_events):
                     # Check for cancellation
                     if self._cancelled:
                         self.log.info("Stream cancelled by user")

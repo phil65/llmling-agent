@@ -8,11 +8,30 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
+# Re-export FileTracker from new location for backwards compatibility
+from agentpool.agents.events.processors import (
+    FileTracker,
+    FileTrackingProcessor,
+    extract_file_path_from_tool_call,
+)
+
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from agentpool.common_types import SimpleJsonType
+
+__all__ = [
+    "FileChange",
+    "FileOpsTracker",
+    "FileTracker",
+    "FileTrackingProcessor",
+    "TodoEntry",
+    "TodoPriority",
+    "TodoStatus",
+    "TodoTracker",
+    "extract_file_path_from_tool_call",
+    "merge_queue_into_iterator",
+]
 
 
 @asynccontextmanager
@@ -114,100 +133,6 @@ async def merge_queue_into_iterator[T, V](  # noqa: PLR0915
         primary_task_obj.cancel()
         secondary_task_obj.cancel()
         await asyncio.gather(primary_task_obj, secondary_task_obj, return_exceptions=True)
-
-
-def extract_file_path_from_tool_call(tool_name: str, raw_input: dict[str, Any]) -> str | None:
-    """Extract file path from a tool call if it's a file-writing tool.
-
-    Uses simple heuristics:
-    - Tool name contains 'write' or 'edit' (case-insensitive)
-    - Input contains 'path' or 'file_path' key
-
-    Args:
-        tool_name: Name of the tool being called
-        raw_input: Tool call arguments
-
-    Returns:
-        File path if this is a file-writing tool, None otherwise
-    """
-    name_lower = tool_name.lower()
-    if "write" not in name_lower and "edit" not in name_lower:
-        return None
-
-    # Try common path argument names
-    for key in ("file_path", "path", "filepath", "filename", "file"):
-        if key in raw_input and isinstance(val := raw_input[key], str):
-            return val
-
-    return None
-
-
-@dataclass
-class FileTracker:
-    """Tracks files modified during a stream of events.
-
-    Example:
-        ```python
-        file_tracker = FileTracker()
-        async for event in file_tracker.track(events):
-            yield event
-
-        print(f"Modified files: {file_tracker.touched_files}")
-        ```
-    """
-
-    touched_files: set[str] = field(default_factory=set)
-    """Set of file paths that were modified by tool calls."""
-
-    extractor: Callable[[str, dict[str, Any]], str | None] = extract_file_path_from_tool_call
-    """Function to extract file path from tool call. Can be customized."""
-
-    def process_event(self, event: Any) -> None:
-        """Process an event and track any file modifications.
-
-        Args:
-            event: The event to process (checks for ToolCallStartEvent)
-        """
-        # Import here to avoid circular imports
-        from agentpool.agents.events import ToolCallStartEvent
-
-        if isinstance(event, ToolCallStartEvent) and (
-            file_path := self.extractor(event.tool_name or "", event.raw_input or {})
-        ):
-            self.touched_files.add(file_path)
-
-    def track[T](self, stream: AsyncIterator[T]) -> AsyncIterator[T]:
-        """Wrap an async iterator to automatically track file modifications.
-
-        Args:
-            stream: The event stream to wrap
-
-        Returns:
-            Wrapped async iterator that tracks file modifications
-
-        Example:
-            ```python
-            async for event in file_tracker.track(events):
-                yield event
-            ```
-        """
-
-        async def wrapped() -> AsyncIterator[T]:
-            async for event in stream:
-                self.process_event(event)
-                yield event
-
-        return wrapped()
-
-    def get_metadata(self) -> SimpleJsonType:
-        """Get metadata dict with touched files (if any).
-
-        Returns:
-            Dict with 'touched_files' key if files were modified, else empty dict
-        """
-        if self.touched_files:
-            return {"touched_files": sorted(self.touched_files)}
-        return {}
 
 
 @dataclass

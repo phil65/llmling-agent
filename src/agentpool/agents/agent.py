@@ -35,6 +35,7 @@ from agentpool.agents.events import (
     StreamCompleteEvent,
     ToolCallCompleteEvent,
 )
+from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
@@ -47,7 +48,7 @@ from agentpool.utils.inspection import call_with_context, get_argument_key
 from agentpool.utils.now import get_now
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool.utils.result_utils import to_type
-from agentpool.utils.streams import FileTracker, merge_queue_into_iterator
+from agentpool.utils.streams import merge_queue_into_iterator
 
 
 TResult = TypeVar("TResult")
@@ -1099,7 +1100,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                     self._event_queue,
                                 ) as merged,
                             ):
-                                async for event in file_tracker.track(merged):
+                                async for event in file_tracker(merged):
                                     if self._cancelled:
                                         break
                                     await handler(None, event)
@@ -1117,7 +1118,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                 node.stream(agent_run.ctx) as tool_stream,
                                 merge_queue_into_iterator(tool_stream, self._event_queue) as merged,
                             ):
-                                async for event in file_tracker.track(merged):
+                                async for event in file_tracker(merged):
                                     if self._cancelled:
                                         break
                                     await handler(None, event)

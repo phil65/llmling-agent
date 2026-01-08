@@ -31,11 +31,11 @@ from agentpool.agents.agui_agent.chunk_transformer import ChunkTransformer
 from agentpool.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
+from agentpool.agents.events.processors import FileTracker
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.tools import ToolManager
-from agentpool.utils.streams import FileTracker
 from agentpool.utils.token_breakdown import calculate_usage_from_parts
 
 

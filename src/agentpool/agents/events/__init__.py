@@ -33,6 +33,14 @@ from .tts_handlers import (
     EdgeTTSEventHandler,
     OpenAITTSEventHandler,
 )
+from .processors import (
+    FileTracker,
+    FileTrackingProcessor,
+    StreamPipeline,
+    StreamProcessor,
+    event_handler_processor,
+    extract_file_path_from_tool_call,
+)
 
 __all__ = [
     "BaseTTSEventHandler",
@@ -43,6 +51,8 @@ __all__ = [
     "DiffContentItem",
     "EdgeTTSEventHandler",
     "FileContentItem",
+    "FileTracker",
+    "FileTrackingProcessor",
     "LocationContentItem",
     "OpenAITTSEventHandler",
     "PlanUpdateEvent",
@@ -52,6 +62,8 @@ __all__ = [
     "SlashedAgentStreamEvent",
     "StreamCompleteEvent",
     "StreamEventEmitter",
+    "StreamPipeline",
+    "StreamProcessor",
     "SubAgentEvent",
     "TerminalContentItem",
     "TextContentItem",
@@ -60,6 +72,8 @@ __all__ = [
     "ToolCallProgressEvent",
     "ToolCallStartEvent",
     "detailed_print_handler",
+    "event_handler_processor",
+    "extract_file_path_from_tool_call",
     "resolve_event_handlers",
     "simple_print_handler",
 ]

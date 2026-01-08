@@ -90,13 +90,14 @@ from agentpool.agents.events import (
     ToolCallCompleteEvent,
     ToolCallStartEvent,
 )
+from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.messages import TokenCost
 from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
-from agentpool.utils.streams import FileTracker, merge_queue_into_iterator
+from agentpool.utils.streams import merge_queue_into_iterator
 
 
 if TYPE_CHECKING:
