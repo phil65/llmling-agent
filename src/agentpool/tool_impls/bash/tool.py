@@ -80,11 +80,9 @@ class BashTool(Tool[str]):
         stderr_parts: list[str] = []
         exit_code: int | None = None
         error_msg: str | None = None
-
+        env = self._get_env(ctx)
         try:
-            async for event in self._get_env(ctx).stream_command(
-                command, timeout=effective_timeout
-            ):
+            async for event in env.stream_command(command, timeout=effective_timeout):
                 match event:
                     case ProcessStartedEvent(process_id=pid, command=cmd):
                         process_id = pid
