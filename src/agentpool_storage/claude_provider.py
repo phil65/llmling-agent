@@ -1049,11 +1049,13 @@ class ClaudeStorageProvider(StorageProvider):
             # Verify message exists
             found = False
             for entry in entries:
-                if isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry)):
-                    if entry.uuid == fork_from_message_id:
-                        found = True
-                        fork_point_id = fork_from_message_id
-                        break
+                if (
+                    isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry))
+                    and entry.uuid == fork_from_message_id
+                ):
+                    found = True
+                    fork_point_id = fork_from_message_id
+                    break
             if not found:
                 err = f"Message {fork_from_message_id} not found in conversation"
                 raise ValueError(err)
