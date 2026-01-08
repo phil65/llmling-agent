@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from pydantic_ai import ModelRequest, ModelResponse  # noqa: TC002
 from slashed import CommandContext  # noqa: TC002
 
@@ -11,39 +9,6 @@ from agentpool.messaging.context import NodeContext  # noqa: TC001
 from agentpool_commands.base import NodeCommand
 from agentpool_config.session import SessionQuery
 from agentpool_server.acp_server.session import ACPSession  # noqa: TC001
-
-
-if TYPE_CHECKING:
-    from agentpool.storage import StorageManager
-
-
-async def _get_message_counts(
-    storage: StorageManager | None,
-    conversation_ids: list[str],
-) -> dict[str, int]:
-    """Get message counts for multiple conversations efficiently.
-
-    Args:
-        storage: Storage manager instance
-        conversation_ids: List of conversation IDs to count
-
-    Returns:
-        Dict mapping conversation_id to message count
-    """
-    if not storage or not conversation_ids:
-        return {}
-
-    counts: dict[str, int] = {}
-    for conv_id in conversation_ids:
-        try:
-            query = SessionQuery(name=conv_id)
-            messages = await storage.filter_messages(query)
-            count = len(messages)
-
-            counts[conv_id] = count
-        except Exception:  # noqa: BLE001
-            counts[conv_id] = 0
-    return counts
 
 
 class ListSessionsCommand(NodeCommand):
@@ -114,7 +79,6 @@ class ListSessionsCommand(NodeCommand):
                 active_sessions = session.manager._active
                 for session_id, sess in active_sessions.items():
                     session_data = await session.manager.session_manager.store.load(session_id)
-                    title = session_data.title if session_data else None
                     conv_id = session_data.conversation_id if session_data else None
                     is_current = session_id == session.session_id
                     all_sessions.append((
@@ -123,7 +87,6 @@ class ListSessionsCommand(NodeCommand):
                         {
                             "agent_name": sess.current_agent_name,
                             "cwd": sess.cwd or "unknown",
-                            "title": title,
                             "conversation_id": conv_id,
                             "is_current": "yes" if is_current else None,
                             "last_active": None,
@@ -149,7 +112,6 @@ class ListSessionsCommand(NodeCommand):
                                 {
                                     "agent_name": session_data.agent_name,
                                     "cwd": session_data.cwd or "unknown",
-                                    "title": session_data.title,
                                     "conversation_id": session_data.conversation_id,
                                     "is_current": None,
                                     "last_active": session_data.last_active.strftime(
@@ -160,11 +122,18 @@ class ListSessionsCommand(NodeCommand):
                 except Exception as e:  # noqa: BLE001
                     output_lines.append(f"*Error loading stored sessions: {e}*\n")
 
-            # Get message counts for ALL sessions to filter properly
+            # Get message counts and titles from storage
             all_conv_ids = [
                 conv_id for _, _, info in all_sessions if (conv_id := info.get("conversation_id"))
             ]
-            msg_counts = await _get_message_counts(session.agent_pool.storage, all_conv_ids)
+            storage = session.agent_pool.storage
+            msg_counts = await storage.get_message_counts(all_conv_ids) if storage else {}
+            titles = await storage.get_conversation_titles(all_conv_ids) if storage else {}
+
+            # Add titles to session info
+            for _, _, info in all_sessions:
+                if conv_id := info.get("conversation_id"):
+                    info["title"] = titles.get(conv_id)
 
             # Filter out sessions with 0 messages (unless showing detail view)
             if not detail:
@@ -313,8 +282,14 @@ class LoadSessionCommand(NodeCommand):
                     f"## 📋 Session Preview: `{session_id}`\n",
                 ]
 
-                if session_data.title:
-                    preview_lines.append(f"**Title:** {session_data.title}")
+                # Fetch title from storage
+                title = (
+                    await storage.get_conversation_title(session_data.conversation_id)
+                    if storage
+                    else None
+                )
+                if title:
+                    preview_lines.append(f"**Title:** {title}")
 
                 preview_lines.extend([
                     f"**Agent:** `{session_data.agent_name}`",

@@ -232,7 +232,6 @@ class ACPSession:
         self.log = logger.bind(session_id=self.session_id)
         self._task_lock = asyncio.Lock()
         self._cancelled = False
-        self._title_generation_triggered = False
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         cmds = [
             *get_commands(
@@ -531,36 +530,8 @@ class ACPSession:
                 )
                 return "end_turn"
             else:
-                # Trigger title generation on first successful prompt
-                if not self._title_generation_triggered and self.agent_pool.storage:
-                    self._title_generation_triggered = True
-                    self.acp_agent.tasks.create_task(
-                        self._generate_title(),
-                        name=f"generate_title_{self.session_id}",
-                    )
+                # Title generation is now handled automatically by log_conversation
                 return "end_turn"
-
-    async def _generate_title(self) -> None:
-        """Generate conversation title in the background."""
-        try:
-            messages = self.agent.conversation.get_history()
-            if not messages:
-                return
-
-            title = await self.agent_pool.storage.generate_conversation_title(
-                self.session_id,
-                messages,
-            )
-
-            # Persist to session store
-            if title and self.manager:
-                session_data = await self.manager.session_manager.store.load(self.session_id)
-                if session_data:
-                    updated_data = session_data.with_title(title)
-                    await self.manager.session_manager.store.save(updated_data)
-                    self.log.info("Generated session title", title=title)
-        except Exception:
-            self.log.exception("Failed to generate conversation title")
 
     async def _send_error_notification(self, message: str) -> None:
         """Send error notification, with exception handling."""

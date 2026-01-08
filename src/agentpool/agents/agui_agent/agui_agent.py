@@ -464,7 +464,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 from agentpool.utils.identifiers import generate_session_id
 
                 self.conversation_id = generate_session_id()
-            await self.log_conversation()
+            # Extract text from prompts for title generation
+            initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
+            await self.log_conversation(initial_prompt or None)
 
         # Set thread_id from conversation_id (needed for AG-UI protocol)
         if self._thread_id is None:

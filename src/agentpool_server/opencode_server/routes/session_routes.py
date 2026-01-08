@@ -63,8 +63,16 @@ if TYPE_CHECKING:
 # =============================================================================
 
 
-def session_data_to_opencode(data: SessionData) -> Session:
-    """Convert SessionData to OpenCode Session model."""
+def session_data_to_opencode(
+    data: SessionData,
+    title: str | None = None,
+) -> Session:
+    """Convert SessionData to OpenCode Session model.
+
+    Args:
+        data: SessionData to convert
+        title: Optional title (fetched from storage by caller)
+    """
     # Convert datetime to milliseconds timestamp
     created_ms = int(data.created_at.timestamp() * 1000)
     updated_ms = int(data.last_active.timestamp() * 1000)
@@ -81,7 +89,7 @@ def session_data_to_opencode(data: SessionData) -> Session:
         id=data.session_id,
         project_id=data.project_id or "default",
         directory=data.cwd or "",
-        title=data.title or "New Session",
+        title=title or "New Session",
         version=data.version,
         time=TimeCreatedUpdated(created=created_ms, updated=updated_ms),
         parent_id=data.parent_id,
@@ -110,7 +118,6 @@ def opencode_to_session_data(
         session_id=session.id,
         agent_name=agent_name,
         conversation_id=session.id,  # Use session_id as conversation_id
-        title=session.title,
         pool_id=pool_id,
         project_id=session.project_id,
         parent_id=session.parent_id,
@@ -173,7 +180,11 @@ async def get_or_load_session(state: ServerState, session_id: str) -> Session | 
     # Try to load from storage
     data = await state.pool.sessions.store.load(session_id)
     if data is not None:
-        session = session_data_to_opencode(data)
+        # Fetch title from conversation storage
+        title = None
+        if state.pool.storage:
+            title = await state.pool.storage.get_conversation_title(data.conversation_id)
+        session = session_data_to_opencode(data, title=title)
         # Cache it
         state.sessions[session_id] = session
         # Initialize runtime state

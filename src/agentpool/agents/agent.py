@@ -1028,7 +1028,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 from agentpool.utils.identifiers import generate_session_id
 
                 self.conversation_id = generate_session_id()
-                await self.log_conversation()
+                # Extract text from prompt for title generation
+                initial_prompt = " ".join(str(p) for p in prompt if isinstance(p, str))
+                await self.log_conversation(initial_prompt or None)
 
         # Use provided parent_id or fall back to last message in history
         effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import TYPE_CHECKING, Any, Self
 
 from anyenv import method_spawner
@@ -25,7 +26,7 @@ from agentpool_config.storage import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
     from datetime import datetime
     from types import TracebackType
 
@@ -239,6 +240,7 @@ class StorageManager:
         node_name: str,
         start_time: datetime | None = None,
         initial_prompt: str | None = None,
+        on_title_generated: Callable[[str], None] | None = None,
     ) -> None:
         """Log conversation to all providers.
 
@@ -247,6 +249,7 @@ class StorageManager:
             node_name: Name of the node/agent
             start_time: Optional start time
             initial_prompt: Optional initial prompt to trigger title generation
+            on_title_generated: Optional callback invoked when title is generated
         """
         if not self.config.log_conversations:
             return
@@ -259,9 +262,16 @@ class StorageManager:
             )
 
         # Trigger title generation if prompt provided and model configured
-        if initial_prompt and self.config.title_generation_model:
+        # Skip during tests to avoid external API calls
+        if (
+            initial_prompt
+            and self.config.title_generation_model
+            and not os.environ.get("PYTEST_CURRENT_TEST")
+        ):
             self.task_manager.create_task(
-                self._generate_title_from_prompt(conversation_id, initial_prompt),
+                self._generate_title_from_prompt(
+                    conversation_id, initial_prompt, on_title_generated
+                ),
                 name=f"title_gen_{conversation_id[:8]}",
             )
 
@@ -523,6 +533,7 @@ class StorageManager:
         self,
         conversation_id: str,
         prompt: str,
+        on_title_generated: Callable[[str], None] | None = None,
     ) -> str | None:
         """Generate title from initial prompt (internal, fire-and-forget).
 
@@ -531,6 +542,7 @@ class StorageManager:
         Args:
             conversation_id: ID of the conversation to title
             prompt: The initial user prompt
+            on_title_generated: Optional callback invoked with the generated title
 
         Returns:
             The generated title, or None if generation fails/disabled.
@@ -541,6 +553,8 @@ class StorageManager:
         # Check if title already exists
         existing = await self.get_conversation_title(conversation_id)
         if existing:
+            if on_title_generated:
+                on_title_generated(existing)
             return existing
 
         try:
@@ -556,10 +570,13 @@ class StorageManager:
             title = result.output.strip().strip("\"'")  # Remove quotes if present
             await self.update_conversation_title(conversation_id, title)
             logger.debug("Generated session title", conversation_id=conversation_id, title=title)
-            return title
         except Exception:
             logger.exception("Failed to generate session title", conversation_id=conversation_id)
             return None
+        else:
+            if on_title_generated:
+                on_title_generated(title)
+            return title
 
     async def generate_conversation_title(
         self,

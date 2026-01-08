@@ -86,18 +86,28 @@ class MessageNode[TDeps, TResult](ABC):
         self.mcp = MCPManager(name_, servers=mcp_servers, owner=self.name)
         self.enable_db_logging = enable_logging
         self.conversation_id: str | None = None
+        self.conversation_title: str | None = None
 
-    async def log_conversation(self) -> None:
+    def _set_conversation_title(self, title: str) -> None:
+        """Callback for setting conversation title (called by storage manager)."""
+        self.conversation_title = title
+
+    async def log_conversation(self, initial_prompt: str | None = None) -> None:
         """Log conversation to storage if enabled.
 
         Should be called at the start of run_stream() after conversation_id is set.
         For native agents, generate conversation_id first with uuid4().
         For wrapped agents (Claude Code), set conversation_id from SDK session first.
+
+        Args:
+            initial_prompt: Optional initial prompt to trigger title generation.
         """
         if self.enable_db_logging and self.storage and self.conversation_id:
             await self.storage.log_conversation(
                 conversation_id=self.conversation_id,
                 node_name=self.name,
+                initial_prompt=initial_prompt,
+                on_title_generated=self._set_conversation_title,
             )
 
     async def __aenter__(self) -> Self:

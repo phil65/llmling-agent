@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any, Self
 
 from agentpool.log import get_logger
@@ -57,8 +56,6 @@ class ClientSession:
         self._manager = manager
         self._agent: Agent[Any, Any] | None = None
         self._closed = False
-        self._title_generation_triggered = False
-        self._title_task: asyncio.Task[None] | None = None
         # Session owns conversation history - agent is stateless
         self._history = MessageHistory()
         logger.debug("Created client session", session_id=data.session_id, agent=data.agent_name)
@@ -96,6 +93,11 @@ class ClientSession:
         return self._data.conversation_id
 
     @property
+    def title(self) -> str | None:
+        """Get conversation title (delegated to agent)."""
+        return self._agent.conversation_title if self._agent is not None else None
+
+    @property
     def history(self) -> MessageHistory:
         """Get the session's conversation history."""
         return self._history
@@ -125,6 +127,9 @@ class ClientSession:
         the agent stateless from the session's perspective. Messages
         are automatically added to the session's history.
 
+        Title generation is handled automatically by the agent's log_conversation
+        call when the conversation is first created.
+
         Args:
             prompt: User prompt to send to the agent
             **kwargs: Additional arguments passed to agent.run()
@@ -132,38 +137,12 @@ class ClientSession:
         Returns:
             The agent's response message
         """
-        result = await self.agent.run(
+        return await self.agent.run(
             prompt,
             message_history=self._history,
             conversation_id=self.conversation_id,
             **kwargs,
         )
-
-        # Trigger title generation after first exchange (fire-and-forget)
-        # Note: Message logging is handled by the agent itself via MessageNode.log_message
-        if not self._title_generation_triggered and self._pool.storage:
-            self._title_generation_triggered = True
-            self._title_task = asyncio.create_task(self._generate_title())
-
-        return result
-
-    async def _generate_title(self) -> None:
-        """Generate conversation title in the background."""
-        if not self._pool.storage:
-            return
-        try:
-            messages = self._history.get_history()
-            if messages:
-                title = await self._pool.storage.generate_conversation_title(
-                    self.conversation_id,
-                    messages,
-                )
-                # Also update SessionData so title is available when listing sessions
-                if title and self._manager:
-                    self._data = self._data.with_title(title)
-                    await self._manager.save(self._data)
-        except Exception:
-            logger.exception("Failed to generate session title", session_id=self.conversation_id)
 
     async def switch_agent(self, agent_name: str) -> None:
         """Switch to a different agent.

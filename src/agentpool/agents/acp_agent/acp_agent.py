@@ -557,7 +557,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 from agentpool.utils.identifiers import generate_session_id
 
                 self.conversation_id = generate_session_id()
-            await self.log_conversation()
+            # Extract text from prompts for title generation
+            initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
+            await self.log_conversation(initial_prompt or None)
 
         # Prepare user message for history and convert to ACP content blocks
         # Get parent_id from last message in history for tree structure
