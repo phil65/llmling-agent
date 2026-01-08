@@ -428,14 +428,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._mcp_servers.update(mcp_config)
         self.log.info("Added external tool bridge", server_name=bridge.config.server_name)
 
-    async def _cleanup_bridge(self) -> None:
-        """Clean up tool bridge resources."""
-        if self._tool_bridge and self._owns_bridge:
-            await self._tool_bridge.stop()
-        self._tool_bridge = None
-        self._owns_bridge = False
-        self._mcp_servers.clear()
-
     @property
     def model_name(self) -> str | None:
         """Get the model name."""
@@ -681,7 +673,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     ) -> None:
         """Disconnect from Claude Code."""
         # Clean up tool bridge first
-        await self._cleanup_bridge()
+        if self._tool_bridge and self._owns_bridge:
+            await self._tool_bridge.stop()
+        self._tool_bridge = None
+        self._owns_bridge = False
+        self._mcp_servers.clear()
         if self._client:
             try:
                 await self._client.disconnect()
