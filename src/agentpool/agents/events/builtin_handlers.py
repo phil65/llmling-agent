@@ -120,6 +120,71 @@ async def detailed_print_handler(ctx: RunContext, event: RichAgentStreamEvent[An
             print(file=sys.stderr)  # Final newline
 
 
+def create_file_stream_handler(
+    path: str,
+    mode: str = "a",
+    include_tools: bool = False,
+    include_thinking: bool = False,
+) -> IndividualEventHandler:
+    """Create an event handler that streams text output to a file.
+
+    Args:
+        path: Path to the output file
+        mode: File open mode ('w' for overwrite, 'a' for append)
+        include_tools: Whether to include tool call/result information
+        include_thinking: Whether to include thinking content
+
+    Returns:
+        Event handler function that writes to the specified file
+    """
+    from pathlib import Path
+
+    file_path = Path(path).expanduser()
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Open file handle that persists across calls
+    file_handle = file_path.open(mode, encoding="utf-8")
+
+    async def file_stream_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
+        """Stream agent output to file."""
+        match event:
+            case (
+                PartStartEvent(part=TextPart(content=delta))
+                | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
+            ):
+                file_handle.write(delta)
+                file_handle.flush()
+
+            case (
+                PartStartEvent(part=ThinkingPart(content=delta))
+                | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
+            ):
+                if include_thinking and delta:
+                    file_handle.write(f"\n[thinking] {delta}")
+                    file_handle.flush()
+
+            case FunctionToolCallEvent(part=ToolCallPart() as part):
+                if include_tools:
+                    kwargs_str = ", ".join(f"{k}={v!r}" for k, v in safe_args_as_dict(part).items())
+                    file_handle.write(f"\n[tool] {part.tool_name}({kwargs_str})\n")
+                    file_handle.flush()
+
+            case FunctionToolResultEvent(result=ToolReturnPart() as return_part):
+                if include_tools:
+                    file_handle.write(f"[result] {return_part.content}\n")
+                    file_handle.flush()
+
+            case RunErrorEvent(message=message):
+                file_handle.write(f"\n[error] {message}\n")
+                file_handle.flush()
+
+            case StreamCompleteEvent():
+                file_handle.write("\n")
+                file_handle.flush()
+
+    return file_stream_handler
+
+
 def resolve_event_handlers(
     event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None,
 ) -> list[IndividualEventHandler]:

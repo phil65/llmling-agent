@@ -392,6 +392,47 @@ class CallbackEventHandlerConfig(BaseEventHandlerConfig):
         return import_callable(self.import_path)
 
 
+class FileStreamEventHandlerConfig(BaseEventHandlerConfig):
+    """Configuration for streaming agent output to a file."""
+
+    model_config = ConfigDict(title="File Stream Event Handler")
+
+    type: Literal["file"] = Field("file", init=False)
+    """File stream event handler."""
+
+    path: str = Field(
+        examples=["~/agent_output.txt", "/tmp/agent.log", "./output.md"],
+    )
+    """Path to the output file. Supports ~ expansion."""
+
+    mode: Literal["w", "a"] = Field(
+        default="a",
+        examples=["w", "a"],
+    )
+    """File open mode.
+
+    - w: Overwrite file on each run
+    - a: Append to existing file
+    """
+
+    include_tools: bool = Field(default=False)
+    """Whether to include tool call and result information."""
+
+    include_thinking: bool = Field(default=False)
+    """Whether to include thinking/reasoning content."""
+
+    def get_handler(self) -> IndividualEventHandler:
+        """Create and return the file stream handler."""
+        from agentpool.agents.events.builtin_handlers import create_file_stream_handler
+
+        return create_file_stream_handler(
+            path=self.path,
+            mode=self.mode,
+            include_tools=self.include_tools,
+            include_thinking=self.include_thinking,
+        )
+
+
 class TTSEventHandlerConfig(BaseEventHandlerConfig):
     """Configuration for Text-to-Speech event handler with OpenAI streaming."""
 
@@ -578,6 +619,7 @@ class EdgeTTSEventHandlerConfig(BaseEventHandlerConfig):
 EventHandlerConfig = Annotated[
     StdoutEventHandlerConfig
     | CallbackEventHandlerConfig
+    | FileStreamEventHandlerConfig
     | TTSEventHandlerConfig
     | EdgeTTSEventHandlerConfig,
     Field(discriminator="type"),
