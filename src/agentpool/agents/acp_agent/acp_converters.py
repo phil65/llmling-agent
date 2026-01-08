@@ -68,13 +68,13 @@ if TYPE_CHECKING:
 
 
 def convert_acp_locations(
-    locations: list[ToolCallLocation] | None,
+    locations: Sequence[ToolCallLocation] | None,
 ) -> list[LocationContentItem]:
     """Convert ACP ToolCallLocation list to native LocationContentItem list."""
     return [LocationContentItem(path=loc.path, line=loc.line) for loc in locations or []]
 
 
-def convert_acp_content(content: list[ToolCallContent] | None) -> list[ToolCallContentItem]:
+def convert_acp_content(content: Sequence[ToolCallContent] | None) -> list[ToolCallContentItem]:
     """Convert ACP ToolCallContent list to native ToolCallContentItem list."""
     if not content:
         return []
