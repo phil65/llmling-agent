@@ -731,6 +731,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         await handler(None, complete_event)
         yield complete_event  # Emit final StreamCompleteEvent with aggregated message
         self.message_sent.emit(message)
+        await self.log_message(user_msg)
+        await self.log_message(message)
         conversation.add_chat_messages([user_msg, message])  # Record to conversation history
 
     async def run_iter(

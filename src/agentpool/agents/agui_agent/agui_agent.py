@@ -726,7 +726,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         complete_event = StreamCompleteEvent(message=final_message)
         await self.event_handler(None, complete_event)
         yield complete_event
-        # Record to conversation history
+        # Log and record to conversation history
+        await self.log_message(user_msg)
+        await self.log_message(final_message)
         conversation.add_chat_messages([user_msg, final_message])
 
     async def run_iter(

@@ -1289,6 +1289,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             yield complete_event
             # Record to history even on cancellation so context is preserved
             self.message_sent.emit(response_msg)
+            await self.log_message(user_msg)
+            await self.log_message(response_msg)
             conversation.add_chat_messages([user_msg, response_msg])
             return
 
@@ -1358,6 +1360,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         yield complete_event
         # Record to history
         self.message_sent.emit(chat_message)
+        await self.log_message(user_msg)
+        await self.log_message(chat_message)
         conversation.add_chat_messages([user_msg, chat_message])
 
     async def run_iter(

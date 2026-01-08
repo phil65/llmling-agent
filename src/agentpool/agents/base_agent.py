@@ -113,7 +113,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         # Shared infrastructure - previously duplicated in all 4 agents
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
-        self.conversation = MessageHistory()
+        # Use storage from agent_pool if available, otherwise memory-only
+        storage = agent_pool.storage if agent_pool else None
+        self.conversation = MessageHistory(storage=storage)
         self.env = env or LocalExecutionEnvironment()
         self._input_provider = input_provider
         self._output_type: type[TResult] = output_type
