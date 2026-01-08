@@ -70,25 +70,6 @@ Features:
 - Flexible file organization
 - Support for multiple file formats
 
-### Text Log Provider
-
-Simple text-based logging with customizable formats:
-
-```yaml
-storage:
-  providers:
-    - type: text_file
-      path: agent_logs.txt
-      format: chronological     # Or conversations
-      template: custom_template.txt  # Optional
-```
-
-Features:
-
-- Simple text file output
-- Customizable log formats using jinja2-templating
-- Streaming-friendly
-- Output-only (no history queries)
 
 ### Memory Storage
 
@@ -111,20 +92,6 @@ History Providers (SQL, File):
 - Session recovery
 - Statistics and analytics
 
-Output Providers (Text Log):
-
-- Message logging
-- Format customization
-- Real-time monitoring
-- No query capabilities
-
-Storable Content:
-
-- Messages (user/assistant/system)
-- Conversation metadata
-- Tool call details
-- Command execution logs
-- Context additions
 
 ## Configuration
 
@@ -163,7 +130,6 @@ storage:
 
     - type: text_file         # Additional logging
       path: logs/output.txt
-      agents: [assistant]     # Only log specific agent
 ```
 
 ## Usage Examples
@@ -183,10 +149,6 @@ storage:
   providers:
     - type: sql             # Main storage
       url: postgresql://...
-
-    - type: text_file      # Debug logging
-      path: debug.log
-
     - type: file           # Backup
       path: backup.yml
 ```
@@ -221,8 +183,4 @@ storage:
 
   providers:
     - type: sql
-      agents: [assistant]     # Only assistant
-
-    - type: text_file
-      agents: [researcher]    # Only researcher
-```
+    - type: opencode

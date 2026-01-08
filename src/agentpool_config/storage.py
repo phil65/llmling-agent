@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from agentpool.sessions.store import SessionStore
 
 
-LogFormat = Literal["chronological", "conversations"]
 FilterMode = Literal["and", "override"]
 
 APP_NAME: Final = "agentpool"
@@ -104,38 +103,6 @@ class SQLStorageConfig(BaseStorageProviderConfig):
         if url_str.startswith("sqlite+aiosqlite://"):
             return create_async_engine(url_str)
         return create_async_engine(url_str, pool_size=self.pool_size)
-
-
-class TextLogConfig(BaseStorageProviderConfig):
-    """Text log configuration."""
-
-    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Text Log"})
-
-    type: Literal["text_file"] = Field("text_file", init=False)
-    """Text log storage configuration."""
-
-    path: str = Field(
-        examples=["/var/log/agent.log", "~/logs/conversations.txt"],
-        title="Log file path",
-    )
-    """Path to log file"""
-
-    format: LogFormat = Field(
-        default="chronological",
-        examples=["chronological", "conversations"],
-        title="Log format",
-    )
-    """Log format template to use"""
-
-    template: Literal["chronological", "conversations"] | str | None = Field(  # noqa: PYI051
-        default="chronological",
-        examples=["chronological", "conversations", "/path/to/template.j2"],
-        title="Template",
-    )
-    """Template to use: either predefined name or path to custom template"""
-
-    encoding: str = Field(default="utf-8", examples=["utf-8", "ascii"], title="File encoding")
-    """File encoding"""
 
 
 class FileStorageConfig(BaseStorageProviderConfig):
@@ -237,7 +204,6 @@ class ZedStorageConfig(BaseStorageProviderConfig):
 StorageProviderConfig = Annotated[
     SQLStorageConfig
     | FileStorageConfig
-    | TextLogConfig
     | MemoryStorageConfig
     | ClaudeStorageConfig
     | OpenCodeStorageConfig
