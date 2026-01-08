@@ -146,6 +146,7 @@ class StreamEventEmitter:
         path: str,
         success: bool,
         error: str | None = None,
+        line: int = 0,
     ) -> None:
         """Emit file operation event.
 
@@ -154,6 +155,7 @@ class StreamEventEmitter:
             path: The file/directory path that was operated on
             success: Whether the operation completed successfully
             error: Error message if operation failed
+            line: Line number for navigation (0 = beginning)
         """
         event = ToolCallProgressEvent.file_operation(
             tool_call_id=self._context.tool_call_id or "",
@@ -162,6 +164,7 @@ class StreamEventEmitter:
             path=path,
             success=success,
             error=error,
+            line=line,
         )
         await self._emit(event)
 

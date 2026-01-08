@@ -409,6 +409,7 @@ class ToolCallProgressEvent:
         success: bool,
         error: str | None = None,
         tool_name: str | None = None,
+        line: int = 0,
     ) -> ToolCallProgressEvent:
         """Create event for file operation.
 
@@ -419,13 +420,14 @@ class ToolCallProgressEvent:
             success: Whether operation succeeded
             error: Error message if failed
             tool_name: Optional tool name
+            line: Line number for navigation (0 = beginning)
         """
         status: Literal["completed", "failed"] = "completed" if success else "failed"
         title = f"{operation.capitalize()}: {path}"
         if error:
             title = f"{title} - {error}"
 
-        items: list[ToolCallContentItem] = [LocationContentItem(path=path)]
+        items: list[ToolCallContentItem] = [LocationContentItem(path=path, line=line)]
         if error:
             items.append(TextContentItem(text=f"Error: {error}"))
 

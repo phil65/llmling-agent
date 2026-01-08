@@ -449,7 +449,9 @@ class FSSpecTools(ResourceProvider):
                     lines, offset, limit, self.max_file_size
                 )
                 content = "\n".join(result_lines)
-                await agent_ctx.events.file_operation("read", path=path, success=True)
+                await agent_ctx.events.file_operation(
+                    "read", path=path, success=True, line=line or 0
+                )
                 if was_truncated:
                     content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
 
@@ -462,7 +464,7 @@ class FSSpecTools(ResourceProvider):
 
             await agent_ctx.events.tool_call_progress(
                 title=f"Read: {path}",
-                items=[FileContentItem(content=content, path=path)],
+                items=[FileContentItem(content=content, path=path, start_line=line)],
                 replace_content=True,
             )
             # Return raw content for agent

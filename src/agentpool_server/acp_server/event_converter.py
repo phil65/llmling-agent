@@ -395,7 +395,7 @@ class ACPEventConverter:
                             )
                             acp_content.append(ContentToolCallContent.text(text=formatted))
                             progress_locations.append(
-                                ToolCallLocation(path=file_path, line=start_line)
+                                ToolCallLocation(path=file_path, line=start_line or 0)
                             )
                         case DiffContentItem(path=diff_path, old_text=old, new_text=new):
                             from acp.schema import FileEditToolCallContent
