@@ -661,6 +661,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Actually connect the client. Must be called from the task that will use it."""
         if not self._connect_pending:
             return
+        if not self._client:
+            msg = "Client not created - call __aenter__ first"
+            raise RuntimeError(msg)
         await self._client.connect()
         self._connect_pending = False
         self.log.info("Claude Code client connected")
