@@ -12,6 +12,7 @@ agents:
     tools:
       - type: code
       - type: subagent
+      - type: plan
   codex:
     type: acp
     provider: codex
