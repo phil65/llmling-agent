@@ -27,8 +27,10 @@ APP_AUTHOR: Final = "agentpool"
 DATA_DIR: Final = Path(user_data_dir(APP_NAME, APP_AUTHOR))
 DEFAULT_DB_NAME: Final = "history.db"
 DEFAULT_TITLE_PROMPT: Final = """\
-Generate a short, descriptive title (3-7 words) for this request. \
-Only respond with the title, nothing else."""
+Generate metadata for this conversation request. Provide:
+- A short, descriptive title (3-7 words)
+- A single emoji that represents the topic
+- An iconify icon name (e.g., 'mdi:code-braces', 'mdi:database', 'mdi:bug')"""
 
 
 def get_database_path() -> str:

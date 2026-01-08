@@ -7,6 +7,7 @@ import os
 from typing import TYPE_CHECKING, Any, Self
 
 from anyenv import method_spawner
+from pydantic import BaseModel
 from pydantic_ai import Agent
 
 from agentpool.log import get_logger
@@ -36,6 +37,19 @@ if TYPE_CHECKING:
     from agentpool_storage.base import StorageProvider
 
 logger = get_logger(__name__)
+
+
+class ConversationMetadata(BaseModel):
+    """Generated metadata for a conversation."""
+
+    title: str
+    """Short descriptive title (3-7 words)."""
+
+    emoji: str
+    """Single emoji representing the topic."""
+
+    icon: str
+    """Iconify icon name (e.g., 'mdi:code-braces')."""
 
 
 class StorageManager:
@@ -561,22 +575,29 @@ class StorageManager:
             from llmling_models.models.helpers import infer_model
 
             model = infer_model(self.config.title_generation_model)
-            agent: Agent[None, str] = Agent(
+            agent: Agent[None, ConversationMetadata] = Agent(
                 model=model,
                 instructions=self.config.title_generation_prompt,
+                output_type=ConversationMetadata,
             )
-            # Just use the prompt directly - simpler than formatting messages
             result = await agent.run(f"user: {prompt[:500]}")
-            title = result.output.strip().strip("\"'")  # Remove quotes if present
-            await self.update_conversation_title(conversation_id, title)
-            logger.debug("Generated session title", conversation_id=conversation_id, title=title)
+            metadata = result.output
+            # For now, only store title - emoji/icon can be added later
+            await self.update_conversation_title(conversation_id, metadata.title)
+            logger.debug(
+                "Generated conversation metadata",
+                conversation_id=conversation_id,
+                title=metadata.title,
+                emoji=metadata.emoji,
+                icon=metadata.icon,
+            )
         except Exception:
             logger.exception("Failed to generate session title", conversation_id=conversation_id)
             return None
         else:
             if on_title_generated:
-                on_title_generated(title)
-            return title
+                on_title_generated(metadata.title)
+            return metadata.title
 
     async def generate_conversation_title(
         self,
