@@ -1,5 +1,7 @@
 """App, project, and path related models."""
 
+from typing import Any
+
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 
 
@@ -58,3 +60,13 @@ class VcsInfo(OpenCodeBaseModel):
     branch: str | None = None
     dirty: bool = False
     commit: str | None = None
+
+
+class ProjectUpdateRequest(OpenCodeBaseModel):
+    """Request to update project metadata."""
+
+    name: str | None = None
+    """Optional friendly name for the project."""
+
+    settings: dict[str, Any] | None = None
+    """Optional project-specific settings to update."""

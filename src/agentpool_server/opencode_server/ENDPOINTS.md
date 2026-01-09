@@ -172,12 +172,12 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 
 | Status | Method | Path | Description |
 |--------|--------|------|-------------|
-| [ ] | GET | `/pty` | List all PTY sessions |
-| [ ] | POST | `/pty` | Create a new PTY session |
-| [ ] | GET | `/pty/{ptyID}` | Get PTY session details |
-| [ ] | PATCH | `/pty/{ptyID}` | Update PTY session (resize, etc.) |
-| [ ] | DELETE | `/pty/{ptyID}` | Remove/kill PTY session |
-| [ ] | GET | `/pty/{ptyID}/connect` | Connect to PTY (WebSocket) |
+| [x] | GET | `/pty` | List all PTY sessions |
+| [x] | POST | `/pty` | Create a new PTY session |
+| [x] | GET | `/pty/{ptyID}` | Get PTY session details |
+| [x] | PATCH | `/pty/{ptyID}` | Update PTY session (resize, etc.) |
+| [x] | DELETE | `/pty/{ptyID}` | Remove/kill PTY session |
+| [x] | WS | `/pty/{ptyID}/connect` | Connect to PTY (WebSocket) |
 
 ### PTY SSE Event Types
 
@@ -235,7 +235,7 @@ All event types supported by the OpenCode protocol:
 | [-] | `global.disposed` | Global instance disposed (multi-project, not needed) |
 | [-] | `installation.updated` | Installation updated (auto-upgrade complete, not needed) |
 | [x] | `installation.update-available` | Update available (via `tui.toast.show` workaround) |
-| [ ] | `project.updated` | Project configuration updated |
+| [x] | `project.updated` | Project metadata updated |
 | [-] | `server.instance.disposed` | Server instance disposed (multi-project, not needed) |
 | [x] | `lsp.updated` | LSP server status updated |
 | [~] | `lsp.client.diagnostics` | LSP client diagnostics received |

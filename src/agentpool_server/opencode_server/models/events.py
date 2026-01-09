@@ -7,6 +7,7 @@ from typing import Any, Literal, Self
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
+from agentpool_server.opencode_server.models.app import Project  # noqa: TC001
 from agentpool_server.opencode_server.models.message import (  # noqa: TC001
     AssistantMessage,
     UserMessage,
@@ -599,6 +600,25 @@ class LspClientDiagnosticsEvent(OpenCodeBaseModel):
 # =============================================================================
 
 
+class ProjectUpdatedEvent(OpenCodeBaseModel):
+    """Project metadata updated event."""
+
+    type: Literal["project.updated"] = "project.updated"
+    properties: Project
+
+    @classmethod
+    def create(cls, project: Project) -> Self:
+        """Create project updated event.
+
+        Args:
+            project: The updated project data
+
+        Returns:
+            ProjectUpdatedEvent instance
+        """
+        return cls(properties=project)
+
+
 class VcsBranchUpdatedProperties(OpenCodeBaseModel):
     """Properties for VCS branch updated event."""
 
@@ -638,6 +658,7 @@ Event = (
     | PtyDeletedEvent
     | LspUpdatedEvent
     | LspClientDiagnosticsEvent
+    | ProjectUpdatedEvent
     | VcsBranchUpdatedEvent
     | TuiPromptAppendEvent
     | TuiCommandExecuteEvent

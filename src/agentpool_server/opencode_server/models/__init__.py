@@ -17,6 +17,7 @@ from agentpool_server.opencode_server.models.app import (
     PathInfo,
     Project,
     ProjectTime,
+    ProjectUpdateRequest,
     VcsInfo,
 )
 from agentpool_server.opencode_server.models.provider import (
@@ -107,6 +108,7 @@ from agentpool_server.opencode_server.models.events import (
     MessageUpdatedEventProperties,
     PartUpdatedEvent,
     PartUpdatedEventProperties,
+    ProjectUpdatedEvent,
     ServerConnectedEvent,
     SessionCompactedEvent,
     SessionCompactedProperties,
