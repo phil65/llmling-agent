@@ -51,6 +51,9 @@ class RegistryTransport(Schema):
     url: str | None = None
     """URL for HTTP transports."""
 
+    headers: list[dict[str, Any]] = Field(default_factory=list)
+    """Request headers."""
+
 
 class RegistryPackage(Schema):
     """Package information for installing an MCP server."""
@@ -75,6 +78,9 @@ class RegistryPackage(Schema):
     package_arguments: list[dict[str, Any]] = Field(default_factory=list, alias="packageArguments")
     """Package arguments."""
 
+    runtime_arguments: list[dict[str, Any]] = Field(default_factory=list, alias="runtimeArguments")
+    """Runtime arguments."""
+
     runtime_hint: str | None = Field(None, alias="runtimeHint")
     """Runtime hint."""
 
@@ -96,6 +102,9 @@ class RegistryRemote(Schema):
 
     headers: list[dict[str, Any]] = Field(default_factory=list)
     """Request headers."""
+
+    variables: dict[str, Any] = Field(default_factory=dict)
+    """URL template variables."""
 
 
 class RegistryIcon(Schema):
@@ -123,7 +132,7 @@ class RegistryServer(Schema):
     version: str
     """Server version."""
 
-    repository: RegistryRepository
+    repository: RegistryRepository | None = None
     """Repository information."""
 
     packages: list[RegistryPackage] = Field(default_factory=list)
