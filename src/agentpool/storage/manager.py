@@ -622,6 +622,49 @@ class StorageManager:
 
         return deleted, added
 
+    async def _generate_title_core(
+        self,
+        conversation_id: str,
+        prompt_text: str,
+    ) -> ConversationMetadata | None:
+        """Core title generation logic using LLM with structured output.
+
+        Args:
+            conversation_id: ID of the conversation to title
+            prompt_text: Formatted prompt text to send to the LLM
+
+        Returns:
+            ConversationMetadata with title, emoji, and icon, or None if generation fails.
+        """
+        if not self.config.title_generation_model:
+            return None
+
+        try:
+            from llmling_models.models.helpers import infer_model
+
+            model = infer_model(self.config.title_generation_model)
+            agent: Agent[None, ConversationMetadata] = Agent(
+                model=model,
+                instructions=self.config.title_generation_prompt,
+                output_type=ConversationMetadata,
+            )
+            result = await agent.run(prompt_text)
+            metadata = result.output
+
+            # Store the title
+            await self.update_conversation_title(conversation_id, metadata.title)
+            logger.debug(
+                "Generated conversation metadata",
+                conversation_id=conversation_id,
+                title=metadata.title,
+                emoji=metadata.emoji,
+                icon=metadata.icon,
+            )
+            return metadata
+        except Exception:
+            logger.exception("Failed to generate session title", conversation_id=conversation_id)
+            return None
+
     async def _generate_title_from_prompt(
         self,
         conversation_id: str,
@@ -640,9 +683,6 @@ class StorageManager:
         Returns:
             The generated title, or None if generation fails/disabled.
         """
-        if not self.config.title_generation_model:
-            return None
-
         # Check if title already exists
         existing = await self.get_conversation_title(conversation_id)
         if existing:
@@ -650,33 +690,18 @@ class StorageManager:
                 on_title_generated(existing)
             return existing
 
-        try:
-            from llmling_models.models.helpers import infer_model
+        # Generate using core logic
+        metadata = await self._generate_title_core(
+            conversation_id,
+            f"user: {prompt[:500]}",
+        )
 
-            model = infer_model(self.config.title_generation_model)
-            agent: Agent[None, ConversationMetadata] = Agent(
-                model=model,
-                instructions=self.config.title_generation_prompt,
-                output_type=ConversationMetadata,
-            )
-            result = await agent.run(f"user: {prompt[:500]}")
-            metadata = result.output
-            # For now, only store title - emoji/icon can be added later
-            await self.update_conversation_title(conversation_id, metadata.title)
-            logger.debug(
-                "Generated conversation metadata",
-                conversation_id=conversation_id,
-                title=metadata.title,
-                emoji=metadata.emoji,
-                icon=metadata.icon,
-            )
-        except Exception:
-            logger.exception("Failed to generate session title", conversation_id=conversation_id)
-            return None
-        else:
+        if metadata:
+            title = metadata.title
             if on_title_generated:
-                on_title_generated(metadata.title)
-            return metadata.title
+                on_title_generated(title)
+            return title
+        return None
 
     async def generate_conversation_title(
         self,
@@ -695,43 +720,18 @@ class StorageManager:
         Returns:
             The generated title, or None if title generation is disabled.
         """
-        if not self.config.title_generation_model:
-            return None
-
         # Check if title already exists
         existing = await self.get_conversation_title(conversation_id)
         if existing:
             return existing
 
         # Format messages for the prompt
-        formatted = "\n".join(f"{i.role}: {i.content[:500]}" for i in messages[:4])  # Limit context
-        try:
-            from llmling_models.models.helpers import infer_model
+        formatted = "\n".join(f"{i.role}: {i.content[:500]}" for i in messages[:4])
 
-            model = infer_model(self.config.title_generation_model)
-            agent: Agent[None, ConversationMetadata] = Agent(
-                model=model,
-                instructions=self.config.title_generation_prompt,
-                output_type=ConversationMetadata,
-            )
-            result = await agent.run(formatted)
-            metadata = result.output
-            # Extract title as string from metadata
-            title = metadata.title
-            # Store the title
-            await self.update_conversation_title(conversation_id, title)
-            logger.debug(
-                "Generated conversation metadata",
-                conversation_id=conversation_id,
-                title=title,
-                emoji=metadata.emoji,
-                icon=metadata.icon,
-            )
-        except Exception:
-            logger.exception("Failed to generate session title", conversation_id=conversation_id)
-            return None
-        else:
-            return title
+        # Generate using core logic
+        metadata = await self._generate_title_core(conversation_id, formatted)
+
+        return metadata.title if metadata else None
 
     # Project methods
 
