@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from importlib import metadata
+
 import typer as t
 
 from agentpool_cli import log
@@ -32,8 +34,24 @@ def get_command_help(base_help: str) -> str:
     return f"{base_help}\n\n(No active config set)"
 
 
+def version_callback(value: bool) -> None:
+    """Print version and exit."""
+    if value:
+        version = metadata.version("agentpool")
+        t.echo(f"agentpool version {version}")
+        raise t.Exit
+
+
 def main(
     ctx: t.Context,
+    version: bool = t.Option(
+        False,
+        "--version",
+        "-v",
+        help="Show version and exit",
+        callback=version_callback,
+        is_eager=True,
+    ),
     log_level: LogLevel = t.Option("info", "--log-level", "-l", help="Log level"),  # noqa: B008
 ) -> None:
     """🤖 AgentPool CLI - Run and manage LLM agents."""
