@@ -709,15 +709,24 @@ class StorageManager:
             from llmling_models.models.helpers import infer_model
 
             model = infer_model(self.config.title_generation_model)
-            agent: Agent[None, str] = Agent(
+            agent: Agent[None, ConversationMetadata] = Agent(
                 model=model,
                 instructions=self.config.title_generation_prompt,
+                output_type=ConversationMetadata,
             )
             result = await agent.run(formatted)
-            title = result.output.strip().strip("\"'")  # Remove quotes if present
+            metadata = result.output
+            # Extract title as string from metadata
+            title = metadata.title
             # Store the title
             await self.update_conversation_title(conversation_id, title)
-            logger.debug("Generated session title", conversation_id=conversation_id, title=title)
+            logger.debug(
+                "Generated conversation metadata",
+                conversation_id=conversation_id,
+                title=title,
+                emoji=metadata.emoji,
+                icon=metadata.icon,
+            )
         except Exception:
             logger.exception("Failed to generate session title", conversation_id=conversation_id)
             return None
