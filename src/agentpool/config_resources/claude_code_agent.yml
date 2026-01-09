@@ -1,21 +1,19 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/schema/config-schema.json
-# Default ACP assistant configuration
-# Used when starting ACP server without explicit config file
 
 agents:
   claude:
     type: claude_code
     display_name: "AI Assistant"
-    builtin_tools: []
+    builtin_tools: [] # we use our own tools.
     env:
-      ANTHROPIC_API_KEY: ""
+      ANTHROPIC_API_KEY: "" # override to make sure subscription is used.
     description: "Claude code agent with enhanced tools"
     tools:
       - type: bash
       - type: agent_cli
       - type: file_access
         edit_tool: batch
-      - type: code
+      # - type: code
       - type: search
       - type: plan
-      - type: debug
+      # - type: debug
