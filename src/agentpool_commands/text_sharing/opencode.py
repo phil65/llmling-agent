@@ -34,9 +34,10 @@ from agentpool_commands.text_sharing.base import ShareResult, TextSharer
 
 
 if TYPE_CHECKING:
+    from anyenv.text_sharing.base import Visibility
+
     from agentpool.messaging.message_history import MessageHistory
     from agentpool.messaging.messages import ChatMessage
-    from anyenv.text_sharing.base import Visibility
 
 
 class OpenCodeSharer(TextSharer):
@@ -377,7 +378,8 @@ class OpenCodeSharer(TextSharer):
         """
         # Get messages to share
         messages_to_share = (
-            conversation.chat_messages[-num_messages:] if num_messages
+            conversation.chat_messages[-num_messages:]
+            if num_messages
             else conversation.chat_messages
         )
 

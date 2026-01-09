@@ -26,15 +26,23 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.utils.now import get_now
 from agentpool_server.opencode_server.models import (
+    AssistantMessage,
     MessageInfo as OpenCodeMessage,
+    MessagePath,
+    MessageTime,
     Part as OpenCodePart,
     ReasoningPart as OpenCodeReasoningPart,
     Session,
     SessionSummary,
     TextPart as OpenCodeTextPart,
+    TimeCreated,
     TimeCreatedUpdated,
+    Tokens,
+    TokensCache,
     ToolPart as OpenCodeToolPart,
     ToolStatePending,
+    UserMessage,
+    UserMessageModel,
 )
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import TokenUsage
@@ -179,22 +187,36 @@ class OpenCodeStorageProvider(StorageProvider):
         msg_dir = self.messages_path / conversation_id
         msg_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create OpenCode message
-        oc_message = Message(
-            id=message_id,
-            session_id=conversation_id,
-            parent_id=parent_id,
-            role=role,
-            time={"created": now_ms},
-            model_id=model,
-            tokens={
-                "input": cost_info.token_usage.request_tokens if cost_info else 0,
-                "output": cost_info.token_usage.response_tokens if cost_info else 0,
-            }
-            if cost_info
-            else None,
-            cost=float(cost_info.total_cost) if cost_info else None,
-        )
+        # Create OpenCode message based on role
+        if role == "assistant":
+            oc_message = AssistantMessage(
+                id=message_id,
+                session_id=conversation_id,
+                parent_id=parent_id or "",
+                model_id=model or "",
+                provider_id="",  # TODO: get from somewhere
+                path=MessagePath(cwd="", root=""),  # TODO: get real paths
+                time=MessageTime(created=now_ms),
+                tokens=Tokens(
+                    input=cost_info.token_usage.input_tokens if cost_info else 0,
+                    output=cost_info.token_usage.output_tokens if cost_info else 0,
+                    cache=TokensCache(
+                        read=cost_info.token_usage.cache_read_tokens if cost_info else 0,
+                        write=cost_info.token_usage.cache_write_tokens if cost_info else 0,
+                    ),
+                )
+                if cost_info
+                else Tokens(),
+                cost=float(cost_info.total_cost) if cost_info else 0.0,
+                finish=finish_reason,
+            )
+        else:  # user message
+            oc_message = UserMessage(
+                id=message_id,
+                session_id=conversation_id,
+                time=TimeCreated(created=now_ms),
+                model=UserMessageModel(provider_id="", model_id=model or "") if model else None,
+            )
 
         # Write message file
         msg_file = msg_dir / f"{message_id}.json"
@@ -365,9 +387,8 @@ class OpenCodeStorageProvider(StorageProvider):
             parent_id = msg.parent_id
             if msg.finish:
                 provider_details["finish_reason"] = msg.finish
-        else:  # user message
-            if msg.model:
-                model_name = msg.model.model_id
+        elif msg.model:
+            model_name = msg.model.model_id
 
         return ChatMessage[str](
             content=content,

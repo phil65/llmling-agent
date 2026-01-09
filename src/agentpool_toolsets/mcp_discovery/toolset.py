@@ -429,7 +429,7 @@ class MCPDiscoveryToolset(ResourceProvider):
             client = await self._get_connection(server_name)
 
             # Use MCPClient.call_tool which handles progress, elicitation, and sampling
-            result = await client.call_tool(
+            return await client.call_tool(
                 name=tool_name,
                 run_context=ctx,
                 arguments=arguments or {},
@@ -437,7 +437,6 @@ class MCPDiscoveryToolset(ResourceProvider):
             )
 
             # Result is already processed by MCPClient (ToolReturn, str, or structured data)
-            return result
 
         except MCPRegistryError as e:
             return f"Error: {e}"

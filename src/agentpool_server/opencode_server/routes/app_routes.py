@@ -21,7 +21,6 @@ from agentpool_server.opencode_server.models import (
 
 if TYPE_CHECKING:
     from agentpool.sessions.models import ProjectData
-    from agentpool_storage.project_store import ProjectStore
 
 
 router = APIRouter(tags=["app"])

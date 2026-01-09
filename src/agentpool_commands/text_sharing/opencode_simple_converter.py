@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from typing import TYPE_CHECKING
 import uuid
 
@@ -122,12 +121,15 @@ def chat_message_to_opencode_simple(
             "sessionID": session_id,
             "reason": "stop",
             "cost": message_info.get("cost", 0.0),
-            "tokens": message_info.get("tokens", {
-                "input": 0,
-                "output": 0,
-                "reasoning": 0,
-                "cache": {"read": 0, "write": 0},
-            }),
+            "tokens": message_info.get(
+                "tokens",
+                {
+                    "input": 0,
+                    "output": 0,
+                    "reasoning": 0,
+                    "cache": {"read": 0, "write": 0},
+                },
+            ),
         })
 
     return message_info, parts

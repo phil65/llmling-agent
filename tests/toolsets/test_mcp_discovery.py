@@ -117,7 +117,7 @@ async def test_mcp_client_call_tool_with_elicitation():
     )
 
     async with client:
-        result = await client.call_tool(
+        await client.call_tool(
             name="test_elicitation",
             run_context=run_ctx,
             arguments={"message": "test elicit"},
