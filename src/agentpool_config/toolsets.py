@@ -784,8 +784,10 @@ class PlanToolsetConfig(BaseToolsetConfig):
         title="Plan tool mode",
     )
     """Tool mode:
-    - 'declarative': Single set_plan tool with full list (default, recommended) - fewer calls, better UX with parallel updates
-    - 'granular': Separate tools (get/add/update/remove) - for simpler models or fine-grained control
+    - 'declarative': Single set_plan tool with full list (default, recommended)
+      - Fewer calls, better UX with parallel updates
+    - 'granular': Separate tools (get/add/update/remove)
+      - For simpler models or fine-grained control
     """
 
     tools: dict[PlanToolName, bool] | None = Field(

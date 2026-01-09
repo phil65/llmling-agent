@@ -129,18 +129,12 @@ class PlanProvider(ResourceProvider):
             priority = priority_labels.get(entry.priority, "")
             lines.append(f"{i}. {icon} {priority} {entry.content} *({entry.status})*")
 
-        # Count entries by status
-        pending = sum(1 for e in tracker.entries if e.status == "pending")
-        in_progress = sum(1 for e in tracker.entries if e.status == "in_progress")
+        # Count completed entries for summary
         completed = sum(1 for e in tracker.entries if e.status == "completed")
         total = len(tracker.entries)
 
         # Build title with summary
-        if total == 1:
-            title = "Fetched plan with 1 task"
-        else:
-            title = f"Fetched plan with {total} tasks"
-
+        title = "Fetched plan with 1 task" if total == 1 else f"Fetched plan with {total} tasks"
         if completed > 0:
             title += f" ({completed} completed)"
 
