@@ -133,7 +133,7 @@ class ShareHistoryCommand(NodeCommand):
         ctx: CommandContext[NodeContext],
         *,
         provider: TextSharerStr = "paste_rs",
-        num_messages: int = 1,
+        num_messages: int | None = None,
         include_system: bool = False,
         max_tokens: int | None = None,
         format_template: str | None = None,
@@ -146,7 +146,7 @@ class ShareHistoryCommand(NodeCommand):
         Args:
             ctx: Command context
             provider: Text sharing provider to use
-            num_messages: Number of messages from history to share (ignored if custom_content)
+            num_messages: Number of messages from history to share (None = all messages)
             include_system: Include system messages in history
             max_tokens: Token limit for conversation history
             format_template: Custom format template for history
