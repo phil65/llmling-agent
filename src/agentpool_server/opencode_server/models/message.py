@@ -64,7 +64,7 @@ class UserMessage(OpenCodeBaseModel):
     session_id: str
     time: TimeCreated
     agent: str = "default"
-    model: UserMessageModel
+    model: UserMessageModel | None = None
     summary: MessageSummary | None = None
     system: str | None = None
     tools: dict[str, bool] | None = None
@@ -172,3 +172,8 @@ class CommandRequest(OpenCodeBaseModel):
     agent: str | None = None
     model: str | None = None  # Format: "providerID/modelID"
     message_id: str | None = None
+
+
+# Type unions
+
+MessageInfo = UserMessage | AssistantMessage

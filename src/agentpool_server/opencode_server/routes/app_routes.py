@@ -17,11 +17,11 @@ from agentpool_server.opencode_server.models import (
     ProjectTime,
     VcsInfo,
 )
-from agentpool_storage.project_store import ProjectStore
 
 
 if TYPE_CHECKING:
     from agentpool.sessions.models import ProjectData
+    from agentpool_storage.project_store import ProjectStore
 
 
 router = APIRouter(tags=["app"])
@@ -65,6 +65,8 @@ def _project_data_to_response(data: ProjectData) -> Project:
 
 async def _get_current_project(state: StateDep) -> ProjectData:
     """Get or create the current project from storage."""
+    from agentpool_storage.project_store import ProjectStore
+
     storage = state.pool.storage
     project_store = ProjectStore(storage)
     return await project_store.get_or_create(state.working_dir)
@@ -73,6 +75,8 @@ async def _get_current_project(state: StateDep) -> ProjectData:
 @router.get("/project")
 async def list_projects(state: StateDep) -> list[Project]:
     """List all projects."""
+    from agentpool_storage.project_store import ProjectStore
+
     storage = state.pool.storage
     project_store = ProjectStore(storage)
     projects = await project_store.list_recent(limit=50)

@@ -13,9 +13,9 @@ from agentpool_server.opencode_server.models.common import TimeCreatedUpdated  #
 class SessionSummary(OpenCodeBaseModel):
     """Summary information for a session."""
 
-    additions: int = 0
-    deletions: int = 0
-    files: int = 0
+    additions: int | None = None
+    deletions: int | None = None
+    files: int | None = None
     diffs: list[Any] = Field(default_factory=list)
 
 

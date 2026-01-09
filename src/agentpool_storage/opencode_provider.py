@@ -6,10 +6,10 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import anyenv
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import TypeAdapter
 from pydantic_ai import RunUsage
 from pydantic_ai.messages import (
     ModelRequest,
@@ -26,32 +26,15 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.utils.now import get_now
 from agentpool_server.opencode_server.models import (
-    AgentPart,
-    AssistantMessage,
-    CompactionPart,
-    MessagePath,
-    MessageSummary,
-    MessageTime,
-    PatchPart,
-    ReasoningPart,
+    MessageInfo as OpenCodeMessage,
+    Part as OpenCodePart,
+    ReasoningPart as OpenCodeReasoningPart,
     Session,
     SessionSummary,
-    SnapshotPart,
-    StepFinishPart,
-    StepStartPart,
-    SubtaskPart,
-    TextPart,
-    TimeCreated,
+    TextPart as OpenCodeTextPart,
     TimeCreatedUpdated,
-    Tokens,
-    TokensCache,
-    ToolPart,
+    ToolPart as OpenCodeToolPart,
     ToolStatePending,
-    ToolStateRunning,
-    ToolStateCompleted,
-    ToolStateError,
-    UserMessage,
-    UserMessageModel,
 )
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import TokenUsage
@@ -75,24 +58,21 @@ logger = get_logger(__name__)
 OPENCODE_VERSION = "1.1.7"
 
 # Type aliases - use server models directly
-PartType = Literal["text", "step-start", "step-finish", "reasoning", "tool", "patch", "compaction", "snapshot", "agent", "subtask", "retry"]
+PartType = Literal[
+    "text",
+    "step-start",
+    "step-finish",
+    "reasoning",
+    "tool",
+    "patch",
+    "compaction",
+    "snapshot",
+    "agent",
+    "subtask",
+    "retry",
+]
 ToolStatus = Literal["pending", "running", "completed", "error"]
 FinishReason = Literal["stop", "tool-calls", "length", "error"]
-
-# Type aliases for server models - no duplication!
-OpenCodeMessage = UserMessage | AssistantMessage
-OpenCodePart = (
-    TextPart
-    | ReasoningPart
-    | ToolPart
-    | StepStartPart
-    | StepFinishPart
-    | PatchPart
-    | CompactionPart
-    | SnapshotPart
-    | AgentPart
-    | SubtaskPart
-)
 
 
 class OpenCodeStorageProvider(StorageProvider):
@@ -200,7 +180,7 @@ class OpenCodeStorageProvider(StorageProvider):
         msg_dir.mkdir(parents=True, exist_ok=True)
 
         # Create OpenCode message
-        oc_message = OpenCodeMessage(
+        oc_message = Message(
             id=message_id,
             session_id=conversation_id,
             parent_id=parent_id,
@@ -235,7 +215,7 @@ class OpenCodeStorageProvider(StorageProvider):
                     if isinstance(part, UserPromptPart):
                         part_id = f"{message_id}-{part_counter}"
                         part_counter += 1
-                        text_part = TextPart(
+                        text_part = OpenCodeTextPart(
                             id=part_id,
                             session_id=conversation_id,
                             message_id=message_id,
@@ -271,7 +251,7 @@ class OpenCodeStorageProvider(StorageProvider):
                             # Update the tool part with output
                             tool_part = anyenv.load_json(
                                 tool_part_file.read_text(encoding="utf-8"),
-                                return_type=ToolPart,
+                                return_type=OpenCodeToolPart,
                             )
                             tool_part.state.output = str(part.content)
                             tool_part.state.status = "completed"
@@ -286,8 +266,8 @@ class OpenCodeStorageProvider(StorageProvider):
                     part_id = f"{message_id}-{part_counter}"
                     part_counter += 1
 
-                    if isinstance(part, TextPart):
-                        text_part = TextPart(
+                    if isinstance(part, OpenCodeTextPart):
+                        text_part = OpenCodeTextPart(
                             id=part_id,
                             session_id=conversation_id,
                             message_id=message_id,
@@ -302,7 +282,7 @@ class OpenCodeStorageProvider(StorageProvider):
                         )
 
                     elif isinstance(part, ThinkingPart):
-                        reasoning_part = ReasoningPart(
+                        reasoning_part = OpenCodeReasoningPart(
                             id=part_id,
                             session_id=conversation_id,
                             message_id=message_id,
@@ -318,7 +298,7 @@ class OpenCodeStorageProvider(StorageProvider):
 
                     elif isinstance(part, ToolCallPart):
                         # Create tool part with pending status
-                        tool_part = ToolPart(
+                        tool_part = OpenCodeToolPart(
                             id=part_id,
                             session_id=conversation_id,
                             message_id=message_id,
@@ -341,7 +321,7 @@ class OpenCodeStorageProvider(StorageProvider):
         """Build mapping from tool callID to tool name."""
         mapping: dict[str, str] = {}
         for part in parts:
-            if isinstance(part, ToolPart):
+            if isinstance(part, OpenCodeToolPart):
                 mapping[part.call_id] = part.tool
         return mapping
 
@@ -363,24 +343,31 @@ class OpenCodeStorageProvider(StorageProvider):
             msg, parts, timestamp, tool_id_mapping or {}
         )
 
-        # Extract cost info
+        # Extract cost info (only for assistant messages)
         cost_info = None
-        if msg.tokens:
-            input_tokens = msg.tokens.input + msg.tokens.cache.get("read", 0)
-            output_tokens = msg.tokens.output
-            if input_tokens or output_tokens:
-                cost_info = TokenCost(
-                    token_usage=RunUsage(
-                        input_tokens=input_tokens,
-                        output_tokens=output_tokens,
-                    ),
-                    total_cost=Decimal(str(msg.cost)) if msg.cost else Decimal(0),
-                )
+        model_name = None
+        parent_id = None
+        provider_details = {}
 
-        # Get model name
-        model_name = msg.model_id
-        if not model_name and msg.model:
-            model_name = msg.model.model_id
+        if msg.role == "assistant":
+            if msg.tokens:
+                input_tokens = msg.tokens.input + msg.tokens.cache.read
+                output_tokens = msg.tokens.output
+                if input_tokens or output_tokens:
+                    cost_info = TokenCost(
+                        token_usage=RunUsage(
+                            input_tokens=input_tokens,
+                            output_tokens=output_tokens,
+                        ),
+                        total_cost=Decimal(str(msg.cost)) if msg.cost else Decimal(0),
+                    )
+            model_name = msg.model_id
+            parent_id = msg.parent_id
+            if msg.finish:
+                provider_details["finish_reason"] = msg.finish
+        else:  # user message
+            if msg.model:
+                model_name = msg.model.model_id
 
         return ChatMessage[str](
             content=content,
@@ -391,18 +378,18 @@ class OpenCodeStorageProvider(StorageProvider):
             model_name=model_name,
             cost_info=cost_info,
             timestamp=timestamp,
-            parent_id=msg.parent_id,
+            parent_id=parent_id,
             messages=pydantic_messages,
-            provider_details={"finish_reason": msg.finish} if msg.finish else {},
+            provider_details=provider_details,
         )
 
     def _extract_text_content(self, parts: list[OpenCodePart]) -> str:
         """Extract text content from parts for display."""
         text_parts: list[str] = []
         for part in parts:
-            if isinstance(part, TextPart) and part.text:
+            if isinstance(part, OpenCodeTextPart) and part.text:
                 text_parts.append(part.text)
-            elif isinstance(part, ReasoningPart) and part.text:
+            elif isinstance(part, OpenCodeReasoningPart) and part.text:
                 text_parts.append(f"<thinking>\n{part.text}\n</thinking>")
         return "\n".join(text_parts)
 
@@ -426,7 +413,7 @@ class OpenCodeStorageProvider(StorageProvider):
             request_parts: list[UserPromptPart | ToolReturnPart] = [
                 UserPromptPart(content=part.text, timestamp=timestamp)
                 for part in parts
-                if isinstance(part, TextPart) and part.text
+                if isinstance(part, OpenCodeTextPart) and part.text
             ]
             if request_parts:
                 result.append(ModelRequest(parts=request_parts, timestamp=timestamp))
@@ -442,14 +429,14 @@ class OpenCodeStorageProvider(StorageProvider):
             usage = RequestUsage(
                 input_tokens=msg.tokens.input,
                 output_tokens=msg.tokens.output,
-                cache_read_tokens=msg.tokens.cache.get("read", 0),
-                cache_write_tokens=msg.tokens.cache.get("write", 0),
+                cache_read_tokens=msg.tokens.cache.read,
+                cache_write_tokens=msg.tokens.cache.write,
             )
 
         for part in parts:
-            if isinstance(part, TextPart) and part.text:
+            if isinstance(part, OpenCodeTextPart) and part.text:
                 response_parts.append(TextPart(content=part.text))
-            elif isinstance(part, ReasoningPart) and part.text:
+            elif isinstance(part, OpenCodeReasoningPart) and part.text:
                 response_parts.append(ThinkingPart(content=part.text))
             elif isinstance(part, OpenCodeToolPart):
                 # Add tool call to response
@@ -622,10 +609,12 @@ class OpenCodeStorageProvider(StorageProvider):
                 chat_msg = self._message_to_chat_message(oc_msg, parts, session_id, tool_mapping)
                 chat_messages.append(chat_msg)
 
-                if oc_msg.tokens:
-                    total_tokens += oc_msg.tokens.input + oc_msg.tokens.output
-                if oc_msg.cost:
-                    total_cost += oc_msg.cost
+                # Only assistant messages have tokens and cost
+                if oc_msg.role == "assistant":
+                    if oc_msg.tokens:
+                        total_tokens += oc_msg.tokens.input + oc_msg.tokens.output
+                    if oc_msg.cost:
+                        total_cost += oc_msg.cost
 
             if not chat_messages:
                 continue
