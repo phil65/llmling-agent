@@ -2,10 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
+
+from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import TimeCreatedUpdated  # noqa: TC001
+
+
+class SessionSummary(OpenCodeBaseModel):
+    """Summary information for a session."""
+
+    additions: int = 0
+    deletions: int = 0
+    files: int = 0
+    diffs: list[Any] = Field(default_factory=list)
 
 
 class SessionRevert(OpenCodeBaseModel):
@@ -33,6 +44,7 @@ class Session(OpenCodeBaseModel):
     version: str = "1"
     time: TimeCreatedUpdated
     parent_id: str | None = None
+    summary: SessionSummary | None = None
     revert: SessionRevert | None = None
     share: SessionShare | None = None
 

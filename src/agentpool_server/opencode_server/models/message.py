@@ -11,6 +11,14 @@ from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: 
 from agentpool_server.opencode_server.models.parts import Part  # noqa: TC001
 
 
+class MessageSummary(OpenCodeBaseModel):
+    """Summary information for a message."""
+
+    title: str | None = None
+    body: str | None = None
+    diffs: list[Any] = Field(default_factory=list)
+
+
 class MessagePath(OpenCodeBaseModel):
     """Path context for a message."""
 
@@ -57,6 +65,10 @@ class UserMessage(OpenCodeBaseModel):
     time: TimeCreated
     agent: str = "default"
     model: UserMessageModel
+    summary: MessageSummary | None = None
+    system: str | None = None
+    tools: dict[str, bool] | None = None
+    variant: str | None = None
 
 
 class AssistantMessage(OpenCodeBaseModel):

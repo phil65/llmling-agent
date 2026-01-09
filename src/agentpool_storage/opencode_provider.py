@@ -25,6 +25,34 @@ from pydantic_ai.usage import RequestUsage
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.utils.now import get_now
+from agentpool_server.opencode_server.models import (
+    AgentPart,
+    AssistantMessage,
+    CompactionPart,
+    MessagePath,
+    MessageSummary,
+    MessageTime,
+    PatchPart,
+    ReasoningPart,
+    Session,
+    SessionSummary,
+    SnapshotPart,
+    StepFinishPart,
+    StepStartPart,
+    SubtaskPart,
+    TextPart,
+    TimeCreated,
+    TimeCreatedUpdated,
+    Tokens,
+    TokensCache,
+    ToolPart,
+    ToolStatePending,
+    ToolStateRunning,
+    ToolStateCompleted,
+    ToolStateError,
+    UserMessage,
+    UserMessageModel,
+)
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import TokenUsage
 
@@ -46,179 +74,25 @@ logger = get_logger(__name__)
 # OpenCode version we're emulating
 OPENCODE_VERSION = "1.1.7"
 
-# OpenCode data models
-
-PartType = Literal["text", "step-start", "step-finish", "reasoning", "tool", "patch", "compaction"]
+# Type aliases - use server models directly
+PartType = Literal["text", "step-start", "step-finish", "reasoning", "tool", "patch", "compaction", "snapshot", "agent", "subtask", "retry"]
 ToolStatus = Literal["pending", "running", "completed", "error"]
 FinishReason = Literal["stop", "tool-calls", "length", "error"]
 
-
-class OpenCodeTime(BaseModel):
-    """Timestamp fields used in OpenCode."""
-
-    created: int  # Unix timestamp in milliseconds
-    updated: int | None = None
-    completed: int | None = None
-
-
-class OpenCodeSummary(BaseModel):
-    """Summary information for sessions/messages."""
-
-    additions: int | None = None
-    deletions: int | None = None
-    files: int = 0
-    title: str | None = None
-    diffs: list[Any] = Field(default_factory=list)
-
-
-class OpenCodeModel(BaseModel):
-    """Model information in messages."""
-
-    provider_id: str = Field(alias="providerID")
-    model_id: str = Field(alias="modelID")
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class OpenCodePath(BaseModel):
-    """Path context in messages."""
-
-    cwd: str
-    root: str
-
-
-class OpenCodeTokens(BaseModel):
-    """Token usage information."""
-
-    input: int = 0
-    output: int = 0
-    reasoning: int = 0
-    cache: dict[str, int] = Field(default_factory=dict)
-
-
-class OpenCodeSession(BaseModel):
-    """OpenCode session metadata."""
-
-    id: str
-    version: str = OPENCODE_VERSION
-    project_id: str = Field(alias="projectID")
-    directory: str
-    title: str
-    time: OpenCodeTime
-    summary: OpenCodeSummary = Field(default_factory=OpenCodeSummary)
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class OpenCodeMessage(BaseModel):
-    """OpenCode message metadata."""
-
-    id: str
-    session_id: str = Field(alias="sessionID")
-    role: Literal["user", "assistant"]
-    time: OpenCodeTime
-    summary: OpenCodeSummary | bool | None = None
-    agent: str | None = None
-    model: OpenCodeModel | None = None
-    parent_id: str | None = Field(default=None, alias="parentID")
-    model_id: str | None = Field(default=None, alias="modelID")
-    provider_id: str | None = Field(default=None, alias="providerID")
-    mode: str | None = None
-    path: OpenCodePath | None = None
-    cost: float | None = None
-    tokens: OpenCodeTokens | None = None
-    finish: FinishReason | None = None
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class OpenCodeToolState(BaseModel):
-    """Tool execution state."""
-
-    status: ToolStatus
-    input: dict[str, Any] | None = None
-    output: str | None = None
-    title: str | None = None
-    metadata: dict[str, Any] | None = None
-    time: dict[str, int] | None = None
-
-
-class OpenCodePartBase(BaseModel):
-    """Base for all part types."""
-
-    id: str
-    session_id: str = Field(alias="sessionID")
-    message_id: str = Field(alias="messageID")
-    type: PartType
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class OpenCodeTextPart(OpenCodePartBase):
-    """Text content part."""
-
-    type: Literal["text"]
-    text: str
-    time: dict[str, int] | None = None
-
-
-class OpenCodeReasoningPart(OpenCodePartBase):
-    """Reasoning/thinking content part."""
-
-    type: Literal["reasoning"]
-    text: str
-    time: dict[str, int] | None = None
-
-
-class OpenCodeToolPart(OpenCodePartBase):
-    """Tool call/result part."""
-
-    type: Literal["tool"]
-    call_id: str = Field(alias="callID")
-    tool: str
-    state: OpenCodeToolState
-
-
-class OpenCodeStepStartPart(OpenCodePartBase):
-    """Step start marker."""
-
-    type: Literal["step-start"]
-
-
-class OpenCodeStepFinishPart(OpenCodePartBase):
-    """Step finish marker with stats."""
-
-    type: Literal["step-finish"]
-    reason: FinishReason | None = None
-    cost: float | None = None
-    tokens: OpenCodeTokens | None = None
-
-
-class OpenCodePatchPart(OpenCodePartBase):
-    """File patch/diff part."""
-
-    type: Literal["patch"]
-    hash: str | None = None
-    files: list[str] = Field(default_factory=list)
-
-
-class OpenCodeCompactionPart(OpenCodePartBase):
-    """Compaction marker."""
-
-    type: Literal["compaction"]
-
-
-# Discriminated union for all part types
-OpenCodePart = Annotated[
-    OpenCodeTextPart
-    | OpenCodeReasoningPart
-    | OpenCodeToolPart
-    | OpenCodeStepStartPart
-    | OpenCodeStepFinishPart
-    | OpenCodePatchPart
-    | OpenCodeCompactionPart,
-    Field(discriminator="type"),
-]
+# Type aliases for server models - no duplication!
+OpenCodeMessage = UserMessage | AssistantMessage
+OpenCodePart = (
+    TextPart
+    | ReasoningPart
+    | ToolPart
+    | StepStartPart
+    | StepFinishPart
+    | PatchPart
+    | CompactionPart
+    | SnapshotPart
+    | AgentPart
+    | SubtaskPart
+)
 
 
 class OpenCodeStorageProvider(StorageProvider):
@@ -262,13 +136,13 @@ class OpenCodeStorageProvider(StorageProvider):
                     sessions.extend((f.stem, f) for f in project_dir.glob("*.json"))
         return sessions
 
-    def _read_session(self, session_path: Path) -> OpenCodeSession | None:
+    def _read_session(self, session_path: Path) -> Session | None:
         """Read session metadata."""
         if not session_path.exists():
             return None
         try:
             content = session_path.read_text(encoding="utf-8")
-            return anyenv.load_json(content, return_type=OpenCodeSession)
+            return anyenv.load_json(content, return_type=Session)
         except anyenv.JsonLoadError as e:
             logger.warning("Failed to parse session", path=str(session_path), error=str(e))
             return None
@@ -361,7 +235,7 @@ class OpenCodeStorageProvider(StorageProvider):
                     if isinstance(part, UserPromptPart):
                         part_id = f"{message_id}-{part_counter}"
                         part_counter += 1
-                        text_part = OpenCodeTextPart(
+                        text_part = TextPart(
                             id=part_id,
                             session_id=conversation_id,
                             message_id=message_id,
@@ -397,7 +271,7 @@ class OpenCodeStorageProvider(StorageProvider):
                             # Update the tool part with output
                             tool_part = anyenv.load_json(
                                 tool_part_file.read_text(encoding="utf-8"),
-                                return_type=OpenCodeToolPart,
+                                return_type=ToolPart,
                             )
                             tool_part.state.output = str(part.content)
                             tool_part.state.status = "completed"
@@ -413,7 +287,7 @@ class OpenCodeStorageProvider(StorageProvider):
                     part_counter += 1
 
                     if isinstance(part, TextPart):
-                        text_part = OpenCodeTextPart(
+                        text_part = TextPart(
                             id=part_id,
                             session_id=conversation_id,
                             message_id=message_id,
@@ -428,7 +302,7 @@ class OpenCodeStorageProvider(StorageProvider):
                         )
 
                     elif isinstance(part, ThinkingPart):
-                        reasoning_part = OpenCodeReasoningPart(
+                        reasoning_part = ReasoningPart(
                             id=part_id,
                             session_id=conversation_id,
                             message_id=message_id,
@@ -444,17 +318,17 @@ class OpenCodeStorageProvider(StorageProvider):
 
                     elif isinstance(part, ToolCallPart):
                         # Create tool part with pending status
-                        tool_part = OpenCodeToolPart(
+                        tool_part = ToolPart(
                             id=part_id,
                             session_id=conversation_id,
                             message_id=message_id,
                             type="tool",
                             call_id=part.tool_call_id,
                             tool=part.tool_name,
-                            state=OpenCodeToolState(
+                            state=ToolStatePending(
                                 status="pending",
                                 input=part.args,
-                                time={"created": now_ms},
+                                raw="",
                             ),
                         )
                         part_file = parts_dir / f"{part_id}.json"
@@ -467,7 +341,7 @@ class OpenCodeStorageProvider(StorageProvider):
         """Build mapping from tool callID to tool name."""
         mapping: dict[str, str] = {}
         for part in parts:
-            if isinstance(part, OpenCodeToolPart):
+            if isinstance(part, ToolPart):
                 mapping[part.call_id] = part.tool
         return mapping
 
@@ -526,9 +400,9 @@ class OpenCodeStorageProvider(StorageProvider):
         """Extract text content from parts for display."""
         text_parts: list[str] = []
         for part in parts:
-            if isinstance(part, OpenCodeTextPart) and part.text:
+            if isinstance(part, TextPart) and part.text:
                 text_parts.append(part.text)
-            elif isinstance(part, OpenCodeReasoningPart) and part.text:
+            elif isinstance(part, ReasoningPart) and part.text:
                 text_parts.append(f"<thinking>\n{part.text}\n</thinking>")
         return "\n".join(text_parts)
 
@@ -552,7 +426,7 @@ class OpenCodeStorageProvider(StorageProvider):
             request_parts: list[UserPromptPart | ToolReturnPart] = [
                 UserPromptPart(content=part.text, timestamp=timestamp)
                 for part in parts
-                if isinstance(part, OpenCodeTextPart) and part.text
+                if isinstance(part, TextPart) and part.text
             ]
             if request_parts:
                 result.append(ModelRequest(parts=request_parts, timestamp=timestamp))
@@ -573,9 +447,9 @@ class OpenCodeStorageProvider(StorageProvider):
             )
 
         for part in parts:
-            if isinstance(part, OpenCodeTextPart) and part.text:
+            if isinstance(part, TextPart) and part.text:
                 response_parts.append(TextPart(content=part.text))
-            elif isinstance(part, OpenCodeReasoningPart) and part.text:
+            elif isinstance(part, ReasoningPart) and part.text:
                 response_parts.append(ThinkingPart(content=part.text))
             elif isinstance(part, OpenCodeToolPart):
                 # Add tool call to response
@@ -1057,16 +931,20 @@ class OpenCodeStorageProvider(StorageProvider):
 
         # Create new session metadata
         fork_title = f"{source_session.title} (fork)" if source_session.title else "Forked Session"
-        new_session = OpenCodeSession(
+        new_session = Session(
             id=new_conversation_id,
             project_id=project_id,
             directory=source_session.directory,  # Same project directory as source
             title=fork_title,
-            time=OpenCodeTime(
+            version=OPENCODE_VERSION,
+            time=TimeCreatedUpdated(
                 created=int(get_now().timestamp() * 1000),
+                updated=int(get_now().timestamp() * 1000),
             ),
-            summary=OpenCodeSummary(
-                title=fork_title,
+            summary=SessionSummary(
+                files=0,
+                additions=0,
+                deletions=0,
             ),
         )
 
