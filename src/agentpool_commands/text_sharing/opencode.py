@@ -25,7 +25,7 @@ text and conversations.
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 import uuid
 
 import httpx
@@ -215,7 +215,7 @@ class OpenCodeSharer(TextSharer):
 
     async def _share_chat_messages(
         self,
-        messages: list[ChatMessage],
+        messages: list[ChatMessage[Any]],
         *,
         title: str | None = None,
         visibility: Visibility = "unlisted",
@@ -292,15 +292,25 @@ class OpenCodeSharer(TextSharer):
 
             # Sync each message and its parts
             for chat_msg in messages:
-                from agentpool_commands.text_sharing.opencode_simple_converter import (
-                    chat_message_to_opencode_simple,
+                from agentpool_server.opencode_server.converters import (
+                    chat_message_to_opencode,
                 )
 
-                # Convert ChatMessage to OpenCode format
-                msg_info, msg_parts = chat_message_to_opencode_simple(
+                # Convert ChatMessage to OpenCode format using the full converter
+                message_with_parts = chat_message_to_opencode(
                     chat_msg,
                     session_id=session_id,
+                    working_dir="/tmp",
+                    agent_name=chat_msg.name or "default",
+                    model_id=chat_msg.model_name or "unknown",
+                    provider_id="agentpool",
                 )
+
+                # Serialize to dicts with camelCase and no None values
+                msg_info = message_with_parts.info.model_dump(by_alias=True, exclude_none=True)
+                msg_parts = [
+                    p.model_dump(by_alias=True, exclude_none=True) for p in message_with_parts.parts
+                ]
 
                 # Sync message
                 msg_key = f"session/message/{session_id}/{msg_info['id']}"

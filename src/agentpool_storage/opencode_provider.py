@@ -37,9 +37,11 @@ from agentpool_server.opencode_server.models import (
     TextPart as OpenCodeTextPart,
     TimeCreated,
     TimeCreatedUpdated,
+    TimeStartEndCompacted,
     Tokens,
     TokensCache,
     ToolPart as OpenCodeToolPart,
+    ToolStateCompleted,
     ToolStatePending,
     UserMessage,
     UserMessageModel,
@@ -142,10 +144,12 @@ class OpenCodeStorageProvider(StorageProvider):
         if not msg_dir.exists():
             return messages
 
+        adapter = TypeAdapter[OpenCodeMessage](OpenCodeMessage)
         for msg_file in sorted(msg_dir.glob("*.json")):
             try:
                 content = msg_file.read_text(encoding="utf-8")
-                data = anyenv.load_json(content, return_type=OpenCodeMessage)
+                data_dict = anyenv.load_json(content)
+                data = adapter.validate_python(data_dict)
                 messages.append(data)
             except anyenv.JsonLoadError as e:
                 logger.warning("Failed to parse message", path=str(msg_file), error=str(e))
@@ -188,6 +192,7 @@ class OpenCodeStorageProvider(StorageProvider):
         msg_dir.mkdir(parents=True, exist_ok=True)
 
         # Create OpenCode message based on role
+        oc_message: OpenCodeMessage
         if role == "assistant":
             oc_message = AssistantMessage(
                 id=message_id,
@@ -270,15 +275,38 @@ class OpenCodeStorageProvider(StorageProvider):
                                 continue
 
                         if tool_part_file:
-                            # Update the tool part with output
+                            # Update the tool part with output - create new completed state
                             tool_part = anyenv.load_json(
                                 tool_part_file.read_text(encoding="utf-8"),
                                 return_type=OpenCodeToolPart,
                             )
-                            tool_part.state.output = str(part.content)
-                            tool_part.state.status = "completed"
+                            # Create new ToolStateCompleted (states are immutable)
+                            completed_state = ToolStateCompleted(
+                                input=tool_part.state.input
+                                if hasattr(tool_part.state, "input")
+                                else {},
+                                output=str(part.content),
+                                title=tool_part.tool,
+                                time=TimeStartEndCompacted(
+                                    start=tool_part.state.time.start
+                                    if hasattr(tool_part.state, "time")
+                                    else 0,
+                                    end=int(get_now().timestamp() * 1000),
+                                ),
+                            )
+                            # Create new tool part with updated state
+                            updated_tool_part = OpenCodeToolPart(
+                                id=tool_part.id,
+                                message_id=tool_part.message_id,
+                                session_id=tool_part.session_id,
+                                call_id=tool_part.call_id,
+                                tool=tool_part.tool,
+                                state=completed_state,
+                            )
                             tool_part_file.write_text(
-                                anyenv.dump_json(tool_part.model_dump(by_alias=True), indent=True),
+                                anyenv.dump_json(
+                                    updated_tool_part.model_dump(by_alias=True), indent=True
+                                ),
                                 encoding="utf-8",
                             )
 
@@ -476,7 +504,8 @@ class OpenCodeStorageProvider(StorageProvider):
 
         # Add the response if we have parts
         if response_parts:
-            model_name = msg.model_id or (msg.model.model_id if msg.model else None)
+            # AssistantMessage only has model_id, not model
+            model_name = msg.model_id if msg.role == "assistant" else None
             result.append(
                 ModelResponse(
                     parts=response_parts,
@@ -725,7 +754,8 @@ class OpenCodeStorageProvider(StorageProvider):
                 if oc_msg.role != "assistant":
                     continue
 
-                model = oc_msg.model_id or (oc_msg.model.model_id if oc_msg.model else "unknown")
+                # AssistantMessage only has model_id
+                model = oc_msg.model_id or "unknown"
                 tokens = 0
                 if oc_msg.tokens:
                     tokens = oc_msg.tokens.input + oc_msg.tokens.output
