@@ -248,9 +248,9 @@ All event types supported by the OpenCode protocol:
 | [ ] | `session.diff` | Session file diff updated |
 | [x] | `session.error` | Session encountered an error |
 | [x] | `message.updated` | Message created or updated |
-| [ ] | `message.removed` | Message removed |
+| [x] | `message.removed` | Message removed (during revert) |
 | [x] | `message.part.updated` | Message part (text, tool, etc.) updated |
-| [ ] | `message.part.removed` | Message part removed |
+| [x] | `message.part.removed` | Message part removed (during revert) |
 | [x] | `permission.asked` | Tool permission requested (awaiting user response) |
 | [x] | `permission.replied` | Permission request resolved (user responded) |
 | [x] | `todo.updated` | Todo list item updated |

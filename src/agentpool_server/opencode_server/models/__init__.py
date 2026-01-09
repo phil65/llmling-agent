@@ -104,8 +104,10 @@ from agentpool_server.opencode_server.models.pty import (
 )
 from agentpool_server.opencode_server.models.events import (
     Event,
+    MessageRemovedEvent,
     MessageUpdatedEvent,
     MessageUpdatedEventProperties,
+    PartRemovedEvent,
     PartUpdatedEvent,
     PartUpdatedEventProperties,
     ProjectUpdatedEvent,

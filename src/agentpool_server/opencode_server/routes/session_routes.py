@@ -993,49 +993,80 @@ class RevertRequest(OpenCodeBaseModel):
 
 @router.post("/{session_id}/revert")
 async def revert_session(session_id: str, request: RevertRequest, state: StateDep) -> Session:
-    """Revert file changes from a specific message.
+    """Revert file changes and messages from a specific message.
 
-    Restores files to their state before the specified message's changes.
+    Removes messages from the revert point onwards and restores files to their
+    state before the specified message's changes.
     """
+    from agentpool_server.opencode_server.models import MessageRemovedEvent, PartRemovedEvent
+
     session = await get_or_load_session(state, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
+
+    # Get messages for this session
+    messages = state.messages.get(session_id, [])
+    if not messages:
+        raise HTTPException(status_code=400, detail="No messages to revert")
+
+    # Find the revert message index
+    revert_index = None
+    for i, msg in enumerate(messages):
+        if msg.info.id == request.message_id:
+            revert_index = i
+            break
+
+    if revert_index is None:
+        raise HTTPException(status_code=404, detail=f"Message {request.message_id} not found")
+
+    # Split messages: keep messages before revert point, remove from revert point onwards
+    messages_to_keep = messages[:revert_index]
+    messages_to_remove = messages[revert_index:]
+
+    if not messages_to_remove:
+        raise HTTPException(status_code=400, detail="No messages to revert")
+
+    # Store removed messages for unrevert
+    state.reverted_messages[session_id] = messages_to_remove
+
+    # Update message list - keep only messages before revert point
+    state.messages[session_id] = messages_to_keep
+
+    # Emit message.removed and part.removed events for all removed messages
+    for msg in messages_to_remove:
+        # Emit message.removed event
+        await state.broadcast_event(MessageRemovedEvent.create(session_id, msg.info.id))
+
+        # Emit part.removed events for all parts
+        for part in msg.parts:
+            await state.broadcast_event(
+                PartRemovedEvent.create(session_id, msg.info.id, part.id)
+            )
+
+    # Also revert file changes if any
     file_ops = state.pool.file_ops
-    if not file_ops.changes:
-        raise HTTPException(status_code=400, detail="No file changes to revert")
-    # Get revert operations for changes since this message
-    revert_ops = file_ops.get_revert_operations(since_message_id=request.message_id)
+    if file_ops.changes:
+        revert_ops = file_ops.get_revert_operations(since_message_id=request.message_id)
+        if revert_ops:
+            fs = state.agent.env.get_fs()
+            for path, content in revert_ops:
+                try:
+                    if content is None:
+                        await fs._rm_file(path)
+                    else:
+                        content_bytes = content.encode("utf-8")
+                        await fs._pipe_file(path, content_bytes)
+                except Exception as e:
+                    detail = f"Failed to revert {path}: {e}"
+                    raise HTTPException(status_code=500, detail=detail) from e
+            file_ops.remove_changes_since_message(request.message_id)
 
-    if not revert_ops:
-        detail = f"No changes found for message {request.message_id}"
-        raise HTTPException(status_code=404, detail=detail)
-    # Get filesystem from the agent's environment
-    fs = state.agent.env.get_fs()
-    # Apply reverts using the filesystem
-    # TODO: Currently write operations only track "existed vs created", not full old content.
-    # Files that existed before a write will be restored as empty, not their original content.
-    reverted_paths = []
-    for path, content in revert_ops:
-        try:
-            if content is None:
-                # File was created (old_text=None), delete it
-                await fs._rm_file(path)
-            else:
-                # Restore original content
-                content_bytes = content.encode("utf-8")
-                await fs._pipe_file(path, content_bytes)
-            reverted_paths.append(path)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to revert {path}: {e}") from e
-
-    # Remove the reverted changes from the tracker
-    file_ops.remove_changes_since_message(request.message_id)
     # Update session with revert info
     session = state.sessions[session_id]
-    # TODO: include the diff?
     revert_info = SessionRevert(message_id=request.message_id, part_id=request.part_id)
     updated_session = session.model_copy(update={"revert": revert_info})
     state.sessions[session_id] = updated_session
+
     # Broadcast session update
     await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
     return updated_session
@@ -1043,36 +1074,55 @@ async def revert_session(session_id: str, request: RevertRequest, state: StateDe
 
 @router.post("/{session_id}/unrevert")
 async def unrevert_session(session_id: str, state: StateDep) -> Session:
-    """Restore all reverted file changes.
+    """Restore all reverted messages and file changes.
 
-    Re-applies the changes that were previously reverted.
+    Re-applies the messages and changes that were previously reverted.
     """
+    from agentpool_server.opencode_server.models import MessageUpdatedEvent, PartUpdatedEvent
+
     session = await get_or_load_session(state, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-    file_ops = state.pool.file_ops
-    if not file_ops.reverted_changes:
-        raise HTTPException(status_code=400, detail="No reverted changes to restore")
-    # Get unrevert operations
-    unrevert_ops = file_ops.get_unrevert_operations()
-    # Get filesystem from the agent's environment
-    fs = state.agent.env.get_fs()
-    # Apply unrevert - write back the new_content
-    for path, content in unrevert_ops:
-        try:
-            if content is None:
-                # File was deleted in the original change, delete it again
-                await fs._rm_file(path)
-            else:
-                # Restore the changed content
-                content_bytes = content.encode("utf-8")
-                await fs._pipe_file(path, content_bytes)
-        except Exception as e:
-            detail = f"Failed to unrevert {path}: {e}"
-            raise HTTPException(status_code=500, detail=detail) from e
 
-    # Restore the changes to the tracker
-    file_ops.restore_reverted_changes()
+    # Restore reverted messages
+    reverted_messages = state.reverted_messages.get(session_id, [])
+    if not reverted_messages:
+        raise HTTPException(status_code=400, detail="No reverted messages to restore")
+
+    # Restore messages to conversation
+    if session_id not in state.messages:
+        state.messages[session_id] = []
+    state.messages[session_id].extend(reverted_messages)
+
+    # Emit message.updated and part.updated events for restored messages
+    for msg in reverted_messages:
+        # Emit message.updated event
+        await state.broadcast_event(MessageUpdatedEvent.create(msg.info))
+
+        # Emit part.updated events for all parts
+        for part in msg.parts:
+            await state.broadcast_event(PartUpdatedEvent.create(part))
+
+    # Clear reverted messages
+    state.reverted_messages.pop(session_id, None)
+
+    # Also unrevert file changes if any
+    file_ops = state.pool.file_ops
+    if file_ops.reverted_changes:
+        unrevert_ops = file_ops.get_unrevert_operations()
+        fs = state.agent.env.get_fs()
+        for path, content in unrevert_ops:
+            try:
+                if content is None:
+                    await fs._rm_file(path)
+                else:
+                    content_bytes = content.encode("utf-8")
+                    await fs._pipe_file(path, content_bytes)
+            except Exception as e:
+                detail = f"Failed to unrevert {path}: {e}"
+                raise HTTPException(status_code=500, detail=detail) from e
+        file_ops.restore_reverted_changes()
+
     # Clear revert info from session
     updated_session = session.model_copy(update={"revert": None})
     state.sessions[session_id] = updated_session

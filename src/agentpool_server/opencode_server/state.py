@@ -54,6 +54,10 @@ class ServerState:
     # Runtime cache - messages are also persisted via pool.storage
     messages: dict[str, list[MessageWithParts]] = field(default_factory=dict)
 
+    # Reverted messages storage (session_id -> removed messages)
+    # Stores messages removed during revert for unrevert operation
+    reverted_messages: dict[str, list[MessageWithParts]] = field(default_factory=dict)
+
     # Todo storage (session_id -> todos)
     # Uses pool.todos for persistence
     todos: dict[str, list[Todo]] = field(default_factory=dict)

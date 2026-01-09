@@ -204,6 +204,68 @@ class PartUpdatedEvent(OpenCodeBaseModel):
         return cls(properties=PartUpdatedEventProperties(part=part, delta=delta))
 
 
+class MessageRemovedProperties(OpenCodeBaseModel):
+    """Properties for message removed event."""
+
+    session_id: str = Field(alias="sessionID")
+    message_id: str = Field(alias="messageID")
+
+
+class MessageRemovedEvent(OpenCodeBaseModel):
+    """Message removed event - emitted during revert."""
+
+    type: Literal["message.removed"] = "message.removed"
+    properties: MessageRemovedProperties
+
+    @classmethod
+    def create(cls, session_id: str, message_id: str) -> Self:
+        """Create message removed event.
+
+        Args:
+            session_id: Session identifier
+            message_id: Message identifier
+
+        Returns:
+            MessageRemovedEvent instance
+        """
+        return cls(
+            properties=MessageRemovedProperties(sessionID=session_id, messageID=message_id)
+        )
+
+
+class PartRemovedProperties(OpenCodeBaseModel):
+    """Properties for part removed event."""
+
+    session_id: str = Field(alias="sessionID")
+    message_id: str = Field(alias="messageID")
+    part_id: str = Field(alias="partID")
+
+
+class PartRemovedEvent(OpenCodeBaseModel):
+    """Part removed event - emitted during revert."""
+
+    type: Literal["message.part.removed"] = "message.part.removed"
+    properties: PartRemovedProperties
+
+    @classmethod
+    def create(cls, session_id: str, message_id: str, part_id: str) -> Self:
+        """Create part removed event.
+
+        Args:
+            session_id: Session identifier
+            message_id: Message identifier
+            part_id: Part identifier
+
+        Returns:
+            PartRemovedEvent instance
+        """
+        return cls(
+            properties=PartRemovedProperties(
+                sessionID=session_id, messageID=message_id, partID=part_id
+            )
+        )
+
+
 class PermissionToolInfo(OpenCodeBaseModel):
     """Tool information for permission event."""
 
@@ -646,7 +708,9 @@ Event = (
     | SessionErrorEvent
     | SessionIdleEvent
     | MessageUpdatedEvent
+    | MessageRemovedEvent
     | PartUpdatedEvent
+    | PartRemovedEvent
     | PermissionRequestEvent
     | PermissionResolvedEvent
     | TodoUpdatedEvent
