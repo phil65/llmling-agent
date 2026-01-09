@@ -152,8 +152,29 @@ async def _get_available_models() -> list[TokoModelInfo]:
 @router.get("/config")
 async def get_config(state: StateDep) -> Config:
     """Get server configuration."""
-    _ = state  # unused for now
-    return Config()
+    # Initialize config if not yet set
+    if state.config is None:
+        state.config = Config()
+    return state.config
+
+
+@router.patch("/config")
+async def update_config(state: StateDep, config_update: Config) -> Config:
+    """Update server configuration.
+
+    Only updates fields that are provided (non-None).
+    Returns the complete updated config.
+    """
+    # Initialize config if not yet set
+    if state.config is None:
+        state.config = Config()
+
+    # Update only the fields that were provided
+    update_data = config_update.model_dump(exclude_unset=True)
+    for field_name, value in update_data.items():
+        setattr(state.config, field_name, value)
+
+    return state.config
 
 
 def _get_dummy_providers() -> list[Provider]:

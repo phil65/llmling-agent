@@ -43,7 +43,7 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | Status | Method | Path | Description |
 |--------|--------|------|-------------|
 | [x] | GET | `/config` | Get config info |
-| [ ] | PATCH | `/config` | Update config |
+| [x] | PATCH | `/config` | Update config |
 | [~] | GET | `/config/providers` | List providers and default models |
 
 ---

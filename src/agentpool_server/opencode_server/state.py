@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from agentpool.diagnostics.lsp_manager import LSPManager
     from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
     from agentpool_server.opencode_server.models import (
+        Config,
         Event,
         MessageWithParts,
         Session,
@@ -39,6 +40,10 @@ class ServerState:
     pool: AgentPool[Any]
     agent: BaseAgent[Any, Any]
     start_time: float = field(default_factory=time.time)
+
+    # Configuration (mutable runtime config)
+    # Initialized after state creation
+    config: Config | None = None
 
     # Active sessions cache (session_id -> OpenCode Session model)
     # This is a cache of sessions loaded from pool.sessions
