@@ -722,6 +722,9 @@ class FSSpecTools(ResourceProvider):
         Args:
             path: File path (absolute or relative to session cwd)
             replacements: List of (old_string, new_string) tuples to apply sequentially.
+                IMPORTANT: Must be a list of pairs, like:
+                  [("old text", "new text"), ("another old", "another new")]
+
                 Each old_string should include enough context to uniquely identify
                 the target location. For multi-line edits, include the full block.
             description: Human-readable description of what the edit accomplishes
