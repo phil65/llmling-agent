@@ -11,7 +11,7 @@ from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
+from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.models.events import (
     TuiCommandExecuteEvent,
     TuiPromptAppendEvent,

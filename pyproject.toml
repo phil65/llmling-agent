@@ -393,6 +393,11 @@ runtime-evaluated-decorators = [
   "pydantic.validate_call",
   "fastapi.FastAPI.get",
   "fastapi.FastAPI.post",
+  "fastapi.APIRouter.get",
+  "fastapi.APIRouter.post",
+  "fastapi.APIRouter.put",
+  "fastapi.APIRouter.delete",
+  "fastapi.APIRouter.patch",
   "fastmcp.FastMCP.tool",
   "typer.Typer.command",
 ]

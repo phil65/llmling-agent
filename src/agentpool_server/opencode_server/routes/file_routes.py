@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
-from agentpool_server.opencode_server.models import (  # noqa: TC001
+from agentpool_server.opencode_server.dependencies import StateDep
+from agentpool_server.opencode_server.models import (
     FileContent,
     FileNode,
     FindMatch,

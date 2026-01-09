@@ -16,9 +16,9 @@ from agentpool.utils import identifiers as identifier
 from agentpool_config.session import SessionQuery
 from agentpool_server.opencode_server.command_validation import validate_command
 from agentpool_server.opencode_server.converters import chat_message_to_opencode
-from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
+from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
-from agentpool_server.opencode_server.models import (  # noqa: TC001
+from agentpool_server.opencode_server.models import (
     AssistantMessage,
     CommandRequest,
     MessagePath,

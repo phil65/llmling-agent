@@ -12,15 +12,14 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException, WebSocketDisconnect
 
-from agentpool_server.opencode_server.models import PtyInfo
+from agentpool_server.opencode_server.dependencies import StateDep
+from agentpool_server.opencode_server.models import PtyCreateRequest, PtyInfo, PtyUpdateRequest
 
 
 if TYPE_CHECKING:
     from exxec.pty_manager import PtyManagerProtocol
     from fastapi import WebSocket
 
-    from agentpool_server.opencode_server.dependencies import StateDep
-    from agentpool_server.opencode_server.models import PtyCreateRequest, PtyUpdateRequest
     from agentpool_server.opencode_server.state import ServerState
 
 

@@ -32,8 +32,8 @@ from agentpool_server.opencode_server.converters import (
     extract_user_prompt_from_parts,
     opencode_to_chat_message,
 )
-from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
-from agentpool_server.opencode_server.models import (  # noqa: TC001
+from agentpool_server.opencode_server.dependencies import StateDep
+from agentpool_server.opencode_server.models import (
     AssistantMessage,
     MessagePath,
     MessageRequest,

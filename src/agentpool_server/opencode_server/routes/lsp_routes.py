@@ -13,7 +13,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
+from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.models.events import LspStatus, LspUpdatedEvent
 
 

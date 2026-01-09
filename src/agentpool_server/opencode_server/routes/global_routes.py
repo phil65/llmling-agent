@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse
 
-from agentpool_server.opencode_server.dependencies import StateDep  # noqa: TC001
+from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.models import (  # noqa: TC001
     Event,
     HealthResponse,

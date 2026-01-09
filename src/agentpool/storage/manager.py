@@ -709,13 +709,17 @@ class StorageManager:
                 emoji=metadata.emoji,
                 icon=metadata.icon,
             )
-            logger.info("Emitting title_generated signal", conversation_id=conversation_id, title=metadata.title)
+            logger.info(
+                "Emitting title_generated signal",
+                conversation_id=conversation_id,
+                title=metadata.title,
+            )
             await self.title_generated.emit(event)
-
-            return metadata
         except Exception:
             logger.exception("Failed to generate session title", conversation_id=conversation_id)
             return None
+        else:
+            return metadata
 
     async def _generate_title_from_prompt(
         self,
