@@ -28,7 +28,7 @@ from agentpool.log import get_logger
 from agentpool.mcp_server.constants import MCP_TO_LOGGING
 from agentpool.mcp_server.helpers import extract_text_content, mcp_tool_to_fn_schema
 from agentpool.mcp_server.message_handler import MCPMessageHandler
-from agentpool.tools.base import Tool
+from agentpool.tools.base import FunctionTool
 from agentpool.utils.signatures import create_modified_signature
 from agentpool_config.mcp_server import (
     SSEMCPServerConfig,
@@ -349,7 +349,7 @@ class MCPClient:
             msg = f"Failed to get prompt {name!r}: {e}"
             raise RuntimeError(msg) from e
 
-    def convert_tool(self, tool: MCPTool) -> Tool:
+    def convert_tool(self, tool: MCPTool) -> FunctionTool:
         """Create a properly typed callable from MCP tool schema."""
 
         async def tool_callable(
@@ -382,7 +382,7 @@ class MCPClient:
         tool_callable.__annotations__ = annotations
         tool_callable.__name__ = tool.name
         tool_callable.__doc__ = tool.description or "No description provided."
-        return Tool.from_callable(tool_callable, source="mcp")
+        return FunctionTool.from_callable(tool_callable, source="mcp")
 
     async def call_tool(
         self,
