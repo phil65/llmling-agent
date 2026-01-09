@@ -49,7 +49,8 @@ flowchart TB
 ## Quick Start
 
 ```bash
-uv tool install agentpool[default]
+uv tool install agentpool
+
 ```
 
 ### Minimal Configuration

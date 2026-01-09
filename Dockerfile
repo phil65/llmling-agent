@@ -3,7 +3,7 @@ FROM python:3.13-slim
 WORKDIR /app
 
 COPY . .
-RUN pip install --no-cache-dir ".[default,server]"
+RUN pip install --no-cache-dir ".[server]"
 
 # Expose the default port
 EXPOSE 8000

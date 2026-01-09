@@ -15,7 +15,7 @@ The fastest way to get started is through the **Agent Client Protocol (ACP)**, w
 No installation needed - run directly with uvx:
 
 ```bash
-uvx --python 3.13 agentpool[default]@latest serve-acp agents.yml
+uvx --python 3.13 agentpool@latest serve-acp agents.yml
 ```
 
 ### IDE Configuration (Zed)
@@ -29,7 +29,7 @@ Add to your Zed `settings.json`:
       "command": "uvx",
       "args": [
         "--python", "3.13",
-        "agentpool[default]@latest",
+        "agentpool@latest",
         "serve-acp",
         "path/to/your/agents.yml"
       ],

@@ -33,7 +33,7 @@ The key difference is that ACP agents run as **separate processes** communicatin
 Using uvx for one-off usage:
 
 ```bash
-uvx --python 3.13 agentpool[default]@latest serve-acp --help
+uvx --python 3.13 agentpool@latest serve-acp --help
 ```
 
 ## CLI Usage
@@ -68,7 +68,7 @@ Add this configuration to your Zed `settings.json`:
       "args": [
         "--python",
         "3.13",
-        "agentpool[default,coding]@latest",
+        "agentpool[coding]@latest",
         "serve-acp",
         "https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/docs/examples/pick_experts/config.yml"
       ],
@@ -91,7 +91,7 @@ This configuration:
 
 For IDEs that support ACP, the general pattern is:
 
-1. Set the command to `agentpool` (or `uvx agentpool[default]@latest`)
+1. Set the command to `agentpool` (or `uvx agentpool@latest`)
 2. Add `serve-acp` as the first argument
 3. Specify your configuration file path
 4. Add any desired CLI options

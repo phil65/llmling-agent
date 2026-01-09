@@ -32,6 +32,7 @@ classifiers = [
 ]
 dependencies = [
   "anyenv[httpx]>=0.3.0",
+  "claude-agent-sdk>=0.1.18",
   "docler>=1.0.3",
   "docstring-parser>=0.17.0",
   "epregistry",
@@ -42,6 +43,7 @@ dependencies = [
   "httpx",
   "jinja2",
   "jinjarope",
+  "keyring>=25.6.0",
   "llmling-models>=1.4.1",
   "logfire",
   "mcp>=1.2.0",
@@ -50,7 +52,7 @@ dependencies = [
   "promptantic>=0.4.5",
   "psygnal>=0.11.1",
   "pydantic>=2.10.0",
-  "pydantic-ai-slim>=1.0.0",
+  "pydantic-ai-slim[openai,google,anthropic,mistral,retries]>=1.0.0",
   # Only add below (Copier)
   "pydocket==0.16.1",
   "python-dotenv>=1.0.1",
@@ -96,7 +98,6 @@ acp = "acp.filesystem:ACPPath"
 a2a = ["fasta2a", "starlette"]  # A2A Server
 ag-ui = ["ag-ui-protocol>=0.1.10"]  # Ag-UI Agents
 braintrust = ["braintrust", "autoevals"]  # Braintrust Prompt Hub
-claude = ["claude-agent-sdk>=0.1.18"]
 clipboard = ["copykitten"]  # Clipboard functionality
 coding = [
   "rustworkx>=0.17.1",
@@ -115,10 +116,6 @@ coding = [
   "tree-sitter-yaml>=0.6.0",
 ]  # Packages to allow coding functionality
 composio = ["composio"]  # Composio toolsets
-default = [
-  "pydantic-ai-slim[openai,google,anthropic,mistral,retries]>=1.0.0",
-  "claude-agent-sdk",
-]  # Set of commonly used AI providers
 events = ["evented[all]"]  # Event triggers for agents
 git = ["fsspec[git]"]  # Git support
 langfuse = ["langfuse"]  # Langfuse Prompt Hub
@@ -131,11 +128,7 @@ mcp-discovery = [
   "pyarrow>=19.0.0; python_version < '3.14'",
 ]  # MCP Discovery Toolset with semantic search
 mcp_run = ["mcpx-py>=0.7.0"]  # MCP.run Toolset
-memory = ["typeagent>=0.3.3"]  # TypeAgent semantic knowledge DB
 notifications = ["apprise>=1.9.5"]  # Notification Toolset
-oauth = [
-  "keyring>=25.6.0"
-]  # OAuth functionality (will be fixed dep for FastMCP >2.13)
 promptlayer = ["promptlayer"]  # PromptLayer Prompt Hub
 server = [
   "logfire[fastapi]",

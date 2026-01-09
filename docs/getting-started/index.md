@@ -11,7 +11,8 @@ order: 1
 Simple installation
 
 ```bash
-uv tool install agentpool[default]
+uv tool install agentpool
+
 ```
 
 Multiple extras
@@ -32,9 +33,9 @@ uv tool install agentpool[default, coding]
 No installation needed - run directly with uvx:
 
 ```bash
-uvx --python 3.13 agentpool[default]@latest serve-acp 
+uvx --python 3.13 agentpool@latest serve-acp 
 
 # or
 
-uvx --python 3.13 agentpool[default]@latest serve-acp path/to/agents.yml
+uvx --python 3.13 agentpool@latest serve-acp path/to/agents.yml
 ```
