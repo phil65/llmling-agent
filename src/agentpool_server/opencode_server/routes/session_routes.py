@@ -661,7 +661,7 @@ async def run_shell_command(
 class PermissionResponse(OpenCodeBaseModel):
     """Request body for responding to a permission request."""
 
-    response: Literal["once", "always", "reject"]
+    reply: Literal["once", "always", "reject"]
 
 
 @router.get("/{session_id}/permissions")
@@ -706,7 +706,7 @@ async def respond_to_permission(
         raise HTTPException(status_code=404, detail="No input provider for session")
 
     # Resolve the permission
-    resolved = input_provider.resolve_permission(permission_id, request.response)
+    resolved = input_provider.resolve_permission(permission_id, request.reply)
     if not resolved:
         raise HTTPException(status_code=404, detail="Permission not found or already resolved")
 
@@ -714,7 +714,7 @@ async def respond_to_permission(
         PermissionResolvedEvent.create(
             session_id=session_id,
             request_id=permission_id,
-            reply=request.response,
+            reply=request.reply,
         )
     )
 
