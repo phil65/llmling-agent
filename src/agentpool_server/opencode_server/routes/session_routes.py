@@ -686,7 +686,7 @@ async def get_pending_permissions(session_id: str, state: StateDep) -> list[dict
 async def respond_to_permission(
     session_id: str,
     permission_id: str,
-    request: PermissionResponse,
+    body: PermissionResponse,
     state: StateDep,
 ) -> bool:
     """Respond to a pending permission request.
@@ -706,7 +706,7 @@ async def respond_to_permission(
         raise HTTPException(status_code=404, detail="No input provider for session")
 
     # Resolve the permission
-    resolved = input_provider.resolve_permission(permission_id, request.reply)
+    resolved = input_provider.resolve_permission(permission_id, body.reply)
     if not resolved:
         raise HTTPException(status_code=404, detail="Permission not found or already resolved")
 
@@ -714,7 +714,7 @@ async def respond_to_permission(
         PermissionResolvedEvent.create(
             session_id=session_id,
             request_id=permission_id,
-            reply=request.reply,
+            reply=body.reply,
         )
     )
 
