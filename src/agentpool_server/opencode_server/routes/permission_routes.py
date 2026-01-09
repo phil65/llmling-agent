@@ -28,19 +28,17 @@ async def reply_to_permission(
     - "always": Always allow this tool (remembered for session)
     - "reject": Reject this tool execution
     """
-    print(
-        f"DEBUG permission endpoint: received reply '{body.reply}' for perm_id={permission_id}"
-    )
+    print(f"DEBUG permission endpoint: received reply '{body.reply}' for perm_id={permission_id}")
     print(f"DEBUG permission endpoint: searching in {len(state.input_providers)} sessions")
     # Find which session has this permission request
     for session_id, input_provider in state.input_providers.items():
-        pending_perms = list(input_provider._pending_permissions.keys())  # noqa: SLF001
+        pending_perms = list(input_provider._pending_permissions.keys())
         print(
             f"DEBUG permission endpoint: session {session_id} has "
             f"{len(pending_perms)} pending: {pending_perms}"
         )
         # Check if this permission belongs to this session
-        if permission_id in input_provider._pending_permissions:  # noqa: SLF001
+        if permission_id in input_provider._pending_permissions:
             print(f"DEBUG permission endpoint: found permission in session {session_id}")
             # Resolve the permission
             resolved = input_provider.resolve_permission(permission_id, body.reply)
