@@ -24,7 +24,6 @@ class CopyClipboardCommand(NodeCommand):
 
     Allows copying a configurable number of messages with options for:
     - Number of messages to include
-    - Including/excluding system messages
     - Token limit for context size
     - Custom format templates
 
@@ -39,7 +38,6 @@ class CopyClipboardCommand(NodeCommand):
         ctx: CommandContext[NodeContext],
         *,
         num_messages: int = 1,
-        include_system: bool = False,
         max_tokens: int | None = None,
         format_template: str | None = None,
     ) -> None:
@@ -48,7 +46,6 @@ class CopyClipboardCommand(NodeCommand):
         Args:
             ctx: Command context
             num_messages: Number of messages to copy (default: 1)
-            include_system: Include system messages
             max_tokens: Only include messages up to token limit
             format_template: Custom format template
         """
@@ -60,7 +57,6 @@ class CopyClipboardCommand(NodeCommand):
 
         content = await ctx.context.agent.conversation.format_history(
             num_messages=num_messages,
-            include_system=include_system,
             max_tokens=max_tokens,
             format_template=format_template,
         )
@@ -137,7 +133,6 @@ class ShareHistoryCommand(NodeCommand):
         *,
         provider: TextSharerStr = "paste_rs",
         num_messages: int | None = None,
-        include_system: bool = False,
         max_tokens: int | None = None,
         format_template: str | None = None,
         title: str | None = None,
@@ -150,7 +145,6 @@ class ShareHistoryCommand(NodeCommand):
             ctx: Command context
             provider: Text sharing provider to use
             num_messages: Number of messages from history to share (None = all messages)
-            include_system: Include system messages in history
             max_tokens: Token limit for conversation history
             format_template: Custom format template for history
             title: Title/filename for the shared content
@@ -163,7 +157,9 @@ class ShareHistoryCommand(NodeCommand):
 
         # Check if there's content to share
         messages_to_check = (
-            conversation.messages[-num_messages:] if num_messages else conversation.messages
+            conversation.chat_messages[-num_messages:]
+            if num_messages
+            else conversation.chat_messages
         )
         if not messages_to_check:
             await ctx.print("ℹ️ **No content to share**")  # noqa: RUF001
@@ -180,7 +176,6 @@ class ShareHistoryCommand(NodeCommand):
                 title=title,
                 visibility=visibility,
                 num_messages=num_messages,
-                include_system=include_system,
             )
             # Format success message
             provider_name = sharer.name

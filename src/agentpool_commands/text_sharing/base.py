@@ -70,7 +70,6 @@ class TextSharer(abc.ABC):
         visibility: Visibility = "unlisted",
         expires_in: int | None = None,
         num_messages: int | None = None,
-        include_system: bool = False,
     ) -> ShareResult:
         """Share a conversation in structured format.
 
@@ -84,7 +83,6 @@ class TextSharer(abc.ABC):
             visibility: Visibility level
             expires_in: Expiration time in seconds
             num_messages: Number of messages to include (None = all)
-            include_system: Include system messages
 
         Returns:
             ShareResult with URL and metadata
@@ -92,7 +90,6 @@ class TextSharer(abc.ABC):
         # Default: format as plain text
         content = await conversation.format_history(
             num_messages=num_messages,
-            include_system=include_system,
         )
         return await self.share(
             content,

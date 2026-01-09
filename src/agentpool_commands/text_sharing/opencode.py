@@ -371,7 +371,6 @@ class OpenCodeSharer(TextSharer):
         visibility: Visibility = "unlisted",
         expires_in: int | None = None,
         num_messages: int | None = None,
-        include_system: bool = False,
     ) -> ShareResult:
         """Share conversation using OpenCode's native structured format.
 
@@ -381,21 +380,21 @@ class OpenCodeSharer(TextSharer):
             visibility: Visibility level (ignored)
             expires_in: Expiration time (ignored)
             num_messages: Number of messages to include (None = all)
-            include_system: Include system messages
 
         Returns:
             ShareResult with OpenCode share URL
+
+        Note:
+            System prompts are stored as metadata on messages (UserMessage.system field
+            in OpenCode, ModelRequest.instructions in pydantic-ai), not as separate
+            "system" role messages. ChatMessage.role only supports "user" and "assistant".
         """
         # Get messages to share
-        messages_to_share = (
+        messages_to_share = list(
             conversation.chat_messages[-num_messages:]
             if num_messages
             else conversation.chat_messages
         )
-
-        # Filter out system messages if requested
-        if not include_system:
-            messages_to_share = [msg for msg in messages_to_share if msg.role != "system"]
 
         return await self._share_chat_messages(
             list(messages_to_share),

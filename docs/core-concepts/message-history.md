@@ -49,7 +49,6 @@ await history.add_context_from_prompt(system_prompt)
 # Format history for context
 history_text = await history.format_history(
     max_tokens=1000,
-    include_system=False,
     num_messages=5
 )
 ```

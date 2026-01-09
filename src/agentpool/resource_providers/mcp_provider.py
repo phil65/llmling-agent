@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from mcp.types import ResourceTemplate
 
     from agentpool.prompts.prompts import MCPClientPrompt
-    from agentpool.tools.base import Tool
+    from agentpool.tools.base import FunctionTool, Tool
     from agentpool_config.mcp_server import MCPServerConfig
 
 
@@ -47,19 +47,14 @@ class MCPResourceProvider(ResourceProvider):
         self.server = BaseMCPServerConfig.from_string(server) if isinstance(server, str) else server
         self.source = source
         self.exit_stack = AsyncExitStack()
+
         self._accessible_roots = accessible_roots
         self._sampling_callback = sampling_callback
 
-        # Tool caching
-        self._tools_cache: list[Tool] | None = None
         self._saved_enabled_states: dict[str, bool] = {}
-
-        # Prompt caching
+        self._tools_cache: list[FunctionTool] | None = None
         self._prompts_cache: list[MCPClientPrompt] | None = None
-
-        # Resource caching
         self._resources_cache: list[ResourceInfo] | None = None
-
         self.client = MCPClient(
             config=self.server,
             sampling_callback=self._sampling_callback,
@@ -130,7 +125,7 @@ class MCPResourceProvider(ResourceProvider):
         try:
             # Get fresh tools from client
             mcp_tools = await self.client.list_tools()
-            all_tools: list[Tool] = []
+            all_tools: list[FunctionTool] = []
 
             for tool in mcp_tools:
                 try:

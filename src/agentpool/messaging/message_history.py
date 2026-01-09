@@ -150,17 +150,20 @@ class MessageHistory:
         self,
         *,
         max_tokens: int | None = None,
-        include_system: bool = False,
         format_template: str | None = None,
-        num_messages: int | None = None,  # Add this parameter
+        num_messages: int | None = None,
     ) -> str:
         """Format conversation history as a single context message.
 
         Args:
             max_tokens: Optional limit to include only last N tokens
-            include_system: Whether to include system messages
             format_template: Optional custom format (defaults to agent/message pairs)
             num_messages: Optional limit to include only last N messages
+
+        Note:
+            System prompts are stored as metadata (ModelRequest.instructions),
+            not as separate messages with role="system". ChatMessage.role only
+            supports "user" and "assistant".
         """
         template = format_template or "Agent {agent}: {content}\n"
         messages: list[str] = []
