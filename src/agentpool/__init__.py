@@ -7,6 +7,7 @@ Extended ACP / AGUI integration.
 from __future__ import annotations
 
 from importlib.metadata import version
+from upathtools import register_http_filesystems
 
 from agentpool.models.agents import NativeAgentConfig
 from agentpool.models.manifest import AgentsManifest
@@ -38,6 +39,7 @@ __license__ = "MIT"
 __url__ = "https://github.com/phil65/agentpool"
 
 load_dotenv()
+register_http_filesystems()
 
 __all__ = [
     "ACPAgent",
