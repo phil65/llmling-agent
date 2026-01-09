@@ -34,9 +34,9 @@ from agentpool_commands.text_sharing.base import ShareResult, TextSharer
 
 
 if TYPE_CHECKING:
-    from anyenv.text_sharing.base import Visibility
-
+    from agentpool.messaging.message_history import MessageHistory
     from agentpool.messaging.messages import ChatMessage
+    from anyenv.text_sharing.base import Visibility
 
 
 class OpenCodeSharer(TextSharer):
@@ -290,40 +290,33 @@ class OpenCodeSharer(TextSharer):
             resp.raise_for_status()
 
             # Sync each message and its parts
-            for msg_idx, chat_msg in enumerate(messages):
-                from agentpool_server.opencode_server.conversions import (
-                    chat_message_to_opencode_message,
-                    chat_message_to_opencode_parts,
+            for chat_msg in messages:
+                from agentpool_commands.text_sharing.opencode_simple_converter import (
+                    chat_message_to_opencode_simple,
                 )
 
-                msg_time = current_time + (msg_idx * 1000)  # Stagger timestamps
-
                 # Convert ChatMessage to OpenCode format
-                msg_content = chat_message_to_opencode_message(
+                msg_info, msg_parts = chat_message_to_opencode_simple(
                     chat_msg,
                     session_id=session_id,
-                    timestamp_ms=msg_time,
                 )
 
                 # Sync message
-                msg_key = f"session/message/{session_id}/{chat_msg.message_id}"
+                msg_key = f"session/message/{session_id}/{msg_info['id']}"
                 resp = await self._client.post(
                     f"{self.api_url}/share_sync",
                     json={
                         "sessionID": session_id,
                         "secret": secret,
                         "key": msg_key,
-                        "content": msg_content,
+                        "content": msg_info,
                     },
                 )
                 resp.raise_for_status()
 
                 # Sync parts
-                parts = chat_message_to_opencode_parts(chat_msg, session_id)
-                for part_content in parts:
-                    part_key = (
-                        f"session/part/{session_id}/{chat_msg.message_id}/{part_content['id']}"
-                    )
+                for part in msg_parts:
+                    part_key = f"session/part/{session_id}/{msg_info['id']}/{part['id']}"
 
                     resp = await self._client.post(
                         f"{self.api_url}/share_sync",
@@ -331,7 +324,7 @@ class OpenCodeSharer(TextSharer):
                             "sessionID": session_id,
                             "secret": secret,
                             "key": part_key,
-                            "content": part_content,
+                            "content": part,
                         },
                     )
                     resp.raise_for_status()
@@ -361,7 +354,7 @@ class OpenCodeSharer(TextSharer):
 
     async def share_conversation(
         self,
-        conversation: Conversation,
+        conversation: MessageHistory,
         *,
         title: str | None = None,
         visibility: Visibility = "unlisted",
@@ -384,7 +377,8 @@ class OpenCodeSharer(TextSharer):
         """
         # Get messages to share
         messages_to_share = (
-            conversation.messages[-num_messages:] if num_messages else conversation.messages
+            conversation.chat_messages[-num_messages:] if num_messages
+            else conversation.chat_messages
         )
 
         # Filter out system messages if requested
@@ -392,20 +386,7 @@ class OpenCodeSharer(TextSharer):
             messages_to_share = [msg for msg in messages_to_share if msg.role != "system"]
 
         return await self._share_chat_messages(
-            messages_to_share,
-            title=title,
-            visibility=visibility,
-            expires_in=expires_in,
-        )
-
-        opencode_messages = []
-        for msg in messages_to_share:
-            if not include_system and msg.role == "system":
-                continue
-            opencode_messages.append(Message.text(msg.role, msg.text_content or ""))
-
-        return await self._share_opencode_conversation(
-            opencode_messages,
+            list(messages_to_share),
             title=title,
             visibility=visibility,
             expires_in=expires_in,

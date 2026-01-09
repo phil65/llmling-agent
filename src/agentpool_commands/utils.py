@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import importlib.util
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 import webbrowser
 
-from anyenv.text_sharing import TextSharerStr, Visibility  # noqa: TC002
 from slashed import CommandContext, CommandError  # noqa: TC002
 
 from agentpool.messaging.context import NodeContext  # noqa: TC001
 from agentpool_commands.base import NodeCommand
+
+
+if TYPE_CHECKING:
+    from agentpool_commands.text_sharing import TextSharerStr, Visibility
 
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -154,24 +157,31 @@ class ShareHistoryCommand(NodeCommand):
             syntax: Syntax highlighting (e.g., "python", "markdown")
             visibility: Visibility level
         """
-        from anyenv.text_sharing import get_sharer
+        from agentpool_commands.text_sharing import get_sharer
 
-        content = await ctx.context.agent.conversation.format_history(
-            num_messages=num_messages,
-            include_system=include_system,
-            max_tokens=max_tokens,
-            format_template=format_template,
+        conversation = ctx.context.agent.conversation
+
+        # Check if there's content to share
+        messages_to_check = (
+            conversation.messages[-num_messages:] if num_messages else conversation.messages
         )
-
-        if not content.strip():
+        if not messages_to_check:
             await ctx.print("ℹ️ **No content to share**")  # noqa: RUF001
             return
 
         try:
             # Get the appropriate sharer
             sharer = get_sharer(provider)
-            # Share the content
-            result = await sharer.share(content, title=title, syntax=syntax, visibility=visibility)
+
+            # Use structured sharing for providers that support it (OpenCode)
+            # Otherwise fall back to plain text sharing
+            result = await sharer.share_conversation(
+                conversation,
+                title=title,
+                visibility=visibility,
+                num_messages=num_messages,
+                include_system=include_system,
+            )
             # Format success message
             provider_name = sharer.name
             msg_parts = [f"🔗 **Content shared via {provider_name}:**", f"• URL: {result.url}"]
@@ -185,11 +195,6 @@ class ShareHistoryCommand(NodeCommand):
         except Exception as e:
             msg = f"Failed to share content via {provider}: {e}"
             raise CommandError(msg) from e
-
-    @classmethod
-    def condition(cls) -> bool:
-        """Check if anyenv text_sharing is available."""
-        return importlib.util.find_spec("anyenv.text_sharing") is not None
 
 
 class GetLogsCommand(NodeCommand):

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+
+if TYPE_CHECKING:
+    from agentpool.messaging.message_history import MessageHistory
 
 
 Visibility = Literal["public", "unlisted", "private"]
@@ -60,7 +64,7 @@ class TextSharer(abc.ABC):
 
     async def share_conversation(
         self,
-        conversation: Conversation,
+        conversation: MessageHistory,
         *,
         title: str | None = None,
         visibility: Visibility = "unlisted",
@@ -75,7 +79,7 @@ class TextSharer(abc.ABC):
         should override this method.
 
         Args:
-            conversation: Conversation object to share
+            conversation: MessageHistory object to share
             title: Optional title for the conversation
             visibility: Visibility level
             expires_in: Expiration time in seconds
