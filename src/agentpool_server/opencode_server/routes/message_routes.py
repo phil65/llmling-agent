@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic_ai import FunctionToolCallEvent
 from pydantic_ai.messages import (
     PartDeltaEvent,
@@ -187,13 +187,16 @@ async def list_messages(
     return messages
 
 
-@router.post("/message")
-async def send_message(  # noqa: PLR0915
+async def _process_message(
     session_id: str,
     request: MessageRequest,
     state: StateDep,
 ) -> MessageWithParts:
-    """Send a message and get response from the agent."""
+    """Internal helper to process a message request.
+
+    This does the actual work of creating messages, running the agent,
+    and broadcasting events. Used by both sync and async endpoints.
+    """
     session = await get_or_load_session(state, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -632,6 +635,40 @@ async def send_message(  # noqa: PLR0915
     # Title generation now handled by StorageManager signal (on_title_generated in server.py)
     # Agent calls log_conversation() → _generate_title_from_prompt() → emits title_generated signal
     return assistant_msg_with_parts
+
+
+@router.post("/message")
+async def send_message(
+    session_id: str,
+    request: MessageRequest,
+    state: StateDep,
+) -> MessageWithParts:
+    """Send a message and wait for the agent's response.
+
+    This is the synchronous version - waits for completion before returning.
+    For async processing, use POST /session/{id}/prompt_async instead.
+    """
+    return await _process_message(session_id, request, state)
+
+
+@router.post("/prompt_async", status_code=status.HTTP_204_NO_CONTENT)
+async def send_message_async(
+    session_id: str,
+    request: MessageRequest,
+    state: StateDep,
+) -> None:
+    """Send a message asynchronously without waiting for response.
+
+    Starts the agent processing in the background and returns immediately.
+    Client should listen to SSE events to get updates.
+
+    Returns 204 No Content immediately.
+    """
+    # Create background task to process the message
+    state.create_background_task(
+        _process_message(session_id, request, state),
+        name=f"process_message_{session_id}",
+    )
 
 
 @router.get("/message/{message_id}")

@@ -90,9 +90,9 @@ This document tracks the implementation status of OpenCode-compatible API endpoi
 | Status | Method | Path | Description |
 |--------|--------|------|-------------|
 | [x] | GET | `/session/{id}/message` | List messages in session |
-| [~] | POST | `/session/{id}/message` | Send message (wait for response) |
+| [x] | POST | `/session/{id}/message` | Send message (wait for response) |
 | [x] | GET | `/session/{id}/message/{messageID}` | Get message details |
-| [ ] | POST | `/session/{id}/prompt_async` | Send message async (no wait) |
+| [x] | POST | `/session/{id}/prompt_async` | Send message async (no wait) |
 | [x] | POST | `/session/{id}/command` | Execute slash command (MCP prompts) |
 | [x] | POST | `/session/{id}/shell` | Run shell command |
 
