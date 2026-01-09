@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 import os
 from typing import TYPE_CHECKING, Any, Self
 
 from anyenv import method_spawner
+from anyenv.signals import Signal
 from pydantic import BaseModel
 from pydantic_ai import Agent
 
@@ -51,6 +53,23 @@ class ConversationMetadata(BaseModel):
     """Iconify icon name (e.g., 'mdi:code-braces')."""
 
 
+@dataclass(frozen=True, slots=True)
+class TitleGeneratedEvent:
+    """Event emitted when a conversation title is generated.
+
+    Attributes:
+        conversation_id: ID of the conversation
+        title: Generated title text
+        emoji: Generated emoji representing the topic
+        icon: Generated iconify icon name
+    """
+
+    conversation_id: str
+    title: str
+    emoji: str
+    icon: str
+
+
 class StorageManager:
     """Manages multiple storage providers.
 
@@ -59,7 +78,18 @@ class StorageManager:
     - Message distribution to providers
     - History loading from capable providers
     - Global logging filters
+
+    Signals:
+    - title_generated: Emitted when a conversation title is generated.
+      Subscribers receive TitleGeneratedEvent with conversation_id, title, emoji, icon.
+
+    Example:
+        manager.title_generated.connect(my_handler)
+        # Handler will be called with TitleGeneratedEvent when titles are generated
     """
+
+    # Signal emitted when a conversation title is generated
+    title_generated: Signal[TitleGeneratedEvent] = Signal()
 
     def __init__(self, config: StorageConfig) -> None:
         """Initialize storage manager.
@@ -271,11 +301,19 @@ class StorageManager:
 
         # Trigger title generation if prompt provided and model configured
         # Skip during tests to avoid external API calls
+        logger.info(
+            "log_conversation check",
+            conversation_id=conversation_id,
+            has_initial_prompt=bool(initial_prompt),
+            has_model=bool(self.config.title_generation_model),
+            in_test=bool(os.environ.get("PYTEST_CURRENT_TEST")),
+        )
         if (
             initial_prompt
             and self.config.title_generation_model
             and not os.environ.get("PYTEST_CURRENT_TEST")
         ):
+            logger.info("Creating title generation task", conversation_id=conversation_id)
             self.task_manager.create_task(
                 self._generate_title_from_prompt(
                     conversation_id, initial_prompt, on_title_generated
@@ -636,7 +674,9 @@ class StorageManager:
         Returns:
             ConversationMetadata with title, emoji, and icon, or None if generation fails.
         """
+        logger.info("_generate_title_core called", conversation_id=conversation_id)
         if not self.config.title_generation_model:
+            logger.info("No title_generation_model configured, skipping")
             return None
 
         try:
@@ -648,6 +688,7 @@ class StorageManager:
                 instructions=self.config.title_generation_prompt,
                 output_type=ConversationMetadata,
             )
+            logger.debug("Title generation prompt", prompt_text=prompt_text)
             result = await agent.run(prompt_text)
             metadata = result.output
 
@@ -660,6 +701,17 @@ class StorageManager:
                 emoji=metadata.emoji,
                 icon=metadata.icon,
             )
+
+            # Emit signal for subscribers (e.g., OpenCode UI updates)
+            event = TitleGeneratedEvent(
+                conversation_id=conversation_id,
+                title=metadata.title,
+                emoji=metadata.emoji,
+                icon=metadata.icon,
+            )
+            logger.info("Emitting title_generated signal", conversation_id=conversation_id, title=metadata.title)
+            await self.title_generated.emit(event)
+
             return metadata
         except Exception:
             logger.exception("Failed to generate session title", conversation_id=conversation_id)

@@ -25,7 +25,6 @@ from agentpool.agents.events import (
     ToolCallProgressEvent,
     ToolCallStartEvent,
 )
-from agentpool.messaging.messages import ChatMessage
 from agentpool.utils import identifiers as identifier
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool_server.opencode_server.converters import (
@@ -48,7 +47,6 @@ from agentpool_server.opencode_server.models import (  # noqa: TC001
     SessionIdleEvent,
     SessionStatus,
     SessionStatusEvent,
-    SessionUpdatedEvent,
     StepFinishPart,
     StepStartPart,
     TextPart,
@@ -71,10 +69,7 @@ from agentpool_server.opencode_server.models.parts import (
     TimeStartEndOptional,
     TokenCache,
 )
-from agentpool_server.opencode_server.routes.session_routes import (
-    get_or_load_session,
-    opencode_to_session_data,
-)
+from agentpool_server.opencode_server.routes.session_routes import get_or_load_session
 from agentpool_server.opencode_server.time_utils import now_ms
 
 
@@ -169,48 +164,6 @@ async def persist_message_to_storage(
         await state.pool.storage.log_message(chat_msg)
     except Exception:  # noqa: BLE001
         # Don't fail the request if storage fails
-        pass
-
-
-async def _generate_session_title(
-    state: ServerState,
-    session_id: str,
-    user_prompt: str,
-    assistant_response: str,
-) -> None:
-    """Generate a title for the session in the background."""
-    try:
-        if not state.pool.storage:
-            return
-
-        # Create ChatMessage objects for the title generator
-        messages = [
-            ChatMessage[str](role="user", content=user_prompt),
-            ChatMessage[str](role="assistant", content=assistant_response),
-        ]
-
-        # Generate title using storage manager
-        title = await state.pool.storage.generate_conversation_title(
-            messages=messages,
-            conversation_id=session_id,
-        )
-
-        if title and session_id in state.sessions:
-            # Update session with new title
-            session = state.sessions[session_id]
-            updated_session = session.model_copy(update={"title": title})
-            state.sessions[session_id] = updated_session
-            session_data = opencode_to_session_data(
-                updated_session,
-                agent_name=state.agent.name,
-                pool_id=state.pool.manifest.config_file_path,
-            )
-            await state.pool.sessions.store.save(session_data)
-
-            # Broadcast session update
-            await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
-    except Exception:  # noqa: BLE001
-        # Don't fail if title generation fails
         pass
 
 
@@ -331,7 +284,7 @@ async def send_message(  # noqa: PLR0915
             agent = state.agent.agent_pool.all_agents.get(request.agent, state.agent)
 
         # Stream events from the agent
-        async for event in agent.run_stream(user_prompt):
+        async for event in agent.run_stream(user_prompt, conversation_id=session_id):
             match event:
                 # Text streaming start
                 case PartStartEvent(part=PydanticTextPart(content=delta)):
@@ -676,14 +629,8 @@ async def send_message(  # noqa: PLR0915
     state.sessions[session_id] = session.model_copy(
         update={"time": TimeCreatedUpdated(created=session.time.created, updated=response_time)}
     )
-    # Trigger title generation if session has default title
-    if session.title == "New Session" and state.pool.storage:
-        # Convert user_prompt to string if it's a list
-        prompt_str = user_prompt if isinstance(user_prompt, str) else str(user_prompt)
-        state.create_background_task(
-            _generate_session_title(state, session_id, prompt_str, response_text),
-            name=f"generate_title_{session_id}",
-        )
+    # Title generation now handled by StorageManager signal (on_title_generated in server.py)
+    # Agent calls log_conversation() → _generate_title_from_prompt() → emits title_generated signal
     return assistant_msg_with_parts
 
 
