@@ -25,6 +25,7 @@ from agentpool_server.opencode_server.routes import (
     global_router,
     lsp_router,
     message_router,
+    permission_router,
     pty_router,
     session_router,
     tui_router,
@@ -317,6 +318,7 @@ def create_app(  # noqa: PLR0915
     app.include_router(message_router)
     app.include_router(file_router)
     app.include_router(agent_router)
+    app.include_router(permission_router)
     app.include_router(pty_router)
     app.include_router(tui_router)
     app.include_router(lsp_router)
