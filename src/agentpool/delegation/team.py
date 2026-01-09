@@ -205,9 +205,19 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
                         depth=event.depth + 1,
                     )
                 else:
+                    # Determine source type based on node type
+                    from agentpool.delegation.teamrun import TeamRun
+
+                    if isinstance(node, TeamRun):
+                        source_type = "team_sequential"
+                    elif isinstance(node, BaseTeam):
+                        source_type = "team_parallel"
+                    else:
+                        source_type = "agent"
+
                     yield SubAgentEvent(
                         source_name=node.name,
-                        source_type="team" if isinstance(node, BaseTeam) else "agent",
+                        source_type=source_type,
                         event=event,
                         depth=1,
                     )

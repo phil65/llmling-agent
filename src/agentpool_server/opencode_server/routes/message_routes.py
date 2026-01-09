@@ -20,6 +20,7 @@ from agentpool.agents.events import (
     FileContentItem,
     LocationContentItem,
     StreamCompleteEvent,
+    SubAgentEvent,
     TextContentItem,
     ToolCallCompleteEvent,
     ToolCallProgressEvent,
@@ -537,6 +538,57 @@ async def _process_message(
                     if msg.cost_info and msg.cost_info.total_cost:
                         # Cost is in Decimal dollars, OpenCode expects float dollars
                         total_cost = float(msg.cost_info.total_cost)
+
+                # Sub-agent/team event - show final results only
+                case SubAgentEvent(source_name=source_name, source_type=source_type, event=wrapped_event, depth=depth):
+                    indent = "  " * (depth - 1)
+
+                    match wrapped_event:
+                        # Final message from sub-agent/team
+                        case StreamCompleteEvent(message=msg):
+                            # Show indicator
+                            icon = "⚡" if source_type == "team_parallel" else "→"
+                            type_label = " (parallel)" if source_type == "team_parallel" else " (sequential)" if source_type == "team_sequential" else ""
+                            indicator = f"{indent}{icon} {source_name}{type_label}"
+
+                            indicator_part = TextPart(
+                                id=identifier.ascending("part"),
+                                message_id=assistant_msg_id,
+                                session_id=session_id,
+                                text=indicator,
+                                time=TimeStartEndOptional(start=now_ms()),
+                            )
+                            assistant_msg_with_parts.parts.append(indicator_part)
+                            await state.broadcast_event(PartUpdatedEvent.create(indicator_part))
+
+                            # Show complete message content
+                            content = str(msg.content) if msg.content else "(no output)"
+                            content_part = TextPart(
+                                id=identifier.ascending("part"),
+                                message_id=assistant_msg_id,
+                                session_id=session_id,
+                                text=content,
+                                time=TimeStartEndOptional(start=now_ms()),
+                            )
+                            assistant_msg_with_parts.parts.append(content_part)
+                            await state.broadcast_event(PartUpdatedEvent.create(content_part))
+
+                        # Tool call completed - show one-line summary
+                        case ToolCallCompleteEvent(tool_name=tool_name, tool_result=result):
+                            # Preview result (first 60 chars)
+                            result_str = str(result) if result else ""
+                            preview = result_str[:60] + "..." if len(result_str) > 60 else result_str
+                            summary = f"{indent}  ├─ {tool_name}: {preview}"
+
+                            summary_part = TextPart(
+                                id=identifier.ascending("part"),
+                                message_id=assistant_msg_id,
+                                session_id=session_id,
+                                text=summary,
+                                time=TimeStartEndOptional(start=now_ms()),
+                            )
+                            assistant_msg_with_parts.parts.append(summary_part)
+                            await state.broadcast_event(PartUpdatedEvent.create(summary_part))
 
                 # Compaction event - emit session.compacted SSE event
                 case CompactionEvent(session_id=compact_session_id, phase=phase):

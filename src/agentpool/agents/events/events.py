@@ -554,8 +554,8 @@ class SubAgentEvent:
 
     source_name: str
     """Name of the agent or team that produced this event."""
-    source_type: Literal["agent", "team"]
-    """Whether the source is an agent or team."""
+    source_type: Literal["agent", "team_parallel", "team_sequential"]
+    """Type of source: agent, parallel team, or sequential team."""
     event: RichAgentStreamEvent[Any]
     """The actual event from the subagent/team."""
     depth: int = 1
