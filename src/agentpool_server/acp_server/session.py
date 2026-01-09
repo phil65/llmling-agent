@@ -14,10 +14,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import anyio
 from exxec.acp_provider import ACPExecutionEnvironment
 import logfire
-from pydantic_ai import (
-    UsageLimitExceeded,
-    UserPromptPart,
-)
+from pydantic_ai import UsageLimitExceeded, UserPromptPart
 from slashed import Command, CommandStore
 from tokonomics.model_discovery.model_info import ModelInfo
 
@@ -25,11 +22,7 @@ from acp import RequestPermissionRequest
 from acp.acp_requests import ACPRequests
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
-from acp.schema import (
-    AvailableCommand,
-    ClientCapabilities,
-    SessionNotification,
-)
+from acp.schema import AvailableCommand, ClientCapabilities, SessionNotification
 from agentpool import Agent, AgentContext  # noqa: TC001
 from agentpool.agents import SlashedAgent
 from agentpool.agents.acp_agent import ACPAgent
@@ -48,10 +41,7 @@ from agentpool_server.acp_server.input_provider import ACPInputProvider
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from pydantic_ai import (
-        SystemPromptPart,
-        UserContent,
-    )
+    from pydantic_ai import SystemPromptPart, UserContent
     from slashed import CommandContext
 
     from acp import Client, RequestPermissionResponse
@@ -246,7 +236,6 @@ class ACPSession:
         self.command_store._initialize_sync()
         self._update_callbacks: list[Callable[[], None]] = []
         self._remote_commands: list[AvailableCommand] = []  # Commands from nested ACP agents
-
         self.staged_content = StagedContent()
         # Inject Zed-specific instructions if client is Zed
         if self.client_info and self.client_info.name and "zed" in self.client_info.name.lower():
@@ -626,11 +615,10 @@ class ACPSession:
         Returns:
             List of ACP AvailableCommand objects compatible with current node
         """
-        all_commands = self.command_store.list_commands()
         current_node = self.agent
         # Filter commands by node compatibility
         compatible_commands = []
-        for cmd in all_commands:
+        for cmd in self.command_store.list_commands():
             cmd_cls = cmd if isinstance(cmd, type) else type(cmd)
             # Check if command supports current node type
             if issubclass(cmd_cls, NodeCommand) and not cmd_cls.supports_node(current_node):  # type: ignore[union-attr]
@@ -705,13 +693,12 @@ class ACPSession:
         ) -> None:
             """Execute the MCP prompt with parsed arguments."""
             # Map parsed args to prompt parameters
-            result = {}
             # Map positional args to prompt parameter names
-            for i, arg_value in enumerate(args):
-                if i < len(prompt.arguments):
-                    param_name = prompt.arguments[i]["name"]
-                    result[param_name] = arg_value
-            result.update(kwargs)
+            result = {
+                prompt.arguments[i]["name"]: arg_value
+                for i, arg_value in enumerate(args)
+                if i < len(prompt.arguments)
+            } | kwargs
             try:  # Get prompt components
                 components = await prompt.get_components(result or None)
                 self.staged_content.add(components)

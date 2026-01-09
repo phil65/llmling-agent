@@ -87,20 +87,15 @@ class ACPSessionManager:
                 logger.warning("Session ID already exists", session_id=session_id)
                 msg = f"Session {session_id} already exists"
                 raise ValueError(msg)
-
             # Create and persist session data via pool's SessionManager
             data = SessionData(
                 session_id=session_id,
                 agent_name=default_agent_name,
                 conversation_id=session_id,
                 cwd=cwd,
-                metadata={
-                    "protocol": "acp",
-                    "mcp_server_count": len(mcp_servers) if mcp_servers else 0,
-                },
+                metadata={"protocol": "acp", "mcp_server_count": len(mcp_servers or [])},
             )
             await self.session_manager.save(data)
-
             # Create the ACP-specific runtime session
             session = ACPSession(
                 session_id=session_id,
@@ -115,26 +110,16 @@ class ACPSessionManager:
                 manager=self,
             )
             session.register_update_callback(self._on_commands_updated)
-
             # Initialize async resources
             await session.initialize()
-
             # Initialize MCP servers if any are provided
             await session.initialize_mcp_servers()
-
             self._active[session_id] = session
             logger.info("Created ACP session", session_id=session_id, agent=default_agent_name)
             return session_id
 
     def get_session(self, session_id: str) -> ACPSession | None:
-        """Get an active session by ID.
-
-        Args:
-            session_id: Session identifier
-
-        Returns:
-            ACPSession instance or None if not found
-        """
+        """Get an active session by ID."""
         return self._active.get(session_id)
 
     async def resume_session(
@@ -161,7 +146,6 @@ class ACPSessionManager:
             # Check if already active
             if session_id in self._active:
                 return self._active[session_id]
-
             # Try to load from pool's session store
             data = await self.session_manager.store.load(session_id)
             if data is None:
@@ -170,11 +154,8 @@ class ACPSessionManager:
 
             # Validate agent still exists
             if data.agent_name not in self._pool.all_agents:
-                logger.warning(
-                    "Session agent no longer exists",
-                    session_id=session_id,
-                    agent=data.agent_name,
-                )
+                msg = "Session agent no longer exists"
+                logger.warning(msg, session_id=session_id, agent=data.agent_name)
                 return None
 
             # Reconstruct ACP session
@@ -191,10 +172,8 @@ class ACPSessionManager:
                 manager=self,
             )
             session.register_update_callback(self._on_commands_updated)
-
             # Initialize async resources
             await session.initialize()
-
             self._active[session_id] = session
             logger.info("Resumed ACP session", session_id=session_id)
             return session
@@ -224,10 +203,8 @@ class ACPSessionManager:
             session_id: Session identifier
             agent_name: New agent name
         """
-        session = self._active.get(session_id)
-        if not session:
+        if not self._active.get(session_id):
             return
-
         # Load, update, and save session data
         data = await self.session_manager.store.load(session_id)
         if data:
@@ -267,11 +244,8 @@ class ACPSessionManager:
                 await session.close()
                 closed_count += 1
             except Exception:
-                logger.exception(
-                    "Error closing session during pool swap", session=session.session_id
-                )
-
-        logger.info("Closed all sessions for pool swap", count=closed_count)
+                logger.exception("Error closing session", session=session.session_id)
+        logger.info("Closed all sessions.", count=closed_count)
         return closed_count
 
     async def __aenter__(self) -> Self:
