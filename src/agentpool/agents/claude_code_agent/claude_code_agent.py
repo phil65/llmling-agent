@@ -120,6 +120,7 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery.model_info import ModelInfo
     from toprompt import AnyPromptType
 
+    from agentpool.agents.claude_code_agent.models import ClaudeCodeServerInfo
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
@@ -1507,6 +1508,49 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 id_override="haiku",  # Claude Code SDK uses simple names
             ),
         ]
+
+    async def get_server_info(self) -> ClaudeCodeServerInfo | None:
+        """Get server initialization info from Claude Code.
+
+        Returns information from the Claude Code server including:
+        - Available models (opus, sonnet, haiku) with descriptions and pricing
+        - Available slash commands with descriptions and argument hints
+        - Current and available output styles
+        - Account information (token source, API key source)
+
+        Returns:
+            ClaudeCodeServerInfo with all server capabilities, or None if not connected
+
+        Example:
+            ```python
+            async with ClaudeCodeAgent(name="claude") as agent:
+                info = await agent.get_server_info()
+                if info:
+                    print(f"Available models: {[m.value for m in info.models]}")
+                    print(f"Available commands: {[c.name for c in info.commands]}")
+            ```
+        """
+        from agentpool.agents.claude_code_agent.models import ClaudeCodeServerInfo
+
+        # Ensure client is connected
+        await self.ensure_initialized()
+
+        if not self._client:
+            self.log.warning("Cannot get server info: not connected")
+            return None
+
+        # Get raw server info from SDK client
+        raw_info = await self._client.get_server_info()
+        if not raw_info:
+            self.log.warning("No server info available from Claude Code")
+            return None
+
+        # Parse into typed model
+        try:
+            return ClaudeCodeServerInfo.model_validate(raw_info)
+        except Exception as e:
+            self.log.error("Failed to parse server info", error=str(e))
+            return None
 
     async def get_modes(self) -> list[ModeCategory]:
         """Get available mode categories for Claude Code agent.
