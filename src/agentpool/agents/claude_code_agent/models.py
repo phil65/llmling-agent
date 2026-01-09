@@ -30,9 +30,7 @@ class ClaudeCodeCommandInfo(BaseModel):
 
     name: str = Field(..., description="Command name without / prefix")
     description: str = Field(..., description="What the command does")
-    argument_hint: str = Field(
-        ..., alias="argumentHint", description="Usage hint for arguments"
-    )
+    argument_hint: str = Field(..., alias="argumentHint", description="Usage hint for arguments")
 
 
 class ClaudeCodeAccountInfo(BaseModel):
@@ -72,8 +70,6 @@ class ClaudeCodeServerInfo(BaseModel):
     available_output_styles: list[str] = Field(
         default_factory=list, description="All available output styles"
     )
-    account: ClaudeCodeAccountInfo | None = Field(
-        default=None, description="Account information"
-    )
+    account: ClaudeCodeAccountInfo | None = Field(default=None, description="Account information")
 
     model_config = {"populate_by_name": True}

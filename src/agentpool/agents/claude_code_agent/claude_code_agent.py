@@ -1549,7 +1549,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         try:
             return ClaudeCodeServerInfo.model_validate(raw_info)
         except Exception as e:
-            self.log.error("Failed to parse server info", error=str(e))
+            self.log.exception("Failed to parse server info", error=str(e))
             return None
 
     async def get_modes(self) -> list[ModeCategory]:
