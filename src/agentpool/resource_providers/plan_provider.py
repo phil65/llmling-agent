@@ -106,6 +106,11 @@ class PlanProvider(ResourceProvider):
         """
         tracker = self._get_tracker(agent_ctx)
         if tracker is None or not tracker.entries:
+            # Emit progress for empty plan
+            await agent_ctx.events.tool_call_progress(
+                title="Fetched plan (empty)",
+                items=[TextContentItem(text="*No tasks in plan yet.*")],
+            )
             return "## Plan\n\n*No plan entries yet.*"
 
         lines = ["## Plan", ""]
@@ -124,7 +129,29 @@ class PlanProvider(ResourceProvider):
             priority = priority_labels.get(entry.priority, "")
             lines.append(f"{i}. {icon} {priority} {entry.content} *({entry.status})*")
 
-        return "\n".join(lines)
+        # Count entries by status
+        pending = sum(1 for e in tracker.entries if e.status == "pending")
+        in_progress = sum(1 for e in tracker.entries if e.status == "in_progress")
+        completed = sum(1 for e in tracker.entries if e.status == "completed")
+        total = len(tracker.entries)
+
+        # Build title with summary
+        if total == 1:
+            title = "Fetched plan with 1 task"
+        else:
+            title = f"Fetched plan with {total} tasks"
+
+        if completed > 0:
+            title += f" ({completed} completed)"
+
+        # Emit progress with plan preview
+        plan_text = "\n".join(lines)
+        await agent_ctx.events.tool_call_progress(
+            title=title,
+            items=[TextContentItem(text=plan_text)],
+        )
+
+        return plan_text
 
     async def set_plan(
         self,
