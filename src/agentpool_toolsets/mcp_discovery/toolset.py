@@ -17,7 +17,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from pydantic import HttpUrl
+from pydantic_ai import RunContext  # noqa: TC002
 
+from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.log import get_logger
 from agentpool.mcp_server.client import MCPClient
 from agentpool.mcp_server.registries.official_registry_client import (
@@ -30,7 +32,8 @@ from agentpool.resource_providers import ResourceProvider
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from agentpool.agents.context import AgentContext
+    from fastmcp.client.sampling import SamplingHandler
+
     from agentpool.mcp_server.registries.official_registry_client import RegistryServer
     from agentpool.tools.base import Tool
     from agentpool_config.mcp_server import MCPServerConfig
@@ -60,6 +63,7 @@ class MCPDiscoveryToolset(ResourceProvider):
         registry_url: str = "https://registry.modelcontextprotocol.io",
         allowed_servers: list[str] | None = None,
         blocked_servers: list[str] | None = None,
+        sampling_callback: SamplingHandler[Any, Any] | None = None,
     ) -> None:
         """Initialize the MCP Discovery toolset.
 
@@ -68,6 +72,7 @@ class MCPDiscoveryToolset(ResourceProvider):
             registry_url: Base URL for the MCP registry API
             allowed_servers: If set, only these server names can be used
             blocked_servers: Server names that cannot be used
+            sampling_callback: Callback for MCP sampling requests
         """
         super().__init__(name=name)
         self._registry_url = registry_url
@@ -77,6 +82,7 @@ class MCPDiscoveryToolset(ResourceProvider):
         self._tools_cache: dict[str, list[dict[str, Any]]] = {}
         self._allowed_servers = set(allowed_servers) if allowed_servers else None
         self._blocked_servers = set(blocked_servers) if blocked_servers else set()
+        self._sampling_callback = sampling_callback
         self._tools: list[Tool] | None = None
         # Lazy-loaded semantic search components
         self._db: Any = None
@@ -193,7 +199,7 @@ class MCPDiscoveryToolset(ResourceProvider):
             del self._connections[server_name]
 
         config = await self._get_server_config(server_name)
-        client = MCPClient(config=config)
+        client = MCPClient(config=config, sampling_callback=self._sampling_callback)
         await client.__aenter__()
         self._connections[server_name] = client
         logger.info("Connected to MCP server", server=server_name)
@@ -389,6 +395,7 @@ class MCPDiscoveryToolset(ResourceProvider):
 
     async def call_mcp_tool(  # noqa: D417
         self,
+        ctx: RunContext,
         agent_ctx: AgentContext,
         server_name: str,
         tool_name: str,
@@ -398,6 +405,9 @@ class MCPDiscoveryToolset(ResourceProvider):
 
         Use this to execute a specific tool on an MCP server. The server
         connection is reused if already established.
+
+        This properly supports progress reporting, elicitation, and sampling
+        through the AgentContext integration.
 
         Args:
             server_name: Name of the MCP server (e.g., "com.github/github")
@@ -418,21 +428,16 @@ class MCPDiscoveryToolset(ResourceProvider):
         try:
             client = await self._get_connection(server_name)
 
-            # Extract text content from result
-            from mcp.types import TextContent
+            # Use MCPClient.call_tool which handles progress, elicitation, and sampling
+            result = await client.call_tool(
+                name=tool_name,
+                run_context=ctx,
+                arguments=arguments or {},
+                agent_ctx=agent_ctx,
+            )
 
-            result = await client._client.call_tool(tool_name, arguments or {})
-
-            # Process result content
-            text_parts = [
-                content.text for content in result.content if isinstance(content, TextContent)
-            ]
-
-            if text_parts:
-                return "\n".join(text_parts)
-
-            # Return raw result if no text content
-            return str(result)
+            # Result is already processed by MCPClient (ToolReturn, str, or structured data)
+            return result
 
         except MCPRegistryError as e:
             return f"Error: {e}"
@@ -454,3 +459,54 @@ class MCPDiscoveryToolset(ResourceProvider):
             self._tmpdir = None
         self._db = None
         self._table = None
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    from agentpool.agents.agent import Agent
+
+    async def main() -> None:
+        """End-to-end example: Add MCP discovery toolset to an agent and call a tool."""
+        # Create the discovery toolset
+        toolset = MCPDiscoveryToolset(
+            name="mcp_discovery",
+            # Optionally restrict to specific servers for safety
+            # allowed_servers=["@modelcontextprotocol/server-everything"],
+        )
+
+        # Create an AgentPool agent with the toolset
+        agent = Agent(
+            model="openai:gpt-4o",
+            system_prompt="""
+            You are a helpful assistant with access to MCP servers.
+            Use the MCP discovery tools to search for and use tools from the MCP ecosystem.
+            """,
+            toolsets=[toolset],
+        )
+
+        async with agent:
+            # Example 1: Search for servers
+            print("\n=== Example 1: Search for file system servers ===")
+            result = await agent.run(
+                "Search for MCP servers related to file systems and show me the top 3 results"
+            )
+            print(result.data)
+
+            # Example 2: List tools from a specific server
+            print("\n=== Example 2: List tools from a server ===")
+            result = await agent.run(
+                "List the tools available on the '@modelcontextprotocol/server-everything' server"
+            )
+            print(result.data)
+
+            # Example 3: Call a tool (using a safe, read-only tool for demo)
+            print("\n=== Example 3: Call a tool ===")
+            result = await agent.run(
+                """Use the MCP discovery to call the 'echo' tool from
+                '@modelcontextprotocol/server-everything' with the argument
+                message='Hello from MCP Discovery!'"""
+            )
+            print(result.data)
+
+    asyncio.run(main())
