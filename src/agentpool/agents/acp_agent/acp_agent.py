@@ -47,8 +47,6 @@ from pydantic_ai import (
     UserPromptPart,
 )
 
-from agentpool.agents.acp_agent.acp_converters import convert_to_acp_content, mcp_configs_to_acp
-from agentpool.agents.acp_agent.client_handler import ACPClientHandler
 from agentpool.agents.acp_agent.session_state import ACPSessionState
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallStartEvent
@@ -85,6 +83,7 @@ if TYPE_CHECKING:
     )
     from acp.schema.mcp import McpServer
     from agentpool.agents import AgentContext
+    from agentpool.agents.acp_agent.client_handler import ACPClientHandler
     from agentpool.agents.base_agent import ToolConfirmationMode
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
@@ -349,6 +348,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         from acp.client.connection import ClientSideConnection
         from acp.schema import InitializeRequest
+        from agentpool.agents.acp_agent.client_handler import ACPClientHandler
 
         if not self._process or not self._process.stdin or not self._process.stdout:
             msg = "Process not started"
@@ -381,6 +381,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     async def _create_session(self) -> None:
         """Create a new ACP session with configured MCP servers."""
         from acp.schema import NewSessionRequest
+        from agentpool.agents.acp_agent.acp_converters import mcp_configs_to_acp
 
         if not self._connection:
             msg = "Connection not initialized"
@@ -525,6 +526,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """
         from acp.schema import PromptRequest
         from acp.utils import to_acp_content_blocks
+        from agentpool.agents.acp_agent.acp_converters import convert_to_acp_content
 
         # Update input provider if provided
         if input_provider is not None:
