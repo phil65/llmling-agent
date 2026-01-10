@@ -115,7 +115,7 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
 
         return await self._repomap.get_file_map(path, max_tokens=self.map_max_tokens)
 
-    async def _read(  # noqa: PLR0915
+    async def _read(  # noqa: PLR0911, PLR0915
         self,
         ctx: AgentContext,
         path: str,
@@ -159,10 +159,11 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
                     try:
                         content = await self.converter.convert_file(path)
                         await ctx.events.file_operation("read", path=path, success=True)
-                        return content
                     except Exception:  # noqa: BLE001
                         # Converter doesn't support this file type, fall back to binary
                         pass
+                    else:
+                        return content
 
                 # Fall back to native binary handling
                 data = await self._get_fs(ctx)._cat_file(path)
@@ -190,10 +191,11 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
                     try:
                         content = await self.converter.convert_file(path)
                         await ctx.events.file_operation("read", path=path, success=True)
-                        return content
                     except Exception:  # noqa: BLE001
                         # Converter doesn't support this file type, fall back to binary
                         pass
+                    else:
+                        return content
 
                 # Fall back to native binary handling
                 await ctx.events.file_operation("read", path=path, success=True)

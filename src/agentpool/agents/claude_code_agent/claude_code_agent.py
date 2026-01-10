@@ -1426,7 +1426,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         from agentpool.agents.claude_code_agent.static_info import MODELS
 
-        return [MODELS]
+        return MODELS
 
     async def get_server_info(self) -> ClaudeCodeServerInfo | None:
         """Get server initialization info from Claude Code.
@@ -1483,7 +1483,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         models = await self.get_available_models()
         if models:
             current_model = self.model_name or (models[0].id if models else "")
-            models = [
+            modes = [
                 ModeInfo(
                     id=m.id,
                     name=m.name or m.id,
@@ -1496,7 +1496,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 ModeCategory(
                     id="model",
                     name="Model",
-                    available_modes=models,
+                    available_modes=modes,
                     current_mode_id=current_model,
                     category="model",
                 )

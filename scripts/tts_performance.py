@@ -48,11 +48,7 @@ def get_tts_handler(provider: TTSProvider, mode: TTSMode):
             mode=mode,
         )
     else:  # edge
-        config = EdgeTTSEventHandlerConfig(
-            voice="en-US-AriaNeural",
-            min_text_length=10,
-            mode=mode,
-        )
+        config = EdgeTTSEventHandlerConfig(voice="en-US-AriaNeural", min_text_length=10, mode=mode)
     return config.get_handler()
 
 

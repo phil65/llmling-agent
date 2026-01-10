@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Literal
 from exxec_config import ExecutionEnvironmentConfig  # noqa: TC002
 from pydantic import ConfigDict, Field
 
-from agentpool_config.converters import ConversionConfig
+from agentpool_config.converters import ConversionConfig  # noqa: TC001
 from agentpool_config.tools import BaseToolConfig
 
 
