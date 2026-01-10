@@ -1430,7 +1430,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Use id_override to ensure pydantic_ai_id returns simple names like "opus"
         return [
             ModelInfo(
-                id="claude-opus-4-20250514",
+                id="claude-opus-4-5",
                 name="Claude Opus",
                 provider="anthropic",
                 description="Claude Opus - most capable model",
@@ -1445,7 +1445,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 id_override="opus",  # Claude Code SDK uses simple names
             ),
             ModelInfo(
-                id="claude-sonnet-4-20250514",
+                id="claude-sonnet-4-5",
                 name="Claude Sonnet",
                 provider="anthropic",
                 description="Claude Sonnet - balanced performance and speed",
@@ -1460,7 +1460,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 id_override="sonnet",  # Claude Code SDK uses simple names
             ),
             ModelInfo(
-                id="claude-haiku-3-5-20241022",
+                id="claude-haiku-4-5",
                 name="Claude Haiku",
                 provider="anthropic",
                 description="Claude Haiku - fast and cost-effective",
