@@ -908,6 +908,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     name="Mode",
                     available_modes=modes,
                     current_mode_id=acp_modes.current_mode_id,
+                    category="mode",
                 )
             )
 
@@ -929,6 +930,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     name="Model",
                     available_modes=models,
                     current_mode_id=acp_models.current_model_id,
+                    category="model",
                 )
             )
 

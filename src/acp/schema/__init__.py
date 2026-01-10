@@ -96,6 +96,7 @@ from acp.schema.notifications import (
 from acp.schema.session_state import (
     ModelInfo,
     SessionConfigOption,
+    SessionConfigOptionCategory,
     SessionConfigSelect,
     SessionConfigSelectGroup,
     SessionConfigSelectOption,
@@ -222,6 +223,7 @@ __all__ = [
     "ResumeSessionResponse",
     "SessionCapabilities",
     "SessionConfigOption",
+    "SessionConfigOptionCategory",
     "SessionConfigSelect",
     "SessionConfigSelectGroup",
     "SessionConfigSelectOption",

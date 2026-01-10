@@ -7,6 +7,7 @@ to clients. Each agent type can define its own mode categories.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 
 @dataclass
@@ -52,3 +53,15 @@ class ModeCategory:
 
     current_mode_id: str = ""
     """ID of the currently active mode."""
+
+    category: Literal["mode", "model", "thought_level", "other"] | None = None
+    """Optional semantic category for UX purposes (keyboard shortcuts, icons, placement).
+
+    This helps clients distinguish common selector types:
+    - 'mode': Session mode selector
+    - 'model': Model selector
+    - 'thought_level': Thought/reasoning level selector
+    - 'other': Unknown/uncategorized
+
+    MUST NOT be required for correctness. Clients should handle gracefully.
+    """

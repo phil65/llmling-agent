@@ -211,6 +211,7 @@ async def get_session_config_options(agent: Any) -> list[SessionConfigOption]:
                 id=category.id,
                 name=category.name,
                 description=None,
+                category=category.category,
                 current_value=category.current_mode_id,
                 options=options,
             )

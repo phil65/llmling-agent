@@ -624,10 +624,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     stop_condition=target.stop_condition.check if target.stop_condition else None,
                     exit_condition=target.exit_condition.check if target.exit_condition else None,
                 )
-                source.connections.set_wait_state(
-                    target_node,
-                    wait=target.wait_for_completion,
-                )
+                source.connections.set_wait_state(target_node, wait=target.wait_for_completion)
 
     @overload
     def get_agent[TResult = str](

@@ -1644,6 +1644,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     ),
                 ],
                 current_mode_id=current_id,
+                category="mode",
             )
         )
 
@@ -1665,6 +1666,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                         for m in models
                     ],
                     current_mode_id=current_model,
+                    category="model",
                 )
             )
 

@@ -21,6 +21,24 @@ SessionConfigGroupId = str
 """Unique identifier for a group of values within a configuration option."""
 
 
+SessionConfigOptionCategory = Literal["mode", "model", "thought_level", "other"]
+"""**UNSTABLE**: This capability is not part of the spec yet.
+
+Semantic category for a session configuration option.
+
+This is intended to help Clients distinguish broadly common selectors (e.g. model selector vs
+session mode selector vs thought/reasoning level) for UX purposes (keyboard shortcuts, icons,
+placement). It MUST NOT be required for correctness. Clients MUST handle missing or unknown
+categories gracefully (treat as `other`).
+
+Values:
+    - "mode": Session mode selector
+    - "model": Model selector
+    - "thought_level": Thought/reasoning level selector
+    - "other": Unknown / uncategorized selector
+"""
+
+
 class ModelInfo(AnnotatedObject):
     """**UNSTABLE**: This capability is not part of the spec yet.
 
@@ -162,6 +180,9 @@ class SessionConfigOption(AnnotatedObject):
 
     description: str | None = None
     """Optional description for the Client to display to the user."""
+
+    category: SessionConfigOptionCategory | None = None
+    """Optional semantic category for this option (UX only)."""
 
     type: Literal["select"] = Field(default="select", init=False)
     """Discriminator for the config option type (flattened from kind)."""

@@ -1600,6 +1600,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     ),
                 ],
                 current_mode_id=current_id,
+                category="mode",
             )
         )
 
@@ -1621,6 +1622,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         for m in models
                     ],
                     current_mode_id=current_model,
+                    category="model",
                 )
             )
 
