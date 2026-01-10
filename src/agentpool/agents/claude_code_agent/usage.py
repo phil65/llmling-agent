@@ -6,93 +6,55 @@ Works on both Linux and macOS.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 import subprocess
 import sys
-from typing import Any
 
 import anyenv
 import httpx
+from pydantic import BaseModel
 
 
-@dataclass
-class UsageLimit:
+class UsageLimit(BaseModel):
     """A single usage limit with utilization percentage and reset time."""
 
     utilization: float
     """Utilization percentage (0-100)."""
 
-    resets_at: datetime | None
+    resets_at: datetime | None = None
     """When this limit resets, or None if not set."""
 
-    @classmethod
-    def from_dict(cls, data: dict[str, Any] | None) -> UsageLimit | None:
-        """Create from API response dict."""
-        if data is None:
-            return None
-        resets_at = None
-        if data.get("resets_at"):
-            resets_at = datetime.fromisoformat(data["resets_at"].replace("Z", "+00:00"))
-        return cls(utilization=data["utilization"], resets_at=resets_at)
 
-
-@dataclass
-class ExtraUsage:
+class ExtraUsage(BaseModel):
     """Extra usage information for paid plans."""
 
-    is_enabled: bool
-    monthly_limit: float | None
-    used_credits: float | None
-    utilization: float | None
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any] | None) -> ExtraUsage | None:
-        """Create from API response dict."""
-        if data is None:
-            return None
-        return cls(
-            is_enabled=data.get("is_enabled", False),
-            monthly_limit=data.get("monthly_limit"),
-            used_credits=data.get("used_credits"),
-            utilization=data.get("utilization"),
-        )
+    is_enabled: bool = False
+    monthly_limit: float | None = None
+    used_credits: float | None = None
+    utilization: float | None = None
 
 
-@dataclass
-class ClaudeCodeUsage:
+class ClaudeCodeUsage(BaseModel):
     """Claude Code usage limits."""
 
-    five_hour: UsageLimit | None
+    five_hour: UsageLimit | None = None
     """5-hour rolling usage limit."""
 
-    seven_day: UsageLimit | None
+    seven_day: UsageLimit | None = None
     """7-day rolling usage limit."""
 
-    seven_day_opus: UsageLimit | None
+    seven_day_opus: UsageLimit | None = None
     """7-day Opus-specific limit."""
 
-    seven_day_sonnet: UsageLimit | None
+    seven_day_sonnet: UsageLimit | None = None
     """7-day Sonnet-specific limit."""
 
-    seven_day_oauth_apps: UsageLimit | None
+    seven_day_oauth_apps: UsageLimit | None = None
     """7-day OAuth apps limit."""
 
-    extra_usage: ExtraUsage | None
+    extra_usage: ExtraUsage | None = None
     """Extra usage info for paid plans."""
-
-    @classmethod
-    def from_api_response(cls, data: dict[str, Any]) -> ClaudeCodeUsage:
-        """Create from API response."""
-        return cls(
-            five_hour=UsageLimit.from_dict(data.get("five_hour")),
-            seven_day=UsageLimit.from_dict(data.get("seven_day")),
-            seven_day_opus=UsageLimit.from_dict(data.get("seven_day_opus")),
-            seven_day_sonnet=UsageLimit.from_dict(data.get("seven_day_sonnet")),
-            seven_day_oauth_apps=UsageLimit.from_dict(data.get("seven_day_oauth_apps")),
-            extra_usage=ExtraUsage.from_dict(data.get("extra_usage")),
-        )
 
     def format_table(self) -> str:
         """Format usage as a readable table."""
@@ -231,7 +193,7 @@ async def get_usage_async(token: str | None = None) -> ClaudeCodeUsage:
             },
         )
         response.raise_for_status()
-        return ClaudeCodeUsage.from_api_response(response.json())
+        return ClaudeCodeUsage.model_validate(response.json())
 
 
 def get_usage(token: str | None = None) -> ClaudeCodeUsage:
@@ -266,7 +228,7 @@ def get_usage(token: str | None = None) -> ClaudeCodeUsage:
             },
         )
         response.raise_for_status()
-        return ClaudeCodeUsage.from_api_response(response.json())
+        return ClaudeCodeUsage.model_validate(response.json())
 
 
 if __name__ == "__main__":
