@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self, get_args, get_origin
 from uuid import uuid4
 
 import anyio
+from fastmcp.tools.tool import ToolResult
 from pydantic import BaseModel, HttpUrl
 
 from agentpool.agents import Agent
@@ -32,7 +33,6 @@ if TYPE_CHECKING:
 
     from claude_agent_sdk.types import McpServerConfig
     from fastmcp import Context, FastMCP
-    from fastmcp.tools.tool import ToolResult
     from pydantic_ai import RunContext
     from uvicorn import Server
 
@@ -439,9 +439,30 @@ class ToolManagerBridge:
                 self._tool = tool
                 self._bridge = bridge
 
+                # Create Pydantic validator from schema for argument validation
+                # This replicates what FunctionTool does but we need to do it manually
+                # since we're overriding run() and bypassing the normal validation
+                from schemez.schema_to_type import json_schema_to_pydantic_class
+
+                self._validator = json_schema_to_pydantic_class(
+                    filtered_schema,
+                    class_name=f"{tool.name}_Args",
+                )
+
             async def run(self, arguments: dict[str, Any]) -> ToolResult:
                 """Execute the wrapped tool with context bridging."""
                 from fastmcp.server.dependencies import get_context
+                from pydantic import ValidationError
+
+                # Validate arguments against schema before tool execution
+                # This catches type errors like line=">1625" before tool execution
+                try:
+                    self._validator.model_validate(arguments)
+                except ValidationError as e:
+                    # Return validation error as tool result (not exception)
+                    # This makes the error visible to the LLM so it can fix it
+                    error_msg = f"Invalid parameters: {e}"
+                    return ToolResult(content=error_msg)
 
                 # Get FastMCP context from context variable (not passed as parameter)
                 try:
@@ -462,10 +483,16 @@ class ToolManagerBridge:
                 )
                 # Invoke with context - copy arguments since invoke_tool_with_context
                 # modifies kwargs in-place to inject context parameters
-                result = await self._bridge.invoke_tool_with_context(
-                    self._tool, ctx, arguments.copy()
-                )
-                return _convert_to_tool_result(result)
+                try:
+                    result = await self._bridge.invoke_tool_with_context(
+                        self._tool, ctx, arguments.copy()
+                    )
+                    return _convert_to_tool_result(result)
+                except Exception as e:
+                    # Catch exceptions during tool execution
+                    # Return as tool result so LLM can see and recover
+                    error_msg = f"Error executing tool: {type(e).__name__}: {e}"
+                    return ToolResult(content=error_msg)
 
         # Create a custom FastMCP Tool that wraps our tool
         bridge_tool = _BridgeTool(tool=tool, bridge=self)
