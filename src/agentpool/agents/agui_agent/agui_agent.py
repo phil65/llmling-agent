@@ -252,7 +252,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         from agentpool.models.agui_agents import AGUIAgentConfig
         from agentpool.models.manifest import AgentsManifest
 
-        cfg = AGUIAgentConfig(
+        cfg = AGUIAgentConfig(  # type: ignore[call-arg]
             name=self.name,
             description=self.description,
             display_name=self.display_name,
