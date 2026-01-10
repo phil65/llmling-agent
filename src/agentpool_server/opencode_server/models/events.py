@@ -6,8 +6,8 @@ from typing import Any, Literal, Self
 
 from pydantic import Field
 
-from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.app import Project  # noqa: TC001
+from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.message import (  # noqa: TC001
     AssistantMessage,
     UserMessage,
@@ -228,9 +228,7 @@ class MessageRemovedEvent(OpenCodeBaseModel):
         Returns:
             MessageRemovedEvent instance
         """
-        return cls(
-            properties=MessageRemovedProperties(sessionID=session_id, messageID=message_id)
-        )
+        return cls(properties=MessageRemovedProperties(sessionID=session_id, messageID=message_id))
 
 
 class PartRemovedProperties(OpenCodeBaseModel):

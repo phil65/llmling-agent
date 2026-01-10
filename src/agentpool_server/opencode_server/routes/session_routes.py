@@ -1039,9 +1039,7 @@ async def revert_session(session_id: str, request: RevertRequest, state: StateDe
 
         # Emit part.removed events for all parts
         for part in msg.parts:
-            await state.broadcast_event(
-                PartRemovedEvent.create(session_id, msg.info.id, part.id)
-            )
+            await state.broadcast_event(PartRemovedEvent.create(session_id, msg.info.id, part.id))
 
     # Also revert file changes if any
     file_ops = state.pool.file_ops

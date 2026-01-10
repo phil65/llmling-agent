@@ -41,7 +41,6 @@ from agentpool_server.opencode_server.models import (
     MessageTime,
     MessageUpdatedEvent,
     MessageWithParts,
-    Part,
     PartUpdatedEvent,
     SessionCompactedEvent,
     SessionErrorEvent,
@@ -75,6 +74,9 @@ from agentpool_server.opencode_server.time_utils import now_ms
 
 
 if TYPE_CHECKING:
+    from agentpool_server.opencode_server.models import (
+        Part,
+    )
     from agentpool_server.opencode_server.state import ServerState
 
 
@@ -188,7 +190,7 @@ async def list_messages(
     return messages
 
 
-async def _process_message(
+async def _process_message(  # noqa: PLR0915
     session_id: str,
     request: MessageRequest,
     state: StateDep,
@@ -540,7 +542,12 @@ async def _process_message(
                         total_cost = float(msg.cost_info.total_cost)
 
                 # Sub-agent/team event - show final results only
-                case SubAgentEvent(source_name=source_name, source_type=source_type, event=wrapped_event, depth=depth):
+                case SubAgentEvent(
+                    source_name=source_name,
+                    source_type=source_type,
+                    event=wrapped_event,
+                    depth=depth,
+                ):
                     indent = "  " * (depth - 1)
 
                     match wrapped_event:
@@ -548,7 +555,13 @@ async def _process_message(
                         case StreamCompleteEvent(message=msg):
                             # Show indicator
                             icon = "⚡" if source_type == "team_parallel" else "→"
-                            type_label = " (parallel)" if source_type == "team_parallel" else " (sequential)" if source_type == "team_sequential" else ""
+                            type_label = (
+                                " (parallel)"
+                                if source_type == "team_parallel"
+                                else " (sequential)"
+                                if source_type == "team_sequential"
+                                else ""
+                            )
                             indicator = f"{indent}{icon} {source_name}{type_label}"
 
                             indicator_part = TextPart(
@@ -577,7 +590,9 @@ async def _process_message(
                         case ToolCallCompleteEvent(tool_name=tool_name, tool_result=result):
                             # Preview result (first 60 chars)
                             result_str = str(result) if result else ""
-                            preview = result_str[:60] + "..." if len(result_str) > 60 else result_str
+                            preview = (
+                                result_str[:60] + "..." if len(result_str) > 60 else result_str  # noqa: PLR2004
+                            )
                             summary = f"{indent}  ├─ {tool_name}: {preview}"
 
                             summary_part = TextPart(

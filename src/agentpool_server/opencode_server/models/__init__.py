@@ -127,46 +127,33 @@ from agentpool_server.opencode_server.models.events import (
     SessionStatusProperties,
     SessionUpdatedEvent,
 )
-from agentpool_server.opencode_server.models.mcp import (
-    LogRequest,
-    MCPStatus,
-    McpResource,
-)
-from agentpool_server.opencode_server.models.config import (
-    Config,
-)
+from agentpool_server.opencode_server.models.mcp import LogRequest, MCPStatus, McpResource
+from agentpool_server.opencode_server.models.config import Config
 
 __all__ = [
-    # Agent
     "Agent",
     "AgentPart",
-    # App
     "App",
     "AppTimeInfo",
-    # Message
     "AssistantMessage",
     "Command",
     "CommandRequest",
     "CompactionPart",
-    # Config
     "Config",
-    # Events
     "Event",
-    # File
     "FileContent",
     "FileNode",
-    # Parts
     "FilePart",
     "FilePartInput",
     "FileStatus",
     "FindMatch",
     "HealthResponse",
-    # MCP
     "LogRequest",
     "MCPStatus",
     "McpResource",
     "MessageInfo",
     "MessagePath",
+    "MessageRemovedEvent",
     "MessageRequest",
     "MessageSummary",
     "MessageTime",
@@ -175,24 +162,24 @@ __all__ = [
     "MessageWithParts",
     "Mode",
     "ModeModel",
-    # Provider
     "Model",
     "ModelCost",
     "ModelLimit",
-    # Base
     "OpenCodeBaseModel",
     "Part",
     "PartInput",
+    "PartRemovedEvent",
     "PartUpdatedEvent",
     "PartUpdatedEventProperties",
     "PatchPart",
     "PathInfo",
     "Project",
     "ProjectTime",
+    "ProjectUpdateRequest",
+    "ProjectUpdatedEvent",
     "Provider",
     "ProviderListResponse",
     "ProvidersResponse",
-    # PTY
     "PtyCreateRequest",
     "PtyInfo",
     "PtySize",
@@ -200,7 +187,6 @@ __all__ = [
     "ReasoningPart",
     "RetryPart",
     "ServerConnectedEvent",
-    # Session
     "Session",
     "SessionCompactedEvent",
     "SessionCompactedProperties",
@@ -233,10 +219,8 @@ __all__ = [
     "Symbol",
     "TextPart",
     "TextPartInput",
-    # Common
     "TimeCreated",
     "TimeCreatedUpdated",
-    # Time types (from parts.py)
     "TimeStart",
     "TimeStartEnd",
     "TimeStartEndCompacted",

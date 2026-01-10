@@ -9,14 +9,13 @@ This is the reverse of the conversion done in acp_server/session.py handle_event
 from __future__ import annotations
 
 import base64
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, assert_never, overload
 
 from pydantic_ai import (
     AudioUrl,
     BinaryContent,
     BinaryImage,
     DocumentUrl,
-    FinishReason,
     ImageUrl,
     PartDeltaEvent,
     TextPartDelta,
@@ -54,7 +53,7 @@ from agentpool.agents.events import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai import UserContent
+    from pydantic_ai import FinishReason, UserContent
 
     from acp.schema import ContentBlock, SessionUpdate, StopReason
     from acp.schema.mcp import HttpMcpServer, McpServer, SseMcpServer, StdioMcpServer
@@ -261,22 +260,22 @@ def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | No
 
 
 @overload
-def mcp_config_to_acp(config: StdioMCPServerConfig) -> StdioMcpServer | None: ...
+def mcp_config_to_acp(config: StdioMCPServerConfig) -> StdioMcpServer: ...
 
 
 @overload
-def mcp_config_to_acp(config: SSEMCPServerConfig) -> SseMcpServer | None: ...
+def mcp_config_to_acp(config: SSEMCPServerConfig) -> SseMcpServer: ...
 
 
 @overload
-def mcp_config_to_acp(config: StreamableHTTPMCPServerConfig) -> HttpMcpServer | None: ...
+def mcp_config_to_acp(config: StreamableHTTPMCPServerConfig) -> HttpMcpServer: ...
 
 
 @overload
-def mcp_config_to_acp(config: MCPServerConfig) -> McpServer | None: ...
+def mcp_config_to_acp(config: MCPServerConfig) -> McpServer: ...
 
 
-def mcp_config_to_acp(config: MCPServerConfig) -> McpServer | None:
+def mcp_config_to_acp(config: MCPServerConfig) -> McpServer:
     """Convert native MCPServerConfig to ACP McpServer format.
 
     If the config has tool filtering (enabled_tools or disabled_tools),
@@ -317,8 +316,8 @@ def mcp_config_to_acp(config: MCPServerConfig) -> McpServer | None:
         case StreamableHTTPMCPServerConfig(url=url):
             return HttpMcpServer(name=config.name or str(url), url=url, headers=[])
 
-        case _:
-            return None
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 def mcp_configs_to_acp(configs: Sequence[MCPServerConfig]) -> list[McpServer]:
@@ -330,4 +329,4 @@ def mcp_configs_to_acp(configs: Sequence[MCPServerConfig]) -> list[McpServer]:
     Returns:
         List of ACP-compatible McpServer instances (skips unconvertible configs)
     """
-    return [converted for config in configs if (converted := mcp_config_to_acp(config)) is not None]
+    return [mcp_config_to_acp(config) for config in configs]

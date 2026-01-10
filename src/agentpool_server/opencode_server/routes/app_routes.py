@@ -15,8 +15,8 @@ from agentpool_server.opencode_server.models import (
     PathInfo,
     Project,
     ProjectTime,
-    ProjectUpdateRequest,
     ProjectUpdatedEvent,
+    ProjectUpdateRequest,
     VcsInfo,
 )
 
