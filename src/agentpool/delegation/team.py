@@ -225,7 +225,6 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
                     )
 
         streams = [wrap_stream(node) for node in all_nodes]
-
         # Merge all streams
         async for event in as_generated(streams):
             yield event

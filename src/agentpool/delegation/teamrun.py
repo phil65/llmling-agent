@@ -284,6 +284,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             RichAgentStreamEvent, with member events wrapped in SubAgentEvent
         """
         from agentpool.agents.events import StreamCompleteEvent, SubAgentEvent
+        from agentpool.delegation.team import Team
 
         current_message = prompts
         for node in self.nodes:
@@ -303,8 +304,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                         )
                     else:
                         # Determine source type based on node type
-                        from agentpool.delegation.team import Team
-
                         if isinstance(node, Team):
                             source_type: Literal["team_parallel", "team_sequential", "agent"] = (
                                 "team_parallel"
@@ -318,7 +317,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                             source_name=node.name,
                             source_type=source_type,
                             event=event,
-                            depth=1,
                         )
 
                         # Extract content for next agent in chain

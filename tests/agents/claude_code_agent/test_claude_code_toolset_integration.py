@@ -19,7 +19,8 @@ from agentpool import AgentPool
 from agentpool.agents.claude_code_agent import ClaudeCodeAgent
 from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
 from agentpool.models.manifest import AgentsManifest
-from agentpool_config.toolsets import SubagentToolsetConfig
+from agentpool_config.mcp_server import StdioMCPServerConfig
+from agentpool_config.toolsets import SkillsToolsetConfig, SubagentToolsetConfig
 
 
 if not shutil.which("claude"):
@@ -88,7 +89,6 @@ async def test_claude_code_subagent_tool_invocation(
     async with AgentPool(manifest=manifest_with_claude_code) as pool:
         agent = pool.claude_code_agents["claude_code_orchestrator"]
         assert isinstance(agent, ClaudeCodeAgent)
-
         # Pool already enters agent context
         # Ask the agent to list available nodes - it should have access via MCP
         prompt = "Use the list_available_nodes tool to show me available agents"
@@ -102,8 +102,6 @@ async def test_claude_code_subagent_tool_invocation(
 
 async def test_claude_code_multiple_toolsets():
     """Test ClaudeCodeAgent with multiple toolsets."""
-    from agentpool_config.toolsets import SkillsToolsetConfig
-
     config = ClaudeCodeAgentConfig(
         name="claude_code_multi",
         cwd=str(Path.cwd()),
@@ -115,7 +113,6 @@ async def test_claude_code_multiple_toolsets():
     async with AgentPool() as pool:
         agent = ClaudeCodeAgent(config=config, agent_pool=pool)
         agent = await pool.exit_stack.enter_async_context(agent)
-
         # All toolsets should be exposed via single bridge
         assert agent._tool_bridge is not None
         tools = await agent.tools.get_tools()
@@ -142,8 +139,6 @@ async def test_pool_cleanup_stops_tool_bridges(manifest_with_claude_code: Agents
 
 async def test_claude_code_mcp_servers_config():
     """Test that MCP servers config includes both external and bridge servers."""
-    from agentpool_config.mcp_server import StdioMCPServerConfig
-
     # Create config with both external MCP server and toolset
     config = ClaudeCodeAgentConfig(
         name="claude_code_mixed",
