@@ -36,7 +36,7 @@ from agentpool_server.acp_server.session_manager import ACPSessionManager
 if TYPE_CHECKING:
     from pydantic_ai import ModelRequest, ModelResponse
 
-    from acp import AgentSideConnection, Client
+    from acp import Client
     from acp.schema import (
         AuthenticateRequest,
         CancelNotification,
@@ -230,7 +230,7 @@ class AgentPoolACPAgent(ACPAgent):
 
     PROTOCOL_VERSION: ClassVar = 1
 
-    connection: AgentSideConnection
+    client: Client
     """ACP connection for client communication."""
 
     agent_pool: AgentPool[Any]
@@ -258,7 +258,6 @@ class AgentPoolACPAgent(ACPAgent):
 
     def __post_init__(self) -> None:
         """Initialize derived attributes and setup after field assignment."""
-        self.client: Client = self.connection
         self.client_capabilities: ClientCapabilities | None = None
         self.client_info: Implementation | None = None
         self.session_manager = ACPSessionManager(pool=self.agent_pool)

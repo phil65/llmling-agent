@@ -6,11 +6,9 @@ storage:
     - type: sql
       url: "sqlite:///history.db" # Database URL (SQLite, PostgreSQL, etc.)
     # Also output all messages, tool calls etc as a pretty printed text file
-    - type: text_file
-      path: "logs/chat.log"
-      format: "chronological" # "chronological" or "conversations"
-      template: "chronological"
-
+    - type: file
+      path: "logs/chat.json"
+      format: json
 agents:
   fan:
     type: native
