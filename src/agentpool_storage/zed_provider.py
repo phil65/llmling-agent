@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from collections import defaultdict
 from datetime import datetime
 import io
 import json
@@ -332,13 +333,10 @@ def _parse_tool_results(tool_results: dict[str, Any]) -> list[ToolReturnPart]:
 def _thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessage[str]]:
     """Convert a Zed thread to ChatMessages."""
     messages: list[ChatMessage[str]] = []
-
-    # Parse timestamp
     try:
         updated_at = datetime.fromisoformat(thread.updated_at.replace("Z", "+00:00"))
     except (ValueError, AttributeError):
         updated_at = get_now()
-
     # Get model info
     model_name = None
     if thread.model:
@@ -371,7 +369,6 @@ def _thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMess
         elif msg.Agent is not None:
             agent_msg = msg.Agent
             display_text, pydantic_parts = _parse_agent_content(agent_msg.content)
-
             # Build ModelResponse
             usage = RequestUsage()
             model_response = ModelResponse(parts=pydantic_parts, usage=usage, model_name=model_name)
@@ -451,9 +448,8 @@ class ZedStorageProvider(StorageProvider):
         """
         try:
             conn = self._get_connection()
-            cursor = conn.execute(
-                "SELECT id, summary, updated_at FROM threads ORDER BY updated_at DESC"
-            )
+            query = "SELECT id, summary, updated_at FROM threads ORDER BY updated_at DESC"
+            cursor = conn.execute(query)
             threads = cursor.fetchall()
             conn.close()
         except FileNotFoundError:
@@ -468,13 +464,10 @@ class ZedStorageProvider(StorageProvider):
         """Load a single thread by ID."""
         try:
             conn = self._get_connection()
-            cursor = conn.execute(
-                "SELECT data_type, data FROM threads WHERE id = ? LIMIT 1",
-                (thread_id,),
-            )
+            query = "SELECT data_type, data FROM threads WHERE id = ? LIMIT 1"
+            cursor = conn.execute(query, (thread_id,))
             row = cursor.fetchone()
             conn.close()
-
             if row is None:
                 return None
 
@@ -489,10 +482,7 @@ class ZedStorageProvider(StorageProvider):
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages based on query."""
         messages: list[ChatMessage[str]] = []
-
-        threads = self._list_threads()
-
-        for thread_id, summary, _updated_at in threads:
+        for thread_id, summary, _updated_at in self._list_threads():
             # Filter by conversation name if specified
             if query.name and query.name not in (thread_id, summary):
                 continue
@@ -500,31 +490,22 @@ class ZedStorageProvider(StorageProvider):
             thread = self._load_thread(thread_id)
             if thread is None:
                 continue
-
-            thread_messages = _thread_to_chat_messages(thread, thread_id)
-
-            for msg in thread_messages:
+            for msg in _thread_to_chat_messages(thread, thread_id):
                 # Apply filters
                 if query.agents and msg.name not in query.agents:
                     continue
-
                 cutoff = query.get_time_cutoff()
                 if query.since and cutoff and msg.timestamp and msg.timestamp < cutoff:
                     continue
-
                 if query.until and msg.timestamp:
                     until_dt = datetime.fromisoformat(query.until)
                     if msg.timestamp > until_dt:
                         continue
-
                 if query.contains and query.contains not in msg.content:
                     continue
-
                 if query.roles and msg.role not in query.roles:
                     continue
-
                 messages.append(msg)
-
                 if query.limit and len(messages) >= query.limit:
                     return messages
 
@@ -568,33 +549,25 @@ class ZedStorageProvider(StorageProvider):
         from agentpool_storage.models import ConversationData as ConvData
 
         result: list[tuple[ConvData, Sequence[ChatMessage[str]]]] = []
-        threads = self._list_threads()
-
-        for thread_id, summary, updated_at_str in threads:
+        for thread_id, summary, updated_at_str in self._list_threads():
             thread = self._load_thread(thread_id)
             if thread is None:
                 continue
-
             # Parse timestamp
             try:
                 updated_at = datetime.fromisoformat(updated_at_str.replace("Z", "+00:00"))
             except (ValueError, AttributeError):
                 updated_at = get_now()
-
             # Apply filters
             if filters.since and updated_at < filters.since:
                 continue
-
             messages = _thread_to_chat_messages(thread, thread_id)
             if not messages:
                 continue
-
             if filters.agent_name and not any(m.name == filters.agent_name for m in messages):
                 continue
-
             if filters.query and not any(filters.query in m.content for m in messages):
                 continue
-
             # Build MessageData list
             msg_data_list: list[MessageData] = []
             for msg in messages:
@@ -627,46 +600,32 @@ class ZedStorageProvider(StorageProvider):
             )
 
             result.append((conv_data, messages))
-
             if filters.limit and len(result) >= filters.limit:
                 break
 
         return result
 
-    async def get_conversation_stats(
-        self,
-        filters: StatsFilters,
-    ) -> dict[str, dict[str, Any]]:
+    async def get_conversation_stats(self, filters: StatsFilters) -> dict[str, dict[str, Any]]:
         """Get conversation statistics."""
-        from collections import defaultdict
-
         stats: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"total_tokens": 0, "messages": 0, "models": set()}
         )
-
-        threads = self._list_threads()
-
-        for thread_id, _summary, updated_at_str in threads:
+        for thread_id, _summary, updated_at_str in self._list_threads():
             try:
                 timestamp = datetime.fromisoformat(updated_at_str.replace("Z", "+00:00"))
             except (ValueError, AttributeError):
                 timestamp = get_now()
-
             # Apply time filter
             if timestamp < filters.cutoff:
                 continue
-
             thread = self._load_thread(thread_id)
             if thread is None:
                 continue
-
             model_name = "unknown"
             if thread.model:
                 model_name = f"{thread.model.provider}:{thread.model.model}"
-
             total_tokens = sum(thread.cumulative_token_usage.values())
             message_count = len(thread.messages)
-
             # Group by specified criterion
             match filters.group_by:
                 case "model":
@@ -688,12 +647,7 @@ class ZedStorageProvider(StorageProvider):
 
         return dict(stats)
 
-    async def reset(
-        self,
-        *,
-        agent_name: str | None = None,
-        hard: bool = False,
-    ) -> tuple[int, int]:
+    async def reset(self, *, agent_name: str | None = None, hard: bool = False) -> tuple[int, int]:
         """Reset storage - NOT SUPPORTED (read-only provider)."""
         logger.warning("ZedStorageProvider is read-only, cannot reset")
         return 0, 0
@@ -706,9 +660,7 @@ class ZedStorageProvider(StorageProvider):
         """Get counts of conversations and messages."""
         conv_count = 0
         msg_count = 0
-
         threads = self._list_threads()
-
         for thread_id, _summary, _updated_at in threads:
             thread = self._load_thread(thread_id)
             if thread is None:
@@ -716,7 +668,6 @@ class ZedStorageProvider(StorageProvider):
 
             conv_count += 1
             msg_count += len(thread.messages)
-
         return conv_count, msg_count
 
     async def get_conversation_title(self, conversation_id: str) -> str | None:
@@ -750,10 +701,8 @@ class ZedStorageProvider(StorageProvider):
             return []
 
         messages = _thread_to_chat_messages(thread, conversation_id)
-
         # Sort by timestamp (though they should already be in order)
         messages.sort(key=lambda m: m.timestamp or get_now())
-
         return messages
 
     async def get_message(self, message_id: str) -> ChatMessage[str] | None:
@@ -769,18 +718,14 @@ class ZedStorageProvider(StorageProvider):
             Zed doesn't store individual message IDs, so this searches all threads.
             This is inefficient for large datasets.
         """
-        threads = self._list_threads()
-
-        for thread_id, _summary, _updated_at in threads:
+        for thread_id, _summary, _updated_at in self._list_threads():
             thread = self._load_thread(thread_id)
             if thread is None:
                 continue
-
             messages = _thread_to_chat_messages(thread, thread_id)
             for msg in messages:
                 if msg.message_id == message_id:
                     return msg
-
         return None
 
     async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
@@ -822,11 +767,8 @@ class ZedStorageProvider(StorageProvider):
             This is a READ-ONLY provider. Forking creates no persistent state.
             Returns None to indicate no fork point is available.
         """
-        logger.warning(
-            "Fork conversation not supported for Zed storage (read-only)",
-            source=source_conversation_id,
-            new=new_conversation_id,
-        )
+        msg = "Fork conversation not supported for Zed storage (read-only)"
+        logger.warning(msg, source=source_conversation_id, new=new_conversation_id)
         return None
 
 
@@ -840,28 +782,21 @@ if __name__ == "__main__":
     async def main() -> None:
         config = ZedStorageConfig()
         provider = ZedStorageProvider(config)
-
         print(f"Database: {provider.db_path}")
         print(f"Exists: {provider.db_path.exists()}")
-
         # List conversations
         filters = QueryFilters(limit=10)
         conversations = await provider.get_conversations(filters)
         print(f"\nFound {len(conversations)} conversations")
-
         for conv_data, messages in conversations[:5]:
             print(f"  - {conv_data['id'][:8]}... | {conv_data['title'] or 'Untitled'}")
             print(f"    Messages: {len(messages)}, Updated: {conv_data['start_time']}")
-
         # Get counts
         conv_count, msg_count = await provider.get_conversation_counts()
         print(f"\nTotal: {conv_count} conversations, {msg_count} messages")
-
         # Get stats
-        stats_filters = StatsFilters(
-            cutoff=dt.datetime.now(dt.UTC) - dt.timedelta(days=30),
-            group_by="day",
-        )
+        cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=30)
+        stats_filters = StatsFilters(cutoff=cutoff, group_by="day")
         stats = await provider.get_conversation_stats(stats_filters)
         print(f"\nStats: {stats}")
 
