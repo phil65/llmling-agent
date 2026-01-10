@@ -20,7 +20,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic_ai import AgentStreamEvent
+from pydantic_ai import (
+    AgentStreamEvent,
+    PartStartEvent as PyAIPartStartEvent,
+    TextPart,
+    ThinkingPart,
+)
 
 from agentpool.messaging import ChatMessage  # noqa: TC001
 
@@ -33,6 +38,18 @@ if TYPE_CHECKING:
 
 
 # Lifecycle events (aligned with AG-UI protocol)
+
+
+class PartStartEvent(PyAIPartStartEvent):
+    """Part start event."""
+
+    @classmethod
+    def thinking(cls, index: int, content: str) -> PartStartEvent:
+        return cls(index=index, part=ThinkingPart(content=content))
+
+    @classmethod
+    def text(cls, index: int, content: str) -> PartStartEvent:
+        return cls(index=index, part=TextPart(content=content))
 
 
 @dataclass(kw_only=True)

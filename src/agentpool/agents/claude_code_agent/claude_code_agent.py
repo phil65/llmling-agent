@@ -68,7 +68,6 @@ from pydantic_ai import (
     ModelResponse,
     PartDeltaEvent,
     PartEndEvent,
-    PartStartEvent,
     RunUsage,
     TextPart,
     TextPartDelta,
@@ -84,6 +83,7 @@ from pydantic_ai.usage import RequestUsage
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.claude_code_agent.converters import claude_message_to_events
 from agentpool.agents.events import (
+    PartStartEvent,
     RunErrorEvent,
     RunStartedEvent,
     StreamCompleteEvent,
@@ -866,6 +866,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
         from claude_agent_sdk.types import StreamEvent
 
+        from agentpool.agents.claude_code_agent.converters import derive_rich_tool_info
         from agentpool.agents.events import resolve_event_handlers
         from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
@@ -1126,13 +1127,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             block_type = content_block.get("type")
 
                             if block_type == "text":
-                                start_event = PartStartEvent(index=index, part=TextPart(content=""))
+                                start_event = PartStartEvent.text(index=index, content="")
                                 await handler(None, start_event)
                                 yield start_event
 
                             elif block_type == "thinking":
-                                thinking_part = ThinkingPart(content="")
-                                start_event = PartStartEvent(index=index, part=thinking_part)
+                                start_event = PartStartEvent.thinking(index=index, content="")
                                 await handler(None, start_event)
                                 yield start_event
 
@@ -1145,12 +1145,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 # Track for permission matching - permission callback will use this
                                 # Use raw name since SDK uses raw names for permissions
                                 self._pending_tool_call_ids[raw_tool_name] = tc_id
-
                                 # Derive rich info with empty args for now
-                                from agentpool.agents.claude_code_agent.converters import (
-                                    derive_rich_tool_info,
-                                )
-
                                 rich_info = derive_rich_tool_info(raw_tool_name, {})
                                 tool_start_event = ToolCallStartEvent(
                                     tool_call_id=tc_id,
