@@ -15,6 +15,7 @@ See ARCHITECTURE.md for detailed documentation of the storage format.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -24,21 +25,30 @@ import anyenv
 from pydantic import TypeAdapter
 from pydantic_ai import RunUsage
 from pydantic_ai.messages import (
+    AudioUrl,
+    BinaryContent,
+    CachePoint,
+    DocumentUrl,
+    ImageUrl,
     ModelRequest,
     ModelResponse,
     TextPart,
     ThinkingPart,
     ToolCallPart,
     ToolReturnPart,
+    UserContent,
     UserPromptPart,
+    VideoUrl,
 )
 from pydantic_ai.usage import RequestUsage
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.utils.now import get_now
+from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool_server.opencode_server.models import (
     AssistantMessage,
+    FilePart as OpenCodeFilePart,
     MessageInfo as OpenCodeMessage,
     MessagePath,
     MessageTime,
@@ -49,12 +59,16 @@ from agentpool_server.opencode_server.models import (
     TextPart as OpenCodeTextPart,
     TimeCreated,
     TimeCreatedUpdated,
+    TimeStart,
     TimeStartEndCompacted,
+    TimeStartEndOptional,
     Tokens,
     TokensCache,
     ToolPart as OpenCodeToolPart,
     ToolStateCompleted,
+    ToolStateError,
     ToolStatePending,
+    ToolStateRunning,
     UserMessage,
     UserMessageModel,
 )
@@ -121,6 +135,62 @@ class OpenCodeStorageProvider(StorageProvider):
     def _ms_to_datetime(self, ms: int) -> datetime:
         """Convert milliseconds timestamp to datetime."""
         return datetime.fromtimestamp(ms / 1000, tz=UTC)
+
+    def _convert_user_content_to_parts(
+        self,
+        content: str | Sequence[UserContent],
+        message_id: str,
+        session_id: str,
+        part_counter_start: int,
+    ) -> list[OpenCodeTextPart]:
+        """Convert UserContent to OpenCode parts.
+
+        Args:
+            content: User content (str or Sequence[UserContent])
+            message_id: Message ID
+            session_id: Session ID
+            part_counter_start: Starting counter for part IDs
+
+        Returns:
+            List of OpenCode TextParts (non-text content types are skipped)
+        """
+        parts: list[OpenCodeTextPart] = []
+        part_counter = part_counter_start
+
+        if isinstance(content, str):
+            # Simple text
+            part_id = f"{message_id}-{part_counter}"
+            parts.append(
+                OpenCodeTextPart(
+                    id=part_id,
+                    session_id=session_id,
+                    message_id=message_id,
+                    type="text",
+                    text=content,
+                )
+            )
+        else:
+            # Sequence of UserContent
+            for content_item in content:
+                part_id = f"{message_id}-{part_counter}"
+                part_counter += 1
+
+                if isinstance(content_item, str):
+                    # Text content
+                    parts.append(
+                        OpenCodeTextPart(
+                            id=part_id,
+                            session_id=session_id,
+                            message_id=message_id,
+                            type="text",
+                            text=content_item,
+                        )
+                    )
+                # Note: ImageUrl, AudioUrl, DocumentUrl, VideoUrl, BinaryContent, CachePoint
+                # are not supported in OpenCode storage format - skip them
+                # TODO: Add proper support if OpenCode adds these part types
+
+        return parts
 
     def _list_sessions(self, project_id: str | None = None) -> list[tuple[str, Path]]:
         """List all sessions, optionally filtered by project."""
@@ -252,21 +322,22 @@ class OpenCodeStorageProvider(StorageProvider):
                 # User prompt parts
                 for part in msg.parts:
                     if isinstance(part, UserPromptPart):
-                        part_id = f"{message_id}-{part_counter}"
-                        part_counter += 1
-                        text_part = OpenCodeTextPart(
-                            id=part_id,
-                            session_id=conversation_id,
+                        # Convert UserContent to OpenCode parts using helper
+                        text_parts = self._convert_user_content_to_parts(
+                            content=part.content,
                             message_id=message_id,
-                            type="text",
-                            text=part.content,
-                            time={"created": now_ms},
+                            session_id=conversation_id,
+                            part_counter_start=part_counter,
                         )
-                        part_file = parts_dir / f"{part_id}.json"
-                        part_file.write_text(
-                            anyenv.dump_json(text_part.model_dump(by_alias=True), indent=True),
-                            encoding="utf-8",
-                        )
+                        part_counter += len(text_parts)
+
+                        # Write each part to disk
+                        for text_part in text_parts:
+                            part_file = parts_dir / f"{text_part.id}.json"
+                            part_file.write_text(
+                                anyenv.dump_json(text_part.model_dump(by_alias=True), indent=True),
+                                encoding="utf-8",
+                            )
                     elif isinstance(part, ToolReturnPart):
                         # Tool return - update existing tool part with output
                         tool_part_file = None
@@ -293,16 +364,20 @@ class OpenCodeStorageProvider(StorageProvider):
                                 return_type=OpenCodeToolPart,
                             )
                             # Create new ToolStateCompleted (states are immutable)
+                            # All tool states have .input, but only Running/Completed/Error have .time
+                            start_time = 0
+                            if isinstance(
+                                tool_part.state,
+                                (ToolStateRunning, ToolStateCompleted, ToolStateError),
+                            ):
+                                start_time = tool_part.state.time.start
+
                             completed_state = ToolStateCompleted(
-                                input=tool_part.state.input
-                                if hasattr(tool_part.state, "input")
-                                else {},
+                                input=tool_part.state.input,
                                 output=str(part.content),
                                 title=tool_part.tool,
                                 time=TimeStartEndCompacted(
-                                    start=tool_part.state.time.start
-                                    if hasattr(tool_part.state, "time")
-                                    else 0,
+                                    start=start_time,
                                     end=int(get_now().timestamp() * 1000),
                                 ),
                             )
@@ -328,14 +403,14 @@ class OpenCodeStorageProvider(StorageProvider):
                     part_id = f"{message_id}-{part_counter}"
                     part_counter += 1
 
-                    if isinstance(part, OpenCodeTextPart):
+                    if isinstance(part, TextPart):
                         text_part = OpenCodeTextPart(
                             id=part_id,
                             session_id=conversation_id,
                             message_id=message_id,
                             type="text",
                             text=part.content,
-                            time={"created": now_ms},
+                            time=TimeStartEndOptional(start=now_ms),
                         )
                         part_file = parts_dir / f"{part_id}.json"
                         part_file.write_text(
@@ -350,7 +425,7 @@ class OpenCodeStorageProvider(StorageProvider):
                             message_id=message_id,
                             type="reasoning",
                             text=part.content,
-                            time={"created": now_ms},
+                            time=TimeStartEndOptional(start=now_ms),
                         )
                         part_file = parts_dir / f"{part_id}.json"
                         part_file.write_text(
@@ -369,7 +444,7 @@ class OpenCodeStorageProvider(StorageProvider):
                             tool=part.tool_name,
                             state=ToolStatePending(
                                 status="pending",
-                                input=part.args,
+                                input=safe_args_as_dict(part),
                                 raw="",
                             ),
                         )
