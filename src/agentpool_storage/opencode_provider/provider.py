@@ -16,39 +16,27 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
-from datetime import UTC, datetime
-from decimal import Decimal
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 import anyenv
 from pydantic import TypeAdapter
-from pydantic_ai import RunUsage
 from pydantic_ai.messages import (
-    AudioUrl,
-    BinaryContent,
-    CachePoint,
-    DocumentUrl,
-    ImageUrl,
     ModelRequest,
     ModelResponse,
     TextPart,
     ThinkingPart,
     ToolCallPart,
     ToolReturnPart,
-    UserContent,
     UserPromptPart,
-    VideoUrl,
 )
-from pydantic_ai.usage import RequestUsage
 
 from agentpool.log import get_logger
-from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.utils.now import get_now
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool_server.opencode_server.models import (
     AssistantMessage,
-    FilePart as OpenCodeFilePart,
     MessageInfo as OpenCodeMessage,
     MessagePath,
     MessageTime,
@@ -59,7 +47,6 @@ from agentpool_server.opencode_server.models import (
     TextPart as OpenCodeTextPart,
     TimeCreated,
     TimeCreatedUpdated,
-    TimeStart,
     TimeStartEndCompacted,
     TimeStartEndOptional,
     Tokens,
@@ -74,11 +61,13 @@ from agentpool_server.opencode_server.models import (
 )
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import TokenUsage
+from agentpool_storage.opencode_provider import helpers
 
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from agentpool.messaging import ChatMessage, TokenCost
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import OpenCodeStorageConfig
     from agentpool_storage.models import (
@@ -132,66 +121,6 @@ class OpenCodeStorageProvider(StorageProvider):
         self.messages_path = self.base_path / "message"
         self.parts_path = self.base_path / "part"
 
-    def _ms_to_datetime(self, ms: int) -> datetime:
-        """Convert milliseconds timestamp to datetime."""
-        return datetime.fromtimestamp(ms / 1000, tz=UTC)
-
-    def _convert_user_content_to_parts(
-        self,
-        content: str | Sequence[UserContent],
-        message_id: str,
-        session_id: str,
-        part_counter_start: int,
-    ) -> list[OpenCodeTextPart]:
-        """Convert UserContent to OpenCode parts.
-
-        Args:
-            content: User content (str or Sequence[UserContent])
-            message_id: Message ID
-            session_id: Session ID
-            part_counter_start: Starting counter for part IDs
-
-        Returns:
-            List of OpenCode TextParts (non-text content types are skipped)
-        """
-        parts: list[OpenCodeTextPart] = []
-        part_counter = part_counter_start
-
-        if isinstance(content, str):
-            # Simple text
-            part_id = f"{message_id}-{part_counter}"
-            parts.append(
-                OpenCodeTextPart(
-                    id=part_id,
-                    session_id=session_id,
-                    message_id=message_id,
-                    type="text",
-                    text=content,
-                )
-            )
-        else:
-            # Sequence of UserContent
-            for content_item in content:
-                part_id = f"{message_id}-{part_counter}"
-                part_counter += 1
-
-                if isinstance(content_item, str):
-                    # Text content
-                    parts.append(
-                        OpenCodeTextPart(
-                            id=part_id,
-                            session_id=session_id,
-                            message_id=message_id,
-                            type="text",
-                            text=content_item,
-                        )
-                    )
-                # Note: ImageUrl, AudioUrl, DocumentUrl, VideoUrl, BinaryContent, CachePoint
-                # are not supported in OpenCode storage format - skip them
-                # TODO: Add proper support if OpenCode adds these part types
-
-        return parts
-
     def _list_sessions(self, project_id: str | None = None) -> list[tuple[str, Path]]:
         """List all sessions, optionally filtered by project."""
         sessions: list[tuple[str, Path]] = []
@@ -207,17 +136,6 @@ class OpenCodeStorageProvider(StorageProvider):
                 if project_dir.is_dir():
                     sessions.extend((f.stem, f) for f in project_dir.glob("*.json"))
         return sessions
-
-    def _read_session(self, session_path: Path) -> Session | None:
-        """Read session metadata."""
-        if not session_path.exists():
-            return None
-        try:
-            content = session_path.read_text(encoding="utf-8")
-            return anyenv.load_json(content, return_type=Session)
-        except anyenv.JsonLoadError as e:
-            logger.warning("Failed to parse session", path=str(session_path), error=str(e))
-            return None
 
     def _read_messages(self, session_id: str) -> list[OpenCodeMessage]:
         """Read all messages for a session."""
@@ -254,7 +172,7 @@ class OpenCodeStorageProvider(StorageProvider):
                 logger.warning("Failed to parse part", path=str(part_file), error=str(e))
         return parts
 
-    async def _write_message(
+    async def _write_message(  # noqa: PLR0915
         self,
         *,
         message_id: str,
@@ -323,7 +241,7 @@ class OpenCodeStorageProvider(StorageProvider):
                 for part in msg.parts:
                     if isinstance(part, UserPromptPart):
                         # Convert UserContent to OpenCode parts using helper
-                        text_parts = self._convert_user_content_to_parts(
+                        text_parts = helpers.convert_user_content_to_parts(
                             content=part.content,
                             message_id=message_id,
                             session_id=conversation_id,
@@ -364,7 +282,8 @@ class OpenCodeStorageProvider(StorageProvider):
                                 return_type=OpenCodeToolPart,
                             )
                             # Create new ToolStateCompleted (states are immutable)
-                            # All tool states have .input, but only Running/Completed/Error have .time
+                            # All tool states have .input,
+                            # but only Running/Completed/Error have .time
                             start_time = 0
                             if isinstance(
                                 tool_part.state,
@@ -454,160 +373,6 @@ class OpenCodeStorageProvider(StorageProvider):
                             encoding="utf-8",
                         )
 
-    def _build_tool_id_mapping(self, parts: list[OpenCodePart]) -> dict[str, str]:
-        """Build mapping from tool callID to tool name."""
-        mapping: dict[str, str] = {}
-        for part in parts:
-            if isinstance(part, OpenCodeToolPart):
-                mapping[part.call_id] = part.tool
-        return mapping
-
-    def _message_to_chat_message(
-        self,
-        msg: OpenCodeMessage,
-        parts: list[OpenCodePart],
-        conversation_id: str,
-        tool_id_mapping: dict[str, str] | None = None,
-    ) -> ChatMessage[str]:
-        """Convert OpenCode message + parts to ChatMessage."""
-        timestamp = self._ms_to_datetime(msg.time.created)
-
-        # Extract text content for display
-        content = self._extract_text_content(parts)
-
-        # Build pydantic-ai messages
-        pydantic_messages = self._build_pydantic_messages(
-            msg, parts, timestamp, tool_id_mapping or {}
-        )
-
-        # Extract cost info (only for assistant messages)
-        cost_info = None
-        model_name = None
-        parent_id = None
-        provider_details = {}
-
-        if msg.role == "assistant":
-            if msg.tokens:
-                input_tokens = msg.tokens.input + msg.tokens.cache.read
-                output_tokens = msg.tokens.output
-                if input_tokens or output_tokens:
-                    cost_info = TokenCost(
-                        token_usage=RunUsage(
-                            input_tokens=input_tokens,
-                            output_tokens=output_tokens,
-                        ),
-                        total_cost=Decimal(str(msg.cost)) if msg.cost else Decimal(0),
-                    )
-            model_name = msg.model_id
-            parent_id = msg.parent_id
-            if msg.finish:
-                provider_details["finish_reason"] = msg.finish
-        elif msg.model:
-            model_name = msg.model.model_id
-
-        return ChatMessage[str](
-            content=content,
-            conversation_id=conversation_id,
-            role=msg.role,
-            message_id=msg.id,
-            name=msg.agent,
-            model_name=model_name,
-            cost_info=cost_info,
-            timestamp=timestamp,
-            parent_id=parent_id,
-            messages=pydantic_messages,
-            provider_details=provider_details,
-        )
-
-    def _extract_text_content(self, parts: list[OpenCodePart]) -> str:
-        """Extract text content from parts for display."""
-        text_parts: list[str] = []
-        for part in parts:
-            if isinstance(part, OpenCodeTextPart) and part.text:
-                text_parts.append(part.text)
-            elif isinstance(part, OpenCodeReasoningPart) and part.text:
-                text_parts.append(f"<thinking>\n{part.text}\n</thinking>")
-        return "\n".join(text_parts)
-
-    def _build_pydantic_messages(
-        self,
-        msg: OpenCodeMessage,
-        parts: list[OpenCodePart],
-        timestamp: datetime,
-        tool_id_mapping: dict[str, str],
-    ) -> list[ModelRequest | ModelResponse]:
-        """Build pydantic-ai ModelRequest and/or ModelResponse.
-
-        In OpenCode's model, assistant messages contain both tool calls AND their
-        results in the same message. We split these into:
-        - ModelResponse with ToolCallPart (the call)
-        - ModelRequest with ToolReturnPart (the result)
-        """
-        result: list[ModelRequest | ModelResponse] = []
-
-        if msg.role == "user":
-            request_parts: list[UserPromptPart | ToolReturnPart] = [
-                UserPromptPart(content=part.text, timestamp=timestamp)
-                for part in parts
-                if isinstance(part, OpenCodeTextPart) and part.text
-            ]
-            if request_parts:
-                result.append(ModelRequest(parts=request_parts, timestamp=timestamp))
-            return result
-
-        # Assistant message - may contain both tool calls and results
-        response_parts: list[TextPart | ToolCallPart | ThinkingPart] = []
-        tool_return_parts: list[ToolReturnPart] = []
-
-        # Build usage
-        usage = RequestUsage()
-        if msg.tokens:
-            usage = RequestUsage(
-                input_tokens=msg.tokens.input,
-                output_tokens=msg.tokens.output,
-                cache_read_tokens=msg.tokens.cache.read,
-                cache_write_tokens=msg.tokens.cache.write,
-            )
-
-        for part in parts:
-            if isinstance(part, OpenCodeTextPart) and part.text:
-                response_parts.append(TextPart(content=part.text))
-            elif isinstance(part, OpenCodeReasoningPart) and part.text:
-                response_parts.append(ThinkingPart(content=part.text))
-            elif isinstance(part, OpenCodeToolPart):
-                # Add tool call to response
-                args = part.state.input or {}
-                tc_part = ToolCallPart(tool_name=part.tool, args=args, tool_call_id=part.call_id)
-                response_parts.append(tc_part)
-                # If completed, also create a tool return
-                if part.state.status == "completed" and part.state.output:
-                    return_part = ToolReturnPart(
-                        tool_name=part.tool,
-                        content=part.state.output,
-                        tool_call_id=part.call_id,
-                        timestamp=timestamp,
-                    )
-                    tool_return_parts.append(return_part)
-
-        # Add the response if we have parts
-        if response_parts:
-            # AssistantMessage only has model_id, not model
-            model_name = msg.model_id if msg.role == "assistant" else None
-            result.append(
-                ModelResponse(
-                    parts=response_parts,
-                    usage=usage,
-                    model_name=model_name,
-                    timestamp=timestamp,
-                )
-            )
-
-        # Add tool returns as a separate request (simulating user sending results back)
-        if tool_return_parts:
-            result.append(ModelRequest(parts=tool_return_parts, timestamp=timestamp))
-
-        return result
-
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages based on query."""
         messages: list[ChatMessage[str]] = []
@@ -617,24 +382,20 @@ class OpenCodeStorageProvider(StorageProvider):
             if query.name and session_id != query.name:
                 continue
 
-            session = self._read_session(session_path)
+            session = helpers.read_session(session_path)
             if not session:
                 continue
 
             oc_messages = self._read_messages(session_id)
 
-            # Build tool mapping from all parts
-            all_parts: list[OpenCodePart] = []
+            # Read parts for all messages
             msg_parts_map: dict[str, list[OpenCodePart]] = {}
             for oc_msg in oc_messages:
                 parts = self._read_parts(oc_msg.id)
                 msg_parts_map[oc_msg.id] = parts
-                all_parts.extend(parts)
-            tool_mapping = self._build_tool_id_mapping(all_parts)
-
             for oc_msg in oc_messages:
                 parts = msg_parts_map.get(oc_msg.id, [])
-                chat_msg = self._message_to_chat_message(oc_msg, parts, session_id, tool_mapping)
+                chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
 
                 # Apply filters
                 if query.agents and chat_msg.name not in query.agents:
@@ -719,7 +480,7 @@ class OpenCodeStorageProvider(StorageProvider):
         result: list[tuple[ConvData, Sequence[ChatMessage[str]]]] = []
         sessions = self._list_sessions()
         for session_id, session_path in sessions:
-            session = self._read_session(session_path)
+            session = helpers.read_session(session_path)
             if not session:
                 continue
 
@@ -727,14 +488,11 @@ class OpenCodeStorageProvider(StorageProvider):
             if not oc_messages:
                 continue
 
-            # Build tool mapping
-            all_parts: list[OpenCodePart] = []
+            # Read parts for all messages
             msg_parts_map: dict[str, list[OpenCodePart]] = {}
             for oc_msg in oc_messages:
                 parts = self._read_parts(oc_msg.id)
                 msg_parts_map[oc_msg.id] = parts
-                all_parts.extend(parts)
-            tool_mapping = self._build_tool_id_mapping(all_parts)
 
             # Convert messages
             chat_messages: list[ChatMessage[str]] = []
@@ -743,11 +501,11 @@ class OpenCodeStorageProvider(StorageProvider):
 
             for oc_msg in oc_messages:
                 parts = msg_parts_map.get(oc_msg.id, [])
-                chat_msg = self._message_to_chat_message(oc_msg, parts, session_id, tool_mapping)
+                chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
                 chat_messages.append(chat_msg)
 
                 # Only assistant messages have tokens and cost
-                if oc_msg.role == "assistant":
+                if isinstance(oc_msg, AssistantMessage):
                     if oc_msg.tokens:
                         total_tokens += oc_msg.tokens.input + oc_msg.tokens.output
                     if oc_msg.cost:
@@ -756,7 +514,7 @@ class OpenCodeStorageProvider(StorageProvider):
             if not chat_messages:
                 continue
 
-            first_timestamp = self._ms_to_datetime(session.time.created)
+            first_timestamp = helpers.ms_to_datetime(session.time.created)
 
             # Apply filters
             if filters.agent_name and not any(m.name == filters.agent_name for m in chat_messages):
@@ -827,18 +585,18 @@ class OpenCodeStorageProvider(StorageProvider):
         sessions = self._list_sessions()
 
         for _session_id, session_path in sessions:
-            session = self._read_session(session_path)
+            session = helpers.read_session(session_path)
             if not session:
                 continue
 
-            timestamp = self._ms_to_datetime(session.time.created)
+            timestamp = helpers.ms_to_datetime(session.time.created)
             if timestamp < filters.cutoff:
                 continue
 
             oc_messages = self._read_messages(session.id)
 
             for oc_msg in oc_messages:
-                if oc_msg.role != "assistant":
+                if not isinstance(oc_msg, AssistantMessage):
                     continue
 
                 # AssistantMessage only has model_id
@@ -847,7 +605,7 @@ class OpenCodeStorageProvider(StorageProvider):
                 if oc_msg.tokens:
                     tokens = oc_msg.tokens.input + oc_msg.tokens.output
 
-                msg_timestamp = self._ms_to_datetime(oc_msg.time.created)
+                msg_timestamp = helpers.ms_to_datetime(oc_msg.time.created)
 
                 # Group by specified criterion
                 match filters.group_by:
@@ -896,7 +654,7 @@ class OpenCodeStorageProvider(StorageProvider):
         sessions = self._list_sessions()
 
         for session_id, session_path in sessions:
-            session = self._read_session(session_path)
+            session = helpers.read_session(session_path)
             if not session:
                 continue
 
@@ -929,8 +687,7 @@ class OpenCodeStorageProvider(StorageProvider):
         messages: list[ChatMessage[str]] = []
         for oc_msg in oc_messages:
             parts = self._read_parts(oc_msg.id)
-            tool_mapping = self._build_tool_id_mapping(parts)
-            chat_msg = self._message_to_chat_message(oc_msg, parts, conversation_id, tool_mapping)
+            chat_msg = helpers.message_to_chat_message(oc_msg, parts, conversation_id)
             messages.append(chat_msg)
 
         # Sort by timestamp
@@ -964,8 +721,7 @@ class OpenCodeStorageProvider(StorageProvider):
             for oc_msg in oc_messages:
                 if oc_msg.id == message_id:
                     parts = self._read_parts(oc_msg.id)
-                    tool_mapping = self._build_tool_id_mapping(parts)
-                    return self._message_to_chat_message(oc_msg, parts, session_id, tool_mapping)
+                    return helpers.message_to_chat_message(oc_msg, parts, session_id)
 
         return None
 
@@ -1022,7 +778,7 @@ class OpenCodeStorageProvider(StorageProvider):
         source_path = None
         for session_id, session_path in sessions:
             if session_id == source_conversation_id:
-                source_session = self._read_session(session_path)
+                source_session = helpers.read_session(session_path)
                 source_path = session_path
                 break
 
