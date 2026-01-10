@@ -16,6 +16,7 @@ from pydantic_ai import (
     BinaryContent,
     BinaryImage,
     DocumentUrl,
+    FinishReason,
     ImageUrl,
     PartDeltaEvent,
     TextPartDelta,
@@ -55,7 +56,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai import UserContent
 
-    from acp.schema import ContentBlock, SessionUpdate
+    from acp.schema import ContentBlock, SessionUpdate, StopReason
     from acp.schema.mcp import HttpMcpServer, McpServer, SseMcpServer, StdioMcpServer
     from acp.schema.tool_call import ToolCallContent, ToolCallLocation
     from agentpool.agents.events import RichAgentStreamEvent, ToolCallContentItem
@@ -65,6 +66,19 @@ if TYPE_CHECKING:
         StdioMCPServerConfig,
         StreamableHTTPMCPServerConfig,
     )
+
+
+STOP_REASON_MAP: dict[StopReason, FinishReason] = {
+    "end_turn": "stop",
+    "max_tokens": "length",
+    "max_turn_requests": "length",
+    "refusal": "content_filter",
+    "cancelled": "error",
+}
+
+
+def to_finish_reason(stop_reason: StopReason) -> FinishReason:
+    return STOP_REASON_MAP.get(stop_reason, "stop")
 
 
 def convert_acp_locations(

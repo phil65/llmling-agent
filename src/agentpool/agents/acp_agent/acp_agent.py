@@ -68,7 +68,6 @@ if TYPE_CHECKING:
     from anyio.abc import Process
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
-    from pydantic_ai import FinishReason
     from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
@@ -79,7 +78,6 @@ if TYPE_CHECKING:
         InitializeResponse,
         RequestPermissionRequest,
         RequestPermissionResponse,
-        StopReason,
     )
     from acp.schema.mcp import McpServer
     from agentpool.agents import AgentContext
@@ -102,14 +100,6 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 PROTOCOL_VERSION = 1
-
-STOP_REASON_MAP: dict[StopReason, FinishReason] = {
-    "end_turn": "stop",
-    "max_tokens": "length",
-    "max_turn_requests": "length",
-    "refusal": "content_filter",
-    "cancelled": "error",
-}
 
 
 class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
@@ -526,7 +516,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """
         from acp.schema import PromptRequest
         from acp.utils import to_acp_content_blocks
-        from agentpool.agents.acp_agent.acp_converters import convert_to_acp_content
+        from agentpool.agents.acp_agent.acp_converters import (
+            convert_to_acp_content,
+            to_finish_reason,
+        )
 
         # Update input provider if provided
         if input_provider is not None:
@@ -692,7 +685,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Ensure we catch any exceptions from the prompt task
         response = await prompt_task
-        finish_reason: FinishReason = STOP_REASON_MAP.get(response.stop_reason, "stop")
+        finish_reason = to_finish_reason(response.stop_reason)
         # Flush response parts to model_messages
         if current_response_parts:
             model_messages.append(
