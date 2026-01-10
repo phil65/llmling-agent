@@ -22,9 +22,12 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import (
     AgentStreamEvent,
+    PartDeltaEvent as PyAIPartDeltaEvent,
     PartStartEvent as PyAIPartStartEvent,
     TextPart,
+    TextPartDelta,
     ThinkingPart,
+    ThinkingPartDelta,
 )
 
 from agentpool.messaging import ChatMessage  # noqa: TC001
@@ -50,6 +53,18 @@ class PartStartEvent(PyAIPartStartEvent):
     @classmethod
     def text(cls, index: int, content: str) -> PartStartEvent:
         return cls(index=index, part=TextPart(content=content))
+
+
+class PartDeltaEvent(PyAIPartDeltaEvent):
+    """Part start event."""
+
+    @classmethod
+    def thinking(cls, index: int, content: str) -> PartDeltaEvent:
+        return cls(index=index, delta=ThinkingPartDelta(content_delta=content))
+
+    @classmethod
+    def text(cls, index: int, content: str) -> PartDeltaEvent:
+        return cls(index=index, delta=TextPartDelta(content_delta=content))
 
 
 @dataclass(kw_only=True)
