@@ -1424,57 +1424,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             List of tokonomics ModelInfo for Claude models
         """
-        from tokonomics.model_discovery.model_info import ModelInfo, ModelPricing
+        from agentpool.agents.claude_code_agent.static_info import MODELS
 
-        # Static Claude Code models - these are the simple IDs the SDK accepts
-        # Use id_override to ensure pydantic_ai_id returns simple names like "opus"
-        return [
-            ModelInfo(
-                id="claude-opus-4-5",
-                name="Claude Opus",
-                provider="anthropic",
-                description="Claude Opus - most capable model",
-                context_window=200000,
-                max_output_tokens=32000,
-                input_modalities={"text", "image"},
-                output_modalities={"text"},
-                pricing=ModelPricing(
-                    prompt=0.000015,  # $15 per 1M tokens
-                    completion=0.000075,  # $75 per 1M tokens
-                ),
-                id_override="opus",  # Claude Code SDK uses simple names
-            ),
-            ModelInfo(
-                id="claude-sonnet-4-5",
-                name="Claude Sonnet",
-                provider="anthropic",
-                description="Claude Sonnet - balanced performance and speed",
-                context_window=200000,
-                max_output_tokens=16000,
-                input_modalities={"text", "image"},
-                output_modalities={"text"},
-                pricing=ModelPricing(
-                    prompt=0.000003,  # $3 per 1M tokens
-                    completion=0.000015,  # $15 per 1M tokens
-                ),
-                id_override="sonnet",  # Claude Code SDK uses simple names
-            ),
-            ModelInfo(
-                id="claude-haiku-4-5",
-                name="Claude Haiku",
-                provider="anthropic",
-                description="Claude Haiku - fast and cost-effective",
-                context_window=200000,
-                max_output_tokens=8000,
-                input_modalities={"text", "image"},
-                output_modalities={"text"},
-                pricing=ModelPricing(
-                    prompt=0.0000008,  # $0.80 per 1M tokens
-                    completion=0.000004,  # $4 per 1M tokens
-                ),
-                id_override="haiku",  # Claude Code SDK uses simple names
-            ),
-        ]
+        return [MODELS]
 
     async def get_server_info(self) -> ClaudeCodeServerInfo | None:
         """Get server initialization info from Claude Code.
@@ -1484,18 +1436,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         - Available slash commands with descriptions and argument hints
         - Current and available output styles
         - Account information (token source, API key source)
-
-        Returns:
-            ClaudeCodeServerInfo with all server capabilities, or None if not connected
-
-        Example:
-            ```python
-            async with ClaudeCodeAgent(name="claude") as agent:
-                info = await agent.get_server_info()
-                if info:
-                    print(f"Available models: {[m.value for m in info.models]}")
-                    print(f"Available commands: {[c.name for c in info.commands]}")
-            ```
         """
         from agentpool.agents.claude_code_agent.models import ClaudeCodeServerInfo
 
@@ -1505,19 +1445,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if not self._client:
             self.log.warning("Cannot get server info: not connected")
             return None
-
         # Get raw server info from SDK client
         raw_info = await self._client.get_server_info()
         if not raw_info:
             self.log.warning("No server info available from Claude Code")
             return None
-
-        # Parse into typed model
-        try:
-            return ClaudeCodeServerInfo.model_validate(raw_info)
-        except Exception as e:
-            self.log.exception("Failed to parse server info", error=str(e))
-            return None
+        return ClaudeCodeServerInfo.model_validate(raw_info)
 
     async def get_modes(self) -> list[ModeCategory]:
         """Get available mode categories for Claude Code agent.
@@ -1527,10 +1460,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             List of ModeCategory for permissions and models
         """
+        from agentpool.agents.claude_code_agent.static_info import MODES
         from agentpool.agents.modes import ModeCategory, ModeInfo
 
         categories: list[ModeCategory] = []
-
         # Permission modes
         current_id = self._permission_mode or "default"
         if self.tool_confirmation_mode == "never":
@@ -1540,32 +1473,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             ModeCategory(
                 id="permissions",
                 name="Mode",
-                available_modes=[
-                    ModeInfo(
-                        id="default",
-                        name="Default",
-                        description="Require confirmation for tool usage",
-                        category_id="permissions",
-                    ),
-                    ModeInfo(
-                        id="acceptEdits",
-                        name="Accept Edits",
-                        description="Auto-approve file edits without confirmation",
-                        category_id="permissions",
-                    ),
-                    ModeInfo(
-                        id="plan",
-                        name="Plan",
-                        description="Planning mode - no tool execution",
-                        category_id="permissions",
-                    ),
-                    ModeInfo(
-                        id="bypassPermissions",
-                        name="Bypass Permissions",
-                        description="Skip all permission checks (use with caution)",
-                        category_id="permissions",
-                    ),
-                ],
+                available_modes=MODES,
                 current_mode_id=current_id,
                 category="mode",
             )
@@ -1575,19 +1483,20 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         models = await self.get_available_models()
         if models:
             current_model = self.model_name or (models[0].id if models else "")
+            models = [
+                ModeInfo(
+                    id=m.id,
+                    name=m.name or m.id,
+                    description=m.description or "",
+                    category_id="model",
+                )
+                for m in models
+            ]
             categories.append(
                 ModeCategory(
                     id="model",
                     name="Model",
-                    available_modes=[
-                        ModeInfo(
-                            id=m.id,
-                            name=m.name or m.id,
-                            description=m.description or "",
-                            category_id="model",
-                        )
-                        for m in models
-                    ],
+                    available_modes=models,
                     current_mode_id=current_model,
                     category="model",
                 )
