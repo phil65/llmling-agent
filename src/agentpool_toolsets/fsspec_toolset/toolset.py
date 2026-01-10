@@ -28,6 +28,12 @@ from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.log import get_logger
 from agentpool.mime_utils import guess_type, is_binary_content, is_binary_mime
 from agentpool.resource_providers import ResourceProvider
+from agentpool.tool_impls.delete_path import create_delete_path_tool
+from agentpool.tool_impls.download_file import create_download_file_tool
+from agentpool.tool_impls.grep import create_grep_tool
+from agentpool.tool_impls.list_directory import create_list_directory_tool
+from agentpool.tool_impls.read import create_read_tool
+from agentpool.tool_impls.read_as_markdown import create_read_as_markdown_tool
 from agentpool_toolsets.builtin.file_edit import replace_content
 from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import StreamingFuzzyMatcher
 from agentpool_toolsets.fsspec_toolset.diagnostics import (
@@ -231,13 +237,46 @@ class FSSpecTools(ResourceProvider):
         if self._tools is not None:
             return self._tools
 
+        # Create standalone tools with toolset's configuration
+        list_dir_tool = create_list_directory_tool(
+            env=self.execution_env,
+            cwd=self.cwd,
+        )
+
+        read_tool = create_read_tool(
+            env=self.execution_env,
+            cwd=self.cwd,
+            max_file_size_kb=self.max_file_size // 1024,
+            max_image_size=self._max_image_size,
+            max_image_bytes=self._max_image_bytes,
+            large_file_tokens=self._large_file_tokens,
+            map_max_tokens=self._map_max_tokens,
+        )
+
+        grep_tool = create_grep_tool(
+            env=self.execution_env,
+            cwd=self.cwd,
+            max_output_kb=self.max_grep_output // 1024,
+            use_subprocess_grep=self.use_subprocess_grep,
+        )
+
+        delete_tool = create_delete_path_tool(
+            env=self.execution_env,
+            cwd=self.cwd,
+        )
+
+        download_tool = create_download_file_tool(
+            env=self.execution_env,
+            cwd=self.cwd,
+        )
+
         self._tools = [
-            self.create_tool(self.list_directory, category="read", read_only=True, idempotent=True),
-            self.create_tool(self.read, category="read", read_only=True, idempotent=True),
-            self.create_tool(self.grep, category="search", read_only=True, idempotent=True),
+            list_dir_tool,
+            read_tool,
+            grep_tool,
             self.create_tool(self.write, category="edit"),
-            self.create_tool(self.delete_path, category="delete", destructive=True),
-            self.create_tool(self.download_file, category="read", open_world=True),
+            delete_tool,
+            download_tool,
         ]
 
         # Add edit tool based on config - mutually exclusive
@@ -250,15 +289,14 @@ class FSSpecTools(ResourceProvider):
         else:  # simple
             self._tools.append(self.create_tool(self.edit, category="edit"))
 
-        if self.converter:  # Only add read_as_markdown if converter is available
-            self._tools.append(
-                self.create_tool(
-                    self.read_as_markdown,
-                    category="read",
-                    read_only=True,
-                    idempotent=True,
-                )
+        # Add read_as_markdown if converter is available
+        if self.converter:
+            read_md_tool = create_read_as_markdown_tool(
+                converter=self.converter,
+                env=self.execution_env,
+                cwd=self.cwd,
             )
+            self._tools.append(read_md_tool)
 
         return self._tools
 

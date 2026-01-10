@@ -160,7 +160,378 @@ class ExecuteCodeToolConfig(BaseToolConfig):
         )
 
 
+class ReadToolConfig(BaseToolConfig):
+    """Configuration for file reading tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: read
+            max_file_size_kb: 128
+            max_image_size: 1500
+            large_file_tokens: 10000
+            environment:
+              type: local
+        ```
+    """
+
+    model_config = ConfigDict(title="Read Tool")
+
+    type: Literal["read"] = Field("read", init=False)
+    """File reading tool."""
+
+    environment: ExecutionEnvironmentConfig | None = Field(
+        default=None,
+        title="Execution environment",
+    )
+    """Execution environment for filesystem access. Falls back to agent's env if not set."""
+
+    cwd: str | None = Field(
+        default=None,
+        title="Working directory",
+    )
+    """Working directory for resolving relative paths."""
+
+    max_file_size_kb: int = Field(
+        default=64,
+        examples=[64, 128, 256],
+        title="Max file size",
+    )
+    """Maximum file size in KB for read operations."""
+
+    max_image_size: int | None = Field(
+        default=2000,
+        examples=[1500, 2000, 2500],
+        title="Max image dimensions",
+    )
+    """Max width/height for images in pixels. Images are auto-resized if larger."""
+
+    max_image_bytes: int | None = Field(
+        default=None,
+        title="Max image file size",
+    )
+    """Max file size for images in bytes. Images are compressed if larger."""
+
+    large_file_tokens: int = Field(
+        default=12_000,
+        examples=[10_000, 12_000, 15_000],
+        title="Large file threshold",
+    )
+    """Token threshold for switching to structure map for large files."""
+
+    map_max_tokens: int = Field(
+        default=2048,
+        examples=[1024, 2048, 4096],
+        title="Structure map max tokens",
+    )
+    """Maximum tokens for structure map output."""
+
+    def get_tool(self) -> Tool:
+        """Convert config to ReadTool instance."""
+        from agentpool.tool_impls.read import create_read_tool
+
+        env = self.environment.get_provider() if self.environment else None
+        return create_read_tool(
+            env=env,
+            cwd=self.cwd,
+            max_file_size_kb=self.max_file_size_kb,
+            max_image_size=self.max_image_size,
+            max_image_bytes=self.max_image_bytes,
+            large_file_tokens=self.large_file_tokens,
+            map_max_tokens=self.map_max_tokens,
+            name=self.name or "read",
+            description=self.description or "Read file contents with automatic format detection.",
+            requires_confirmation=self.requires_confirmation,
+        )
+
+
+class ListDirectoryToolConfig(BaseToolConfig):
+    """Configuration for directory listing tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: list_directory
+            max_items: 1000
+            environment:
+              type: local
+        ```
+    """
+
+    model_config = ConfigDict(title="List Directory Tool")
+
+    type: Literal["list_directory"] = Field("list_directory", init=False)
+    """Directory listing tool."""
+
+    environment: ExecutionEnvironmentConfig | None = Field(
+        default=None,
+        title="Execution environment",
+    )
+    """Execution environment for filesystem access. Falls back to agent's env if not set."""
+
+    cwd: str | None = Field(
+        default=None,
+        title="Working directory",
+    )
+    """Working directory for resolving relative paths."""
+
+    max_items: int = Field(
+        default=500,
+        examples=[500, 1000, 2000],
+        title="Max items",
+    )
+    """Maximum number of items to return (safety limit)."""
+
+    def get_tool(self) -> Tool:
+        """Convert config to ListDirectoryTool instance."""
+        from agentpool.tool_impls.list_directory import create_list_directory_tool
+
+        env = self.environment.get_provider() if self.environment else None
+        return create_list_directory_tool(
+            env=env,
+            cwd=self.cwd,
+            max_items=self.max_items,
+            name=self.name or "list_directory",
+            description=self.description or "List files in a directory with filtering support.",
+            requires_confirmation=self.requires_confirmation,
+        )
+
+
+class GrepToolConfig(BaseToolConfig):
+    """Configuration for grep search tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: grep
+            max_output_kb: 128
+            use_subprocess_grep: true
+            environment:
+              type: local
+        ```
+    """
+
+    model_config = ConfigDict(title="Grep Tool")
+
+    type: Literal["grep"] = Field("grep", init=False)
+    """Grep search tool."""
+
+    environment: ExecutionEnvironmentConfig | None = Field(
+        default=None,
+        title="Execution environment",
+    )
+    """Execution environment for filesystem access. Falls back to agent's env if not set."""
+
+    cwd: str | None = Field(
+        default=None,
+        title="Working directory",
+    )
+    """Working directory for resolving relative paths."""
+
+    max_output_kb: int = Field(
+        default=64,
+        examples=[64, 128, 256],
+        title="Max output size",
+    )
+    """Maximum output size in KB."""
+
+    use_subprocess_grep: bool = Field(
+        default=True,
+        title="Use subprocess grep",
+    )
+    """Use ripgrep/grep subprocess if available (faster for large codebases)."""
+
+    def get_tool(self) -> Tool:
+        """Convert config to GrepTool instance."""
+        from agentpool.tool_impls.grep import create_grep_tool
+
+        env = self.environment.get_provider() if self.environment else None
+        return create_grep_tool(
+            env=env,
+            cwd=self.cwd,
+            max_output_kb=self.max_output_kb,
+            use_subprocess_grep=self.use_subprocess_grep,
+            name=self.name or "grep",
+            description=self.description or "Search file contents for patterns.",
+            requires_confirmation=self.requires_confirmation,
+        )
+
+
+class DeletePathToolConfig(BaseToolConfig):
+    """Configuration for delete path tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: delete_path
+            requires_confirmation: true
+            environment:
+              type: local
+        ```
+    """
+
+    model_config = ConfigDict(title="Delete Path Tool")
+
+    type: Literal["delete_path"] = Field("delete_path", init=False)
+    """Delete path tool."""
+
+    environment: ExecutionEnvironmentConfig | None = Field(
+        default=None,
+        title="Execution environment",
+    )
+    """Execution environment for filesystem access. Falls back to agent's env if not set."""
+
+    cwd: str | None = Field(
+        default=None,
+        title="Working directory",
+    )
+    """Working directory for resolving relative paths."""
+
+    def get_tool(self) -> Tool:
+        """Convert config to DeletePathTool instance."""
+        from agentpool.tool_impls.delete_path import create_delete_path_tool
+
+        env = self.environment.get_provider() if self.environment else None
+        return create_delete_path_tool(
+            env=env,
+            cwd=self.cwd,
+            name=self.name or "delete_path",
+            description=self.description or "Delete a file or directory.",
+            requires_confirmation=self.requires_confirmation,
+        )
+
+
+class DownloadFileToolConfig(BaseToolConfig):
+    """Configuration for file download tool.
+
+    Example:
+        ```yaml
+        tools:
+          - type: download_file
+            chunk_size: 16384
+            timeout: 60.0
+            environment:
+              type: local
+        ```
+    """
+
+    model_config = ConfigDict(title="Download File Tool")
+
+    type: Literal["download_file"] = Field("download_file", init=False)
+    """File download tool."""
+
+    environment: ExecutionEnvironmentConfig | None = Field(
+        default=None,
+        title="Execution environment",
+    )
+    """Execution environment for filesystem access. Falls back to agent's env if not set."""
+
+    cwd: str | None = Field(
+        default=None,
+        title="Working directory",
+    )
+    """Working directory for resolving relative paths."""
+
+    chunk_size: int = Field(
+        default=8192,
+        examples=[8192, 16384, 32768],
+        title="Chunk size",
+    )
+    """Size of chunks to download in bytes."""
+
+    timeout: float = Field(
+        default=30.0,
+        examples=[30.0, 60.0, 120.0],
+        title="Request timeout",
+    )
+    """Request timeout in seconds."""
+
+    def get_tool(self) -> Tool:
+        """Convert config to DownloadFileTool instance."""
+        from agentpool.tool_impls.download_file import create_download_file_tool
+
+        env = self.environment.get_provider() if self.environment else None
+        return create_download_file_tool(
+            env=env,
+            cwd=self.cwd,
+            chunk_size=self.chunk_size,
+            timeout=self.timeout,
+            name=self.name or "download_file",
+            description=self.description or "Download a file from a URL.",
+            requires_confirmation=self.requires_confirmation,
+        )
+
+
+class ReadAsMarkdownToolConfig(BaseToolConfig):
+    """Configuration for read as markdown tool.
+
+    Note: This tool requires a ConversionManager which is not configurable via YAML.
+    Use this config type when programmatically creating tools with a converter.
+
+    Example:
+        ```yaml
+        tools:
+          - type: read_as_markdown
+            environment:
+              type: local
+        ```
+    """
+
+    model_config = ConfigDict(title="Read As Markdown Tool")
+
+    type: Literal["read_as_markdown"] = Field("read_as_markdown", init=False)
+    """Read as markdown tool."""
+
+    environment: ExecutionEnvironmentConfig | None = Field(
+        default=None,
+        title="Execution environment",
+    )
+    """Execution environment for filesystem access. Falls back to agent's env if not set."""
+
+    cwd: str | None = Field(
+        default=None,
+        title="Working directory",
+    )
+    """Working directory for resolving relative paths."""
+
+    def get_tool(self) -> Tool:
+        """Convert config to ReadAsMarkdownTool instance.
+
+        Note: This will fail if no ConversionManager is available.
+        In practice, this tool should be created programmatically with a converter.
+        """
+        from agentpool.tool_impls.read_as_markdown import create_read_as_markdown_tool
+
+        # Try to create a default converter - this may fail
+        try:
+            from agentpool.prompts.conversion_manager import ConversionManager
+
+            converter = ConversionManager()
+        except Exception as e:
+            msg = f"ReadAsMarkdownTool requires a ConversionManager: {e}"
+            raise ValueError(msg) from e
+
+        env = self.environment.get_provider() if self.environment else None
+        return create_read_as_markdown_tool(
+            converter=converter,
+            env=env,
+            cwd=self.cwd,
+            name=self.name or "read_as_markdown",
+            description=self.description or "Read file and convert to markdown.",
+            requires_confirmation=self.requires_confirmation,
+        )
+
+
 # Union type for agentpool tool configs
 AgentpoolToolConfig = (
-    AgentCliToolConfig | AskUserToolConfig | BashToolConfig | ExecuteCodeToolConfig
+    AgentCliToolConfig
+    | AskUserToolConfig
+    | BashToolConfig
+    | DeletePathToolConfig
+    | DownloadFileToolConfig
+    | ExecuteCodeToolConfig
+    | GrepToolConfig
+    | ListDirectoryToolConfig
+    | ReadAsMarkdownToolConfig
+    | ReadToolConfig
 )
