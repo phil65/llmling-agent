@@ -866,8 +866,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
         from claude_agent_sdk.types import StreamEvent
 
-        from agentpool.agents.claude_code_agent.converters import derive_rich_tool_info
         from agentpool.agents.events import resolve_event_handlers
+        from agentpool.agents.events.infer_info import derive_rich_tool_info
         from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
         # Ensure client is connected (waits for deferred init if needed)
@@ -994,10 +994,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     # Only emit ToolCallStartEvent if not already emitted
                                     # via streaming (emits early with partial info)
                                     if tc_id not in emitted_tool_starts:
-                                        from agentpool.agents.claude_code_agent.converters import (
-                                            derive_rich_tool_info,
-                                        )
-
                                         rich_info = derive_rich_tool_info(name, input_data)
                                         tool_start_event = ToolCallStartEvent(
                                             tool_call_id=tc_id,

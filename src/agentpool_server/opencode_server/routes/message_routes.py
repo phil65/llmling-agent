@@ -14,7 +14,6 @@ from pydantic_ai.messages import (
     ToolCallPart as PydanticToolCallPart,
 )
 
-from agentpool.agents.claude_code_agent.converters import derive_rich_tool_info
 from agentpool.agents.events import (
     CompactionEvent,
     FileContentItem,
@@ -26,6 +25,7 @@ from agentpool.agents.events import (
     ToolCallProgressEvent,
     ToolCallStartEvent,
 )
+from agentpool.agents.events.infer_info import derive_rich_tool_info
 from agentpool.utils import identifiers as identifier
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool_server.opencode_server.converters import (
