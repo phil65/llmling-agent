@@ -488,7 +488,7 @@ class ToolManagerBridge:
                         self._tool, ctx, arguments.copy()
                     )
                     return _convert_to_tool_result(result)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     # Catch exceptions during tool execution
                     # Return as tool result so LLM can see and recover
                     error_msg = f"Error executing tool: {type(e).__name__}: {e}"
