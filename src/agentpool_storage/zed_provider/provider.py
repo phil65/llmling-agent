@@ -9,11 +9,9 @@ import sqlite3
 from typing import TYPE_CHECKING, Any
 
 from agentpool.log import get_logger
-from agentpool.messaging import ChatMessage
 from agentpool.utils.now import get_now
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.zed_provider import helpers
-from agentpool_storage.zed_provider.models import ZedThread
 
 
 if TYPE_CHECKING:
@@ -21,7 +19,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai import FinishReason
 
-    from agentpool.messaging import TokenCost
+    from agentpool.messaging import ChatMessage, TokenCost
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import ZedStorageConfig
     from agentpool_storage.models import (
@@ -31,6 +29,7 @@ if TYPE_CHECKING:
         StatsFilters,
         TokenUsage,
     )
+    from agentpool_storage.zed_provider.models import ZedThread
 
 logger = get_logger(__name__)
 
@@ -115,7 +114,7 @@ class ZedStorageProvider(StorageProvider):
             return helpers.decompress_thread(data, data_type)
         except FileNotFoundError:
             return None
-        except (sqlite3.Error, Exception) as e:
+        except (sqlite3.Error, Exception) as e:  # noqa: BLE001
             logger.warning("Failed to load Zed thread", thread_id=thread_id, error=str(e))
             return None
 

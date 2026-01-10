@@ -22,6 +22,31 @@ if TYPE_CHECKING:
     from agentpool_storage.models import MessageData, QueryFilters, StatsFilters, TokenUsage
 
 
+def _dict_to_chat_message(msg: dict[str, Any]) -> ChatMessage[str]:
+    """Convert a stored message dict to ChatMessage."""
+    cost_info = None
+    if msg.get("cost_info"):
+        cost_info = TokenCost(token_usage=msg["cost_info"], total_cost=msg.get("cost", 0.0))
+
+    # Build kwargs, only including timestamp/message_id if they exist
+    kwargs: dict[str, Any] = {
+        "content": msg["content"],
+        "role": msg["role"],
+        "name": msg.get("name"),
+        "model_name": msg.get("model"),
+        "cost_info": cost_info,
+        "response_time": msg.get("response_time"),
+        "parent_id": msg.get("parent_id"),
+        "conversation_id": msg.get("conversation_id"),
+    }
+    if msg.get("timestamp"):
+        kwargs["timestamp"] = msg["timestamp"]
+    if msg.get("message_id"):
+        kwargs["message_id"] = msg["message_id"]
+
+    return ChatMessage[str](**kwargs)
+
+
 class MemoryStorageProvider(StorageProvider):
     """In-memory storage provider for testing."""
 
@@ -178,30 +203,6 @@ class MemoryStorageProvider(StorageProvider):
                 return conv.get("title")
         return None
 
-    def _dict_to_chat_message(self, msg: dict[str, Any]) -> ChatMessage[str]:
-        """Convert a stored message dict to ChatMessage."""
-        cost_info = None
-        if msg.get("cost_info"):
-            cost_info = TokenCost(token_usage=msg["cost_info"], total_cost=msg.get("cost", 0.0))
-
-        # Build kwargs, only including timestamp/message_id if they exist
-        kwargs: dict[str, Any] = {
-            "content": msg["content"],
-            "role": msg["role"],
-            "name": msg.get("name"),
-            "model_name": msg.get("model"),
-            "cost_info": cost_info,
-            "response_time": msg.get("response_time"),
-            "parent_id": msg.get("parent_id"),
-            "conversation_id": msg.get("conversation_id"),
-        }
-        if msg.get("timestamp"):
-            kwargs["timestamp"] = msg["timestamp"]
-        if msg.get("message_id"):
-            kwargs["message_id"] = msg["message_id"]
-
-        return ChatMessage[str](**kwargs)
-
     async def get_conversation_messages(
         self,
         conversation_id: str,
@@ -213,7 +214,7 @@ class MemoryStorageProvider(StorageProvider):
         for msg in self.messages:
             if msg.get("conversation_id") != conversation_id:
                 continue
-            messages.append(self._dict_to_chat_message(msg))
+            messages.append(_dict_to_chat_message(msg))
 
         # Sort by timestamp
         messages.sort(key=lambda m: m.timestamp or get_now())
@@ -233,7 +234,7 @@ class MemoryStorageProvider(StorageProvider):
         """Get a single message by ID."""
         for msg in self.messages:
             if msg.get("message_id") == message_id:
-                return self._dict_to_chat_message(msg)
+                return _dict_to_chat_message(msg)
         return None
 
     async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:

@@ -6,10 +6,10 @@ Stateless conversion and utility functions for working with Zed format.
 from __future__ import annotations
 
 import base64
+from datetime import datetime
 import io
 import json
-from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic_ai.messages import (
     BinaryContent,
@@ -28,10 +28,6 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.utils.now import get_now
 from agentpool_storage.zed_provider.models import ZedThread
-
-
-if TYPE_CHECKING:
-    pass
 
 
 logger = get_logger(__name__)
