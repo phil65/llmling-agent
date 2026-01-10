@@ -794,7 +794,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
     async def get_agentlet[AgentOutputType](
         self,
-        tool_choice: str | list[str] | None,
         model: ModelType | None,
         output_type: type[AgentOutputType] | None,
         input_provider: InputProvider | None = None,
@@ -804,7 +803,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         from agentpool.agents.tool_wrapping import wrap_tool
 
-        tools = await self.tools.get_tools(state="enabled", names=tool_choice)
+        tools = await self.tools.get_tools(state="enabled")
         final_type = to_type(output_type) if output_type not in [None, str] else self._output_type
         actual_model = model or self._model
         if isinstance(actual_model, str):
@@ -849,7 +848,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         output_type: None = None,
         model: ModelType | None = None,
         store_history: bool = True,
-        tool_choice: str | list[str] | None = None,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
@@ -868,7 +866,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         output_type: type[OutputTypeT],
         model: ModelType | None = None,
         store_history: bool = True,
-        tool_choice: str | list[str] | None = None,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
@@ -887,7 +884,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         output_type: type[Any] | None = None,
         model: ModelType | None = None,
         store_history: bool = True,
-        tool_choice: str | list[str] | None = None,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
@@ -906,7 +902,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             model: Optional model override
             store_history: Whether the message exchange should be added to the
                             context window
-            tool_choice: Filter tool choice by name
             usage_limits: Optional usage limits for the model
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
@@ -932,7 +927,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             output_type=output_type,
             model=model,
             store_history=store_history,
-            tool_choice=tool_choice,
             usage_limits=usage_limits,
             message_id=message_id,
             conversation_id=conversation_id,
@@ -958,7 +952,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         *prompt: PromptCompatible,
         output_type: type[OutputDataT] | None = None,
         model: ModelType | None = None,
-        tool_choice: str | list[str] | None = None,
         store_history: bool = True,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
@@ -977,7 +970,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             prompt: User query or instruction
             output_type: Optional type for structured responses
             model: Optional model override
-            tool_choice: Filter tool choice by name
             store_history: Whether the message exchange should be added to the
                            context window
             usage_limits: Optional usage limits for the model
@@ -1064,7 +1056,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         try:
             from pydantic_graph import End
 
-            agentlet = await self.get_agentlet(tool_choice, model, output_type, input_provider)
+            agentlet = await self.get_agentlet(model, output_type, input_provider)
             content = await convert_prompts(prompts)
             response_msg: ChatMessage[Any] | None = None
             # Prepend pending context parts (content is already pydantic-ai format)
