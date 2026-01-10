@@ -568,14 +568,14 @@ class ClaudeStorageProvider(StorageProvider):
             return ClaudeUserEntry(
                 type="user",
                 uuid=msg_uuid,
-                parentUuid=parent_uuid,
+                parent_uuid=parent_uuid,
                 sessionId=session_id,
                 timestamp=timestamp,
                 message=user_msg,
                 cwd=cwd or "",
                 version="agentpool",
-                userType="external",
-                isSidechain=False,
+                user_type="external",
+                is_sidechain=False,
             )
 
         # Assistant message
@@ -596,14 +596,14 @@ class ClaudeStorageProvider(StorageProvider):
         return ClaudeAssistantEntry(
             type="assistant",
             uuid=msg_uuid,
-            parentUuid=parent_uuid,
+            parent_uuid=parent_uuid,
             sessionId=session_id,
             timestamp=timestamp,
             message=assistant_msg,
             cwd=cwd or "",
             version="agentpool",
-            userType="external",
-            isSidechain=False,
+            user_type="external",
+            is_sidechain=False,
         )
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
