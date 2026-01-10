@@ -550,8 +550,13 @@ def truncate_lines(
     Returns:
         Tuple of (truncated_lines, was_truncated)
     """
-    # Apply offset
-    start_idx = max(0, offset)
+    # Apply offset (supports negative indexing like Python lists)
+    if offset < 0:
+        # Negative offset: count from end of file
+        start_idx = max(0, len(lines) + offset)
+    else:
+        start_idx = min(offset, len(lines))
+
     if start_idx >= len(lines):
         return [], False
 

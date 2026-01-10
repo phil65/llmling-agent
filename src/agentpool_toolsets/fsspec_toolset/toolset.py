@@ -383,9 +383,12 @@ class FSSpecTools(ResourceProvider):
         msg = f"Reading file: {path}"
         from agentpool.agents.events import LocationContentItem
 
+        # Emit progress - use 0 for line if negative (can't resolve until we read file)
+        # LocationContentItem/ToolCallLocation require line >= 0 per ACP spec
+        display_line = line if (line is not None and line > 0) else 0
         await agent_ctx.events.tool_call_progress(
             title=msg,
-            items=[LocationContentItem(path=path, line=line or 0)],
+            items=[LocationContentItem(path=path, line=display_line)],
         )
         try:
             mime_type = guess_type(path)
@@ -449,8 +452,10 @@ class FSSpecTools(ResourceProvider):
                     lines, offset, limit, self.max_file_size
                 )
                 content = "\n".join(result_lines)
+                # Don't pass negative line numbers to events (ACP requires >= 0)
+                display_line = line if (line and line > 0) else 0
                 await agent_ctx.events.file_operation(
-                    "read", path=path, success=True, line=line or 0
+                    "read", path=path, success=True, line=display_line
                 )
                 if was_truncated:
                     content += f"\n\n[Content truncated at {self.max_file_size} bytes]"
@@ -462,9 +467,11 @@ class FSSpecTools(ResourceProvider):
             # Emit file content for UI display (formatted at ACP layer)
             from agentpool.agents.events import FileContentItem
 
+            # Use non-negative line for display (negative lines are internal Python convention)
+            display_start_line = max(1, line) if line and line > 0 else None
             await agent_ctx.events.tool_call_progress(
                 title=f"Read: {path}",
-                items=[FileContentItem(content=content, path=path, start_line=line)],
+                items=[FileContentItem(content=content, path=path, start_line=display_start_line)],
                 replace_content=True,
             )
             # Return raw content for agent
