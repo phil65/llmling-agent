@@ -6,6 +6,7 @@ from collections.abc import Sequence  # noqa: TC003
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
+from tokonomics.model_names import AnthropicMaxModelName  # noqa: TC002
 
 from agentpool import log
 from agentpool.resource_providers import StaticResourceProvider
@@ -93,7 +94,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     )
     """Working directory for Claude Code operations."""
 
-    model: str | None = Field(
+    model: AnthropicMaxModelName | str | None = Field(
         default=None,
         title="Model",
         examples=["claude-sonnet-4-5", "claude-opus-4", "claude-haiku-3-5"],
@@ -233,7 +234,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     Different from allowed_tools which filters an already-available set.
     """
 
-    fallback_model: str | None = Field(
+    fallback_model: AnthropicMaxModelName | str | None = Field(
         default=None,
         title="Fallback Model",
         examples=["claude-sonnet-4-5", "claude-haiku-3-5"],

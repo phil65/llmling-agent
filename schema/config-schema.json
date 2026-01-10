@@ -7940,6 +7940,27 @@
           ]
         },
         "model": {
+          "anyOf": [
+            {
+              "enum": [
+                "claude-haiku-4-5",
+                "claude-haiku-4-5-20251001",
+                "claude-opus-4-1",
+                "claude-opus-4-1-20250805",
+                "claude-opus-4-5",
+                "claude-opus-4-5-20251101",
+                "claude-sonnet-4-5",
+                "claude-sonnet-4-5-20250929"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
           "description": "Model to use for this agent. Defaults to Claude's default model.",
           "examples": [
@@ -7947,11 +7968,7 @@
             "claude-opus-4",
             "claude-haiku-3-5"
           ],
-          "title": "Model",
-          "type": [
-            "string",
-            "null"
-          ]
+          "title": "Model"
         },
         "allowed_tools": {
           "anyOf": [
@@ -8296,17 +8313,34 @@
           "title": "Built-in Tools"
         },
         "fallback_model": {
+          "anyOf": [
+            {
+              "enum": [
+                "claude-haiku-4-5",
+                "claude-haiku-4-5-20251001",
+                "claude-opus-4-1",
+                "claude-opus-4-1-20250805",
+                "claude-opus-4-5",
+                "claude-opus-4-5-20251101",
+                "claude-sonnet-4-5",
+                "claude-sonnet-4-5-20250929"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
           "description": "Fallback model when default is overloaded.",
           "examples": [
             "claude-sonnet-4-5",
             "claude-haiku-3-5"
           ],
-          "title": "Fallback Model",
-          "type": [
-            "string",
-            "null"
-          ]
+          "title": "Fallback Model"
         },
         "dangerously_skip_permissions": {
           "default": false,

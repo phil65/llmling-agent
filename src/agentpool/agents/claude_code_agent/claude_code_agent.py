@@ -118,6 +118,7 @@ if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
     from slashed import BaseCommand, Command, CommandContext
     from tokonomics.model_discovery.model_info import ModelInfo
+    from tokonomics.model_names import AnthropicMaxModelName
     from toprompt import AnyPromptType
 
     from agentpool.agents.claude_code_agent.models import ClaudeCodeServerInfo
@@ -181,7 +182,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         disallowed_tools: list[str] | None = None,
         system_prompt: str | Sequence[str] | None = None,
         include_builtin_system_prompt: bool = True,
-        model: str | None = None,
+        model: AnthropicMaxModelName | str | None = None,
         max_turns: int | None = None,
         max_budget_usd: float | None = None,
         max_thinking_tokens: int | None = None,
@@ -190,7 +191,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         environment: dict[str, str] | None = None,
         add_dir: list[str] | None = None,
         builtin_tools: list[str] | None = None,
-        fallback_model: str | None = None,
+        fallback_model: AnthropicMaxModelName | str | None = None,
         dangerously_skip_permissions: bool = False,
         env: ExecutionEnvironment | None = None,
         input_provider: InputProvider | None = None,
@@ -310,7 +311,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Client state
         self._client: ClaudeSDKClient | None = None
-        self._current_model: str | None = self._model
+        self._current_model: AnthropicMaxModelName | str | None = self._model
         self._sdk_session_id: str | None = None  # Session ID from Claude SDK init message
         self.deps_type = type(None)
 
@@ -474,20 +475,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # input_data is PreCompactHookInput when hook_event_name == "PreCompact"
             trigger_value = input_data.get("trigger", "auto")
             trigger: Literal["auto", "manual"] = "manual" if trigger_value == "manual" else "auto"
-
             # Emit semantic CompactionEvent - consumers handle display differently
-            compaction_event = CompactionEvent(
-                session_id=self.conversation_id or "unknown",
-                trigger=trigger,
-                phase="starting",
-            )
+            ses_id = self.conversation_id or "unknown"
+            compaction_event = CompactionEvent(session_id=ses_id, trigger=trigger, phase="starting")
             await self._event_queue.put(compaction_event)
-
             return {"continue_": True}
 
-        return {
-            "PreCompact": [HookMatcher(matcher=None, hooks=[on_pre_compact])],
-        }
+        return {"PreCompact": [HookMatcher(matcher=None, hooks=[on_pre_compact])]}
 
     def _build_options(self, *, formatted_system_prompt: str | None = None) -> ClaudeAgentOptions:
         """Build ClaudeAgentOptions from runtime state.
@@ -561,7 +555,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             PermissionResult indicating allow or deny
         """
+        import uuid
+
         from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
+
+        from agentpool.tools import FunctionTool
 
         # Auto-grant if confirmation mode is "never" (bypassPermissions)
         if self.tool_confirmation_mode == "never":
@@ -589,27 +587,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 # Fallback: look up from streaming events or generate our own
                 tool_call_id = self._pending_tool_call_ids.get(tool_name)
                 if not tool_call_id:
-                    import uuid
-
                     tool_call_id = f"perm_{uuid.uuid4().hex[:12]}"
                     self._pending_tool_call_ids[tool_name] = tool_call_id
-                    self.log.debug(
-                        "Generated fallback tool_call_id",
-                        tool_name=tool_name,
-                        tool_call_id=tool_call_id,
-                    )
 
             display_name = _strip_mcp_prefix(tool_name)
-            self.log.debug(
-                "Permission request",
-                tool_name=display_name,
-                tool_call_id=tool_call_id,
-            )
-
+            self.log.debug("Permission request", tool_name=display_name, tool_call_id=tool_call_id)
             # Create a dummy Tool for the confirmation dialog
             desc = f"Claude Code tool: {tool_name}"
-            from agentpool.tools import FunctionTool
-
             tool = FunctionTool(callable=lambda: None, name=display_name, description=desc)
             ctx = self.get_context()
             # Attach tool_call_id to context for permission event
@@ -725,10 +709,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
             command = self._create_claude_code_command(cmd_info)
             self._command_store.register_command(command)
-
-        self.log.info(
-            "Populated command store", command_count=len(self._command_store.list_commands())
-        )
+        command_count = len(self._command_store.list_commands())
+        self.log.info("Populated command store", command_count=command_count)
 
     def _create_claude_code_command(self, cmd_info: dict[str, Any]) -> Command:
         """Create a slashed Command from Claude Code command info.
@@ -744,7 +726,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         name = cmd_info.get("name", "")
         description = cmd_info.get("description", "")
         argument_hint = cmd_info.get("argumentHint")
-
         # Handle MCP commands - they have " (MCP)" suffix in Claude Code
         category = "claude_code"
         if name.endswith(" (MCP)"):
@@ -757,8 +738,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             kwargs: dict[str, str],
         ) -> None:
             """Execute the Claude Code slash command."""
-            import re
-
             from claude_agent_sdk.types import (
                 AssistantMessage,
                 ResultMessage,
@@ -873,6 +852,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Yields:
             RichAgentStreamEvent instances during execution
         """
+        from anyenv import MultiEventHandler
         from claude_agent_sdk import (
             AssistantMessage,
             Message,
@@ -886,13 +866,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
         from claude_agent_sdk.types import StreamEvent
 
+        from agentpool.agents.events import resolve_event_handlers
+        from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
+
         # Ensure client is connected (waits for deferred init if needed)
         await self.ensure_initialized()
-
         # Reset cancellation state
         self._cancelled = False
         self._current_stream_task = asyncio.current_task()
-
         # Initialize conversation_id on first run and log to storage
         # Use passed conversation_id if provided (e.g., from chained agents)
         # TODO: decide whether we should store CC sessions ourselves
@@ -923,10 +904,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         conversation = message_history if message_history is not None else self.conversation
         # Use provided event handlers or fall back to agent's handlers
         if event_handlers is not None:
-            from anyenv import MultiEventHandler
-
-            from agentpool.agents.events import resolve_event_handlers
-
             handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
                 resolve_event_handlers(event_handlers)
             )
@@ -960,15 +937,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         pending_tool_calls: dict[str, ToolUseBlock] = {}
         # Track tool calls that already had ToolCallStartEvent emitted (via StreamEvent)
         emitted_tool_starts: set[str] = set()
-
-        # Accumulator for streaming tool arguments
-        from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
-
         tool_accumulator = ToolCallAccumulator()
-
         # Track files modified during this run
         file_tracker = FileTracker()
-
         # Set deps on tool bridge for access during tool invocations
         # (ContextVar doesn't work because MCP server runs in a separate task)
         if self._tool_bridge:
@@ -988,7 +959,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         continue
 
                     message = event_or_message
-
                     # Capture SDK session ID from init message
                     if isinstance(message, SystemMessage):
                         if message.subtype == "init" and "session_id" in message.data:
@@ -1416,11 +1386,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             except Exception:
                 self.log.exception("Failed to interrupt Claude Code client")
 
-    async def set_model(self, model: str) -> None:
+    async def set_model(self, model: AnthropicMaxModelName | str) -> None:
         """Set the model for future requests.
-
-        Note: This updates the model for the next query. The client
-        maintains the connection, so this takes effect on the next query().
 
         Args:
             model: Model name to use
