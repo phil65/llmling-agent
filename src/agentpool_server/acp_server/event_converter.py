@@ -494,7 +494,7 @@ class ACPEventConverter:
     async def _convert_subagent_inline(
         self,
         source_name: str,
-        source_type: Literal["agent", "team"],
+        source_type: Literal["agent", "team_parallel", "team_sequential"],
         inner_event: RichAgentStreamEvent[Any],
         depth: int,
     ) -> AsyncIterator[ACPSessionUpdate]:
@@ -551,7 +551,7 @@ class ACPEventConverter:
     async def _convert_subagent_tool_box(
         self,
         source_name: str,
-        source_type: Literal["agent", "team"],
+        source_type: Literal["agent", "team_parallel", "team_sequential"],
         inner_event: RichAgentStreamEvent[Any],
         depth: int,
     ) -> AsyncIterator[ACPSessionUpdate]:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from time import perf_counter
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 from uuid import uuid4
 
 from anyenv.async_run import as_generated
@@ -209,7 +209,9 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
                     from agentpool.delegation.teamrun import TeamRun
 
                     if isinstance(node, TeamRun):
-                        source_type = "team_sequential"
+                        source_type: Literal["team_parallel", "team_sequential", "agent"] = (
+                            "team_sequential"
+                        )
                     elif isinstance(node, BaseTeam):
                         source_type = "team_parallel"
                     else:

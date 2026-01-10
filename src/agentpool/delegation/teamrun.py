@@ -306,7 +306,9 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
                         from agentpool.delegation.team import Team
 
                         if isinstance(node, Team):
-                            source_type = "team_parallel"
+                            source_type: Literal["team_parallel", "team_sequential", "agent"] = (
+                                "team_parallel"
+                            )
                         elif isinstance(node, BaseTeam):
                             source_type = "team_sequential"
                         else:

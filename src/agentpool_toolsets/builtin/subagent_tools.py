@@ -22,7 +22,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from agentpool.agents.events import RichAgentStreamEvent
-    from agentpool.messaging import MessageNode
 
 
 logger = get_logger(__name__)
@@ -126,7 +125,7 @@ async def batch_stream_deltas(  # noqa: PLR0915
 async def _stream_subagent(
     ctx: AgentContext,
     source_name: str,
-    source_type: Literal["agent", "team"],
+    source_type: Literal["agent", "team_parallel", "team_sequential"],
     stream: AsyncIterator[RichAgentStreamEvent[Any]],
     *,
     batch_deltas: bool = False,
@@ -265,6 +264,10 @@ class SubagentTools(StaticResourceProvider):
         Returns:
             The result of the delegated task
         """
+        from agentpool import Team, TeamRun
+        from agentpool.agents.base_agent import BaseAgent
+        from agentpool.common_types import SupportsRunStream
+
         if not ctx.pool:
             msg = "Agent needs to be in a pool to delegate tasks"
             raise ToolError(msg)
@@ -274,17 +277,15 @@ class SubagentTools(StaticResourceProvider):
                 f"Available nodes: {', '.join(ctx.pool.nodes.keys())}"
             )
             raise ModelRetry(msg)
-
-        from agentpool.common_types import SupportsRunStream
-
         # Determine source type and get node
-        if agent_or_team_name in ctx.pool.teams:
-            source_type: Literal["agent", "team"] = "team"
-            node: MessageNode[Any, Any] = ctx.pool.teams[agent_or_team_name]
-        else:
-            source_type = "agent"
-            node = ctx.pool.all_agents[agent_or_team_name]
-
+        node = ctx.pool.nodes[agent_or_team_name]
+        match node:
+            case Team():
+                source_type: Literal["team_parallel", "team_sequential", "agent"] = "team_parallel"
+            case TeamRun():
+                source_type = "team_sequential"
+            case BaseAgent():
+                source_type = "agent"
         if not isinstance(node, SupportsRunStream):
             msg = f"Node {agent_or_team_name} does not support streaming"
             raise ToolError(msg)
