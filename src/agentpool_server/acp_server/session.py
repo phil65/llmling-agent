@@ -319,7 +319,7 @@ class ACPSession:
                 self.log.debug("Forwarding config option update to client")
 
         notification = SessionNotification(session_id=self.session_id, update=update)
-        await self.client.session_update(notification)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
 
     async def initialize(self) -> None:
         """Initialize async resources. Must be called after construction."""
@@ -488,7 +488,7 @@ class ACPSession:
                         notification = SessionNotification(
                             session_id=self.session_id, update=update
                         )
-                        await self.client.session_update(notification)
+                        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
                     # Yield control to allow notifications to be sent immediately
                     await anyio.sleep(0.01)
                 self.log.info("Streaming finished", events_processed=event_count)
