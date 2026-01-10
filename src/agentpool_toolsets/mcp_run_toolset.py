@@ -13,6 +13,7 @@ from agentpool.resource_providers import ResourceProvider
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from contextlib import AbstractAsyncContextManager
     from types import TracebackType
 
     from mcp import ClientSession
@@ -45,15 +46,14 @@ class McpRunTools(ResourceProvider):
         self.client = Client(session_id=id_, config=config)
         self._tools: list[Tool] | None = None
         self._session: ClientSession | None = None
-        self._mcp_client_ctx: Any = None  # Context manager for persistent connection
+        # Context manager for persistent connection
+        self._mcp_client_ctx: AbstractAsyncContextManager[ClientSession] | None = None
 
     async def __aenter__(self) -> Self:
         """Start persistent SSE connection."""
-        # Create MCPClient from mcp_run
         mcp_client = self.client.mcp_sse()
         self._mcp_client_ctx = mcp_client.connect()
         self._session = await self._mcp_client_ctx.__aenter__()
-
         # Set up notification handler for tool changes
         # The MCP ClientSession dispatches notifications via _received_notification
         # We monkey-patch it to intercept ToolListChangedNotification
@@ -65,7 +65,6 @@ class McpRunTools(ResourceProvider):
             if isinstance(notification.root, ToolListChangedNotification):
                 logger.info("MCP.run tool list changed notification received")
                 await self._on_tools_changed()
-            # Call original handler
             await original_handler(notification)
 
         self._session._received_notification = notification_handler  # type: ignore[method-assign]
@@ -98,8 +97,7 @@ class McpRunTools(ResourceProvider):
 
         self._tools = []
         for name, tool in self.client.tools.items():
-            # Capture session for use in tool calls
-            session = self._session
+            session = self._session  # Capture session for use in tool calls
 
             async def run(
                 tool_name: str = name,
@@ -114,11 +112,9 @@ class McpRunTools(ResourceProvider):
                     return await new_session.call_tool(tool_name, arguments=input_dict)  # type: ignore[no-any-return]
 
             run.__name__ = name
-            wrapped_tool = self.create_tool(
-                run, schema_override=cast(OpenAIFunctionDefinition, tool.input_schema)
-            )
+            schema = cast(OpenAIFunctionDefinition, tool.input_schema)
+            wrapped_tool = self.create_tool(run, schema_override=schema)
             self._tools.append(wrapped_tool)
-
         return self._tools
 
     async def refresh_tools(self) -> None:

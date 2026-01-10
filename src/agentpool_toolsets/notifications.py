@@ -19,6 +19,35 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def get_schema(channel_names: list[str] | None) -> OpenAIFunctionDefinition:
+    properties: dict[str, Any] = {
+        "message": {"type": "string", "description": "The notification message body"},
+        "title": {"type": "string", "description": "Optional notification title"},
+    }
+
+    if channel_names:
+        properties["channel"] = {
+            "type": "string",
+            "enum": channel_names,
+            "description": "Send to a specific channel. If not specified, sends to all channels.",
+        }
+    else:
+        properties["channel"] = {
+            "type": "string",
+            "description": "Send to a specific channel. If not specified, sends to all channels.",
+        }
+
+    return OpenAIFunctionDefinition(
+        name="send_notification",
+        description=(
+            "Send a notification via configured channels. "
+            "Specify a channel name to send to that channel only, "
+            "or omit to broadcast to all channels."
+        ),
+        parameters={"type": "object", "properties": properties, "required": ["message"]},
+    )
+
+
 class NotificationsTools(ResourceProvider):
     """Provider for Apprise-based notification tools.
 
@@ -59,38 +88,9 @@ class NotificationsTools(ResourceProvider):
             return self._tools
 
         channel_names = sorted(self.channels.keys())
-        # Build schema with enum for available channels
-        properties: dict[str, Any] = {
-            "message": {"type": "string", "description": "The notification message body"},
-            "title": {"type": "string", "description": "Optional notification title"},
-        }
-
-        if channel_names:
-            properties["channel"] = {
-                "type": "string",
-                "enum": channel_names,
-                "description": "Send to a specific channel. If not specified, sends to all channels.",  # noqa: E501
-            }
-        else:
-            properties["channel"] = {
-                "type": "string",
-                "description": "Send to a specific channel. If not specified, sends to all channels.",  # noqa: E501
-            }
-
-        schema_override = OpenAIFunctionDefinition(
-            name="send_notification",
-            description=(
-                "Send a notification via configured channels. "
-                "Specify a channel name to send to that channel only, "
-                "or omit to broadcast to all channels."
-            ),
-            parameters={"type": "object", "properties": properties, "required": ["message"]},
-        )
-
+        schema = get_schema(channel_names)
         self._tools = [
-            self.create_tool(
-                self.send_notification, schema_override=schema_override, open_world=True
-            )
+            self.create_tool(self.send_notification, schema_override=schema, open_world=True)
         ]
         return self._tools
 
