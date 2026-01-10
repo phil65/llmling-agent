@@ -93,7 +93,9 @@ class A2AServer(HTTPServer):
                         )
 
                     # Get the underlying pydantic-ai agentlet and convert to A2A app
-                    agentlet = await pool_agent.get_agentlet(None, pool_agent.model_name, str)
+                    agentlet = await pool_agent.get_agentlet(
+                        model=pool_agent.model_name, output_type=str, input_provider=None
+                    )
                     a2a_app = agentlet.to_a2a()
 
                     # ASGI apps don't return a value, they write to send()

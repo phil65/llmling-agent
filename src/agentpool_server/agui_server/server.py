@@ -88,7 +88,9 @@ class AGUIServer(HTTPServer):
                 if pool_agent is None:
                     msg = f"Agent {agent_name!r} not found"
                     return JSONResponse({"error": msg}, status_code=404)
-                agentlet = await pool_agent.get_agentlet(None, pool_agent.model_name, str)
+                agentlet = await pool_agent.get_agentlet(
+                    model=pool_agent.model_name, output_type=str, input_provider=None
+                )
                 try:
                     # Use AGUIAdapter.dispatch_request() which handles the full
                     # AG-UI protocol: parsing request, running agent, streaming response
