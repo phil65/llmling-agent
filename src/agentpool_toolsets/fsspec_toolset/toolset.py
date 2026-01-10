@@ -33,7 +33,6 @@ from agentpool.tool_impls.download_file import create_download_file_tool
 from agentpool.tool_impls.grep import create_grep_tool
 from agentpool.tool_impls.list_directory import create_list_directory_tool
 from agentpool.tool_impls.read import create_read_tool
-from agentpool.tool_impls.read_as_markdown import create_read_as_markdown_tool
 from agentpool_toolsets.builtin.file_edit import replace_content
 from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import StreamingFuzzyMatcher
 from agentpool_toolsets.fsspec_toolset.diagnostics import (
@@ -245,6 +244,7 @@ class FSSpecTools(ResourceProvider):
 
         read_tool = create_read_tool(
             env=self.execution_env,
+            converter=self.converter,  # Pass converter for automatic markdown conversion
             cwd=self.cwd,
             max_file_size_kb=self.max_file_size // 1024,
             max_image_size=self._max_image_size,
@@ -288,15 +288,6 @@ class FSSpecTools(ResourceProvider):
             )
         else:  # simple
             self._tools.append(self.create_tool(self.edit, category="edit"))
-
-        # Add read_as_markdown if converter is available
-        if self.converter:
-            read_md_tool = create_read_as_markdown_tool(
-                converter=self.converter,
-                env=self.execution_env,
-                cwd=self.cwd,
-            )
-            self._tools.append(read_md_tool)
 
         return self._tools
 

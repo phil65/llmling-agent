@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
     from fsspec.asyn import AsyncFileSystem
 
+    from agentpool.prompts.conversion_manager import ConversionManager
+
 
 logger = get_logger(__name__)
 
@@ -41,6 +43,9 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
     # Tool-specific configuration
     env: ExecutionEnvironment | None = None
     """Execution environment to use. Falls back to agent.env if not set."""
+
+    converter: ConversionManager | None = None
+    """Optional converter for binary files. If set and supports the file type, returns markdown."""
 
     cwd: str | None = None
     """Working directory for resolving relative paths."""
@@ -149,6 +154,17 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
             mime_type = guess_type(path)
             # Fast path: known binary MIME types (images, audio, video, etc.)
             if is_binary_mime(mime_type):
+                # Try converter first if available
+                if self.converter is not None:
+                    try:
+                        content = await self.converter.convert_file(path)
+                        await ctx.events.file_operation("read", path=path, success=True)
+                        return content
+                    except Exception:  # noqa: BLE001
+                        # Converter doesn't support this file type, fall back to binary
+                        pass
+
+                # Fall back to native binary handling
                 data = await self._get_fs(ctx)._cat_file(path)
                 await ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"
@@ -169,7 +185,17 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
             # Read content and probe for binary (git-style null byte detection)
             data = await self._get_fs(ctx)._cat_file(path)
             if is_binary_content(data):
-                # Binary file - return as BinaryContent for native model handling
+                # Try converter first if available
+                if self.converter is not None:
+                    try:
+                        content = await self.converter.convert_file(path)
+                        await ctx.events.file_operation("read", path=path, success=True)
+                        return content
+                    except Exception:  # noqa: BLE001
+                        # Converter doesn't support this file type, fall back to binary
+                        pass
+
+                # Fall back to native binary handling
                 await ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"
                 # Resize images if needed

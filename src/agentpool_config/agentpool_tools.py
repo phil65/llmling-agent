@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Literal
 from exxec_config import ExecutionEnvironmentConfig  # noqa: TC002
 from pydantic import ConfigDict, Field
 
+from agentpool_config.converters import ConversionConfig
 from agentpool_config.tools import BaseToolConfig
 
 
@@ -170,6 +171,8 @@ class ReadToolConfig(BaseToolConfig):
             max_file_size_kb: 128
             max_image_size: 1500
             large_file_tokens: 10000
+            conversion:
+              default_provider: markitdown
             environment:
               type: local
         ```
@@ -226,13 +229,32 @@ class ReadToolConfig(BaseToolConfig):
     )
     """Maximum tokens for structure map output."""
 
+    conversion: ConversionConfig | None = Field(
+        default=None,
+        title="Conversion config",
+    )
+    """Optional conversion config for binary files. If set, converts supported files to markdown."""
+
     def get_tool(self) -> Tool:
         """Convert config to ReadTool instance."""
         from agentpool.tool_impls.read import create_read_tool
 
         env = self.environment.get_provider() if self.environment else None
+
+        # Create converter if conversion config is provided
+        converter = None
+        if self.conversion is not None:
+            try:
+                from agentpool.prompts.conversion_manager import ConversionManager
+
+                converter = ConversionManager(self.conversion)
+            except Exception:  # noqa: BLE001
+                # ConversionManager not available, continue without it
+                pass
+
         return create_read_tool(
             env=env,
+            converter=converter,
             cwd=self.cwd,
             max_file_size_kb=self.max_file_size_kb,
             max_image_size=self.max_image_size,
@@ -462,66 +484,6 @@ class DownloadFileToolConfig(BaseToolConfig):
         )
 
 
-class ReadAsMarkdownToolConfig(BaseToolConfig):
-    """Configuration for read as markdown tool.
-
-    Note: This tool requires a ConversionManager which is not configurable via YAML.
-    Use this config type when programmatically creating tools with a converter.
-
-    Example:
-        ```yaml
-        tools:
-          - type: read_as_markdown
-            environment:
-              type: local
-        ```
-    """
-
-    model_config = ConfigDict(title="Read As Markdown Tool")
-
-    type: Literal["read_as_markdown"] = Field("read_as_markdown", init=False)
-    """Read as markdown tool."""
-
-    environment: ExecutionEnvironmentConfig | None = Field(
-        default=None,
-        title="Execution environment",
-    )
-    """Execution environment for filesystem access. Falls back to agent's env if not set."""
-
-    cwd: str | None = Field(
-        default=None,
-        title="Working directory",
-    )
-    """Working directory for resolving relative paths."""
-
-    def get_tool(self) -> Tool:
-        """Convert config to ReadAsMarkdownTool instance.
-
-        Note: This will fail if no ConversionManager is available.
-        In practice, this tool should be created programmatically with a converter.
-        """
-        from agentpool.tool_impls.read_as_markdown import create_read_as_markdown_tool
-
-        # Try to create a default converter - this may fail
-        try:
-            from agentpool.prompts.conversion_manager import ConversionManager
-
-            converter = ConversionManager()
-        except Exception as e:
-            msg = f"ReadAsMarkdownTool requires a ConversionManager: {e}"
-            raise ValueError(msg) from e
-
-        env = self.environment.get_provider() if self.environment else None
-        return create_read_as_markdown_tool(
-            converter=converter,
-            env=env,
-            cwd=self.cwd,
-            name=self.name or "read_as_markdown",
-            description=self.description or "Read file and convert to markdown.",
-            requires_confirmation=self.requires_confirmation,
-        )
-
-
 # Union type for agentpool tool configs
 AgentpoolToolConfig = (
     AgentCliToolConfig
@@ -532,6 +494,5 @@ AgentpoolToolConfig = (
     | ExecuteCodeToolConfig
     | GrepToolConfig
     | ListDirectoryToolConfig
-    | ReadAsMarkdownToolConfig
     | ReadToolConfig
 )

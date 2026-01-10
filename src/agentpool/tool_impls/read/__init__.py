@@ -11,6 +11,8 @@ from agentpool_config.tools import ToolHints
 if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
 
+    from agentpool.prompts.conversion_manager import ConversionManager
+
 __all__ = ["ReadTool", "create_read_tool"]
 
 # Tool metadata defaults
@@ -31,6 +33,7 @@ HINTS = ToolHints(read_only=True, idempotent=True)
 def create_read_tool(
     *,
     env: ExecutionEnvironment | None = None,
+    converter: ConversionManager | None = None,
     cwd: str | None = None,
     max_file_size_kb: int = 64,
     max_image_size: int | None = 2000,
@@ -45,6 +48,8 @@ def create_read_tool(
 
     Args:
         env: Execution environment to use. Falls back to agent.env if not set.
+        converter: Optional converter for binary files. If set, converts supported
+            file types to markdown instead of returning BinaryContent.
         cwd: Working directory for resolving relative paths.
         max_file_size_kb: Maximum file size in KB for read operations (default: 64KB).
         max_image_size: Max width/height for images in pixels. Larger images are
@@ -75,6 +80,12 @@ def create_read_tool(
             env=my_env,
             cwd="/workspace/project",
         )
+
+        # With converter for automatic markdown conversion
+        from agentpool.prompts.conversion_manager import ConversionManager
+        read = create_read_tool(
+            converter=ConversionManager(),
+        )
     """
     return ReadTool(
         name=name,
@@ -82,6 +93,7 @@ def create_read_tool(
         category=CATEGORY,
         hints=HINTS,
         env=env,
+        converter=converter,
         cwd=cwd,
         max_file_size_kb=max_file_size_kb,
         max_image_size=max_image_size,
