@@ -91,6 +91,9 @@ class LoadSessionResponse(Response):
     See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     """
 
+    config_options: Sequence[SessionConfigOption] = []
+    """The full list of config options with updated values."""
+
 
 class ForkSessionResponse(Response):
     """**UNSTABLE**: This capability is not part of the spec yet.
@@ -115,6 +118,9 @@ class ForkSessionResponse(Response):
     session_id: str
     """Unique identifier for the newly created forked session."""
 
+    config_options: Sequence[SessionConfigOption] = []
+    """The full list of config options with updated values."""
+
 
 class ResumeSessionResponse(Response):
     """**UNSTABLE**: This capability is not part of the spec yet.
@@ -135,6 +141,9 @@ class ResumeSessionResponse(Response):
 
     See protocol docs: [Session Modes](https://agentclientprotocol.com/protocol/session-modes)
     """
+
+    config_options: Sequence[SessionConfigOption] = []
+    """The full list of config options with updated values."""
 
 
 class SetSessionModeResponse(Response):

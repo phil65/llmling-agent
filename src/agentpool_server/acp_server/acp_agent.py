@@ -372,13 +372,14 @@ class AgentPoolACPAgent(ACPAgent):
         4. Replay conversation history via ACP notifications
         5. Return session state (modes, models)
         """
+        from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
+
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
 
         try:
             # First check if session is already active
             session = self.session_manager.get_session(params.session_id)
-
             if not session:
                 # Try to resume from storage
                 msg = "Attempting to resume session from storage"
@@ -405,24 +406,21 @@ class AgentPoolACPAgent(ACPAgent):
                 session.mcp_servers = params.mcp_servers
                 await session.initialize_mcp_servers()
 
-            # Build response with current session state
-            from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
-
             mode_state: SessionModeState | None = None
             models: SessionModelState | None = None
-            config_options: list[SessionConfigOption] = []
+            config_opts: list[SessionConfigOption] = []
 
             if isinstance(session.agent, ACPAgentClient):
                 # Nested ACP agent - pass through its state directly
                 if session.agent._state:
                     mode_state = session.agent._state.modes
                     models = session.agent._state.models
-                config_options = await get_session_config_options(session.agent)
+                config_opts = await get_session_config_options(session.agent)
             elif session.agent:
                 # Use unified helpers for all other agents
                 mode_state = await get_session_mode_state(session.agent)
                 models = await get_session_model_state(session.agent, session.agent.model_name)
-                config_options = await get_session_config_options(session.agent)
+                config_opts = await get_session_config_options(session.agent)
             else:
                 models = None
             # Schedule post-load initialization tasks
@@ -431,11 +429,7 @@ class AgentPoolACPAgent(ACPAgent):
             # Replay conversation history via ACP notifications
             self.tasks.create_task(self._replay_conversation_history(session))
             logger.info("Session loaded successfully", agent=session.current_agent_name)
-            return LoadSessionResponse(
-                models=models,
-                modes=mode_state,
-                config_options=config_options if config_options else None,
-            )
+            return LoadSessionResponse(models=models, modes=mode_state, config_options=config_opts)
 
         except Exception:
             logger.exception("Failed to load session", session_id=params.session_id)
@@ -696,11 +690,6 @@ class AgentPoolACPAgent(ACPAgent):
 
         Calls set_mode directly on the agent with the mode_id, allowing the agent
         to handle mode-specific logic (e.g., acceptEdits auto-allowing edit tools).
-
-        Mode meanings:
-        - "default": Ask for confirmation on all tools
-        - "acceptEdits": Auto-allow edit/write tools, ask for others
-        - "bypassPermissions": Auto-approve all tool calls
         """
         from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
 
@@ -785,7 +774,6 @@ class AgentPoolACPAgent(ACPAgent):
 
             # Set the model on the agent (all agents now have async set_model)
             await session.agent.set_model(params.model_id)
-
             logger.info("Set model", model_id=params.model_id, session_id=params.session_id)
             return SetSessionModelResponse()
         except Exception:
