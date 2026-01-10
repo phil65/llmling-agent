@@ -1,4 +1,16 @@
-"""OpenCode storage provider - reads/writes to ~/.local/share/opencode format."""
+"""OpenCode storage provider.
+
+This module implements storage compatible with OpenCode's normalized JSON format,
+storing conversations as relational data across multiple directories.
+
+Key differences from Claude Code:
+- Normalized structure (sessions → messages → parts)
+- SHA1-based project IDs
+- Timestamp-based message ordering (no parent links)
+- In-place file updates (not append-only)
+
+See ARCHITECTURE.md for detailed documentation of the storage format.
+"""
 
 from __future__ import annotations
 

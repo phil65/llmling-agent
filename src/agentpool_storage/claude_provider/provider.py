@@ -1,4 +1,16 @@
-"""Claude Code storage provider - reads/writes to ~/.claude format."""
+"""Claude Code storage provider.
+
+This module implements storage compatible with Claude Code's filesystem format,
+enabling interoperability between agentpool and Claude Code.
+
+Key features:
+- JSONL-based conversation logs per project
+- Multi-agent support (main + sub-agents)
+- Message ancestry tracking
+- Conversation forking and branching
+
+See ARCHITECTURE.md for detailed documentation of the storage format.
+"""
 
 from __future__ import annotations
 
