@@ -14,11 +14,13 @@ import anyio
 from exxec.base import ExecutionEnvironment
 from pydantic_ai import (
     BinaryContent,
+    ModelResponse,
     PartDeltaEvent,
     PartStartEvent,
     RunContext,  # noqa: TC002
     TextPart,
     TextPartDelta,
+    ToolCallPart,
 )
 from upathtools import is_directory
 
@@ -51,7 +53,7 @@ if TYPE_CHECKING:
 
     import fsspec
     from fsspec.asyn import AsyncFileSystem
-    from pydantic_ai.messages import ModelRequest, ModelResponse
+    from pydantic_ai import ModelRequest
 
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.common_types import ModelType
@@ -1011,7 +1013,7 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation("read", path=url, success=False, error=error_msg)
             return {"error": error_msg}
 
-    async def agentic_edit(  # noqa: D417, PLR0915
+    async def agentic_edit(  # noqa: D417
         self,
         run_ctx: RunContext,
         agent_ctx: AgentContext,
@@ -1074,10 +1076,8 @@ class FSSpecTools(ResourceProvider):
             # 1. Stored history (previous runs) from agent.conversation
             # 2. Current run messages from run_ctx.messages (not yet stored)
             stored_history = agent.conversation.get_history()
-
             # Build complete message list
             all_messages: list[ModelRequest | ModelResponse] = []
-
             # Add stored history from previous runs
             for chat_msg in stored_history:
                 all_messages.extend(chat_msg.to_pydantic_ai())
@@ -1085,7 +1085,6 @@ class FSSpecTools(ResourceProvider):
             # Add current run's messages (not yet in stored history)
             # But exclude the last message if it contains the current agentic_edit tool call
             # to avoid the sub-agent seeing "I'm calling agentic_edit" in its context
-            from pydantic_ai.messages import ModelResponse, ToolCallPart
 
             for msg in run_ctx.messages:
                 if isinstance(msg, ModelResponse):
