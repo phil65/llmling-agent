@@ -459,6 +459,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
+        wait_for_connections: bool | None = None,
     ) -> ChatMessage[str]:
         """Execute prompt against ACP agent.
 
@@ -469,6 +470,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             parent_id: Optional parent message id for threading
             input_provider: Optional input provider for permission requests
             message_history: Optional MessageHistory to use instead of agent's own
+            wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
             ChatMessage containing the agent's aggregated text response
@@ -482,6 +484,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             parent_id=parent_id,
             input_provider=input_provider,
             message_history=message_history,
+            wait_for_connections=wait_for_connections,
         ):
             if isinstance(event, StreamCompleteEvent):
                 final_message = event.message
@@ -502,6 +505,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        wait_for_connections: bool | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Stream native events as they arrive from ACP agent.
 
@@ -514,6 +518,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             message_history: Optional MessageHistory to use instead of agent's own
             deps: Optional dependencies accessible via ctx.data in tools
             event_handlers: Optional event handlers for this run (overrides agent's handlers)
+            wait_for_connections: Whether to wait for connected agents to complete
 
         Yields:
             RichAgentStreamEvent instances converted from ACP session updates
@@ -734,6 +739,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         await self.log_message(user_msg)
         await self.log_message(message)
         conversation.add_chat_messages([user_msg, message])  # Record to conversation history
+        await self.connections.route_message(message, wait=wait_for_connections)
 
     async def run_iter(
         self,

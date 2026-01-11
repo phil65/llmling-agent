@@ -362,6 +362,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
+        wait_for_connections: bool | None = None,
         **kwargs: Any,
     ) -> ChatMessage[str]:
         """Execute prompt against AG-UI agent.
@@ -377,6 +378,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             parent_id: Optional parent message id for threading
             input_provider: Optional input provider for tool confirmation requests
             message_history: Optional MessageHistory to use instead of agent's own
+            wait_for_connections: Whether to wait for connected agents to complete
             **kwargs: Additional arguments (ignored for compatibility)
 
         Returns:
@@ -390,6 +392,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             parent_id=parent_id,
             input_provider=input_provider,
             message_history=message_history,
+            wait_for_connections=wait_for_connections,
         ):
             if isinstance(event, StreamCompleteEvent):
                 final_message = event.message
@@ -406,6 +409,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
+        wait_for_connections: bool | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Execute prompt with streaming events.
@@ -421,6 +425,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             parent_id: Optional parent message id for threading
             input_provider: Optional input provider for tool confirmation requests
             message_history: Optional MessageHistory to use instead of agent's own
+            wait_for_connections: Whether to wait for connected agents to complete
             **kwargs: Additional arguments (ignored for compatibility)
 
         Yields:
@@ -732,6 +737,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         await self.log_message(user_msg)
         await self.log_message(final_message)
         conversation.add_chat_messages([user_msg, final_message])
+        await self.connections.route_message(final_message, wait=wait_for_connections)
 
     async def run_iter(
         self,
