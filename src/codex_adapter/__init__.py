@@ -10,12 +10,20 @@ Example:
                 print(event.data.get("text", ""), end="", flush=True)
 """
 
-from codex_adapter.client import CodexClient
+from codex_adapter.client import ApprovalPolicy, CodexClient, ReasoningEffort
+from codex_adapter.codex_types import (
+    CodexThread,
+    CodexTurn,
+    ItemStatus,
+    ItemType,
+    ModelProvider,
+    TurnStatus,
+)
 from codex_adapter.events import CodexEvent, EventType
 from codex_adapter.exceptions import CodexError, CodexProcessError, CodexRequestError
-from codex_adapter.codex_types import CodexThread, CodexTurn
 
 __all__ = [
+    "ApprovalPolicy",
     "CodexClient",
     "CodexError",
     "CodexEvent",
@@ -24,4 +32,9 @@ __all__ = [
     "CodexThread",
     "CodexTurn",
     "EventType",
+    "ItemStatus",
+    "ItemType",
+    "ModelProvider",
+    "ReasoningEffort",
+    "TurnStatus",
 ]

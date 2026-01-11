@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator  # noqa: TC003
 import contextlib
 import json
 import logging
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from pydantic import BaseModel, TypeAdapter
 
@@ -15,6 +15,10 @@ from codex_adapter.codex_types import CodexThread
 from codex_adapter.events import CodexEvent
 from codex_adapter.exceptions import CodexProcessError, CodexRequestError
 
+
+# Type aliases for API parameters
+ReasoningEffort = Literal["low", "medium", "high"]
+ApprovalPolicy = Literal["always", "never", "auto"]
 
 ResultType = TypeVar("ResultType", bound=BaseModel)
 
@@ -146,14 +150,14 @@ class CodexClient:
         *,
         cwd: str | None = None,
         model: str | None = None,
-        effort: str | None = None,
+        effort: ReasoningEffort | None = None,
     ) -> CodexThread:
         """Start a new conversation thread.
 
         Args:
             cwd: Working directory for the thread
             model: Model to use (e.g., "gpt-5-codex")
-            effort: Reasoning effort ("low", "medium", "high")
+            effort: Reasoning effort
 
         Returns:
             CodexThread: The created thread
@@ -286,8 +290,8 @@ class CodexClient:
         user_input: str | list[dict[str, Any]],
         *,
         model: str | None = None,
-        effort: str | None = None,
-        approval_policy: str | None = None,
+        effort: ReasoningEffort | None = None,
+        approval_policy: ApprovalPolicy | None = None,
         output_schema: dict[str, Any] | type[Any] | None = None,
     ) -> AsyncIterator[CodexEvent]:
         """Start a turn and stream events.
@@ -297,7 +301,7 @@ class CodexClient:
             user_input: User input as string or list of items
             model: Optional model override for this turn
             effort: Optional reasoning effort override
-            approval_policy: Optional approval policy ("always", "never", "auto")
+            approval_policy: Optional approval policy
             output_schema: Optional JSON Schema dict or Pydantic type to constrain output
 
         Yields:
@@ -377,8 +381,8 @@ class CodexClient:
         result_type: type[ResultType],
         *,
         model: str | None = None,
-        effort: str | None = None,
-        approval_policy: str | None = None,
+        effort: ReasoningEffort | None = None,
+        approval_policy: ApprovalPolicy | None = None,
     ) -> ResultType:
         """Start a turn with structured output and return the parsed result.
 
@@ -394,7 +398,7 @@ class CodexClient:
             result_type: Pydantic model class for the expected result (not a dict!)
             model: Optional model override for this turn
             effort: Optional reasoning effort override
-            approval_policy: Optional approval policy ("always", "never", "auto")
+            approval_policy: Optional approval policy
 
         Returns:
             Parsed Pydantic model instance of type result_type

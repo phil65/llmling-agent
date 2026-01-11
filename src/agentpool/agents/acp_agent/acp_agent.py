@@ -75,7 +75,7 @@ if TYPE_CHECKING:
     from acp.client.connection import ClientSideConnection
     from acp.client.protocol import Client
     from acp.schema import (
-        InitializeResponse,
+        Implementation,
         RequestPermissionRequest,
         RequestPermissionResponse,
     )
@@ -189,7 +189,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._process: Process | None = None
         self._connection: ClientSideConnection | None = None
         self._client_handler: ACPClientHandler | None = None
-        self._init_response: InitializeResponse | None = None
+        self._agent_info: Implementation | None = None
         self._session_id: str | None = None
         self._state: ACPSessionState | None = None
         self.deps_type = type(None)
@@ -365,8 +365,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             read_text_file=self.config.allow_file_operations,
             write_text_file=self.config.allow_file_operations,
         )
-        self._init_response = await self._connection.initialize(init_request)
-        self.log.info("ACP connection initialized", agent_info=self._init_response.agent_info)
+        init_response = await self._connection.initialize(init_request)
+        self._agent_info = init_response.agent_info
+        self.log.info("ACP connection initialized", agent_info=self._agent_info)
 
     async def _create_session(self) -> None:
         """Create a new ACP session with configured MCP servers."""
@@ -753,8 +754,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Get the model name in a consistent format."""
         if self._state and self._state.current_model_id:
             return self._state.current_model_id
-        if self._init_response and self._init_response.agent_info:
-            return self._init_response.agent_info.name
+        if self._agent_info:
+            return self._agent_info.name
         return None
 
     async def set_model(self, model: str) -> None:

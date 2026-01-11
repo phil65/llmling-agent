@@ -121,7 +121,7 @@ async def test_acp_agent_session_info(acp_agent_config: ACPAgentConfig):
     try:
         async with ACPAgent(config=acp_agent_config) as agent:
             assert agent._session_id is not None
-            assert agent._init_response is not None
+            assert agent._agent_info is not None
             assert agent._state is not None
     except TimeoutError:
         pytest.skip("ACP server took too long to start")

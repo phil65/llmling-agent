@@ -61,12 +61,12 @@ class CodexEvent:
         raw: The full JSON-RPC notification message
     """
 
-    event_type: str
+    event_type: EventType
     data: dict[str, Any]
     raw: dict[str, Any]
 
     @classmethod
-    def from_notification(cls, method: str, params: dict[str, Any] | None) -> CodexEvent:
+    def from_notification(cls, method: EventType, params: dict[str, Any] | None) -> CodexEvent:
         """Create event from JSON-RPC notification."""
         return cls(
             event_type=method,
