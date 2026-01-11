@@ -38,6 +38,7 @@ dependencies = [
   "epregistry",
   "evented>=1.0.5",
   "exxec>=0.1.0",
+  "fastapi",
   "fastmcp>=2.12.4",
   "fsspec",
   "httpx",
@@ -45,7 +46,7 @@ dependencies = [
   "jinjarope",
   "keyring>=25.6.0",
   "llmling-models>=1.4.1",
-  "logfire",
+  "logfire[fastapi]",
   "mcp>=1.2.0",
   "pillow>=11.3.0",
   "platformdirs",
@@ -68,6 +69,7 @@ dependencies = [
   "toprompt>=0.0.1",
   "typer",
   "upathtools[httpx]>=0.1.0",
+  "uvicorn[standard]",
   "watchfiles>=1.1.1",
   "websockets>=15.0",
   "yamling>=2.0.2",
@@ -130,11 +132,6 @@ mcp-discovery = [
 mcp_run = ["mcpx-py>=0.7.0"]  # MCP.run Toolset
 notifications = ["apprise>=1.9.5"]  # Notification Toolset
 promptlayer = ["promptlayer"]  # PromptLayer Prompt Hub
-server = [
-  "logfire[fastapi]",
-  "fastapi",
-  "uvicorn[standard]"
-]  # OpenAI Server functionality
 textual = ["textual>=1.0.0"]  # Textual CLI app to create configs
 tiktoken = ["tiktoken"]  # Exact token counting
 tts = ["anyvoice[tts-edge,openai]>=0.0.2"]  # Text-to-Speech using AnyVoice
