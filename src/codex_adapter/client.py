@@ -21,9 +21,7 @@ from codex_adapter.models import (
     InitializeParams,
     JsonRpcRequest,
     JsonRpcResponse,
-    ModelData,
     ModelListResponse,
-    SkillData,
     SkillsListParams,
     SkillsListResponse,
     TextInputItem,
@@ -37,7 +35,6 @@ from codex_adapter.models import (
     ThreadRollbackParams,
     ThreadRollbackResponse,
     ThreadStartParams,
-    TurnInputItem,
     TurnInterruptParams,
     TurnStartParams,
     TurnStartResponse,
@@ -52,6 +49,8 @@ ResultType = TypeVar("ResultType", bound=BaseModel)
 
 if TYPE_CHECKING:
     from typing import Self
+
+    from codex_adapter.models import ModelData, SkillData, TurnInputItem
 
 logger = logging.getLogger(__name__)
 
@@ -129,17 +128,11 @@ class CodexClient:
             raise CodexProcessError(f"Codex binary not found: {self._codex_command}") from exc
         except Exception as exc:
             raise CodexProcessError(f"Failed to start Codex app-server: {exc}") from exc
-
         # Start reader task
         self._reader_task = asyncio.create_task(self._read_loop())
-
         # Initialize connection
-        init_params = InitializeParams(
-            client_info=ClientInfo(
-                name="agentpool-codex-adapter",
-                version="0.1.0",
-            )
-        )
+        client_info = ClientInfo(name="agentpool-codex-adapter", version="0.1.0")
+        init_params = InitializeParams(client_info=client_info)
         await self._send_request("initialize", init_params)
 
     async def stop(self) -> None:
@@ -520,11 +513,7 @@ class CodexClient:
         result = await self._send_request("command/exec", params)
         return CommandExecResponse.model_validate(result)
 
-    async def _send_request(
-        self,
-        method: str,
-        params: BaseModel | None = None,
-    ) -> Any:
+    async def _send_request(self, method: str, params: BaseModel | None = None) -> Any:
         """Send a JSON-RPC request and wait for response.
 
         Args:
@@ -549,12 +538,7 @@ class CodexClient:
             params_dict = params.model_dump(by_alias=True, exclude_none=True)
 
         # Build JSON-RPC request
-        request = JsonRpcRequest(
-            id=request_id,
-            method=method,
-            params=params_dict,
-        )
-
+        request = JsonRpcRequest(id=request_id, method=method, params=params_dict)
         async with self._writer_lock:
             try:
                 line = request.model_dump_json(by_alias=True, exclude_none=True) + "\n"
@@ -620,7 +604,7 @@ class CodexClient:
                         )
                     else:
                         future.set_result(response.result)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logger.warning("Failed to parse response: %s", exc)
                 # Fallback to old behavior for unrecognized responses
                 fallback_id = message.get("id")
