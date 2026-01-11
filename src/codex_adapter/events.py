@@ -89,9 +89,17 @@ class CodexEvent:
     def get_text_delta(self) -> str:
         """Extract text delta from message/command events.
 
-        Both agentMessage and commandExecution deltas use 'delta' field.
+        Different event types use different field names:
+        - agentMessage/delta: "text" field
+        - commandExecution/outputDelta: "output" field
+        - reasoning deltas: "delta" field
         """
-        if "delta" in self.event_type.lower():
-            delta = self.data.get("delta", "")
-            return str(delta) if delta else ""
+        if not self.is_delta():
+            return ""
+
+        # Try common field names in order of likelihood
+        for field in ("text", "output", "delta"):
+            value = self.data.get(field)
+            if value:
+                return str(value)
         return ""

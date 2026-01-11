@@ -6,6 +6,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 import uuid
 
+import anyenv
 from pydantic_ai import (
     AudioUrl,
     BinaryContent,
@@ -717,19 +718,13 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         if isinstance(content, str):
                             output = content
                         elif isinstance(content, dict):
-                            import json
-
-                            output = json.dumps(content, indent=2)
+                            output = anyenv.dump_json(content, indent=True)
                         else:
                             output = str(content) if content is not None else ""
-
-                        # Check for error
-                        is_error = isinstance(content, dict) and "error" in content
-
                         if existing:
                             # Update existing tool part with completion
                             existing_input = _get_input_from_state(existing.state)
-                            if is_error:
+                            if isinstance(content, dict) and "error" in content:
                                 existing.state = ToolStateError(
                                     status="error",
                                     error=str(content.get("error", "Unknown error")),
@@ -747,7 +742,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         else:
                             # Orphan return - create completed tool part
                             state: ToolStateCompleted | ToolStateError
-                            if is_error:
+                            if isinstance(content, dict) and "error" in content:
                                 state = ToolStateError(
                                     status="error",
                                     error=str(content.get("error", "Unknown error")),
