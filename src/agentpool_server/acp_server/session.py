@@ -343,14 +343,15 @@ class ACPSession:
                 # Don't fail session creation, just log the error
 
     async def init_project_context(self) -> None:
-        """Load AGENTS.md file and inject project context into all agents.
+        """Load AGENTS.md/CLAUDE.md file and stage as initial context.
 
-        TODO: Consider moving this to __aenter__
+        The project context is staged as user message content rather than system prompts,
+        which ensures it's available for all agent types and avoids timing issues with
+        agent initialization.
         """
         if info := await self.requests.read_agent_rules(self.cwd):
-            for agent in self.agent_pool.agents.values():
-                prompt = f"## Project Information\n\n{info}"
-                agent.sys_prompts.prompts.append(prompt)
+            # Stage as user message to be prepended to first prompt
+            self.staged_content.add_text(f"## Project Information\n\n{info}")
 
     async def init_client_skills(self) -> None:
         """Discover and load skills from client-side .claude/skills directory.
