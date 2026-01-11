@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
+
+
+if TYPE_CHECKING:
+    from agentpool_server.opencode_server.models.common import TimeCreated
 
 
 class TimeStart(OpenCodeBaseModel):
@@ -251,12 +255,6 @@ class APIErrorInfo(OpenCodeBaseModel):
     response_headers: dict[str, str] | None = None
     response_body: str | None = None
     metadata: dict[str, str] | None = None
-
-
-class TimeCreated(OpenCodeBaseModel):
-    """Time with created timestamp."""
-
-    created: int
 
 
 class RetryPart(OpenCodeBaseModel):
