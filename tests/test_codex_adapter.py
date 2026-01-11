@@ -48,8 +48,8 @@ def test_codex_event_from_notification():
     )
 
     assert event.event_type == "item/agentMessage/delta"
-    assert event.data["text"] == "Hello"
-    assert event.data["itemId"] == "123"
+    assert event.data.text == "Hello"  # Attribute access to extra fields
+    assert event.data.item_id == "123"  # snake_case auto-converted from camelCase
 
 
 def test_codex_event_is_delta():
@@ -176,7 +176,7 @@ async def test_process_message_notification():
     # Check event was queued
     event = await asyncio.wait_for(client._event_queue.get(), timeout=1.0)
     assert event.event_type == "item/agentMessage/delta"
-    assert event.data["text"] == "Hello"
+    assert event.data.text == "Hello"
 
 
 @pytest.mark.asyncio
@@ -186,6 +186,52 @@ async def test_client_not_started_error():
 
     with pytest.raises(CodexProcessError, match="Not connected"):
         await client._send_request("thread/start", {})
+
+
+def test_codex_event_typed_data():
+    """Test typed event data access with BaseEventData."""
+    from codex_adapter.models import BaseEventData
+
+    # Create an agent message delta event
+    event = CodexEvent.from_notification(
+        "item/agentMessage/delta",
+        {
+            "threadId": "thread-123",
+            "turnId": "turn-456",
+            "itemId": "item-789",
+            "text": "Hello world",
+        },
+    )
+
+    # Data is automatically validated as BaseEventData
+    assert isinstance(event.data, BaseEventData)
+
+    # Common fields work with snake_case
+    assert event.data.thread_id == "thread-123"
+    assert event.data.turn_id == "turn-456"
+    assert event.data.item_id == "item-789"
+
+    # Extra fields accessible as attributes (via __getattr__)
+    assert event.data.text == "Hello world"
+
+
+def test_codex_event_common_fields():
+    """Test that common event fields are always accessible."""
+    from codex_adapter.models import BaseEventData
+
+    # Event with only some common fields
+    event = CodexEvent.from_notification(
+        "thread/started",
+        {
+            "threadId": "thread-abc",
+            # No turnId or itemId
+        },
+    )
+
+    assert isinstance(event.data, BaseEventData)
+    assert event.data.thread_id == "thread-abc"
+    assert event.data.turn_id is None  # Optional field
+    assert event.data.item_id is None  # Optional field
 
 
 if __name__ == "__main__":

@@ -3,7 +3,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
+
+from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from codex_adapter.models import (
+        AgentMessageDeltaData,
+        BaseEventData,
+        CommandExecutionOutputDeltaData,
+        ReasoningTextDeltaData,
+        ThreadStartedData,
+        TurnCompletedData,
+        TurnErrorData,
+        TurnStartedData,
+    )
+
+T = TypeVar("T", bound=BaseModel)
 
 
 # Event types from app-server notifications (complete list from schema)
@@ -58,20 +74,23 @@ class CodexEvent:
 
     Attributes:
         event_type: The notification method (e.g., "item/agentMessage/delta")
-        data: The notification params (event-specific payload)
+        data: Typed event payload (BaseEventData with common fields)
         raw: The full JSON-RPC notification message
     """
 
     event_type: EventType
-    data: dict[str, Any]
+    data: BaseEventData
     raw: dict[str, Any]
 
     @classmethod
     def from_notification(cls, method: EventType, params: dict[str, Any] | None) -> CodexEvent:
         """Create event from JSON-RPC notification."""
+        from codex_adapter.models import BaseEventData
+
+        raw_params = params or {}
         return cls(
             event_type=method,
-            data=params or {},
+            data=BaseEventData.model_validate(raw_params),
             raw={"method": method, "params": params},
         )
 
@@ -98,9 +117,12 @@ class CodexEvent:
         if not self.is_delta():
             return ""
 
-        # Try common field names in order of likelihood
+        # Try accessing common field names via attribute access
         for field in ("text", "output", "delta"):
-            value = self.data.get(field)
-            if value:
-                return str(value)
+            try:
+                value = getattr(self.data, field, None)
+                if value:
+                    return str(value)
+            except AttributeError:
+                continue
         return ""

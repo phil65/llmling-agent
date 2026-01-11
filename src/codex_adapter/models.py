@@ -277,3 +277,130 @@ class JsonRpcNotification(CodexBaseModel):
     jsonrpc: Literal["2.0"] = "2.0"
     method: str
     params: dict[str, Any] | None = None
+
+
+# ============================================================================
+# Event payload models (based on codex-rs/exec/src/exec_events.rs)
+# ============================================================================
+
+
+class Usage(CodexBaseModel):
+    """Token usage statistics for a turn."""
+
+    input_tokens: int
+    cached_input_tokens: int
+    output_tokens: int
+
+
+# Thread lifecycle event payloads
+
+
+class ThreadStartedData(CodexBaseModel):
+    """Payload for thread/started notification."""
+
+    thread_id: str
+
+
+class ThreadTokenUsageUpdatedData(CodexBaseModel):
+    """Payload for thread/tokenUsage/updated notification."""
+
+    thread_id: str
+    usage: Usage
+
+
+class ThreadCompactedData(CodexBaseModel):
+    """Payload for thread/compacted notification."""
+
+    thread_id: str
+
+
+# Turn lifecycle event payloads
+
+
+class TurnStartedData(CodexBaseModel):
+    """Payload for turn/started notification."""
+
+    thread_id: str
+    turn_id: str
+
+
+class TurnCompletedData(CodexBaseModel):
+    """Payload for turn/completed notification."""
+
+    thread_id: str
+    turn_id: str
+    usage: Usage
+
+
+class TurnErrorData(CodexBaseModel):
+    """Payload for turn/error notification."""
+
+    thread_id: str
+    turn_id: str
+    error: str
+
+
+# Item delta event payloads
+
+
+class AgentMessageDeltaData(CodexBaseModel):
+    """Payload for item/agentMessage/delta notification."""
+
+    thread_id: str
+    turn_id: str
+    item_id: str
+    text: str
+
+
+class ReasoningTextDeltaData(CodexBaseModel):
+    """Payload for item/reasoning/textDelta notification."""
+
+    thread_id: str
+    turn_id: str
+    item_id: str
+    delta: str
+
+
+class CommandExecutionOutputDeltaData(CodexBaseModel):
+    """Payload for item/commandExecution/outputDelta notification."""
+
+    thread_id: str
+    turn_id: str
+    item_id: str
+    output: str
+
+
+# Generic event payloads for less common events
+
+
+class GenericEventData(CodexBaseModel):
+    """Generic payload for events without specific structure."""
+
+    pass  # Allows any fields via extra="forbid" override
+
+
+# For now, use a simpler approach - allow common fields
+class BaseEventData(CodexBaseModel):
+    """Base event data with common fields.
+
+    Supports both attribute and dict-style access to all fields (including extra fields).
+    """
+
+    model_config = ConfigDict(
+        extra="allow",  # Allow extra fields for flexibility
+        populate_by_name=True,
+        alias_generator=to_camel,
+    )
+
+    thread_id: str | None = None
+    turn_id: str | None = None
+    item_id: str | None = None
+
+    def __getattr__(self, name: str) -> Any:
+        """Allow attribute access to extra fields."""
+        # Check if it's in the extra fields
+        extra = object.__getattribute__(self, "__pydantic_extra__")
+        if extra and name in extra:
+            return extra[name]
+        # Fallback to default behavior
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
