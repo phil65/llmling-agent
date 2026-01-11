@@ -17,6 +17,7 @@ EventType = Literal[
     # Turn lifecycle
     "turn/started",
     "turn/completed",
+    "turn/error",
     "turn/diff/updated",
     "turn/plan/updated",
     # Item lifecycle
