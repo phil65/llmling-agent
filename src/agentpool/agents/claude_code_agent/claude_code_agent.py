@@ -786,6 +786,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
+        deps: TDeps | None = None,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[TResult]:
         """Execute prompt against Claude Code.
@@ -797,6 +798,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             parent_id: Optional parent message id for threading
             input_provider: Optional input provider for permission requests
             message_history: Optional MessageHistory to use instead of agent's own
+            deps: Optional dependencies accessible via ctx.data in tools
             wait_for_connections: Whether to wait for connected agents to complete
 
         Returns:
@@ -810,6 +812,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             parent_id=parent_id,
             input_provider=input_provider,
             message_history=message_history,
+            deps=deps,
             wait_for_connections=wait_for_connections,
         ):
             if isinstance(event, StreamCompleteEvent):
