@@ -21,6 +21,17 @@ from codex_adapter.codex_types import (
 )
 from codex_adapter.events import CodexEvent, EventType
 from codex_adapter.exceptions import CodexError, CodexProcessError, CodexRequestError
+from codex_adapter.models import (
+    CommandExecResponse,
+    LocalImageInputItem,
+    ModelData,
+    SkillData,
+    TextInputItem,
+    ThreadData,
+    ThreadListResponse,
+    ThreadRollbackResponse,
+    TurnInputItem,
+)
 
 __all__ = [
     "ApprovalPolicy",
@@ -31,10 +42,19 @@ __all__ = [
     "CodexRequestError",
     "CodexThread",
     "CodexTurn",
+    "CommandExecResponse",
     "EventType",
     "ItemStatus",
     "ItemType",
+    "LocalImageInputItem",
+    "ModelData",
     "ModelProvider",
     "ReasoningEffort",
+    "SkillData",
+    "TextInputItem",
+    "ThreadData",
+    "ThreadListResponse",
+    "ThreadRollbackResponse",
+    "TurnInputItem",
     "TurnStatus",
 ]

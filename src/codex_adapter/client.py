@@ -14,6 +14,34 @@ from pydantic import BaseModel, TypeAdapter
 from codex_adapter.codex_types import CodexThread
 from codex_adapter.events import CodexEvent
 from codex_adapter.exceptions import CodexProcessError, CodexRequestError
+from codex_adapter.models import (
+    ClientInfo,
+    CommandExecParams,
+    CommandExecResponse,
+    InitializeParams,
+    JsonRpcRequest,
+    JsonRpcResponse,
+    ModelData,
+    ModelListResponse,
+    SkillData,
+    SkillsListParams,
+    SkillsListResponse,
+    TextInputItem,
+    ThreadArchiveParams,
+    ThreadForkParams,
+    ThreadListParams,
+    ThreadListResponse,
+    ThreadLoadedListResponse,
+    ThreadResponse,
+    ThreadResumeParams,
+    ThreadRollbackParams,
+    ThreadRollbackResponse,
+    ThreadStartParams,
+    TurnInputItem,
+    TurnInterruptParams,
+    TurnStartParams,
+    TurnStartResponse,
+)
 
 
 # Type aliases for API parameters
@@ -21,7 +49,6 @@ ReasoningEffort = Literal["low", "medium", "high"]
 ApprovalPolicy = Literal["always", "never", "auto"]
 
 ResultType = TypeVar("ResultType", bound=BaseModel)
-
 
 if TYPE_CHECKING:
     from typing import Self
@@ -107,15 +134,13 @@ class CodexClient:
         self._reader_task = asyncio.create_task(self._read_loop())
 
         # Initialize connection
-        await self._send_request(
-            "initialize",
-            {
-                "clientInfo": {
-                    "name": "agentpool-codex-adapter",
-                    "version": "0.1.0",
-                }
-            },
+        init_params = InitializeParams(
+            client_info=ClientInfo(
+                name="agentpool-codex-adapter",
+                version="0.1.0",
+            )
         )
+        await self._send_request("initialize", init_params)
 
     async def stop(self) -> None:
         """Stop the Codex app-server subprocess."""
@@ -162,21 +187,14 @@ class CodexClient:
         Returns:
             CodexThread: The created thread
         """
-        params: dict[str, Any] = {}
-        if cwd:
-            params["cwd"] = cwd
-        if model:
-            params["model"] = model
-        if effort:
-            params["effort"] = effort
-
+        params = ThreadStartParams(cwd=cwd, model=model, effort=effort)
         result = await self._send_request("thread/start", params)
-        thread_data = result["thread"]
+        response = ThreadResponse.model_validate(result)
         thread = CodexThread(
-            id=thread_data["id"],
-            preview=thread_data.get("preview", ""),
-            model_provider=thread_data.get("modelProvider", "openai"),
-            created_at=thread_data.get("createdAt", 0),
+            id=response.thread.id,
+            preview=response.thread.preview,
+            model_provider=response.thread.model_provider,
+            created_at=response.thread.created_at,
         )
         self._active_threads[thread.id] = thread
         return thread
@@ -190,13 +208,14 @@ class CodexClient:
         Returns:
             CodexThread: The resumed thread
         """
-        result = await self._send_request("thread/resume", {"threadId": thread_id})
-        thread_data = result["thread"]
+        params = ThreadResumeParams(thread_id=thread_id)
+        result = await self._send_request("thread/resume", params)
+        response = ThreadResponse.model_validate(result)
         thread = CodexThread(
-            id=thread_data["id"],
-            preview=thread_data.get("preview", ""),
-            model_provider=thread_data.get("modelProvider", "openai"),
-            created_at=thread_data.get("createdAt", 0),
+            id=response.thread.id,
+            preview=response.thread.preview,
+            model_provider=response.thread.model_provider,
+            created_at=response.thread.created_at,
         )
         self._active_threads[thread.id] = thread
         return thread
@@ -210,13 +229,14 @@ class CodexClient:
         Returns:
             CodexThread: The new forked thread
         """
-        result = await self._send_request("thread/fork", {"threadId": thread_id})
-        thread_data = result["thread"]
+        params = ThreadForkParams(thread_id=thread_id)
+        result = await self._send_request("thread/fork", params)
+        response = ThreadResponse.model_validate(result)
         thread = CodexThread(
-            id=thread_data["id"],
-            preview=thread_data.get("preview", ""),
-            model_provider=thread_data.get("modelProvider", "openai"),
-            created_at=thread_data.get("createdAt", 0),
+            id=response.thread.id,
+            preview=response.thread.preview,
+            model_provider=response.thread.model_provider,
+            created_at=response.thread.created_at,
         )
         self._active_threads[thread.id] = thread
         return thread
@@ -227,7 +247,7 @@ class CodexClient:
         cursor: str | None = None,
         limit: int | None = None,
         model_providers: list[str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> ThreadListResponse:
         """List stored threads with pagination.
 
         Args:
@@ -236,18 +256,15 @@ class CodexClient:
             model_providers: Filter by model providers (e.g., ["openai", "anthropic"])
 
         Returns:
-            dict with 'data' (list of threads) and 'nextCursor' (str | None)
+            ThreadListResponse with data (list of threads) and next_cursor
         """
-        params: dict[str, Any] = {}
-        if cursor is not None:
-            params["cursor"] = cursor
-        if limit is not None:
-            params["limit"] = limit
-        if model_providers is not None:
-            params["modelProviders"] = model_providers
-
-        result: dict[str, Any] = await self._send_request("thread/list", params)
-        return result
+        params = ThreadListParams(
+            cursor=cursor,
+            limit=limit,
+            model_providers=model_providers,
+        )
+        result = await self._send_request("thread/list", params)
+        return ThreadListResponse.model_validate(result)
 
     async def thread_loaded_list(self) -> list[str]:
         """List thread IDs currently loaded in memory.
@@ -255,8 +272,9 @@ class CodexClient:
         Returns:
             List of thread IDs
         """
-        result = await self._send_request("thread/loaded/list", {})
-        return list(result["data"])
+        result = await self._send_request("thread/loaded/list")
+        response = ThreadLoadedListResponse.model_validate(result)
+        return response.data
 
     async def thread_archive(self, thread_id: str) -> None:
         """Archive a thread (move to archived directory).
@@ -264,11 +282,12 @@ class CodexClient:
         Args:
             thread_id: The thread ID to archive
         """
-        await self._send_request("thread/archive", {"threadId": thread_id})
+        params = ThreadArchiveParams(thread_id=thread_id)
+        await self._send_request("thread/archive", params)
         if thread_id in self._active_threads:
             del self._active_threads[thread_id]
 
-    async def thread_rollback(self, thread_id: str, turns: int) -> dict[str, Any]:
+    async def thread_rollback(self, thread_id: str, turns: int) -> ThreadRollbackResponse:
         """Rollback the last N turns from a thread.
 
         Args:
@@ -278,16 +297,14 @@ class CodexClient:
         Returns:
             Updated thread object with turns populated
         """
-        result: dict[str, Any] = await self._send_request(
-            "thread/rollback",
-            {"threadId": thread_id, "turns": turns},
-        )
-        return result
+        params = ThreadRollbackParams(thread_id=thread_id, turns=turns)
+        result = await self._send_request("thread/rollback", params)
+        return ThreadRollbackResponse.model_validate(result)
 
     async def turn_stream(
         self,
         thread_id: str,
-        user_input: str | list[dict[str, Any]],
+        user_input: str | list[TurnInputItem],
         *,
         model: str | None = None,
         effort: ReasoningEffort | None = None,
@@ -298,7 +315,7 @@ class CodexClient:
 
         Args:
             thread_id: The thread ID to send the turn to
-            user_input: User input as string or list of items
+            user_input: User input as string or list of input items (text/image)
             model: Optional model override for this turn
             effort: Optional reasoning effort override
             approval_policy: Optional approval policy
@@ -307,35 +324,37 @@ class CodexClient:
         Yields:
             CodexEvent: Streaming events from the turn
         """
-        # Build turn request params
-        params: dict[str, Any] = {"threadId": thread_id}
-
-        # Convert user_input to input format
+        # Convert user_input to typed input format
+        input_items: list[TurnInputItem]
         if isinstance(user_input, str):
-            params["input"] = [{"type": "text", "text": user_input}]
+            input_items = [TextInputItem(text=user_input)]
         else:
-            params["input"] = user_input
-
-        # Add overrides
-        if model:
-            params["model"] = model
-        if effort:
-            params["effort"] = effort
-        if approval_policy:
-            params["approvalPolicy"] = approval_policy
+            input_items = user_input
 
         # Handle output_schema - convert type to JSON Schema if needed
+        schema_dict: dict[str, Any] | None = None
         if output_schema is not None:
             if isinstance(output_schema, dict):
-                params["outputSchema"] = output_schema
+                schema_dict = output_schema
             else:
                 # It's a type - use TypeAdapter to extract schema
                 adapter = TypeAdapter(output_schema)
-                params["outputSchema"] = adapter.json_schema()
+                schema_dict = adapter.json_schema()
+
+        # Build typed params
+        params = TurnStartParams(
+            thread_id=thread_id,
+            input=input_items,
+            model=model,
+            effort=effort,
+            approval_policy=approval_policy,
+            output_schema=schema_dict,
+        )
 
         # Start turn (non-blocking request)
         turn_result = await self._send_request("turn/start", params)
-        turn_id = turn_result["turn"]["id"]
+        response = TurnStartResponse.model_validate(turn_result)
+        turn_id = response.turn.id
 
         # Create per-turn event queue for proper routing
         turn_queue: asyncio.Queue[CodexEvent | None] = asyncio.Queue()
@@ -369,15 +388,13 @@ class CodexClient:
             thread_id: The thread ID
             turn_id: The turn ID to interrupt
         """
-        await self._send_request(
-            "turn/interrupt",
-            {"threadId": thread_id, "turnId": turn_id},
-        )
+        params = TurnInterruptParams(thread_id=thread_id, turn_id=turn_id)
+        await self._send_request("turn/interrupt", params)
 
     async def turn_stream_structured(
         self,
         thread_id: str,
-        user_input: str | list[dict[str, Any]],
+        user_input: str | list[TurnInputItem],
         result_type: type[ResultType],
         *,
         model: str | None = None,
@@ -447,7 +464,7 @@ class CodexClient:
         *,
         cwd: str | None = None,
         force_reload: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> list[SkillData]:
         """List available skills.
 
         Args:
@@ -457,28 +474,23 @@ class CodexClient:
         Returns:
             List of skills with name and description
         """
-        params: dict[str, Any] = {"forceReload": force_reload}
-        if cwd:
-            params["cwd"] = cwd
-
+        params = SkillsListParams(cwd=cwd, force_reload=force_reload)
         result = await self._send_request("skills/list", params)
-        # Response format: {"data": [{"cwd": str, "skills": [...], "errors": [...]}]}
-        data = result.get("data", [])
-        if data and isinstance(data, list) and len(data) > 0:
-            skills: list[dict[str, Any]] = data[0].get("skills", [])
-            return skills
+        response = SkillsListResponse.model_validate(result)
+        # Return skills from first container (usually only one)
+        if response.data:
+            return response.data[0].skills
         return []
 
-    async def model_list(self) -> list[dict[str, Any]]:
+    async def model_list(self) -> list[ModelData]:
         """List available models with reasoning effort options.
 
         Returns:
             List of available models
         """
-        result = await self._send_request("model/list", {})
-        # Response format: {"data": [{"id": str, "model": str, ...}]}
-        models: list[dict[str, Any]] = result.get("data", [])
-        return models
+        result = await self._send_request("model/list")
+        response = ModelListResponse.model_validate(result)
+        return response.data
 
     async def command_exec(
         self,
@@ -487,7 +499,7 @@ class CodexClient:
         cwd: str | None = None,
         sandbox_policy: dict[str, Any] | None = None,
         timeout_ms: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> CommandExecResponse:
         """Execute a command without creating a thread/turn.
 
         Args:
@@ -497,21 +509,31 @@ class CodexClient:
             timeout_ms: Timeout in milliseconds
 
         Returns:
-            dict with 'exitCode', 'stdout', 'stderr'
+            CommandExecResponse with exit_code, stdout, stderr
         """
-        params: dict[str, Any] = {"command": command}
-        if cwd:
-            params["cwd"] = cwd
-        if sandbox_policy:
-            params["sandboxPolicy"] = sandbox_policy
-        if timeout_ms:
-            params["timeoutMs"] = timeout_ms
+        params = CommandExecParams(
+            command=command,
+            cwd=cwd,
+            sandbox_policy=sandbox_policy,
+            timeout_ms=timeout_ms,
+        )
+        result = await self._send_request("command/exec", params)
+        return CommandExecResponse.model_validate(result)
 
-        result: dict[str, Any] = await self._send_request("command/exec", params)
-        return result
+    async def _send_request(
+        self,
+        method: str,
+        params: BaseModel | None = None,
+    ) -> Any:
+        """Send a JSON-RPC request and wait for response.
 
-    async def _send_request(self, method: str, params: dict[str, Any] | None = None) -> Any:
-        """Send a JSON-RPC request and wait for response."""
+        Args:
+            method: JSON-RPC method name
+            params: Pydantic model with request parameters (will be serialized)
+
+        Returns:
+            Response result (not yet validated - caller should validate)
+        """
         if self._process is None or self._process.stdin is None:
             raise CodexProcessError("Not connected to Codex app-server")
 
@@ -521,16 +543,21 @@ class CodexClient:
         future: asyncio.Future[Any] = asyncio.Future()
         self._pending_requests[request_id] = future
 
-        message = {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "method": method,
-            "params": params or {},
-        }
+        # Serialize params to dict if provided
+        params_dict: dict[str, Any] = {}
+        if params is not None:
+            params_dict = params.model_dump(by_alias=True, exclude_none=True)
+
+        # Build JSON-RPC request
+        request = JsonRpcRequest(
+            id=request_id,
+            method=method,
+            params=params_dict,
+        )
 
         async with self._writer_lock:
             try:
-                line = json.dumps(message) + "\n"
+                line = request.model_dump_json(by_alias=True, exclude_none=True) + "\n"
                 self._process.stdin.write(line.encode())
                 await self._process.stdin.drain()
             except Exception as exc:
@@ -570,25 +597,37 @@ class CodexClient:
             await self._event_queue.put(None)
 
     async def _process_message(self, message: dict[str, Any]) -> None:
-        """Process a message from the app-server."""
+        """Process a message from the app-server.
+
+        Args:
+            message: Raw JSON-RPC message (response or notification)
+        """
         # Response (has "id" field)
         if "id" in message:
-            request_id = message["id"]
-            future = self._pending_requests.pop(request_id, None)
-            if future and not future.done():
-                if "result" in message:
-                    future.set_result(message["result"])
-                elif "error" in message:
-                    error = message["error"]
-                    future.set_exception(
-                        CodexRequestError(
-                            error.get("code", -32603),
-                            error.get("message", "Unknown error"),
-                            error.get("data"),
+            try:
+                response = JsonRpcResponse.model_validate(message)
+                request_id = response.id
+                future = self._pending_requests.pop(request_id, None)
+
+                if future and not future.done():
+                    if response.error:
+                        future.set_exception(
+                            CodexRequestError(
+                                response.error.code,
+                                response.error.message,
+                                response.error.data,
+                            )
                         )
-                    )
-                else:
-                    future.set_result(None)
+                    else:
+                        future.set_result(response.result)
+            except Exception as exc:
+                logger.warning("Failed to parse response: %s", exc)
+                # Fallback to old behavior for unrecognized responses
+                fallback_id = message.get("id")
+                if fallback_id is not None and isinstance(fallback_id, int):
+                    future = self._pending_requests.pop(fallback_id, None)
+                    if future and not future.done():
+                        future.set_result(message.get("result"))
             return
 
         # Notification (has "method" field, no "id")
