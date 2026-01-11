@@ -37,8 +37,7 @@ async def test_question_elicitation_single_select():
 
     # Start elicitation in background
     async def get_answer():
-        result = await provider.get_elicitation(params)
-        return result
+        return await provider.get_elicitation(params)
 
     task = asyncio.create_task(get_answer())
 
@@ -47,7 +46,7 @@ async def test_question_elicitation_single_select():
 
     # Verify question was created
     assert len(state.pending_questions) == 1
-    question_id = list(state.pending_questions.keys())[0]
+    question_id = next(iter(state.pending_questions.keys()))
     pending = state.pending_questions[question_id]
 
     # Verify question structure
@@ -103,7 +102,7 @@ async def test_question_elicitation_multi_select():
     await asyncio.sleep(0.1)
 
     # Get question
-    question_id = list(state.pending_questions.keys())[0]
+    question_id = next(iter(state.pending_questions.keys()))
     pending = state.pending_questions[question_id]
     question_info = pending["questions"][0]
 
@@ -146,7 +145,7 @@ async def test_question_cancellation():
     await asyncio.sleep(0.1)
 
     # Get question and cancel it
-    question_id = list(state.pending_questions.keys())[0]
+    question_id = next(iter(state.pending_questions.keys()))
     future = state.pending_questions[question_id]["future"]
     future.cancel()
 
@@ -188,7 +187,7 @@ async def test_question_with_descriptions():
     await asyncio.sleep(0.1)
 
     # Verify descriptions were included
-    question_id = list(state.pending_questions.keys())[0]
+    question_id = next(iter(state.pending_questions.keys()))
     question_info = state.pending_questions[question_id]["questions"][0]
     options = question_info["options"]
 
