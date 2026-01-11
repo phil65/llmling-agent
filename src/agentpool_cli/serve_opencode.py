@@ -69,7 +69,7 @@ def opencode_command(
     """
     from agentpool import AgentPool, log as ap_log
     from agentpool.config_resources import CLAUDE_CODE_ASSISTANT
-    from agentpool_server.opencode_server import OpenCodeServer
+    from agentpool_server.opencode_server.server import OpenCodeServer
 
     # Always log to file with rollover
     log_dir = user_log_path("agentpool", appauthor=False)

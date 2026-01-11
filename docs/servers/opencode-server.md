@@ -218,7 +218,7 @@ Connect to `/global/event` or `/event` to receive events.
 ## Programmatic Usage
 
 ```python
-from agentpool_server.opencode_server import OpenCodeServer
+from agentpool_server.opencode_server.server import OpenCodeServer
 from agentpool import Agent
 
 async def main():

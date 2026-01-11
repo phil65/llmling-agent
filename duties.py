@@ -341,7 +341,7 @@ def opencode_server(ctx, *args: str):
     print("Connect with: opencode attach http://{host}:{port}")
     ctx.run(
         f'uv run python -c "'
-        f"from agentpool_server.opencode_server import run_server; "
+        f"from agentpool_server.opencode_server.server import run_server; "
         f"run_server(host='{host}', port={port})\""
     )
 
@@ -399,7 +399,7 @@ def opencode(ctx, *args: str):
         "run",
         "python",
         "-c",
-        f"from agentpool_server.opencode_server import run_server; "
+        f"from agentpool_server.opencode_server.server import run_server; "
         f"run_server(host='{host}', port={port})",
     ]
     print(f"Starting OpenCode server on {url}...")

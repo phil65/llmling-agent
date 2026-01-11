@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI, Request  # noqa: TC002
-from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, Response
@@ -37,6 +36,8 @@ class OpenCodeJSONResponse(JSONResponse):
     """Custom JSON response that excludes None values (like OpenCode does)."""
 
     def render(self, content: Any) -> bytes:
+        from fastapi.encoders import jsonable_encoder
+
         return super().render(jsonable_encoder(content, exclude_none=True))
 
 
