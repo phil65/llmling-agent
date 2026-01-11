@@ -235,7 +235,7 @@ class TestClientSession:
         session = ClientSession(data=data, pool=agent_pool)
 
         assert session.session_id == "test_session"
-        assert session.agent_name == "test_agent"
+        assert session.agent.name == "test_agent"
         assert session.conversation_id == "test_session"
         assert not session.is_closed
 
@@ -424,7 +424,7 @@ class TestSessionManager:
         async with manager:
             session = await manager.create(agent_name="test_agent")
 
-            assert session.agent_name == "test_agent"
+            assert session.agent.name == "test_agent"
             assert session.session_id.startswith("ses_")  # OpenCode-compatible format
             assert not session.is_closed
 
@@ -541,7 +541,7 @@ class TestSessionManager:
 
             assert resumed is not None
             assert resumed.session_id == "resume_test"
-            assert resumed.agent_name == "test_agent"
+            assert resumed.agent.name == "test_agent"
 
     async def test_context_manager_cleanup(self, agent_pool: AgentPool) -> None:
         """Test that context manager closes all sessions."""

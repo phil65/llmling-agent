@@ -363,6 +363,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,
         **kwargs: Any,
     ) -> ChatMessage[str]:
@@ -380,6 +381,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             input_provider: Optional input provider for tool confirmation requests
             message_history: Optional MessageHistory to use instead of agent's own
             deps: Optional dependencies accessible via ctx.data in tools
+            event_handlers: Optional event handlers for this run (overrides agent's handlers)
             wait_for_connections: Whether to wait for connected agents to complete
             **kwargs: Additional arguments (ignored for compatibility)
 
@@ -395,6 +397,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             input_provider=input_provider,
             message_history=message_history,
             deps=deps,
+            event_handlers=event_handlers,
             wait_for_connections=wait_for_connections,
         ):
             if isinstance(event, StreamCompleteEvent):
@@ -413,6 +416,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         input_provider: InputProvider | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
@@ -430,6 +434,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             input_provider: Optional input provider for tool confirmation requests
             message_history: Optional MessageHistory to use instead of agent's own
             deps: Optional dependencies accessible via ctx.data in tools
+            event_handlers: Optional event handlers for this run (overrides agent's handlers)
             wait_for_connections: Whether to wait for connected agents to complete
             **kwargs: Additional arguments (ignored for compatibility)
 
@@ -439,6 +444,19 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Update input provider if provided
         if input_provider is not None:
             self._input_provider = input_provider
+
+        # Use provided event handlers or fall back to agent's handlers
+        if event_handlers is not None:
+            from anyenv import MultiEventHandler
+
+            from agentpool.agents.events import resolve_event_handlers
+
+            handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
+                resolve_event_handlers(event_handlers)
+            )
+        else:
+            handler = self.event_handler
+
         from ag_ui.core import (
             RunAgentInput,
             TextMessageChunkEvent,
@@ -508,7 +526,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             agent_name=self.name,
         )
 
-        await self.event_handler(None, run_started)
+        await handler(None, run_started)
         yield run_started
         # Get pending parts from conversation and convert them
         pending_parts = conversation.get_pending_parts()
@@ -612,18 +630,18 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                     while not self._event_queue.empty():
                                         try:
                                             custom_event = self._event_queue.get_nowait()
-                                            await self.event_handler(None, custom_event)
+                                            await handler(None, custom_event)
                                             yield custom_event
                                         except asyncio.QueueEmpty:
                                             break
                                     # Distribute to handlers
-                                    await self.event_handler(None, native_event)
+                                    await handler(None, native_event)
                                     yield native_event
 
                         # Flush any pending chunk events at end of stream
                         for event in self._chunk_transformer.flush():
                             if native_event := agui_to_native_event(event):
-                                await self.event_handler(None, native_event)
+                                await handler(None, native_event)
                                 yield native_event
 
                 except httpx.HTTPError:
@@ -694,7 +712,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 metadata=file_tracker.get_metadata(),
             )
             complete_event = StreamCompleteEvent(message=final_message)
-            await self.event_handler(None, complete_event)
+            await handler(None, complete_event)
             yield complete_event
             self._current_stream_task = None
             return
@@ -707,7 +725,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         while not self._event_queue.empty():
             try:
                 queued_event = self._event_queue.get_nowait()
-                await self.event_handler(None, queued_event)
+                await handler(None, queued_event)
                 yield queued_event
             except asyncio.QueueEmpty:
                 break
@@ -736,7 +754,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             cost_info=cost_info,
         )
         complete_event = StreamCompleteEvent(message=final_message)
-        await self.event_handler(None, complete_event)
+        await handler(None, complete_event)
         yield complete_event
         # Log and record to conversation history
         await self.log_message(user_msg)

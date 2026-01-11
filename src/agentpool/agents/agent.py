@@ -944,7 +944,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     @method_spawner
     async def run_stream(  # noqa: PLR0915
         self,
-        *prompt: PromptCompatible,
+        *prompts: PromptCompatible,
         output_type: type[OutputDataT] | None = None,
         store_history: bool = True,
         usage_limits: UsageLimits | None = None,
@@ -958,10 +958,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         instructions: str | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
-        """Run agent with prompt and get a streaming response.
+        """Run agent with prompts and get a streaming response.
 
         Args:
-            prompt: User query or instruction
+            prompts: User queries or instructions
             output_type: Optional type for structured responses
             store_history: Whether the message exchange should be added to the
                            context window
@@ -1013,14 +1013,14 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 from agentpool.utils.identifiers import generate_session_id
 
                 self.conversation_id = generate_session_id()
-                # Extract text from prompt for title generation
-                initial_prompt = " ".join(str(p) for p in prompt if isinstance(p, str))
+                # Extract text from prompts for title generation
+                initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
                 await self.log_conversation(initial_prompt or None)
 
         # Use provided parent_id or fall back to last message in history
         effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()
-        user_msg, prompts = await prepare_prompts(
-            *prompt, parent_id=effective_parent_id, conversation_id=self.conversation_id
+        user_msg, processed_prompts = await prepare_prompts(
+            *prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
         )
         self.message_received.emit(user_msg)
         start_time = time.perf_counter()
@@ -1050,7 +1050,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             from pydantic_graph import End
 
             agentlet = await self.get_agentlet(None, output_type, input_provider)
-            content = await convert_prompts(prompts)
+            content = await convert_prompts(processed_prompts)
             response_msg: ChatMessage[Any] | None = None
             # Prepend pending context parts (content is already pydantic-ai format)
             converted = [*pending_parts, *content]
