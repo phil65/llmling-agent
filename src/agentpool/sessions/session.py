@@ -83,11 +83,6 @@ class ClientSession:
         return self._agent
 
     @property
-    def agent_name(self) -> str:
-        """Get current agent name."""
-        return self._data.agent_name
-
-    @property
     def conversation_id(self) -> str:
         """Get conversation ID for message storage."""
         return self._data.conversation_id

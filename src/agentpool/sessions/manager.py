@@ -308,7 +308,7 @@ class SessionManager:
         if active_only:
             sessions = list(self._active.keys())
             if agent_name:
-                sessions = [sid for sid, s in self._active.items() if s.agent_name == agent_name]
+                sessions = [sid for sid, s in self._active.items() if s.agent.name == agent_name]
             return sessions
 
         return await self._store.list_sessions(

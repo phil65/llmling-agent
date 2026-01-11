@@ -909,16 +909,15 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 if isinstance(config_opt.options, list):
                     for opt_item in config_opt.options:
                         if isinstance(opt_item, SessionConfigSelectGroup):
-                            # Grouped options - flatten them
-                            for sub_opt in opt_item.options:
-                                mode_infos.append(
-                                    ModeInfo(
-                                        id=sub_opt.value,
-                                        name=sub_opt.name,
-                                        description=sub_opt.description or "",
-                                        category_id=config_opt.id,
-                                    )
+                            mode_infos.extend(
+                                ModeInfo(
+                                    id=sub_opt.value,
+                                    name=sub_opt.name,
+                                    description=sub_opt.description or "",
+                                    category_id=config_opt.id,
                                 )
+                                for sub_opt in opt_item.options
+                            )
                         else:
                             # Ungrouped options
                             mode_infos.append(
