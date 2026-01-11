@@ -3,23 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Literal
 
-from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from codex_adapter.models import (
-        AgentMessageDeltaData,
-        BaseEventData,
-        CommandExecutionOutputDeltaData,
-        ReasoningTextDeltaData,
-        ThreadStartedData,
-        TurnCompletedData,
-        TurnErrorData,
-        TurnStartedData,
-    )
-
-T = TypeVar("T", bound=BaseModel)
+    from codex_adapter.models import EventData
 
 
 # Event types from app-server notifications (complete list from schema)
@@ -74,23 +62,100 @@ class CodexEvent:
 
     Attributes:
         event_type: The notification method (e.g., "item/agentMessage/delta")
-        data: Typed event payload (BaseEventData with common fields)
+        data: Typed event payload specific to the event type
         raw: The full JSON-RPC notification message
     """
 
     event_type: EventType
-    data: BaseEventData
+    data: EventData
     raw: dict[str, Any]
 
     @classmethod
     def from_notification(cls, method: EventType, params: dict[str, Any] | None) -> CodexEvent:
-        """Create event from JSON-RPC notification."""
-        from codex_adapter.models import BaseEventData
+        """Create event from JSON-RPC notification with proper type routing."""
+        from codex_adapter.models import (
+            AccountLoginCompletedData,
+            AccountRateLimitsUpdatedData,
+            AccountUpdatedData,
+            AgentMessageDeltaData,
+            AuthStatusChangeData,
+            CommandExecutionOutputDeltaData,
+            CommandExecutionTerminalInteractionData,
+            DeprecationNoticeData,
+            ErrorEventData,
+            FileChangeOutputDeltaData,
+            GenericEventData,
+            ItemCompletedData,
+            ItemStartedData,
+            LoginChatGptCompleteData,
+            McpServerOAuthLoginCompletedData,
+            McpToolCallProgressData,
+            RawResponseItemCompletedData,
+            ReasoningSummaryPartAddedData,
+            ReasoningSummaryTextDeltaData,
+            ReasoningTextDeltaData,
+            SessionConfiguredData,
+            ThreadCompactedData,
+            ThreadStartedData,
+            ThreadTokenUsageUpdatedData,
+            TurnCompletedData,
+            TurnDiffUpdatedData,
+            TurnErrorData,
+            TurnPlanUpdatedData,
+            TurnStartedData,
+            WindowsWorldWritableWarningData,
+        )
 
         raw_params = params or {}
+
+        # Map event type to data model - exact mapping from app-server-protocol
+        data_class: type[EventData] = {  # type: ignore[assignment]
+            # Error events
+            "error": ErrorEventData,
+            # Thread lifecycle
+            "thread/started": ThreadStartedData,
+            "thread/tokenUsage/updated": ThreadTokenUsageUpdatedData,
+            "thread/compacted": ThreadCompactedData,
+            # Turn lifecycle
+            "turn/started": TurnStartedData,
+            "turn/completed": TurnCompletedData,
+            "turn/error": TurnErrorData,
+            "turn/diff/updated": TurnDiffUpdatedData,
+            "turn/plan/updated": TurnPlanUpdatedData,
+            # Item lifecycle
+            "item/started": ItemStartedData,
+            "item/completed": ItemCompletedData,
+            "rawResponseItem/completed": RawResponseItemCompletedData,
+            # Item deltas - agent messages
+            "item/agentMessage/delta": AgentMessageDeltaData,
+            # Item deltas - reasoning
+            "item/reasoning/textDelta": ReasoningTextDeltaData,
+            "item/reasoning/summaryTextDelta": ReasoningSummaryTextDeltaData,
+            "item/reasoning/summaryPartAdded": ReasoningSummaryPartAddedData,
+            # Item deltas - command execution
+            "item/commandExecution/outputDelta": CommandExecutionOutputDeltaData,
+            "item/commandExecution/terminalInteraction": CommandExecutionTerminalInteractionData,
+            # Item deltas - file changes
+            "item/fileChange/outputDelta": FileChangeOutputDeltaData,
+            # Item deltas - MCP tool calls
+            "item/mcpToolCall/progress": McpToolCallProgressData,
+            # MCP OAuth
+            "mcpServer/oauthLogin/completed": McpServerOAuthLoginCompletedData,
+            # Account/Auth events
+            "account/updated": AccountUpdatedData,
+            "account/rateLimits/updated": AccountRateLimitsUpdatedData,
+            "account/login/completed": AccountLoginCompletedData,
+            "authStatusChange": AuthStatusChangeData,
+            "loginChatGptComplete": LoginChatGptCompleteData,
+            # System events
+            "sessionConfigured": SessionConfiguredData,
+            "deprecationNotice": DeprecationNoticeData,
+            "windows/worldWritableWarning": WindowsWorldWritableWarningData,
+        }.get(method, GenericEventData)
+
         return cls(
             event_type=method,
-            data=BaseEventData.model_validate(raw_params),
+            data=data_class.model_validate(raw_params),
             raw={"method": method, "params": params},
         )
 
@@ -110,19 +175,31 @@ class CodexEvent:
         """Extract text delta from message/command events.
 
         Different event types use different field names:
-        - agentMessage/delta: "text" field
-        - commandExecution/outputDelta: "output" field
-        - reasoning deltas: "delta" field
+        - agentMessage/delta: delta field
+        - commandExecution/outputDelta: delta field (not output!)
+        - reasoning deltas: delta field
+        - fileChange/outputDelta: delta field (not output!)
         """
+        from codex_adapter.models import (
+            AgentMessageDeltaData,
+            CommandExecutionOutputDeltaData,
+            FileChangeOutputDeltaData,
+            ReasoningSummaryTextDeltaData,
+            ReasoningTextDeltaData,
+        )
+
         if not self.is_delta():
             return ""
 
-        # Try accessing common field names via attribute access
-        for field in ("text", "output", "delta"):
-            try:
-                value = getattr(self.data, field, None)
-                if value:
-                    return str(value)
-            except AttributeError:
-                continue
+        # Type-safe extraction based on actual type
+        if isinstance(
+            self.data,
+            AgentMessageDeltaData
+            | ReasoningTextDeltaData
+            | ReasoningSummaryTextDeltaData
+            | CommandExecutionOutputDeltaData
+            | FileChangeOutputDeltaData,
+        ):
+            return self.data.delta
+
         return ""

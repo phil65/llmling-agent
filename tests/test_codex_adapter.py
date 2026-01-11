@@ -7,7 +7,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from codex_adapter import CodexClient, CodexEvent, CodexThread
+from codex_adapter import (
+    CodexClient,
+    CodexEvent,
+    CodexThread,
+    HttpMcpServer,
+    StdioMcpServer,
+)
+from codex_adapter.client import _mcp_config_to_toml_inline
 from codex_adapter.exceptions import CodexProcessError, CodexRequestError
 
 
@@ -42,20 +49,37 @@ async def test_codex_client_with_profile():
 
 def test_codex_event_from_notification():
     """Test CodexEvent creation from notification."""
+    from codex_adapter.models import AgentMessageDeltaData
+
     event = CodexEvent.from_notification(
         "item/agentMessage/delta",
-        {"text": "Hello", "itemId": "123"},
+        {"delta": "Hello", "itemId": "123", "threadId": "t1", "turnId": "u1"},
     )
 
     assert event.event_type == "item/agentMessage/delta"
-    assert event.data.text == "Hello"  # Attribute access to extra fields
+    assert isinstance(event.data, AgentMessageDeltaData)
+    assert event.data.delta == "Hello"  # API uses "delta" not "text"
     assert event.data.item_id == "123"  # snake_case auto-converted from camelCase
 
 
 def test_codex_event_is_delta():
     """Test event type checking."""
-    delta_event = CodexEvent.from_notification("item/agentMessage/delta", {})
-    completed_event = CodexEvent.from_notification("turn/completed", {})
+    delta_event = CodexEvent.from_notification(
+        "item/agentMessage/delta",
+        {"delta": "", "itemId": "1", "threadId": "t1", "turnId": "u1"},
+    )
+    # TurnCompletedData has turn object, not flat fields
+    completed_event = CodexEvent.from_notification(
+        "turn/completed",
+        {
+            "threadId": "t1",
+            "turn": {
+                "id": "u1",
+                "status": "completed",
+                "items": [],
+            },
+        },
+    )
 
     assert delta_event.is_delta() is True
     assert delta_event.is_completed() is False
@@ -68,19 +92,29 @@ def test_codex_event_get_text_delta():
     # Agent message delta
     event1 = CodexEvent.from_notification(
         "item/agentMessage/delta",
-        {"text": "Hello"},
+        {"delta": "Hello", "itemId": "1", "threadId": "t1", "turnId": "u1"},
     )
     assert event1.get_text_delta() == "Hello"
 
-    # Command output delta
+    # Command output delta - uses 'delta' field, not 'output'!
     event2 = CodexEvent.from_notification(
         "item/commandExecution/outputDelta",
-        {"output": "test output"},
+        {"delta": "test output", "itemId": "1", "threadId": "t1", "turnId": "u1"},
     )
     assert event2.get_text_delta() == "test output"
 
-    # Other event
-    event3 = CodexEvent.from_notification("turn/completed", {})
+    # Non-delta event
+    event3 = CodexEvent.from_notification(
+        "turn/completed",
+        {
+            "threadId": "t1",
+            "turn": {
+                "id": "u1",
+                "status": "completed",
+                "items": [],
+            },
+        },
+    )
     assert event3.get_text_delta() == ""
 
 
@@ -164,19 +198,22 @@ async def test_process_message_error_response():
 @pytest.mark.asyncio
 async def test_process_message_notification():
     """Test processing JSON-RPC notification."""
+    from codex_adapter.models import AgentMessageDeltaData
+
     client = CodexClient()
 
     # Process notification
     await client._process_message({
         "jsonrpc": "2.0",
         "method": "item/agentMessage/delta",
-        "params": {"text": "Hello", "itemId": "123"},
+        "params": {"delta": "Hello", "itemId": "123", "threadId": "t1", "turnId": "u1"},
     })
 
     # Check event was queued
     event = await asyncio.wait_for(client._event_queue.get(), timeout=1.0)
     assert event.event_type == "item/agentMessage/delta"
-    assert event.data.text == "Hello"
+    assert isinstance(event.data, AgentMessageDeltaData)
+    assert event.data.delta == "Hello"
 
 
 @pytest.mark.asyncio
@@ -189,8 +226,8 @@ async def test_client_not_started_error():
 
 
 def test_codex_event_typed_data():
-    """Test typed event data access with BaseEventData."""
-    from codex_adapter.models import BaseEventData
+    """Test typed event data access with proper types."""
+    from codex_adapter.models import AgentMessageDeltaData
 
     # Create an agent message delta event
     event = CodexEvent.from_notification(
@@ -199,39 +236,116 @@ def test_codex_event_typed_data():
             "threadId": "thread-123",
             "turnId": "turn-456",
             "itemId": "item-789",
-            "text": "Hello world",
+            "delta": "Hello world",
         },
     )
 
-    # Data is automatically validated as BaseEventData
-    assert isinstance(event.data, BaseEventData)
+    # Data is automatically validated as AgentMessageDeltaData
+    assert isinstance(event.data, AgentMessageDeltaData)
 
     # Common fields work with snake_case
     assert event.data.thread_id == "thread-123"
     assert event.data.turn_id == "turn-456"
     assert event.data.item_id == "item-789"
 
-    # Extra fields accessible as attributes (via __getattr__)
-    assert event.data.text == "Hello world"
+    # Event-specific fields are properly typed
+    assert event.data.delta == "Hello world"
 
 
 def test_codex_event_common_fields():
-    """Test that common event fields are always accessible."""
-    from codex_adapter.models import BaseEventData
+    """Test that common event fields are accessible on all event types."""
+    from codex_adapter.models import ThreadStartedData
 
-    # Event with only some common fields
+    # V1 ThreadStarted has nested thread object
     event = CodexEvent.from_notification(
         "thread/started",
         {
-            "threadId": "thread-abc",
-            # No turnId or itemId
+            "thread": {
+                "id": "thread-abc",
+                "preview": "",
+                "modelProvider": "openai",
+                "createdAt": 0,
+                "path": "",
+                "cwd": "",
+                "cliVersion": "",
+                "source": "appServer",
+            }
         },
     )
 
-    assert isinstance(event.data, BaseEventData)
-    assert event.data.thread_id == "thread-abc"
-    assert event.data.turn_id is None  # Optional field
-    assert event.data.item_id is None  # Optional field
+    assert isinstance(event.data, ThreadStartedData)
+    assert event.data.thread.id == "thread-abc"
+
+
+def test_mcp_config_stdio_to_toml():
+    """Test converting StdioMcpServer to TOML inline format."""
+    config = StdioMcpServer(
+        command="npx",
+        args=["-y", "@openai/codex-shell-tool-mcp"],
+    )
+    result = _mcp_config_to_toml_inline("bash", config)
+    expected = 'mcp_servers.bash={command = "npx", args = ["-y", "@openai/codex-shell-tool-mcp"]}'
+    assert result == expected
+
+
+def test_mcp_config_http_to_toml():
+    """Test converting HttpMcpServer to TOML inline format."""
+    config = HttpMcpServer(
+        url="http://localhost:8000/mcp",
+        bearer_token_env_var="MY_TOKEN",
+    )
+    result = _mcp_config_to_toml_inline("tools", config)
+    expected = (
+        'mcp_servers.tools={url = "http://localhost:8000/mcp", bearer_token_env_var = "MY_TOKEN"}'
+    )
+    assert result == expected
+
+
+def test_mcp_config_http_with_headers():
+    """Test HttpMcpServer with custom headers."""
+    config = HttpMcpServer(
+        url="http://localhost:8000/mcp",
+        http_headers={"X-Custom": "value", "X-Another": "test"},
+    )
+    result = _mcp_config_to_toml_inline("tools", config)
+    # Note: dict iteration order is preserved in Python 3.7+
+    assert "mcp_servers.tools={" in result
+    assert 'url = "http://localhost:8000/mcp"' in result
+    assert 'http_headers = {X-Custom = "value", X-Another = "test"}' in result
+
+
+def test_mcp_config_with_env():
+    """Test StdioMcpServer with environment variables."""
+    config = StdioMcpServer(
+        command="my-server",
+        args=["--port", "8080"],
+        env={"API_KEY": "secret123", "MODE": "production"},
+    )
+    result = _mcp_config_to_toml_inline("custom", config)
+    assert "mcp_servers.custom={" in result
+    assert 'command = "my-server"' in result
+    assert 'args = ["--port", "8080"]' in result
+    assert 'env = {API_KEY = "secret123", MODE = "production"}' in result
+
+
+def test_codex_client_with_mcp_servers():
+    """Test CodexClient initialization with MCP servers."""
+    mcp_servers = {
+        "tools": HttpMcpServer(url="http://localhost:8000/mcp"),
+        "bash": StdioMcpServer(command="npx", args=["-y", "@openai/codex-shell-tool-mcp"]),
+    }
+
+    client = CodexClient(mcp_servers=mcp_servers)
+    assert client._mcp_servers == mcp_servers
+    assert "tools" in client._mcp_servers
+    assert "bash" in client._mcp_servers
+
+
+def test_mcp_config_disabled():
+    """Test MCP server with enabled=False."""
+    config = HttpMcpServer(url="http://localhost:8000/mcp", enabled=False)
+    result = _mcp_config_to_toml_inline("disabled", config)
+    assert "enabled = false" in result
 
 
 if __name__ == "__main__":

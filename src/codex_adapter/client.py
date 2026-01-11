@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator  # noqa: TC003
+from collections.abc import AsyncIterator, Mapping  # noqa: TC003
 import contextlib
 import json
 import logging
@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from pydantic import BaseModel, TypeAdapter
 
-from codex_adapter.codex_types import CodexThread
+from codex_adapter.codex_types import CodexThread, HttpMcpServer, StdioMcpServer
 from codex_adapter.events import CodexEvent
 from codex_adapter.exceptions import CodexProcessError, CodexRequestError
 from codex_adapter.models import (
@@ -50,9 +50,56 @@ ResultType = TypeVar("ResultType", bound=BaseModel)
 if TYPE_CHECKING:
     from typing import Self
 
+    from codex_adapter.codex_types import McpServerConfig
     from codex_adapter.models import ModelData, SkillData, TurnInputItem
 
 logger = logging.getLogger(__name__)
+
+
+def _mcp_config_to_toml_inline(name: str, config: McpServerConfig) -> str:
+    """Convert MCP server config to TOML inline table format.
+
+    Args:
+        name: Server name
+        config: MCP server configuration
+
+    Returns:
+        TOML inline table string suitable for --config flag
+
+    Example:
+        >>> config = HttpMcpServer(url="http://localhost:8000/mcp")
+        >>> _mcp_config_to_toml_inline("tools", config)
+        'mcp_servers.tools={url = "http://localhost:8000/mcp"}'
+    """
+    if isinstance(config, StdioMcpServer):
+        # Build stdio config
+        parts = [f'command = "{config.command}"']
+        if config.args:
+            args_str = ", ".join(f'"{arg}"' for arg in config.args)
+            parts.append(f"args = [{args_str}]")
+        if config.env:
+            # env as inline table
+            env_items = ", ".join(f'{k} = "{v}"' for k, v in config.env.items())
+            parts.append(f"env = {{{env_items}}}")
+        if not config.enabled:
+            parts.append("enabled = false")
+        return f"mcp_servers.{name}={{{', '.join(parts)}}}"
+
+    if isinstance(config, HttpMcpServer):
+        # Build HTTP config
+        parts = [f'url = "{config.url}"']
+        if config.bearer_token_env_var:
+            parts.append(f'bearer_token_env_var = "{config.bearer_token_env_var}"')
+        if config.http_headers:
+            # headers as inline table
+            headers_items = ", ".join(f'{k} = "{v}"' for k, v in config.http_headers.items())
+            parts.append(f"http_headers = {{{headers_items}}}")
+        if not config.enabled:
+            parts.append("enabled = false")
+        return f"mcp_servers.{name}={{{', '.join(parts)}}}"
+
+    msg = f"Unsupported MCP server config type: {type(config)}"
+    raise ValueError(msg)
 
 
 class CodexClient:
@@ -74,15 +121,22 @@ class CodexClient:
         self,
         codex_command: str = "codex",
         profile: str | None = None,
+        mcp_servers: Mapping[str, McpServerConfig] | None = None,
     ) -> None:
         """Initialize the Codex app-server client.
 
         Args:
             codex_command: Path to the codex binary (default: "codex")
             profile: Optional Codex profile to use
+            mcp_servers: Optional MCP servers to inject programmatically.
+                Keys are server names, values are server configurations.
+
+        Example:
+                    {"tools": HttpMcpServer(url="http://localhost:8000/mcp")}
         """
         self._codex_command = codex_command
         self._profile = profile
+        self._mcp_servers = dict(mcp_servers) if mcp_servers else {}
         self._process: asyncio.subprocess.Process | None = None
         self._request_id = 0
         self._pending_requests: dict[int, asyncio.Future[Any]] = {}
@@ -114,6 +168,11 @@ class CodexClient:
         cmd = [self._codex_command, "app-server"]
         if self._profile:
             cmd.extend(["--profile", self._profile])
+
+        # Add MCP server configurations via --config flags
+        for server_name, server_config in self._mcp_servers.items():
+            config_str = _mcp_config_to_toml_inline(server_name, server_config)
+            cmd.extend(["--config", config_str])
 
         logger.info("Starting Codex app-server: %s", " ".join(cmd))
 
@@ -367,7 +426,12 @@ class CodexClient:
                 if event.event_type == "turn/completed":
                     break
                 elif event.event_type == "turn/error":
-                    error_msg = event.data.get("error", "Unknown error")
+                    from codex_adapter.models import TurnErrorData
+
+                    if isinstance(event.data, TurnErrorData):
+                        error_msg = event.data.error
+                    else:
+                        error_msg = "Unknown error"
                     raise CodexRequestError(-32000, error_msg)
         finally:
             # Cleanup turn queue
@@ -446,7 +510,12 @@ class CodexClient:
             if event.event_type == "item/agentMessage/delta":
                 response_text += event.get_text_delta()
             elif event.event_type == "turn/error":
-                error_msg = event.data.get("error", "Unknown error")
+                from codex_adapter.models import TurnErrorData
+
+                if isinstance(event.data, TurnErrorData):
+                    error_msg = event.data.error
+                else:
+                    error_msg = "Unknown error"
                 raise CodexRequestError(-32000, error_msg)
 
         # Parse into typed model
@@ -641,3 +710,14 @@ class CodexClient:
             else:
                 # Global event (account, MCP, etc.) - put in global queue
                 await self._event_queue.put(event)
+
+
+if __name__ == "__main__":
+
+    async def main() -> None:
+        async with CodexClient() as client:
+            t = await client.thread_start()
+            async for e in client.turn_stream(t.id, "Show available tools"):
+                print(e.get_text_delta(), end="")
+
+    asyncio.run(main())

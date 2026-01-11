@@ -33,9 +33,9 @@ async def simple_chat() -> None:
 
             # Print command outputs
             elif event.event_type == "item/commandExecution/outputDelta":
-                output = event.data.get("output", "")
-                if output:
-                    print(f"\n[Command output]\n{output}", flush=True)
+                delta = event.get_text_delta()
+                if delta:
+                    print(f"\n[Command output]\n{delta}", flush=True)
 
             # Handle completion
             elif event.event_type == "turn/completed":
@@ -44,7 +44,10 @@ async def simple_chat() -> None:
 
             # Handle errors
             elif event.event_type == "turn/error":
-                print(f"\n\n[Error: {event.data.get('error')}]", file=sys.stderr)
+                from codex_adapter.models import TurnErrorData
+
+                if isinstance(event.data, TurnErrorData):
+                    print(f"\n\n[Error: {event.data.error}]", file=sys.stderr)
                 break
 
 
@@ -131,7 +134,19 @@ async def event_inspection_example() -> None:
                 else:
                     print(f"data: {event.data}")
             elif event.is_completed():
-                print(f"✓ {event.data.get('itemId', event.data.get('turnId', ''))}")
+                # Get ID from different event types with proper type safety
+                from codex_adapter.models import (
+                    ItemCompletedData,
+                    RawResponseItemCompletedData,
+                    TurnCompletedData,
+                )
+
+                if isinstance(event.data, ItemCompletedData | RawResponseItemCompletedData):
+                    print("✓ item")
+                elif isinstance(event.data, TurnCompletedData):
+                    print(f"✓ turn:{event.data.turn.id}")
+                else:
+                    print("✓")
             elif event.is_error():
                 print(f"✗ {event.data}")
             else:
