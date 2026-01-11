@@ -761,40 +761,73 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         return None
 
     async def set_model(self, model: str) -> None:
-        """Update the model and restart the ACP agent process.
+        """Update the model for the current session via ACP protocol.
+
+        Attempts to use the ACP protocol to change the model:
+        1. If config_options exist with a 'model' category, use set_session_config_option
+        2. Otherwise, use legacy set_session_model API
 
         Args:
-            model: New model name to use
+            model: New model ID to use
 
         Raises:
-            ValueError: If the config doesn't have a model field
-            RuntimeError: If agent is currently processing (has active process but no session)
+            RuntimeError: If no active session or remote agent doesn't support model changes
         """
-        # TODO: Once ACP protocol stabilizes, use set_session_model instead of restart
-        # from acp.schema import SetSessionModelRequest  # UNSTABLE
-        # if self._connection and self._session_id:
-        #     request = SetSessionModelRequest(session_id=self._session_id, model_id=model)
-        #     await self._connection.set_session_model(request)
-        #     if self._state:
-        #         self._state.current_model_id = model
-        #     self.log.info("Model changed via ACP protocol", model=model)
-        #     return
+        from acp.schema import SetSessionConfigOptionRequest, SetSessionModelRequest
 
-        if not hasattr(self.config, "model"):
-            msg = f"Config type {type(self.config).__name__} doesn't support model changes"
-            raise ValueError(msg)
-        # Prevent changes during active processing
-        if self._process and not self._session_id:
-            msg = "Cannot change model while agent is initializing"
+        if not self._connection or not self._session_id:
+            msg = "Cannot set model: no active session"
             raise RuntimeError(msg)
-        # Create new config with updated model
-        new_config = self.config.model_copy(update={"model": model})
-        if self._process:  # Clean up existing process if any
-            await self._cleanup()
-        self.config = new_config  # Update config and restart
-        process = await self._start_process()
-        async with monitor_process(process, context="ACP initialization"):
-            await self._initialize()
+
+        if not self._state:
+            msg = "Cannot set model: no session state"
+            raise RuntimeError(msg)
+
+        # Try using the new unified config options API first
+        model_config = next(
+            (opt for opt in self._state.config_options if opt.category == "model"),
+            None,
+        )
+
+        if model_config:
+            # Use new unified API
+            request = SetSessionConfigOptionRequest(
+                session_id=self._session_id,
+                config_id=model_config.id,
+                value_id=model,
+            )
+            response = await self._connection.set_session_config_option(request)
+            if response:
+                # Update entire config_options state from response
+                self._state.config_options = list(response.config_options)
+                self.log.info(
+                    "Model changed via SessionConfigOption",
+                    model=model,
+                    config_id=model_config.id,
+                )
+                return
+            msg = "set_session_config_option returned no response"
+            raise RuntimeError(msg)
+
+        # Fallback to legacy set_session_model API
+        request_legacy = SetSessionModelRequest(
+            session_id=self._session_id,
+            model_id=model,
+        )
+        response_legacy = await self._connection.set_session_model(request_legacy)
+        if response_legacy:
+            # Update legacy state
+            self._state.current_model_id = model
+            self.log.info("Model changed via legacy set_session_model", model=model)
+            return
+
+        # If we get here, the remote agent doesn't support model changes
+        msg = (
+            "Remote ACP agent does not support model changes. "
+            "No config_options with category='model' found and set_session_model "
+            "returned no response."
+        )
+        raise RuntimeError(msg)
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set the tool confirmation mode for this agent.
