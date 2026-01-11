@@ -34,10 +34,16 @@ class ClaudeCodeCommandInfo(BaseModel):
 class ClaudeCodeAccountInfo(BaseModel):
     """Account information from Claude Code."""
 
-    token_source: str = Field(..., alias="tokenSource")
+    email: str | None = None
+    """User email address."""
+
+    authentication_type: str = Field(..., alias="authenticationType")
+    """Authentication type (e.g., "Claude API")."""
+
+    token_source: str | None = Field(default=None, alias="tokenSource")
     """Where tokens come from (e.g., "claude.ai")."""
 
-    api_key_source: str = Field(..., alias="apiKeySource")
+    api_key_source: str | None = Field(default=None, alias="apiKeySource")
     """Where API key comes from (e.g., "ANTHROPIC_API_KEY")."""
 
 
