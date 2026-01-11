@@ -486,80 +486,6 @@ class DeleteSessionCommand(NodeCommand):
             await ctx.output.print(f"❌ **Error deleting session:** {e}")
 
 
-class ListPoolsCommand(NodeCommand):
-    """List available agent pool configurations.
-
-    Examples:
-      /list-pools
-    """
-
-    name = "list-pools"
-    category = "acp"
-
-    async def execute_command(self, ctx: CommandContext[NodeContext[ACPSession]]) -> None:
-        """List available pool configurations.
-
-        Args:
-            ctx: Command context with ACP session
-        """
-        from agentpool_cli import agent_store
-
-        session = ctx.context.data
-        if not session:
-            raise RuntimeError("Session not available in command context")
-
-        try:
-            output_lines = ["## 🏊 Agent Pool Configurations\n"]
-
-            # Show current pool info
-            output_lines.append("### 📍 Current Pool")
-            current_config = (
-                session.acp_agent.server.config_path if session.acp_agent.server else None
-            )
-            if current_config:
-                output_lines.append(f"**Config:** `{current_config}`")
-            else:
-                output_lines.append("**Config:** *(default/built-in)*")
-
-            # Show agents in current pool
-            agent_names = list(session.agent_pool.all_agents.keys())
-            output_lines.append(f"**Agents:** {', '.join(f'`{n}`' for n in agent_names)}")
-            output_lines.append(f"**Active agent:** `{session.current_agent_name}`")
-            output_lines.append("")
-
-            # Show stored configurations
-            output_lines.append("### 💾 Stored Configurations")
-            stored_configs = agent_store.list_configs()
-            active_config = agent_store.get_active()
-
-            if not stored_configs:
-                output_lines.append("*No stored configurations*")
-                output_lines.append("")
-                output_lines.append("Use `agentpool add <name> <path>` to add configurations.")
-            else:
-                # Build markdown table
-                output_lines.append("| Name | Path |")
-                output_lines.append("|------|------|")
-                for name, path in stored_configs:
-                    is_active = active_config and active_config.name == name
-                    is_current = current_config and path == current_config
-                    markers = []
-                    if is_active:
-                        markers.append("default")
-                    if is_current:
-                        markers.append("current")
-                    name_col = f"{name} ({', '.join(markers)})" if markers else name
-                    output_lines.append(f"| {name_col} | `{path}` |")
-
-            output_lines.append("")
-            output_lines.append("*Use `/set-pool <name>` or `/set-pool <path>` to switch pools.*")
-
-            await ctx.output.print("\n".join(output_lines))
-
-        except Exception as e:  # noqa: BLE001
-            await ctx.output.print(f"❌ **Error listing pools:** {e}")
-
-
 class SetPoolCommand(NodeCommand):
     """Switch to a different agent pool configuration.
 
@@ -652,102 +578,6 @@ class SetPoolCommand(NodeCommand):
             await ctx.output.print(f"❌ **Error switching pool:** {e}")
 
 
-class CompactCommand(NodeCommand):
-    """Compact the conversation history to reduce context size.
-
-    Uses the configured compaction pipeline from the agent pool manifest,
-    or falls back to a default summarizing pipeline.
-
-    Options:
-      --preset <name>   Use a specific preset (minimal, balanced, summarizing)
-
-    Examples:
-      /compact
-      /compact --preset=minimal
-    """
-
-    name = "compact"
-    category = "acp"
-
-    async def execute_command(
-        self,
-        ctx: CommandContext[NodeContext[ACPSession]],
-        *,
-        preset: str | None = None,
-    ) -> None:
-        """Compact the conversation history.
-
-        Args:
-            ctx: Command context with ACP session
-            preset: Optional preset name (minimal, balanced, summarizing)
-        """
-        session = ctx.context.data
-        if not session:
-            raise RuntimeError("Session not available in command context")
-
-        agent = session.agent
-
-        # Check if there's any history to compact
-        if not agent.conversation.get_history():
-            await ctx.output.print("📭 **No message history to compact**")
-            return
-
-        try:
-            # Get compaction pipeline
-            from agentpool.messaging.compaction import (
-                balanced_context,
-                minimal_context,
-                summarizing_context,
-            )
-
-            pipeline = None
-
-            # Check for preset override
-            if preset:
-                match preset.lower():
-                    case "minimal":
-                        pipeline = minimal_context()
-                    case "balanced":
-                        pipeline = balanced_context()
-                    case "summarizing":
-                        pipeline = summarizing_context()
-                    case _:
-                        await ctx.output.print(
-                            f"⚠️ **Unknown preset:** `{preset}`\n"
-                            "Available: minimal, balanced, summarizing"
-                        )
-                        return
-
-            # Fall back to pool's configured pipeline
-            if pipeline is None:
-                pipeline = session.agent_pool.compaction_pipeline
-
-            # Fall back to default summarizing pipeline
-            if pipeline is None:
-                pipeline = summarizing_context()
-
-            await ctx.output.print("🔄 **Compacting conversation history...**")
-
-            # Apply the pipeline using shared helper
-            from agentpool.messaging.compaction import compact_conversation
-
-            original_count, compacted_count = await compact_conversation(
-                pipeline, agent.conversation
-            )
-            reduction = original_count - compacted_count
-
-            await ctx.output.print(
-                f"✅ **Compaction complete**\n"
-                f"- Messages: {original_count} → {compacted_count} ({reduction} removed)\n"
-                f"- Reduction: {reduction / original_count * 100:.1f}%"
-                if original_count > 0
-                else "✅ **Compaction complete** (no messages)"
-            )
-
-        except Exception as e:  # noqa: BLE001
-            await ctx.output.print(f"❌ **Error compacting history:** {e}")
-
-
 def get_acp_commands() -> list[type[NodeCommand]]:
     """Get all ACP-specific slash commands."""
     return [
@@ -755,7 +585,5 @@ def get_acp_commands() -> list[type[NodeCommand]]:
         LoadSessionCommand,
         SaveSessionCommand,
         DeleteSessionCommand,
-        ListPoolsCommand,
         SetPoolCommand,
-        CompactCommand,
     ]

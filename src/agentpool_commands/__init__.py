@@ -50,6 +50,10 @@ from agentpool_commands.utils import (
     GetLogsCommand,
     ShareHistoryCommand,
 )
+from agentpool_commands.pool import (
+    CompactCommand,
+    ListPoolsCommand,
+)
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -104,6 +108,8 @@ def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComma
         "enable_list_agents": ListAgentsCommand,
         "enable_show_agent": ShowAgentCommand,
         "enable_edit_agent_file": EditAgentFileCommand,
+        "enable_list_pools": ListPoolsCommand,
+        "enable_compact": CompactCommand,
     }
     return [command for flag, command in command_map.items() if kwargs.get(flag, True)]
 
@@ -163,6 +169,8 @@ def get_commands(
     enable_list_agents: bool = True,
     enable_show_agent: bool = True,
     enable_edit_agent_file: bool = True,
+    enable_list_pools: bool = True,
+    enable_compact: bool = True,
 ) -> list[BaseCommand | type[SlashedCommand]]:
     """Get all built-in commands."""
     agent_kwargs = {
@@ -202,6 +210,8 @@ def get_commands(
         "enable_list_agents": enable_list_agents,
         "enable_show_agent": enable_show_agent,
         "enable_edit_agent_file": enable_edit_agent_file,
+        "enable_list_pools": enable_list_pools,
+        "enable_compact": enable_compact,
     }
 
     return [
