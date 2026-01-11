@@ -49,6 +49,14 @@ class AskUserTool(Tool[str]):
 
         match result:
             case ElicitResult(action="accept", content=content):
+                # Content is a dict with "value" key per MCP spec
+                if isinstance(content, dict) and "value" in content:
+                    value = content["value"]
+                    # Handle list responses (multi-select)
+                    if isinstance(value, list):
+                        return ", ".join(str(v) for v in value)
+                    return str(value)
+                # Fallback for plain content
                 return str(content)
             case ElicitResult(action="cancel"):
                 return "User cancelled the request"

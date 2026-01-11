@@ -216,11 +216,10 @@ class OpenCodeInputProvider(InputProvider):
         self,
         params: types.ElicitRequestParams,
     ) -> types.ElicitResult | types.ErrorData:
-        """Get user response to elicitation request.
+        """Get user response to elicitation request via OpenCode questions.
 
-        For now, this returns a basic decline since OpenCode doesn't have
-        a full elicitation UI like ACP. Future versions could add support
-        for more complex elicitation flows.
+        Translates MCP elicitation requests to OpenCode question system.
+        Supports both single-select and multi-select questions.
 
         Args:
             params: MCP elicit request parameters
@@ -238,7 +237,22 @@ class OpenCodeInputProvider(InputProvider):
             # Could potentially open URL in browser here
             return types.ElicitResult(action="decline")
 
-        # For form elicitation, we don't have UI support yet
+        # For form elicitation with enum schema, use OpenCode questions
+        if isinstance(params, types.ElicitRequestFormParams):
+            schema = params.requestedSchema
+
+            # Check if schema defines options (enum)
+            enum_values = schema.get("enum")
+            if enum_values:
+                return await self._handle_question_elicitation(params, schema)
+
+            # Check if it's an array schema with enum items
+            if schema.get("type") == "array":
+                items = schema.get("items", {})
+                if items.get("enum"):
+                    return await self._handle_question_elicitation(params, schema)
+
+        # For other form elicitation, we don't have UI support yet
         logger.info(
             "Form elicitation request (not supported)",
             message=params.message,
@@ -246,11 +260,145 @@ class OpenCodeInputProvider(InputProvider):
         )
         return types.ElicitResult(action="decline")
 
+    async def _handle_question_elicitation(
+        self,
+        params: types.ElicitRequestFormParams,
+        schema: dict[str, Any],
+    ) -> types.ElicitResult | types.ErrorData:
+        """Handle elicitation via OpenCode question system.
+
+        Args:
+            params: Form elicitation parameters
+            schema: JSON schema with enum values
+
+        Returns:
+            Elicit result with user's answer
+        """
+        import asyncio
+
+        from agentpool_server.opencode_server.models.events import QuestionAskedEvent
+
+        # Extract enum values
+        is_multi = schema.get("type") == "array"
+        if is_multi:
+            enum_values = schema.get("items", {}).get("enum", [])
+        else:
+            enum_values = schema.get("enum", [])
+
+        if not enum_values:
+            return types.ElicitResult(action="decline")
+
+        # Extract descriptions if available (custom x-option-descriptions field)
+        descriptions = schema.get("x-option-descriptions", {})
+
+        # Build OpenCode question format
+        question_id = self._generate_permission_id()  # Reuse ID generator
+        question_info = {
+            "question": params.message,
+            "header": params.message[:12],  # Truncate to 12 chars
+            "options": [
+                {
+                    "label": str(val),
+                    "description": descriptions.get(str(val), ""),
+                }
+                for val in enum_values
+            ],
+            "multiple": is_multi or None,
+        }
+
+        # Create future to wait for answer
+        future: asyncio.Future[list[list[str]]] = asyncio.get_event_loop().create_future()
+
+        # Store pending question
+        self.state.pending_questions[question_id] = {
+            "sessionID": self.session_id,
+            "questions": [question_info],
+            "future": future,
+            "tool": None,  # Not associated with a specific tool call
+        }
+
+        # Broadcast event
+        event = QuestionAskedEvent.create(
+            request_id=question_id,
+            session_id=self.session_id,
+            questions=[question_info],
+        )
+        await self.state.broadcast_event(event)
+
+        logger.info(
+            "Question asked",
+            question_id=question_id,
+            message=params.message,
+            is_multi=is_multi,
+        )
+
+        # Wait for answer
+        try:
+            answers = await future  # list[list[str]]
+            answer = answers[0] if answers else []  # Get first question's answer
+
+            # ElicitResult content must be a dict, not a plain value
+            # Wrap the answer in a dict with a "value" key
+            if is_multi:
+                # Multi-select: return list in dict
+                content = {"value": answer}
+            else:
+                # Single-select: return string in dict
+                content = {"value": answer[0] if answer else ""}
+
+            return types.ElicitResult(action="accept", content=content)
+        except asyncio.CancelledError:
+            logger.info("Question cancelled", question_id=question_id)
+            return types.ElicitResult(action="cancel")
+        except Exception as e:
+            logger.exception("Question failed", question_id=question_id)
+            return types.ErrorData(
+                code="elicitation_failed",
+                message=str(e),
+            )
+        finally:
+            # Clean up pending question
+            self.state.pending_questions.pop(question_id, None)
+
     def clear_tool_approvals(self) -> None:
         """Clear all stored tool approval decisions."""
         approval_count = len(self._tool_approvals)
         self._tool_approvals.clear()
         logger.info("Cleared tool approval decisions", count=approval_count)
+
+    def resolve_question(
+        self,
+        question_id: str,
+        answers: list[list[str]],
+    ) -> bool:
+        """Resolve a pending question request.
+
+        Called by the REST endpoint when the client responds.
+
+        Args:
+            question_id: The question request ID
+            answers: User's answers (array of arrays per OpenCode format)
+
+        Returns:
+            True if the question was found and resolved, False otherwise
+        """
+        pending = self.state.pending_questions.get(question_id)
+        if pending is None:
+            logger.warning("Question not found", question_id=question_id)
+            return False
+
+        future = pending["future"]
+        if future.done():
+            logger.warning("Question already resolved", question_id=question_id)
+            return False
+
+        future.set_result(answers)
+        logger.info(
+            "Question resolved",
+            question_id=question_id,
+            answers=answers,
+        )
+        return True
 
     def cancel_all_pending(self) -> int:
         """Cancel all pending permission requests.

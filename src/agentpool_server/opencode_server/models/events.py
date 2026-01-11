@@ -697,6 +697,96 @@ class VcsBranchUpdatedEvent(OpenCodeBaseModel):
         return cls(properties=VcsBranchUpdatedProperties(branch=branch))
 
 
+class QuestionAskedProperties(OpenCodeBaseModel):
+    """Properties for question asked event."""
+
+    id: str
+    sessionID: str
+    questions: list[dict[str, Any]]
+    tool: dict[str, str] | None = None
+
+
+class QuestionAskedEvent(OpenCodeBaseModel):
+    """Question asked event - sent when agent asks a question."""
+
+    type: Literal["question.asked"] = "question.asked"
+    properties: QuestionAskedProperties
+
+    @classmethod
+    def create(
+        cls,
+        request_id: str,
+        session_id: str,
+        questions: list[dict[str, Any]],
+        tool: dict[str, str] | None = None,
+    ) -> Self:
+        return cls(
+            properties=QuestionAskedProperties(
+                id=request_id,
+                sessionID=session_id,
+                questions=questions,
+                tool=tool,
+            )
+        )
+
+
+class QuestionRepliedProperties(OpenCodeBaseModel):
+    """Properties for question replied event."""
+
+    sessionID: str
+    requestID: str
+    answers: list[list[str]]
+
+
+class QuestionRepliedEvent(OpenCodeBaseModel):
+    """Question replied event - sent when user answers a question."""
+
+    type: Literal["question.replied"] = "question.replied"
+    properties: QuestionRepliedProperties
+
+    @classmethod
+    def create(
+        cls,
+        session_id: str,
+        request_id: str,
+        answers: list[list[str]],
+    ) -> Self:
+        return cls(
+            properties=QuestionRepliedProperties(
+                sessionID=session_id,
+                requestID=request_id,
+                answers=answers,
+            )
+        )
+
+
+class QuestionRejectedProperties(OpenCodeBaseModel):
+    """Properties for question rejected event."""
+
+    sessionID: str
+    requestID: str
+
+
+class QuestionRejectedEvent(OpenCodeBaseModel):
+    """Question rejected event - sent when user dismisses a question."""
+
+    type: Literal["question.rejected"] = "question.rejected"
+    properties: QuestionRejectedProperties
+
+    @classmethod
+    def create(
+        cls,
+        session_id: str,
+        request_id: str,
+    ) -> Self:
+        return cls(
+            properties=QuestionRejectedProperties(
+                sessionID=session_id,
+                requestID=request_id,
+            )
+        )
+
+
 Event = (
     ServerConnectedEvent
     | SessionCreatedEvent
@@ -711,6 +801,9 @@ Event = (
     | PartRemovedEvent
     | PermissionRequestEvent
     | PermissionResolvedEvent
+    | QuestionAskedEvent
+    | QuestionRepliedEvent
+    | QuestionRejectedEvent
     | TodoUpdatedEvent
     | FileWatcherUpdatedEvent
     | SessionCompactedEvent

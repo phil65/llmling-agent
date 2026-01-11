@@ -65,6 +65,10 @@ class ServerState:
     # Input providers for permission handling (session_id -> provider)
     input_providers: dict[str, OpenCodeInputProvider] = field(default_factory=dict)
 
+    # Question storage (question_id -> pending question info)
+    # Structure: {question_id: {sessionID, questions, tool, future}}
+    pending_questions: dict[str, dict[str, Any]] = field(default_factory=dict)
+
     # SSE event subscribers
     event_subscribers: list[asyncio.Queue[Event]] = field(default_factory=list)
 

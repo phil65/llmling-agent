@@ -322,6 +322,7 @@ def create_app(  # noqa: PLR0915
     app.include_router(file_router)
     app.include_router(agent_router)
     app.include_router(permission_router)
+    app.include_router(question_router)
     app.include_router(pty_router)
     app.include_router(tui_router)
     app.include_router(lsp_router)
