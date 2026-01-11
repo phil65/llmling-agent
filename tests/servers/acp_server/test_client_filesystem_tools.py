@@ -59,9 +59,7 @@ async def test_read_file_with_line_and_limit(
 
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read")
-    result = await read_tool.execute(
-        ctx=agent_ctx, path="/home/large_file.txt", line=2, limit=2
-    )
+    result = await read_tool.execute(ctx=agent_ctx, path="/home/large_file.txt", line=2, limit=2)
 
     assert isinstance(result, str)
     content_lines = result.split("\n")
