@@ -43,7 +43,7 @@ class ClaudeCodeAccountInfo(ClaudeCodeBasemodel):
     email: str | None = None
     """User email address."""
 
-    subscription_type: str = Field(..., alias="subscriptionType")
+    subscription_type: str | None = Field(default=None, alias="subscriptionType")
     """Subscription type (e.g., "Claude API")."""
 
     token_source: str | None = Field(default=None, alias="tokenSource")
