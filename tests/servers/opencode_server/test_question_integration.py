@@ -50,12 +50,12 @@ async def test_question_elicitation_single_select():
     pending = state.pending_questions[question_id]
 
     # Verify question structure
-    assert pending["sessionID"] == "test_session"
-    assert len(pending["questions"]) == 1
-    question_info = pending["questions"][0]
-    assert question_info["question"] == "Which database?"
-    assert question_info["multiple"] is None
-    assert len(question_info["options"]) == 3
+    assert pending.session_id == "test_session"
+    assert len(pending.questions) == 1
+    question_info = pending.questions[0]
+    assert question_info.question == "Which database?"
+    assert question_info.multiple is None
+    assert len(question_info.options) == 3
 
     # Simulate user reply
     success = provider.resolve_question(question_id, [["PostgreSQL"]])
@@ -104,10 +104,10 @@ async def test_question_elicitation_multi_select():
     # Get question
     question_id = next(iter(state.pending_questions.keys()))
     pending = state.pending_questions[question_id]
-    question_info = pending["questions"][0]
+    question_info = pending.questions[0]
 
     # Verify multi-select flag
-    assert question_info["multiple"] is True
+    assert question_info.multiple is True
 
     # Reply with multiple selections
     provider.resolve_question(question_id, [["Auth", "Admin"]])
@@ -146,7 +146,7 @@ async def test_question_cancellation():
 
     # Get question and cancel it
     question_id = next(iter(state.pending_questions.keys()))
-    future = state.pending_questions[question_id]["future"]
+    future = state.pending_questions[question_id].future
     future.cancel()
 
     result = await task
@@ -188,15 +188,15 @@ async def test_question_with_descriptions():
 
     # Verify descriptions were included
     question_id = next(iter(state.pending_questions.keys()))
-    question_info = state.pending_questions[question_id]["questions"][0]
-    options = question_info["options"]
+    question_info = state.pending_questions[question_id].questions[0]
+    options = question_info.options
 
-    assert options[0]["label"] == "PostgreSQL"
-    assert options[0]["description"] == "Best for production"
-    assert options[1]["description"] == "Compatible with many tools"
+    assert options[0].label == "PostgreSQL"
+    assert options[0].description == "Best for production"
+    assert options[1].description == "Compatible with many tools"
 
     # Clean up
-    future = state.pending_questions[question_id]["future"]
+    future = state.pending_questions[question_id].future
     future.cancel()
     await task
 
