@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ClaudeCodeModelInfo(BaseModel):
@@ -17,6 +17,8 @@ class ClaudeCodeModelInfo(BaseModel):
     description: str
     """Full description including capabilities and pricing."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
 
 class ClaudeCodeCommandInfo(BaseModel):
     """Information about an available slash command from Claude Code."""
@@ -29,6 +31,8 @@ class ClaudeCodeCommandInfo(BaseModel):
 
     argument_hint: str = Field(..., alias="argumentHint")
     """Usage hint for command arguments (may be empty string)."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ClaudeCodeAccountInfo(BaseModel):
@@ -45,6 +49,8 @@ class ClaudeCodeAccountInfo(BaseModel):
 
     api_key_source: str | None = Field(default=None, alias="apiKeySource")
     """Where API key comes from (e.g., "ANTHROPIC_API_KEY")."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ClaudeCodeServerInfo(BaseModel):
@@ -70,4 +76,4 @@ class ClaudeCodeServerInfo(BaseModel):
     account: ClaudeCodeAccountInfo | None = Field(default=None)
     """Account and authentication information."""
 
-    model_config = {"populate_by_name": True}
+    model_config = ConfigDict(populate_by_name=True)
