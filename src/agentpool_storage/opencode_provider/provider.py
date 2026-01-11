@@ -35,30 +35,6 @@ from pydantic_ai.messages import (
 from agentpool.log import get_logger
 from agentpool.utils.now import get_now
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
-from agentpool_server.opencode_server.models import (
-    AssistantMessage,
-    MessageInfo as OpenCodeMessage,
-    MessagePath,
-    MessageTime,
-    Part as OpenCodePart,
-    ReasoningPart as OpenCodeReasoningPart,
-    Session,
-    SessionSummary,
-    TextPart as OpenCodeTextPart,
-    TimeCreated,
-    TimeCreatedUpdated,
-    TimeStartEndCompacted,
-    TimeStartEndOptional,
-    Tokens,
-    TokensCache,
-    ToolPart as OpenCodeToolPart,
-    ToolStateCompleted,
-    ToolStateError,
-    ToolStatePending,
-    ToolStateRunning,
-    UserMessage,
-    UserMessageModel,
-)
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import TokenUsage
 from agentpool_storage.opencode_provider import helpers
@@ -70,6 +46,10 @@ if TYPE_CHECKING:
     from agentpool.messaging import ChatMessage, TokenCost
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import OpenCodeStorageConfig
+    from agentpool_server.opencode_server.models import (
+        MessageInfo as OpenCodeMessage,
+        Part as OpenCodePart,
+    )
     from agentpool_storage.models import (
         ConversationData,
         MessageData,
@@ -139,6 +119,8 @@ class OpenCodeStorageProvider(StorageProvider):
 
     def _read_messages(self, session_id: str) -> list[OpenCodeMessage]:
         """Read all messages for a session."""
+        from agentpool_server.opencode_server.models import MessageInfo as OpenCodeMessage
+
         messages: list[OpenCodeMessage] = []
         msg_dir = self.messages_path / session_id
         if not msg_dir.exists():
@@ -157,6 +139,8 @@ class OpenCodeStorageProvider(StorageProvider):
 
     def _read_parts(self, message_id: str) -> list[OpenCodePart]:
         """Read all parts for a message."""
+        from agentpool_server.opencode_server.models import Part as OpenCodePart
+
         parts: list[OpenCodePart] = []
         parts_dir = self.parts_path / message_id
         if not parts_dir.exists():
@@ -185,6 +169,26 @@ class OpenCodeStorageProvider(StorageProvider):
         finish_reason: Any | None = None,
     ) -> None:
         """Write a message in OpenCode format."""
+        from agentpool_server.opencode_server.models import (
+            AssistantMessage,
+            MessagePath,
+            MessageTime,
+            ReasoningPart as OpenCodeReasoningPart,
+            TextPart as OpenCodeTextPart,
+            TimeCreated,
+            TimeStartEndCompacted,
+            TimeStartEndOptional,
+            Tokens,
+            TokensCache,
+            ToolPart as OpenCodeToolPart,
+            ToolStateCompleted,
+            ToolStateError,
+            ToolStatePending,
+            ToolStateRunning,
+            UserMessage,
+            UserMessageModel,
+        )
+
         now_ms = int(get_now().timestamp() * 1000)
 
         # Ensure message directory exists
@@ -475,6 +479,7 @@ class OpenCodeStorageProvider(StorageProvider):
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
         """Get filtered conversations with their messages."""
+        from agentpool_server.opencode_server.models import AssistantMessage
         from agentpool_storage.models import ConversationData as ConvData
 
         result: list[tuple[ConvData, Sequence[ChatMessage[str]]]] = []
@@ -578,6 +583,8 @@ class OpenCodeStorageProvider(StorageProvider):
         filters: StatsFilters,
     ) -> dict[str, dict[str, Any]]:
         """Get conversation statistics."""
+        from agentpool_server.opencode_server.models import AssistantMessage
+
         stats: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"total_tokens": 0, "messages": 0, "models": set(), "total_cost": 0.0}
         )
@@ -772,6 +779,12 @@ class OpenCodeStorageProvider(StorageProvider):
         Returns:
             The ID of the fork point message
         """
+        from agentpool_server.opencode_server.models import (
+            Session,
+            SessionSummary,
+            TimeCreatedUpdated,
+        )
+
         # Find source session
         sessions = self._list_sessions()
         source_session = None
