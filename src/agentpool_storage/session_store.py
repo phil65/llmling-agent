@@ -5,10 +5,6 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Self
 
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import SQLModel
-
 from agentpool.log import get_logger
 from agentpool.sessions.models import SessionData
 from agentpool.utils.now import get_now
@@ -45,6 +41,8 @@ class SQLSessionStore:
 
     async def __aenter__(self) -> Self:
         """Initialize database connection and create tables."""
+        from sqlmodel import SQLModel
+
         self._engine = self._config.get_engine()
 
         async with self._engine.begin() as conn:
@@ -128,6 +126,9 @@ class SQLSessionStore:
         Args:
             data: Session data to persist
         """
+        from sqlalchemy import delete
+        from sqlalchemy.ext.asyncio import AsyncSession
+
         engine = self._get_engine()
 
         async with AsyncSession(engine) as session:
@@ -150,6 +151,9 @@ class SQLSessionStore:
         Returns:
             Session data if found, None otherwise
         """
+        from sqlalchemy import select
+        from sqlalchemy.ext.asyncio import AsyncSession
+
         engine = self._get_engine()
 
         async with AsyncSession(engine) as session:
@@ -171,6 +175,9 @@ class SQLSessionStore:
         Returns:
             True if session was deleted, False if not found
         """
+        from sqlalchemy import delete
+        from sqlalchemy.ext.asyncio import AsyncSession
+
         engine = self._get_engine()
 
         async with AsyncSession(engine) as session:
@@ -197,6 +204,9 @@ class SQLSessionStore:
         Returns:
             List of session IDs
         """
+        from sqlalchemy import select
+        from sqlalchemy.ext.asyncio import AsyncSession
+
         engine = self._get_engine()
 
         async with AsyncSession(engine) as session:
@@ -221,6 +231,9 @@ class SQLSessionStore:
         Returns:
             Number of sessions removed
         """
+        from sqlalchemy import delete
+        from sqlalchemy.ext.asyncio import AsyncSession
+
         engine = self._get_engine()
         cutoff = get_now() - timedelta(hours=max_age_hours)
 
@@ -248,6 +261,9 @@ class SQLSessionStore:
         Returns:
             List of session data objects
         """
+        from sqlalchemy import select
+        from sqlalchemy.ext.asyncio import AsyncSession
+
         engine = self._get_engine()
 
         async with AsyncSession(engine) as session:
