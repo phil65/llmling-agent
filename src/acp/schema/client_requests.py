@@ -33,7 +33,7 @@ class NewSessionRequest(Request):
     cwd: str
     """The working directory for this session. Must be an absolute path."""
 
-    mcp_servers: Sequence[McpServer]
+    mcp_servers: Sequence[McpServer] | None = None
     """List of MCP (Model Context Protocol) servers the agent should connect to."""
 
 
@@ -48,7 +48,7 @@ class LoadSessionRequest(Request):
     cwd: str
     """The working directory for this session."""
 
-    mcp_servers: Sequence[McpServer]
+    mcp_servers: Sequence[McpServer] | None = None
     """List of MCP servers to connect to for this session."""
 
     session_id: str
