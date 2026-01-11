@@ -121,7 +121,10 @@ if TYPE_CHECKING:
     from tokonomics.model_names import AnthropicMaxModelName
     from toprompt import AnyPromptType
 
-    from agentpool.agents.claude_code_agent.models import ClaudeCodeServerInfo
+    from agentpool.agents.claude_code_agent.models import (
+        ClaudeCodeCommandInfo,
+        ClaudeCodeServerInfo,
+    )
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
@@ -642,7 +645,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if not self._client:
             msg = "Client not created - call __aenter__ first"
             raise RuntimeError(msg)
+
         await self._client.connect()
+        await self.populate_commands()
         self._connect_pending = False
         self.log.info("Claude Code client connected")
 
@@ -682,28 +687,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Commands that are not supported or not useful for external use
         are filtered out (e.g., login, logout, context, cost).
         """
-        # Ensure client is connected
-        await self.ensure_initialized()
-
-        if not self._client:
-            self.log.warning("Cannot populate commands: not connected")
-            return
-
-        server_info = await self._client.get_server_info()
+        server_info = await self.get_server_info()
         if not server_info:
             self.log.warning("No server info available for command population")
             return
-
-        commands = server_info.get("commands", [])
-        if not commands:
+        if not server_info.commands:
             self.log.debug("No commands available from Claude Code server")
             return
-
         # Commands to skip - not useful or problematic in this context
-        unsupported = {"context", "cost", "login", "logout", "release-notes", "todos"}
-
-        for cmd_info in commands:
-            name = cmd_info.get("name", "")
+        unsupported = {"login", "logout", "release-notes", "todos"}
+        for cmd_info in server_info.commands:
+            name = cmd_info.name
             if not name or name in unsupported:
                 continue
 
@@ -712,7 +706,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         command_count = len(self._command_store.list_commands())
         self.log.info("Populated command store", command_count=command_count)
 
-    def _create_claude_code_command(self, cmd_info: dict[str, Any]) -> Command:
+    def _create_claude_code_command(self, cmd_info: ClaudeCodeCommandInfo) -> Command:
         """Create a slashed Command from Claude Code command info.
 
         Args:
@@ -723,9 +717,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         from slashed import Command
 
-        name = cmd_info.get("name", "")
-        description = cmd_info.get("description", "")
-        argument_hint = cmd_info.get("argumentHint")
+        name = cmd_info.name
         # Handle MCP commands - they have " (MCP)" suffix in Claude Code
         category = "claude_code"
         if name.endswith(" (MCP)"):
@@ -781,9 +773,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         return Command.from_raw(
             execute_command,
             name=name,
-            description=description or f"Claude Code command: {name}",
+            description=cmd_info.description or f"Claude Code command: {name}",
             category=category,
-            usage=argument_hint,
+            usage=cmd_info.argument_hint,
         )
 
     async def run(
@@ -1430,9 +1422,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         from agentpool.agents.claude_code_agent.models import ClaudeCodeServerInfo
 
-        # Ensure client is connected
-        await self.ensure_initialized()
-
         if not self._client:
             self.log.warning("Cannot get server info: not connected")
             return None
@@ -1509,6 +1498,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Raises:
             ValueError: If the category or mode is unknown
         """
+        from agentpool.agents.claude_code_agent.static_info import VALID_MODES
+
         # Extract mode_id and category from ModeInfo if provided
         if isinstance(mode, ModeInfo):
             mode_id = mode.id
@@ -1522,14 +1513,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         if category_id == "permissions":
             # Map mode_id to PermissionMode
-            valid_modes: set[PermissionMode] = {
-                "default",
-                "acceptEdits",
-                "plan",
-                "bypassPermissions",
-            }
-            if mode_id not in valid_modes:
-                msg = f"Unknown permission mode: {mode_id}. Available: {list(valid_modes)}"
+            if mode_id not in VALID_MODES:
+                msg = f"Unknown permission mode: {mode_id}. Available: {list(VALID_MODES)}"
                 raise ValueError(msg)
 
             permission_mode: PermissionMode = mode_id  # type: ignore[assignment]

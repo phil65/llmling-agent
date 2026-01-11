@@ -2,14 +2,26 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from tokonomics.model_discovery.model_info import ModelInfo, ModelPricing
 
 from agentpool.agents.modes import ModeInfo
 
 
+if TYPE_CHECKING:
+    from claude_agent_sdk import PermissionMode
+
+
+VALID_MODES: set[PermissionMode] = {
+    "default",
+    "acceptEdits",
+    "plan",
+    "bypassPermissions",
+}
+
 # Static Claude Code models - these are the simple IDs the SDK accepts
 # Use id_override to ensure pydantic_ai_id returns simple names like "opus"
-
 
 OPUS = ModelInfo(
     id="claude-opus-4-5",
