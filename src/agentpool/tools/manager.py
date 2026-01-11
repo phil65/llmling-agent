@@ -187,6 +187,8 @@ class ToolManager:
     async def list_prompts(self) -> list[MCPClientPrompt]:
         """Get all prompts from all providers."""
         from agentpool.mcp_server.manager import MCPManager
+        from agentpool.prompts.prompts import MCPClientPrompt as MCPPrompt
+        from agentpool.resource_providers import AggregatingResourceProvider
 
         all_prompts: list[MCPClientPrompt] = []
         # Get prompts from all external providers (check if they're MCP providers)
@@ -196,7 +198,18 @@ class ToolManager:
                     # Get prompts from MCP providers via the aggregating provider
                     agg_provider = provider.get_aggregating_provider()
                     prompts = await agg_provider.get_prompts()
-                    all_prompts.extend(prompts)
+                    # Filter to only MCPClientPrompt instances
+                    mcp_prompts = [p for p in prompts if isinstance(p, MCPPrompt)]
+                    all_prompts.extend(mcp_prompts)
+                except Exception:
+                    logger.exception("Failed to get prompts from provider", provider=provider)
+            elif isinstance(provider, AggregatingResourceProvider):
+                try:
+                    # AggregatingResourceProvider can directly provide prompts
+                    prompts = await provider.get_prompts()
+                    # Filter to only MCPClientPrompt instances
+                    mcp_prompts = [p for p in prompts if isinstance(p, MCPPrompt)]
+                    all_prompts.extend(mcp_prompts)
                 except Exception:
                     logger.exception("Failed to get prompts from provider", provider=provider)
 
