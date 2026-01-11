@@ -1430,7 +1430,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if not raw_info:
             self.log.warning("No server info available from Claude Code")
             return None
-        return ClaudeCodeServerInfo.model_validate(raw_info, by_alias=True)
+        return ClaudeCodeServerInfo.model_validate(raw_info)
 
     async def get_modes(self) -> list[ModeCategory]:
         """Get available mode categories for Claude Code agent.
