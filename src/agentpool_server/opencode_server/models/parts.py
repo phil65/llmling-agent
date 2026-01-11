@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
-
-
-if TYPE_CHECKING:
-    from agentpool_server.opencode_server.models.common import TimeCreated
+from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: TC001
 
 
 class TimeStart(OpenCodeBaseModel):

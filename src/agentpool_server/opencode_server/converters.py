@@ -57,9 +57,7 @@ from agentpool_server.opencode_server.time_utils import now_ms
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai import (
-        UserContent,
-    )
+    from pydantic_ai import UserContent
 
     from agentpool.agents.events import (
         ToolCallCompleteEvent,
