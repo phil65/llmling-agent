@@ -28,6 +28,7 @@ Example:
 from __future__ import annotations
 
 import asyncio
+from importlib.metadata import metadata
 import os
 from pathlib import Path
 import subprocess
@@ -334,8 +335,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _initialize(self) -> None:
         """Initialize the ACP connection."""
-        from importlib.metadata import metadata
-
         from acp.client.connection import ClientSideConnection
         from acp.schema import InitializeRequest
         from agentpool.agents.acp_agent.client_handler import ACPClientHandler
@@ -704,7 +703,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         text_content = "".join(text_chunks)
         metadata = file_tracker.get_metadata()
-
         # Calculate approximate token usage from what we can observe
         input_parts = [*processed_prompts, *pending_parts]
         usage, cost_info = await calculate_usage_from_parts(
@@ -892,99 +890,17 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         Returns:
             List of ModeCategory from remote server, empty if not available
         """
-        from agentpool.agents.modes import ModeCategory, ModeInfo
-
-        categories: list[ModeCategory] = []
+        from agentpool.agents.acp_agent.acp_converters import get_modes
 
         if not self._state:
-            return categories
+            return []
 
         # Prefer new SessionConfigOption format if available
-        if self._state.config_options:
-            for config_opt in self._state.config_options:
-                # Extract options from the config (ungrouped or grouped)
-                from acp.schema import SessionConfigSelectGroup
-
-                mode_infos: list[ModeInfo] = []
-                if isinstance(config_opt.options, list):
-                    for opt_item in config_opt.options:
-                        if isinstance(opt_item, SessionConfigSelectGroup):
-                            mode_infos.extend(
-                                ModeInfo(
-                                    id=sub_opt.value,
-                                    name=sub_opt.name,
-                                    description=sub_opt.description or "",
-                                    category_id=config_opt.id,
-                                )
-                                for sub_opt in opt_item.options
-                            )
-                        else:
-                            # Ungrouped options
-                            mode_infos.append(
-                                ModeInfo(
-                                    id=opt_item.value,
-                                    name=opt_item.name,
-                                    description=opt_item.description or "",
-                                    category_id=config_opt.id,
-                                )
-                            )
-
-                categories.append(
-                    ModeCategory(
-                        id=config_opt.id,
-                        name=config_opt.name,
-                        available_modes=mode_infos,
-                        current_mode_id=config_opt.current_value,
-                        category=config_opt.category or "other",
-                    )
-                )
-            return categories
-
-        # Legacy: Convert ACP SessionModeState to ModeCategory
-        if self._state.modes:
-            acp_modes = self._state.modes
-            modes = [
-                ModeInfo(
-                    id=m.id,
-                    name=m.name,
-                    description=m.description or "",
-                    category_id="permissions",
-                )
-                for m in acp_modes.available_modes
-            ]
-            categories.append(
-                ModeCategory(
-                    id="permissions",
-                    name="Mode",
-                    available_modes=modes,
-                    current_mode_id=acp_modes.current_mode_id,
-                    category="mode",
-                )
-            )
-
-        # Legacy: Convert ACP SessionModelState to ModeCategory
-        if self._state.models:
-            acp_models = self._state.models
-            models = [
-                ModeInfo(
-                    id=m.model_id,
-                    name=m.name,
-                    description=m.description or "",
-                    category_id="model",
-                )
-                for m in acp_models.available_models
-            ]
-            categories.append(
-                ModeCategory(
-                    id="model",
-                    name="Model",
-                    available_modes=models,
-                    current_mode_id=acp_models.current_model_id,
-                    category="model",
-                )
-            )
-
-        return categories
+        return get_modes(
+            self._state.config_options,
+            available_modes=self._state.modes,
+            available_models=self._state.models,
+        )
 
     async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
         """Set a mode on the remote ACP server.
@@ -1041,6 +957,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Prefer new config_options API if available
         if self._state.config_options:
+            assert category_id
             config_request = SetSessionConfigOptionRequest(
                 session_id=self._session_id,
                 config_id=category_id,

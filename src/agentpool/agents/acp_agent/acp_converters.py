@@ -55,17 +55,28 @@ if TYPE_CHECKING:
 
     from pydantic_ai import FinishReason, UserContent
 
-    from acp.schema import ContentBlock, SessionUpdate, StopReason
-    from acp.schema.mcp import HttpMcpServer, McpServer, SseMcpServer, StdioMcpServer
-    from acp.schema.tool_call import ToolCallContent, ToolCallLocation
+    from acp.schema import (
+        ContentBlock,
+        HttpMcpServer,
+        McpServer,
+        SessionConfigOption,
+        SessionModelState,
+        SessionModeState,
+        SessionUpdate,
+        SseMcpServer,
+        StdioMcpServer,
+        StopReason,
+        ToolCallContent,
+        ToolCallLocation,
+    )
     from agentpool.agents.events import RichAgentStreamEvent, ToolCallContentItem
+    from agentpool.agents.modes import ModeCategory, ModeInfo
     from agentpool_config.mcp_server import (
         MCPServerConfig,
         SSEMCPServerConfig,
         StdioMCPServerConfig,
         StreamableHTTPMCPServerConfig,
     )
-
 
 STOP_REASON_MAP: dict[StopReason, FinishReason] = {
     "end_turn": "stop",
@@ -74,6 +85,101 @@ STOP_REASON_MAP: dict[StopReason, FinishReason] = {
     "refusal": "content_filter",
     "cancelled": "error",
 }
+
+
+def get_modes(
+    config_options: list[SessionConfigOption],
+    available_modes: SessionModeState | None,
+    available_models: SessionModelState | None,
+) -> list[ModeCategory]:
+    from acp.schema import SessionConfigSelectGroup
+    from agentpool.agents.modes import ModeCategory, ModeInfo
+
+    categories: list[ModeCategory] = []
+
+    if config_options:
+        for config_opt in config_options:
+            # Extract options from the config (ungrouped or grouped)
+            mode_infos: list[ModeInfo] = []
+            if isinstance(config_opt.options, list):
+                for opt_item in config_opt.options:
+                    if isinstance(opt_item, SessionConfigSelectGroup):
+                        mode_infos.extend(
+                            ModeInfo(
+                                id=sub_opt.value,
+                                name=sub_opt.name,
+                                description=sub_opt.description or "",
+                                category_id=config_opt.id,
+                            )
+                            for sub_opt in opt_item.options
+                        )
+                    else:
+                        # Ungrouped options
+                        mode_infos.append(
+                            ModeInfo(
+                                id=opt_item.value,
+                                name=opt_item.name,
+                                description=opt_item.description or "",
+                                category_id=config_opt.id,
+                            )
+                        )
+
+            categories.append(
+                ModeCategory(
+                    id=config_opt.id,
+                    name=config_opt.name,
+                    available_modes=mode_infos,
+                    current_mode_id=config_opt.current_value,
+                    category=config_opt.category or "other",
+                )
+            )
+        return categories
+
+    # Legacy: Convert ACP SessionModeState to ModeCategory
+    if available_modes:
+        acp_modes = available_modes
+        modes = [
+            ModeInfo(
+                id=m.id,
+                name=m.name,
+                description=m.description or "",
+                category_id="permissions",
+            )
+            for m in acp_modes.available_modes
+        ]
+        categories.append(
+            ModeCategory(
+                id="permissions",
+                name="Mode",
+                available_modes=modes,
+                current_mode_id=acp_modes.current_mode_id,
+                category="mode",
+            )
+        )
+
+    # Legacy: Convert ACP SessionModelState to ModeCategory
+    if available_models:
+        acp_models = available_models
+        models = [
+            ModeInfo(
+                id=m.model_id,
+                name=m.name,
+                description=m.description or "",
+                category_id="model",
+            )
+            for m in acp_models.available_models
+        ]
+        categories.append(
+            ModeCategory(
+                id="model",
+                name="Model",
+                available_modes=models,
+                current_mode_id=acp_models.current_model_id,
+                category="model",
+            )
+        )
+
+    return categories
 
 
 def to_finish_reason(stop_reason: StopReason) -> FinishReason:
