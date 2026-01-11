@@ -846,7 +846,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
         output_type: None = None,
-        model: ModelType | None = None,
         store_history: bool = True,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
@@ -864,7 +863,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
         output_type: type[OutputTypeT],
-        model: ModelType | None = None,
         store_history: bool = True,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
@@ -882,7 +880,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
         output_type: type[Any] | None = None,
-        model: ModelType | None = None,
         store_history: bool = True,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
@@ -899,7 +896,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         Args:
             prompts: User query or instruction
             output_type: Optional type for structured responses
-            model: Optional model override
             store_history: Whether the message exchange should be added to the
                             context window
             usage_limits: Optional usage limits for the model
@@ -925,7 +921,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         async for event in self.run_stream(
             *prompts,
             output_type=output_type,
-            model=model,
             store_history=store_history,
             usage_limits=usage_limits,
             message_id=message_id,
@@ -951,7 +946,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompt: PromptCompatible,
         output_type: type[OutputDataT] | None = None,
-        model: ModelType | None = None,
         store_history: bool = True,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
@@ -969,7 +963,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         Args:
             prompt: User query or instruction
             output_type: Optional type for structured responses
-            model: Optional model override
             store_history: Whether the message exchange should be added to the
                            context window
             usage_limits: Optional usage limits for the model
@@ -1056,7 +1049,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         try:
             from pydantic_graph import End
 
-            agentlet = await self.get_agentlet(model, output_type, input_provider)
+            agentlet = await self.get_agentlet(None, output_type, input_provider)
             content = await convert_prompts(prompts)
             response_msg: ChatMessage[Any] | None = None
             # Prepend pending context parts (content is already pydantic-ai format)
@@ -1231,7 +1224,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompt_groups: Sequence[PromptCompatible],
         output_type: type[OutputDataT] | None = None,
-        model: ModelType | None = None,
         store_history: bool = True,
         wait_for_connections: bool | None = None,
     ) -> AsyncIterator[ChatMessage[OutputDataT]]:
@@ -1240,7 +1232,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         Args:
             prompt_groups: Groups of prompts to process sequentially
             output_type: Optional type for structured responses
-            model: Optional model override
             store_history: Whether to store in conversation history
             wait_for_connections: Whether to wait for connected agents
 
@@ -1260,7 +1251,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             response = await self.run(
                 *prompts,
                 output_type=output_type,
-                model=model,
                 store_history=store_history,
                 wait_for_connections=wait_for_connections,
             )

@@ -99,22 +99,6 @@ async def test_agent_concurrent_runs(test_agent: Agent[None]):
     assert all(r.data == TEST_RESPONSE for r in results)
 
 
-async def test_agent_model_override():
-    """Test overriding model for specific runs."""
-    default_response = "default response"
-    override_response = "override response"
-    model = TestModel(custom_output_text=default_response)
-    async with Agent(model=model, name="test-agent") as agent:
-        # Run with default model
-        result1 = await agent.run(SIMPLE_PROMPT)
-        assert result1.data == default_response
-
-        # Run with overridden model
-        model2 = TestModel(custom_output_text=override_response)
-        result2 = await agent.run(SIMPLE_PROMPT, model=model2)
-        assert result2.data == override_response
-
-
 def test_sync_wrapper(test_agent: Agent[None]):
     """Test synchronous wrapper method."""
     result = test_agent.run.sync(SIMPLE_PROMPT)  # type: ignore[attr-defined]
