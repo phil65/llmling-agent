@@ -14,11 +14,6 @@ from agentpool_server.acp_server.session import ACPSession  # noqa: TC001
 class ListSessionsCommand(NodeCommand):
     """List all available ACP sessions.
 
-    Shows:
-    - Session ID and status (active/stored)
-    - Agent name and working directory
-    - Creation time and last activity
-
     Options:
       --active    Show only active sessions
       --stored    Show only stored sessions
@@ -219,11 +214,6 @@ class ListSessionsCommand(NodeCommand):
 class LoadSessionCommand(NodeCommand):
     """Load a previous ACP session with conversation replay.
 
-    This command will:
-    1. Look up the session by ID
-    2. Replay the conversation history via ACP notifications
-    3. Restore the session context (agent, working directory)
-
     Options:
       --preview     Show session info without loading
       --no-replay   Load session without replaying conversation
@@ -363,11 +353,6 @@ class LoadSessionCommand(NodeCommand):
 class SaveSessionCommand(NodeCommand):
     """Save the current ACP session to persistent storage.
 
-    This will save:
-    - Current agent configuration
-    - Working directory
-    - Session metadata
-
     Note: Conversation history is automatically saved if storage is enabled.
 
     Options:
@@ -504,11 +489,6 @@ class DeleteSessionCommand(NodeCommand):
 class ListPoolsCommand(NodeCommand):
     """List available agent pool configurations.
 
-    Shows:
-    - Stored configurations from ConfigStore (name -> path mapping)
-    - Currently active pool configuration
-    - Available agents in the current pool
-
     Examples:
       /list-pools
     """
@@ -516,10 +496,7 @@ class ListPoolsCommand(NodeCommand):
     name = "list-pools"
     category = "acp"
 
-    async def execute_command(
-        self,
-        ctx: CommandContext[NodeContext[ACPSession]],
-    ) -> None:
+    async def execute_command(self, ctx: CommandContext[NodeContext[ACPSession]]) -> None:
         """List available pool configurations.
 
         Args:
@@ -585,11 +562,6 @@ class ListPoolsCommand(NodeCommand):
 
 class SetPoolCommand(NodeCommand):
     """Switch to a different agent pool configuration.
-
-    This command will:
-    1. Close all active sessions
-    2. Load the new pool configuration
-    3. Initialize the new pool with all agents
 
     The configuration can be specified as:
     - A stored config name (from `agentpool add`)
@@ -685,11 +657,6 @@ class CompactCommand(NodeCommand):
 
     Uses the configured compaction pipeline from the agent pool manifest,
     or falls back to a default summarizing pipeline.
-
-    This will:
-    - Apply configured compaction steps (filter, truncate, summarize)
-    - Reduce the message history while preserving important context
-    - Report the reduction in message count
 
     Options:
       --preset <name>   Use a specific preset (minimal, balanced, summarizing)
