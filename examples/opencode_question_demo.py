@@ -42,14 +42,13 @@ async def demo_single_select():
 
     # Start question
     async def get_answer():
-        result = await provider.get_elicitation(params)
-        return result
+        return await provider.get_elicitation(params)
 
     task = asyncio.create_task(get_answer())
     await asyncio.sleep(0.1)  # Let question be created
 
     # Show pending question
-    question_id = list(state.pending_questions.keys())[0]
+    question_id = next(iter(state.pending_questions.keys()))
     pending = state.pending_questions[question_id]
     print(f"\nQuestion ID: {question_id}")
     print(f"Question: {pending['questions'][0]['question']}")
@@ -100,7 +99,7 @@ async def demo_multi_select():
     await asyncio.sleep(0.1)
 
     # Show question
-    question_id = list(state.pending_questions.keys())[0]
+    question_id = next(iter(state.pending_questions.keys()))
     pending = state.pending_questions[question_id]
     question_info = pending["questions"][0]
     print(f"\nQuestion: {question_info['question']}")
@@ -142,7 +141,7 @@ async def demo_cancellation():
     await asyncio.sleep(0.1)
 
     # Show question
-    question_id = list(state.pending_questions.keys())[0]
+    question_id = next(iter(state.pending_questions.keys()))
     print(f"\nQuestion ID: {question_id}")
 
     # Simulate user pressing Esc
