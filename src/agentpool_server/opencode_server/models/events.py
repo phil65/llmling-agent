@@ -701,7 +701,7 @@ class QuestionAskedProperties(OpenCodeBaseModel):
     """Properties for question asked event."""
 
     id: str
-    sessionID: str
+    session_id: str
     questions: list[dict[str, Any]]
     tool: dict[str, str] | None = None
 
@@ -733,8 +733,8 @@ class QuestionAskedEvent(OpenCodeBaseModel):
 class QuestionRepliedProperties(OpenCodeBaseModel):
     """Properties for question replied event."""
 
-    sessionID: str
-    requestID: str
+    session_id: str
+    request_id: str
     answers: list[list[str]]
 
 
@@ -763,8 +763,8 @@ class QuestionRepliedEvent(OpenCodeBaseModel):
 class QuestionRejectedProperties(OpenCodeBaseModel):
     """Properties for question rejected event."""
 
-    sessionID: str
-    requestID: str
+    session_id: str
+    request_id: str
 
 
 class QuestionRejectedEvent(OpenCodeBaseModel):

@@ -26,6 +26,7 @@ from agentpool_server.opencode_server.routes import (
     message_router,
     permission_router,
     pty_router,
+    question_router,
     session_router,
     tui_router,
 )

@@ -129,6 +129,12 @@ from agentpool_server.opencode_server.models.events import (
 )
 from agentpool_server.opencode_server.models.mcp import LogRequest, MCPStatus, McpResource
 from agentpool_server.opencode_server.models.config import Config
+from agentpool_server.opencode_server.models.question import (
+    QuestionInfo,
+    QuestionOption,
+    QuestionReply,
+    QuestionRequest,
+)
 
 __all__ = [
     "Agent",
@@ -184,6 +190,10 @@ __all__ = [
     "PtyInfo",
     "PtySize",
     "PtyUpdateRequest",
+    "QuestionInfo",
+    "QuestionOption",
+    "QuestionReply",
+    "QuestionRequest",
     "ReasoningPart",
     "RetryPart",
     "ServerConnectedEvent",

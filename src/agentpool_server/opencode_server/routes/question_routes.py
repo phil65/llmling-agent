@@ -10,10 +10,7 @@ from agentpool_server.opencode_server.models.events import (
     QuestionRejectedEvent,
     QuestionRepliedEvent,
 )
-from agentpool_server.opencode_server.models.question import (
-    QuestionReply,
-    QuestionRequest,
-)
+from agentpool_server.opencode_server.models.question import QuestionReply, QuestionRequest
 
 
 router = APIRouter(prefix="/question", tags=["question"])
@@ -30,9 +27,9 @@ async def list_questions(state: StateDep) -> list[QuestionRequest]:
         questions.append(
             QuestionRequest(
                 id=question_id,
-                sessionID=pending["sessionID"],
-                questions=pending["questions"],
-                tool=pending.get("tool"),
+                session_id=pending.session_id,
+                questions=pending.questions,
+                tool=pending.tool,
             )
         )
     return questions
@@ -40,7 +37,7 @@ async def list_questions(state: StateDep) -> list[QuestionRequest]:
 
 @router.post("/{requestID}/reply")
 async def reply_to_question(
-    requestID: str,
+    requestID: str,  # noqa: N803
     reply: QuestionReply,
     state: StateDep,
 ) -> bool:
@@ -65,7 +62,7 @@ async def reply_to_question(
     if not pending:
         raise HTTPException(status_code=404, detail="Question request not found")
 
-    session_id = pending["sessionID"]
+    session_id = pending.session_id
     provider = state.input_providers.get(session_id)
 
     if not isinstance(provider, OpenCodeInputProvider):
@@ -90,7 +87,7 @@ async def reply_to_question(
 
 @router.post("/{requestID}/reject")
 async def reject_question(
-    requestID: str,
+    requestID: str,  # noqa: N803
     state: StateDep,
 ) -> bool:
     """Reject a question request.
@@ -111,8 +108,8 @@ async def reject_question(
     if not pending:
         raise HTTPException(status_code=404, detail="Question request not found")
 
-    session_id = pending["sessionID"]
-    future = pending["future"]
+    session_id = pending.session_id
+    future = pending.future
 
     # Cancel the future
     if not future.done():

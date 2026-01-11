@@ -292,36 +292,43 @@ class OpenCodeInputProvider(InputProvider):
         descriptions = schema.get("x-option-descriptions", {})
 
         # Build OpenCode question format
+        from agentpool_server.opencode_server.models.question import (
+            QuestionInfo,
+            QuestionOption,
+        )
+
         question_id = self._generate_permission_id()  # Reuse ID generator
-        question_info = {
-            "question": params.message,
-            "header": params.message[:12],  # Truncate to 12 chars
-            "options": [
-                {
-                    "label": str(val),
-                    "description": descriptions.get(str(val), ""),
-                }
+        question_info = QuestionInfo(
+            question=params.message,
+            header=params.message[:12],  # Truncate to 12 chars
+            options=[
+                QuestionOption(
+                    label=str(val),
+                    description=descriptions.get(str(val), ""),
+                )
                 for val in enum_values
             ],
-            "multiple": is_multi or None,
-        }
+            multiple=is_multi or None,
+        )
 
         # Create future to wait for answer
         future: asyncio.Future[list[list[str]]] = asyncio.get_event_loop().create_future()
 
         # Store pending question
-        self.state.pending_questions[question_id] = {
-            "sessionID": self.session_id,
-            "questions": [question_info],
-            "future": future,
-            "tool": None,  # Not associated with a specific tool call
-        }
+        from agentpool_server.opencode_server.state import PendingQuestion
 
-        # Broadcast event
+        self.state.pending_questions[question_id] = PendingQuestion(
+            session_id=self.session_id,
+            questions=[question_info],
+            future=future,
+            tool=None,  # Not associated with a specific tool call
+        )
+
+        # Broadcast event (serialize QuestionInfo to dict)
         event = QuestionAskedEvent.create(
             request_id=question_id,
             session_id=self.session_id,
-            questions=[question_info],
+            questions=[question_info.model_dump(mode="json", by_alias=True)],
         )
         await self.state.broadcast_event(event)
 
@@ -339,13 +346,11 @@ class OpenCodeInputProvider(InputProvider):
 
             # ElicitResult content must be a dict, not a plain value
             # Wrap the answer in a dict with a "value" key
-            if is_multi:
-                # Multi-select: return list in dict
-                content = {"value": answer}
-            else:
-                # Single-select: return string in dict
-                content = {"value": answer[0] if answer else ""}
-
+            # Multi-select: return list in dict
+            # Single-select: return string in dict
+            content: dict[str, str | list[str]] = (
+                {"value": answer} if is_multi else {"value": answer[0] if answer else ""}
+            )
             return types.ElicitResult(action="accept", content=content)
         except asyncio.CancelledError:
             logger.info("Question cancelled", question_id=question_id)
@@ -353,8 +358,8 @@ class OpenCodeInputProvider(InputProvider):
         except Exception as e:
             logger.exception("Question failed", question_id=question_id)
             return types.ErrorData(
-                code="elicitation_failed",
-                message=str(e),
+                code=-1,  # Generic error code
+                message=f"Elicitation failed: {e}",
             )
         finally:
             # Clean up pending question
@@ -387,7 +392,7 @@ class OpenCodeInputProvider(InputProvider):
             logger.warning("Question not found", question_id=question_id)
             return False
 
-        future = pending["future"]
+        future = pending.future
         if future.done():
             logger.warning("Question already resolved", question_id=question_id)
             return False

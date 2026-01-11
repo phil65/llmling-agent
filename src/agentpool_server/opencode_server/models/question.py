@@ -2,37 +2,55 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 
 
-class QuestionOption(BaseModel):
+class QuestionOption(OpenCodeBaseModel):
     """A single option for a question."""
 
-    label: str = Field(description="Display text (1-5 words, concise)")
-    description: str = Field(description="Explanation of choice")
+    label: str
+    """Display text (1-5 words, concise)."""
+
+    description: str
+    """Explanation of choice."""
 
 
-class QuestionInfo(BaseModel):
+class QuestionInfo(OpenCodeBaseModel):
     """Information about a single question."""
 
-    question: str = Field(description="Complete question")
-    header: str = Field(max_length=12, description="Very short label (max 12 chars)")
-    options: list[QuestionOption] = Field(description="Available choices")
-    multiple: bool | None = Field(None, description="Allow selecting multiple choices")
+    question: str
+    """Complete question."""
+
+    header: str = Field(max_length=12)
+    """Very short label (max 12 chars)."""
+
+    options: list[QuestionOption]
+    """Available choices."""
+
+    multiple: bool | None = None
+    """Allow selecting multiple choices."""
 
 
-class QuestionRequest(BaseModel):
+class QuestionRequest(OpenCodeBaseModel):
     """A pending question request."""
 
     id: str
-    sessionID: str
+    """Unique question identifier."""
+
+    session_id: str
+    """Session identifier."""
+
     questions: list[QuestionInfo]
-    tool: dict[str, str] | None = None  # {messageID, callID}
+    """List of questions to ask."""
+
+    tool: dict[str, str] | None = None
+    """Optional tool context: {message_id, call_id}."""
 
 
-class QuestionReply(BaseModel):
+class QuestionReply(OpenCodeBaseModel):
     """Reply to a question request."""
 
-    answers: list[list[str]] = Field(
-        description="User answers in order of questions (each answer is an array of selected labels)"
-    )
+    answers: list[list[str]]
+    """User answers in order of questions (each answer is an array of selected labels)."""

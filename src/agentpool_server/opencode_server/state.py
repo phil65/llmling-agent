@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         Config,
         Event,
         MessageWithParts,
+        QuestionInfo,
         Session,
         SessionStatus,
         Todo,
@@ -26,6 +27,23 @@ if TYPE_CHECKING:
 
 # Type alias for async callback
 OnFirstSubscriberCallback = Callable[[], Coroutine[Any, Any, None]]
+
+
+@dataclass
+class PendingQuestion:
+    """Pending question awaiting user response."""
+
+    session_id: str
+    """Session that owns this question."""
+
+    questions: list[QuestionInfo]
+    """Questions to ask."""
+
+    future: asyncio.Future[list[list[str]]]
+    """Future that resolves when user answers."""
+
+    tool: dict[str, str] | None = None
+    """Optional tool context: {message_id, call_id}."""
 
 
 @dataclass
@@ -66,8 +84,7 @@ class ServerState:
     input_providers: dict[str, OpenCodeInputProvider] = field(default_factory=dict)
 
     # Question storage (question_id -> pending question info)
-    # Structure: {question_id: {sessionID, questions, tool, future}}
-    pending_questions: dict[str, dict[str, Any]] = field(default_factory=dict)
+    pending_questions: dict[str, PendingQuestion] = field(default_factory=dict)
 
     # SSE event subscribers
     event_subscribers: list[asyncio.Queue[Event]] = field(default_factory=list)
