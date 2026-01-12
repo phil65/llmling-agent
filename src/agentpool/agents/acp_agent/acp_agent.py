@@ -496,18 +496,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         else:
             handler = self.event_handler
 
-        # Initialize conversation_id on first run and log to storage
-        # Use passed conversation_id if provided (e.g., from chained agents)
-        if self.conversation_id is None:
-            if conversation_id:
-                self.conversation_id = conversation_id
-            else:
-                from agentpool.utils.identifiers import generate_session_id
-
-                self.conversation_id = generate_session_id()
-            # Extract text from prompts for title generation
-            initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
-            await self.log_conversation(initial_prompt or None)
+        # Conversation ID initialization handled by BaseAgent
 
         # Prepare for ACP content block conversion
         processed_prompts = prompts
@@ -522,6 +511,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         text_chunks: list[str] = []  # For final content string
         file_tracker = FileTracker()  # Track files modified by tool calls
+        assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
         run_started = RunStartedEvent(
             thread_id=self.conversation_id,
             run_id=run_id,
@@ -693,12 +683,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
         complete_event = StreamCompleteEvent(message=message)
         await handler(None, complete_event)
-        yield complete_event  # Emit final StreamCompleteEvent with aggregated message
-        self.message_sent.emit(message)
-        await self.log_message(user_msg)
-        await self.log_message(message)
-        conversation.add_chat_messages([user_msg, message])  # Record to conversation history
-        await self.connections.route_message(message, wait=wait_for_connections)
+        yield complete_event  # Emit final StreamCompleteEvent - post-processing handled by base
 
     async def run_iter(
         self,

@@ -214,6 +214,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         Yields:
             Stream events during execution
         """
+        from agentpool.agents.events import StreamCompleteEvent
         from agentpool.prompts.convert import convert_prompts
 
         # Convert prompts to standard UserContent format
@@ -225,16 +226,32 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Determine effective parent_id (from param or last message in history)
         effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()
 
+        # Initialize or adopt conversation_id
+        if self.conversation_id is None:
+            if conversation_id:
+                self.conversation_id = conversation_id
+            else:
+                from agentpool.utils.identifiers import generate_session_id
+
+                self.conversation_id = generate_session_id()
+                # Extract text from prompts for title generation
+                initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
+                await self.log_conversation(initial_prompt or None)
+        elif conversation_id and self.conversation_id != conversation_id:
+            # Adopt passed conversation_id (for routing chains)
+            self.conversation_id = conversation_id
+
         # Create user message
         from agentpool.messaging import ChatMessage
 
-        conv_id = conversation_id or getattr(self, "conversation_id", None)
         user_msg = ChatMessage.user_prompt(
             message=converted_prompts,
             parent_id=effective_parent_id,
-            conversation_id=conv_id,
+            conversation_id=self.conversation_id,
         )
 
+        # Stream events from implementation
+        final_message = None
         async for event in self._stream_events(
             converted_prompts,
             user_msg=user_msg,
@@ -250,6 +267,26 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             event_handlers=event_handlers,
         ):
             yield event
+            # Capture final message from StreamCompleteEvent
+            if isinstance(event, StreamCompleteEvent):
+                final_message = event.message
+
+        # Post-processing after stream completes
+        if final_message is not None:
+            # Emit signal (always - for event handlers)
+            self.message_sent.emit(final_message)
+            # Conditional persistence based on store_history
+            # TODO: Verify store_history semantics across all use cases:
+            #   - Should subagent tool calls set store_history=False?
+            #   - Should forked/ephemeral runs always skip persistence?
+            #   - Should signals still fire when store_history=False?
+            #   Current behavior: store_history controls both DB logging AND conversation context
+            if store_history:
+                # Log to persistent storage and add to conversation context
+                await self.log_message(final_message)
+                conversation.add_chat_messages([user_msg, final_message])
+            # Route to connected agents (always - they decide what to do with it)
+            await self.connections.route_message(final_message, wait=wait_for_connections)
 
     @abstractmethod
     def _stream_events(

@@ -50,37 +50,6 @@ from agentpool.utils.result_utils import to_type
 from agentpool.utils.streams import merge_queue_into_iterator
 
 
-TResult = TypeVar("TResult")
-
-
-def _extract_text_from_messages(
-    messages: list[Any], include_interruption_note: bool = False
-) -> str:
-    """Extract text content from pydantic-ai messages.
-
-    Args:
-        messages: List of ModelRequest/ModelResponse messages
-        include_interruption_note: Whether to append interruption notice
-
-    Returns:
-        Concatenated text content from all ModelResponse TextParts
-    """
-    from pydantic_ai.messages import ModelResponse, TextPart as PydanticTextPart
-
-    content = "".join(
-        part.content
-        for msg in messages
-        if isinstance(msg, ModelResponse)
-        for part in msg.parts
-        if isinstance(part, PydanticTextPart)
-    )
-    if include_interruption_note:
-        if content:
-            content += "\n\n"
-        content += "[Request interrupted by user]"
-    return content
-
-
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Coroutine, Sequence
     from datetime import datetime
@@ -130,6 +99,36 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 # OutputDataT = TypeVar('OutputDataT', default=str, covariant=True)
 NoneType = type(None)
+
+TResult = TypeVar("TResult")
+
+
+def _extract_text_from_messages(
+    messages: list[Any], include_interruption_note: bool = False
+) -> str:
+    """Extract text content from pydantic-ai messages.
+
+    Args:
+        messages: List of ModelRequest/ModelResponse messages
+        include_interruption_note: Whether to append interruption notice
+
+    Returns:
+        Concatenated text content from all ModelResponse TextParts
+    """
+    from pydantic_ai.messages import ModelResponse, TextPart as PydanticTextPart
+
+    content = "".join(
+        part.content
+        for msg in messages
+        if isinstance(msg, ModelResponse)
+        for part in msg.parts
+        if isinstance(part, PydanticTextPart)
+    )
+    if include_interruption_note:
+        if content:
+            content += "\n\n"
+        content += "[Request interrupted by user]"
+    return content
 
 
 class AgentKwargs(TypedDict, total=False):
@@ -887,20 +886,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._current_stream_task = asyncio.current_task()
 
         # Initialize conversation_id on first run and log to storage
-        # Use passed conversation_id if provided (e.g., from chained agents)
-        if self.conversation_id is None:
-            if conversation_id:
-                # Passed from another agent - conversation already logged
-                self.conversation_id = conversation_id
-            else:
-                # New conversation - generate ID and log it
-                from agentpool.utils.identifiers import generate_session_id
-
-                self.conversation_id = generate_session_id()
-                # Extract text from prompts for title generation
-                initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
-                await self.log_conversation(initial_prompt or None)
-
+        # Conversation ID initialization handled by BaseAgent
         processed_prompts = prompts
         self.message_received.emit(user_msg)
         start_time = time.perf_counter()
@@ -921,6 +907,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 msg = f"Run blocked: {reason}"
                 raise RuntimeError(msg)
 
+        assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
         run_started = RunStartedEvent(
             thread_id=self.conversation_id, run_id=run_id, agent_name=self.name
         )
@@ -1049,11 +1036,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             complete_event = StreamCompleteEvent(message=response_msg)
             await handler(None, complete_event)
             yield complete_event
-            self.message_sent.emit(response_msg)
-            await self.log_message(response_msg)
-            if store_history:
-                conversation.add_chat_messages([user_msg, response_msg])
-            await self.connections.route_message(response_msg, wait=wait_for_connections)
 
         except Exception as e:
             self.log.exception("Agent stream failed")

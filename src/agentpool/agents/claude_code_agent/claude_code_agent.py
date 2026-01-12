@@ -825,18 +825,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         #       session_id = message.data.get('session_id')
         # The SDK manages its own session persistence. To resume, pass:
         #   ClaudeAgentOptions(resume=session_id)
-        # For now, generate our own ID to satisfy type requirements.
-        # Later we could replace with SDK session_id if we decide to store CC sessions.
-        if self.conversation_id is None:
-            if conversation_id:
-                self.conversation_id = conversation_id
-            else:
-                from agentpool.utils.identifiers import generate_session_id
-
-                self.conversation_id = generate_session_id()
-            # Extract text from prompts for title generation
-            initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
-            await self.log_conversation(initial_prompt or None)
+        # Conversation ID initialization handled by BaseAgent
 
         # Update input provider if provided
         if input_provider is not None:
@@ -859,6 +848,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         prompt_text = " ".join(str(p) for p in all_parts)
         run_id = str(uuid.uuid4())
         # Emit run started
+        assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
         run_started = RunStartedEvent(
             thread_id=self.conversation_id,
             run_id=run_id,
@@ -1216,11 +1206,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             complete_event = StreamCompleteEvent(message=response_msg)
             await handler(None, complete_event)
             yield complete_event
-            # Record to history even on cancellation so context is preserved
-            self.message_sent.emit(response_msg)
-            await self.log_message(user_msg)
-            await self.log_message(response_msg)
-            conversation.add_chat_messages([user_msg, response_msg])
+            # Post-processing handled by base class
             return
 
         except Exception as e:
@@ -1295,16 +1281,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             metadata=metadata,
         )
 
-        # Emit stream complete
+        # Emit stream complete - post-processing handled by base class
         complete_event = StreamCompleteEvent[TResult](message=chat_message)
         await handler(None, complete_event)
         yield complete_event
-        # Record to history
-        self.message_sent.emit(chat_message)
-        await self.log_message(user_msg)
-        await self.log_message(chat_message)
-        conversation.add_chat_messages([user_msg, chat_message])
-        await self.connections.route_message(chat_message, wait=wait_for_connections)
 
     async def run_iter(
         self,
