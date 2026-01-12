@@ -354,7 +354,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._startup_process = None
             self.log.info("AG-UI server stopped")
 
-    async def run_stream(  # noqa: PLR0915
+    async def _stream_events(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
@@ -367,27 +367,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         wait_for_connections: bool | None = None,
         **kwargs: Any,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
-        """Execute prompt with streaming events.
-
-        Sends the prompt to the remote AG-UI agent along with any registered tools.
-        When the agent requests a tool call, the tool is executed locally and the
-        result is sent back in a continuation request.
-
-        Args:
-            prompts: Prompts to send
-            message_id: Optional message ID
-            conversation_id: Optional conversation id (uses agent's if not provided)
-            parent_id: Optional parent message id for threading
-            input_provider: Optional input provider for tool confirmation requests
-            message_history: Optional MessageHistory to use instead of agent's own
-            deps: Optional dependencies accessible via ctx.data in tools
-            event_handlers: Optional event handlers for this run (overrides agent's handlers)
-            wait_for_connections: Whether to wait for connected agents to complete
-            **kwargs: Additional arguments (ignored for compatibility)
-
-        Yields:
-            Native streaming events converted from AG-UI protocol
-        """
         # Update input provider if provided
         if input_provider is not None:
             self._input_provider = input_provider

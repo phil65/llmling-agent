@@ -179,16 +179,37 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """
         ...
 
-    @abstractmethod
-    def run_stream(
+    async def run_stream(
         self,
-        *prompt: Any,
+        *prompts: Any,
         **kwargs: Any,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Run agent with streaming output.
 
+        This method delegates to _stream_events() which must be implemented by subclasses.
+
         Args:
-            *prompt: Input prompts
+            *prompts: Input prompts
+            **kwargs: Additional arguments
+
+        Yields:
+            Stream events during execution
+        """
+        async for event in self._stream_events(*prompts, **kwargs):
+            yield event
+
+    @abstractmethod
+    def _stream_events(
+        self,
+        *prompts: Any,
+        **kwargs: Any,
+    ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
+        """Agent-specific streaming implementation.
+
+        Subclasses must implement this to provide their streaming logic.
+
+        Args:
+            *prompts: Input prompts
             **kwargs: Additional arguments
 
         Yields:

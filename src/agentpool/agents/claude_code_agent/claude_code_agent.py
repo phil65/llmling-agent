@@ -778,7 +778,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             usage=cmd_info.argument_hint,
         )
 
-    async def run_stream(  # noqa: PLR0915
+    async def _stream_events(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,
         message_id: str | None = None,
@@ -791,23 +791,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
-        """Stream events from Claude Code execution.
-
-        Args:
-            prompts: Prompts to send
-            message_id: Optional message ID for the final message
-            conversation_id: Optional conversation id (uses agent's if not provided)
-            parent_id: Optional parent message id for threading
-            input_provider: Optional input provider for permission requests
-            message_history: Optional MessageHistory to use instead of agent's own
-            deps: Optional dependencies accessible via ctx.data in tools
-            event_handlers: Optional event handlers for this run (overrides agent's handlers)
-            wait_for_connections: Whether to wait for connected agents to complete
-            store_history: If False, executes in a forked session without affecting history
-
-        Yields:
-            RichAgentStreamEvent instances during execution
-        """
         from anyenv import MultiEventHandler
         from claude_agent_sdk import (
             AssistantMessage,

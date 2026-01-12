@@ -853,7 +853,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         return agent  # type: ignore[return-value]
 
     @method_spawner
-    async def run_stream(  # noqa: PLR0915
+    async def _stream_events(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,
         store_history: bool = True,
@@ -866,28 +866,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         deps: TDeps | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
-        """Run agent with prompts and get a streaming response.
-
-        Args:
-            prompts: User queries or instructions
-            store_history: Whether the message exchange should be added to the
-                           context window
-            message_id: Optional message id for the returned message.
-                        Automatically generated if not provided.
-            conversation_id: Optional conversation id for the returned message.
-            parent_id: Parent message id
-            message_history: Optional MessageHistory to use instead of agent's own
-            input_provider: Optional input provider for the agent
-            wait_for_connections: Whether to wait for connected agents to complete
-            deps: Optional dependencies for the agent
-            event_handlers: Optional event handlers for this run (overrides agent's handlers)
-
-        Returns:
-            An async iterator yielding streaming events with final message embedded.
-
-        Raises:
-            UnexpectedModelBehavior: If the model fails or behaves unexpectedly
-        """
         conversation = message_history if message_history is not None else self.conversation
         # Use provided event handlers or fall back to agent's handlers
         if event_handlers is not None:
