@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 from dataclasses import dataclass, field, replace
 import time
@@ -38,7 +38,7 @@ from agentpool.agents.events import (
 from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
-from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
+from agentpool.messaging import ChatMessage, MessageHistory
 from agentpool.prompts.convert import convert_prompts
 from agentpool.storage import StorageManager
 from agentpool.tools import Tool, ToolManager
@@ -51,7 +51,7 @@ from agentpool.utils.streams import merge_queue_into_iterator
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Coroutine, Sequence
+    from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
     from datetime import datetime
     from types import TracebackType
 
@@ -81,8 +81,9 @@ if TYPE_CHECKING:
         SessionIdType,
         ToolType,
     )
-    from agentpool.delegation import AgentPool, Team, TeamRun
+    from agentpool.delegation import AgentPool
     from agentpool.hooks import AgentHooks
+    from agentpool.messaging import MessageNode
     from agentpool.models.agents import NativeAgentConfig, ToolMode
     from agentpool.models.manifest import AgentsManifest
     from agentpool.prompts.prompts import PromptType
@@ -557,57 +558,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
     @overload
-    def __and__(  # if other doesnt define deps, we take the agents one
-        self, other: ProcessorCallback[Any] | Team[TDeps] | Agent[TDeps, Any]
-    ) -> Team[TDeps]: ...
-
-    @overload
-    def __and__(  # otherwise, we dont know and deps is Any
-        self, other: ProcessorCallback[Any] | Team[Any] | Agent[Any, Any]
-    ) -> Team[Any]: ...
-
-    def __and__(self, other: MessageNode[Any, Any] | ProcessorCallback[Any]) -> Team[Any]:
-        """Create sequential team using & operator.
-
-        Example:
-            group = analyzer & planner & executor  # Create group of 3
-            group = analyzer & existing_group  # Add to existing group
-        """
-        from agentpool.delegation.team import Team
-
-        match other:
-            case Team():
-                return Team([self, *other.nodes])
-            case Callable():
-                agent_2 = Agent.from_callback(other)
-                agent_2.agent_pool = self.agent_pool
-                return Team([self, agent_2])
-            case MessageNode():
-                return Team([self, other])
-            case _:
-                msg = f"Invalid agent type: {type(other)}"
-                raise ValueError(msg)
-
-    @overload
-    def __or__(self, other: MessageNode[TDeps, Any]) -> TeamRun[TDeps, Any]: ...
-
-    @overload
-    def __or__[TOtherDeps](self, other: MessageNode[TOtherDeps, Any]) -> TeamRun[Any, Any]: ...
-
-    @overload
-    def __or__(self, other: ProcessorCallback[Any]) -> TeamRun[Any, Any]: ...
-
-    def __or__(self, other: MessageNode[Any, Any] | ProcessorCallback[Any]) -> TeamRun[Any, Any]:
-        # Create new execution with sequential mode (for piping)
-        from agentpool import TeamRun
-
-        if callable(other):
-            other = Agent.from_callback(other)
-            other.agent_pool = self.agent_pool
-
-        return TeamRun([self, other])
-
-    @overload
     @classmethod
     def from_callback(
         cls,
@@ -921,13 +871,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             response_msg: ChatMessage[Any] | None = None
             # Prepend pending context parts (content is already pydantic-ai format)
             converted = [*pending_parts, *content]
-
             history = [m for run in history_list for m in run.to_pydantic_ai()]
-
             # Track tool call starts to combine with results later
             pending_tcs: dict[str, BaseToolCallPart] = {}
             file_tracker = FileTracker()
-
             async with agentlet.iter(
                 converted,
                 deps=deps,  # type: ignore[arg-type]

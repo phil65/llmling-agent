@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
-from typing import TYPE_CHECKING, Any, Literal
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 from anyenv import MultiEventHandler, method_spawner
 from anyenv.signals import BoundSignal
 
-from agentpool.agents.events import resolve_event_handlers
+from agentpool.agents.events import StreamCompleteEvent, resolve_event_handlers
+from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
-from agentpool.messaging import MessageHistory, MessageNode
+from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
+from agentpool.prompts.convert import convert_prompts
 from agentpool.tools.manager import ToolManager
 
 
@@ -32,13 +35,15 @@ if TYPE_CHECKING:
         BuiltinEventHandlerType,
         IndividualEventHandler,
         MCPServerStatus,
+        ProcessorCallback,
         PromptCompatible,
     )
-    from agentpool.delegation import AgentPool
+    from agentpool.delegation import AgentPool, Team, TeamRun
     from agentpool.messaging import ChatMessage
     from agentpool.talk.stats import MessageStats
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
+    from agentpool_config.nodes import ToolConfirmationMode
 
     # Union type for state updates emitted via state_updated signal
     type StateUpdate = ModeInfo | ModelInfo | AvailableCommandsUpdate | ConfigOptionUpdate
@@ -148,6 +153,59 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             for command in commands:
                 self._command_store.register_command(command)
 
+    @overload
+    def __and__(  # if other doesnt define deps, we take the agents one
+        self, other: ProcessorCallback[Any] | Team[TDeps] | Agent[TDeps, Any]
+    ) -> Team[TDeps]: ...
+
+    @overload
+    def __and__(  # otherwise, we dont know and deps is Any
+        self, other: ProcessorCallback[Any] | Team[Any] | Agent[Any, Any]
+    ) -> Team[Any]: ...
+
+    def __and__(self, other: MessageNode[Any, Any] | ProcessorCallback[Any]) -> Team[Any]:
+        """Create sequential team using & operator.
+
+        Example:
+            group = analyzer & planner & executor  # Create group of 3
+            group = analyzer & existing_group  # Add to existing group
+        """
+        from agentpool.agents.agent import Agent
+        from agentpool.delegation.team import Team
+
+        match other:
+            case Team():
+                return Team([self, *other.nodes])
+            case Callable():
+                agent_2 = Agent.from_callback(other)
+                agent_2.agent_pool = self.agent_pool
+                return Team([self, agent_2])
+            case MessageNode():
+                return Team([self, other])
+            case _:
+                msg = f"Invalid agent type: {type(other)}"
+                raise ValueError(msg)
+
+    @overload
+    def __or__(self, other: MessageNode[TDeps, Any]) -> TeamRun[TDeps, Any]: ...
+
+    @overload
+    def __or__[TOtherDeps](self, other: MessageNode[TOtherDeps, Any]) -> TeamRun[Any, Any]: ...
+
+    @overload
+    def __or__(self, other: ProcessorCallback[Any]) -> TeamRun[Any, Any]: ...
+
+    def __or__(self, other: MessageNode[Any, Any] | ProcessorCallback[Any]) -> TeamRun[Any, Any]:
+        # Create new execution with sequential mode (for piping)
+        from agentpool import TeamRun
+        from agentpool.agents.agent import Agent
+
+        if callable(other):
+            other = Agent.from_callback(other)
+            other.agent_pool = self.agent_pool
+
+        return TeamRun([self, other])
+
     @property
     def command_store(self) -> CommandStore:
         """Get the command store for slash commands."""
@@ -214,9 +272,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         Yields:
             Stream events during execution
         """
-        from agentpool.agents.events import StreamCompleteEvent
-        from agentpool.prompts.convert import convert_prompts
-
         # Convert prompts to standard UserContent format
         converted_prompts = await convert_prompts(prompts)
 
@@ -478,8 +533,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             RuntimeError: If no final message received from stream
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
-        from agentpool.agents.events import StreamCompleteEvent
-
         # Collect all events through run_stream
         final_message: ChatMessage[TResult] | None = None
         async for event in self.run_stream(
