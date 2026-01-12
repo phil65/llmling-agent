@@ -137,6 +137,7 @@ if TYPE_CHECKING:
     from agentpool.delegation import AgentPool
     from agentpool.mcp_server.tool_bridge import ToolManagerBridge
     from agentpool.messaging import MessageHistory
+    from agentpool.models.claude_code_agents import SettingSource
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
@@ -196,6 +197,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         builtin_tools: list[str] | None = None,
         fallback_model: AnthropicMaxModelName | str | None = None,
         dangerously_skip_permissions: bool = False,
+        setting_sources: list[SettingSource] | None = None,
         env: ExecutionEnvironment | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
@@ -229,6 +231,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             builtin_tools: Available tools from Claude Code's built-in set (empty list disables all)
             fallback_model: Fallback model when default is overloaded
             dangerously_skip_permissions: Bypass all permission checks (sandboxed only)
+            setting_sources: Setting sources to load ("user", "project", "local")
             env: Execution environment
             input_provider: Provider for user input/confirmations
             agent_pool: Agent pool for multi-agent coordination
@@ -262,6 +265,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 builtin_tools=builtin_tools,
                 fallback_model=fallback_model,
                 dangerously_skip_permissions=dangerously_skip_permissions,
+                setting_sources=setting_sources,
             )
 
         super().__init__(
@@ -311,6 +315,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._dangerously_skip_permissions = (
             dangerously_skip_permissions or config.dangerously_skip_permissions
         )
+        self._setting_sources = setting_sources or config.setting_sources
 
         # Client state
         self._client: ClaudeSDKClient | None = None
@@ -540,6 +545,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             mcp_servers=self._mcp_servers or {},
             include_partial_messages=True,
             hooks=self._build_hooks(),  # type: ignore[arg-type]
+            setting_sources=self._setting_sources,
         )
 
     async def _can_use_tool(  # noqa: PLR0911

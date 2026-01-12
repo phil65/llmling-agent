@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 logger = log.get_logger(__name__)
 
 PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
+SettingSource = Literal["user", "project", "local"]
 ToolName = Literal[
     "Task",
     "TaskOutput",
@@ -246,6 +247,21 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
         title="Dangerously Skip Permissions",
     )
     """Bypass all permission checks. Only for sandboxed environments."""
+
+    setting_sources: list[SettingSource] | None = Field(
+        default=None,
+        title="Setting Sources",
+        examples=[["user", "project"], ["local"], ["user", "project", "local"]],
+    )
+    """Setting sources to load configuration from.
+
+    Controls which Claude Code settings files are loaded:
+    - "user": User-level settings (~/.config/claude/settings.json)
+    - "project": Project-level settings (.claude/settings.json in project root)
+    - "local": Local settings (.claude/settings.local.json, git-ignored)
+
+    If not specified, Claude Code will load all available settings.
+    """
 
     tools: list[AnyToolConfig | str] = Field(
         default_factory=list,
