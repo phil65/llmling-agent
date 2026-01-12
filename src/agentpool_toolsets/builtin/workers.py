@@ -80,7 +80,7 @@ class WorkersTools(ResourceProvider):
                 old_history = worker.conversation.get_history()
                 worker.conversation.set_history(ctx.agent.conversation.get_history())
             elif reset_history_on_run:
-                worker.conversation.clear()
+                await worker.conversation.clear()
 
             try:
                 result = await worker.run(prompt)

@@ -348,7 +348,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Post-processing after stream completes
         if final_message is not None:
             # Emit signal (always - for event handlers)
-            self.message_sent.emit(final_message)
+            await self.message_sent.emit(final_message)
             # Conditional persistence based on store_history
             # TODO: Verify store_history semantics across all use cases:
             #   - Should subagent tool calls set store_history=False?

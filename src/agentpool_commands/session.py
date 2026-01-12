@@ -23,7 +23,7 @@ class ClearCommand(AgentCommand):
         Args:
             ctx: Command context
         """
-        ctx.context.agent.conversation.clear()
+        await ctx.context.agent.conversation.clear()
         await ctx.print("🧹 **Chat history cleared**")
 
 

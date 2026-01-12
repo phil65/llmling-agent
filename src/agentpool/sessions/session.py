@@ -190,10 +190,6 @@ class ClientSession:
         """
         self._data = self._data.with_metadata(**kwargs)
 
-    def clear_history(self) -> None:
-        """Clear the session's conversation history."""
-        self._history.clear()
-
     def get_history_messages(self) -> list[ChatMessage[Any]]:
         """Get all messages in the session's history."""
         return self._history.get_history()

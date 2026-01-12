@@ -719,7 +719,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 raise ToolError(msg)
 
             if reset_history_on_run:
-                self.conversation.clear()
+                await self.conversation.clear()
 
             history = None
             if pass_message_history and parent:
@@ -837,7 +837,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         # Initialize conversation_id on first run and log to storage
         # Conversation ID initialization handled by BaseAgent
         processed_prompts = prompts
-        self.message_received.emit(user_msg)
+        await self.message_received.emit(user_msg)
         start_time = time.perf_counter()
         history_list = conversation.get_history()
         pending_parts = conversation.get_pending_parts()
@@ -1277,7 +1277,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     async def reset(self) -> None:
         """Reset agent state (conversation history and tool states)."""
         old_tools = await self.tools.list_tools()
-        self.conversation.clear()
+        await self.conversation.clear()
         await self.tools.reset_states()
         new_tools = await self.tools.list_tools()
 

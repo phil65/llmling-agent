@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Self
 
 from anyenv.signals import Signal
-from psygnal import Psygnal
+from psygnal import Signal as Psygnal
 from psygnal.containers import EventedList
 
 from agentpool.log import get_logger

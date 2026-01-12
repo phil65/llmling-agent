@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Literal, Self, overload
 
-from psygnal import Signal
+from anyenv.signals import Signal
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
@@ -44,10 +44,10 @@ logger = get_logger(__name__)
 class MessageNode[TDeps, TResult](ABC):
     """Base class for all message processing nodes."""
 
-    message_received = Signal(ChatMessage)
+    message_received = Signal[ChatMessage[Any]]()
     """Signal emitted when node receives a message."""
 
-    message_sent = Signal(ChatMessage)
+    message_sent = Signal[ChatMessage[Any]]()
     """Signal emitted when node creates a message."""
 
     def __init__(

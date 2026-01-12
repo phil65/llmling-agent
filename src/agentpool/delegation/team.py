@@ -131,7 +131,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         """Run all agents in parallel and return combined message."""
         # Prepare prompts and create user message
         user_msg, processed_prompts = await prepare_prompts(*prompts)
-        self.message_received.emit(user_msg)
+        await self.message_received.emit(user_msg)
 
         # Execute team logic
         result = await self.execute(*processed_prompts, **kwargs)

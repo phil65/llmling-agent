@@ -59,7 +59,7 @@ async def finalize_message(
     Returns:
         The finalized message
     """
-    node.message_sent.emit(message)  # Emit signals
+    await node.message_sent.emit(message)  # Emit signals
     await node.log_message(message)  # Log message if enabled
     # Route to connections
     await connections.route_message(message, wait=wait_for_connections)

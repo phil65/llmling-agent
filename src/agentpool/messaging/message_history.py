@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Self, assert_never
 from uuid import UUID, uuid4
 
-from psygnal import Signal
+from anyenv.signals import Signal
 from upathtools import read_path, to_upath
 
 from agentpool.log import get_logger
@@ -48,7 +48,7 @@ class MessageHistory:
         session_id: str
         timestamp: datetime = field(default_factory=get_now)
 
-    history_cleared = Signal(HistoryCleared)
+    history_cleared = Signal[HistoryCleared]()
 
     def __init__(
         self,
@@ -326,14 +326,14 @@ class MessageHistory:
         self.chat_messages.clear()
         self.chat_messages.extend(history)
 
-    def clear(self) -> None:
+    async def clear(self) -> None:
         """Clear conversation history and prompts."""
         from agentpool.messaging import ChatMessageList
 
         self.chat_messages = ChatMessageList()
         self._last_messages = []
         event = self.HistoryCleared(session_id=str(self.id))
-        self.history_cleared.emit(event)
+        await self.history_cleared.emit(event)
 
     @asynccontextmanager
     async def temporary_state(
