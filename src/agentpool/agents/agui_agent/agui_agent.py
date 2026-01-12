@@ -34,7 +34,6 @@ from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.agents.events.processors import FileTracker
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
-from agentpool.messaging.processing import prepare_prompts
 from agentpool.tools import ToolManager
 from agentpool.utils.token_breakdown import calculate_usage_from_parts
 
@@ -46,6 +45,7 @@ if TYPE_CHECKING:
 
     from ag_ui.core import Message, ToolMessage
     from evented_config import EventConfig
+    from pydantic_ai import UserContent
     from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
@@ -356,7 +356,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _stream_events(  # noqa: PLR0915
         self,
-        *prompts: PromptCompatible,
+        prompts: list[UserContent],
+        *,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
@@ -365,7 +366,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         deps: TDeps | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,
-        **kwargs: Any,
+        store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         # Update input provider if provided
         if input_provider is not None:
@@ -432,9 +433,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         effective_parent_id = (
             parent_id if parent_id is not None else conversation.get_last_message_id()
         )
-        user_msg, processed_prompts = await prepare_prompts(
-            *prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
+        user_msg = ChatMessage.user_prompt(
+            message=prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
         )
+        processed_prompts = prompts
         self._run_id = str(uuid4())  # New run ID for each run
         self._chunk_transformer.reset()  # Reset chunk transformer
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ModelRequest...

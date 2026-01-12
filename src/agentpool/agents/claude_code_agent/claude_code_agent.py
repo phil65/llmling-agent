@@ -95,7 +95,6 @@ from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.messages import TokenCost
-from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
 from agentpool.utils.streams import merge_queue_into_iterator
 
@@ -116,6 +115,7 @@ if TYPE_CHECKING:
     from claude_agent_sdk.types import HookContext, HookInput, SyncHookJSONOutput
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
+    from pydantic_ai import UserContent
     from slashed import BaseCommand, Command, CommandContext
     from tokonomics.model_discovery.model_info import ModelInfo
     from tokonomics.model_names import AnthropicMaxModelName
@@ -780,7 +780,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
     async def _stream_events(  # noqa: PLR0915
         self,
-        *prompts: PromptCompatible,
+        prompts: list[UserContent],
+        *,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
@@ -855,7 +856,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         effective_parent_id = (
             parent_id if parent_id is not None else conversation.get_last_message_id()
         )
-        user_msg, processed_prompts = await prepare_prompts(*prompts, parent_id=effective_parent_id)
+        user_msg = ChatMessage.user_prompt(message=prompts, parent_id=effective_parent_id)
+        processed_prompts = prompts
         # Get pending parts from conversation (staged content)
         pending_parts = conversation.get_pending_parts()
         # Combine pending parts with new prompts, then join into single string for Claude SDK

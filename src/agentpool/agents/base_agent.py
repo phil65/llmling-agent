@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
+    from pydantic_ai import UserContent
     from slashed import BaseCommand, CommandStore
     from tokonomics.model_discovery.model_info import ModelInfo
 
@@ -179,38 +180,63 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """
         ...
 
+    @method_spawner  # type: ignore[misc]
     async def run_stream(
         self,
-        *prompts: Any,
+        *prompts: PromptCompatible,
         **kwargs: Any,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Run agent with streaming output.
 
         This method delegates to _stream_events() which must be implemented by subclasses.
+        Handles prompt conversion from various formats to UserContent.
 
         Args:
-            *prompts: Input prompts
+            *prompts: Input prompts (various formats supported)
             **kwargs: Additional arguments
 
         Yields:
             Stream events during execution
         """
-        async for event in self._stream_events(*prompts, **kwargs):
+        from agentpool.prompts.convert import convert_prompts
+
+        # Convert prompts to standard UserContent format
+        converted_prompts = await convert_prompts(prompts)
+
+        async for event in self._stream_events(converted_prompts, **kwargs):
             yield event
 
     @abstractmethod
     def _stream_events(
         self,
-        *prompts: Any,
-        **kwargs: Any,
+        prompts: list[UserContent],
+        *,
+        message_id: str | None = None,
+        conversation_id: str | None = None,
+        parent_id: str | None = None,
+        input_provider: Any = None,
+        message_history: Any = None,
+        deps: Any = None,
+        event_handlers: Any = None,
+        wait_for_connections: bool | None = None,
+        store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Agent-specific streaming implementation.
 
         Subclasses must implement this to provide their streaming logic.
+        Prompts are pre-converted to UserContent format by run_stream().
 
         Args:
-            *prompts: Input prompts
-            **kwargs: Additional arguments
+            prompts: Converted prompts in UserContent format
+            message_id: Optional message ID
+            conversation_id: Optional conversation ID
+            parent_id: Optional parent message ID
+            input_provider: Optional input provider
+            message_history: Optional message history
+            deps: Optional dependencies
+            event_handlers: Optional event handlers
+            wait_for_connections: Whether to wait for connected agents
+            store_history: Whether to store in history
 
         Yields:
             Stream events during execution

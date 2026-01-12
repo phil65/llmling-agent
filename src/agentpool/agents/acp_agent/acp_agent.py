@@ -55,7 +55,6 @@ from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
-from agentpool.messaging.processing import prepare_prompts
 from agentpool.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
 from agentpool.utils.streams import merge_queue_into_iterator
 from agentpool.utils.subprocess_utils import SubprocessError, monitor_process
@@ -69,6 +68,7 @@ if TYPE_CHECKING:
     from anyio.abc import Process
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
+    from pydantic_ai import UserContent
     from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
@@ -453,7 +453,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _stream_events(  # noqa: PLR0915
         self,
-        *prompts: PromptCompatible,
+        prompts: list[UserContent],
+        *,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
@@ -512,9 +513,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         effective_parent_id = (
             parent_id if parent_id is not None else conversation.get_last_message_id()
         )
-        user_msg, processed_prompts = await prepare_prompts(
-            *prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
+        user_msg = ChatMessage.user_prompt(
+            message=prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
         )
+        processed_prompts = prompts
         run_id = str(uuid.uuid4())
         self._state.clear()  # Reset state
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ...

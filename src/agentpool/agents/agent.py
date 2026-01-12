@@ -39,7 +39,6 @@ from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
-from agentpool.messaging.processing import prepare_prompts
 from agentpool.prompts.convert import convert_prompts
 from agentpool.storage import StorageManager
 from agentpool.tools import Tool, ToolManager
@@ -89,7 +88,7 @@ if TYPE_CHECKING:
 
     from exxec import ExecutionEnvironment
     from llmling_models_config import AnyModelConfig
-    from pydantic_ai import UsageLimits
+    from pydantic_ai import UsageLimits, UserContent
     from pydantic_ai.builtin_tools import AbstractBuiltinTool
     from pydantic_ai.output import OutputSpec
     from pydantic_ai.settings import ModelSettings
@@ -852,10 +851,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         return agent  # type: ignore[return-value]
 
-    @method_spawner
     async def _stream_events(  # noqa: PLR0915
         self,
-        *prompts: PromptCompatible,
+        prompts: list[UserContent],
+        *,
         store_history: bool = True,
         message_id: str | None = None,
         conversation_id: str | None = None,
@@ -902,9 +901,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Use provided parent_id or fall back to last message in history
         effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()
-        user_msg, processed_prompts = await prepare_prompts(
-            *prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
+        user_msg = ChatMessage.user_prompt(
+            message=prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
         )
+        processed_prompts = prompts
         self.message_received.emit(user_msg)
         start_time = time.perf_counter()
         history_list = conversation.get_history()
