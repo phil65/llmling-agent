@@ -93,14 +93,8 @@ async def get_session_model_state(
     for toko in toko_models:
         # Use id_override if set (e.g., "opus" for Claude Code), otherwise use id
         model_id = toko.id_override if toko.id_override else toko.id
-        acp_models.append(
-            ACPModelInfo(
-                model_id=model_id,
-                name=toko.name,
-                description=toko.description or "",
-            )
-        )
-
+        info = ACPModelInfo(model_id=model_id, name=toko.name, description=toko.description or "")
+        acp_models.append(info)
     if not acp_models:
         return None
 
@@ -108,14 +102,9 @@ async def get_session_model_state(
     all_ids = [model.model_id for model in acp_models]
     if current_model and current_model not in all_ids:
         # Add current model to the list so the UI shows it
-        acp_models.insert(
-            0,
-            ACPModelInfo(
-                model_id=current_model,
-                name=current_model,
-                description="Currently configured model",
-            ),
-        )
+        desc = "Currently configured model"
+        model_info = ACPModelInfo(model_id=current_model, name=current_model, description=desc)
+        acp_models.insert(0, model_info)
         current_model_id = current_model
     else:
         current_model_id = current_model if current_model in all_ids else all_ids[0]
