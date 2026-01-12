@@ -717,6 +717,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     ) -> Agent[TDeps, NewOutputDataT]:
         """Convert this agent to a structured agent.
 
+        Warning: This method mutates the agent in place and breaks caching.
+        Changing output type modifies tool definitions sent to the API.
+
         Args:
             output_type: Type for structured responses. Can be:
                 - A Python type (Pydantic model)
@@ -724,7 +727,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             tool_description: Optional override for result tool description
 
         Returns:
-            Typed Agent
+            Self (same instance, not a copy)
         """
         self.log.debug("Setting result type", output_type=output_type)
         self._output_type = to_type(output_type)  # type: ignore[assignment]
@@ -848,11 +851,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         return agent  # type: ignore[return-value]
 
-    @overload
+    @method_spawner
     async def run(
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
-        output_type: None = None,
         store_history: bool = True,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
@@ -862,44 +864,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
-    ) -> ChatMessage[OutputDataT]: ...
-
-    @overload
-    async def run[OutputTypeT](
-        self,
-        *prompts: PromptCompatible | ChatMessage[Any],
-        output_type: type[OutputTypeT],
-        store_history: bool = True,
-        usage_limits: UsageLimits | None = None,
-        message_id: str | None = None,
-        conversation_id: str | None = None,
-        parent_id: str | None = None,
-        message_history: MessageHistory | None = None,
-        deps: TDeps | None = None,
-        input_provider: InputProvider | None = None,
-        wait_for_connections: bool | None = None,
-    ) -> ChatMessage[OutputTypeT]: ...
-
-    @method_spawner  # type: ignore[misc]
-    async def run(
-        self,
-        *prompts: PromptCompatible | ChatMessage[Any],
-        output_type: type[Any] | None = None,
-        store_history: bool = True,
-        usage_limits: UsageLimits | None = None,
-        message_id: str | None = None,
-        conversation_id: str | None = None,
-        parent_id: str | None = None,
-        message_history: MessageHistory | None = None,
-        deps: TDeps | None = None,
-        input_provider: InputProvider | None = None,
-        wait_for_connections: bool | None = None,
-    ) -> ChatMessage[Any]:
+    ) -> ChatMessage[OutputDataT]:
         """Run agent with prompt and get response.
 
         Args:
             prompts: User query or instruction
-            output_type: Optional type for structured responses
             store_history: Whether the message exchange should be added to the
                             context window
             usage_limits: Optional usage limits for the model
@@ -920,10 +889,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             UnexpectedModelBehavior: If the model fails or behaves unexpectedly
         """
         # Collect all events through run_stream
-        final_message: ChatMessage[Any] | None = None
+        final_message: ChatMessage[OutputDataT] | None = None
         async for event in self.run_stream(
             *prompts,
-            output_type=output_type,
             store_history=store_history,
             usage_limits=usage_limits,
             message_id=message_id,
@@ -947,7 +915,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     async def run_stream(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,
-        output_type: type[OutputDataT] | None = None,
         store_history: bool = True,
         usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
@@ -963,7 +930,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         Args:
             prompts: User queries or instructions
-            output_type: Optional type for structured responses
             store_history: Whether the message exchange should be added to the
                            context window
             usage_limits: Optional usage limits for the model
@@ -1049,7 +1015,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         try:
             from pydantic_graph import End
 
-            agentlet = await self.get_agentlet(None, output_type, input_provider)
+            agentlet = await self.get_agentlet(None, self._output_type, input_provider)
             content = await convert_prompts(processed_prompts)
             response_msg: ChatMessage[Any] | None = None
             # Prepend pending context parts (content is already pydantic-ai format)
@@ -1222,7 +1188,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     async def run_iter(
         self,
         *prompt_groups: Sequence[PromptCompatible],
-        output_type: type[OutputDataT] | None = None,
         store_history: bool = True,
         wait_for_connections: bool | None = None,
     ) -> AsyncIterator[ChatMessage[OutputDataT]]:
@@ -1230,7 +1195,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         Args:
             prompt_groups: Groups of prompts to process sequentially
-            output_type: Optional type for structured responses
             store_history: Whether to store in conversation history
             wait_for_connections: Whether to wait for connected agents
 
@@ -1249,7 +1213,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         for prompts in prompt_groups:
             response = await self.run(
                 *prompts,
-                output_type=output_type,
                 store_history=store_history,
                 wait_for_connections=wait_for_connections,
             )
@@ -1719,4 +1682,4 @@ if __name__ == "__main__":
         print(f"[EVENT] {type(event).__name__}: {event}")
 
     agent = Agent(model=_model, tools=["webbrowser.open"], event_handlers=[handle_events])
-    result = agent.run.sync(sys_prompt)  # type: ignore[attr-defined]
+    result = agent.run.sync(sys_prompt)

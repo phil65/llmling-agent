@@ -96,16 +96,6 @@ QueueStrategy = Literal["concat", "latest", "buffer"]
 """
 
 
-class SupportsStructuredOutput(Protocol):
-    """Protocol for nodes that support structured output via run().
-
-    This protocol is used for components that need to call run() with
-    an output_type parameter (e.g., picker agents, Interactions).
-    """
-
-    async def run(self, *prompts: Any, output_type: Any = ...) -> ChatMessage[Any]: ...
-
-
 @runtime_checkable
 class SupportsRunStream[TResult](Protocol):
     """Protocol for nodes that support streaming via run_stream().
