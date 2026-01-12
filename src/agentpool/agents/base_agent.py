@@ -265,11 +265,11 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
-        message_history: Any = None,
-        input_provider: Any = None,
+        message_history: MessageHistory | None = None,
+        input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
-        deps: Any = None,
-        event_handlers: Any = None,
+        deps: TDeps | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Run agent with streaming output.
 
@@ -367,10 +367,10 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
-        input_provider: Any = None,
-        message_history: Any = None,
-        deps: Any = None,
-        event_handlers: Any = None,
+        input_provider: InputProvider | None = None,
+        message_history: MessageHistory | None = None,
+        deps: TDeps | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
