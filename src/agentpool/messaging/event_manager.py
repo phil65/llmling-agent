@@ -10,9 +10,9 @@ from functools import wraps
 import inspect
 from typing import TYPE_CHECKING, Any, Self
 
+from anyenv.signals import Signal
 from evented.event_data import EventData, FunctionResultEventData
 from evented_config import EmailConfig, FileWatchConfig, TimeEventConfig, WebhookConfig
-from psygnal import Signal
 from pydantic import SecretStr
 
 from agentpool.log import get_logger
@@ -40,7 +40,7 @@ type EventCallback = Callable[[EventData], None | Awaitable[None]]
 class EventManager:
     """Manages multiple event sources and their lifecycles."""
 
-    event_processed = Signal(EventData)
+    event_processed = Signal[EventData]()
 
     def __init__(
         self,
@@ -83,7 +83,7 @@ class EventManager:
             except Exception:
                 logger.exception("Error in event callback", name=get_fn_name(callback))
 
-        self.event_processed.emit(event)
+        await self.event_processed.emit(event)
 
     async def add_file_watch(
         self,

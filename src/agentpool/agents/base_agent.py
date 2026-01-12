@@ -5,10 +5,11 @@ from __future__ import annotations
 from abc import abstractmethod
 import asyncio
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, overload
 
 from anyenv import MultiEventHandler, method_spawner
-from anyenv.signals import BoundSignal
+from anyenv.signals import BoundSignal, Signal
 
 from agentpool.agents.events import StreamCompleteEvent, resolve_event_handlers
 from agentpool.agents.modes import ModeInfo
@@ -16,6 +17,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
 from agentpool.prompts.convert import convert_prompts
 from agentpool.tools.manager import ToolManager
+from agentpool.utils.now import get_now
 
 
 if TYPE_CHECKING:
@@ -67,7 +69,26 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     - _input_provider: Provider for user input/confirmations
     - env: ExecutionEnvironment for running code/commands
     - context property: Returns NodeContext for the agent
+
+    Signals:
+        - run_failed: Emitted when agent execution fails with error details
     """
+
+    @dataclass(frozen=True)
+    class RunFailedEvent:
+        """Event emitted when agent execution fails."""
+
+        agent_name: str
+        """Name of the agent that failed."""
+        message: str
+        """Error description."""
+        exception: Exception
+        """The exception that caused the failure."""
+        timestamp: Any = field(default_factory=get_now)  # datetime
+        """When the failure occurred."""
+
+    # Signal emitted when agent execution fails
+    run_failed: Signal[RunFailedEvent] = Signal()
 
     def __init__(
         self,

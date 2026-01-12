@@ -11,9 +11,9 @@ from typing import TYPE_CHECKING, Any, Self, TypedDict, TypeVar, overload
 from uuid import uuid4
 
 from anyenv import method_spawner
+from anyenv.signals import Signal
 import anyio
 import logfire
-from psygnal import Signal
 from pydantic import ValidationError
 from pydantic._internal import _typing_extra
 from pydantic_ai import (
@@ -172,8 +172,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         new_tools: dict[str, bool]
         timestamp: datetime = field(default_factory=get_now)
 
-    run_failed = Signal(str, Exception)
-    agent_reset = Signal(AgentReset)
+    agent_reset: Signal[AgentReset] = Signal()
 
     def __init__(  # noqa: PLR0915
         # we dont use AgentKwargs here so that we can work with explicit ones in the ctor
@@ -986,7 +985,12 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         except Exception as e:
             self.log.exception("Agent stream failed")
-            self.run_failed.emit("Agent stream failed", e)
+            event = BaseAgent.RunFailedEvent(
+                agent_name=self.name,
+                message="Agent stream failed",
+                exception=e,
+            )
+            await self.run_failed.emit(event)
             raise
         finally:
             self._current_stream_task = None
@@ -1282,7 +1286,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             previous_tools=old_tools,
             new_tools=new_tools,
         )
-        self.agent_reset.emit(event)
+        await self.agent_reset.emit(event)
 
     @asynccontextmanager
     async def temporary_state[T](
