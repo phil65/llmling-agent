@@ -14,6 +14,40 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class QuestionOption:
+    """Option for a question in OpenCode format.
+
+    Represents a single choice that can be presented to the user.
+    """
+
+    label: str
+    """Display text (1-5 words, concise)."""
+
+    description: str
+    """Explanation of the choice."""
+
+
+@dataclass
+class OpenCodeQuestionInfo:
+    """Question information in OpenCode format.
+
+    This matches OpenCode's QuestionInfo schema used by the TUI.
+    """
+
+    question: str
+    """Complete question text."""
+
+    header: str
+    """Very short label (max 12 chars) - used for tab headers in the TUI."""
+
+    options: list[QuestionOption]
+    """Available choices for the user to select from."""
+
+    multiple: bool = False
+    """Allow selecting multiple choices."""
+
+
+@dataclass
 class QuestionTool(Tool[str]):
     """Tool for asking the user clarifying questions.
 
