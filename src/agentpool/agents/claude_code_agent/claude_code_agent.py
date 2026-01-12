@@ -788,6 +788,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         wait_for_connections: bool | None = None,
+        store_history: bool = True,
     ) -> ChatMessage[TResult]:
         """Execute prompt against Claude Code.
 
@@ -800,6 +801,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             message_history: Optional MessageHistory to use instead of agent's own
             deps: Optional dependencies accessible via ctx.data in tools
             wait_for_connections: Whether to wait for connected agents to complete
+            store_history: If False, executes in a forked session without affecting history
 
         Returns:
             ChatMessage containing the agent's response
@@ -814,6 +816,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             message_history=message_history,
             deps=deps,
             wait_for_connections=wait_for_connections,
+            store_history=store_history,
         ):
             if isinstance(event, StreamCompleteEvent):
                 final_message = event.message
@@ -835,6 +838,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         deps: TDeps | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,
+        store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Stream events from Claude Code execution.
 
@@ -848,6 +852,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             deps: Optional dependencies accessible via ctx.data in tools
             event_handlers: Optional event handlers for this run (overrides agent's handlers)
             wait_for_connections: Whether to wait for connected agents to complete
+            store_history: If False, executes in a forked session without affecting history
 
         Yields:
             RichAgentStreamEvent instances during execution
@@ -945,11 +950,31 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # (ContextVar doesn't work because MCP server runs in a separate task)
         if self._tool_bridge:
             self._tool_bridge.current_deps = deps
+
+        # Handle ephemeral execution (fork session if store_history=False)
+        fork_client = None
+        active_client = self._client
+
+        if not store_history and self._sdk_session_id:
+            # Create fork client that shares parent's context but has separate session ID
+            # See: src/agentpool/agents/claude_code_agent/FORKING.md
+            from claude_agent_sdk import ClaudeSDKClient
+
+            # Build options using same method as main client
+            fork_options = self._build_options()
+            # Add fork-specific parameters
+            fork_options.resume = self._sdk_session_id  # Fork from current session
+            fork_options.fork_session = True  # Create new session ID
+
+            fork_client = ClaudeSDKClient(options=fork_options)
+            await fork_client.connect()
+            active_client = fork_client
+
         try:
-            await self._client.query(prompt_text)
+            await active_client.query(prompt_text)
             # Merge SDK messages with event queue for real-time tool event streaming
             async with merge_queue_into_iterator(
-                self._client.receive_response(), self._event_queue
+                active_client.receive_response(), self._event_queue
             ) as merged_events:
                 async for event_or_message in merged_events:
                     # Check if it's a queued event (from tools via EventEmitter)
@@ -1275,6 +1300,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             raise
 
         finally:
+            # Disconnect fork client if we created one
+            if fork_client:
+                try:
+                    await fork_client.disconnect()
+                except Exception as e:  # noqa: BLE001
+                    get_logger(__name__).warning(f"Error disconnecting fork client: {e}")
+
             # Clear deps from tool bridge
             if self._tool_bridge:
                 self._tool_bridge.current_deps = None
