@@ -188,7 +188,7 @@ class ListSessionsCommand(NodeCommand):
                     msg_count = msg_counts.get(conv_id, 0)
                     last_active = info["last_active"] or "-"
                     # Two lines in session cell: title and ID
-                    session_cell = f"{title}<br>`{session_id}`"
+                    session_cell = f"{title} `{session_id}`"
                     output_lines.append(
                         f"| {session_cell} | {agent} | {msg_count} | {last_active} |"
                     )
