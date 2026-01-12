@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from agentpool.agents.base_agent import BaseAgent
 from agentpool_commands.base import NodeCommand
 
 
@@ -185,3 +186,75 @@ class CompactCommand(NodeCommand):
 
         except Exception as e:  # noqa: BLE001
             await ctx.output.print(f"❌ **Error compacting history:** {e}")
+
+
+class SpawnCommand(NodeCommand):
+    """Spawn a subagent to execute a specific task.
+
+    The subagent runs and its progress is streamed back through the event system.
+    How the progress is displayed depends on the protocol (tool box in ACP, inline, etc.).
+
+    Examples:
+      /spawn agent-name "task description"
+      /spawn code-reviewer "Review main.py for bugs"
+    """
+
+    name = "spawn"
+    category = "pool"
+
+    @classmethod
+    def supports_node(cls, node: Any) -> bool:
+        """Only available when running from an agent (needs events)."""
+        return isinstance(node, BaseAgent)
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[NodeContext[Any]],
+        agent_name: str,
+        task_prompt: str,
+    ) -> None:
+        """Spawn a subagent to execute a task.
+
+        Args:
+            ctx: Command context with node context
+            agent_name: Name of the agent to spawn
+            task_prompt: Task prompt for the subagent
+        """
+        from agentpool.agents.events import SubAgentEvent
+
+        pool = ctx.context.pool
+        if not pool:
+            await ctx.output.print("❌ **No agent pool available**")
+            return
+
+        if agent_name not in pool.nodes:
+            available = list(pool.nodes.keys())
+            await ctx.output.print(
+                f"❌ **Agent** `{agent_name}` **not found**\n\n"
+                f"Available agents: {', '.join(available)}"
+            )
+            return
+
+        from agentpool.common_types import SupportsRunStream
+
+        agent = pool.nodes[agent_name]
+
+        # Check if node supports streaming
+        if not isinstance(agent, SupportsRunStream):
+            await ctx.output.print(f"❌ **Agent** `{agent_name}` **does not support streaming**")
+            return
+
+        # Stream subagent execution by wrapping events in SubAgentEvent
+        # The event handler system (ACP, OpenCode, CLI, etc.) handles rendering
+        # Get parent agent's context to access event emitter
+        parent_ctx = ctx.context.agent.get_context()
+
+        async for event in agent.run_stream(task_prompt):
+            wrapped = SubAgentEvent(
+                source_name=agent_name,
+                source_type="agent",
+                event=event,
+                depth=1,
+            )
+            # Emit to parent agent's event stream
+            await parent_ctx.events.emit_event(wrapped)

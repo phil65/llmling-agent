@@ -39,21 +39,18 @@ from agentpool_commands.tools import (
     RegisterToolCommand,
     ShowToolCommand,
 )
-from agentpool_commands.workers import (
-    AddWorkerCommand,
-    RemoveWorkerCommand,
-    ListWorkersCommand,
-)
+from agentpool_commands.workers import AddWorkerCommand, RemoveWorkerCommand, ListWorkersCommand
 from agentpool_commands.utils import (
     CopyClipboardCommand,
     EditAgentFileCommand,
     GetLogsCommand,
     ShareHistoryCommand,
 )
-from agentpool_commands.pool import (
-    CompactCommand,
-    ListPoolsCommand,
-)
+from agentpool_commands.pool import ListPoolsCommand, SpawnCommand
+
+# CompactCommand is only for Native Agent (has its own history)
+# Other agents (ClaudeCode, ACP, AGUI) don't control their own history
+from agentpool_commands.pool import CompactCommand  # noqa: F401
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -109,7 +106,7 @@ def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComma
         "enable_show_agent": ShowAgentCommand,
         "enable_edit_agent_file": EditAgentFileCommand,
         "enable_list_pools": ListPoolsCommand,
-        "enable_compact": CompactCommand,
+        "enable_spawn": SpawnCommand,
     }
     return [command for flag, command in command_map.items() if kwargs.get(flag, True)]
 
@@ -170,7 +167,7 @@ def get_commands(
     enable_show_agent: bool = True,
     enable_edit_agent_file: bool = True,
     enable_list_pools: bool = True,
-    enable_compact: bool = True,
+    enable_spawn: bool = True,
 ) -> list[BaseCommand | type[SlashedCommand]]:
     """Get all built-in commands."""
     agent_kwargs = {
@@ -211,7 +208,7 @@ def get_commands(
         "enable_show_agent": enable_show_agent,
         "enable_edit_agent_file": enable_edit_agent_file,
         "enable_list_pools": enable_list_pools,
-        "enable_compact": enable_compact,
+        "enable_spawn": enable_spawn,
     }
 
     return [

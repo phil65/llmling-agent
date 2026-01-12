@@ -276,6 +276,13 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         if agent_config and agent_config.mcp_servers:
             all_mcp_servers.extend(agent_config.get_mcp_servers())
 
+        # Add CompactCommand - only makes sense for Native Agent (has own history)
+        # Other agents (ClaudeCode, ACP, AGUI) don't control their history directly
+        from agentpool_commands.pool import CompactCommand
+
+        all_commands = list(commands) if commands else []
+        all_commands.append(CompactCommand())
+
         # Call base class with shared parameters
         super().__init__(
             name=name,
@@ -290,7 +297,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             output_type=to_type(output_type),  # type: ignore[arg-type]
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
-            commands=commands,
+            commands=all_commands,
         )
 
         # Store config for context creation
