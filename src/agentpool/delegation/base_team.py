@@ -31,7 +31,6 @@ if TYPE_CHECKING:
         ModelType,
         ProcessorCallback,
         PromptCompatible,
-        SupportsStructuredOutput,
         ToolType,
     )
     from agentpool.delegation.teamrun import ExtendedTeamTalk, TeamRun
@@ -66,9 +65,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         display_name: str | None = None,
         shared_prompt: str | None = None,
         mcp_servers: list[str | MCPServerConfig] | None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
         event_configs: Sequence[EventConfig] | None = None,
         agent_pool: AgentPool | None = None,
     ) -> None:
@@ -97,28 +93,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         self.shared_prompt = shared_prompt
         self._main_task: asyncio.Task[ChatMessage[Any] | None] | None = None
         self._infinite = False
-        self.picker = picker
-        self.num_picks = num_picks
-        self.pick_prompt = pick_prompt
-
-    async def pick_agents(self, task: str) -> Sequence[MessageNode[Any, Any]]:
-        """Pick agents to run."""
-        from agentpool.agents.interactions import Interactions
-
-        if self.picker:
-            interactions = Interactions(self.picker)
-            if self.num_picks == 1:
-                result = await interactions.pick(self, task, self.pick_prompt)
-                return [result.selection]
-            multi_result = await interactions.pick_multiple(
-                self,
-                task,
-                min_picks=self.num_picks or 1,
-                max_picks=self.num_picks,
-                prompt=self.pick_prompt,
-            )
-            return multi_result.selections
-        return list(self.nodes)
 
     def _on_node_changed(
         self, index: int, old: MessageNode[Any, Any], new: MessageNode[Any, Any]

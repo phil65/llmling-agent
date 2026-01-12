@@ -354,59 +354,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._startup_process = None
             self.log.info("AG-UI server stopped")
 
-    async def run(
-        self,
-        *prompts: PromptCompatible,
-        message_id: str | None = None,
-        conversation_id: str | None = None,
-        parent_id: str | None = None,
-        input_provider: InputProvider | None = None,
-        message_history: MessageHistory | None = None,
-        deps: TDeps | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
-        wait_for_connections: bool | None = None,
-        **kwargs: Any,
-    ) -> ChatMessage[str]:
-        """Execute prompt against AG-UI agent.
-
-        Sends the prompt to the AG-UI server and waits for completion.
-        Events are collected via run_stream and event handlers are called.
-        The final text content is returned as a ChatMessage.
-
-        Args:
-            prompts: Prompts to send (will be joined with spaces)
-            message_id: Optional message id for the returned message
-            conversation_id: Optional conversation id (uses agent's if not provided)
-            parent_id: Optional parent message id for threading
-            input_provider: Optional input provider for tool confirmation requests
-            message_history: Optional MessageHistory to use instead of agent's own
-            deps: Optional dependencies accessible via ctx.data in tools
-            event_handlers: Optional event handlers for this run (overrides agent's handlers)
-            wait_for_connections: Whether to wait for connected agents to complete
-            **kwargs: Additional arguments (ignored for compatibility)
-
-        Returns:
-            ChatMessage containing the agent's aggregated text response
-        """
-        final_message: ChatMessage[str] | None = None
-        async for event in self.run_stream(
-            *prompts,
-            message_id=message_id,
-            conversation_id=conversation_id,
-            parent_id=parent_id,
-            input_provider=input_provider,
-            message_history=message_history,
-            deps=deps,
-            event_handlers=event_handlers,
-            wait_for_connections=wait_for_connections,
-        ):
-            if isinstance(event, StreamCompleteEvent):
-                final_message = event.message
-
-        if final_message is None:
-            raise RuntimeError("No final message received from stream")
-        return final_message
-
     async def run_stream(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,

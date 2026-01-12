@@ -28,7 +28,6 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from agentpool.agents.events import RichAgentStreamEvent
-    from agentpool.messaging import ChatMessage
     from agentpool.tools.base import Tool
 
     type AnyTransformFn[T] = Callable[[T], T | Awaitable[T]]
@@ -108,6 +107,34 @@ class SupportsRunStream[TResult](Protocol):
     def run_stream(
         self, *prompts: Any, **kwargs: Any
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]: ...
+
+
+@runtime_checkable
+class SupportsStructuredOutput(Protocol):
+    """Protocol for agents that support structured output via to_structured().
+
+    Used by Interactions class for pick/extract operations that require
+    structured output from agents.
+    """
+
+    def to_structured[T](self, output_type: type[T]) -> SupportsStructuredOutput:
+        """Create a copy of this agent configured for structured output.
+
+        Args:
+            output_type: The type to structure output as
+
+        Returns:
+            New agent instance configured for structured output
+        """
+        ...
+
+    async def run(self, *prompts: Any, **kwargs: Any) -> Any:
+        """Run the agent with the given prompts.
+
+        Returns:
+            ChatMessage with content typed according to output_type from to_structured
+        """
+        ...
 
 
 class BaseCode(BaseModel):

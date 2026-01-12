@@ -6,7 +6,7 @@ from abc import abstractmethod
 import asyncio
 from typing import TYPE_CHECKING, Any, Literal
 
-from anyenv import MultiEventHandler
+from anyenv import MultiEventHandler, method_spawner
 from anyenv.signals import BoundSignal
 
 from agentpool.agents.events import resolve_event_handlers
@@ -31,8 +31,10 @@ if TYPE_CHECKING:
         BuiltinEventHandlerType,
         IndividualEventHandler,
         MCPServerStatus,
+        PromptCompatible,
     )
     from agentpool.delegation import AgentPool
+    from agentpool.messaging import ChatMessage
     from agentpool.talk.stats import MessageStats
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
@@ -301,6 +303,72 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             pass
 
         return result
+
+    @method_spawner
+    async def run(
+        self,
+        *prompts: PromptCompatible | ChatMessage[Any],
+        store_history: bool = True,
+        message_id: str | None = None,
+        conversation_id: str | None = None,
+        parent_id: str | None = None,
+        message_history: MessageHistory | None = None,
+        deps: TDeps | None = None,
+        input_provider: InputProvider | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        wait_for_connections: bool | None = None,
+    ) -> ChatMessage[TResult]:
+        """Run agent with prompt and get response.
+
+        This is the standard synchronous run method shared by all agent types.
+        It collects all streaming events from run_stream() and returns the final message.
+
+        Args:
+            prompts: User query or instruction
+            store_history: Whether the message exchange should be added to the
+                            context window
+            message_id: Optional message id for the returned message.
+                        Automatically generated if not provided.
+            conversation_id: Optional conversation id for the returned message.
+            parent_id: Parent message id
+            message_history: Optional MessageHistory object to
+                             use instead of agent's own conversation
+            deps: Optional dependencies for the agent
+            input_provider: Optional input provider for the agent
+            event_handlers: Optional event handlers for this run (overrides agent's handlers)
+            wait_for_connections: Whether to wait for connected agents to complete
+
+        Returns:
+            ChatMessage containing response and run information
+
+        Raises:
+            RuntimeError: If no final message received from stream
+            UnexpectedModelBehavior: If the model fails or behaves unexpectedly
+        """
+        from agentpool.agents.events import StreamCompleteEvent
+
+        # Collect all events through run_stream
+        final_message: ChatMessage[TResult] | None = None
+        async for event in self.run_stream(
+            *prompts,
+            store_history=store_history,
+            message_id=message_id,
+            conversation_id=conversation_id,
+            parent_id=parent_id,
+            message_history=message_history,
+            deps=deps,
+            input_provider=input_provider,
+            event_handlers=event_handlers,
+            wait_for_connections=wait_for_connections,
+        ):
+            if isinstance(event, StreamCompleteEvent):
+                final_message = event.message
+
+        if final_message is None:
+            msg = "No final message received from stream"
+            raise RuntimeError(msg)
+
+        return final_message
 
     @abstractmethod
     async def get_available_models(self) -> list[ModelInfo] | None:

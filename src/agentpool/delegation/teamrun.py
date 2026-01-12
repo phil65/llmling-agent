@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
     from agentpool import MessageNode
     from agentpool.agents.events import RichAgentStreamEvent
-    from agentpool.common_types import PromptCompatible, SupportsStructuredOutput
+    from agentpool.common_types import PromptCompatible
     from agentpool.delegation import AgentPool
 
 
@@ -63,9 +63,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         display_name: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult],
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
         agent_pool: AgentPool | None = None,
     ) -> None: ...
 
@@ -79,9 +76,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         display_name: str | None = None,
         shared_prompt: str | None = None,
         validator: None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
         agent_pool: AgentPool | None = None,
     ) -> None: ...
 
@@ -95,9 +89,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         display_name: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult] | None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
         agent_pool: AgentPool | None = None,
     ) -> None: ...
 
@@ -110,9 +101,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         display_name: str | None = None,
         shared_prompt: str | None = None,
         validator: MessageNode[Any, TResult] | None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
         agent_pool: AgentPool | None = None,
         # result_mode: ResultMode = "last",
     ) -> None:
@@ -122,9 +110,6 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             description=description,
             display_name=display_name,
             shared_prompt=shared_prompt,
-            picker=picker,
-            num_picks=num_picks,
-            pick_prompt=pick_prompt,
             agent_pool=agent_pool,
         )
         self.validator = validator
@@ -221,12 +206,9 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         *prompt: PromptCompatible,
         **kwargs: Any,
     ) -> AsyncIterator[Talk[Any] | AgentResponse[Any]]:
-        from toprompt import to_prompt
-
         connections: list[Talk[Any]] = []
         try:
-            combined_prompt = "\n".join([await to_prompt(p) for p in prompt])
-            all_nodes = list(await self.pick_agents(combined_prompt))
+            all_nodes = list(self.nodes)
             if self.validator:
                 all_nodes.append(self.validator)
             first = all_nodes[0]

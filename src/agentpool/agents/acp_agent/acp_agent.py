@@ -451,56 +451,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 self.log.exception("Error terminating ACP process")
             self._process = None
 
-    async def run(
-        self,
-        *prompts: PromptCompatible,
-        message_id: str | None = None,
-        conversation_id: str | None = None,
-        parent_id: str | None = None,
-        input_provider: InputProvider | None = None,
-        message_history: MessageHistory | None = None,
-        deps: TDeps | None = None,
-        wait_for_connections: bool | None = None,
-        store_history: bool = True,
-    ) -> ChatMessage[str]:
-        """Execute prompt against ACP agent.
-
-        Args:
-            prompts: Prompts to send (will be joined with spaces)
-            message_id: Optional message id for the returned message
-            conversation_id: Optional conversation id (uses agent's if not provided)
-            parent_id: Optional parent message id for threading
-            input_provider: Optional input provider for permission requests
-            message_history: Optional MessageHistory to use instead of agent's own
-            deps: Optional dependencies accessible via ctx.data in tools
-            wait_for_connections: Whether to wait for connected agents to complete
-            store_history: If False, executes in a forked session without affecting history
-
-        Returns:
-            ChatMessage containing the agent's aggregated text response
-        """
-        # Collect all events through run_stream
-        final_message: ChatMessage[str] | None = None
-        async for event in self.run_stream(
-            *prompts,
-            message_id=message_id,
-            conversation_id=conversation_id,
-            parent_id=parent_id,
-            input_provider=input_provider,
-            message_history=message_history,
-            deps=deps,
-            wait_for_connections=wait_for_connections,
-            store_history=store_history,
-        ):
-            if isinstance(event, StreamCompleteEvent):
-                final_message = event.message
-
-        if final_message is None:
-            msg = "No final message received from stream"
-            raise RuntimeError(msg)
-
-        return final_message
-
     async def run_stream(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,

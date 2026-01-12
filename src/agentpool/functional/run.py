@@ -43,14 +43,13 @@ async def run_agent(
     """Run prompt through agent and return result."""
     async with Agent[Any, str](**kwargs) as agent:
         # Convert to structured output agent if output_type specified
-        if output_type is not None:
-            agent = agent.to_structured(output_type)
+        final = agent.to_structured(output_type) if output_type is not None else agent
 
         if image_url:
             image = ImageUrl(url=image_url)
-            result = await agent.run(prompt, image)
+            result = await final.run(prompt, image)
         else:
-            result = await agent.run(prompt)
+            result = await final.run(prompt)
         return result.content
 
 
@@ -80,6 +79,8 @@ def run_agent_sync(
     **kwargs: Unpack[AgentKwargs],
 ) -> Any:
     """Sync wrapper for run_agent."""
+
     async def _run() -> Any:
         return await run_agent(prompt, image_url, output_type=output_type, **kwargs)  # type: ignore
+
     return run_sync(_run())

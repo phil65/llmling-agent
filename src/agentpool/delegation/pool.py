@@ -51,7 +51,6 @@ if TYPE_CHECKING:
         BuiltinEventHandlerType,
         IndividualEventHandler,
         SessionIdType,
-        SupportsStructuredOutput,
     )
     from agentpool.delegation.base_team import BaseTeam
     from agentpool.mcp_server.tool_bridge import ToolManagerBridge
@@ -314,9 +313,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
     ) -> TeamRun[TPoolDeps, TResult]: ...
 
     @overload
@@ -328,9 +324,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
     ) -> TeamRun[TDeps, TResult]: ...
 
     @overload
@@ -342,9 +335,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
     ) -> TeamRun[Any, TResult]: ...
 
     def create_team_run[TResult](
@@ -355,9 +345,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
     ) -> TeamRun[Any, TResult]:
         """Create a a sequential TeamRun from a list of Agents.
 
@@ -367,9 +354,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             name: Optional name for the team
             description: Optional description for the team
             shared_prompt: Optional prompt for all agents
-            picker: Agent to use for picking agents
-            num_picks: Number of agents to pick
-            pick_prompt: Prompt to use for picking agents
         """
         from agentpool.delegation.teamrun import TeamRun
 
@@ -381,9 +365,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             description=description,
             validator=validator,
             shared_prompt=shared_prompt,
-            picker=picker,
-            num_picks=num_picks,
-            pick_prompt=pick_prompt,
         )
         if name:
             self[name] = team
@@ -400,9 +381,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
     ) -> Team[TDeps]: ...
 
     @overload
@@ -413,9 +391,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
     ) -> Team[Any]: ...
 
     def create_team(
@@ -425,9 +400,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str | None = None,
         description: str | None = None,
         shared_prompt: str | None = None,
-        picker: SupportsStructuredOutput | None = None,
-        num_picks: int | None = None,
-        pick_prompt: str | None = None,
     ) -> Team[Any]:
         """Create a group from agent names or instances.
 
@@ -436,9 +408,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             name: Optional name for the team
             description: Optional description for the team
             shared_prompt: Optional prompt for all agents
-            picker: Agent to use for picking agents
-            num_picks: Number of agents to pick
-            pick_prompt: Prompt to use for picking agents
         """
         from agentpool.delegation.team import Team
 
@@ -450,9 +419,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             description=description,
             agents=[self.get_agent(i) if isinstance(i, str) else i for i in agents],
             shared_prompt=shared_prompt,
-            picker=picker,
-            num_picks=num_picks,
-            pick_prompt=pick_prompt,
         )
         if name:
             self[name] = team

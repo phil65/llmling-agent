@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 from schemez import Schema
@@ -12,7 +13,7 @@ from agentpool.messaging import ChatMessage
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import AsyncIterator, Sequence
 
     from toprompt import AnyPromptType
 
@@ -89,6 +90,33 @@ class Interactions:
 
     def __init__(self, agent: SupportsStructuredOutput) -> None:
         self.agent = agent
+
+    @asynccontextmanager
+    async def _with_structured_output[T](
+        self, output_type: type[T]
+    ) -> AsyncIterator[SupportsStructuredOutput]:
+        """Context manager to temporarily set structured output type and restore afterwards.
+
+        Args:
+            output_type: The type to structure output as
+
+        Yields:
+            The agent configured for structured output
+
+        Example:
+            async with interactions._with_structured_output(MyType) as agent:
+                result = await agent.run(prompt)
+        """
+        # Save original output type
+        old_output_type = getattr(self.agent, "_output_type", None)
+        try:
+            # Configure structured output
+            structured_agent = self.agent.to_structured(output_type)
+            yield structured_agent
+        finally:
+            # Restore original output type
+            if hasattr(self.agent, "_output_type"):
+                self.agent._output_type = old_output_type
 
     # async def conversation(
     #     self,
@@ -218,8 +246,9 @@ Available options:
 
 Select ONE option by its exact label."""
 
-        # Get LLM's string-based decision
-        result = await self.agent.run(prompt or default_prompt, output_type=LLMPick)
+        # Get LLM's string-based decision using structured output
+        async with self._with_structured_output(LLMPick) as structured_agent:
+            result = await structured_agent.run(prompt or default_prompt)
 
         # Convert to type-safe decision
         if result.content.selection not in label_map:
@@ -328,7 +357,9 @@ Available options:
 {picks_info} options by their exact labels.
 List your selections, one per line, followed by your reasoning."""
 
-        result = await self.agent.run(prompt or default_prompt, output_type=LLMMultiPick)
+        # Get LLM's multi-selection using structured output
+        async with self._with_structured_output(LLMMultiPick) as structured_agent:
+            result = await structured_agent.run(prompt or default_prompt)
 
         # Validate selections
         invalid = [s for s in result.content.selections if s not in label_map]
@@ -368,7 +399,9 @@ List your selections, one per line, followed by your reasoning."""
             instance: item_model  # type: ignore
             # explanation: str | None = None
 
-        result = await self.agent.run(final_prompt, output_type=Extraction)
+        # Use structured output via context manager
+        async with self._with_structured_output(Extraction) as structured_agent:
+            result = await structured_agent.run(final_prompt)
         return as_type(**result.content.instance.model_dump())
 
     async def extract_multiple[T](
@@ -404,7 +437,9 @@ List your selections, one per line, followed by your reasoning."""
             instances: list[item_model]  # type: ignore
             # explanation: str | None = None
 
-        result = await self.agent.run(final_prompt, output_type=Extraction)
+        # Use structured output via context manager
+        async with self._with_structured_output(Extraction) as structured_agent:
+            result = await structured_agent.run(final_prompt)
         num_instances = len(result.content.instances)  # Validate counts
         if len(result.content.instances) < min_items:
             msg = f"Found only {num_instances} instances, need {min_items}"

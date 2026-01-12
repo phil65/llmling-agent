@@ -853,63 +853,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         return agent  # type: ignore[return-value]
 
     @method_spawner
-    async def run(
-        self,
-        *prompts: PromptCompatible | ChatMessage[Any],
-        store_history: bool = True,
-        message_id: str | None = None,
-        conversation_id: str | None = None,
-        parent_id: str | None = None,
-        message_history: MessageHistory | None = None,
-        deps: TDeps | None = None,
-        input_provider: InputProvider | None = None,
-        wait_for_connections: bool | None = None,
-    ) -> ChatMessage[OutputDataT]:
-        """Run agent with prompt and get response.
-
-        Args:
-            prompts: User query or instruction
-            store_history: Whether the message exchange should be added to the
-                            context window
-            message_id: Optional message id for the returned message.
-                        Automatically generated if not provided.
-            conversation_id: Optional conversation id for the returned message.
-            parent_id: Parent message id
-            message_history: Optional MessageHistory object to
-                             use instead of agent's own conversation
-            deps: Optional dependencies for the agent
-            input_provider: Optional input provider for the agent
-            wait_for_connections: Whether to wait for connected agents to complete
-
-        Returns:
-            Result containing response and run information
-
-        Raises:
-            UnexpectedModelBehavior: If the model fails or behaves unexpectedly
-        """
-        # Collect all events through run_stream
-        final_message: ChatMessage[OutputDataT] | None = None
-        async for event in self.run_stream(
-            *prompts,
-            store_history=store_history,
-            message_id=message_id,
-            conversation_id=conversation_id,
-            parent_id=parent_id,
-            message_history=message_history,
-            deps=deps,
-            input_provider=input_provider,
-            wait_for_connections=wait_for_connections,
-        ):
-            if isinstance(event, StreamCompleteEvent):
-                final_message = event.message
-
-        if final_message is None:
-            msg = "No final message received from stream"
-            raise RuntimeError(msg)
-
-        return final_message
-
-    @method_spawner
     async def run_stream(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,

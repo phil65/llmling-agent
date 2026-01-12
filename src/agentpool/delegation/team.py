@@ -9,7 +9,6 @@ from uuid import uuid4
 
 from anyenv.async_run import as_generated
 import anyio
-from toprompt import to_prompt
 
 from agentpool.common_types import SupportsRunStream
 from agentpool.delegation.base_team import BaseTeam
@@ -47,8 +46,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         final_prompt = list(prompts)
         if self.shared_prompt:
             final_prompt.insert(0, self.shared_prompt)
-        combined_prompt = "\n".join([await to_prompt(p) for p in final_prompt])
-        all_nodes = list(await self.pick_agents(combined_prompt))
+        all_nodes = list(self.nodes)
         # Create Talk connections for monitoring this execution
         execution_talks: list[Talk[Any]] = []
         for node in all_nodes:
@@ -100,8 +98,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
                 await queue.put(None)
 
         # Get nodes to run
-        combined_prompt = "\n".join([await to_prompt(p) for p in prompts])
-        all_nodes = list(await self.pick_agents(combined_prompt))
+        all_nodes = list(self.nodes)
 
         # Start all agents
         tasks = [asyncio.create_task(_run(n), name=f"run_{n.name}") for n in all_nodes]
@@ -185,8 +182,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         from agentpool.agents.events import SubAgentEvent
 
         # Get nodes to run
-        combined_prompt = "\n".join([await to_prompt(p) for p in prompts])
-        all_nodes = list(await self.pick_agents(combined_prompt))
+        all_nodes = list(self.nodes)
 
         # Create list of streams
         async def wrap_stream(

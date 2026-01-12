@@ -7,7 +7,6 @@ from contextlib import AsyncExitStack
 from typing import TYPE_CHECKING, Any, Self, cast
 
 import anyio
-from pydantic_ai import UsageLimits
 
 from agentpool.log import get_logger
 from agentpool.resource_providers import AggregatingResourceProvider, ResourceProvider
@@ -96,13 +95,14 @@ class MCPManager:
         if (prefs := params.modelPreferences) and prefs.hints and prefs.hints[0].name:
             model = prefs.hints[0].name  # Extract model from preferences
         # Create usage limits from sampling parameters
-        limits = UsageLimits(output_tokens_limit=params.maxTokens, request_limit=1)
+        # limits = UsageLimits(output_tokens_limit=params.maxTokens, request_limit=1)
+        # TODO: Re-add per-turn usage_limits once implemented for all agents
         # TODO: Apply temperature from params.temperature
         sys_prompt = params.systemPrompt or ""
         agent = Agent(name="sampling-agent", model=model, system_prompt=sys_prompt, session=False)
         try:
             async with agent:
-                result = await agent.run(*prompts, store_history=False, usage_limits=limits)
+                result = await agent.run(*prompts, store_history=False)
                 return result.content
 
         except Exception as e:
