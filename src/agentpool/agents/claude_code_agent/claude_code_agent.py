@@ -198,6 +198,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         fallback_model: AnthropicMaxModelName | str | None = None,
         dangerously_skip_permissions: bool = False,
         setting_sources: list[SettingSource] | None = None,
+        chrome: bool | None = None,
         env: ExecutionEnvironment | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
@@ -232,6 +233,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             fallback_model: Fallback model when default is overloaded
             dangerously_skip_permissions: Bypass all permission checks (sandboxed only)
             setting_sources: Setting sources to load ("user", "project", "local")
+            chrome: Enable/disable Claude in Chrome integration (None = use default)
             env: Execution environment
             input_provider: Provider for user input/confirmations
             agent_pool: Agent pool for multi-agent coordination
@@ -266,6 +268,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 fallback_model=fallback_model,
                 dangerously_skip_permissions=dangerously_skip_permissions,
                 setting_sources=setting_sources,
+                chrome=chrome,
             )
 
         super().__init__(
@@ -316,6 +319,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             dangerously_skip_permissions or config.dangerously_skip_permissions
         )
         self._setting_sources = setting_sources or config.setting_sources
+        self._chrome = chrome if chrome is not None else config.chrome
 
         # Client state
         self._client: ClaudeSDKClient | None = None
@@ -526,6 +530,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self._can_use_tool if self.tool_confirmation_mode != "never" and not bypass else None
         )
 
+        # Build extra_args for CLI flags not directly exposed
+        extra_args: dict[str, str | None] = {}
+        if self._chrome is not None:
+            # True -> --chrome, False -> --no-chrome
+            extra_args["chrome" if self._chrome else "no-chrome"] = None
+
         return ClaudeAgentOptions(
             cwd=self._cwd,
             allowed_tools=self._allowed_tools or [],
@@ -546,6 +556,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             include_partial_messages=True,
             hooks=self._build_hooks(),  # type: ignore[arg-type]
             setting_sources=self._setting_sources,
+            extra_args=extra_args,
         )
 
     async def _can_use_tool(  # noqa: PLR0911

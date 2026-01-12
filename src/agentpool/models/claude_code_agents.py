@@ -263,6 +263,19 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     If not specified, Claude Code will load all available settings.
     """
 
+    chrome: bool | None = Field(
+        default=None,
+        title="Claude in Chrome Integration",
+    )
+    """Enable or disable Claude in Chrome integration.
+
+    - True: Enable Chrome integration (--chrome)
+    - False: Explicitly disable Chrome integration (--no-chrome)
+    - None: Use default behavior from settings
+
+    When enabled, Claude can interact with Chrome browser tabs.
+    """
+
     tools: list[AnyToolConfig | str] = Field(
         default_factory=list,
         title="Tools",
