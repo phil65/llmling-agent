@@ -276,6 +276,22 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     When enabled, Claude can interact with Chrome browser tabs.
     """
 
+    lsp: bool = Field(
+        default=False,
+        title="LSP Tool Support",
+    )
+    """Enable Language Server Protocol (LSP) tool support.
+
+    When enabled, Claude can use LSP capabilities for code intelligence:
+    - Go to definition
+    - Find references
+    - Code completion context
+    - Symbol information
+
+    Requires language servers to be configured in your IDE/environment.
+    Sets ENABLE_LSP_TOOL=1 environment variable for the Claude process.
+    """
+
     tools: list[AnyToolConfig | str] = Field(
         default_factory=list,
         title="Tools",

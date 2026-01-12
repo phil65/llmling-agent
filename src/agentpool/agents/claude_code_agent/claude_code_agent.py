@@ -199,6 +199,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         dangerously_skip_permissions: bool = False,
         setting_sources: list[SettingSource] | None = None,
         chrome: bool | None = None,
+        lsp: bool = False,
         env: ExecutionEnvironment | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
@@ -234,6 +235,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             dangerously_skip_permissions: Bypass all permission checks (sandboxed only)
             setting_sources: Setting sources to load ("user", "project", "local")
             chrome: Enable/disable Claude in Chrome integration (None = use default)
+            lsp: Enable LSP tool support for code intelligence
             env: Execution environment
             input_provider: Provider for user input/confirmations
             agent_pool: Agent pool for multi-agent coordination
@@ -269,6 +271,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 dangerously_skip_permissions=dangerously_skip_permissions,
                 setting_sources=setting_sources,
                 chrome=chrome,
+                lsp=lsp,
             )
 
         super().__init__(
@@ -320,6 +323,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
         self._setting_sources = setting_sources or config.setting_sources
         self._chrome = chrome if chrome is not None else config.chrome
+        self._lsp = lsp or config.lsp
 
         # Client state
         self._client: ClaudeSDKClient | None = None
@@ -536,6 +540,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # True -> --chrome, False -> --no-chrome
             extra_args["chrome" if self._chrome else "no-chrome"] = None
 
+        # Build environment variables
+        env = dict(self._environment or {})
+        if self._lsp:
+            # Enable LSP tool support
+            env["ENABLE_LSP_TOOL"] = "1"
+
         return ClaudeAgentOptions(
             cwd=self._cwd,
             allowed_tools=self._allowed_tools or [],
@@ -546,7 +556,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             max_budget_usd=self._max_budget_usd,
             max_thinking_tokens=self._max_thinking_tokens,
             permission_mode=permission_mode,
-            env=self._environment or {},
+            env=env,
             add_dirs=self._add_dir or [],  # type: ignore[arg-type]  # SDK uses list not Sequence
             tools=self._builtin_tools,
             fallback_model=self._fallback_model,
