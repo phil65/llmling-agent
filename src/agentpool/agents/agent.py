@@ -862,7 +862,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
-        instructions: str | None = None,
     ) -> ChatMessage[OutputDataT]: ...
 
     @overload
@@ -879,7 +878,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
-        instructions: str | None = None,
     ) -> ChatMessage[OutputTypeT]: ...
 
     @method_spawner  # type: ignore[misc]
@@ -896,7 +894,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
-        instructions: str | None = None,
     ) -> ChatMessage[Any]:
         """Run agent with prompt and get response.
 
@@ -915,7 +912,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             deps: Optional dependencies for the agent
             input_provider: Optional input provider for the agent
             wait_for_connections: Whether to wait for connected agents to complete
-            instructions: Optional instructions to override the agent's system prompt
 
         Returns:
             Result containing response and run information
@@ -937,7 +933,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             deps=deps,
             input_provider=input_provider,
             wait_for_connections=wait_for_connections,
-            instructions=instructions,
         ):
             if isinstance(event, StreamCompleteEvent):
                 final_message = event.message
@@ -962,7 +957,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
         deps: TDeps | None = None,
-        instructions: str | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
         """Run agent with prompts and get a streaming response.
@@ -981,7 +975,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             input_provider: Optional input provider for the agent
             wait_for_connections: Whether to wait for connected agents to complete
             deps: Optional dependencies for the agent
-            instructions: Optional instructions to override the agent's system prompt
             event_handlers: Optional event handlers for this run (overrides agent's handlers)
 
         Returns:
@@ -1075,7 +1068,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 deps=deps,  # type: ignore[arg-type]
                 message_history=history,
                 usage_limits=effective_limits,
-                instructions=instructions,
             ) as agent_run:
                 try:
                     async for node in agent_run:
