@@ -53,9 +53,9 @@ class Talk[TTransmittedData = Any]:
         timestamp: datetime = field(default_factory=get_now)
 
     # Original message "coming in"
-    message_received = Signal[ChatMessage]()
+    message_received = Signal[ChatMessage[Any]]()
     # After any transformation (one for each message, not per target)
-    message_forwarded = Signal[ChatMessage]()
+    message_forwarded = Signal[ChatMessage[Any]]()
     # Comprehensive signal capturing all information about one "message handling process"
     connection_processed = Signal[ConnectionProcessed]()
 
@@ -270,7 +270,7 @@ class Talk[TTransmittedData = Any]:
             )
         ]
         # 7. emit connection processed event
-        self.connection_processed.emit(
+        await self.connection_processed.emit(
             self.ConnectionProcessed(
                 message=processed_message,
                 source=self.source,
@@ -283,7 +283,7 @@ class Talk[TTransmittedData = Any]:
         if target_list:
             messages = [*self._stats.messages, processed_message]
             self._stats = replace(self._stats, messages=messages)
-            self.message_forwarded.emit(processed_message)
+            await self.message_forwarded.emit(processed_message)
 
         # 9. Second pass: Actually process for each target
         responses: list[ChatMessage[Any]] = []

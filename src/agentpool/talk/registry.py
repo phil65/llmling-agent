@@ -90,9 +90,9 @@ class ConnectionRegistry(BaseRegistry[str, Talk]):
         new_talk.connection_processed.connect(self._handle_message_flow)
         logger.debug("Reconnected signal for talk", name=name)
 
-    def _handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
+    async def _handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
         """Forward message flow to global stream."""
-        self.message_flow.emit(event)
+        await self.message_flow.emit(event)
 
     @property
     def _error_class(self) -> type[ConnectionRegistryError]:
