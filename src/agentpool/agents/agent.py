@@ -254,7 +254,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             hooks: AgentHooks instance for intercepting agent behavior at run and tool events
             tool_confirmation_mode: Tool confirmation mode
             builtin_tools: PydanticAI builtin tools (WebSearchTool, CodeExecutionTool, etc.)
-            usage_limits: Usage limits for the agent
+            usage_limits: Per-request usage limits (applied to each run() call independently,
+                not cumulative across the session)
             providers: Model providers for model discovery (e.g., ["openai", "anthropic"]).
                 Defaults to ["models.dev"] if not specified.
             commands: Slash commands
@@ -856,7 +857,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompts: PromptCompatible | ChatMessage[Any],
         store_history: bool = True,
-        usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
@@ -871,7 +871,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             prompts: User query or instruction
             store_history: Whether the message exchange should be added to the
                             context window
-            usage_limits: Optional usage limits for the model
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
@@ -893,7 +892,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         async for event in self.run_stream(
             *prompts,
             store_history=store_history,
-            usage_limits=usage_limits,
             message_id=message_id,
             conversation_id=conversation_id,
             parent_id=parent_id,
@@ -916,7 +914,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         *prompts: PromptCompatible,
         store_history: bool = True,
-        usage_limits: UsageLimits | None = None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
@@ -932,7 +929,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             prompts: User queries or instructions
             store_history: Whether the message exchange should be added to the
                            context window
-            usage_limits: Optional usage limits for the model
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
             conversation_id: Optional conversation id for the returned message.
@@ -1021,8 +1017,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             # Prepend pending context parts (content is already pydantic-ai format)
             converted = [*pending_parts, *content]
 
-            # Use provided usage_limits or fall back to default
-            effective_limits = usage_limits or self._default_usage_limits
             history = [m for run in history_list for m in run.to_pydantic_ai()]
 
             # Track tool call starts to combine with results later
@@ -1033,7 +1027,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 converted,
                 deps=deps,  # type: ignore[arg-type]
                 message_history=history,
-                usage_limits=effective_limits,
+                usage_limits=self._default_usage_limits,
             ) as agent_run:
                 try:
                     async for node in agent_run:
