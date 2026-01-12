@@ -540,6 +540,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Build environment variables
         env = dict(self._environment or {})
+        env["CLAUDE_AGENT_SDK_SKIP_VERSION_CHECK"] = "1"
         if "LSP" in builtin_tools:
             # Enable LSP tool support
             env["ENABLE_LSP_TOOL"] = "1"
