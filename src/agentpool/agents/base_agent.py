@@ -291,22 +291,20 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         Yields:
             Stream events during execution
         """
+        from agentpool.messaging import ChatMessage
+        from agentpool.utils.identifiers import generate_session_id
+
         # Convert prompts to standard UserContent format
         converted_prompts = await convert_prompts(prompts)
-
         # Get message history (either passed or agent's own)
         conversation = message_history if message_history is not None else self.conversation
-
         # Determine effective parent_id (from param or last message in history)
         effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()
-
         # Initialize or adopt conversation_id
         if self.conversation_id is None:
             if conversation_id:
                 self.conversation_id = conversation_id
             else:
-                from agentpool.utils.identifiers import generate_session_id
-
                 self.conversation_id = generate_session_id()
                 # Extract text from prompts for title generation
                 initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
@@ -314,9 +312,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         elif conversation_id and self.conversation_id != conversation_id:
             # Adopt passed conversation_id (for routing chains)
             self.conversation_id = conversation_id
-
-        # Create user message
-        from agentpool.messaging import ChatMessage
 
         user_msg = ChatMessage.user_prompt(
             message=converted_prompts,
