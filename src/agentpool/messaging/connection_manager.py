@@ -6,7 +6,8 @@ from collections.abc import Sequence
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Self
 
-from psygnal import Signal
+from anyenv.signals import Signal
+from psygnal import Psygnal
 from psygnal.containers import EventedList
 
 from agentpool.log import get_logger
@@ -27,10 +28,10 @@ logger = get_logger(__name__)
 class ConnectionManager:
     """Manages connections for both Agents and Teams."""
 
-    connection_processed = Signal(Talk.ConnectionProcessed)
+    connection_processed = Signal[Talk.ConnectionProcessed]()
 
-    node_connected = Signal(object)  # Node
-    connection_added = Signal(Talk)  # Agent
+    node_connected = Psygnal(object)  # Node
+    connection_added = Psygnal(Talk)  # Agent
 
     def __init__(self, owner: MessageNode[Any, Any]) -> None:
         self.owner = owner
@@ -54,9 +55,9 @@ class ConnectionManager:
         old.connection_processed.disconnect(self._handle_message_flow)
         new.connection_processed.connect(self._handle_message_flow)
 
-    def _handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
+    async def _handle_message_flow(self, event: Talk.ConnectionProcessed) -> None:
         """Forward message flow to our aggregated signal."""
-        self.connection_processed.emit(event)
+        await self.connection_processed.emit(event)
 
     def set_wait_state(self, target: MessageNode[Any, Any] | AgentName, wait: bool = True) -> None:
         """Set waiting behavior for target."""

@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, Self, overload
 
-from psygnal import Signal
+from anyenv.signals import Signal
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
@@ -53,11 +53,11 @@ class Talk[TTransmittedData = Any]:
         timestamp: datetime = field(default_factory=get_now)
 
     # Original message "coming in"
-    message_received = Signal(ChatMessage)
+    message_received = Signal[ChatMessage]()
     # After any transformation (one for each message, not per target)
-    message_forwarded = Signal(ChatMessage)
+    message_forwarded = Signal[ChatMessage]()
     # Comprehensive signal capturing all information about one "message handling process"
-    connection_processed = Signal(ConnectionProcessed)
+    connection_processed = Signal[ConnectionProcessed]()
 
     def __init__(
         self,

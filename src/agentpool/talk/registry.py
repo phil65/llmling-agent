@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
-from psygnal import Signal
+from anyenv.signals import Signal
 
 from agentpool.log import get_logger
 from agentpool.talk.talk import Talk
@@ -64,7 +64,7 @@ class ConnectionRegistry(BaseRegistry[str, Talk]):
     connections get registered.
     """
 
-    message_flow = Signal(Talk.ConnectionProcessed)
+    message_flow = Signal[Talk.ConnectionProcessed]()
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize registry and connect event handlers."""
