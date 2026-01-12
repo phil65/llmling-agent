@@ -946,10 +946,15 @@
             "discriminator": {
               "mapping": {
                 "agent_cli": "#/$defs/AgentCliToolConfig",
-                "question": "#/$defs/QuestionToolConfig",
                 "bash": "#/$defs/BashToolConfig",
+                "delete_path": "#/$defs/DeletePathToolConfig",
+                "download_file": "#/$defs/DownloadFileToolConfig",
                 "execute_code": "#/$defs/ExecuteCodeToolConfig",
-                "import": "#/$defs/ImportToolConfig"
+                "grep": "#/$defs/GrepToolConfig",
+                "import": "#/$defs/ImportToolConfig",
+                "list_directory": "#/$defs/ListDirectoryToolConfig",
+                "question": "#/$defs/QuestionToolConfig",
+                "read": "#/$defs/ReadToolConfig"
               },
               "propertyName": "type"
             },
@@ -967,7 +972,22 @@
                 "$ref": "#/$defs/BashToolConfig"
               },
               {
+                "$ref": "#/$defs/DeletePathToolConfig"
+              },
+              {
+                "$ref": "#/$defs/DownloadFileToolConfig"
+              },
+              {
                 "$ref": "#/$defs/ExecuteCodeToolConfig"
+              },
+              {
+                "$ref": "#/$defs/GrepToolConfig"
+              },
+              {
+                "$ref": "#/$defs/ListDirectoryToolConfig"
+              },
+              {
+                "$ref": "#/$defs/ReadToolConfig"
               }
             ]
           },
@@ -2519,68 +2539,6 @@
       "title": "Arrow Configuration",
       "type": "object"
     },
-    "QuestionToolConfig": {
-      "additionalProperties": false,
-      "description": "Configuration for user interaction tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: question\n    ```",
-      "properties": {
-        "type": {
-          "const": "question",
-          "default": "question",
-          "description": "User interaction tool.",
-          "title": "Type",
-          "type": "string"
-        },
-        "name": {
-          "default": null,
-          "description": "Optional override for the tool name.",
-          "examples": [
-            "search_web",
-            "file_reader",
-            "calculator"
-          ],
-          "title": "Tool name override",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "description": {
-          "default": null,
-          "description": "Optional override for the tool description.",
-          "examples": [
-            "Search the web for information",
-            "Read file contents"
-          ],
-          "title": "Tool description override",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "enabled": {
-          "default": true,
-          "description": "Whether this tool is initially enabled.",
-          "title": "Tool enabled",
-          "type": "boolean"
-        },
-        "requires_confirmation": {
-          "default": false,
-          "description": "Whether tool execution needs confirmation.",
-          "title": "Requires confirmation",
-          "type": "boolean"
-        },
-        "metadata": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "Additional tool metadata.",
-          "title": "Tool metadata",
-          "type": "object"
-        }
-      },
-      "title": "Ask User Tool",
-      "type": "object"
-    },
     "AsyncLocalFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for async local filesystem.",
@@ -3191,7 +3149,6 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -3232,16 +3189,22 @@
                     "config_creation": "#/$defs/ConfigCreationToolsetConfig",
                     "custom": "#/$defs/CustomToolsetConfig",
                     "debug": "#/$defs/DebugToolsetConfig",
+                    "delete_path": "#/$defs/DeletePathToolConfig",
+                    "download_file": "#/$defs/DownloadFileToolConfig",
                     "entry_points": "#/$defs/EntryPointToolsetConfig",
                     "execute_code": "#/$defs/ExecuteCodeToolConfig",
                     "file_access": "#/$defs/FSSpecToolsetConfig",
+                    "grep": "#/$defs/GrepToolConfig",
                     "import": "#/$defs/ImportToolConfig",
                     "import_tools": "#/$defs/ImportToolsToolsetConfig",
+                    "list_directory": "#/$defs/ListDirectoryToolConfig",
                     "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                     "notifications": "#/$defs/NotificationsToolsetConfig",
                     "openapi": "#/$defs/OpenAPIToolsetConfig",
                     "plan": "#/$defs/PlanToolsetConfig",
                     "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                    "question": "#/$defs/QuestionToolConfig",
+                    "read": "#/$defs/ReadToolConfig",
                     "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                     "search": "#/$defs/SearchToolsetConfig",
                     "skills": "#/$defs/SkillsToolsetConfig",
@@ -3265,7 +3228,22 @@
                     "$ref": "#/$defs/BashToolConfig"
                   },
                   {
+                    "$ref": "#/$defs/DeletePathToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DownloadFileToolConfig"
+                  },
+                  {
                     "$ref": "#/$defs/ExecuteCodeToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/GrepToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ListDirectoryToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ReadToolConfig"
                   },
                   {
                     "discriminator": {
@@ -3633,7 +3611,8 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6"
+                "cerebras:zai-glm-4.6",
+                "cerebras:zai-glm-4.7"
               ],
               "type": "string"
             },
@@ -3844,8 +3823,6 @@
                 "groq:openai/gpt-oss-120b",
                 "groq:openai/gpt-oss-20b",
                 "groq:openai/gpt-oss-safeguard-20b",
-                "groq:playai-tts",
-                "groq:playai-tts-arabic",
                 "groq:qwen/qwen3-32b",
                 "groq:whisper-large-v3",
                 "groq:whisper-large-v3-turbo"
@@ -3936,11 +3913,12 @@
                 "openrouter:ai21/jamba-large-1.7",
                 "openrouter:ai21/jamba-mini-1.7",
                 "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                "openrouter:allenai/olmo-3-32b-think:free",
+                "openrouter:allenai/molmo-2-8b:free",
+                "openrouter:allenai/olmo-3-32b-think",
                 "openrouter:allenai/olmo-3-7b-instruct",
                 "openrouter:allenai/olmo-3-7b-think",
-                "openrouter:allenai/olmo-3.1-32b-think:free",
+                "openrouter:allenai/olmo-3.1-32b-instruct",
+                "openrouter:allenai/olmo-3.1-32b-think",
                 "openrouter:amazon/nova-2-lite-v1",
                 "openrouter:amazon/nova-premier-v1",
                 "openrouter:anthropic/claude-haiku-4.5",
@@ -3969,24 +3947,21 @@
                 "openrouter:deepseek/deepseek-v3.2-exp",
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
-                "openrouter:google/gemini-2.5-flash",
                 "openrouter:google/gemini-2.5-flash-image",
                 "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                "openrouter:google/gemini-2.5-pro",
                 "openrouter:google/gemini-3-flash-preview",
                 "openrouter:google/gemini-3-pro-image-preview",
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
                 "openrouter:inception/mercury",
-                "openrouter:kwaipilot/kat-coder-pro:free",
+                "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
                 "openrouter:meituan/longcat-flash-chat",
-                "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:minimax/minimax-m2.1",
                 "openrouter:mistralai/codestral-2508",
@@ -3999,10 +3974,8 @@
                 "openrouter:mistralai/ministral-8b-2512",
                 "openrouter:mistralai/mistral-large-2512",
                 "openrouter:mistralai/mistral-medium-3.1",
-                "openrouter:mistralai/mistral-small-3.2-24b-instruct",
                 "openrouter:mistralai/mistral-small-creative",
                 "openrouter:mistralai/voxtral-small-24b-2507",
-                "openrouter:moonshotai/kimi-dev-72b",
                 "openrouter:moonshotai/kimi-k2",
                 "openrouter:moonshotai/kimi-k2-0905",
                 "openrouter:moonshotai/kimi-k2-0905:exacto",
@@ -4010,7 +3983,7 @@
                 "openrouter:moonshotai/kimi-k2:free",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
-                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -4163,7 +4136,6 @@
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
-                "requesty:parasail/parasail-deepseek-v3-0324",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:vertex/claude-opus-4-5",
@@ -4183,7 +4155,8 @@
                 "requesty:xai/grok-4-fast-non-reasoning",
                 "requesty:xai/grok-code-fast-1",
                 "requesty:zai/GLM-4.5",
-                "requesty:zai/GLM-4.6"
+                "requesty:zai/GLM-4.6",
+                "requesty:zai/GLM-4.7"
               ],
               "type": "string"
             },
@@ -4225,6 +4198,7 @@
                 "vercel-gateway:bfl/flux-pro-1.0-fill",
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                "vercel-gateway:bytedance/seed-1.6",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -4331,7 +4305,6 @@
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
                 "vercel-gateway:vercel/v0-1.5-md",
-                "vercel-gateway:xai/grok-2",
                 "vercel-gateway:xai/grok-2-vision",
                 "vercel-gateway:xai/grok-3",
                 "vercel-gateway:xai/grok-3-fast",
@@ -7168,7 +7141,6 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -7209,16 +7181,22 @@
                     "config_creation": "#/$defs/ConfigCreationToolsetConfig",
                     "custom": "#/$defs/CustomToolsetConfig",
                     "debug": "#/$defs/DebugToolsetConfig",
+                    "delete_path": "#/$defs/DeletePathToolConfig",
+                    "download_file": "#/$defs/DownloadFileToolConfig",
                     "entry_points": "#/$defs/EntryPointToolsetConfig",
                     "execute_code": "#/$defs/ExecuteCodeToolConfig",
                     "file_access": "#/$defs/FSSpecToolsetConfig",
+                    "grep": "#/$defs/GrepToolConfig",
                     "import": "#/$defs/ImportToolConfig",
                     "import_tools": "#/$defs/ImportToolsToolsetConfig",
+                    "list_directory": "#/$defs/ListDirectoryToolConfig",
                     "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                     "notifications": "#/$defs/NotificationsToolsetConfig",
                     "openapi": "#/$defs/OpenAPIToolsetConfig",
                     "plan": "#/$defs/PlanToolsetConfig",
                     "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                    "question": "#/$defs/QuestionToolConfig",
+                    "read": "#/$defs/ReadToolConfig",
                     "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                     "search": "#/$defs/SearchToolsetConfig",
                     "skills": "#/$defs/SkillsToolsetConfig",
@@ -7242,7 +7220,22 @@
                     "$ref": "#/$defs/BashToolConfig"
                   },
                   {
+                    "$ref": "#/$defs/DeletePathToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DownloadFileToolConfig"
+                  },
+                  {
                     "$ref": "#/$defs/ExecuteCodeToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/GrepToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ListDirectoryToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ReadToolConfig"
                   },
                   {
                     "discriminator": {
@@ -7994,7 +7987,8 @@
                       "AskUserQuestion",
                       "Skill",
                       "EnterPlanMode",
-                      "LSP"
+                      "LSP",
+                      "Chrome"
                     ],
                     "type": "string"
                   },
@@ -8049,7 +8043,8 @@
                       "AskUserQuestion",
                       "Skill",
                       "EnterPlanMode",
-                      "LSP"
+                      "LSP",
+                      "Chrome"
                     ],
                     "type": "string"
                   },
@@ -8301,14 +8296,22 @@
             }
           ],
           "default": null,
-          "description": "Available tools from Claude Code's built-in set.\n\nEmpty list disables all tools. If not specified, all tools are available.\nDifferent from allowed_tools which filters an already-available set.",
+          "description": "Available tools from Claude Code's built-in set.\n\nEmpty list disables all tools. If not specified, all tools are available.\nDifferent from allowed_tools which filters an already-available set.\n\nSpecial tools:\n- \"LSP\": Enable Language Server Protocol support for code intelligence\n  (go to definition, find references, symbol info, etc.)\n- \"Chrome\": Enable Claude in Chrome integration for browser control\n  (opens, navigates, interacts with browser tabs)\n\nBoth LSP and Chrome require additional setup in your environment.",
           "examples": [
             [
               "Bash",
               "Edit",
               "Read"
             ],
-            []
+            [
+              "Read",
+              "Write",
+              "LSP"
+            ],
+            [
+              "Bash",
+              "Chrome"
+            ]
           ],
           "title": "Built-in Tools"
         },
@@ -8348,6 +8351,47 @@
           "title": "Dangerously Skip Permissions",
           "type": "boolean"
         },
+        "setting_sources": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "user",
+                  "project",
+                  "local"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Setting sources to load configuration from.\n\nControls which Claude Code settings files are loaded:\n- \"user\": User-level settings (~/.config/claude/settings.json)\n- \"project\": Project-level settings (.claude/settings.json in project root)\n- \"local\": Local settings (.claude/settings.local.json, git-ignored)\n\nIf not specified, Claude Code will load all available settings.",
+          "examples": [
+            [
+              "user",
+              "project"
+            ],
+            [
+              "local"
+            ],
+            [
+              "user",
+              "project",
+              "local"
+            ]
+          ],
+          "title": "Setting Sources"
+        },
+        "use_subscription": {
+          "default": false,
+          "description": "Force usage of Claude subscription instead of API key.\n\nWhen True, sets ANTHROPIC_API_KEY to empty string, forcing Claude Code\nto use your Claude.ai subscription for authentication instead of an API key.\n\nThis is useful when:\n- You have a Claude Pro/Team subscription with higher rate limits\n- You want to use subscription credits instead of API credits\n- You're using features only available to subscribers\n\nNote: Requires an active Claude subscription and logged-in session.",
+          "title": "Use Claude Subscription",
+          "type": "boolean"
+        },
         "tools": {
           "description": "Tools and toolsets to expose to this Claude Code agent via MCP bridge.\n\nSupports both single tools and toolsets. These will be started as an\nin-process MCP server and made available to Claude Code.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/tool_configuration/",
           "examples": [
@@ -8372,7 +8416,6 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -8413,16 +8456,22 @@
                     "config_creation": "#/$defs/ConfigCreationToolsetConfig",
                     "custom": "#/$defs/CustomToolsetConfig",
                     "debug": "#/$defs/DebugToolsetConfig",
+                    "delete_path": "#/$defs/DeletePathToolConfig",
+                    "download_file": "#/$defs/DownloadFileToolConfig",
                     "entry_points": "#/$defs/EntryPointToolsetConfig",
                     "execute_code": "#/$defs/ExecuteCodeToolConfig",
                     "file_access": "#/$defs/FSSpecToolsetConfig",
+                    "grep": "#/$defs/GrepToolConfig",
                     "import": "#/$defs/ImportToolConfig",
                     "import_tools": "#/$defs/ImportToolsToolsetConfig",
+                    "list_directory": "#/$defs/ListDirectoryToolConfig",
                     "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                     "notifications": "#/$defs/NotificationsToolsetConfig",
                     "openapi": "#/$defs/OpenAPIToolsetConfig",
                     "plan": "#/$defs/PlanToolsetConfig",
                     "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                    "question": "#/$defs/QuestionToolConfig",
+                    "read": "#/$defs/ReadToolConfig",
                     "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                     "search": "#/$defs/SearchToolsetConfig",
                     "skills": "#/$defs/SkillsToolsetConfig",
@@ -8446,7 +8495,22 @@
                     "$ref": "#/$defs/BashToolConfig"
                   },
                   {
+                    "$ref": "#/$defs/DeletePathToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DownloadFileToolConfig"
+                  },
+                  {
                     "$ref": "#/$defs/ExecuteCodeToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/GrepToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ListDirectoryToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ReadToolConfig"
                   },
                   {
                     "discriminator": {
@@ -11648,7 +11712,8 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6"
+                "cerebras:zai-glm-4.6",
+                "cerebras:zai-glm-4.7"
               ],
               "type": "string"
             },
@@ -11859,8 +11924,6 @@
                 "groq:openai/gpt-oss-120b",
                 "groq:openai/gpt-oss-20b",
                 "groq:openai/gpt-oss-safeguard-20b",
-                "groq:playai-tts",
-                "groq:playai-tts-arabic",
                 "groq:qwen/qwen3-32b",
                 "groq:whisper-large-v3",
                 "groq:whisper-large-v3-turbo"
@@ -11951,11 +12014,12 @@
                 "openrouter:ai21/jamba-large-1.7",
                 "openrouter:ai21/jamba-mini-1.7",
                 "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                "openrouter:allenai/olmo-3-32b-think:free",
+                "openrouter:allenai/molmo-2-8b:free",
+                "openrouter:allenai/olmo-3-32b-think",
                 "openrouter:allenai/olmo-3-7b-instruct",
                 "openrouter:allenai/olmo-3-7b-think",
-                "openrouter:allenai/olmo-3.1-32b-think:free",
+                "openrouter:allenai/olmo-3.1-32b-instruct",
+                "openrouter:allenai/olmo-3.1-32b-think",
                 "openrouter:amazon/nova-2-lite-v1",
                 "openrouter:amazon/nova-premier-v1",
                 "openrouter:anthropic/claude-haiku-4.5",
@@ -11984,24 +12048,21 @@
                 "openrouter:deepseek/deepseek-v3.2-exp",
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
-                "openrouter:google/gemini-2.5-flash",
                 "openrouter:google/gemini-2.5-flash-image",
                 "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                "openrouter:google/gemini-2.5-pro",
                 "openrouter:google/gemini-3-flash-preview",
                 "openrouter:google/gemini-3-pro-image-preview",
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
                 "openrouter:inception/mercury",
-                "openrouter:kwaipilot/kat-coder-pro:free",
+                "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
                 "openrouter:meituan/longcat-flash-chat",
-                "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:minimax/minimax-m2.1",
                 "openrouter:mistralai/codestral-2508",
@@ -12014,10 +12075,8 @@
                 "openrouter:mistralai/ministral-8b-2512",
                 "openrouter:mistralai/mistral-large-2512",
                 "openrouter:mistralai/mistral-medium-3.1",
-                "openrouter:mistralai/mistral-small-3.2-24b-instruct",
                 "openrouter:mistralai/mistral-small-creative",
                 "openrouter:mistralai/voxtral-small-24b-2507",
-                "openrouter:moonshotai/kimi-dev-72b",
                 "openrouter:moonshotai/kimi-k2",
                 "openrouter:moonshotai/kimi-k2-0905",
                 "openrouter:moonshotai/kimi-k2-0905:exacto",
@@ -12025,7 +12084,7 @@
                 "openrouter:moonshotai/kimi-k2:free",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
-                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -12178,7 +12237,6 @@
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
-                "requesty:parasail/parasail-deepseek-v3-0324",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:vertex/claude-opus-4-5",
@@ -12198,7 +12256,8 @@
                 "requesty:xai/grok-4-fast-non-reasoning",
                 "requesty:xai/grok-code-fast-1",
                 "requesty:zai/GLM-4.5",
-                "requesty:zai/GLM-4.6"
+                "requesty:zai/GLM-4.6",
+                "requesty:zai/GLM-4.7"
               ],
               "type": "string"
             },
@@ -12240,6 +12299,7 @@
                 "vercel-gateway:bfl/flux-pro-1.0-fill",
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                "vercel-gateway:bytedance/seed-1.6",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -12346,7 +12406,6 @@
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
                 "vercel-gateway:vercel/v0-1.5-md",
-                "vercel-gateway:xai/grok-2",
                 "vercel-gateway:xai/grok-2-vision",
                 "vercel-gateway:xai/grok-3",
                 "vercel-gateway:xai/grok-3-fast",
@@ -12445,7 +12504,8 @@
                 "enum": [
                   "cerebras:gpt-oss-120b",
                   "cerebras:qwen-3-235b-a22b-instruct-2507",
-                  "cerebras:zai-glm-4.6"
+                  "cerebras:zai-glm-4.6",
+                  "cerebras:zai-glm-4.7"
                 ],
                 "type": "string"
               },
@@ -12656,8 +12716,6 @@
                   "groq:openai/gpt-oss-120b",
                   "groq:openai/gpt-oss-20b",
                   "groq:openai/gpt-oss-safeguard-20b",
-                  "groq:playai-tts",
-                  "groq:playai-tts-arabic",
                   "groq:qwen/qwen3-32b",
                   "groq:whisper-large-v3",
                   "groq:whisper-large-v3-turbo"
@@ -12748,11 +12806,12 @@
                   "openrouter:ai21/jamba-large-1.7",
                   "openrouter:ai21/jamba-mini-1.7",
                   "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                  "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                  "openrouter:allenai/olmo-3-32b-think:free",
+                  "openrouter:allenai/molmo-2-8b:free",
+                  "openrouter:allenai/olmo-3-32b-think",
                   "openrouter:allenai/olmo-3-7b-instruct",
                   "openrouter:allenai/olmo-3-7b-think",
-                  "openrouter:allenai/olmo-3.1-32b-think:free",
+                  "openrouter:allenai/olmo-3.1-32b-instruct",
+                  "openrouter:allenai/olmo-3.1-32b-think",
                   "openrouter:amazon/nova-2-lite-v1",
                   "openrouter:amazon/nova-premier-v1",
                   "openrouter:anthropic/claude-haiku-4.5",
@@ -12781,24 +12840,21 @@
                   "openrouter:deepseek/deepseek-v3.2-exp",
                   "openrouter:deepseek/deepseek-v3.2-speciale",
                   "openrouter:essentialai/rnj-1-instruct",
-                  "openrouter:google/gemini-2.5-flash",
                   "openrouter:google/gemini-2.5-flash-image",
                   "openrouter:google/gemini-2.5-flash-image-preview",
                   "openrouter:google/gemini-2.5-flash-lite",
                   "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                   "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                  "openrouter:google/gemini-2.5-pro",
                   "openrouter:google/gemini-3-flash-preview",
                   "openrouter:google/gemini-3-pro-image-preview",
                   "openrouter:google/gemini-3-pro-preview",
                   "openrouter:google/gemma-3n-e2b-it:free",
                   "openrouter:ibm-granite/granite-4.0-h-micro",
                   "openrouter:inception/mercury",
-                  "openrouter:kwaipilot/kat-coder-pro:free",
+                  "openrouter:kwaipilot/kat-coder-pro",
                   "openrouter:liquid/lfm-2.2-6b",
                   "openrouter:liquid/lfm2-8b-a1b",
                   "openrouter:meituan/longcat-flash-chat",
-                  "openrouter:minimax/minimax-m1",
                   "openrouter:minimax/minimax-m2",
                   "openrouter:minimax/minimax-m2.1",
                   "openrouter:mistralai/codestral-2508",
@@ -12811,10 +12867,8 @@
                   "openrouter:mistralai/ministral-8b-2512",
                   "openrouter:mistralai/mistral-large-2512",
                   "openrouter:mistralai/mistral-medium-3.1",
-                  "openrouter:mistralai/mistral-small-3.2-24b-instruct",
                   "openrouter:mistralai/mistral-small-creative",
                   "openrouter:mistralai/voxtral-small-24b-2507",
-                  "openrouter:moonshotai/kimi-dev-72b",
                   "openrouter:moonshotai/kimi-k2",
                   "openrouter:moonshotai/kimi-k2-0905",
                   "openrouter:moonshotai/kimi-k2-0905:exacto",
@@ -12822,7 +12876,7 @@
                   "openrouter:moonshotai/kimi-k2:free",
                   "openrouter:morph/morph-v3-fast",
                   "openrouter:morph/morph-v3-large",
-                  "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                  "openrouter:nex-agi/deepseek-v3.1-nex-n1",
                   "openrouter:nousresearch/hermes-4-405b",
                   "openrouter:nousresearch/hermes-4-70b",
                   "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -12975,7 +13029,6 @@
                   "requesty:openai/gpt-5:priority",
                   "requesty:openai/o3-deep-research",
                   "requesty:openai/o4-mini-deep-research",
-                  "requesty:parasail/parasail-deepseek-v3-0324",
                   "requesty:parasail/parasail-kimi-k2-instruct",
                   "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                   "requesty:vertex/claude-opus-4-5",
@@ -12995,7 +13048,8 @@
                   "requesty:xai/grok-4-fast-non-reasoning",
                   "requesty:xai/grok-code-fast-1",
                   "requesty:zai/GLM-4.5",
-                  "requesty:zai/GLM-4.6"
+                  "requesty:zai/GLM-4.6",
+                  "requesty:zai/GLM-4.7"
                 ],
                 "type": "string"
               },
@@ -13037,6 +13091,7 @@
                   "vercel-gateway:bfl/flux-pro-1.0-fill",
                   "vercel-gateway:bfl/flux-pro-1.1",
                   "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                  "vercel-gateway:bytedance/seed-1.6",
                   "vercel-gateway:cohere/command-a",
                   "vercel-gateway:deepseek/deepseek-r1",
                   "vercel-gateway:deepseek/deepseek-v3",
@@ -13143,7 +13198,6 @@
                   "vercel-gateway:stealth/sonoma-sky-alpha",
                   "vercel-gateway:vercel/v0-1.0-md",
                   "vercel-gateway:vercel/v0-1.5-md",
-                  "vercel-gateway:xai/grok-2",
                   "vercel-gateway:xai/grok-2-vision",
                   "vercel-gateway:xai/grok-3",
                   "vercel-gateway:xai/grok-3-fast",
@@ -13241,6 +13295,144 @@
       "title": "DelegationModelConfig",
       "type": "object",
       "x-doc-title": "Delegation model"
+    },
+    "DeletePathToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for delete path tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: delete_path\n        requires_confirmation: true\n        environment:\n          type: local\n    ```",
+      "properties": {
+        "type": {
+          "const": "delete_path",
+          "default": "delete_path",
+          "description": "Delete path tool.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for filesystem access. Falls back to agent's env if not set.",
+          "title": "Execution environment"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for resolving relative paths.",
+          "title": "Working directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "Delete Path Tool",
+      "type": "object"
     },
     "DistributionFilesystemConfig": {
       "additionalProperties": true,
@@ -13599,6 +13791,166 @@
         }
       },
       "title": "DoclingRemoteConfig",
+      "type": "object"
+    },
+    "DownloadFileToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for file download tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: download_file\n        chunk_size: 16384\n        timeout: 60.0\n        environment:\n          type: local\n    ```",
+      "properties": {
+        "type": {
+          "const": "download_file",
+          "default": "download_file",
+          "description": "File download tool.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for filesystem access. Falls back to agent's env if not set.",
+          "title": "Execution environment"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for resolving relative paths.",
+          "title": "Working directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "chunk_size": {
+          "default": 8192,
+          "description": "Size of chunks to download in bytes.",
+          "examples": [
+            8192,
+            16384,
+            32768
+          ],
+          "title": "Chunk size",
+          "type": "integer"
+        },
+        "timeout": {
+          "default": 30.0,
+          "description": "Request timeout in seconds.",
+          "examples": [
+            30.0,
+            60.0,
+            120.0
+          ],
+          "title": "Request timeout",
+          "type": "number"
+        }
+      },
+      "title": "Download File Tool",
       "type": "object"
     },
     "DynamicPrompt": {
@@ -15007,7 +15359,8 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6"
+                "cerebras:zai-glm-4.6",
+                "cerebras:zai-glm-4.7"
               ],
               "type": "string"
             },
@@ -15218,8 +15571,6 @@
                 "groq:openai/gpt-oss-120b",
                 "groq:openai/gpt-oss-20b",
                 "groq:openai/gpt-oss-safeguard-20b",
-                "groq:playai-tts",
-                "groq:playai-tts-arabic",
                 "groq:qwen/qwen3-32b",
                 "groq:whisper-large-v3",
                 "groq:whisper-large-v3-turbo"
@@ -15310,11 +15661,12 @@
                 "openrouter:ai21/jamba-large-1.7",
                 "openrouter:ai21/jamba-mini-1.7",
                 "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                "openrouter:allenai/olmo-3-32b-think:free",
+                "openrouter:allenai/molmo-2-8b:free",
+                "openrouter:allenai/olmo-3-32b-think",
                 "openrouter:allenai/olmo-3-7b-instruct",
                 "openrouter:allenai/olmo-3-7b-think",
-                "openrouter:allenai/olmo-3.1-32b-think:free",
+                "openrouter:allenai/olmo-3.1-32b-instruct",
+                "openrouter:allenai/olmo-3.1-32b-think",
                 "openrouter:amazon/nova-2-lite-v1",
                 "openrouter:amazon/nova-premier-v1",
                 "openrouter:anthropic/claude-haiku-4.5",
@@ -15343,24 +15695,21 @@
                 "openrouter:deepseek/deepseek-v3.2-exp",
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
-                "openrouter:google/gemini-2.5-flash",
                 "openrouter:google/gemini-2.5-flash-image",
                 "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                "openrouter:google/gemini-2.5-pro",
                 "openrouter:google/gemini-3-flash-preview",
                 "openrouter:google/gemini-3-pro-image-preview",
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
                 "openrouter:inception/mercury",
-                "openrouter:kwaipilot/kat-coder-pro:free",
+                "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
                 "openrouter:meituan/longcat-flash-chat",
-                "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:minimax/minimax-m2.1",
                 "openrouter:mistralai/codestral-2508",
@@ -15373,10 +15722,8 @@
                 "openrouter:mistralai/ministral-8b-2512",
                 "openrouter:mistralai/mistral-large-2512",
                 "openrouter:mistralai/mistral-medium-3.1",
-                "openrouter:mistralai/mistral-small-3.2-24b-instruct",
                 "openrouter:mistralai/mistral-small-creative",
                 "openrouter:mistralai/voxtral-small-24b-2507",
-                "openrouter:moonshotai/kimi-dev-72b",
                 "openrouter:moonshotai/kimi-k2",
                 "openrouter:moonshotai/kimi-k2-0905",
                 "openrouter:moonshotai/kimi-k2-0905:exacto",
@@ -15384,7 +15731,7 @@
                 "openrouter:moonshotai/kimi-k2:free",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
-                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -15537,7 +15884,6 @@
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
-                "requesty:parasail/parasail-deepseek-v3-0324",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:vertex/claude-opus-4-5",
@@ -15557,7 +15903,8 @@
                 "requesty:xai/grok-4-fast-non-reasoning",
                 "requesty:xai/grok-code-fast-1",
                 "requesty:zai/GLM-4.5",
-                "requesty:zai/GLM-4.6"
+                "requesty:zai/GLM-4.6",
+                "requesty:zai/GLM-4.7"
               ],
               "type": "string"
             },
@@ -15599,6 +15946,7 @@
                 "vercel-gateway:bfl/flux-pro-1.0-fill",
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                "vercel-gateway:bytedance/seed-1.6",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -15705,7 +16053,6 @@
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
                 "vercel-gateway:vercel/v0-1.5-md",
-                "vercel-gateway:xai/grok-2",
                 "vercel-gateway:xai/grok-2-vision",
                 "vercel-gateway:xai/grok-3",
                 "vercel-gateway:xai/grok-3-fast",
@@ -16189,7 +16536,8 @@
                 "enum": [
                   "cerebras:gpt-oss-120b",
                   "cerebras:qwen-3-235b-a22b-instruct-2507",
-                  "cerebras:zai-glm-4.6"
+                  "cerebras:zai-glm-4.6",
+                  "cerebras:zai-glm-4.7"
                 ],
                 "type": "string"
               },
@@ -16400,8 +16748,6 @@
                   "groq:openai/gpt-oss-120b",
                   "groq:openai/gpt-oss-20b",
                   "groq:openai/gpt-oss-safeguard-20b",
-                  "groq:playai-tts",
-                  "groq:playai-tts-arabic",
                   "groq:qwen/qwen3-32b",
                   "groq:whisper-large-v3",
                   "groq:whisper-large-v3-turbo"
@@ -16492,11 +16838,12 @@
                   "openrouter:ai21/jamba-large-1.7",
                   "openrouter:ai21/jamba-mini-1.7",
                   "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                  "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                  "openrouter:allenai/olmo-3-32b-think:free",
+                  "openrouter:allenai/molmo-2-8b:free",
+                  "openrouter:allenai/olmo-3-32b-think",
                   "openrouter:allenai/olmo-3-7b-instruct",
                   "openrouter:allenai/olmo-3-7b-think",
-                  "openrouter:allenai/olmo-3.1-32b-think:free",
+                  "openrouter:allenai/olmo-3.1-32b-instruct",
+                  "openrouter:allenai/olmo-3.1-32b-think",
                   "openrouter:amazon/nova-2-lite-v1",
                   "openrouter:amazon/nova-premier-v1",
                   "openrouter:anthropic/claude-haiku-4.5",
@@ -16525,24 +16872,21 @@
                   "openrouter:deepseek/deepseek-v3.2-exp",
                   "openrouter:deepseek/deepseek-v3.2-speciale",
                   "openrouter:essentialai/rnj-1-instruct",
-                  "openrouter:google/gemini-2.5-flash",
                   "openrouter:google/gemini-2.5-flash-image",
                   "openrouter:google/gemini-2.5-flash-image-preview",
                   "openrouter:google/gemini-2.5-flash-lite",
                   "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                   "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                  "openrouter:google/gemini-2.5-pro",
                   "openrouter:google/gemini-3-flash-preview",
                   "openrouter:google/gemini-3-pro-image-preview",
                   "openrouter:google/gemini-3-pro-preview",
                   "openrouter:google/gemma-3n-e2b-it:free",
                   "openrouter:ibm-granite/granite-4.0-h-micro",
                   "openrouter:inception/mercury",
-                  "openrouter:kwaipilot/kat-coder-pro:free",
+                  "openrouter:kwaipilot/kat-coder-pro",
                   "openrouter:liquid/lfm-2.2-6b",
                   "openrouter:liquid/lfm2-8b-a1b",
                   "openrouter:meituan/longcat-flash-chat",
-                  "openrouter:minimax/minimax-m1",
                   "openrouter:minimax/minimax-m2",
                   "openrouter:minimax/minimax-m2.1",
                   "openrouter:mistralai/codestral-2508",
@@ -16555,10 +16899,8 @@
                   "openrouter:mistralai/ministral-8b-2512",
                   "openrouter:mistralai/mistral-large-2512",
                   "openrouter:mistralai/mistral-medium-3.1",
-                  "openrouter:mistralai/mistral-small-3.2-24b-instruct",
                   "openrouter:mistralai/mistral-small-creative",
                   "openrouter:mistralai/voxtral-small-24b-2507",
-                  "openrouter:moonshotai/kimi-dev-72b",
                   "openrouter:moonshotai/kimi-k2",
                   "openrouter:moonshotai/kimi-k2-0905",
                   "openrouter:moonshotai/kimi-k2-0905:exacto",
@@ -16566,7 +16908,7 @@
                   "openrouter:moonshotai/kimi-k2:free",
                   "openrouter:morph/morph-v3-fast",
                   "openrouter:morph/morph-v3-large",
-                  "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                  "openrouter:nex-agi/deepseek-v3.1-nex-n1",
                   "openrouter:nousresearch/hermes-4-405b",
                   "openrouter:nousresearch/hermes-4-70b",
                   "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -16719,7 +17061,6 @@
                   "requesty:openai/gpt-5:priority",
                   "requesty:openai/o3-deep-research",
                   "requesty:openai/o4-mini-deep-research",
-                  "requesty:parasail/parasail-deepseek-v3-0324",
                   "requesty:parasail/parasail-kimi-k2-instruct",
                   "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                   "requesty:vertex/claude-opus-4-5",
@@ -16739,7 +17080,8 @@
                   "requesty:xai/grok-4-fast-non-reasoning",
                   "requesty:xai/grok-code-fast-1",
                   "requesty:zai/GLM-4.5",
-                  "requesty:zai/GLM-4.6"
+                  "requesty:zai/GLM-4.6",
+                  "requesty:zai/GLM-4.7"
                 ],
                 "type": "string"
               },
@@ -16781,6 +17123,7 @@
                   "vercel-gateway:bfl/flux-pro-1.0-fill",
                   "vercel-gateway:bfl/flux-pro-1.1",
                   "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                  "vercel-gateway:bytedance/seed-1.6",
                   "vercel-gateway:cohere/command-a",
                   "vercel-gateway:deepseek/deepseek-r1",
                   "vercel-gateway:deepseek/deepseek-v3",
@@ -16887,7 +17230,6 @@
                   "vercel-gateway:stealth/sonoma-sky-alpha",
                   "vercel-gateway:vercel/v0-1.0-md",
                   "vercel-gateway:vercel/v0-1.5-md",
-                  "vercel-gateway:xai/grok-2",
                   "vercel-gateway:xai/grok-2-vision",
                   "vercel-gateway:xai/grok-3",
                   "vercel-gateway:xai/grok-3-fast",
@@ -17522,7 +17864,6 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -17563,16 +17904,22 @@
                     "config_creation": "#/$defs/ConfigCreationToolsetConfig",
                     "custom": "#/$defs/CustomToolsetConfig",
                     "debug": "#/$defs/DebugToolsetConfig",
+                    "delete_path": "#/$defs/DeletePathToolConfig",
+                    "download_file": "#/$defs/DownloadFileToolConfig",
                     "entry_points": "#/$defs/EntryPointToolsetConfig",
                     "execute_code": "#/$defs/ExecuteCodeToolConfig",
                     "file_access": "#/$defs/FSSpecToolsetConfig",
+                    "grep": "#/$defs/GrepToolConfig",
                     "import": "#/$defs/ImportToolConfig",
                     "import_tools": "#/$defs/ImportToolsToolsetConfig",
+                    "list_directory": "#/$defs/ListDirectoryToolConfig",
                     "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                     "notifications": "#/$defs/NotificationsToolsetConfig",
                     "openapi": "#/$defs/OpenAPIToolsetConfig",
                     "plan": "#/$defs/PlanToolsetConfig",
                     "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                    "question": "#/$defs/QuestionToolConfig",
+                    "read": "#/$defs/ReadToolConfig",
                     "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                     "search": "#/$defs/SearchToolsetConfig",
                     "skills": "#/$defs/SkillsToolsetConfig",
@@ -17596,7 +17943,22 @@
                     "$ref": "#/$defs/BashToolConfig"
                   },
                   {
+                    "$ref": "#/$defs/DeletePathToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DownloadFileToolConfig"
+                  },
+                  {
                     "$ref": "#/$defs/ExecuteCodeToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/GrepToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ListDirectoryToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ReadToolConfig"
                   },
                   {
                     "discriminator": {
@@ -21093,6 +21455,161 @@
       "title": "Goose ACP Agent Configuration",
       "type": "object"
     },
+    "GrepToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for grep search tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: grep\n        max_output_kb: 128\n        use_subprocess_grep: true\n        environment:\n          type: local\n    ```",
+      "properties": {
+        "type": {
+          "const": "grep",
+          "default": "grep",
+          "description": "Grep search tool.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for filesystem access. Falls back to agent's env if not set.",
+          "title": "Execution environment"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for resolving relative paths.",
+          "title": "Working directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_output_kb": {
+          "default": 64,
+          "description": "Maximum output size in KB.",
+          "examples": [
+            64,
+            128,
+            256
+          ],
+          "title": "Max output size",
+          "type": "integer"
+        },
+        "use_subprocess_grep": {
+          "default": true,
+          "description": "Use ripgrep/grep subprocess if available (faster for large codebases).",
+          "title": "Use subprocess grep",
+          "type": "boolean"
+        }
+      },
+      "title": "Grep Tool",
+      "type": "object"
+    },
     "HadoopFilesystemConfig": {
       "additionalProperties": true,
       "description": "Configuration for Hadoop filesystem.",
@@ -23234,7 +23751,6 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -23275,16 +23791,22 @@
                     "config_creation": "#/$defs/ConfigCreationToolsetConfig",
                     "custom": "#/$defs/CustomToolsetConfig",
                     "debug": "#/$defs/DebugToolsetConfig",
+                    "delete_path": "#/$defs/DeletePathToolConfig",
+                    "download_file": "#/$defs/DownloadFileToolConfig",
                     "entry_points": "#/$defs/EntryPointToolsetConfig",
                     "execute_code": "#/$defs/ExecuteCodeToolConfig",
                     "file_access": "#/$defs/FSSpecToolsetConfig",
+                    "grep": "#/$defs/GrepToolConfig",
                     "import": "#/$defs/ImportToolConfig",
                     "import_tools": "#/$defs/ImportToolsToolsetConfig",
+                    "list_directory": "#/$defs/ListDirectoryToolConfig",
                     "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                     "notifications": "#/$defs/NotificationsToolsetConfig",
                     "openapi": "#/$defs/OpenAPIToolsetConfig",
                     "plan": "#/$defs/PlanToolsetConfig",
                     "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                    "question": "#/$defs/QuestionToolConfig",
+                    "read": "#/$defs/ReadToolConfig",
                     "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                     "search": "#/$defs/SearchToolsetConfig",
                     "skills": "#/$defs/SkillsToolsetConfig",
@@ -23308,7 +23830,22 @@
                     "$ref": "#/$defs/BashToolConfig"
                   },
                   {
+                    "$ref": "#/$defs/DeletePathToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DownloadFileToolConfig"
+                  },
+                  {
                     "$ref": "#/$defs/ExecuteCodeToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/GrepToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ListDirectoryToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ReadToolConfig"
                   },
                   {
                     "discriminator": {
@@ -24054,6 +24591,155 @@
         }
       },
       "title": "LinkUpConfig",
+      "type": "object"
+    },
+    "ListDirectoryToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for directory listing tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: list_directory\n        max_items: 1000\n        environment:\n          type: local\n    ```",
+      "properties": {
+        "type": {
+          "const": "list_directory",
+          "default": "list_directory",
+          "description": "Directory listing tool.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for filesystem access. Falls back to agent's env if not set.",
+          "title": "Execution environment"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for resolving relative paths.",
+          "title": "Working directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_items": {
+          "default": 500,
+          "description": "Maximum number of items to return (safety limit).",
+          "examples": [
+            500,
+            1000,
+            2000
+          ],
+          "title": "Max items",
+          "type": "integer"
+        }
+      },
+      "title": "List Directory Tool",
       "type": "object"
     },
     "LlamaParseConfig": {
@@ -27353,7 +28039,8 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6"
+                "cerebras:zai-glm-4.6",
+                "cerebras:zai-glm-4.7"
               ],
               "type": "string"
             },
@@ -27564,8 +28251,6 @@
                 "groq:openai/gpt-oss-120b",
                 "groq:openai/gpt-oss-20b",
                 "groq:openai/gpt-oss-safeguard-20b",
-                "groq:playai-tts",
-                "groq:playai-tts-arabic",
                 "groq:qwen/qwen3-32b",
                 "groq:whisper-large-v3",
                 "groq:whisper-large-v3-turbo"
@@ -27656,11 +28341,12 @@
                 "openrouter:ai21/jamba-large-1.7",
                 "openrouter:ai21/jamba-mini-1.7",
                 "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                "openrouter:allenai/olmo-3-32b-think:free",
+                "openrouter:allenai/molmo-2-8b:free",
+                "openrouter:allenai/olmo-3-32b-think",
                 "openrouter:allenai/olmo-3-7b-instruct",
                 "openrouter:allenai/olmo-3-7b-think",
-                "openrouter:allenai/olmo-3.1-32b-think:free",
+                "openrouter:allenai/olmo-3.1-32b-instruct",
+                "openrouter:allenai/olmo-3.1-32b-think",
                 "openrouter:amazon/nova-2-lite-v1",
                 "openrouter:amazon/nova-premier-v1",
                 "openrouter:anthropic/claude-haiku-4.5",
@@ -27689,24 +28375,21 @@
                 "openrouter:deepseek/deepseek-v3.2-exp",
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
-                "openrouter:google/gemini-2.5-flash",
                 "openrouter:google/gemini-2.5-flash-image",
                 "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                "openrouter:google/gemini-2.5-pro",
                 "openrouter:google/gemini-3-flash-preview",
                 "openrouter:google/gemini-3-pro-image-preview",
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
                 "openrouter:inception/mercury",
-                "openrouter:kwaipilot/kat-coder-pro:free",
+                "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
                 "openrouter:meituan/longcat-flash-chat",
-                "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:minimax/minimax-m2.1",
                 "openrouter:mistralai/codestral-2508",
@@ -27719,10 +28402,8 @@
                 "openrouter:mistralai/ministral-8b-2512",
                 "openrouter:mistralai/mistral-large-2512",
                 "openrouter:mistralai/mistral-medium-3.1",
-                "openrouter:mistralai/mistral-small-3.2-24b-instruct",
                 "openrouter:mistralai/mistral-small-creative",
                 "openrouter:mistralai/voxtral-small-24b-2507",
-                "openrouter:moonshotai/kimi-dev-72b",
                 "openrouter:moonshotai/kimi-k2",
                 "openrouter:moonshotai/kimi-k2-0905",
                 "openrouter:moonshotai/kimi-k2-0905:exacto",
@@ -27730,7 +28411,7 @@
                 "openrouter:moonshotai/kimi-k2:free",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
-                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -27883,7 +28564,6 @@
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
-                "requesty:parasail/parasail-deepseek-v3-0324",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:vertex/claude-opus-4-5",
@@ -27903,7 +28583,8 @@
                 "requesty:xai/grok-4-fast-non-reasoning",
                 "requesty:xai/grok-code-fast-1",
                 "requesty:zai/GLM-4.5",
-                "requesty:zai/GLM-4.6"
+                "requesty:zai/GLM-4.6",
+                "requesty:zai/GLM-4.7"
               ],
               "type": "string"
             },
@@ -27945,6 +28626,7 @@
                 "vercel-gateway:bfl/flux-pro-1.0-fill",
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                "vercel-gateway:bytedance/seed-1.6",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -28051,7 +28733,6 @@
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
                 "vercel-gateway:vercel/v0-1.5-md",
-                "vercel-gateway:xai/grok-2",
                 "vercel-gateway:xai/grok-2-vision",
                 "vercel-gateway:xai/grok-3",
                 "vercel-gateway:xai/grok-3-fast",
@@ -28140,7 +28821,6 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -28181,16 +28861,22 @@
                     "config_creation": "#/$defs/ConfigCreationToolsetConfig",
                     "custom": "#/$defs/CustomToolsetConfig",
                     "debug": "#/$defs/DebugToolsetConfig",
+                    "delete_path": "#/$defs/DeletePathToolConfig",
+                    "download_file": "#/$defs/DownloadFileToolConfig",
                     "entry_points": "#/$defs/EntryPointToolsetConfig",
                     "execute_code": "#/$defs/ExecuteCodeToolConfig",
                     "file_access": "#/$defs/FSSpecToolsetConfig",
+                    "grep": "#/$defs/GrepToolConfig",
                     "import": "#/$defs/ImportToolConfig",
                     "import_tools": "#/$defs/ImportToolsToolsetConfig",
+                    "list_directory": "#/$defs/ListDirectoryToolConfig",
                     "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
                     "notifications": "#/$defs/NotificationsToolsetConfig",
                     "openapi": "#/$defs/OpenAPIToolsetConfig",
                     "plan": "#/$defs/PlanToolsetConfig",
                     "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                    "question": "#/$defs/QuestionToolConfig",
+                    "read": "#/$defs/ReadToolConfig",
                     "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
                     "search": "#/$defs/SearchToolsetConfig",
                     "skills": "#/$defs/SkillsToolsetConfig",
@@ -28214,7 +28900,22 @@
                     "$ref": "#/$defs/BashToolConfig"
                   },
                   {
+                    "$ref": "#/$defs/DeletePathToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DownloadFileToolConfig"
+                  },
+                  {
                     "$ref": "#/$defs/ExecuteCodeToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/GrepToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ListDirectoryToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ReadToolConfig"
                   },
                   {
                     "discriminator": {
@@ -31127,11 +31828,12 @@
             "ai21/jamba-large-1.7",
             "ai21/jamba-mini-1.7",
             "alibaba/tongyi-deepresearch-30b-a3b",
-            "alibaba/tongyi-deepresearch-30b-a3b:free",
-            "allenai/olmo-3-32b-think:free",
+            "allenai/molmo-2-8b:free",
+            "allenai/olmo-3-32b-think",
             "allenai/olmo-3-7b-instruct",
             "allenai/olmo-3-7b-think",
-            "allenai/olmo-3.1-32b-think:free",
+            "allenai/olmo-3.1-32b-instruct",
+            "allenai/olmo-3.1-32b-think",
             "amazon/nova-2-lite-v1",
             "amazon/nova-premier-v1",
             "anthropic/claude-haiku-4.5",
@@ -31160,24 +31862,21 @@
             "deepseek/deepseek-v3.2-exp",
             "deepseek/deepseek-v3.2-speciale",
             "essentialai/rnj-1-instruct",
-            "google/gemini-2.5-flash",
             "google/gemini-2.5-flash-image",
             "google/gemini-2.5-flash-image-preview",
             "google/gemini-2.5-flash-lite",
             "google/gemini-2.5-flash-lite-preview-09-2025",
             "google/gemini-2.5-flash-preview-09-2025",
-            "google/gemini-2.5-pro",
             "google/gemini-3-flash-preview",
             "google/gemini-3-pro-image-preview",
             "google/gemini-3-pro-preview",
             "google/gemma-3n-e2b-it:free",
             "ibm-granite/granite-4.0-h-micro",
             "inception/mercury",
-            "kwaipilot/kat-coder-pro:free",
+            "kwaipilot/kat-coder-pro",
             "liquid/lfm-2.2-6b",
             "liquid/lfm2-8b-a1b",
             "meituan/longcat-flash-chat",
-            "minimax/minimax-m1",
             "minimax/minimax-m2",
             "minimax/minimax-m2.1",
             "mistralai/codestral-2508",
@@ -31190,10 +31889,8 @@
             "mistralai/ministral-8b-2512",
             "mistralai/mistral-large-2512",
             "mistralai/mistral-medium-3.1",
-            "mistralai/mistral-small-3.2-24b-instruct",
             "mistralai/mistral-small-creative",
             "mistralai/voxtral-small-24b-2507",
-            "moonshotai/kimi-dev-72b",
             "moonshotai/kimi-k2",
             "moonshotai/kimi-k2-0905",
             "moonshotai/kimi-k2-0905:exacto",
@@ -31201,7 +31898,7 @@
             "moonshotai/kimi-k2:free",
             "morph/morph-v3-fast",
             "morph/morph-v3-large",
-            "nex-agi/deepseek-v3.1-nex-n1:free",
+            "nex-agi/deepseek-v3.1-nex-n1",
             "nousresearch/hermes-4-405b",
             "nousresearch/hermes-4-70b",
             "nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -31848,7 +32545,8 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6"
+                "cerebras:zai-glm-4.6",
+                "cerebras:zai-glm-4.7"
               ],
               "type": "string"
             },
@@ -32059,8 +32757,6 @@
                 "groq:openai/gpt-oss-120b",
                 "groq:openai/gpt-oss-20b",
                 "groq:openai/gpt-oss-safeguard-20b",
-                "groq:playai-tts",
-                "groq:playai-tts-arabic",
                 "groq:qwen/qwen3-32b",
                 "groq:whisper-large-v3",
                 "groq:whisper-large-v3-turbo"
@@ -32151,11 +32847,12 @@
                 "openrouter:ai21/jamba-large-1.7",
                 "openrouter:ai21/jamba-mini-1.7",
                 "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                "openrouter:allenai/olmo-3-32b-think:free",
+                "openrouter:allenai/molmo-2-8b:free",
+                "openrouter:allenai/olmo-3-32b-think",
                 "openrouter:allenai/olmo-3-7b-instruct",
                 "openrouter:allenai/olmo-3-7b-think",
-                "openrouter:allenai/olmo-3.1-32b-think:free",
+                "openrouter:allenai/olmo-3.1-32b-instruct",
+                "openrouter:allenai/olmo-3.1-32b-think",
                 "openrouter:amazon/nova-2-lite-v1",
                 "openrouter:amazon/nova-premier-v1",
                 "openrouter:anthropic/claude-haiku-4.5",
@@ -32184,24 +32881,21 @@
                 "openrouter:deepseek/deepseek-v3.2-exp",
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
-                "openrouter:google/gemini-2.5-flash",
                 "openrouter:google/gemini-2.5-flash-image",
                 "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                "openrouter:google/gemini-2.5-pro",
                 "openrouter:google/gemini-3-flash-preview",
                 "openrouter:google/gemini-3-pro-image-preview",
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
                 "openrouter:inception/mercury",
-                "openrouter:kwaipilot/kat-coder-pro:free",
+                "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
                 "openrouter:meituan/longcat-flash-chat",
-                "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:minimax/minimax-m2.1",
                 "openrouter:mistralai/codestral-2508",
@@ -32214,10 +32908,8 @@
                 "openrouter:mistralai/ministral-8b-2512",
                 "openrouter:mistralai/mistral-large-2512",
                 "openrouter:mistralai/mistral-medium-3.1",
-                "openrouter:mistralai/mistral-small-3.2-24b-instruct",
                 "openrouter:mistralai/mistral-small-creative",
                 "openrouter:mistralai/voxtral-small-24b-2507",
-                "openrouter:moonshotai/kimi-dev-72b",
                 "openrouter:moonshotai/kimi-k2",
                 "openrouter:moonshotai/kimi-k2-0905",
                 "openrouter:moonshotai/kimi-k2-0905:exacto",
@@ -32225,7 +32917,7 @@
                 "openrouter:moonshotai/kimi-k2:free",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
-                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -32378,7 +33070,6 @@
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
-                "requesty:parasail/parasail-deepseek-v3-0324",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:vertex/claude-opus-4-5",
@@ -32398,7 +33089,8 @@
                 "requesty:xai/grok-4-fast-non-reasoning",
                 "requesty:xai/grok-code-fast-1",
                 "requesty:zai/GLM-4.5",
-                "requesty:zai/GLM-4.6"
+                "requesty:zai/GLM-4.6",
+                "requesty:zai/GLM-4.7"
               ],
               "type": "string"
             },
@@ -32440,6 +33132,7 @@
                 "vercel-gateway:bfl/flux-pro-1.0-fill",
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                "vercel-gateway:bytedance/seed-1.6",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -32546,7 +33239,6 @@
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
                 "vercel-gateway:vercel/v0-1.5-md",
-                "vercel-gateway:xai/grok-2",
                 "vercel-gateway:xai/grok-2-vision",
                 "vercel-gateway:xai/grok-3",
                 "vercel-gateway:xai/grok-3-fast",
@@ -33216,6 +33908,275 @@
       "title": "PyodideExecutionEnvironmentConfig",
       "type": "object",
       "x-doc-title": "Pyodide Execution Environment"
+    },
+    "QuestionToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for user interaction tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: question\n    ```",
+      "properties": {
+        "type": {
+          "const": "question",
+          "default": "question",
+          "description": "User interaction tool.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "title": "Tool metadata",
+          "type": "object"
+        }
+      },
+      "title": "Ask User Tool",
+      "type": "object"
+    },
+    "ReadToolConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for file reading tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: read\n        max_file_size_kb: 128\n        max_image_size: 1500\n        large_file_tokens: 10000\n        conversion:\n          default_provider: markitdown\n        environment:\n          type: local\n    ```",
+      "properties": {
+        "type": {
+          "const": "read",
+          "default": "read",
+          "description": "File reading tool.",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "default": null,
+          "description": "Optional override for the tool name.",
+          "examples": [
+            "search_web",
+            "file_reader",
+            "calculator"
+          ],
+          "title": "Tool name override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional override for the tool description.",
+          "examples": [
+            "Search the web for information",
+            "Read file contents"
+          ],
+          "title": "Tool description override",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "default": true,
+          "description": "Whether this tool is initially enabled.",
+          "title": "Tool enabled",
+          "type": "boolean"
+        },
+        "requires_confirmation": {
+          "default": false,
+          "description": "Whether tool execution needs confirmation.",
+          "title": "Requires confirmation",
+          "type": "boolean"
+        },
+        "metadata": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Additional tool metadata.",
+          "title": "Tool metadata",
+          "type": "object"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
+                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
+                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
+                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
+                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
+                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
+                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
+                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
+                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
+                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
+                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
+                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
+                },
+                {
+                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution environment for filesystem access. Falls back to agent's env if not set.",
+          "title": "Execution environment"
+        },
+        "cwd": {
+          "default": null,
+          "description": "Working directory for resolving relative paths.",
+          "title": "Working directory",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_file_size_kb": {
+          "default": 64,
+          "description": "Maximum file size in KB for read operations.",
+          "examples": [
+            64,
+            128,
+            256
+          ],
+          "title": "Max file size",
+          "type": "integer"
+        },
+        "max_image_size": {
+          "default": 2000,
+          "description": "Max width/height for images in pixels. Images are auto-resized if larger.",
+          "examples": [
+            1500,
+            2000,
+            2500
+          ],
+          "title": "Max image dimensions",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_image_bytes": {
+          "default": null,
+          "description": "Max file size for images in bytes. Images are compressed if larger.",
+          "title": "Max image file size",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "large_file_tokens": {
+          "default": 12000,
+          "description": "Token threshold for switching to structure map for large files.",
+          "examples": [
+            10000,
+            12000,
+            15000
+          ],
+          "title": "Large file threshold",
+          "type": "integer"
+        },
+        "map_max_tokens": {
+          "default": 2048,
+          "description": "Maximum tokens for structure map output.",
+          "examples": [
+            1024,
+            2048,
+            4096
+          ],
+          "title": "Structure map max tokens",
+          "type": "integer"
+        },
+        "conversion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConversionConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional conversion config for binary files. If set, converts supported files to markdown.",
+          "title": "Conversion config"
+        }
+      },
+      "title": "Read Tool",
+      "type": "object"
     },
     "RemoteCodeModeToolsetConfig": {
       "additionalProperties": false,
@@ -36924,7 +37885,8 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6"
+                "cerebras:zai-glm-4.6",
+                "cerebras:zai-glm-4.7"
               ],
               "type": "string"
             },
@@ -37135,8 +38097,6 @@
                 "groq:openai/gpt-oss-120b",
                 "groq:openai/gpt-oss-20b",
                 "groq:openai/gpt-oss-safeguard-20b",
-                "groq:playai-tts",
-                "groq:playai-tts-arabic",
                 "groq:qwen/qwen3-32b",
                 "groq:whisper-large-v3",
                 "groq:whisper-large-v3-turbo"
@@ -37227,11 +38187,12 @@
                 "openrouter:ai21/jamba-large-1.7",
                 "openrouter:ai21/jamba-mini-1.7",
                 "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                "openrouter:allenai/olmo-3-32b-think:free",
+                "openrouter:allenai/molmo-2-8b:free",
+                "openrouter:allenai/olmo-3-32b-think",
                 "openrouter:allenai/olmo-3-7b-instruct",
                 "openrouter:allenai/olmo-3-7b-think",
-                "openrouter:allenai/olmo-3.1-32b-think:free",
+                "openrouter:allenai/olmo-3.1-32b-instruct",
+                "openrouter:allenai/olmo-3.1-32b-think",
                 "openrouter:amazon/nova-2-lite-v1",
                 "openrouter:amazon/nova-premier-v1",
                 "openrouter:anthropic/claude-haiku-4.5",
@@ -37260,24 +38221,21 @@
                 "openrouter:deepseek/deepseek-v3.2-exp",
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
-                "openrouter:google/gemini-2.5-flash",
                 "openrouter:google/gemini-2.5-flash-image",
                 "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                "openrouter:google/gemini-2.5-pro",
                 "openrouter:google/gemini-3-flash-preview",
                 "openrouter:google/gemini-3-pro-image-preview",
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
                 "openrouter:inception/mercury",
-                "openrouter:kwaipilot/kat-coder-pro:free",
+                "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
                 "openrouter:meituan/longcat-flash-chat",
-                "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:minimax/minimax-m2.1",
                 "openrouter:mistralai/codestral-2508",
@@ -37290,10 +38248,8 @@
                 "openrouter:mistralai/ministral-8b-2512",
                 "openrouter:mistralai/mistral-large-2512",
                 "openrouter:mistralai/mistral-medium-3.1",
-                "openrouter:mistralai/mistral-small-3.2-24b-instruct",
                 "openrouter:mistralai/mistral-small-creative",
                 "openrouter:mistralai/voxtral-small-24b-2507",
-                "openrouter:moonshotai/kimi-dev-72b",
                 "openrouter:moonshotai/kimi-k2",
                 "openrouter:moonshotai/kimi-k2-0905",
                 "openrouter:moonshotai/kimi-k2-0905:exacto",
@@ -37301,7 +38257,7 @@
                 "openrouter:moonshotai/kimi-k2:free",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
-                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -37454,7 +38410,6 @@
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
-                "requesty:parasail/parasail-deepseek-v3-0324",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:vertex/claude-opus-4-5",
@@ -37474,7 +38429,8 @@
                 "requesty:xai/grok-4-fast-non-reasoning",
                 "requesty:xai/grok-code-fast-1",
                 "requesty:zai/GLM-4.5",
-                "requesty:zai/GLM-4.6"
+                "requesty:zai/GLM-4.6",
+                "requesty:zai/GLM-4.7"
               ],
               "type": "string"
             },
@@ -37516,6 +38472,7 @@
                 "vercel-gateway:bfl/flux-pro-1.0-fill",
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                "vercel-gateway:bytedance/seed-1.6",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -37622,7 +38579,6 @@
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
                 "vercel-gateway:vercel/v0-1.5-md",
-                "vercel-gateway:xai/grok-2",
                 "vercel-gateway:xai/grok-2-vision",
                 "vercel-gateway:xai/grok-3",
                 "vercel-gateway:xai/grok-3-fast",
@@ -37892,7 +38848,8 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6"
+                "cerebras:zai-glm-4.6",
+                "cerebras:zai-glm-4.7"
               ],
               "type": "string"
             },
@@ -38103,8 +39060,6 @@
                 "groq:openai/gpt-oss-120b",
                 "groq:openai/gpt-oss-20b",
                 "groq:openai/gpt-oss-safeguard-20b",
-                "groq:playai-tts",
-                "groq:playai-tts-arabic",
                 "groq:qwen/qwen3-32b",
                 "groq:whisper-large-v3",
                 "groq:whisper-large-v3-turbo"
@@ -38195,11 +39150,12 @@
                 "openrouter:ai21/jamba-large-1.7",
                 "openrouter:ai21/jamba-mini-1.7",
                 "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                "openrouter:allenai/olmo-3-32b-think:free",
+                "openrouter:allenai/molmo-2-8b:free",
+                "openrouter:allenai/olmo-3-32b-think",
                 "openrouter:allenai/olmo-3-7b-instruct",
                 "openrouter:allenai/olmo-3-7b-think",
-                "openrouter:allenai/olmo-3.1-32b-think:free",
+                "openrouter:allenai/olmo-3.1-32b-instruct",
+                "openrouter:allenai/olmo-3.1-32b-think",
                 "openrouter:amazon/nova-2-lite-v1",
                 "openrouter:amazon/nova-premier-v1",
                 "openrouter:anthropic/claude-haiku-4.5",
@@ -38228,24 +39184,21 @@
                 "openrouter:deepseek/deepseek-v3.2-exp",
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
-                "openrouter:google/gemini-2.5-flash",
                 "openrouter:google/gemini-2.5-flash-image",
                 "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                "openrouter:google/gemini-2.5-pro",
                 "openrouter:google/gemini-3-flash-preview",
                 "openrouter:google/gemini-3-pro-image-preview",
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
                 "openrouter:inception/mercury",
-                "openrouter:kwaipilot/kat-coder-pro:free",
+                "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
                 "openrouter:meituan/longcat-flash-chat",
-                "openrouter:minimax/minimax-m1",
                 "openrouter:minimax/minimax-m2",
                 "openrouter:minimax/minimax-m2.1",
                 "openrouter:mistralai/codestral-2508",
@@ -38258,10 +39211,8 @@
                 "openrouter:mistralai/ministral-8b-2512",
                 "openrouter:mistralai/mistral-large-2512",
                 "openrouter:mistralai/mistral-medium-3.1",
-                "openrouter:mistralai/mistral-small-3.2-24b-instruct",
                 "openrouter:mistralai/mistral-small-creative",
                 "openrouter:mistralai/voxtral-small-24b-2507",
-                "openrouter:moonshotai/kimi-dev-72b",
                 "openrouter:moonshotai/kimi-k2",
                 "openrouter:moonshotai/kimi-k2-0905",
                 "openrouter:moonshotai/kimi-k2-0905:exacto",
@@ -38269,7 +39220,7 @@
                 "openrouter:moonshotai/kimi-k2:free",
                 "openrouter:morph/morph-v3-fast",
                 "openrouter:morph/morph-v3-large",
-                "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                "openrouter:nex-agi/deepseek-v3.1-nex-n1",
                 "openrouter:nousresearch/hermes-4-405b",
                 "openrouter:nousresearch/hermes-4-70b",
                 "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -38422,7 +39373,6 @@
                 "requesty:openai/gpt-5:priority",
                 "requesty:openai/o3-deep-research",
                 "requesty:openai/o4-mini-deep-research",
-                "requesty:parasail/parasail-deepseek-v3-0324",
                 "requesty:parasail/parasail-kimi-k2-instruct",
                 "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                 "requesty:vertex/claude-opus-4-5",
@@ -38442,7 +39392,8 @@
                 "requesty:xai/grok-4-fast-non-reasoning",
                 "requesty:xai/grok-code-fast-1",
                 "requesty:zai/GLM-4.5",
-                "requesty:zai/GLM-4.6"
+                "requesty:zai/GLM-4.6",
+                "requesty:zai/GLM-4.7"
               ],
               "type": "string"
             },
@@ -38484,6 +39435,7 @@
                 "vercel-gateway:bfl/flux-pro-1.0-fill",
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                "vercel-gateway:bytedance/seed-1.6",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -38590,7 +39542,6 @@
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
                 "vercel-gateway:vercel/v0-1.5-md",
-                "vercel-gateway:xai/grok-2",
                 "vercel-gateway:xai/grok-2-vision",
                 "vercel-gateway:xai/grok-3",
                 "vercel-gateway:xai/grok-3-fast",
@@ -40480,7 +41431,8 @@
                 "enum": [
                   "cerebras:gpt-oss-120b",
                   "cerebras:qwen-3-235b-a22b-instruct-2507",
-                  "cerebras:zai-glm-4.6"
+                  "cerebras:zai-glm-4.6",
+                  "cerebras:zai-glm-4.7"
                 ],
                 "type": "string"
               },
@@ -40691,8 +41643,6 @@
                   "groq:openai/gpt-oss-120b",
                   "groq:openai/gpt-oss-20b",
                   "groq:openai/gpt-oss-safeguard-20b",
-                  "groq:playai-tts",
-                  "groq:playai-tts-arabic",
                   "groq:qwen/qwen3-32b",
                   "groq:whisper-large-v3",
                   "groq:whisper-large-v3-turbo"
@@ -40783,11 +41733,12 @@
                   "openrouter:ai21/jamba-large-1.7",
                   "openrouter:ai21/jamba-mini-1.7",
                   "openrouter:alibaba/tongyi-deepresearch-30b-a3b",
-                  "openrouter:alibaba/tongyi-deepresearch-30b-a3b:free",
-                  "openrouter:allenai/olmo-3-32b-think:free",
+                  "openrouter:allenai/molmo-2-8b:free",
+                  "openrouter:allenai/olmo-3-32b-think",
                   "openrouter:allenai/olmo-3-7b-instruct",
                   "openrouter:allenai/olmo-3-7b-think",
-                  "openrouter:allenai/olmo-3.1-32b-think:free",
+                  "openrouter:allenai/olmo-3.1-32b-instruct",
+                  "openrouter:allenai/olmo-3.1-32b-think",
                   "openrouter:amazon/nova-2-lite-v1",
                   "openrouter:amazon/nova-premier-v1",
                   "openrouter:anthropic/claude-haiku-4.5",
@@ -40816,24 +41767,21 @@
                   "openrouter:deepseek/deepseek-v3.2-exp",
                   "openrouter:deepseek/deepseek-v3.2-speciale",
                   "openrouter:essentialai/rnj-1-instruct",
-                  "openrouter:google/gemini-2.5-flash",
                   "openrouter:google/gemini-2.5-flash-image",
                   "openrouter:google/gemini-2.5-flash-image-preview",
                   "openrouter:google/gemini-2.5-flash-lite",
                   "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                   "openrouter:google/gemini-2.5-flash-preview-09-2025",
-                  "openrouter:google/gemini-2.5-pro",
                   "openrouter:google/gemini-3-flash-preview",
                   "openrouter:google/gemini-3-pro-image-preview",
                   "openrouter:google/gemini-3-pro-preview",
                   "openrouter:google/gemma-3n-e2b-it:free",
                   "openrouter:ibm-granite/granite-4.0-h-micro",
                   "openrouter:inception/mercury",
-                  "openrouter:kwaipilot/kat-coder-pro:free",
+                  "openrouter:kwaipilot/kat-coder-pro",
                   "openrouter:liquid/lfm-2.2-6b",
                   "openrouter:liquid/lfm2-8b-a1b",
                   "openrouter:meituan/longcat-flash-chat",
-                  "openrouter:minimax/minimax-m1",
                   "openrouter:minimax/minimax-m2",
                   "openrouter:minimax/minimax-m2.1",
                   "openrouter:mistralai/codestral-2508",
@@ -40846,10 +41794,8 @@
                   "openrouter:mistralai/ministral-8b-2512",
                   "openrouter:mistralai/mistral-large-2512",
                   "openrouter:mistralai/mistral-medium-3.1",
-                  "openrouter:mistralai/mistral-small-3.2-24b-instruct",
                   "openrouter:mistralai/mistral-small-creative",
                   "openrouter:mistralai/voxtral-small-24b-2507",
-                  "openrouter:moonshotai/kimi-dev-72b",
                   "openrouter:moonshotai/kimi-k2",
                   "openrouter:moonshotai/kimi-k2-0905",
                   "openrouter:moonshotai/kimi-k2-0905:exacto",
@@ -40857,7 +41803,7 @@
                   "openrouter:moonshotai/kimi-k2:free",
                   "openrouter:morph/morph-v3-fast",
                   "openrouter:morph/morph-v3-large",
-                  "openrouter:nex-agi/deepseek-v3.1-nex-n1:free",
+                  "openrouter:nex-agi/deepseek-v3.1-nex-n1",
                   "openrouter:nousresearch/hermes-4-405b",
                   "openrouter:nousresearch/hermes-4-70b",
                   "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -41010,7 +41956,6 @@
                   "requesty:openai/gpt-5:priority",
                   "requesty:openai/o3-deep-research",
                   "requesty:openai/o4-mini-deep-research",
-                  "requesty:parasail/parasail-deepseek-v3-0324",
                   "requesty:parasail/parasail-kimi-k2-instruct",
                   "requesty:parasail/parasail-qwen3-235b-a22b-instruct-2507",
                   "requesty:vertex/claude-opus-4-5",
@@ -41030,7 +41975,8 @@
                   "requesty:xai/grok-4-fast-non-reasoning",
                   "requesty:xai/grok-code-fast-1",
                   "requesty:zai/GLM-4.5",
-                  "requesty:zai/GLM-4.6"
+                  "requesty:zai/GLM-4.6",
+                  "requesty:zai/GLM-4.7"
                 ],
                 "type": "string"
               },
@@ -41072,6 +42018,7 @@
                   "vercel-gateway:bfl/flux-pro-1.0-fill",
                   "vercel-gateway:bfl/flux-pro-1.1",
                   "vercel-gateway:bfl/flux-pro-1.1-ultra",
+                  "vercel-gateway:bytedance/seed-1.6",
                   "vercel-gateway:cohere/command-a",
                   "vercel-gateway:deepseek/deepseek-r1",
                   "vercel-gateway:deepseek/deepseek-v3",
@@ -41178,7 +42125,6 @@
                   "vercel-gateway:stealth/sonoma-sky-alpha",
                   "vercel-gateway:vercel/v0-1.0-md",
                   "vercel-gateway:vercel/v0-1.5-md",
-                  "vercel-gateway:xai/grok-2",
                   "vercel-gateway:xai/grok-2-vision",
                   "vercel-gateway:xai/grok-3",
                   "vercel-gateway:xai/grok-3-fast",
