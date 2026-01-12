@@ -309,21 +309,32 @@ class StorageManager:
                     start_time=start_time,
                 )
 
-        # Trigger title generation if prompt provided and model configured
+        # Handle title generation based on prompt length
         # Skip during tests to avoid external API calls
+        if not initial_prompt or os.environ.get("PYTEST_CURRENT_TEST"):
+            return
+        prompt_length = len(initial_prompt)
         logger.info(
-            "log_conversation check",
+            "log_conversation title decision",
             conversation_id=conversation_id,
-            has_initial_prompt=bool(initial_prompt),
+            prompt_length=prompt_length,
             has_model=bool(self.config.title_generation_model),
-            in_test=bool(os.environ.get("PYTEST_CURRENT_TEST")),
         )
-        if (
-            initial_prompt
-            and self.config.title_generation_model
-            and not os.environ.get("PYTEST_CURRENT_TEST")
-        ):
-            logger.info("Creating title generation task", conversation_id=conversation_id)
+
+        # For short prompts, use them directly as title (like Claude Code)
+        if prompt_length < 60:  # noqa: PLR2004
+            logger.info(
+                "Using short prompt directly as title",
+                conversation_id=conversation_id,
+                title=initial_prompt,
+            )
+            await self.update_conversation_title(conversation_id, initial_prompt)
+        # For longer prompts, generate semantic title if model configured
+        elif self.config.title_generation_model:
+            logger.info(
+                "Creating title generation task for long prompt",
+                conversation_id=conversation_id,
+            )
             self.task_manager.create_task(
                 self._generate_title_from_prompt(
                     conversation_id, initial_prompt, on_title_generated
