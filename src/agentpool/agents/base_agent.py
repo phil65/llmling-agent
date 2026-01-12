@@ -306,9 +306,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 self.conversation_id = conversation_id
             else:
                 self.conversation_id = generate_session_id()
-                # Extract text from prompts for title generation
-                initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
-                await self.log_conversation(initial_prompt or None)
+            # Extract text from prompts for title generation (first run only)
+            initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
+            await self.log_conversation(initial_prompt or None)
         elif conversation_id and self.conversation_id != conversation_id:
             # Adopt passed conversation_id (for routing chains)
             self.conversation_id = conversation_id
