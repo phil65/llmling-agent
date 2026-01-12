@@ -180,11 +180,19 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """
         ...
 
-    @method_spawner  # type: ignore[misc]
+    @method_spawner
     async def run_stream(
         self,
         *prompts: PromptCompatible,
-        **kwargs: Any,
+        store_history: bool = True,
+        message_id: str | None = None,
+        conversation_id: str | None = None,
+        parent_id: str | None = None,
+        message_history: Any = None,
+        input_provider: Any = None,
+        wait_for_connections: bool | None = None,
+        deps: Any = None,
+        event_handlers: Any = None,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Run agent with streaming output.
 
@@ -193,7 +201,15 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         Args:
             *prompts: Input prompts (various formats supported)
-            **kwargs: Additional arguments
+            store_history: Whether to store in history
+            message_id: Optional message ID
+            conversation_id: Optional conversation ID
+            parent_id: Optional parent message ID
+            message_history: Optional message history
+            input_provider: Optional input provider
+            wait_for_connections: Whether to wait for connected agents
+            deps: Optional dependencies
+            event_handlers: Optional event handlers
 
         Yields:
             Stream events during execution
@@ -203,7 +219,36 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Convert prompts to standard UserContent format
         converted_prompts = await convert_prompts(prompts)
 
-        async for event in self._stream_events(converted_prompts, **kwargs):
+        # Get message history (either passed or agent's own)
+        conversation = message_history if message_history is not None else self.conversation
+
+        # Determine effective parent_id (from param or last message in history)
+        effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()
+
+        # Create user message
+        from agentpool.messaging import ChatMessage
+
+        conv_id = conversation_id or getattr(self, "conversation_id", None)
+        user_msg = ChatMessage.user_prompt(
+            message=converted_prompts,
+            parent_id=effective_parent_id,
+            conversation_id=conv_id,
+        )
+
+        async for event in self._stream_events(
+            converted_prompts,
+            user_msg=user_msg,
+            effective_parent_id=effective_parent_id,
+            store_history=store_history,
+            message_id=message_id,
+            conversation_id=conversation_id,
+            parent_id=parent_id,
+            message_history=message_history,
+            input_provider=input_provider,
+            wait_for_connections=wait_for_connections,
+            deps=deps,
+            event_handlers=event_handlers,
+        ):
             yield event
 
     @abstractmethod
@@ -211,6 +256,8 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self,
         prompts: list[UserContent],
         *,
+        user_msg: Any,  # ChatMessage but imported in run_stream
+        effective_parent_id: str | None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
@@ -228,6 +275,8 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         Args:
             prompts: Converted prompts in UserContent format
+            user_msg: Pre-created user ChatMessage (from base class)
+            effective_parent_id: Resolved parent message ID for threading
             message_id: Optional message ID
             conversation_id: Optional conversation ID
             parent_id: Optional parent message ID

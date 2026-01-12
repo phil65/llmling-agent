@@ -455,6 +455,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self,
         prompts: list[UserContent],
         *,
+        user_msg: ChatMessage[Any],
+        effective_parent_id: str | None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
@@ -507,15 +509,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
             await self.log_conversation(initial_prompt or None)
 
-        # Prepare user message for history and convert to ACP content blocks
-        # Get parent_id from last message in history for tree structure
-        # Use passed parent_id if provided, otherwise get from conversation history
-        effective_parent_id = (
-            parent_id if parent_id is not None else conversation.get_last_message_id()
-        )
-        user_msg = ChatMessage.user_prompt(
-            message=prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
-        )
+        # Prepare for ACP content block conversion
         processed_prompts = prompts
         run_id = str(uuid.uuid4())
         self._state.clear()  # Reset state

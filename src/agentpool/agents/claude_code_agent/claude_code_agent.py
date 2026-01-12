@@ -782,6 +782,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self,
         prompts: list[UserContent],
         *,
+        user_msg: ChatMessage[Any],
+        effective_parent_id: str | None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
@@ -850,18 +852,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             )
         else:
             handler = self.event_handler
-        # Prepare prompts
-        # Get parent_id from last message in history for tree structure
-        # Use passed parent_id if provided, otherwise get from conversation history
-        effective_parent_id = (
-            parent_id if parent_id is not None else conversation.get_last_message_id()
-        )
-        user_msg = ChatMessage.user_prompt(message=prompts, parent_id=effective_parent_id)
-        processed_prompts = prompts
         # Get pending parts from conversation (staged content)
         pending_parts = conversation.get_pending_parts()
         # Combine pending parts with new prompts, then join into single string for Claude SDK
-        all_parts = [*pending_parts, *processed_prompts]
+        all_parts = [*pending_parts, *prompts]
         prompt_text = " ".join(str(p) for p in all_parts)
         run_id = str(uuid.uuid4())
         # Emit run started

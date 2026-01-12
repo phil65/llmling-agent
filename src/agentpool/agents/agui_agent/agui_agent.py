@@ -358,6 +358,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self,
         prompts: list[UserContent],
         *,
+        user_msg: ChatMessage[Any],
+        effective_parent_id: str | None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
@@ -428,14 +430,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._thread_id = self.conversation_id
 
         conversation = message_history if message_history is not None else self.conversation
-        # Get parent_id from last message in history for tree structure
-        # Use passed parent_id if provided, otherwise get from conversation history
-        effective_parent_id = (
-            parent_id if parent_id is not None else conversation.get_last_message_id()
-        )
-        user_msg = ChatMessage.user_prompt(
-            message=prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
-        )
         processed_prompts = prompts
         self._run_id = str(uuid4())  # New run ID for each run
         self._chunk_transformer.reset()  # Reset chunk transformer

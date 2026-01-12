@@ -855,6 +855,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self,
         prompts: list[UserContent],
         *,
+        user_msg: ChatMessage[Any],
+        effective_parent_id: str | None,
         store_history: bool = True,
         message_id: str | None = None,
         conversation_id: str | None = None,
@@ -899,11 +901,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
                 await self.log_conversation(initial_prompt or None)
 
-        # Use provided parent_id or fall back to last message in history
-        effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()
-        user_msg = ChatMessage.user_prompt(
-            message=prompts, parent_id=effective_parent_id, conversation_id=self.conversation_id
-        )
         processed_prompts = prompts
         self.message_received.emit(user_msg)
         start_time = time.perf_counter()
