@@ -100,6 +100,7 @@ class StorageManager:
         self.config = config
         self.task_manager = TaskManager()
         self.providers = [self._create_provider(cfg) for cfg in self.config.effective_providers]
+        self._conversation_logged: set[str] = set()  # Track logged conversations for idempotency
 
     async def __aenter__(self) -> Self:
         """Initialize all providers."""
@@ -280,7 +281,10 @@ class StorageManager:
         initial_prompt: str | None = None,
         on_title_generated: Callable[[str], None] | None = None,
     ) -> None:
-        """Log conversation to all providers.
+        """Log conversation to all providers (idempotent).
+
+        If conversation was already logged, skips provider calls but still
+        triggers title generation if initial_prompt is provided.
 
         Args:
             conversation_id: Unique conversation identifier
@@ -292,12 +296,18 @@ class StorageManager:
         if not self.config.log_conversations:
             return
 
-        for provider in self.providers:
-            await provider.log_conversation(
-                conversation_id=conversation_id,
-                node_name=node_name,
-                start_time=start_time,
-            )
+        # Check if already logged (idempotent behavior)
+        if conversation_id not in self._conversation_logged:
+            # Mark as logged before calling providers
+            self._conversation_logged.add(conversation_id)
+
+            # Log to all providers
+            for provider in self.providers:
+                await provider.log_conversation(
+                    conversation_id=conversation_id,
+                    node_name=node_name,
+                    start_time=start_time,
+                )
 
         # Trigger title generation if prompt provided and model configured
         # Skip during tests to avoid external API calls

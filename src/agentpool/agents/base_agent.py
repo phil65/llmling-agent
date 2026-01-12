@@ -303,12 +303,19 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Initialize or adopt conversation_id
         if self.conversation_id is None:
             if conversation_id:
+                # Adopt conversation_id (from agent chain or external session like ACP)
                 self.conversation_id = conversation_id
             else:
+                # Generate new conversation_id
                 self.conversation_id = generate_session_id()
-            # Extract text from prompts for title generation (first run only)
-            initial_prompt = " ".join(str(p) for p in prompts if isinstance(p, str))
-            await self.log_conversation(initial_prompt or None)
+            # Always log conversation with initial prompt for title generation
+            # StorageManager handles idempotent behavior (skip if already logged)
+            # Use last prompt to avoid staged content (staged is prepended, user prompt is last)
+            user_prompts = [
+                str(p) for p in prompts if isinstance(p, str)
+            ]  # Filter to text prompts only
+            initial_prompt = user_prompts[-1] if user_prompts else None
+            await self.log_conversation(initial_prompt)
         elif conversation_id and self.conversation_id != conversation_id:
             # Adopt passed conversation_id (for routing chains)
             self.conversation_id = conversation_id
