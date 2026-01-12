@@ -27,7 +27,7 @@ messages = history.get_history()
 recent = history[-5:]  # Last 5 messages
 agent_msgs = history["other_agent"]  # Messages from specific agent
 # Clear history
-history.clear()
+await history.clear()
 # Set history
 history.set_history(new_messages)
 ```

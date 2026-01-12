@@ -35,7 +35,7 @@ The agent maintains conversation history and context through its `conversation` 
 # Access conversation manager
 agent.conversation.add_context_message("Important context")
 history = agent.conversation.get_history()
-agent.conversation.clear()
+await agent.conversation.clear()
 ```
 
 ### Tool Management

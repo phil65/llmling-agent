@@ -5,9 +5,9 @@ import pytest
 from agentpool import Agent
 
 
-async def test_conversation_history_management(default_model: str):
+async def test_conversation_history_management():
     """Test that conversation history is maintained correctly."""
-    async with Agent(model=default_model) as agent:
+    async with Agent(model="test") as agent:
         # Send first message and check basic history
         await agent.run("First message")
         history1 = agent.conversation.get_history()
@@ -23,7 +23,7 @@ async def test_conversation_history_management(default_model: str):
         assert "Second message" in str(history2[2])
 
         # Test history clearing
-        agent.conversation.clear()
+        await agent.conversation.clear()
         assert len(agent.conversation.get_history()) == 0
 
 

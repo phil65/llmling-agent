@@ -27,7 +27,7 @@ async with Agent(...) as agent:
     # Change model
     await agent.set_model("openai:gpt-5-nano")
     # Clear conversation history
-    agent.conversation.clear()
+    await agent.conversation.clear()
     # Add context messages
     agent.conversation.add_context_message(
         "Important background information",
