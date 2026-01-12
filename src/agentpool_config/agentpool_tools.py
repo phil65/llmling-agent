@@ -97,27 +97,27 @@ class AgentCliToolConfig(BaseToolConfig):
         )
 
 
-class AskUserToolConfig(BaseToolConfig):
+class QuestionToolConfig(BaseToolConfig):
     """Configuration for user interaction tool.
 
     Example:
         ```yaml
         tools:
-          - type: ask_user
+          - type: question
         ```
     """
 
     model_config = ConfigDict(title="Ask User Tool")
 
-    type: Literal["ask_user"] = Field("ask_user", init=False)
+    type: Literal["question"] = Field("question", init=False)
     """User interaction tool."""
 
     def get_tool(self) -> Tool:
-        """Convert config to AskUserTool instance."""
-        from agentpool.tool_impls.ask_user import create_ask_user_tool
+        """Convert config to QuestionTool instance."""
+        from agentpool.tool_impls.question import create_question_tool
 
-        return create_ask_user_tool(
-            name=self.name or "ask_user",
+        return create_question_tool(
+            name=self.name or "question",
             description=self.description or "Ask the user a clarifying question.",
             requires_confirmation=self.requires_confirmation,
         )
@@ -487,7 +487,7 @@ class DownloadFileToolConfig(BaseToolConfig):
 # Union type for agentpool tool configs
 AgentpoolToolConfig = (
     AgentCliToolConfig
-    | AskUserToolConfig
+    | QuestionToolConfig
     | BashToolConfig
     | DeletePathToolConfig
     | DownloadFileToolConfig

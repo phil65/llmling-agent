@@ -136,7 +136,7 @@ agents:
 
 **Provides tools:**
 
-- `ask_user` - Ask users clarifying questions
+- `question` - Ask users clarifying questions
 
 ### History (`history`)
 

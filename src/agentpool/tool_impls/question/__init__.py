@@ -4,26 +4,26 @@ from __future__ import annotations
 
 from typing import Literal
 
-from agentpool.tool_impls.ask_user.tool import AskUserTool
+from agentpool.tool_impls.question.tool import QuestionTool
 from agentpool_config.tools import ToolHints
 
 
-__all__ = ["AskUserTool", "create_ask_user_tool"]
+__all__ = ["QuestionTool", "create_question_tool"]
 
 # Tool metadata defaults
-NAME = "ask_user"
+NAME = "question"
 DESCRIPTION = "Ask the user a clarifying question during processing."
 CATEGORY: Literal["other"] = "other"
 HINTS = ToolHints(open_world=True)
 
 
-def create_ask_user_tool(
+def create_question_tool(
     *,
     name: str = NAME,
     description: str = DESCRIPTION,
     requires_confirmation: bool = False,
-) -> AskUserTool:
-    """Create a configured AskUserTool instance.
+) -> QuestionTool:
+    """Create a configured QuestionTool instance.
 
     Args:
         name: Tool name override.
@@ -31,9 +31,9 @@ def create_ask_user_tool(
         requires_confirmation: Whether tool execution needs confirmation.
 
     Returns:
-        Configured AskUserTool instance.
+        Configured QuestionTool instance.
     """
-    return AskUserTool(
+    return QuestionTool(
         name=name,
         description=description,
         category=CATEGORY,

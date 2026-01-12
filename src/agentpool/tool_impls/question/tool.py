@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class AskUserTool(Tool[str]):
+class QuestionTool(Tool[str]):
     """Tool for asking the user clarifying questions.
 
     Enables agents to ask users for additional information or clarification

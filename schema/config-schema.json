@@ -946,7 +946,7 @@
             "discriminator": {
               "mapping": {
                 "agent_cli": "#/$defs/AgentCliToolConfig",
-                "ask_user": "#/$defs/AskUserToolConfig",
+                "question": "#/$defs/QuestionToolConfig",
                 "bash": "#/$defs/BashToolConfig",
                 "execute_code": "#/$defs/ExecuteCodeToolConfig",
                 "import": "#/$defs/ImportToolConfig"
@@ -961,7 +961,7 @@
                 "$ref": "#/$defs/AgentCliToolConfig"
               },
               {
-                "$ref": "#/$defs/AskUserToolConfig"
+                "$ref": "#/$defs/QuestionToolConfig"
               },
               {
                 "$ref": "#/$defs/BashToolConfig"
@@ -2519,13 +2519,13 @@
       "title": "Arrow Configuration",
       "type": "object"
     },
-    "AskUserToolConfig": {
+    "QuestionToolConfig": {
       "additionalProperties": false,
-      "description": "Configuration for user interaction tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: ask_user\n    ```",
+      "description": "Configuration for user interaction tool.\n\nExample:\n    ```yaml\n    tools:\n      - type: question\n    ```",
       "properties": {
         "type": {
-          "const": "ask_user",
-          "default": "ask_user",
+          "const": "question",
+          "default": "question",
           "description": "User interaction tool.",
           "title": "Type",
           "type": "string"
@@ -3191,7 +3191,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "ask_user": "#/$defs/AskUserToolConfig",
+                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -3259,7 +3259,7 @@
                     "$ref": "#/$defs/AgentCliToolConfig"
                   },
                   {
-                    "$ref": "#/$defs/AskUserToolConfig"
+                    "$ref": "#/$defs/QuestionToolConfig"
                   },
                   {
                     "$ref": "#/$defs/BashToolConfig"
@@ -7168,7 +7168,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "ask_user": "#/$defs/AskUserToolConfig",
+                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -7236,7 +7236,7 @@
                     "$ref": "#/$defs/AgentCliToolConfig"
                   },
                   {
-                    "$ref": "#/$defs/AskUserToolConfig"
+                    "$ref": "#/$defs/QuestionToolConfig"
                   },
                   {
                     "$ref": "#/$defs/BashToolConfig"
@@ -8372,7 +8372,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "ask_user": "#/$defs/AskUserToolConfig",
+                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -8440,7 +8440,7 @@
                     "$ref": "#/$defs/AgentCliToolConfig"
                   },
                   {
-                    "$ref": "#/$defs/AskUserToolConfig"
+                    "$ref": "#/$defs/QuestionToolConfig"
                   },
                   {
                     "$ref": "#/$defs/BashToolConfig"
@@ -17522,7 +17522,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "ask_user": "#/$defs/AskUserToolConfig",
+                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -17590,7 +17590,7 @@
                     "$ref": "#/$defs/AgentCliToolConfig"
                   },
                   {
-                    "$ref": "#/$defs/AskUserToolConfig"
+                    "$ref": "#/$defs/QuestionToolConfig"
                   },
                   {
                     "$ref": "#/$defs/BashToolConfig"
@@ -23234,7 +23234,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "ask_user": "#/$defs/AskUserToolConfig",
+                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -23302,7 +23302,7 @@
                     "$ref": "#/$defs/AgentCliToolConfig"
                   },
                   {
-                    "$ref": "#/$defs/AskUserToolConfig"
+                    "$ref": "#/$defs/QuestionToolConfig"
                   },
                   {
                     "$ref": "#/$defs/BashToolConfig"
@@ -28140,7 +28140,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
-                    "ask_user": "#/$defs/AskUserToolConfig",
+                    "question": "#/$defs/QuestionToolConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -28208,7 +28208,7 @@
                     "$ref": "#/$defs/AgentCliToolConfig"
                   },
                   {
-                    "$ref": "#/$defs/AskUserToolConfig"
+                    "$ref": "#/$defs/QuestionToolConfig"
                   },
                   {
                     "$ref": "#/$defs/BashToolConfig"

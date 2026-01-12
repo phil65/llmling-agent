@@ -1,6 +1,6 @@
 """Demo script showing OpenCode question functionality.
 
-This demonstrates how the ask_user tool works with OpenCode's question system.
+This demonstrates how the question tool works with OpenCode's question system.
 """
 
 from __future__ import annotations

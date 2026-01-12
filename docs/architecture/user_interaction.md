@@ -9,7 +9,7 @@ AgentPool uses **InputProvider** to handle user interactions across different ex
 ```
 ┌─────────────────────────────────────────────┐
 │ Layer 1: Tools (Protocol-Agnostic)         │
-│ - ask_user, tool confirmations              │
+│ - question, tool confirmations              │
 │ - Only knows MCP types                      │
 │ - Calls ctx.handle_elicitation()            │
 └─────────────────────────────────────────────┘
@@ -61,7 +61,7 @@ AgentPool uses **InputProvider** to handle user interactions across different ex
 ## OpenCode Flow (Detailed)
 
 ```
-Tool: ask_user("Which DB?", options=[...])
+Tool: question("Which DB?", options=[...])
   ↓
 Context: ctx.handle_elicitation(params)
   ↓
