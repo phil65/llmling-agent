@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import TYPE_CHECKING
 import uuid
 
@@ -58,12 +59,13 @@ class BashTool(Tool[str]):
             return self.env
         return ctx.agent.env
 
-    async def _execute(
+    async def _execute(  # noqa: PLR0915
         self,
         ctx: AgentContext,
         command: str,
         output_limit: int | None = None,
         timeout: float | None = None,
+        filter_lines: str | None = None,
     ) -> str:
         """Execute a shell command and return the output.
 
@@ -72,6 +74,7 @@ class BashTool(Tool[str]):
             command: Shell command to execute
             output_limit: Maximum bytes of output to return (overrides default)
             timeout: Command timeout in seconds (overrides default)
+            filter_lines: Optional regex pattern to filter output lines (only matching lines returned)
         """
         effective_limit = output_limit or self.output_limit
         effective_timeout = timeout if timeout is not None else self.timeout
@@ -113,6 +116,21 @@ class BashTool(Tool[str]):
 
             stdout = "".join(stdout_parts)
             stderr = "".join(stderr_parts)
+
+            # Apply regex filter if specified
+            if filter_lines:
+                try:
+                    pattern = re.compile(filter_lines)
+                    stdout_lines = [
+                        line for line in stdout.splitlines(keepends=True) if pattern.search(line)
+                    ]
+                    stderr_lines = [
+                        line for line in stderr.splitlines(keepends=True) if pattern.search(line)
+                    ]
+                    stdout = "".join(stdout_lines)
+                    stderr = "".join(stderr_lines)
+                except re.error as regex_err:
+                    return f"Invalid filter regex: {regex_err}"
 
             # Apply output limit if specified
             truncated = False
