@@ -45,6 +45,7 @@ ToolName = Literal[
     "Skill",
     "EnterPlanMode",
     "LSP",
+    "Chrome",
 ]
 
 
@@ -227,12 +228,20 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     builtin_tools: list[str] | None = Field(
         default=None,
         title="Built-in Tools",
-        examples=[["Bash", "Edit", "Read"], []],
+        examples=[["Bash", "Edit", "Read"], ["Read", "Write", "LSP"], ["Bash", "Chrome"]],
     )
     """Available tools from Claude Code's built-in set.
 
     Empty list disables all tools. If not specified, all tools are available.
     Different from allowed_tools which filters an already-available set.
+
+    Special tools:
+    - "LSP": Enable Language Server Protocol support for code intelligence
+      (go to definition, find references, symbol info, etc.)
+    - "Chrome": Enable Claude in Chrome integration for browser control
+      (opens, navigates, interacts with browser tabs)
+
+    Both LSP and Chrome require additional setup in your environment.
     """
 
     fallback_model: AnthropicMaxModelName | str | None = Field(
@@ -263,33 +272,21 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     If not specified, Claude Code will load all available settings.
     """
 
-    chrome: bool | None = Field(
-        default=None,
-        title="Claude in Chrome Integration",
-    )
-    """Enable or disable Claude in Chrome integration.
-
-    - True: Enable Chrome integration (--chrome)
-    - False: Explicitly disable Chrome integration (--no-chrome)
-    - None: Use default behavior from settings
-
-    When enabled, Claude can interact with Chrome browser tabs.
-    """
-
-    lsp: bool = Field(
+    use_subscription: bool = Field(
         default=False,
-        title="LSP Tool Support",
+        title="Use Claude Subscription",
     )
-    """Enable Language Server Protocol (LSP) tool support.
+    """Force usage of Claude subscription instead of API key.
 
-    When enabled, Claude can use LSP capabilities for code intelligence:
-    - Go to definition
-    - Find references
-    - Code completion context
-    - Symbol information
+    When True, sets ANTHROPIC_API_KEY to empty string, forcing Claude Code
+    to use your Claude.ai subscription for authentication instead of an API key.
 
-    Requires language servers to be configured in your IDE/environment.
-    Sets ENABLE_LSP_TOOL=1 environment variable for the Claude process.
+    This is useful when:
+    - You have a Claude Pro/Team subscription with higher rate limits
+    - You want to use subscription credits instead of API credits
+    - You're using features only available to subscribers
+
+    Note: Requires an active Claude subscription and logged-in session.
     """
 
     tools: list[AnyToolConfig | str] = Field(

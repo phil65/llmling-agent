@@ -198,8 +198,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         fallback_model: AnthropicMaxModelName | str | None = None,
         dangerously_skip_permissions: bool = False,
         setting_sources: list[SettingSource] | None = None,
-        chrome: bool | None = None,
-        lsp: bool = False,
+        use_subscription: bool = False,
         env: ExecutionEnvironment | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
@@ -230,12 +229,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             mcp_servers: External MCP servers to connect to (internal format, converted at runtime)
             environment: Environment variables for the agent process
             add_dir: Additional directories to allow tool access to
-            builtin_tools: Available tools from Claude Code's built-in set (empty list disables all)
+            builtin_tools: Available tools from built-in set. Special: "LSP" for code intelligence, "Chrome" for browser control
             fallback_model: Fallback model when default is overloaded
             dangerously_skip_permissions: Bypass all permission checks (sandboxed only)
             setting_sources: Setting sources to load ("user", "project", "local")
-            chrome: Enable/disable Claude in Chrome integration (None = use default)
-            lsp: Enable LSP tool support for code intelligence
+            use_subscription: Force Claude subscription usage instead of API key
             env: Execution environment
             input_provider: Provider for user input/confirmations
             agent_pool: Agent pool for multi-agent coordination
@@ -270,8 +268,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 fallback_model=fallback_model,
                 dangerously_skip_permissions=dangerously_skip_permissions,
                 setting_sources=setting_sources,
-                chrome=chrome,
-                lsp=lsp,
+                use_subscription=use_subscription,
             )
 
         super().__init__(
@@ -322,8 +319,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             dangerously_skip_permissions or config.dangerously_skip_permissions
         )
         self._setting_sources = setting_sources or config.setting_sources
-        self._chrome = chrome if chrome is not None else config.chrome
-        self._lsp = lsp or config.lsp
+        self._use_subscription = use_subscription or config.use_subscription
 
         # Client state
         self._client: ClaudeSDKClient | None = None
@@ -534,17 +530,22 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self._can_use_tool if self.tool_confirmation_mode != "never" and not bypass else None
         )
 
+        # Check builtin_tools for special tools that need extra handling
+        builtin_tools = self._builtin_tools or []
+
         # Build extra_args for CLI flags not directly exposed
         extra_args: dict[str, str | None] = {}
-        if self._chrome is not None:
-            # True -> --chrome, False -> --no-chrome
-            extra_args["chrome" if self._chrome else "no-chrome"] = None
+        if "Chrome" in builtin_tools:
+            extra_args["chrome"] = None
 
         # Build environment variables
         env = dict(self._environment or {})
-        if self._lsp:
+        if "LSP" in builtin_tools:
             # Enable LSP tool support
             env["ENABLE_LSP_TOOL"] = "1"
+        if self._use_subscription:
+            # Force subscription usage by clearing API key
+            env["ANTHROPIC_API_KEY"] = ""
 
         return ClaudeAgentOptions(
             cwd=self._cwd,

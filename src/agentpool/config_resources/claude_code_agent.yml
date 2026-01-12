@@ -5,8 +5,7 @@ agents:
     type: claude_code
     display_name: "AI Assistant"
     builtin_tools: [] # we use our own tools.
-    env:
-      ANTHROPIC_API_KEY: "" # override to make sure subscription is used.
+    use_subscription: true
     description: "Claude code agent with enhanced tools"
     tools:
       - type: bash
