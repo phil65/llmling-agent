@@ -556,8 +556,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     ) -> PermissionResult:
         """Handle tool permission requests.
 
+        This callback fires in two cases:
+        1. Tool needs approval: Claude wants to use a tool that isn't auto-approved
+        2. Claude asks a question: Claude calls the AskUserQuestion tool for clarification
+
         Args:
-            tool_name: Name of the tool being called
+            tool_name: Name of the tool being called (e.g., "Bash", "Write", "AskUserQuestion")
             input_data: Tool input arguments
             context: Permission context with suggestions
 
@@ -569,6 +573,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
 
         from agentpool.tools import FunctionTool
+
+        # Handle AskUserQuestion specially - this is Claude asking for clarification
+        if tool_name == "AskUserQuestion":
+            return await self._handle_clarifying_questions(input_data, context)
 
         # Auto-grant if confirmation mode is "never" (bypassPermissions)
         if self.tool_confirmation_mode == "never":
@@ -628,6 +636,155 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Default: deny if no input provider
         return PermissionResultDeny(message="No input provider configured")
+
+    async def _handle_clarifying_questions(
+        self,
+        input_data: dict[str, Any],
+        context: ToolPermissionContext,
+    ) -> PermissionResult:
+        """Handle AskUserQuestion tool - Claude asking for clarification.
+
+        The input contains Claude's questions with multiple-choice options.
+        We present these to the user and return their selections.
+
+        Users can respond with:
+        - A number (1-based index): "2" selects the second option
+        - A label: "Summary" (case-insensitive)
+        - Free text: "jquery" or "I don't know" (used directly as the answer)
+        - Multiple selections (for multi-select): "1, 3" or "Summary, Conclusion"
+
+        Question format from Claude:
+        {
+            "questions": [
+                {
+                    "question": "How should I format the output?",
+                    "header": "Format",
+                    "options": [
+                        {"label": "Summary", "description": "Brief overview"},
+                        {"label": "Detailed", "description": "Full explanation"}
+                    ],
+                    "multiSelect": false
+                }
+            ]
+        }
+
+        Response format:
+        {
+            "questions": [...],  # Original questions passed through
+            "answers": {
+                "How should I format the output?": "Summary",
+                "Which sections?": "Introduction, Conclusion"  # Multi-select joined with ", "
+            }
+        }
+
+        Args:
+            input_data: Contains 'questions' array with question objects
+            context: Permission context
+
+        Returns:
+            PermissionResult with updated input containing user's answers
+        """
+        from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
+
+        if not self._input_provider:
+            return PermissionResultDeny(message="No input provider configured for questions")
+
+        questions = input_data.get("questions", [])
+        if not questions:
+            return PermissionResultDeny(message="No questions provided")
+
+        # Collect answers from the user
+        answers: dict[str, str] = {}
+
+        for question_obj in questions:
+            question_text = question_obj.get("question", "")
+            header = question_obj.get("header", "")
+            options = question_obj.get("options", [])
+            multi_select = question_obj.get("multiSelect", False)
+
+            if not question_text or not options:
+                continue
+
+            # Format the question for display
+            formatted_question = f"{header}: {question_text}" if header else question_text
+            option_labels = [opt.get("label", "") for opt in options]
+            option_descriptions = {
+                opt.get("label", ""): opt.get("description", "") for opt in options
+            }
+
+            # Get user's answer via input provider
+            try:
+                # Build a display string showing the options
+                options_display = "\n".join(
+                    f"  {i + 1}. {label}"
+                    + (f" - {option_descriptions[label]}" if option_descriptions[label] else "")
+                    for i, label in enumerate(option_labels)
+                )
+                full_prompt = f"{formatted_question}\n\nOptions:\n{options_display}\n\n"
+                if multi_select:
+                    full_prompt += (
+                        "(Enter numbers separated by commas, or type your own answer)\n"
+                        "Your choice: "
+                    )
+                else:
+                    full_prompt += "(Enter a number, or type your own answer)\nYour choice: "
+
+                # Use input provider to get user response
+                ctx = self.get_context()
+                user_input = await self._input_provider.get_input(
+                    context=ctx,
+                    prompt=full_prompt,
+                )
+
+                if user_input is None:
+                    return PermissionResultDeny(message="User cancelled question", interrupt=True)
+
+                # Parse user input - handle numbers, labels, or free text
+                # This follows the SDK pattern: try numeric -> try label -> use free text
+                if multi_select:
+                    # Split by comma for multi-select
+                    selections = [s.strip() for s in user_input.split(",")]
+                else:
+                    selections = [user_input.strip()]
+
+                selected_values: list[str] = []
+                for selection in selections:
+                    # Try to parse as number first
+                    if selection.isdigit():
+                        idx = int(selection) - 1
+                        if 0 <= idx < len(option_labels):
+                            # Valid number - use the option's label
+                            selected_values.append(option_labels[idx])
+                        else:
+                            # Invalid number - treat as free text
+                            selected_values.append(selection)
+                    else:
+                        # Try to match label (case-insensitive)
+                        matching = [
+                            lbl for lbl in option_labels if lbl.lower() == selection.lower()
+                        ]
+                        if matching:
+                            # Matched a label - use it
+                            selected_values.append(matching[0])
+                        else:
+                            # No match - use as free text
+                            selected_values.append(selection)
+
+                # Store answer - join multiple selections with ", "
+                # Use free text directly if provided (not "Other")
+                answers[question_text] = ", ".join(selected_values)
+
+            except Exception as e:
+                self.log.exception("Error getting clarifying question answer")
+                return PermissionResultDeny(message=f"Error collecting answer: {e}", interrupt=True)
+
+        # Return the answers to Claude
+        return PermissionResultAllow(
+            updated_input={
+                "questions": questions,
+                "answers": answers,
+            }
+        )
 
     async def __aenter__(self) -> Self:
         """Connect to Claude Code with deferred client connection."""
