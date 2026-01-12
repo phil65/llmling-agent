@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from agentpool import log
@@ -103,11 +104,17 @@ class ProcessManagementTools(ResourceProvider):
             full_cmd = f"{command} {' '.join(args)}" if args else command
             return f"Started background process {process_id}\nCommand: {full_cmd}"
 
-    async def get_process_output(self, agent_ctx: AgentContext, process_id: str) -> str:  # noqa: D417
+    async def get_process_output(
+        self,
+        agent_ctx: AgentContext,
+        process_id: str,
+        filter_lines: str | None = None,
+    ) -> str:
         """Get current output from a background process.
 
         Args:
             process_id: Process identifier from start_process
+            filter_lines: Optional regex pattern to filter output lines (only matching lines returned)
         """
         manager = self.get_env(agent_ctx).process_manager
         try:
@@ -115,6 +122,18 @@ class ProcessManagementTools(ResourceProvider):
             await agent_ctx.events.process_output(process_id, output.combined or "")
 
             combined = output.combined or ""
+
+            # Apply regex filter if specified
+            if filter_lines and combined:
+                try:
+                    pattern = re.compile(filter_lines)
+                    filtered_lines = [
+                        line for line in combined.splitlines(keepends=True) if pattern.search(line)
+                    ]
+                    combined = "".join(filtered_lines)
+                except re.error as regex_err:
+                    return f"Invalid filter regex: {regex_err}"
+
             status = "completed" if output.exit_code is not None else "running"
 
             # Format as plain text
@@ -134,11 +153,17 @@ class ProcessManagementTools(ResourceProvider):
         except Exception as e:  # noqa: BLE001
             return f"Error getting process output: {e}"
 
-    async def wait_for_process(self, agent_ctx: AgentContext, process_id: str) -> str:  # noqa: D417
+    async def wait_for_process(
+        self,
+        agent_ctx: AgentContext,
+        process_id: str,
+        filter_lines: str | None = None,
+    ) -> str:
         """Wait for background process to complete and return final output.
 
         Args:
             process_id: Process identifier from start_process
+            filter_lines: Optional regex pattern to filter output lines (only matching lines returned)
         """
         manager = self.get_env(agent_ctx).process_manager
         try:
@@ -151,6 +176,17 @@ class ProcessManagementTools(ResourceProvider):
             return f"Error waiting for process: {e}"
         else:
             combined = output.combined or ""
+
+            # Apply regex filter if specified
+            if filter_lines and combined:
+                try:
+                    pattern = re.compile(filter_lines)
+                    filtered_lines = [
+                        line for line in combined.splitlines(keepends=True) if pattern.search(line)
+                    ]
+                    combined = "".join(filtered_lines)
+                except re.error as regex_err:
+                    return f"Invalid filter regex: {regex_err}"
 
             # Format as plain text
             suffix_parts = []
