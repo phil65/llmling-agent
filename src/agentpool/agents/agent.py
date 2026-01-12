@@ -985,12 +985,12 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         except Exception as e:
             self.log.exception("Agent stream failed")
-            event = BaseAgent.RunFailedEvent(
+            failed_event = BaseAgent.RunFailedEvent(
                 agent_name=self.name,
                 message="Agent stream failed",
                 exception=e,
             )
-            await self.run_failed.emit(event)
+            await self.run_failed.emit(failed_event)
             raise
         finally:
             self._current_stream_task = None

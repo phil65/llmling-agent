@@ -83,7 +83,6 @@ if TYPE_CHECKING:
     from acp.schema.mcp import McpServer
     from agentpool.agents import AgentContext
     from agentpool.agents.acp_agent.client_handler import ACPClientHandler
-    from agentpool.agents.base_agent import ToolConfirmationMode
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
@@ -97,6 +96,7 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageHistory
     from agentpool.models.acp_agents import BaseACPAgentConfig
     from agentpool.ui.base import InputProvider
+    from agentpool_config.nodes import ToolConfirmationMode
 
 logger = get_logger(__name__)
 

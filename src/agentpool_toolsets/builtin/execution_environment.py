@@ -104,7 +104,7 @@ class ProcessManagementTools(ResourceProvider):
             full_cmd = f"{command} {' '.join(args)}" if args else command
             return f"Started background process {process_id}\nCommand: {full_cmd}"
 
-    async def get_process_output(
+    async def get_process_output(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         process_id: str,
@@ -114,7 +114,8 @@ class ProcessManagementTools(ResourceProvider):
 
         Args:
             process_id: Process identifier from start_process
-            filter_lines: Optional regex pattern to filter output lines (only matching lines returned)
+            filter_lines: Optional regex pattern to filter output lines
+                          (only matching lines returned)
         """
         manager = self.get_env(agent_ctx).process_manager
         try:
@@ -153,7 +154,7 @@ class ProcessManagementTools(ResourceProvider):
         except Exception as e:  # noqa: BLE001
             return f"Error getting process output: {e}"
 
-    async def wait_for_process(
+    async def wait_for_process(  # noqa: D417
         self,
         agent_ctx: AgentContext,
         process_id: str,
@@ -163,7 +164,8 @@ class ProcessManagementTools(ResourceProvider):
 
         Args:
             process_id: Process identifier from start_process
-            filter_lines: Optional regex pattern to filter output lines (only matching lines returned)
+            filter_lines: Optional regex pattern to filter output lines
+                          (only matching lines returned)
         """
         manager = self.get_env(agent_ctx).process_manager
         try:

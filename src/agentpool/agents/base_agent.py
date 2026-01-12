@@ -6,7 +6,7 @@ from abc import abstractmethod
 import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from anyenv import MultiEventHandler, method_spawner
 from anyenv.signals import BoundSignal, Signal
@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from acp.schema import AvailableCommandsUpdate, ConfigOptionUpdate
+    from agentpool.agents.agent import Agent
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory, ModeInfo
@@ -52,9 +53,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-ToolConfirmationMode = Literal["always", "never", "per_tool"]
 
 
 class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):

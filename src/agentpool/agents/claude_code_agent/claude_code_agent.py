@@ -229,7 +229,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             mcp_servers: External MCP servers to connect to (internal format, converted at runtime)
             environment: Environment variables for the agent process
             add_dir: Additional directories to allow tool access to
-            builtin_tools: Available tools from built-in set. Special: "LSP" for code intelligence, "Chrome" for browser control
+            builtin_tools: Available tools from built-in set. Special: "LSP" for code intelligence,
+                           "Chrome" for browser control
             fallback_model: Fallback model when default is overloaded
             dangerously_skip_permissions: Bypass all permission checks (sandboxed only)
             setting_sources: Setting sources to load ("user", "project", "local")

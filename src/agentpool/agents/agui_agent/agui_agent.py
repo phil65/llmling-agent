@@ -49,7 +49,6 @@ if TYPE_CHECKING:
     from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
-    from agentpool.agents.base_agent import ToolConfirmationMode
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory, ModeInfo
@@ -65,6 +64,7 @@ if TYPE_CHECKING:
     from agentpool.tools import Tool
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
+    from agentpool_config.nodes import ToolConfirmationMode
 
 
 logger = get_logger(__name__)

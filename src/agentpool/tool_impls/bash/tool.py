@@ -74,7 +74,8 @@ class BashTool(Tool[str]):
             command: Shell command to execute
             output_limit: Maximum bytes of output to return (overrides default)
             timeout: Command timeout in seconds (overrides default)
-            filter_lines: Optional regex pattern to filter output lines (only matching lines returned)
+            filter_lines: Optional regex pattern to filter output lines
+                          (only matching lines returned)
         """
         effective_limit = output_limit or self.output_limit
         effective_timeout = timeout if timeout is not None else self.timeout
