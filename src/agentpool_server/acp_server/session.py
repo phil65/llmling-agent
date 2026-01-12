@@ -222,6 +222,7 @@ class ACPSession:
         self.log = logger.bind(session_id=self.session_id)
         self._task_lock = asyncio.Lock()
         self._cancelled = False
+        self._current_converter: ACPEventConverter | None = None
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
         cmds = [
             *get_commands(
@@ -421,6 +422,10 @@ class ACPSession:
         This actively interrupts the running agent by calling its interrupt() method,
         which handles protocol-specific cancellation (e.g., sending CancelNotification
         for ACP agents, calling SDK interrupt for ClaudeCodeAgent, etc.).
+
+        Note:
+            Tool call cleanup is handled in process_prompt() to avoid race conditions
+            with the converter state being modified from multiple async contexts.
         """
         self._cancelled = True
         self.log.info("Session cancelled, interrupting agent")
@@ -472,6 +477,7 @@ class ACPSession:
             event_count = 0
             # Create a new event converter for this prompt
             converter = ACPEventConverter(subagent_display_mode=self.subagent_display_mode)
+            self._current_converter = converter  # Track for cancellation
 
             try:  # Use the session's persistent input provider
                 async for event in self.agent.run_stream(
@@ -481,7 +487,22 @@ class ACPSession:
                     conversation_id=self.session_id,
                 ):
                     if self._cancelled:
-                        self.log.info("Cancelled during event loop")
+                        self.log.info("Cancelled during event loop, cleaning up tool calls")
+                        # Send cancellation notifications for any pending tool calls
+                        # This happens in the same async context as the converter
+                        async for cancel_update in converter.cancel_pending_tools():
+                            notification = SessionNotification(
+                                session_id=self.session_id, update=cancel_update
+                            )
+                            await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+                        # CRITICAL: Allow time for client to process tool completion notifications
+                        # before sending PromptResponse. Without this delay, the client may receive
+                        # and process the PromptResponse before the tool notifications, causing UI
+                        # state desync where subsequent prompts appear stuck/unresponsive.
+                        # This is needed because even though send() awaits the write, the client
+                        # may process messages asynchronously or out of order.
+                        await anyio.sleep(0.05)
+                        self._current_converter = None
                         return "cancelled"
 
                     event_count += 1
@@ -498,7 +519,17 @@ class ACPSession:
                 # Task was cancelled (e.g., via interrupt()) - return proper stop reason
                 # This is critical: CancelledError doesn't inherit from Exception,
                 # so we must catch it explicitly to send the PromptResponse
-                self.log.info("Stream cancelled via CancelledError")
+                self.log.info("Stream cancelled via CancelledError, cleaning up tool calls")
+                # Send cancellation notifications for any pending tool calls
+                async for cancel_update in converter.cancel_pending_tools():
+                    notification = SessionNotification(
+                        session_id=self.session_id, update=cancel_update
+                    )
+                    await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+                # CRITICAL: Allow time for client to process tool completion notifications
+                # before sending PromptResponse. See comment in cancellation branch above.
+                await anyio.sleep(0.05)
+                self._current_converter = None
                 return "cancelled"
             except UsageLimitExceeded as e:
                 self.log.info("Usage limit exceeded", error=str(e))
@@ -512,6 +543,7 @@ class ACPSession:
                     return "refusal"
                 return "max_tokens"  # Default to max_tokens for other usage limits
             except Exception as e:
+                self._current_converter = None  # Clear converter reference
                 self.log.exception("Error during streaming")
                 # Send error notification asynchronously to avoid blocking response
                 self.acp_agent.tasks.create_task(
@@ -521,6 +553,7 @@ class ACPSession:
                 return "end_turn"
             else:
                 # Title generation is now handled automatically by log_conversation
+                self._current_converter = None  # Clear converter reference
                 return "end_turn"
 
     async def _send_error_notification(self, message: str) -> None:

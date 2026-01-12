@@ -135,6 +135,29 @@ class ACPEventConverter:
         self._subagent_headers.clear()
         self._subagent_content.clear()
 
+    async def cancel_pending_tools(self) -> AsyncIterator[ToolCallProgress]:
+        """Cancel all pending tool calls.
+
+        Yields ToolCallProgress notifications with status="completed" for all
+        tool calls that were started but not completed. This should be called
+        when the stream is interrupted to properly clean up client-side state.
+
+        Note:
+            Uses status="completed" since ACP doesn't have a "cancelled" status.
+            This signals to the client that we're done with these tool calls.
+
+        Yields:
+            ToolCallProgress notifications for each pending tool call
+        """
+        for tool_call_id, state in list(self._tool_states.items()):
+            if state.started:
+                yield ToolCallProgress(
+                    tool_call_id=tool_call_id,
+                    status="completed",
+                )
+        # Clean up all state
+        self.reset()
+
     def _get_or_create_tool_state(
         self,
         tool_call_id: str,
