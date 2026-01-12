@@ -461,6 +461,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         wait_for_connections: bool | None = None,
+        store_history: bool = True,
     ) -> ChatMessage[str]:
         """Execute prompt against ACP agent.
 
@@ -473,6 +474,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             message_history: Optional MessageHistory to use instead of agent's own
             deps: Optional dependencies accessible via ctx.data in tools
             wait_for_connections: Whether to wait for connected agents to complete
+            store_history: If False, executes in a forked session without affecting history
 
         Returns:
             ChatMessage containing the agent's aggregated text response
@@ -488,6 +490,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             message_history=message_history,
             deps=deps,
             wait_for_connections=wait_for_connections,
+            store_history=store_history,
         ):
             if isinstance(event, StreamCompleteEvent):
                 final_message = event.message
@@ -509,6 +512,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         deps: TDeps | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,
+        store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         """Stream native events as they arrive from ACP agent.
 
@@ -522,6 +526,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             deps: Optional dependencies accessible via ctx.data in tools
             event_handlers: Optional event handlers for this run (overrides agent's handlers)
             wait_for_connections: Whether to wait for connected agents to complete
+            store_history: If False, executes in a forked session without affecting history
 
         Yields:
             RichAgentStreamEvent instances converted from ACP session updates
@@ -598,7 +603,29 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         content_blocks = convert_to_acp_content(processed_prompts)
         pending_parts = conversation.get_pending_parts()
         final_blocks = [*to_acp_content_blocks(pending_parts), *content_blocks]
-        prompt_request = PromptRequest(session_id=self._session_id, prompt=final_blocks)
+
+        # Handle ephemeral execution (fork session if store_history=False)
+        session_id = self._session_id
+        if not store_history and self._session_id:
+            # Fork the current session to execute without affecting main history
+            from acp.schema import ForkSessionRequest
+
+            cwd = self.config.cwd or str(Path.cwd())
+            fork_request = ForkSessionRequest(
+                session_id=self._session_id,
+                cwd=cwd,
+                mcp_servers=[],  # Inherit from parent session
+            )
+            fork_response = await self._connection.fork_session(fork_request)
+            # Use the forked session ID for this prompt
+            session_id = fork_response.session_id
+            self.log.debug(
+                "Forked session for ephemeral execution",
+                parent=self._session_id,
+                fork=session_id,
+            )
+
+        prompt_request = PromptRequest(session_id=session_id, prompt=final_blocks)
         self.log.debug("Starting streaming prompt", num_blocks=len(final_blocks))
         # Reset cancellation state
         self._cancelled = False
