@@ -72,6 +72,13 @@ class A2AServer(HTTPServer):
         Returns:
             List of Route objects for each agent plus root listing endpoint
         """
+        from functools import partial
+
+        from fasta2a import FastA2A
+        from fasta2a.broker import InMemoryBroker
+        from fasta2a.storage import InMemoryStorage
+        from pydantic_ai._a2a import AgentWorker, worker_lifespan
+        from starlette.responses import JSONResponse, Response
         from starlette.routing import Route
 
         routes: list[Route] = []
@@ -81,35 +88,31 @@ class A2AServer(HTTPServer):
 
             async def agent_handler(request: Request, agent_name: str = agent_name) -> Response:
                 """Handle A2A requests for a specific agent."""
-                from starlette.responses import JSONResponse
-
                 try:
                     # Get the agent from pool
-                    pool_agent = self.pool.agents.get(agent_name)
-                    if pool_agent is None:
-                        return JSONResponse(
-                            {"error": f"Agent '{agent_name}' not found"},
-                            status_code=404,
-                        )
-
+                    agent = self.pool.agents.get(agent_name)
+                    if agent is None:
+                        error = {"error": f"Agent '{agent_name}' not found"}
+                        return JSONResponse(error, status_code=404)
                     # Get the underlying pydantic-ai agentlet and convert to A2A app
-                    agentlet = await pool_agent.get_agentlet(
-                        model=pool_agent.model_name, output_type=str, input_provider=None
+                    agentlet = await agent.get_agentlet(model=agent.model_name, output_type=str)
+                    storage = InMemoryStorage()
+                    broker = InMemoryBroker()
+                    worker = AgentWorker(agent=agentlet, broker=broker, storage=storage)
+                    lifespan = partial(worker_lifespan, worker=worker, agent=agentlet)
+                    a2a_app = FastA2A(
+                        storage=storage,
+                        broker=broker,
+                        name=agent.name,
+                        lifespan=lifespan,
                     )
-                    a2a_app = agentlet.to_a2a()
-
                     # ASGI apps don't return a value, they write to send()
                     await a2a_app(request.scope, request.receive, request._send)
-                    from starlette.responses import Response
-
                     return Response()
 
                 except Exception as e:
                     self.log.exception("Error handling A2A request", agent=agent_name)
-                    return JSONResponse(
-                        {"error": str(e)},
-                        status_code=500,
-                    )
+                    return JSONResponse({"error": str(e)}, status_code=500)
 
             # A2A protocol routes
             routes.append(Route(f"/{agent_name}", agent_handler, methods=["POST"]))
