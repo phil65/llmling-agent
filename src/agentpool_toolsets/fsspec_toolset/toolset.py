@@ -289,6 +289,9 @@ class FSSpecTools(ResourceProvider):
         else:  # simple
             self._tools.append(self.create_tool(self.edit, category="edit"))
 
+        # Add regex line editing tool
+        self._tools.append(self.create_tool(self.regex_replace_lines, category="edit"))
+
         return self._tools
 
     async def list_directory(  # noqa: D417
@@ -834,6 +837,198 @@ class FSSpecTools(ResourceProvider):
             return error_msg
         else:
             return success_msg
+
+    async def regex_replace_lines(  # noqa: PLR0915
+        self,
+        agent_ctx: AgentContext,
+        path: str,
+        start: int | str,
+        end: int | str,
+        pattern: str,
+        replacement: str,
+        *,
+        count: int = 0,
+    ) -> str:
+        r"""Apply regex replacement to a line range specified by line numbers or text markers.
+
+        Useful for systematic edits:
+        - Remove/add indentation
+        - Comment/uncomment blocks
+        - Rename variables within scope
+        - Delete line ranges
+
+        Args:
+            agent_ctx: Agent execution context
+            path: File path to edit
+            start: Start of range - int (1-based line number) or str (unique text marker)
+            end: End of range - int (1-based line number) or str (first occurrence after start)
+            pattern: Regex pattern to search for within the range
+            replacement: Replacement string (supports \1, \2 capture groups; empty removes)
+            count: Max replacements per line (0 = unlimited)
+
+        Returns:
+            Success message with statistics
+
+        Examples:
+            # Remove a function
+            regex_replace_lines(ctx, "file.py", "def old_func(", "    return", r".*\n", "")
+
+            # Indent by line numbers
+            regex_replace_lines(ctx, "file.py", 10, 20, r"^", "    ")
+
+            # Uncomment a section
+            regex_replace_lines(ctx, "file.py", "# START", "# END", r"^# ", "")
+        """
+        import re
+
+        path = self._resolve_path(path, agent_ctx)
+        msg = f"Regex editing file: {path}"
+        await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
+
+        try:
+            # Read original content
+            original_content = await self._read(agent_ctx, path)
+            if isinstance(original_content, bytes):
+                original_content = original_content.decode("utf-8")
+
+            lines = original_content.splitlines(keepends=True)
+            total_lines = len(lines)
+
+            # Resolve start position
+            if isinstance(start, int):
+                if start < 1:
+                    msg = f"start line must be >= 1, got {start}"
+                    raise ValueError(msg)  # noqa: TRY301
+                start_line = start
+            else:
+                # Find unique occurrence of start string (raises ValueError if not found/unique)
+                start_line = self._find_unique_line(lines, start, "start")
+
+            # Resolve end position
+            if isinstance(end, int):
+                if end < start_line:
+                    msg = f"end line {end} must be >= start line {start_line}"
+                    raise ValueError(msg)  # noqa: TRY301
+                end_line = end
+            else:
+                # Find first occurrence of end string after start (raises ValueError if not found)
+                end_line = self._find_first_after(lines, end, start_line, "end")
+
+            # Validate range
+            if end_line > total_lines:
+                msg = f"end_line {end_line} exceeds file length {total_lines}"
+                raise ValueError(msg)  # noqa: TRY301
+
+            # Convert to 0-based indexing for array access
+            start_idx = start_line - 1
+            end_idx = end_line  # end_line is inclusive, but list slice is exclusive
+
+            # Compile regex pattern
+            regex = re.compile(pattern)
+
+            # Apply replacements to the specified line range
+            modified_count = 0
+            replacement_count = 0
+
+            for i in range(start_idx, end_idx):
+                original = lines[i]
+                modified, num_subs = regex.subn(replacement, original, count=count)
+                if num_subs > 0:
+                    lines[i] = modified
+                    modified_count += 1
+                    replacement_count += num_subs
+
+            # Build new content
+            new_content = "".join(lines)
+
+            # Write back
+            await self._write(agent_ctx, path, new_content)
+
+            # Build success message
+            success_msg = (
+                f"Successfully applied regex to lines {start_line}-{end_line} in {Path(path).name}"
+            )
+            if modified_count > 0:
+                success_msg += (
+                    f" ({modified_count} lines modified, {replacement_count} replacements)"
+                )
+
+            # Emit file edit event for diff display
+            await agent_ctx.events.file_edit_progress(
+                path=path,
+                old_text=original_content,
+                new_text=new_content,
+                status="completed",
+            )
+
+            # Run diagnostics if enabled
+            if diagnostics_output := await self._run_diagnostics(agent_ctx, path):
+                success_msg += f"\n\nDiagnostics:\n{diagnostics_output}"
+        except Exception as e:  # noqa: BLE001
+            error_msg = f"Error applying regex to file: {e}"
+            await agent_ctx.events.file_operation("edit", path=path, success=False, error=error_msg)
+            return error_msg
+        else:
+            return success_msg
+
+    @staticmethod
+    def _find_unique_line(lines: list[str], search_text: str, param_name: str) -> int:
+        """Find unique occurrence of text in lines.
+
+        Args:
+            lines: File lines
+            search_text: Text to search for
+            param_name: Parameter name for error messages
+
+        Returns:
+            Line number (1-based)
+
+        Raises:
+            ValueError: If text not found or matches multiple lines
+        """
+        matches = []
+        for i, line in enumerate(lines, start=1):
+            if search_text in line:
+                matches.append(i)
+
+        if not matches:
+            msg = f"{param_name} text not found: {search_text!r}"
+            raise ValueError(msg)
+        if len(matches) > 1:
+            match_lines = ", ".join(str(m) for m in matches[:5])
+            more = f" and {len(matches) - 5} more" if len(matches) > 5 else ""  # noqa: PLR2004
+            msg = (
+                f"{param_name} text matches multiple lines ({match_lines}{more}). "
+                f"Include more context to make it unique."
+            )
+            raise ValueError(msg)
+
+        return matches[0]
+
+    @staticmethod
+    def _find_first_after(
+        lines: list[str], search_text: str, after_line: int, param_name: str
+    ) -> int:
+        """Find first occurrence of text after a given line.
+
+        Args:
+            lines: File lines
+            search_text: Text to search for
+            after_line: Line number to search after (1-based)
+            param_name: Parameter name for error messages
+
+        Returns:
+            Line number (1-based)
+
+        Raises:
+            ValueError: If text not found after the specified line
+        """
+        for i in range(after_line - 1, len(lines)):
+            if search_text in lines[i]:
+                return i + 1
+
+        msg = f"{param_name} text not found after line {after_line}: {search_text!r}"
+        raise ValueError(msg)
 
     async def grep(  # noqa: D417
         self,
