@@ -208,7 +208,7 @@ class TestExecuteCodeViaACP:
 
         events = await harness.execute_tool(
             tool_name="execute_code",
-            tool_args={"code": "print('hello')"},
+            tool_args={"code": "print('hello')", "title": "test hello"},
             tools=[ExecuteCodeToolConfig(environment=mock_env)],
         )
 

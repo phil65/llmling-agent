@@ -3,7 +3,8 @@
     "payload": {
       "kind": "execute",
       "rawInput": {
-        "code": "raise ValueError('test error')"
+        "code": "raise ValueError('test error')",
+        "title": "test error"
       },
       "sessionUpdate": "tool_call",
       "status": "pending",

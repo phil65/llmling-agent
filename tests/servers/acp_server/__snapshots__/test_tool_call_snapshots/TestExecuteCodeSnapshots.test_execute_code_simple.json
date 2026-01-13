@@ -3,7 +3,8 @@
     "payload": {
       "kind": "execute",
       "rawInput": {
-        "code": "print('hello')"
+        "code": "print('hello')",
+        "title": "test hello"
       },
       "sessionUpdate": "tool_call",
       "status": "pending",

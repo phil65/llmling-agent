@@ -124,7 +124,7 @@ class TestExecuteCodeSnapshots:
 
         messages = await harness.execute_tool(
             tool_name="execute_code",
-            tool_args={"code": "print('hello')"},
+            tool_args={"code": "print('hello')", "title": "test hello"},
             tools=[ExecuteCodeToolConfig()],
         )
 
@@ -148,7 +148,7 @@ class TestExecuteCodeSnapshots:
 
         messages = await harness.execute_tool(
             tool_name="execute_code",
-            tool_args={"code": "raise ValueError('test error')"},
+            tool_args={"code": "raise ValueError('test error')", "title": "test error"},
             tools=[ExecuteCodeToolConfig()],
         )
 
@@ -167,7 +167,7 @@ class TestExecuteCodeSnapshots:
 
         messages = await harness.execute_tool(
             tool_name="execute_code",
-            tool_args={"code": code},
+            tool_args={"code": code, "title": "test multiline"},
             tools=[ExecuteCodeToolConfig()],
         )
 

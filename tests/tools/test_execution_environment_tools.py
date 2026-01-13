@@ -102,7 +102,7 @@ class TestCodeExecution:
         )
         tool = ExecuteCodeTool(name="execute_code", env=env)
 
-        result = await tool._execute(agent_ctx, "print(42)")
+        result = await tool._execute(agent_ctx, "print(42)", "test print")
         # Tools now return formatted strings
         assert isinstance(result, str)
         assert "42" in result
@@ -129,7 +129,7 @@ class TestCodeExecution:
         )
         tool = ExecuteCodeTool(name="execute_code", env=env)
 
-        result = await tool._execute(agent_ctx, "print(x)")
+        result = await tool._execute(agent_ctx, "print(x)", "test undefined")
         # Tools now return formatted strings
         assert isinstance(result, str)
         assert "NameError" in result
@@ -147,7 +147,7 @@ class TestCodeExecution:
         )
         tool = ExecuteCodeTool(name="execute_code", env=env)
 
-        result = await tool._execute(agent_ctx, "bad code")
+        result = await tool._execute(agent_ctx, "bad code", "test exception")
         # Tools now return formatted strings
         assert isinstance(result, str)
         assert "Execution failed" in result
