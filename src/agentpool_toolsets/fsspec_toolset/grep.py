@@ -328,19 +328,27 @@ def _parse_ripgrep_json_output(stdout: str, max_output_bytes: int) -> dict[str, 
     matches: list[dict[str, Any]] = []
     total_bytes = 0
     was_truncated = False
+    match_count = 0  # Track actual matches (not context lines)
 
     for line in stdout.splitlines():
         if not line.strip():
             continue
         try:
             data = anyenv.load_json(line, return_type=dict)
-            if data.get("type") == "match":
+            entry_type = data.get("type")
+
+            if entry_type in ("match", "context"):
                 match_data = data.get("data", {})
                 path = match_data.get("path", {}).get("text", "")
                 line_num = match_data.get("line_number", 0)
                 content = match_data.get("lines", {}).get("text", "").rstrip("\n")
 
-                match_entry = {"path": path, "line": line_num, "content": content}
+                match_entry = {
+                    "path": path,
+                    "line": line_num,
+                    "content": content,
+                    "is_match": entry_type == "match",
+                }
                 entry_size = len(path) + len(str(line_num)) + len(content) + 10
 
                 if total_bytes + entry_size > max_output_bytes:
@@ -349,6 +357,9 @@ def _parse_ripgrep_json_output(stdout: str, max_output_bytes: int) -> dict[str, 
 
                 matches.append(match_entry)
                 total_bytes += entry_size
+
+                if entry_type == "match":
+                    match_count += 1
         except anyenv.JsonLoadError:
             continue
 
@@ -363,11 +374,13 @@ def _parse_ripgrep_json_output(stdout: str, max_output_bytes: int) -> dict[str, 
         # Truncate long lines for readability
         if len(content) > 100:  # noqa: PLR2004
             content = content[:97] + "..."
-        table_lines.append(f"| {m['path']} | {m['line']} | {content} |")
+        # Mark match lines with indicator if there are context lines
+        prefix = "→ " if m.get("is_match") and match_count < len(matches) else ""
+        table_lines.append(f"| {m['path']} | {m['line']} | {prefix}{content} |")
 
     return {
         "matches": "\n".join(table_lines),
-        "match_count": len(matches),
+        "match_count": match_count,
         "was_truncated": was_truncated,
     }
 
@@ -406,10 +419,17 @@ def _parse_gnu_grep_output(stdout: str, max_output_bytes: int) -> dict[str, Any]
 
     table_lines = ["| File | Line | Content |", "|------|------|---------|"]
     for m in matches:
+        # Handle separator lines
+        if m.get("is_separator"):
+            table_lines.append("| | | |")
+            continue
+
         content = m["content"].replace("|", "\\|")
         if len(content) > 100:  # noqa: PLR2004
             content = content[:97] + "..."
-        table_lines.append(f"| {m['path']} | {m['line']} | {content} |")
+        # Mark match lines with indicator if there are context lines
+        prefix = "→ " if m.get("is_match") else ""
+        table_lines.append(f"| {m['path']} | {m['line']} | {prefix}{content} |")
 
     return {
         "matches": "\n".join(table_lines),
