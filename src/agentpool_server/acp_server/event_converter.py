@@ -183,14 +183,14 @@ class ACPEventConverter:
     async def convert(  # noqa: PLR0915
         self, event: RichAgentStreamEvent[Any]
     ) -> AsyncIterator[ACPSessionUpdate]:
-        """Convert an agent event to zero or more ACP session updates.
+        """Convert an agent event to zero or more ACP session updates."""
+        from acp.schema import (
+            FileEditToolCallContent,
+            PlanEntry as ACPPlanEntry,
+            TerminalToolCallContent,
+        )
+        from agentpool_server.acp_server.syntax_detection import format_zed_code_block
 
-        Args:
-            event: Agent stream event to convert
-
-        Yields:
-            ACP session update objects
-        """
         match event:
             # Text output
             case (
@@ -349,9 +349,7 @@ class ACPEventConverter:
                 raw_input=raw_input,
             ):
                 state = self._get_or_create_tool_state(tool_call_id, tool_name, raw_input or {})
-                acp_locations = [
-                    ToolCallLocation(path=loc.path, line=loc.line) for loc in loc_items
-                ]
+                acp_locations = [ToolCallLocation(path=i.path, line=i.line) for i in loc_items]
                 # If not started, send start notification
                 if not state.started:
                     state.started = True
@@ -394,16 +392,11 @@ class ACPEventConverter:
                         raw_input=state.raw_input,
                         status="pending",
                     )
-                from agentpool_server.acp_server.syntax_detection import format_zed_code_block
-
                 acp_content: list[ToolCallContent] = []
                 progress_locations: list[ToolCallLocation] = []
-
                 for item in items:
                     match item:
                         case TerminalContentItem(terminal_id=tid):
-                            from acp.schema import TerminalToolCallContent
-
                             acp_content.append(TerminalToolCallContent(terminal_id=tid))
                         case TextContentItem(text=text):
                             acp_content.append(ContentToolCallContent.text(text=text))
@@ -421,21 +414,14 @@ class ACPEventConverter:
                                 ToolCallLocation(path=file_path, line=start_line or 0)
                             )
                         case DiffContentItem(path=diff_path, old_text=old, new_text=new):
-                            from acp.schema import FileEditToolCallContent
-
                             acp_content.append(
-                                FileEditToolCallContent(
-                                    path=diff_path,
-                                    old_text=old,
-                                    new_text=new,
-                                )
+                                FileEditToolCallContent(path=diff_path, old_text=old, new_text=new)
                             )
                             progress_locations.append(ToolCallLocation(path=diff_path))
                             state.has_content = True
                         case LocationContentItem(path=loc_path, line=loc_line):
-                            progress_locations.append(
-                                ToolCallLocation(path=loc_path, line=loc_line)
-                            )
+                            location = ToolCallLocation(path=loc_path, line=loc_line)
+                            progress_locations.append(location)
 
                 # Build title: use provided title, or format MCP numeric progress
                 effective_title = title
@@ -468,8 +454,6 @@ class ACPEventConverter:
                 pass  # No notification needed
 
             case PlanUpdateEvent(entries=entries):
-                from acp.schema import PlanEntry as ACPPlanEntry
-
                 acp_entries = [
                     ACPPlanEntry(content=e.content, priority=e.priority, status=e.status)
                     for e in entries
@@ -543,9 +527,8 @@ class ACPEventConverter:
                 yield AgentThoughtChunk.text(text=f"{indent}[{source_name}] {delta or ''}")
 
             case FunctionToolCallEvent(part=part):
-                yield AgentMessageChunk.text(
-                    text=f"\n{indent}🔧 [{source_name}] Using tool: {part.tool_name}\n"
-                )
+                text = f"\n{indent}🔧 [{source_name}] Using tool: {part.tool_name}\n"
+                yield AgentMessageChunk.text(text=text)
 
             case FunctionToolResultEvent(
                 result=ToolReturnPart(content=content, tool_name=tool_name),
@@ -553,15 +536,13 @@ class ACPEventConverter:
                 result_str = str(content)
                 if len(result_str) > 200:  # noqa: PLR2004
                     result_str = result_str[:200] + "..."
-                yield AgentMessageChunk.text(
-                    text=f"{indent}✅ [{source_name}] {tool_name}: {result_str}\n"
-                )
+                text = f"{indent}✅ [{source_name}] {tool_name}: {result_str}\n"
+                yield AgentMessageChunk.text(text=text)
 
             case FunctionToolResultEvent(result=RetryPromptPart(tool_name=tool_name) as result):
                 error_msg = result.model_response()
-                yield AgentMessageChunk.text(
-                    text=f"{indent}❌ [{source_name}] {tool_name}: {error_msg}\n"
-                )
+                text = f"{indent}❌ [{source_name}] {tool_name}: {error_msg}\n"
+                yield AgentMessageChunk.text(text=text)
 
             case StreamCompleteEvent():
                 header_key = f"{source_name}:{depth}"
