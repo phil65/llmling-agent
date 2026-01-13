@@ -138,11 +138,7 @@ class BaseMCPServerConfig(Schema):
         return env
 
     def to_pydantic_ai(self) -> MCPServer:
-        """Convert to pydantic-ai MCP server instance.
-
-        Returns:
-            A pydantic-ai MCP server instance
-        """
+        """Convert to pydantic-ai MCP server instance."""
         raise NotImplementedError
 
     @property

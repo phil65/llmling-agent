@@ -107,12 +107,17 @@ class MCPClient:
         """Check if client is connected by examining session state."""
         return self._client.is_connected()
 
+    def _ensure_connected(self) -> None:
+        """Ensure client is connected, raise RuntimeError if not."""
+        if not self.connected:
+            msg = "Not connected to MCP server"
+            raise RuntimeError(msg)
+
     async def __aenter__(self) -> Self:
         """Enter context manager."""
         try:
             # First attempt with configured auth
             await self._client.__aenter__()  # type: ignore[no-untyped-call]
-
         except Exception as first_error:
             # OAuth fallback for HTTP/SSE if not already using OAuth
             if not isinstance(self.config, StdioMCPServerConfig) and not self.config.auth.oauth:
@@ -242,31 +247,20 @@ class MCPClient:
 
         Tools are filtered based on the server config's enabled_tools/disabled_tools settings.
         """
-        if not self.connected:
-            msg = "Not connected to MCP server"
-            raise RuntimeError(msg)
-
+        self._ensure_connected()
         try:
             tools = await self._client.list_tools()
-            # Filter tools based on config
-            filtered_tools = [t for t in tools if self.config.is_tool_allowed(t.name)]
-            logger.debug(
-                "Listed tools from MCP server",
-                total_tools=len(tools),
-                filtered_tools=len(filtered_tools),
-            )
+            filtered = [t for t in tools if self.config.is_tool_allowed(t.name)]
+            logger.debug("Listed tools from MCP server", total=len(tools), filtered=len(filtered))
         except Exception as e:  # noqa: BLE001
             logger.warning("Failed to list tools", error=e)
             return []
         else:
-            return filtered_tools
+            return filtered
 
     async def list_prompts(self) -> list[MCPPrompt]:
         """Get available prompts from the server."""
-        if not self.connected:
-            msg = "Not connected to MCP server"
-            raise RuntimeError(msg)
-
+        self._ensure_connected()
         try:
             return await self._client.list_prompts()
         except Exception as e:  # noqa: BLE001
@@ -275,10 +269,7 @@ class MCPClient:
 
     async def list_resources(self) -> list[MCPResource]:
         """Get available resources from the server."""
-        if not self.connected:
-            msg = "Not connected to MCP server"
-            raise RuntimeError(msg)
-
+        self._ensure_connected()
         try:
             return await self._client.list_resources()
         except Exception as e:
@@ -303,10 +294,7 @@ class MCPClient:
         Returns:
             List of resource templates from the server
         """
-        if not self.connected:
-            msg = "Not connected to MCP server"
-            raise RuntimeError(msg)
-
+        self._ensure_connected()
         try:
             return await self._client.list_resource_templates()
         except Exception as e:
@@ -325,10 +313,7 @@ class MCPClient:
         Raises:
             RuntimeError: If not connected or read fails
         """
-        if not self.connected:
-            msg = "Not connected to MCP server"
-            raise RuntimeError(msg)
-
+        self._ensure_connected()
         try:
             return await self._client.read_resource(uri)
         except Exception as e:
@@ -339,10 +324,7 @@ class MCPClient:
         self, name: str, arguments: dict[str, str] | None = None
     ) -> GetPromptResult:
         """Get a specific prompt's content."""
-        if not self.connected:
-            msg = "Not connected to MCP server"
-            raise RuntimeError(msg)
-
+        self._ensure_connected()
         try:
             return await self._client.get_prompt_mcp(name, arguments)
         except Exception as e:
@@ -370,7 +352,6 @@ class MCPClient:
         schema = mcp_tool_to_fn_schema(tool)
         fn_schema = FunctionSchema.from_dict(schema)
         sig = fn_schema.to_python_signature()
-
         tool_callable.__signature__ = create_modified_signature(  # type: ignore[attr-defined]
             sig, inject={"ctx": RunContext, "agent_ctx": AgentContext}
         )
@@ -392,10 +373,7 @@ class MCPClient:
         agent_ctx: AgentContext[Any] | None = None,
     ) -> ToolReturn | str | Any:
         """Call an MCP tool with full PydanticAI return type support."""
-        if not self.connected:
-            msg = "Not connected to MCP server"
-            raise RuntimeError(msg)
-
+        self._ensure_connected()
         # Create progress handler that bridges to AgentContext if available
         progress_handler = None
         if agent_ctx:
@@ -475,10 +453,7 @@ class MCPClient:
 if __name__ == "__main__":
     path = "/home/phil65/dev/oss/agentpool/tests/mcp_server/server.py"
     # path = Path(__file__).parent / "test_mcp_server.py"
-    config = StdioMCPServerConfig(
-        command="uv",
-        args=["run", str(path)],
-    )
+    config = StdioMCPServerConfig(command="uv", args=["run", str(path)])
 
     async def main() -> None:
         async with MCPClient(config=config) as mcp_client:
