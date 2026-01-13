@@ -131,6 +131,8 @@ Available in namespace:
 - ctx: AgentContext (ctx.agent, ctx.pool, ctx.config, ctx.definition, etc.)
 - run_ctx: pydantic-ai RunContext (current run state)
 - me: Shortcut for ctx.agent (your Agent instance)
+- save(key, value): Save an object to persist between calls
+- state: Dict of saved objects from previous calls
 
 You can inspect yourself, the pool, other agents, your tools, and more.
 Write an async main() function that returns the result.
@@ -178,8 +180,28 @@ async def execute_introspection(ctx: AgentContext, run_ctx: RunContext[Any], cod
         items=[f"```python\n{code}\n```"],
     )
 
-    # Build namespace with runtime context
-    namespace: dict[str, Any] = {"ctx": ctx, "run_ctx": run_ctx, "me": ctx.agent}
+    # Build namespace with runtime context and stateful storage
+    # Note: This function is called through self binding, so we have access to the toolset instance
+    toolset = ctx.agent.tools.providers.get("debug")  # Get the debug toolset instance
+
+    def save(key: str, value: Any) -> None:
+        """Save a value to persist between introspection calls."""
+        if toolset and hasattr(toolset, "_namespace_storage"):
+            toolset._namespace_storage[key] = value
+
+    state = (
+        toolset._namespace_storage.copy()
+        if toolset and hasattr(toolset, "_namespace_storage")
+        else {}
+    )
+
+    namespace: dict[str, Any] = {
+        "ctx": ctx,
+        "run_ctx": run_ctx,
+        "me": ctx.agent,
+        "save": save,
+        "state": state,
+    }
     try:
         exec(code, namespace)
         if "main" not in namespace:
@@ -269,6 +291,7 @@ class DebugTools(StaticResourceProvider):
     - Self-introspection via code execution with runtime context access
     - Log inspection and management
     - Platform path discovery
+    - Stateful namespace for persisting objects between introspection calls
     """
 
     def __init__(self, name: str = "debug") -> None:
@@ -278,6 +301,7 @@ class DebugTools(StaticResourceProvider):
             name: Toolset name/namespace
         """
         super().__init__(name=name)
+        self._namespace_storage: dict[str, Any] = {}  # Stateful storage for introspection
 
         desc = (execute_introspection.__doc__ or "") + "\n\n" + INTROSPECTION_USAGE
         self._tools = [
