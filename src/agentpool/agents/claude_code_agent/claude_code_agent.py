@@ -132,7 +132,6 @@ if TYPE_CHECKING:
         BuiltinEventHandlerType,
         IndividualEventHandler,
         MCPServerStatus,
-        PromptCompatible,
     )
     from agentpool.delegation import AgentPool
     from agentpool.mcp_server.tool_bridge import ToolManagerBridge
@@ -1472,22 +1471,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         complete_event = StreamCompleteEvent[TResult](message=chat_message)
         await handler(None, complete_event)
         yield complete_event
-
-    async def run_iter(
-        self,
-        *prompt_groups: Sequence[PromptCompatible],
-    ) -> AsyncIterator[ChatMessage[TResult]]:
-        """Run agent sequentially on multiple prompt groups.
-
-        Args:
-            prompt_groups: Groups of prompts to process sequentially
-
-        Yields:
-            Response messages in sequence
-        """
-        for prompts in prompt_groups:
-            response = await self.run(*prompts)
-            yield response
 
     async def interrupt(self) -> None:
         """Interrupt the currently running stream.

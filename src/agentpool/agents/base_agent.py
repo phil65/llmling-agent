@@ -257,6 +257,39 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """
         ...
 
+    async def run_iter(
+        self,
+        *prompt_groups: Sequence[PromptCompatible],
+        store_history: bool = True,
+        wait_for_connections: bool | None = None,
+    ) -> AsyncIterator[ChatMessage[TResult]]:
+        """Run agent sequentially on multiple prompt groups.
+
+        Args:
+            prompt_groups: Groups of prompts to process sequentially
+            store_history: Whether to store in conversation history
+            wait_for_connections: Whether to wait for connected agents
+
+        Yields:
+            Response messages in sequence
+
+        Example:
+            questions = [
+                ["What is your name?"],
+                ["How old are you?", image1],
+                ["Describe this image", image2],
+            ]
+            async for response in agent.run_iter(*questions):
+                print(response.content)
+        """
+        for prompts in prompt_groups:
+            response = await self.run(
+                *prompts,
+                store_history=store_history,
+                wait_for_connections=wait_for_connections,
+            )
+            yield response  # pyright: ignore
+
     @method_spawner
     async def run_stream(
         self,

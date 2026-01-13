@@ -88,7 +88,6 @@ if TYPE_CHECKING:
     from agentpool.common_types import (
         BuiltinEventHandlerType,
         IndividualEventHandler,
-        PromptCompatible,
         SimpleJsonType,
     )
     from agentpool.delegation import AgentPool
@@ -682,22 +681,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         complete_event = StreamCompleteEvent(message=message)
         await handler(None, complete_event)
         yield complete_event  # Emit final StreamCompleteEvent - post-processing handled by base
-
-    async def run_iter(
-        self,
-        *prompt_groups: Sequence[PromptCompatible],
-    ) -> AsyncIterator[ChatMessage[str]]:
-        """Run agent sequentially on multiple prompt groups.
-
-        Args:
-            prompt_groups: Groups of prompts to process sequentially
-
-        Yields:
-            Response messages in sequence
-        """
-        for prompts in prompt_groups:
-            response = await self.run(*prompts)
-            yield response
 
     @property
     def model_name(self) -> str | None:

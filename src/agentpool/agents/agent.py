@@ -830,10 +830,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             handler = self.event_handler
         message_id = message_id or str(uuid4())
         run_id = str(uuid4())
-
         # Reset cancellation state
         self._cancelled = False
-
         # Initialize conversation_id on first run and log to storage
         # Conversation ID initialization handled by BaseAgent
         processed_prompts = prompts
@@ -841,7 +839,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         start_time = time.perf_counter()
         history_list = conversation.get_history()
         pending_parts = conversation.get_pending_parts()
-
         # Execute pre-run hooks
         if self.hooks:
             pre_run_result = await self.hooks.run_pre_run_hooks(
@@ -1010,39 +1007,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                         message_id=message_id,
                     )
         return None
-
-    async def run_iter(
-        self,
-        *prompt_groups: Sequence[PromptCompatible],
-        store_history: bool = True,
-        wait_for_connections: bool | None = None,
-    ) -> AsyncIterator[ChatMessage[OutputDataT]]:
-        """Run agent sequentially on multiple prompt groups.
-
-        Args:
-            prompt_groups: Groups of prompts to process sequentially
-            store_history: Whether to store in conversation history
-            wait_for_connections: Whether to wait for connected agents
-
-        Yields:
-            Response messages in sequence
-
-        Example:
-            questions = [
-                ["What is your name?"],
-                ["How old are you?", image1],
-                ["Describe this image", image2],
-            ]
-            async for response in agent.run_iter(*questions):
-                print(response.content)
-        """
-        for prompts in prompt_groups:
-            response = await self.run(
-                *prompts,
-                store_history=store_history,
-                wait_for_connections=wait_for_connections,
-            )
-            yield response  # pyright: ignore
 
     @method_spawner
     async def run_job(

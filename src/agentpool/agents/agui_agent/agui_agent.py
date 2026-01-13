@@ -55,7 +55,6 @@ if TYPE_CHECKING:
     from agentpool.common_types import (
         BuiltinEventHandlerType,
         IndividualEventHandler,
-        PromptCompatible,
         ToolType,
     )
     from agentpool.delegation import AgentPool
@@ -666,26 +665,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         complete_event = StreamCompleteEvent(message=final_message)
         await handler(None, complete_event)
         yield complete_event  # Post-processing handled by base class
-
-    async def run_iter(
-        self,
-        *prompt_groups: Sequence[PromptCompatible],
-        message_id: str | None = None,
-        **kwargs: Any,
-    ) -> AsyncIterator[ChatMessage[str]]:
-        """Execute multiple prompt groups sequentially.
-
-        Args:
-            prompt_groups: Groups of prompts to execute
-            message_id: Optional message ID base
-            **kwargs: Additional arguments (ignored for compatibility)
-
-        Yields:
-            ChatMessage for each completed prompt group
-        """
-        for i, prompts in enumerate(prompt_groups):
-            mid = f"{message_id or 'msg'}_{i}" if message_id else None
-            yield await self.run(*prompts, message_id=mid)
 
     @property
     def model_name(self) -> str | None:
