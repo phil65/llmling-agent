@@ -19,6 +19,7 @@ from agentpool_cli.serve_opencode import opencode_command
 from agentpool_cli.serve_vercel import vercel_command
 from agentpool_cli.store import ConfigStore
 from agentpool_cli.task import task_command
+from agentpool_cli.ui import ui_app
 from agentpool_cli.watch import watch_command
 
 
@@ -82,6 +83,7 @@ cli.command(name="serve-vercel")(vercel_command)
 cli.command(name="task")(task_command)
 
 cli.add_typer(history_cli, name="history")
+cli.add_typer(ui_app, name="ui")
 
 
 if __name__ == "__main__":
