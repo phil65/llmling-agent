@@ -725,7 +725,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             request = SetSessionConfigOptionRequest(
                 session_id=self._session_id,
                 config_id=model_config.id,
-                value_id=model,
+                value=model,
             )
             response = await self._connection.set_session_config_option(request)
             if response:
@@ -741,10 +741,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             raise RuntimeError(msg)
 
         # Fallback to legacy set_session_model API
-        request_legacy = SetSessionModelRequest(
-            session_id=self._session_id,
-            model_id=model,
-        )
+        request_legacy = SetSessionModelRequest(session_id=self._session_id, model_id=model)
         response_legacy = await self._connection.set_session_model(request_legacy)
         if response_legacy:
             # Update legacy state

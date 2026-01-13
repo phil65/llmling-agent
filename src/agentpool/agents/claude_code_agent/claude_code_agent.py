@@ -1515,9 +1515,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._model = model
         self._current_model = model
 
+        # Ensure client is connected before setting model
         if self._client:
+            await self.ensure_initialized()
             await self._client.set_model(model)
             self.log.info("Model changed", model=model)
+        else:
+            # Client not created yet, model will be used during _build_options()
+            self.log.info("Model set for initialization", model=model)
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set tool confirmation mode.
@@ -1691,8 +1696,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             elif mode_id in ("default", "plan"):
                 self.tool_confirmation_mode = "always"
 
-            # Update SDK client if connected
+            # Update SDK client if initialized
             if self._client:
+                await self.ensure_initialized()
                 await self._client.set_permission_mode(permission_mode)
                 self.log.info("Permission mode changed", mode=mode_id)
 
@@ -1713,12 +1719,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             if self._max_thinking_tokens:
                 msg = (
                     "Cannot change thinking mode: max_thinking_tokens is configured. "
-                    "The environment variable MAX_THINKING_TOKENS takes precedence over the 'ultrathink' keyword."
+                    "The envvar MAX_THINKING_TOKENS takes precedence over the 'ultrathink' keyword."
                 )
                 raise ValueError(msg)
             # Validate thinking mode
             if mode_id not in THINKING_MODE_PROMPTS:
-                msg = f"Unknown thinking mode: {mode_id}. Available: {list(THINKING_MODE_PROMPTS.keys())}"
+                msg = f"Unknown mode: {mode_id}. Available: {list(THINKING_MODE_PROMPTS.keys())}"
                 raise ValueError(msg)
             self._thinking_mode = mode_id  # type: ignore[assignment]
             self.log.info("Thinking mode changed", mode=mode_id)

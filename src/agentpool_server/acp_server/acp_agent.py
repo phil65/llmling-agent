@@ -787,13 +787,13 @@ class AgentPoolACPAgent(ACPAgent):
             logger.info(
                 "Set config option",
                 config_id=params.config_id,
-                value=params.value_id,
+                value=params.value,
                 session_id=params.session_id,
             )
 
             # Forward to agent's set_mode method
-            # config_id maps to category_id, value_id maps to mode_id
-            await session.agent.set_mode(params.value_id, category_id=params.config_id)
+            # config_id maps to category_id, value maps to mode_id
+            await session.agent.set_mode(params.value, category_id=params.config_id)
 
             # Return updated config options
             config_options = await get_session_config_options(session.agent)
