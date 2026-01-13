@@ -148,6 +148,16 @@ logger = get_logger(__name__)
 # Format: mcp__agentpool-{agent_name}-tools__{tool_name}
 _MCP_TOOL_PATTERN = re.compile(r"^mcp__agentpool-(.+)-tools__(.+)$")
 
+# Thinking modes for extended thinking budget allocation
+ThinkingMode = Literal["off", "on"]
+
+# Map thinking mode to prompt instruction
+# "ultrathink" triggers ~32k token thinking budget in Claude Code
+THINKING_MODE_PROMPTS: dict[ThinkingMode, str] = {
+    "off": "",
+    "on": "ultrathink",
+}
+
 
 def _strip_mcp_prefix(tool_name: str) -> str:
     """Strip MCP server prefix from tool names for cleaner UI display.
@@ -310,6 +320,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._max_budget_usd = max_budget_usd or config.max_budget_usd
         self._max_thinking_tokens = max_thinking_tokens or config.max_thinking_tokens
         self._permission_mode: PermissionMode | None = permission_mode or config.permission_mode
+        self._thinking_mode: ThinkingMode = "off"
         self._external_mcp_servers = list(mcp_servers) if mcp_servers else config.get_mcp_servers()
         self._environment = environment or config.env
         self._add_dir = add_dir or config.add_dir
@@ -1032,6 +1043,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Combine pending parts with new prompts, then join into single string for Claude SDK
         all_parts = [*pending_parts, *prompts]
         prompt_text = " ".join(str(p) for p in all_parts)
+
+        # Inject thinking instruction if enabled
+        if self._thinking_mode == "on":
+            thinking_instruction = THINKING_MODE_PROMPTS[self._thinking_mode]
+            prompt_text = f"{prompt_text}\n\n{thinking_instruction}"
         run_id = str(uuid.uuid4())
         # Emit run started
         assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
@@ -1603,6 +1619,33 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 )
             )
 
+        # Thinking level selection
+        # Only expose if MAX_THINKING_TOKENS is not set (keyword only works without env var)
+        if not self._max_thinking_tokens:
+            thinking_modes = [
+                ModeInfo(
+                    id="off",
+                    name="Thinking Off",
+                    description="No extended thinking",
+                    category_id="thinking_level",
+                ),
+                ModeInfo(
+                    id="on",
+                    name="Thinking On",
+                    description="Extended thinking (~32k tokens)",
+                    category_id="thinking_level",
+                ),
+            ]
+            categories.append(
+                ModeCategory(
+                    id="thinking_level",
+                    name="Thinking Level",
+                    available_modes=thinking_modes,
+                    current_mode_id=self._thinking_mode,
+                    category="thought_level",
+                )
+            )
+
         return categories
 
     async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
@@ -1611,10 +1654,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         For Claude Code, this handles:
         - "permissions" category: permission modes from the SDK
         - "model" category: model selection
+        - "thinking_level" category: extended thinking budget allocation
 
         Args:
             mode: The mode to set - ModeInfo object or mode ID string
-            category_id: Category ID ("permissions" or "model")
+            category_id: Category ID ("permissions", "model", or "thinking_level")
 
         Raises:
             ValueError: If the category or mode is unknown
@@ -1664,8 +1708,23 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             await self.set_model(mode_id)
             self.log.info("Model changed", model=mode_id)
 
+        elif category_id == "thinking_level":
+            # Check if max_thinking_tokens is configured (takes precedence over keyword)
+            if self._max_thinking_tokens:
+                msg = (
+                    "Cannot change thinking mode: max_thinking_tokens is configured. "
+                    "The environment variable MAX_THINKING_TOKENS takes precedence over the 'ultrathink' keyword."
+                )
+                raise ValueError(msg)
+            # Validate thinking mode
+            if mode_id not in THINKING_MODE_PROMPTS:
+                msg = f"Unknown thinking mode: {mode_id}. Available: {list(THINKING_MODE_PROMPTS.keys())}"
+                raise ValueError(msg)
+            self._thinking_mode = mode_id  # type: ignore[assignment]
+            self.log.info("Thinking mode changed", mode=mode_id)
+
         else:
-            msg = f"Unknown category: {category_id}. Available: permissions, model"
+            msg = f"Unknown category: {category_id}. Available: permissions, model, thinking_level"
             raise ValueError(msg)
 
 
