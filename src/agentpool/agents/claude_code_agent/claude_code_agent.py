@@ -334,6 +334,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Client state
         self._client: ClaudeSDKClient | None = None
+        self._connection_task: asyncio.Task[None] | None = None
         self._current_model: AnthropicMaxModelName | str | None = self._model
         self._sdk_session_id: str | None = None  # Session ID from Claude SDK init message
         self.deps_type = type(None)
@@ -830,28 +831,30 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         formatted_prompt = await self.sys_prompts.format_system_prompt(self)
         options = self._build_options(formatted_system_prompt=formatted_prompt)
         self._client = ClaudeSDKClient(options=options)
-        # Defer connection - will be awaited in run_stream/ensure_initialized
-        # Note: We can't use create_task here because the SDK's internal task groups
-        # must be entered and exited from the same task (anyio limitation)
-        self._connect_pending = True
+        # Start connection in background task to reduce first-prompt latency
+        # The task owns the anyio context, we just await it when needed
+        self._connection_task: asyncio.Task[None] | None = asyncio.create_task(self._do_connect())
         return self
 
     async def _do_connect(self) -> None:
-        """Actually connect the client. Must be called from the task that will use it."""
-        if not self._connect_pending:
-            return
+        """Actually connect the client. Runs in background task."""
         if not self._client:
             msg = "Client not created - call __aenter__ first"
             raise RuntimeError(msg)
 
-        await self._client.connect()
-        await self.populate_commands()
-        self._connect_pending = False
-        self.log.info("Claude Code client connected")
+        try:
+            await self._client.connect()
+            await self.populate_commands()
+            self.log.info("Claude Code client connected")
+        except Exception:
+            self.log.exception("Failed to connect Claude Code client")
+            raise
 
     async def ensure_initialized(self) -> None:
-        """Wait for client connection to complete."""
-        await self._do_connect()
+        """Wait for background connection task to complete."""
+        if self._connection_task:
+            await self._connection_task
+            self._connection_task = None
 
     async def __aexit__(
         self,
@@ -860,6 +863,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         exc_tb: TracebackType | None,
     ) -> None:
         """Disconnect from Claude Code."""
+        # Cancel connection task if still running
+        if self._connection_task and not self._connection_task.done():
+            self._connection_task.cancel()
+            try:
+                await self._connection_task
+            except asyncio.CancelledError:
+                pass
+        self._connection_task = None
+
         # Clean up tool bridge first
         if self._tool_bridge and self._owns_bridge:
             await self._tool_bridge.stop()
