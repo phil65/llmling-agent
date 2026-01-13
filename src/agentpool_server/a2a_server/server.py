@@ -74,12 +74,13 @@ class A2AServer(HTTPServer):
         """
         from functools import partial
 
-        from fasta2a import FastA2A
-        from fasta2a.broker import InMemoryBroker
-        from fasta2a.storage import InMemoryStorage
-        from pydantic_ai._a2a import AgentWorker, worker_lifespan
+        from fasta2a import FastA2A  # type: ignore[import-untyped]
+        from fasta2a.broker import InMemoryBroker  # type: ignore[import-untyped]
+        from fasta2a.storage import InMemoryStorage  # type: ignore[import-untyped]
         from starlette.responses import JSONResponse, Response
         from starlette.routing import Route
+
+        from agentpool_server.a2a_server.agent_worker import AgentWorker, worker_lifespan
 
         routes: list[Route] = []
 
@@ -95,11 +96,10 @@ class A2AServer(HTTPServer):
                         error = {"error": f"Agent '{agent_name}' not found"}
                         return JSONResponse(error, status_code=404)
                     # Get the underlying pydantic-ai agentlet and convert to A2A app
-                    agentlet = await agent.get_agentlet(model=agent.model_name, output_type=str)
                     storage = InMemoryStorage()
                     broker = InMemoryBroker()
-                    worker = AgentWorker(agent=agentlet, broker=broker, storage=storage)
-                    lifespan = partial(worker_lifespan, worker=worker, agent=agentlet)
+                    worker = AgentWorker(agent=agent, broker=broker, storage=storage)
+                    lifespan = partial(worker_lifespan, worker=worker, agent=agent)
                     a2a_app = FastA2A(
                         storage=storage,
                         broker=broker,
