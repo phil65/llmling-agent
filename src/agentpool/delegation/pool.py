@@ -50,7 +50,6 @@ if TYPE_CHECKING:
         AgentName,
         BuiltinEventHandlerType,
         IndividualEventHandler,
-        SessionIdType,
     )
     from agentpool.delegation.base_team import BaseTeam
     from agentpool.mcp_server.tool_bridge import ToolManagerBridge
@@ -59,7 +58,6 @@ if TYPE_CHECKING:
     from agentpool.models import AnyAgentConfig
     from agentpool.models.manifest import AgentsManifest
     from agentpool.ui.base import InputProvider
-    from agentpool_config.session import SessionQuery
     from agentpool_config.task import Job
 
 
@@ -598,7 +596,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         agent: AgentName | Agent[Any, str],
         *,
         return_type: type[TResult] = str,  # type: ignore
-        session: SessionIdType | SessionQuery = None,
     ) -> Agent[TPoolDeps, TResult]: ...
 
     @overload
@@ -608,7 +605,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         *,
         deps_type: type[TCustomDeps],
         return_type: type[TResult] = str,  # type: ignore
-        session: SessionIdType | SessionQuery = None,
     ) -> Agent[TCustomDeps, TResult]: ...
 
     def get_agent(
@@ -617,7 +613,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         *,
         deps_type: Any | None = None,
         return_type: Any = str,
-        session: SessionIdType | SessionQuery = None,
     ) -> Agent[Any, Any]:
         """Get or configure an agent from the pool.
 
@@ -629,7 +624,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             agent: Either agent name or instance
             deps_type: Optional custom dependencies type (overrides shared deps)
             return_type: Optional type for structured responses
-            session: Optional session ID or query to recover conversation
 
         Returns:
             Either:
@@ -651,11 +645,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # base.context.data = deps if deps is not None else self.shared_deps
         base.deps_type = deps_type
         base.agent_pool = self
-        if session:
-            base.conversation.load_history_from_database(session=session)
         if return_type not in {str, None}:
             base.to_structured(return_type)
-
         return base
 
     def get_job(self, name: str) -> Job[Any, Any]:
