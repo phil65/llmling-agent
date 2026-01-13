@@ -46,6 +46,10 @@ class RemoteCodeExecutor:
     execution_env: ExecutionEnvironment
     """Execution environment for running code."""
 
+    def __post_init__(self) -> None:
+        """Initialize script history after dataclass init."""
+        self._script_history: list[str] = []
+
     @classmethod
     def from_tools(
         cls,
@@ -87,7 +91,10 @@ class RemoteCodeExecutor:
         Returns:
             Execution result from the environment
         """
-        return await self.execution_env.execute(code)
+        result = await self.execution_env.execute(code)
+        # Save script to history after execution
+        self._script_history.append(code)
+        return result
 
     async def __aenter__(self) -> Self:
         """Async context manager entry."""

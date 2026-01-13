@@ -40,6 +40,11 @@ class ExecuteCodeTool(Tool[str]):
     env: ExecutionEnvironment | None = None
     """Execution environment to use. Falls back to agent.env if not set."""
 
+    def __post_init__(self) -> None:
+        """Initialize script history after dataclass init."""
+        super().__post_init__()
+        self._script_history: list[str] = []
+
     def get_callable(self) -> Callable[..., Awaitable[str]]:
         """Return the execute method as the callable."""
         return self._execute
@@ -102,6 +107,10 @@ class ExecuteCodeTool(Tool[str]):
                             )
 
             combined_output = "".join(output_parts)
+
+            # Save script to history after successful execution (exit_code 0 or None)
+            if exit_code is None or exit_code == 0:
+                self._script_history.append(code)
 
             # Format error response
             if error_msg:

@@ -47,6 +47,7 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         self.include_docstrings = include_docstrings
         self._cached_tool: Tool | None = None
         self.usage_notes = usage_notes
+        self._script_history: list[str] = []  # History of executed scripts
 
     async def get_tools(self) -> Sequence[Tool]:
         """Return single meta-tool for Python execution with available tools."""
@@ -101,6 +102,10 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
             # Handle edge cases with coroutines and return values
             if inspect.iscoroutine(result):
                 result = await result
+
+            # Save script to history after successful execution
+            self._script_history.append(python_code)
+
             if not result:  # in order to not confuse the model, return a success message.
                 return "Code executed successfully"
         except Exception as e:  # noqa: BLE001
