@@ -7,9 +7,6 @@ from dataclasses import dataclass, field
 import logging
 from typing import Any, Literal
 
-from pydantic_ai import RunContext  # noqa: TC002
-
-from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.resource_providers import StaticResourceProvider
 
 
@@ -161,63 +158,6 @@ async def main():
 """
 
 
-async def execute_introspection(ctx: AgentContext, run_ctx: RunContext[Any], code: str) -> str:  # noqa: D417
-    """Execute Python code with access to your own runtime context.
-
-    This is a debugging/development tool that gives you full access to
-    inspect and interact with your runtime environment.
-
-    Args:
-        code: Python code with async main() function to execute
-
-    Returns:
-        Result of execution or error message
-    """
-    # Emit progress with the code being executed
-    await ctx.events.tool_call_progress(
-        title="Executing introspection code",
-        status="in_progress",
-        items=[f"```python\n{code}\n```"],
-    )
-
-    # Build namespace with runtime context and stateful storage
-    # Note: This function is called through self binding, so we have access to the toolset instance
-    toolset = ctx.agent.tools.providers.get("debug")  # Get the debug toolset instance
-
-    def save(key: str, value: Any) -> None:
-        """Save a value to persist between introspection calls."""
-        if toolset and hasattr(toolset, "_namespace_storage"):
-            toolset._namespace_storage[key] = value
-
-    state = (
-        toolset._namespace_storage.copy()
-        if toolset and hasattr(toolset, "_namespace_storage")
-        else {}
-    )
-
-    namespace: dict[str, Any] = {
-        "ctx": ctx,
-        "run_ctx": run_ctx,
-        "me": ctx.agent,
-        "save": save,
-        "state": state,
-    }
-    try:
-        exec(code, namespace)
-        if "main" not in namespace:
-            return "Error: Code must define an async main() function"
-        result = await namespace["main"]()
-        await ctx.events.tool_call_progress(
-            title="Executed introspection code successfully",
-            status="in_progress",
-            items=[f"```python\n{code}\n```\n\n```terminal\n{result}\n```"],
-        )
-
-        return str(result) if result is not None else "Code executed successfully (no return value)"
-    except Exception as e:  # noqa: BLE001
-        return f"Error executing code: {type(e).__name__}: {e}"
-
-
 # =============================================================================
 # Log Tools
 # =============================================================================
@@ -302,9 +242,70 @@ class DebugTools(StaticResourceProvider):
         """
         super().__init__(name=name)
         self._namespace_storage: dict[str, Any] = {}  # Stateful storage for introspection
+        self._script_history: list[str] = []  # History of executed scripts
 
-        desc = (execute_introspection.__doc__ or "") + "\n\n" + INTROSPECTION_USAGE
+        desc = (self.execute_introspection.__doc__ or "") + "\n\n" + INTROSPECTION_USAGE
         self._tools = [
-            self.create_tool(execute_introspection, category="other", description_override=desc),
+            self.create_tool(
+                self.execute_introspection, category="other", description_override=desc
+            ),
             self.create_tool(get_platform_paths, category="other", read_only=True, idempotent=True),
         ]
+
+    async def execute_introspection(
+        self, ctx: AgentContext, run_ctx: RunContext[Any], code: str
+    ) -> str:  # noqa: D417
+        """Execute Python code with access to your own runtime context.
+
+        This is a debugging/development tool that gives you full access to
+        inspect and interact with your runtime environment.
+
+        Args:
+            code: Python code with async main() function to execute
+
+        Returns:
+            Result of execution or error message
+        """
+        # Emit progress with the code being executed
+        await ctx.events.tool_call_progress(
+            title="Executing introspection code",
+            status="in_progress",
+            items=[f"```python\n{code}\n```"],
+        )
+
+        # Build namespace with runtime context and stateful storage
+        def save(key: str, value: Any) -> None:
+            """Save a value to persist between introspection calls."""
+            self._namespace_storage[key] = value
+
+        state = self._namespace_storage.copy()
+
+        namespace: dict[str, Any] = {
+            "ctx": ctx,
+            "run_ctx": run_ctx,
+            "me": ctx.agent,
+            "save": save,
+            "state": state,
+        }
+        try:
+            exec(code, namespace)
+            if "main" not in namespace:
+                return "Error: Code must define an async main() function"
+            result = await namespace["main"]()
+
+            # Save script to history
+            self._script_history.append(code)
+
+            await ctx.events.tool_call_progress(
+                title="Executed introspection code successfully",
+                status="in_progress",
+                items=[f"```python\n{code}\n```\n\n```terminal\n{result}\n```"],
+            )
+
+            return (
+                str(result)
+                if result is not None
+                else "Code executed successfully (no return value)"
+            )
+        except Exception as e:  # noqa: BLE001
+            return f"Error executing code: {type(e).__name__}: {e}"
