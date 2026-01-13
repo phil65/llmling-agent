@@ -56,6 +56,7 @@ Example:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from decimal import Decimal
 import re
 from typing import TYPE_CHECKING, Any, Literal, Self
@@ -833,7 +834,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._client = ClaudeSDKClient(options=options)
         # Start connection in background task to reduce first-prompt latency
         # The task owns the anyio context, we just await it when needed
-        self._connection_task: asyncio.Task[None] | None = asyncio.create_task(self._do_connect())
+        self._connection_task = asyncio.create_task(self._do_connect())
         return self
 
     async def _do_connect(self) -> None:
@@ -866,10 +867,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Cancel connection task if still running
         if self._connection_task and not self._connection_task.done():
             self._connection_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._connection_task
-            except asyncio.CancelledError:
-                pass
         self._connection_task = None
 
         # Clean up tool bridge first
