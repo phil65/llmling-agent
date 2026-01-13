@@ -169,11 +169,7 @@ class ACPServer(BaseServer):
         except Exception:
             self.log.exception("ACP server error")
 
-    async def swap_pool(
-        self,
-        config_path: str,
-        agent: str | None = None,
-    ) -> list[str]:
+    async def swap_pool(self, config_path: str, agent: str | None = None) -> list[str]:
         """Swap the current pool with a new one from config.
 
         This method handles the full lifecycle of swapping pools:
@@ -197,17 +193,14 @@ class ACPServer(BaseServer):
         self.log.info("Loading new pool configuration", config_path=config_path)
         new_manifest = AgentsManifest.from_file(config_path)
         new_pool = AgentPool(manifest=new_manifest)
-
         # 2. Validate agent exists in new pool if specified
         agent_names = list(new_pool.all_agents.keys())
         if not agent_names:
             msg = "New configuration contains no agents"
             raise ValueError(msg)
-
         if agent and agent not in agent_names:
             msg = f"Agent {agent!r} not found in new config. Available: {agent_names}"
             raise ValueError(msg)
-
         # 3. Enter new pool context first (so we can roll back if it fails)
         try:
             await new_pool.__aenter__()
@@ -215,18 +208,15 @@ class ACPServer(BaseServer):
             self.log.exception("Failed to initialize new pool")
             msg = f"Failed to initialize new pool: {e}"
             raise ValueError(msg) from e
-
         # 4. Exit old pool context
         old_pool = self.pool
         try:
             await old_pool.__aexit__(None, None, None)
         except Exception:
             self.log.exception("Error closing old pool (continuing with swap)")
-
         # 5. Update references
         self.pool = new_pool
         self.agent = agent
         self.config_path = config_path
-
         self.log.info("Pool swapped successfully", agent_names=agent_names, default_agent=agent)
         return agent_names
