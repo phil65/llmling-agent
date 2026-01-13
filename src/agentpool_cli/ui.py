@@ -20,7 +20,7 @@ ui_app = t.Typer(help="Launch interactive user interfaces")
 
 
 @ui_app.command("opencode")
-def opencode_ui_command(
+def opencode_ui_command(  # noqa: PLR0915
     config: Annotated[
         str | None,
         t.Argument(help="Path to agent configuration (optional, not used with --attach)"),
@@ -80,7 +80,7 @@ def opencode_ui_command(
         os.system("clear" if os.name != "nt" else "cls")
 
         result = subprocess.run(["opencode", "attach", url], check=False)
-        if result.returncode != 0 and result.returncode != 130:  # 130 = Ctrl+C
+        if result.returncode not in {0, 130}:  # 130 = Ctrl+C
             logger.warning("OpenCode TUI exited with non-zero status", code=result.returncode)
         return
 
@@ -121,7 +121,7 @@ def opencode_ui_command(
             except (TimeoutError, ConnectionRefusedError, OSError):
                 if i == max_retries - 1:
                     msg = f"Server failed to start after {max_retries} attempts"
-                    raise RuntimeError(msg)
+                    raise RuntimeError(msg)  # noqa: B904
                 time.sleep(0.5)
 
         # Give HTTP layer a moment to be fully ready
@@ -210,7 +210,7 @@ def _run_toad_stdio(config: str | None) -> None:
         check=False,
     )
 
-    if result.returncode != 0 and result.returncode != 130:  # 130 = Ctrl+C
+    if result.returncode not in {0, 130}:  # 130 = Ctrl+C
         logger.warning("Toad TUI exited with non-zero status", code=result.returncode)
 
 
@@ -254,7 +254,7 @@ def _run_toad_websocket(config: str | None, port: int) -> None:
             check=False,
         )
 
-        if result.returncode != 0 and result.returncode != 130:  # 130 = Ctrl+C
+        if result.returncode not in {0, 130}:  # 130 = Ctrl+C
             logger.warning("Toad TUI exited with non-zero status", code=result.returncode)
 
     except KeyboardInterrupt:
