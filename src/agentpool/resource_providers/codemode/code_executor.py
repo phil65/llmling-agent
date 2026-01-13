@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from dataclasses import dataclass
+from datetime import UTC, datetime
+import json
 from typing import TYPE_CHECKING, Any, Self
 
 import anyio
@@ -21,6 +23,7 @@ if TYPE_CHECKING:
     from exxec.models import ServerInfo
     from exxec_config import ExecutionEnvironmentConfig
     from fastapi import FastAPI
+    from fsspec.asyn import AsyncFileSystem
     from schemez import ToolsetCodeGenerator
     import uvicorn
 
@@ -47,8 +50,12 @@ class RemoteCodeExecutor:
     """Execution environment for running code."""
 
     def __post_init__(self) -> None:
-        """Initialize script history after dataclass init."""
-        self._script_history: list[str] = []
+        """Initialize filesystem for script history after dataclass init."""
+        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+        from fsspec.implementations.memory import MemoryFileSystem
+
+        self._memory_fs = MemoryFileSystem()
+        self._fs = AsyncFileSystemWrapper(self._memory_fs)
 
     @classmethod
     def from_tools(
@@ -82,19 +89,70 @@ class RemoteCodeExecutor:
         """Get comprehensive description of available tools."""
         return self.toolset_generator.generate_tool_description()
 
-    async def execute_code(self, code: str) -> Any:
+    def get_fs(self) -> AsyncFileSystem:
+        """Get filesystem view of script history.
+
+        Returns:
+            AsyncFileSystem containing:
+            - scripts/{timestamp}_{title}.py - Executed scripts
+            - scripts/{timestamp}_{title}.json - Execution metadata
+        """
+        return self._fs
+
+    async def execute_code(self, code: str, title: str) -> Any:
         """Execute code with tools available via HTTP API.
 
         Args:
             code: Python code to execute
+            title: Short descriptive title for this script (3-4 words)
 
         Returns:
             Execution result from the environment
         """
-        result = await self.execution_env.execute(code)
-        # Save script to history after execution
-        self._script_history.append(code)
-        return result
+        start_time = datetime.now(UTC)
+        exit_code = 0
+        error_msg: str | None = None
+        exec_result = None
+        result_str = ""
+
+        try:
+            exec_result = await self.execution_env.execute(code)
+            result_str = str(exec_result)
+            # Check if execution failed
+            if (
+                hasattr(exec_result, "exit_code")
+                and exec_result.exit_code is not None
+                and exec_result.exit_code != 0
+            ):
+                exit_code = exec_result.exit_code
+                error_msg = getattr(exec_result, "error", None)
+        except Exception as e:  # noqa: BLE001
+            exit_code = 1
+            error_msg = str(e)
+            result_str = f"Error executing code: {error_msg}"
+        finally:
+            # Save to filesystem
+            end_time = datetime.now(UTC)
+            duration = (end_time - start_time).total_seconds()
+            timestamp = start_time.strftime("%Y%m%d_%H%M%S")
+
+            # Write script file
+            script_path = f"scripts/{timestamp}_{title}.py"
+            self._memory_fs.pipe(script_path, code.encode("utf-8"))
+
+            # Write metadata file
+            metadata = {
+                "title": title,
+                "timestamp": start_time.isoformat(),
+                "exit_code": exit_code,
+                "duration": duration,
+                "result": result_str,
+                "error": error_msg,
+            }
+            metadata_path = f"scripts/{timestamp}_{title}.json"
+            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
+
+        return exec_result
 
     async def __aenter__(self) -> Self:
         """Async context manager entry."""
@@ -216,7 +274,9 @@ if __name__ == "__main__":
         config = LocalExecutionEnvironmentConfig()
         provider = RemoteCodeExecutor.from_tools(tools, config, server_port=9876)
         async with provider:
-            result = await provider.execute_code("_result = await add_numbers(5, 3)")
+            result = await provider.execute_code(
+                "_result = await add_numbers(5, 3)", title="test_addition"
+            )
             print(f"Result: {result.result}")
 
     anyio.run(main)

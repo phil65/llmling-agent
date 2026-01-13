@@ -150,7 +150,7 @@ class FSSpecTools(ResourceProvider):
         self._max_image_size = max_image_size
         self._max_image_bytes = max_image_bytes
 
-    def get_fs(self, agent_ctx: AgentContext) -> AsyncFileSystem:
+    def _get_fs(self, agent_ctx: AgentContext) -> AsyncFileSystem:
         """Get filesystem, falling back to agent's env if not set.
 
         Args:
@@ -206,7 +206,7 @@ class FSSpecTools(ResourceProvider):
         # Lazy init repomap - use file's directory as root
         if self._repomap is None:
             root = str(Path(path).parent)
-            fs = self.get_fs(agent_ctx)
+            fs = self._get_fs(agent_ctx)
             self._repomap = RepoMap(fs, root, max_tokens=self._map_max_tokens)
 
         return await self._repomap.get_file_map(path, max_tokens=self._map_max_tokens)
@@ -322,7 +322,7 @@ class FSSpecTools(ResourceProvider):
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
 
         try:
-            fs = self.get_fs(agent_ctx)
+            fs = self._get_fs(agent_ctx)
             # Check if path exists
             if not await fs._exists(path):
                 error_msg = f"Path does not exist: {path}"
@@ -428,7 +428,7 @@ class FSSpecTools(ResourceProvider):
             mime_type = guess_type(path)
             # Fast path: known binary MIME types (images, audio, video, etc.)
             if is_binary_mime(mime_type):
-                data = await self.get_fs(agent_ctx)._cat_file(path)
+                data = await self._get_fs(agent_ctx)._cat_file(path)
                 await agent_ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"
                 # Resize images if needed
@@ -445,7 +445,7 @@ class FSSpecTools(ResourceProvider):
                         return [note, BinaryContent(data=data, media_type=mime, identifier=path)]
                 return BinaryContent(data=data, media_type=mime, identifier=path)
             # Read content and probe for binary (git-style null byte detection)
-            data = await self.get_fs(agent_ctx)._cat_file(path)
+            data = await self._get_fs(agent_ctx)._cat_file(path)
             if is_binary_content(data):
                 # Binary file - return as BinaryContent for native model handling
                 await agent_ctx.events.file_operation("read", path=path, success=True)
@@ -583,7 +583,7 @@ class FSSpecTools(ResourceProvider):
                 return {"error": msg}
 
             # Check if file exists and overwrite protection
-            fs = self.get_fs(agent_ctx)
+            fs = self._get_fs(agent_ctx)
             file_exists = await fs._exists(path)
 
             if file_exists and mode == "w" and not overwrite:
@@ -655,7 +655,7 @@ class FSSpecTools(ResourceProvider):
         await agent_ctx.events.tool_call_start(title=msg, kind="delete", locations=[path])
         try:
             # Check if path exists and get its type
-            fs = self.get_fs(agent_ctx)
+            fs = self._get_fs(agent_ctx)
             try:
                 info = await fs._info(path)
                 path_type = info.get("type", "unknown")
@@ -1092,7 +1092,7 @@ class FSSpecTools(ResourceProvider):
 
             # Fallback to fsspec grep if subprocess didn't work
             if result is None or "error" in result:
-                fs = self.get_fs(agent_ctx)
+                fs = self._get_fs(agent_ctx)
                 result = await grep_with_fsspec(
                     fs=fs,
                     pattern=pattern,
@@ -1135,12 +1135,12 @@ class FSSpecTools(ResourceProvider):
     async def _read(self, agent_ctx: AgentContext, path: str, encoding: str = "utf-8") -> str:
         # with self.fs.open(path, "r", encoding="utf-8") as f:
         #     return f.read()
-        return await self.get_fs(agent_ctx)._cat(path)  # type: ignore[no-any-return]
+        return await self._get_fs(agent_ctx)._cat(path)  # type: ignore[no-any-return]
 
     async def _write(self, agent_ctx: AgentContext, path: str, content: str | bytes) -> None:
         if isinstance(content, str):
             content = content.encode()
-        await self.get_fs(agent_ctx)._pipe_file(path, content)
+        await self._get_fs(agent_ctx)._pipe_file(path, content)
 
     async def download_file(  # noqa: D417
         self,
@@ -1174,7 +1174,7 @@ class FSSpecTools(ResourceProvider):
         full_path = f"{target_dir.rstrip('/')}/{filename}"
 
         try:
-            fs = self.get_fs(agent_ctx)
+            fs = self._get_fs(agent_ctx)
             # Ensure target directory exists
             await fs._makedirs(target_dir, exist_ok=True)
 

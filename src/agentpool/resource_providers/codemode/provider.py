@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from functools import partial
 import inspect
+import json
 from typing import TYPE_CHECKING, Any
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
@@ -19,6 +21,7 @@ from agentpool_toolsets.fsspec_toolset.toolset import FSSpecTools
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from fsspec.asyn import AsyncFileSystem
     from schemez import ToolsetCodeGenerator
 
     from agentpool.resource_providers import ResourceProvider
@@ -47,7 +50,13 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         self.include_docstrings = include_docstrings
         self._cached_tool: Tool | None = None
         self.usage_notes = usage_notes
-        self._script_history: list[str] = []  # History of executed scripts
+
+        # Filesystem for script history
+        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+        from fsspec.implementations.memory import MemoryFileSystem
+
+        self._memory_fs = MemoryFileSystem()
+        self._fs = AsyncFileSystemWrapper(self._memory_fs)
 
     async def get_tools(self) -> Sequence[Tool]:
         """Return single meta-tool for Python execution with available tools."""
@@ -58,9 +67,9 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
 
         if self._cached_tool is None:
             # Create a closure that captures self but isn't a bound method
-            async def execute_tool(ctx: AgentContext, python_code: str) -> Any:
+            async def execute_tool(ctx: AgentContext, python_code: str, title: str) -> Any:
                 """These docstings are overriden by description_override."""
-                return await self.execute(ctx, python_code)
+                return await self.execute(ctx, python_code, title)
 
             self._cached_tool = self.create_tool(execute_tool, description_override=desc)
         else:
@@ -69,11 +78,12 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
 
         return [self._cached_tool]
 
-    async def execute(self, ctx: AgentContext, python_code: str) -> Any:  # noqa: D417
+    async def execute(self, ctx: AgentContext, python_code: str, title: str) -> Any:  # noqa: D417
         """Execute Python code with all wrapped tools available as functions.
 
         Args:
             python_code: Python code to execute
+            title: Short descriptive title for this script (3-4 words)
 
         Returns:
             Result of the last expression or explicit return value
@@ -96,22 +106,47 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         # namespace["report_progress"] = NamespaceCallable(report_progress)
 
         validate_code(python_code)
+        start_time = datetime.now(UTC)
+        exit_code = 0
+        error_msg = None
+        result_value = None
+
         try:
             exec(python_code, namespace)
-            result = await namespace["main"]()
+            result_value = await namespace["main"]()
             # Handle edge cases with coroutines and return values
-            if inspect.iscoroutine(result):
-                result = await result
+            if inspect.iscoroutine(result_value):
+                result_value = await result_value
 
-            # Save script to history after successful execution
-            self._script_history.append(python_code)
-
-            if not result:  # in order to not confuse the model, return a success message.
-                return "Code executed successfully"
+            if not result_value:  # in order to not confuse the model, return a success message.
+                result_value = "Code executed successfully"
         except Exception as e:  # noqa: BLE001
-            return f"Error executing code: {e!s}"
-        else:
-            return result
+            exit_code = 1
+            error_msg = f"{e!s}"
+            result_value = f"Error executing code: {error_msg}"
+        finally:
+            # Save to filesystem
+            end_time = datetime.now(UTC)
+            duration = (end_time - start_time).total_seconds()
+            timestamp = start_time.strftime("%Y%m%d_%H%M%S")
+
+            # Write script file
+            script_path = f"scripts/{timestamp}_{title}.py"
+            self._memory_fs.pipe(script_path, python_code.encode("utf-8"))
+
+            # Write metadata file
+            metadata = {
+                "title": title,
+                "timestamp": start_time.isoformat(),
+                "exit_code": exit_code,
+                "duration": duration,
+                "result": str(result_value),
+                "error": error_msg,
+            }
+            metadata_path = f"scripts/{timestamp}_{title}.json"
+            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
+
+        return result_value
 
     def invalidate_cache(self) -> None:
         """Invalidate cached tool when providers change."""
@@ -122,6 +157,16 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         """Get fresh toolset generator with current tools."""
         tools = await super().get_tools()
         return tools_to_codegen(tools=tools, include_docstrings=self.include_docstrings)
+
+    def get_fs(self) -> AsyncFileSystem:
+        """Get filesystem view of script history.
+
+        Returns:
+            AsyncFileSystem containing:
+            - scripts/{timestamp}_{title}.py - Executed scripts
+            - scripts/{timestamp}_{title}.json - Execution metadata
+        """
+        return self._fs
 
 
 if __name__ == "__main__":

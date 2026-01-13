@@ -75,11 +75,12 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
         self._code_executor: RemoteCodeExecutor | None = None
         self._provider_lock = asyncio.Lock()
 
-    async def execute(self, ctx: AgentContext, python_code: str) -> Any:  # noqa: D417
+    async def execute(self, ctx: AgentContext, python_code: str, title: str) -> Any:  # noqa: D417
         """Execute Python code in secure environment with tools available via HTTP.
 
         Args:
             python_code: Python code to execute
+            title: Short descriptive title for this script (3-4 words)
 
         Returns:
             Result of the code execution
@@ -90,16 +91,12 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
         full_code = f"{PROGRESS_HELPER}\n\n{python_code}"
         logger.info("Complete code", code=full_code)
         try:
-            result = await code_provider.execution_env.execute(full_code)
-            if result.success:
-                logger.info("Code executed successfully")
-                if result.result is None:
-                    return "Code executed successfully"
-                return result.result
+            result = await code_provider.execute_code(full_code, title)
         except Exception as e:  # noqa: BLE001
             return f"Error in secure execution: {e!s}"
         else:
-            return f"Error executing code: {result.error}"
+            logger.info("Code executed")
+            return result
 
     async def _get_code_executor(self) -> RemoteCodeExecutor:
         """Get cached code execution provider with thread-safe initialization."""

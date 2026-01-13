@@ -4,10 +4,21 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+import json
 import logging
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
+from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+from fsspec.implementations.memory import MemoryFileSystem
+from pydantic_ai import RunContext  # noqa: TC002
+
+from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.resource_providers import StaticResourceProvider
+
+
+if TYPE_CHECKING:
+    from fsspec.asyn import AsyncFileSystem
 
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -242,7 +253,9 @@ class DebugTools(StaticResourceProvider):
         """
         super().__init__(name=name)
         self._namespace_storage: dict[str, Any] = {}  # Stateful storage for introspection
-        self._script_history: list[str] = []  # History of executed scripts
+        # Wrap MemoryFileSystem for async support
+        self._memory_fs = MemoryFileSystem()
+        self._fs = AsyncFileSystemWrapper(self._memory_fs)
 
         desc = (self.execute_introspection.__doc__ or "") + "\n\n" + INTROSPECTION_USAGE
         self._tools = [
@@ -252,9 +265,19 @@ class DebugTools(StaticResourceProvider):
             self.create_tool(get_platform_paths, category="other", read_only=True, idempotent=True),
         ]
 
-    async def execute_introspection(
-        self, ctx: AgentContext, run_ctx: RunContext[Any], code: str
-    ) -> str:  # noqa: D417
+    def get_fs(self) -> AsyncFileSystem:
+        """Get filesystem view of script history and state.
+
+        Returns:
+            AsyncFileSystem containing:
+            - scripts/{timestamp}_{title}.py - Executed scripts
+            - scripts/{timestamp}_{title}.json - Execution metadata
+        """
+        return self._fs
+
+    async def execute_introspection(  # noqa: D417
+        self, ctx: AgentContext, run_ctx: RunContext[Any], code: str, title: str
+    ) -> str:
         """Execute Python code with access to your own runtime context.
 
         This is a debugging/development tool that gives you full access to
@@ -262,6 +285,7 @@ class DebugTools(StaticResourceProvider):
 
         Args:
             code: Python code with async main() function to execute
+            title: Short descriptive title for this script (3-4 words)
 
         Returns:
             Result of execution or error message
@@ -287,25 +311,51 @@ class DebugTools(StaticResourceProvider):
             "save": save,
             "state": state,
         }
+        start_time = datetime.now(UTC)
+        exit_code = 0
+        error_msg = None
+        result_str = None
+
         try:
             exec(code, namespace)
             if "main" not in namespace:
                 return "Error: Code must define an async main() function"
             result = await namespace["main"]()
-
-            # Save script to history
-            self._script_history.append(code)
-
-            await ctx.events.tool_call_progress(
-                title="Executed introspection code successfully",
-                status="in_progress",
-                items=[f"```python\n{code}\n```\n\n```terminal\n{result}\n```"],
-            )
-
-            return (
+            result_str = (
                 str(result)
                 if result is not None
                 else "Code executed successfully (no return value)"
             )
+
+            await ctx.events.tool_call_progress(
+                title="Executed introspection code successfully",
+                status="in_progress",
+                items=[f"```python\n{code}\n```\n\n```terminal\n{result_str}\n```"],
+            )
         except Exception as e:  # noqa: BLE001
-            return f"Error executing code: {type(e).__name__}: {e}"
+            exit_code = 1
+            error_msg = f"{type(e).__name__}: {e}"
+            result_str = error_msg
+        finally:
+            # Save to filesystem
+            end_time = datetime.now(UTC)
+            duration = (end_time - start_time).total_seconds()
+            timestamp = start_time.strftime("%Y%m%d_%H%M%S")
+
+            # Write script file
+            script_path = f"scripts/{timestamp}_{title}.py"
+            self._memory_fs.pipe(script_path, code.encode("utf-8"))
+
+            # Write metadata file
+            metadata = {
+                "title": title,
+                "timestamp": start_time.isoformat(),
+                "exit_code": exit_code,
+                "duration": duration,
+                "result": result_str,
+                "error": error_msg,
+            }
+            metadata_path = f"scripts/{timestamp}_{title}.json"
+            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
+
+        return result_str

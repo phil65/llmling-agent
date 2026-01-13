@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
+import json
 from typing import TYPE_CHECKING
 import uuid
 
@@ -22,6 +24,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from exxec import ExecutionEnvironment
+    from fsspec.asyn import AsyncFileSystem
 
 
 logger = get_logger(__name__)
@@ -41,9 +44,12 @@ class ExecuteCodeTool(Tool[str]):
     """Execution environment to use. Falls back to agent.env if not set."""
 
     def __post_init__(self) -> None:
-        """Initialize script history after dataclass init."""
-        super().__post_init__()
-        self._script_history: list[str] = []
+        """Initialize filesystem for script history after dataclass init."""
+        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+        from fsspec.implementations.memory import MemoryFileSystem
+
+        self._memory_fs = MemoryFileSystem()
+        self._fs = AsyncFileSystemWrapper(self._memory_fs)
 
     def get_callable(self) -> Callable[..., Awaitable[str]]:
         """Return the execute method as the callable."""
@@ -55,16 +61,28 @@ class ExecuteCodeTool(Tool[str]):
             return self.env
         return ctx.agent.env
 
+    def get_fs(self) -> AsyncFileSystem:
+        """Get filesystem view of script history.
+
+        Returns:
+            AsyncFileSystem containing:
+            - scripts/{timestamp}_{title}.py - Executed scripts
+            - scripts/{timestamp}_{title}.json - Execution metadata
+        """
+        return self._fs
+
     async def _execute(
         self,
         ctx: AgentContext,
         code: str,
+        title: str,
     ) -> str:
         """Execute Python code and return the result.
 
         Args:
             ctx: Agent context for event emission and environment access
             code: Python code to execute
+            title: Short descriptive title for this script (3-4 words)
         """
         process_id: str | None = None
         output_parts: list[str] = []
@@ -108,20 +126,38 @@ class ExecuteCodeTool(Tool[str]):
 
             combined_output = "".join(output_parts)
 
-            # Save script to history after successful execution (exit_code 0 or None)
-            if exit_code is None or exit_code == 0:
-                self._script_history.append(code)
-
             # Format error response
             if error_msg:
-                return f"{combined_output}\n\nError: {error_msg}\nExit code: {exit_code}"
+                result_str = f"{combined_output}\n\nError: {error_msg}\nExit code: {exit_code}"
+            elif exit_code and exit_code != 0:
+                result_str = f"{combined_output}\n\nExit code: {exit_code}"
+            else:
+                result_str = combined_output
 
         except Exception as e:  # noqa: BLE001
             error_id = process_id or f"code_{uuid.uuid4().hex[:8]}"
             await ctx.events.process_started(error_id, "execute_code", success=False, error=str(e))
-            return f"Error executing code: {e}"
+            exit_code = 1
+            error_msg = str(e)
+            result_str = f"Error executing code: {e}"
+        finally:
+            # Save to filesystem
+            end_time = datetime.now(UTC)
+            timestamp = end_time.strftime("%Y%m%d_%H%M%S")
 
-        # Return just output if success, add exit code only if non-zero
-        if exit_code and exit_code != 0:
-            return f"{combined_output}\n\nExit code: {exit_code}"
-        return combined_output
+            # Write script file
+            script_path = f"scripts/{timestamp}_{title}.py"
+            self._memory_fs.pipe(script_path, code.encode("utf-8"))
+
+            # Write metadata file
+            metadata = {
+                "title": title,
+                "timestamp": end_time.isoformat(),
+                "exit_code": exit_code or 0,
+                "result": result_str,
+                "error": error_msg,
+            }
+            metadata_path = f"scripts/{timestamp}_{title}.json"
+            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
+
+        return result_str
