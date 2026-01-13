@@ -5,13 +5,12 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable
 from contextlib import AsyncExitStack, asynccontextmanager
-from dataclasses import dataclass, field, replace
+from dataclasses import replace
 import time
 from typing import TYPE_CHECKING, Any, Self, TypedDict, TypeVar, overload
 from uuid import uuid4
 
 from anyenv import method_spawner
-from anyenv.signals import Signal
 import logfire
 from pydantic import ValidationError
 from pydantic._internal import _typing_extra
@@ -43,7 +42,6 @@ from agentpool.storage import StorageManager
 from agentpool.tools import Tool, ToolManager
 from agentpool.tools.exceptions import ToolError
 from agentpool.utils.inspection import get_argument_key
-from agentpool.utils.now import get_now
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool.utils.result_utils import to_type
 from agentpool.utils.streams import merge_queue_into_iterator
@@ -51,7 +49,6 @@ from agentpool.utils.streams import merge_queue_into_iterator
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
-    from datetime import datetime
     from types import TracebackType
 
     from exxec import ExecutionEnvironment
@@ -70,7 +67,6 @@ if TYPE_CHECKING:
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
-        AgentName,
         BuiltinEventHandlerType,
         EndStrategy,
         IndividualEventHandler,
@@ -161,17 +157,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     Generically typed with: Agent[Type of Dependencies, Type of Result]
     """
 
-    @dataclass(frozen=True)
-    class AgentReset:
-        """Emitted when agent is reset."""
-
-        agent_name: AgentName
-        previous_tools: dict[str, bool]
-        new_tools: dict[str, bool]
-        timestamp: datetime = field(default_factory=get_now)
-
-    agent_reset: Signal[AgentReset] = Signal()
-
     def __init__(  # noqa: PLR0915
         # we dont use AgentKwargs here so that we can work with explicit ones in the ctor
         self,
@@ -256,10 +241,13 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 Defaults to ["models.dev"] if not specified.
             commands: Slash commands
         """
+        from llmling_models_config import StringModelConfig
+
         from agentpool.agents.interactions import Interactions
         from agentpool.agents.sys_prompts import SystemPrompts
         from agentpool.models.agents import NativeAgentConfig
         from agentpool.prompts.conversion_manager import ConversionManager
+        from agentpool_commands.pool import CompactCommand
         from agentpool_config.session import MemoryConfig
 
         self.deps_type = deps_type
@@ -271,14 +259,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         all_mcp_servers = list(mcp_servers) if mcp_servers else []
         if agent_config and agent_config.mcp_servers:
             all_mcp_servers.extend(agent_config.get_mcp_servers())
-
         # Add CompactCommand - only makes sense for Native Agent (has own history)
         # Other agents (ClaudeCode, ACP, AGUI) don't control their history directly
-        from agentpool_commands.pool import CompactCommand
-
         all_commands = list(commands) if commands else []
         all_commands.append(CompactCommand())
-
         # Call base class with shared parameters
         super().__init__(
             name=name,
@@ -298,7 +282,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Store config for context creation
         # Convert model to proper config type for NativeAgentConfig
-        from llmling_models_config import StringModelConfig
 
         config_model: AnyModelConfig
         if isinstance(model, Model):
@@ -313,14 +296,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             )
         else:
             config_model = model
-        self._agent_config = agent_config or NativeAgentConfig(
-            name=name,
-            model=config_model,
-        )
-
+        self._agent_config = agent_config or NativeAgentConfig(name=name, model=config_model)
         # Store builtin tools for pydantic-ai
         self._builtin_tools = list(builtin_tools) if builtin_tools else []
-
         # Override tools with Agent-specific ToolManager (with tools and tool_mode)
         all_tools = list(tools or [])
         self.tools = ToolManager(all_tools, tool_mode=tool_mode)
@@ -328,7 +306,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             self.tools.add_provider(toolset_provider)
         aggregating_provider = self.mcp.get_aggregating_provider()
         self.tools.add_provider(aggregating_provider)
-
         # Override conversation with Agent-specific MessageHistory (with storage, etc.)
         resources = list(resources)
         if knowledge:
@@ -351,7 +328,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._output_retries = output_retries
         self.parallel_init = parallel_init
         self.talk = Interactions(self)
-
         # Set up system prompts
         all_prompts: list[AnyPromptType] = []
         if isinstance(system_prompt, (list, tuple)):
@@ -359,13 +335,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         elif system_prompt:
             all_prompts.append(system_prompt)
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=self._manifest.prompt_manager)
-
         # Store hooks
         self.hooks = hooks
-
         # Store default usage limits
         self._default_usage_limits = usage_limits
-
         # Store providers for model discovery
         self._providers = list(providers) if providers else None
 
@@ -470,33 +443,27 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         toolsets_list = config.get_toolsets()
         if config_tool_provider := config.get_tool_provider():
             toolsets_list.append(config_tool_provider)
-
         # Convert workers config to a toolset (backwards compatibility)
         if config.workers:
             from agentpool_toolsets.builtin.workers import WorkersTools
 
             workers_provider = WorkersTools(workers=list(config.workers), name="workers")
             toolsets_list.append(workers_provider)
-
         # Resolve output type
         agent_output_type = manifest.get_output_type(name) or str
         resolved_output_type = to_type(agent_output_type, manifest.responses)
-
         # Merge event handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
             *config_handlers,
             *(event_handlers or []),
         ]
-
         # Resolve model
         resolved_model = manifest.resolve_model(config.model)
         model = resolved_model.get_model()
         model_settings = resolved_model.get_model_settings()
-
         # Extract builtin tools
         builtin_tools = config.get_builtin_tools()
-
         return cls(
             model=model,
             model_settings=model_settings,
@@ -1128,20 +1095,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """
         self.tool_confirmation_mode = mode
         self.log.info("Tool confirmation mode changed", mode=mode)
-
-    async def reset(self) -> None:
-        """Reset agent state (conversation history and tool states)."""
-        old_tools = await self.tools.list_tools()
-        await self.conversation.clear()
-        await self.tools.reset_states()
-        new_tools = await self.tools.list_tools()
-
-        event = self.AgentReset(
-            agent_name=self.name,
-            previous_tools=old_tools,
-            new_tools=new_tools,
-        )
-        await self.agent_reset.emit(event)
 
     @asynccontextmanager
     async def temporary_state[T](

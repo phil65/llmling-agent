@@ -25,6 +25,7 @@ from agentpool.utils.now import get_now
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
+    from datetime import datetime
 
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
@@ -38,6 +39,7 @@ if TYPE_CHECKING:
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory, ModeInfo
     from agentpool.common_types import (
+        AgentName,
         BuiltinEventHandlerType,
         IndividualEventHandler,
         MCPServerStatus,
@@ -88,6 +90,16 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         timestamp: Any = field(default_factory=get_now)  # datetime
         """When the failure occurred."""
 
+    @dataclass(frozen=True)
+    class AgentReset:
+        """Emitted when agent is reset."""
+
+        agent_name: AgentName
+        previous_tools: dict[str, bool]
+        new_tools: dict[str, bool]
+        timestamp: datetime = field(default_factory=get_now)
+
+    agent_reset = Signal[AgentReset]()
     # Signal emitted when agent execution fails
     run_failed: Signal[RunFailedEvent] = Signal()
 
@@ -234,6 +246,20 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     def command_store(self) -> CommandStore:
         """Get the command store for slash commands."""
         return self._command_store
+
+    async def reset(self) -> None:
+        """Reset agent state (conversation history and tool states)."""
+        old_tools = await self.tools.list_tools()
+        await self.conversation.clear()
+        await self.tools.reset_states()
+        new_tools = await self.tools.list_tools()
+
+        event = self.AgentReset(
+            agent_name=self.name,
+            previous_tools=old_tools,
+            new_tools=new_tools,
+        )
+        await self.agent_reset.emit(event)
 
     @abstractmethod
     def get_context(self, data: Any = None) -> AgentContext[Any]:
