@@ -1004,7 +1004,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         await self.ensure_initialized()
         # Reset cancellation state
         self._cancelled = False
-        self._current_stream_task = asyncio.current_task()
         # Initialize conversation_id on first run and log to storage
         # Use passed conversation_id if provided (e.g., from chained agents)
         # TODO: decide whether we should store CC sessions ourselves

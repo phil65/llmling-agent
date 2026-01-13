@@ -328,24 +328,37 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         # Stream events from implementation
         final_message = None
-        async for event in self._stream_events(
-            converted_prompts,
-            user_msg=user_msg,
-            effective_parent_id=effective_parent_id,
-            store_history=store_history,
-            message_id=message_id,
-            conversation_id=conversation_id,
-            parent_id=parent_id,
-            message_history=message_history,
-            input_provider=input_provider,
-            wait_for_connections=wait_for_connections,
-            deps=deps,
-            event_handlers=event_handlers,
-        ):
-            yield event
-            # Capture final message from StreamCompleteEvent
-            if isinstance(event, StreamCompleteEvent):
-                final_message = event.message
+        self._current_stream_task = asyncio.current_task()
+        try:
+            async for event in self._stream_events(
+                converted_prompts,
+                user_msg=user_msg,
+                effective_parent_id=effective_parent_id,
+                store_history=store_history,
+                message_id=message_id,
+                conversation_id=conversation_id,
+                parent_id=parent_id,
+                message_history=message_history,
+                input_provider=input_provider,
+                wait_for_connections=wait_for_connections,
+                deps=deps,
+                event_handlers=event_handlers,
+            ):
+                yield event
+                # Capture final message from StreamCompleteEvent
+                if isinstance(event, StreamCompleteEvent):
+                    final_message = event.message
+        except Exception as e:
+            self.log.exception("Agent stream failed")
+            failed_event = BaseAgent.RunFailedEvent(
+                agent_name=self.name,
+                message="Agent stream failed",
+                exception=e,
+            )
+            await self.run_failed.emit(failed_event)
+            raise
+        finally:
+            self._current_stream_task = None
 
         # Post-processing after stream completes
         if final_message is not None:

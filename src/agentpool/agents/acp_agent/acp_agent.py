@@ -548,7 +548,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.log.debug("Starting streaming prompt", num_blocks=len(final_blocks))
         # Reset cancellation state
         self._cancelled = False
-        self._current_stream_task = asyncio.current_task()
         # Run prompt in background
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
         self._prompt_task = prompt_task
@@ -637,7 +636,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             complete_event = StreamCompleteEvent(message=message)
             await handler(None, complete_event)
             yield complete_event
-            self._current_stream_task = None
             self._prompt_task = None
             return
 

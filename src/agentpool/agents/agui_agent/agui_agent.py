@@ -410,7 +410,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Reset cancellation state
         self._cancelled = False
-        self._current_stream_task = asyncio.current_task()
 
         # Conversation ID initialization handled by BaseAgent
 
@@ -626,7 +625,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             complete_event = StreamCompleteEvent(message=final_message)
             await handler(None, complete_event)
             yield complete_event
-            self._current_stream_task = None
             return
 
         # Flush any remaining response parts
