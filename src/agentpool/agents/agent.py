@@ -655,9 +655,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     def to_structured[NewOutputDataT](
         self,
         output_type: type[NewOutputDataT],
-        *,
-        tool_name: str | None = None,
-        tool_description: str | None = None,
     ) -> Agent[TDeps, NewOutputDataT]:
         """Convert this agent to a structured agent.
 
@@ -680,10 +677,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format (provider:model_name)."""
-        if self._model:
-            # Construct full model ID with provider prefix (e.g., "anthropic:claude-haiku-4-5")
-            return f"{self._model.system}:{self._model.model_name}"
-        return None
+        # Construct full model ID with provider prefix (e.g., "anthropic:claude-haiku-4-5")
+        return f"{self._model.system}:{self._model.model_name}" if self._model else None
 
     def to_tool(
         self,
