@@ -75,12 +75,14 @@ class FetchRepoCommand(NodeCommand):
             if path:
                 base_url += f"/{path}"
 
-            # Build parameters
-            params = {}
+            # Build headers with Bearer token
+            headers = {"accept": "text/markdown"}
             api_key = os.getenv("UITHUB_API_KEY")
             if api_key:
-                params["apiKey"] = api_key
+                headers["Authorization"] = f"Bearer {api_key}"
 
+            # Build parameters
+            params = {}
             if include_dirs:
                 params["dir"] = ",".join(include_dirs)
             if disable_genignore:
@@ -120,16 +122,15 @@ class FetchRepoCommand(NodeCommand):
                 response = await client.get(
                     base_url,
                     params=params,
-                    headers={"accept": "text/markdown"},
+                    headers=headers,
                     timeout=30.0,
                 )
                 response.raise_for_status()
                 content = response.text
 
             # Stage the content for use in agent context
-            staged_part = UserPromptPart(
-                content=f"Repository contents from {display_path}:\n\n{content}"
-            )
+            part_content = f"Repository contents from {display_path}:\n\n{content}"
+            staged_part = UserPromptPart(content=part_content)
             session.staged_content.add([staged_part])
             # Send successful result - wrap in code block for proper display
             staged_count = len(session.staged_content)
