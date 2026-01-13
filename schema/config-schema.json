@@ -23007,6 +23007,22 @@
           "description": "Whether to automatically resolve $ref references in the schema",
           "title": "Resolve References",
           "type": "boolean"
+        },
+        "serializer": {
+          "default": "json",
+          "description": "Output format: 'json' (compact), 'json-formatted' , or 'yaml'",
+          "enum": [
+            "json",
+            "json-formatted",
+            "yaml"
+          ],
+          "examples": [
+            "json",
+            "json-formatted",
+            "yaml"
+          ],
+          "title": "Serializer Format",
+          "type": "string"
         }
       },
       "required": [
@@ -30589,6 +30605,22 @@
             "/path/to/spec.json"
           ],
           "title": "OpenAPI Spec Path"
+        },
+        "serializer": {
+          "default": "json",
+          "description": "Output format: 'json' (compact), 'json-formatted' , or 'yaml'",
+          "enum": [
+            "json",
+            "json-formatted",
+            "yaml"
+          ],
+          "examples": [
+            "json",
+            "json-formatted",
+            "yaml"
+          ],
+          "title": "Serializer Format",
+          "type": "string"
         }
       },
       "required": [
