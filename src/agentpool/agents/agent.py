@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable
-from contextlib import AsyncExitStack, asynccontextmanager, suppress
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass, field, replace
 import time
 from typing import TYPE_CHECKING, Any, Self, TypedDict, TypeVar, overload
@@ -12,7 +12,6 @@ from uuid import uuid4
 
 from anyenv import method_spawner
 from anyenv.signals import Signal
-import anyio
 import logfire
 from pydantic import ValidationError
 from pydantic._internal import _typing_extra
@@ -43,7 +42,7 @@ from agentpool.prompts.convert import convert_prompts
 from agentpool.storage import StorageManager
 from agentpool.tools import Tool, ToolManager
 from agentpool.tools.exceptions import ToolError
-from agentpool.utils.inspection import call_with_context, get_argument_key
+from agentpool.utils.inspection import get_argument_key
 from agentpool.utils.now import get_now
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool.utils.result_utils import to_type
@@ -77,7 +76,6 @@ if TYPE_CHECKING:
         IndividualEventHandler,
         ModelType,
         ProcessorCallback,
-        PromptCompatible,
         SessionIdType,
         ToolType,
     )
@@ -264,7 +262,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from agentpool.prompts.conversion_manager import ConversionManager
         from agentpool_config.session import MemoryConfig
 
-        self._infinite = False
         self.deps_type = deps_type
         self.model_settings = model_settings
         memory_cfg = (
@@ -353,7 +350,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._end_strategy: EndStrategy = end_strategy
         self._output_retries = output_retries
         self.parallel_init = parallel_init
-        self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
         self.talk = Interactions(self)
 
         # Set up system prompts
@@ -680,10 +676,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self.log.debug("Setting result type", output_type=output_type)
         self._output_type = to_type(output_type)  # type: ignore[assignment]
         return self  # type: ignore
-
-    def is_busy(self) -> bool:
-        """Check if agent is currently processing tasks."""
-        return bool(self.task_manager._pending_tasks or self._background_task)
 
     @property
     def model_name(self) -> str | None:
@@ -1059,83 +1051,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             self.log.exception("Task execution failed", error=str(e))
             msg = f"Task execution failed: {e}"
             raise JobError(msg) from e
-
-    async def run_in_background(
-        self,
-        *prompt: PromptCompatible,
-        max_count: int | None = None,
-        interval: float = 1.0,
-        **kwargs: Any,
-    ) -> asyncio.Task[ChatMessage[OutputDataT] | None]:
-        """Run agent continuously in background with prompt or dynamic prompt function.
-
-        Args:
-            prompt: Static prompt or function that generates prompts
-            max_count: Maximum number of runs (None = infinite)
-            interval: Seconds between runs
-            **kwargs: Arguments passed to run()
-        """
-        self._infinite = max_count is None
-
-        async def _continuous() -> ChatMessage[Any]:
-            count = 0
-            self.log.debug("Starting continuous run", max_count=max_count, interval=interval)
-            latest = None
-            while (max_count is None or count < max_count) and not self._cancelled:
-                try:
-                    agent_ctx = self.get_context()
-                    current_prompts = [
-                        call_with_context(p, agent_ctx, **kwargs) if callable(p) else p
-                        for p in prompt
-                    ]
-                    self.log.debug("Generated prompt", iteration=count)
-                    latest = await self.run(current_prompts, **kwargs)
-                    self.log.debug("Run continuous result", iteration=count)
-
-                    count += 1
-                    await anyio.sleep(interval)
-                except asyncio.CancelledError:
-                    self.log.debug("Continuous run cancelled")
-                    break
-                except Exception:
-                    # Check if we were cancelled (may surface as other exceptions)
-                    if self._cancelled:
-                        self.log.debug("Continuous run cancelled via flag")
-                        break
-                    count += 1
-                    self.log.exception("Background run failed")
-                    await anyio.sleep(interval)
-            self.log.debug("Continuous run completed", iterations=count)
-            return latest  # type: ignore[return-value]
-
-        await self.stop()  # Cancel any existing background task
-        self._cancelled = False  # Reset cancellation flag for new run
-        task = asyncio.create_task(_continuous(), name=f"background_{self.name}")
-        self.log.debug("Started background task", task_name=task.get_name())
-        self._background_task = task
-        return task
-
-    async def stop(self) -> None:
-        """Stop continuous execution if running."""
-        self._cancelled = True  # Signal cancellation via flag
-        if self._background_task and not self._background_task.done():
-            self._background_task.cancel()
-            with suppress(asyncio.CancelledError):  # Expected when we cancel the task
-                await self._background_task
-            self._background_task = None
-
-    async def wait(self) -> ChatMessage[OutputDataT]:
-        """Wait for background execution to complete."""
-        if not self._background_task:
-            msg = "No background task running"
-            raise RuntimeError(msg)
-        if self._infinite:
-            msg = "Cannot wait on infinite execution"
-            raise RuntimeError(msg)
-        try:
-            return await self._background_task
-        finally:
-            self._background_task = None
 
     async def share(
         self,

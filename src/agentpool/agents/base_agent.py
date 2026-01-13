@@ -5,11 +5,13 @@ from __future__ import annotations
 from abc import abstractmethod
 import asyncio
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, overload
 
 from anyenv import MultiEventHandler, method_spawner
 from anyenv.signals import BoundSignal, Signal
+import anyio
 
 from agentpool.agents.events import StreamCompleteEvent, resolve_event_handlers
 from agentpool.agents.modes import ModeInfo
@@ -17,6 +19,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
 from agentpool.prompts.convert import convert_prompts
 from agentpool.tools.manager import ToolManager
+from agentpool.utils.inspection import call_with_context
 from agentpool.utils.now import get_now
 
 
@@ -137,6 +140,8 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             enable_logging=enable_logging,
             event_configs=event_configs,
         )
+        self._infinite = False
+        self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
 
         # Shared infrastructure - previously duplicated in all 4 agents
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
@@ -289,6 +294,87 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 wait_for_connections=wait_for_connections,
             )
             yield response  # pyright: ignore
+
+    async def run_in_background(
+        self,
+        *prompt: PromptCompatible,
+        max_count: int | None = None,
+        interval: float = 1.0,
+        **kwargs: Any,
+    ) -> asyncio.Task[ChatMessage[TResult] | None]:
+        """Run agent continuously in background with prompt or dynamic prompt function.
+
+        Args:
+            prompt: Static prompt or function that generates prompts
+            max_count: Maximum number of runs (None = infinite)
+            interval: Seconds between runs
+            **kwargs: Arguments passed to run()
+        """
+        self._infinite = max_count is None
+
+        async def _continuous() -> ChatMessage[Any]:
+            count = 0
+            self.log.debug("Starting continuous run", max_count=max_count, interval=interval)
+            latest = None
+            while (max_count is None or count < max_count) and not self._cancelled:
+                try:
+                    agent_ctx = self.get_context()
+                    current_prompts = [
+                        call_with_context(p, agent_ctx, **kwargs) if callable(p) else p
+                        for p in prompt
+                    ]
+                    self.log.debug("Generated prompt", iteration=count)
+                    latest = await self.run(current_prompts, **kwargs)
+                    self.log.debug("Run continuous result", iteration=count)
+
+                    count += 1
+                    await anyio.sleep(interval)
+                except asyncio.CancelledError:
+                    self.log.debug("Continuous run cancelled")
+                    break
+                except Exception:
+                    # Check if we were cancelled (may surface as other exceptions)
+                    if self._cancelled:
+                        self.log.debug("Continuous run cancelled via flag")
+                        break
+                    count += 1
+                    self.log.exception("Background run failed")
+                    await anyio.sleep(interval)
+            self.log.debug("Continuous run completed", iterations=count)
+            return latest  # type: ignore[return-value]
+
+        await self.stop()  # Cancel any existing background task
+        self._cancelled = False  # Reset cancellation flag for new run
+        task = asyncio.create_task(_continuous(), name=f"background_{self.name}")
+        self.log.debug("Started background task", task_name=task.get_name())
+        self._background_task = task
+        return task
+
+    async def stop(self) -> None:
+        """Stop continuous execution if running."""
+        self._cancelled = True  # Signal cancellation via flag
+        if self._background_task and not self._background_task.done():
+            self._background_task.cancel()
+            with suppress(asyncio.CancelledError):  # Expected when we cancel the task
+                await self._background_task
+            self._background_task = None
+
+    def is_busy(self) -> bool:
+        """Check if agent is currently processing tasks."""
+        return bool(self.task_manager._pending_tasks or self._background_task)
+
+    async def wait(self) -> ChatMessage[TResult]:
+        """Wait for background execution to complete."""
+        if not self._background_task:
+            msg = "No background task running"
+            raise RuntimeError(msg)
+        if self._infinite:
+            msg = "Cannot wait on infinite execution"
+            raise RuntimeError(msg)
+        try:
+            return await self._background_task
+        finally:
+            self._background_task = None
 
     @method_spawner
     async def run_stream(
