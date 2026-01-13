@@ -112,3 +112,13 @@ class SessionData(Schema):
         """Return copy with updated metadata."""
         new_metadata = {**self.metadata, **kwargs}
         return self.model_copy(update={"metadata": new_metadata, "last_active": get_now()})
+
+    @property
+    def title(self) -> str | None:
+        """Human-readable title (from metadata, for protocol compatibility)."""
+        return self.metadata.get("title")
+
+    @property
+    def updated_at(self) -> str | None:
+        """ISO timestamp of last activity (for protocol compatibility)."""
+        return self.last_active.isoformat() if self.last_active else None
