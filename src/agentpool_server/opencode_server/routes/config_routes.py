@@ -46,6 +46,29 @@ PROVIDER_INFO: dict[str, tuple[str, list[str]]] = {
     "vertex": ("Google Vertex AI", ["GOOGLE_APPLICATION_CREDENTIALS"]),
 }
 
+# Default model selection for each provider
+# Maps provider ID to a model ID that should be used as default
+# Based on latest models from models.dev as of 2026-01-13
+DEFAULT_MODELS: dict[str, str] = {
+    "anthropic": "claude-opus-4-5",  # Latest: 2025-11-24, with reasoning
+    "openai": "gpt-5.2-pro",  # Latest: 2025-12-11, with reasoning
+    "google": "gemini-3-flash-preview",  # Latest: 2025-12-17, with reasoning
+    "mistral": "devstral-2512",  # Latest: 2025-12-09
+    "groq": "moonshotai/kimi-k2-instruct-0905",  # Latest: 2025-09-05
+    "deepseek": "deepseek-reasoner",  # Latest: 2025-01-20, with reasoning
+    "xai": "grok-4-1-fast",  # Latest: 2025-11-19, with reasoning
+    "perplexity": "sonar",  # Latest available
+    "cohere": "command-a-translate-08-2025",  # Latest: 2025-08-28
+    "openrouter": "minimax/minimax-m2.1",  # Latest: 2025-12-23, with reasoning
+    "azure": "gpt-5.2-chat",  # Latest: 2025-12-11, with reasoning
+    # Note: together, fireworks, bedrock, vertex not found in models.dev API
+    # Keeping some fallbacks for compatibility
+    "together": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    "fireworks": "accounts/fireworks/models/llama-v3p3-70b-instruct",
+    "bedrock": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "vertex": "gemini-2.0-flash-exp",
+}
+
 
 def _convert_toko_model_to_opencode(model: TokoModelInfo) -> Model:
     """Convert a tokonomics ModelInfo to an OpenCode Model."""
@@ -152,9 +175,37 @@ async def _get_available_models() -> list[TokoModelInfo]:
 @router.get("/config")
 async def get_config(state: StateDep) -> Config:
     """Get server configuration."""
+    import os
+
     # Initialize config if not yet set
     if state.config is None:
         state.config = Config()
+
+    # Set a default model if not already configured
+    if state.config.model is None:
+        try:
+            # Get available models
+            toko_models = await state.agent.get_available_models()
+            if toko_models:
+                providers = _build_providers(toko_models)
+
+                # Find first connected provider
+                for provider in providers:
+                    if any(os.environ.get(env) for env in provider.env):
+                        # Try to use predefined default
+                        if provider.id in DEFAULT_MODELS:
+                            default_model_id = DEFAULT_MODELS[provider.id]
+                            if default_model_id in provider.models:
+                                state.config.model = f"{provider.id}/{default_model_id}"
+                                break
+                        # Fall back to first available model
+                        if provider.models:
+                            first_model = next(iter(provider.models.keys()))
+                            state.config.model = f"{provider.id}/{first_model}"
+                            break
+        except Exception:  # noqa: BLE001
+            pass  # If we can't set a default, that's okay
+
     return state.config
 
 
@@ -202,6 +253,8 @@ def _get_dummy_providers() -> list[Provider]:
 @router.get("/config/providers")
 async def get_providers(state: StateDep) -> ProvidersResponse:
     """Get available providers and models from agent."""
+    import os
+
     providers: list[Provider] = []
 
     # Try to get models from the agent
@@ -216,7 +269,31 @@ async def get_providers(state: StateDep) -> ProvidersResponse:
     if not providers:
         providers = _get_dummy_providers()
 
-    return ProvidersResponse(providers=providers)
+    # Build default models map (same logic as /provider endpoint)
+    default_models: dict[str, str] = {}
+    connected_providers = [
+        provider.id for provider in providers if any(os.environ.get(env) for env in provider.env)
+    ]
+
+    for provider in providers:
+        # Only include connected providers
+        if provider.id not in connected_providers:
+            continue
+
+        # Check if we have a predefined default for this provider
+        if provider.id in DEFAULT_MODELS:
+            default_model_id = DEFAULT_MODELS[provider.id]
+            # Verify the model exists in the provider's model list
+            if default_model_id in provider.models:
+                default_models[provider.id] = default_model_id
+            # If predefined default doesn't exist, pick first available model
+            elif provider.models:
+                default_models[provider.id] = next(iter(provider.models.keys()))
+        # No predefined default, pick first available model
+        elif provider.models:
+            default_models[provider.id] = next(iter(provider.models.keys()))
+
+    return ProvidersResponse(providers=providers, default=default_models)
 
 
 @router.get("/provider")
@@ -243,9 +320,29 @@ async def list_providers(state: StateDep) -> ProviderListResponse:
         provider.id for provider in providers if any(os.environ.get(env) for env in provider.env)
     ]
 
+    # Build default models map for connected providers that have a known default
+    default_models: dict[str, str] = {}
+    for provider in providers:
+        # Only include connected providers
+        if provider.id not in connected:
+            continue
+
+        # Check if we have a predefined default for this provider
+        if provider.id in DEFAULT_MODELS:
+            default_model_id = DEFAULT_MODELS[provider.id]
+            # Verify the model exists in the provider's model list
+            if default_model_id in provider.models:
+                default_models[provider.id] = default_model_id
+            # If predefined default doesn't exist, pick first available model
+            elif provider.models:
+                default_models[provider.id] = next(iter(provider.models.keys()))
+        # No predefined default, pick first available model
+        elif provider.models:
+            default_models[provider.id] = next(iter(provider.models.keys()))
+
     return ProviderListResponse(
         all=providers,
-        default={},
+        default=default_models,
         connected=connected,
     )
 
