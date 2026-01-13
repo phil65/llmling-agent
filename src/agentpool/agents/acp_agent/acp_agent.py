@@ -50,9 +50,17 @@ from pydantic_ai import (
 
 from agentpool.agents.acp_agent.session_state import ACPSessionState
 from agentpool.agents.base_agent import BaseAgent
-from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent, ToolCallStartEvent
+from agentpool.agents.events import (
+    RunStartedEvent,
+    StreamCompleteEvent,
+    ToolCallStartEvent,
+    resolve_event_handlers,
+)
 from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
+from agentpool.common_types import (
+    IndividualEventHandler,
+)
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
@@ -87,8 +95,6 @@ if TYPE_CHECKING:
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
         BuiltinEventHandlerType,
-        IndividualEventHandler,
-        SimpleJsonType,
     )
     from agentpool.delegation import AgentPool
     from agentpool.mcp_server.tool_bridge import ToolManagerBridge
@@ -210,19 +216,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
     ) -> Self:
-        """Create an ACPAgent from a config object.
-
-        This is the preferred way to instantiate an ACPAgent from configuration.
-
-        Args:
-            config: ACP agent configuration
-            event_handlers: Optional event handlers (merged with config handlers)
-            input_provider: Optional input provider for user interactions
-            agent_pool: Optional agent pool for coordination
-
-        Returns:
-            Configured ACPAgent instance
-        """
+        """Create an ACPAgent from a config object."""
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
@@ -254,9 +248,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         Args:
             data: Optional custom data to attach to the context
-
-        Returns:
-            A new AgentContext instance
         """
         from agentpool.agents.context import AgentContext
         from agentpool.models.manifest import AgentsManifest
@@ -466,7 +457,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
-        from acp.schema import PromptRequest
+        from anyenv import MultiEventHandler
+
+        from acp.schema import ForkSessionRequest, PromptRequest
         from acp.utils import to_acp_content_blocks
         from agentpool.agents.acp_agent.acp_converters import (
             convert_to_acp_content,
@@ -485,17 +478,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         conversation = message_history if message_history is not None else self.conversation
         # Use provided event handlers or fall back to agent's handlers
         if event_handlers is not None:
-            from anyenv import MultiEventHandler
-
-            from agentpool.agents.events import resolve_event_handlers
-
-            handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
-                resolve_event_handlers(event_handlers)
-            )
+            handlers = resolve_event_handlers(event_handlers)
+            handler = MultiEventHandler[IndividualEventHandler](handlers)
         else:
             handler = self.event_handler
-
-        # Conversation ID initialization handled by BaseAgent
 
         # Prepare for ACP content block conversion
         processed_prompts = prompts
@@ -526,27 +512,16 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         session_id = self._session_id
         if not store_history and self._session_id:
             # Fork the current session to execute without affecting main history
-            from acp.schema import ForkSessionRequest
 
             cwd = self.config.cwd or str(Path.cwd())
-            fork_request = ForkSessionRequest(
-                session_id=self._session_id,
-                cwd=cwd,
-                mcp_servers=[],  # Inherit from parent session
-            )
+            fork_request = ForkSessionRequest(session_id=self._session_id, cwd=cwd)
             fork_response = await self._connection.fork_session(fork_request)
             # Use the forked session ID for this prompt
             session_id = fork_response.session_id
-            self.log.debug(
-                "Forked session for ephemeral execution",
-                parent=self._session_id,
-                fork=session_id,
-            )
-
+            self.log.debug("Forked session", parent=self._session_id, fork=session_id)
         prompt_request = PromptRequest(session_id=session_id, prompt=final_blocks)
         self.log.debug("Starting streaming prompt", num_blocks=len(final_blocks))
-        # Reset cancellation state
-        self._cancelled = False
+        self._cancelled = False  # Reset cancellation state
         # Run prompt in background
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
         self._prompt_task = prompt_task
@@ -618,10 +593,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Handle cancellation - emit partial message
         if self._cancelled:
-            text_content = "".join(text_chunks)
-            metadata: SimpleJsonType = file_tracker.get_metadata()
             message = ChatMessage[str](
-                content=text_content,
+                content="".join(text_chunks),
                 role="assistant",
                 name=self.name,
                 message_id=message_id or str(uuid.uuid4()),
@@ -629,7 +602,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 parent_id=user_msg.message_id,
                 model_name=self.model_name,
                 messages=model_messages,
-                metadata=metadata,
+                metadata=file_tracker.get_metadata(),
                 finish_reason="stop",
             )
             complete_event = StreamCompleteEvent(message=message)
@@ -653,7 +626,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             )
 
         text_content = "".join(text_chunks)
-        metadata = file_tracker.get_metadata()
         # Calculate approximate token usage from what we can observe
         input_parts = [*processed_prompts, *pending_parts]
         usage, cost_info = await calculate_usage_from_parts(
@@ -673,7 +645,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             parent_id=user_msg.message_id,
             model_name=self.model_name,
             messages=model_messages,
-            metadata=metadata,
+            metadata=file_tracker.get_metadata(),
             finish_reason=finish_reason,
             usage=usage,
             cost_info=cost_info,
@@ -685,11 +657,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     @property
     def model_name(self) -> str | None:
         """Get the model name in a consistent format."""
-        if self._state and self._state.current_model_id:
-            return self._state.current_model_id
-        if self._agent_info:
-            return self._agent_info.name
-        return None
+        return model_id if self._state and (model_id := self._state.current_model_id) else None
 
     async def set_model(self, model: str) -> None:
         """Update the model for the current session via ACP protocol.
@@ -715,27 +683,19 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             raise RuntimeError(msg)
 
         # Try using the new unified config options API first
-        model_config = next(
-            (opt for opt in self._state.config_options if opt.category == "model"),
-            None,
-        )
-
-        if model_config:
+        model_cfg = next((i for i in self._state.config_options if i.category == "model"), None)
+        if model_cfg:
             # Use new unified API
             request = SetSessionConfigOptionRequest(
                 session_id=self._session_id,
-                config_id=model_config.id,
+                config_id=model_cfg.id,
                 value=model,
             )
             response = await self._connection.set_session_config_option(request)
             if response:
                 # Update entire config_options state from response
                 self._state.config_options = list(response.config_options)
-                self.log.info(
-                    "Model changed via SessionConfigOption",
-                    model=model,
-                    config_id=model_config.id,
-                )
+                self.log.info("Model changed via SessionConfigOption", model=model)
                 return
             msg = "set_session_config_option returned no response"
             raise RuntimeError(msg)
@@ -922,19 +882,14 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             config_request = SetSessionConfigOptionRequest(
                 session_id=self._session_id,
                 config_id=category_id,
-                value_id=mode_id,
+                value=mode_id,
             )
             response = await self._connection.set_session_config_option(config_request)
-
             # Update local state from response
             if response.config_options:
                 self._state.config_options = list(response.config_options)
 
-            self.log.info(
-                "Config option changed on remote ACP server",
-                config_id=category_id,
-                value_id=mode_id,
-            )
+            self.log.info("ACP server Config option changed", config_id=category_id, value=mode_id)
             return
 
         # Legacy: Use old set_session_mode/set_session_model APIs
@@ -968,11 +923,7 @@ if __name__ == "__main__":
 
     async def main() -> None:
         """Demo: Basic call to an ACP agent."""
-        config = ACPAgentConfig(
-            command="uv",
-            args=["run", "agentpool", "serve-acp"],
-            cwd=str(Path.cwd()),
-        )
+        config = ACPAgentConfig(command="uv", args=["run", "agentpool", "serve-acp"])
         async with ACPAgent(config=config, event_handlers=["detailed"]) as agent:
             print("Response (streaming): ", end="", flush=True)
             async for chunk in agent.run_stream("Say hello briefly."):
