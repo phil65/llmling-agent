@@ -22785,7 +22785,7 @@
           ],
           "title": "Task prompt"
         },
-        "required_return_type": {
+        "required_output_type": {
           "default": "str",
           "description": "Expected type of the task result.",
           "examples": [

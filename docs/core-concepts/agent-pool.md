@@ -76,7 +76,7 @@ async with AgentPool[AppConfig](manifest_path) as pool:
     # With return type for structured output
     analyzer = pool.get_agent(
         "analyzer",
-        return_type=AnalysisResult
+        output_type=AnalysisResult
     )
 
     # With custom dependencies

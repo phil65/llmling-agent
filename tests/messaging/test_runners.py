@@ -70,7 +70,7 @@ async def test_agent_pool_conversation_flow():
 
     async with AgentPool(manifest) as pool:
         # Get agent directly for conversation
-        agent = pool.get_agent("test_agent", return_type=ConversationOutput)
+        agent = pool.get_agent("test_agent", output_type=ConversationOutput)
 
         # Run multiple prompts in sequence
         responses: list[ChatMessage[ConversationOutput]] = []

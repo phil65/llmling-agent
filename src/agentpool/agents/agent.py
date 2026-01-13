@@ -594,14 +594,14 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         name = name or callback.__name__ or "processor"
         model = function_to_model(callback)
-        return_type = _typing_extra.get_function_type_hints(callback).get("return")
+        output_type = _typing_extra.get_function_type_hints(callback).get("return")
         if (  # If async, unwrap from Awaitable
-            return_type
-            and hasattr(return_type, "__origin__")
-            and return_type.__origin__ is Awaitable
+            output_type
+            and hasattr(output_type, "__origin__")
+            and output_type.__origin__ is Awaitable
         ):
-            return_type = return_type.__args__[0]
-        return Agent(model=model, name=name, output_type=return_type or str, **kwargs)
+            output_type = output_type.__args__[0]
+        return Agent(model=model, name=name, output_type=output_type or str, **kwargs)
 
     @property
     def name(self) -> str:

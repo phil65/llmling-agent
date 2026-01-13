@@ -23,7 +23,7 @@ class Job[TDeps, TResult = str](Schema):
 
     Requirements:
     - The agent must have compatible dependencies (required_dependency)
-    - The agent must produce the specified result type (required_return_type)
+    - The agent must produce the specified result type (required_output_type)
 
     Equipment:
     - The task provides necessary tools for execution (tools)
@@ -54,7 +54,7 @@ class Job[TDeps, TResult = str](Schema):
     )
     """The task instruction/prompt."""
 
-    required_return_type: ImportString[type[TResult]] = Field(
+    required_output_type: ImportString[type[TResult]] = Field(
         default="str",
         validate_default=True,
         examples=["str", "dict", "builtins:str"],
@@ -120,7 +120,7 @@ class Job[TDeps, TResult = str](Schema):
         ):
             return False
 
-        if agent._output_type != self.required_return_type:
+        if agent._output_type != self.required_output_type:
             return False
 
         # Check vision capabilities

@@ -63,8 +63,8 @@ async def test_parallel_execution():
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
     async with AgentPool(manifest) as pool:
-        agent_1 = pool.get_agent("agent_1", return_type=_TestOutput)
-        agent_2 = pool.get_agent("agent_2", return_type=_TestOutput)
+        agent_1 = pool.get_agent("agent_1", output_type=_TestOutput)
+        agent_2 = pool.get_agent("agent_2", output_type=_TestOutput)
         group: Team[Any] = pool.create_team([agent_1, agent_2])
 
         prompt = "Test input"
@@ -84,8 +84,8 @@ async def test_sequential_execution():
     manifest: AgentsManifest = AgentsManifest.from_yaml(TEST_CONFIG)
 
     async with AgentPool(manifest) as pool:
-        agent_1 = pool.get_agent("agent_1", return_type=_TestOutput)
-        agent_2 = pool.get_agent("agent_2", return_type=_TestOutput)
+        agent_1 = pool.get_agent("agent_1", output_type=_TestOutput)
+        agent_2 = pool.get_agent("agent_2", output_type=_TestOutput)
         group: TeamRun[Any, Any] = pool.create_team_run([agent_1, agent_2])
 
         prompt = "Test input"

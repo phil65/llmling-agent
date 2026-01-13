@@ -21,7 +21,7 @@ Simple task with prompt and result type:
 jobs:
   analyze_code:
     prompt: "Analyze the code in src directory for potential improvements"
-    required_return_type: "myapp.types:AnalysisResult"
+    required_output_type: "myapp.types:AnalysisResult"
     description: "Analyze code quality and suggest improvements"
 ```
 
@@ -78,7 +78,7 @@ Tasks can require specific data:
 jobs:
   review_pr:
     prompt: "Review the pull request changes"
-    required_return_type: "myapp.types:ReviewResult"
+    required_output_type: "myapp.types:ReviewResult"
     required_dependency: "myapp.types:PRContext"  # Type hint for required context
     min_context_tokens: 1000       # Minimum context window size
     requires_vision: false         # Whether vision capability is needed
@@ -114,7 +114,7 @@ jobs:
   deep_code_review:
     description: "Perform comprehensive code review"
     prompt: "Review the code changes focusing on:"
-    required_return_type: "myapp.types:ReviewResult"
+    required_output_type: "myapp.types:ReviewResult"
     required_dependency: "myapp.types:CodeContext"
     requires_vision: false
 
@@ -154,7 +154,7 @@ job = Job(
     name="new_task",
     description="A new task",
     prompt="Do something interesting",
-    required_return_type="myapp.types:Result"
+    required_output_type="myapp.types:Result"
 )
 pool.register_job("new_task", job)
 

@@ -38,7 +38,7 @@ AgentPool separates task definitions from execution:
 job = Job[AppConfig, AnalysisResult](
     prompt="Analyze this data",
     required_dependency=AppConfig,     # Agent must have these dependencies
-    required_return_type=AnalysisResult,  # Agent must produce this type
+    required_output_type=AnalysisResult,  # Agent must produce this type
     requires_vision=True,              # Agent requires vision (runtime-checked)
     tools=[                           # Job provides these tools
         "tools.analyzer",
@@ -47,7 +47,7 @@ job = Job[AppConfig, AnalysisResult](
 )
 
 # Any compatible agent can execute the task
-agent = pool.get_agent("analyzer", deps=AppConfig(), return_type=AnalysisResult)
+agent = pool.get_agent("analyzer", deps=AppConfig(), output_type=AnalysisResult)
 result = await agent.run_job(task)  # Deps and return type verified using typing and runtime checks
 ```
 
@@ -70,7 +70,7 @@ class Job[TDeps, TResult]:
     required_dependency: type[TDeps] | None
     """Type of dependencies an agent must have"""
 
-    required_return_type: type[TResult]
+    required_output_type: type[TResult]
     """Type that the agent must return"""
 
     requires_vision: bool = False

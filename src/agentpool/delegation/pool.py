@@ -595,7 +595,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self,
         agent: AgentName | Agent[Any, str],
         *,
-        return_type: type[TResult] = str,  # type: ignore
+        output_type: type[TResult] = str,  # type: ignore
     ) -> Agent[TPoolDeps, TResult]: ...
 
     @overload
@@ -604,7 +604,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         agent: AgentName | Agent[Any, str],
         *,
         deps_type: type[TCustomDeps],
-        return_type: type[TResult] = str,  # type: ignore
+        output_type: type[TResult] = str,  # type: ignore
     ) -> Agent[TCustomDeps, TResult]: ...
 
     def get_agent(
@@ -612,7 +612,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         agent: AgentName | Agent[Any, str],
         *,
         deps_type: Any | None = None,
-        return_type: Any = str,
+        output_type: Any = str,
     ) -> Agent[Any, Any]:
         """Get or configure an agent from the pool.
 
@@ -623,7 +623,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         Args:
             agent: Either agent name or instance
             deps_type: Optional custom dependencies type (overrides shared deps)
-            return_type: Optional type for structured responses
+            output_type: Optional type for structured responses
 
         Returns:
             Either:
@@ -645,8 +645,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # base.context.data = deps if deps is not None else self.shared_deps
         base.deps_type = deps_type
         base.agent_pool = self
-        if return_type not in {str, None}:
-            base.to_structured(return_type)
+        if output_type not in {str, None}:
+            base.to_structured(output_type)
         return base
 
     def get_job(self, name: str) -> Job[Any, Any]:

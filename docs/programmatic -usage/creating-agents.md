@@ -21,7 +21,7 @@ async with AgentPool("agents.yml") as pool:
     agent = pool.get_agent("reviewer", deps=pr_context)
 
     # Get structured agent
-    agent = pool.get_agent("validator", return_type=ValidationResult)
+    agent = pool.get_agent("validator", output_type=ValidationResult)
 ```
 
 This ensures:
