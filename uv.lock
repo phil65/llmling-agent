@@ -1116,7 +1116,7 @@ wheels = [
 
 [[package]]
 name = "composio"
-version = "0.10.5"
+version = "0.10.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "composio-client" },
@@ -1125,9 +1125,9 @@ dependencies = [
     { name = "pysher" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7a/bc/caa691d7785cad7317789174c2d2488fdf183f02d6a450a9ef8ecf576410/composio-0.10.5.tar.gz", hash = "sha256:0ee7a3abb77532a4f82049ad3d28f1d2102423073e199f903407979615b81c73", size = 106763, upload-time = "2026-01-12T15:25:58.976Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6e/e0/5318904b267b1938887f93a8d725971729cc9f5d59a117a1a9deb9a0e5c2/composio-0.10.6.tar.gz", hash = "sha256:72f1142913fab8aae2d62045b9e94338cd99a066259457ae56cef58f52586087", size = 108974, upload-time = "2026-01-13T08:44:15.178Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d2/38/6522b6109d74563863d7d6913e1899e1fcb7596120d5f4392ed556b3b56c/composio-0.10.5-py3-none-any.whl", hash = "sha256:b4321385c8d0d5c06087a7d324b4a4fc600fff05ae12e0b9010ed8959dffad7f", size = 83578, upload-time = "2026-01-12T15:25:43.761Z" },
+    { url = "https://files.pythonhosted.org/packages/5a/1b/4ca1aa311a1c296868141d9c2e4c9cad2efe11be06ca213bdab4deaba185/composio-0.10.6-py3-none-any.whl", hash = "sha256:8ffaa8c95e818bf71d34c009e94eba27b55d5ed82886c9d4f8d45b66aa22a042", size = 85193, upload-time = "2026-01-13T08:44:00.407Z" },
 ]
 
 [[package]]
@@ -6264,7 +6264,7 @@ wheels = [
 
 [[package]]
 name = "upathtools"
-version = "1.17.2"
+version = "1.17.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fsspec" },
@@ -6272,9 +6272,9 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "universal-pathlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/dc/b5/2a6c443b8cca3411fd961a62ed7f839081295c7e70f2c9beb5cd33e76b7a/upathtools-1.17.2.tar.gz", hash = "sha256:c18aa3c5f112c1054c9db5ba908df70fff7f689aee781a161b0ff856fb249e17", size = 169475, upload-time = "2026-01-04T09:04:22.835Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/e2/f16ad947f4e4c1b011c319b194154bb471cb064671ff5455d433c4001eef/upathtools-1.17.4.tar.gz", hash = "sha256:954c5e31e33be03cd02733506bba7fedb27019b67e1b07c8991b8375516e3b83", size = 170351, upload-time = "2026-01-13T09:53:11.781Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/4b/5922e35d21d96f34ef2f16ddf3b8e6c717afea67bdffa109d860d39c4042/upathtools-1.17.2-py3-none-any.whl", hash = "sha256:ffd6850e882d07a395aa187d1c67ec99206181da41e99aea4ec86c8fec866e01", size = 226800, upload-time = "2026-01-04T09:04:24.716Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/fd/1d7b1ce221183f10fb357dd667e1b2e1dbf64f9affde298dacff10ed60dd/upathtools-1.17.4-py3-none-any.whl", hash = "sha256:c0a74ef9586ec2cef240aec9dc0eb90a6c587d3d997142f6feb37de86d09c2cd", size = 227519, upload-time = "2026-01-13T09:53:10.004Z" },
 ]
 
 [package.optional-dependencies]
