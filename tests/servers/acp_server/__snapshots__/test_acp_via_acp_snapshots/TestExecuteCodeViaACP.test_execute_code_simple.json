@@ -5,7 +5,8 @@
     "kind": "execute",
     "locations": [],
     "raw_input": {
-      "code": "print('hello')"
+      "code": "print('hello')",
+      "title": "test hello"
     },
     "title": "Executing code",
     "tool_call_id": "pyd_ai_tool_call_id__execute_code",
