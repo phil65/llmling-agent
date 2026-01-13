@@ -79,18 +79,5 @@ agent = Agent(session=SessionQuery(
 ))
 ```
 
-## Safe State Sharing
-
-When working with multiple agents, state can be shared in a controlled way:
-
-```python
-await source_agent.share(
-    target_agent,
-    tools=["useful_tool"],     # Share specific tools
-    resources=["knowledge"],    # Share specific resources
-    history=5,                 # Share last 5 messages
-    token_limit=1000           # Limit shared history size
-)
-```
 
 All these mechanisms ensure that agent state can be precisely controlled while maintaining clean separation between temporary and permanent changes. The context managers are particularly useful for running agents with modified behavior without affecting their base configuration.

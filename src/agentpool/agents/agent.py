@@ -1014,45 +1014,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             msg = f"Task execution failed: {e}"
             raise JobError(msg) from e
 
-    async def share(
-        self,
-        target: Agent[TDeps, Any],
-        *,
-        tools: list[str] | None = None,
-        history: bool | int | None = None,  # bool or number of messages
-        token_limit: int | None = None,
-    ) -> None:
-        """Share capabilities and knowledge with another agent.
-
-        Args:
-            target: Agent to share with
-            tools: List of tool names to share
-            history: Share conversation history:
-                    - True: Share full history
-                    - int: Number of most recent messages to share
-                    - None: Don't share history
-            token_limit: Optional max tokens for history
-
-        Raises:
-            ValueError: If requested items don't exist
-            RuntimeError: If runtime not available for resources
-        """
-        # Share tools if requested
-        for name in tools or []:
-            tool = await self.tools.get_tool(name)
-            meta = {"shared_from": self.name}
-            target.tools.register_tool(tool.get_callable(), metadata=meta)
-
-        # Share history if requested
-        if history:
-            history_text = await self.conversation.format_history(
-                max_tokens=token_limit,
-                num_messages=history if isinstance(history, int) else None,
-            )
-            target.conversation.add_context_message(
-                history_text, source=self.name, metadata={"type": "shared_history"}
-            )
-
     def register_worker(
         self,
         worker: MessageNode[Any, Any],
