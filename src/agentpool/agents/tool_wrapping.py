@@ -9,9 +9,11 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunContext
+from pydantic_ai.messages import ToolReturn
 
 from agentpool.agents.context import AgentContext
 from agentpool.tasks import ChainAbortedError, RunAbortedError, ToolSkippedError
+from agentpool.tools.base import ToolResult
 from agentpool.utils.inspection import execute, get_argument_key
 from agentpool.utils.signatures import create_modified_signature, update_signature
 
@@ -81,6 +83,14 @@ def wrap_tool[TReturn](  # noqa: PLR0915
         start_time = time.perf_counter()
         result = await execute_fn(*args, **kwargs)
         duration_ms = (time.perf_counter() - start_time) * 1000
+
+        # Convert AgentPool ToolResult to pydantic-ai ToolReturn
+        if isinstance(result, ToolResult):
+            result = ToolReturn(
+                return_value=result.structured_content or result.content,
+                content=result.content,
+                metadata=result.metadata,
+            )
 
         # Post-tool hooks
         if hooks:

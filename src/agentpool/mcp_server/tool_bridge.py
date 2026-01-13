@@ -152,25 +152,35 @@ def _convert_to_tool_result(result: Any) -> ToolResult:
     """Convert a tool's return value to a FastMCP ToolResult.
 
     Handles different result types appropriately:
-    - ToolResult: Pass through unchanged
+    - FastMCP ToolResult: Pass through unchanged
+    - AgentPool ToolResult: Convert to FastMCP format
     - dict: Use as structured_content (enables programmatic access by clients)
     - Pydantic models: Serialize to dict for structured_content
     - Other types: Pass to ToolResult(content=...) which handles conversion internally
     """
-    from fastmcp.tools.tool import ToolResult
+    from fastmcp.tools.tool import ToolResult as FastMCPToolResult
 
-    # Already a ToolResult - pass through
-    if isinstance(result, ToolResult):
+    from agentpool.tools.base import ToolResult as AgentPoolToolResult
+
+    # Already a FastMCP ToolResult - pass through
+    if isinstance(result, FastMCPToolResult):
         return result
+    # AgentPool ToolResult - convert to FastMCP format
+    if isinstance(result, AgentPoolToolResult):
+        return FastMCPToolResult(
+            content=result.content,
+            structured_content=result.structured_content,
+            meta=result.metadata,
+        )
     # Dict - use as structured_content (FastMCP auto-populates content as JSON)
     if isinstance(result, dict):
-        return ToolResult(structured_content=result)
+        return FastMCPToolResult(structured_content=result)
     # Pydantic model - serialize to dict for structured_content
     if isinstance(result, BaseModel):
-        return ToolResult(structured_content=result.model_dump(mode="json"))
+        return FastMCPToolResult(structured_content=result.model_dump(mode="json"))
     # All other types (str, list, ContentBlock, Image, None, primitives, etc.)
     # ToolResult's internal _convert_to_content handles these correctly
-    return ToolResult(content=result if result is not None else "")
+    return FastMCPToolResult(content=result if result is not None else "")
 
 
 def _extract_tool_call_id(context: Context | None) -> str:
