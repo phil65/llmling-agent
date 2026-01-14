@@ -94,18 +94,14 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
     from agentpool_server.opencode_server.models.events import PtyCreatedEvent
 
     manager = _get_pty_manager(state)
-
     # Limit number of PTY sessions to prevent resource exhaustion
     sessions = await manager.list_sessions()
     if len(sessions) >= 20:  # Max 20 concurrent PTY sessions  # noqa: PLR2004
-        raise HTTPException(
-            status_code=429,
-            detail=f"Too many PTY sessions ({len(sessions)}). Close some terminals first.",
-        )
+        detail = f"Too many PTY sessions ({len(sessions)}). Close some terminals first."
+        raise HTTPException(status_code=429, detail=detail)
 
     # Use working dir from state if not specified
     cwd = request.cwd or state.working_dir
-
     print(f"Creating PTY: command={request.command}, args={request.args}, cwd={cwd}")
     try:
         info = await manager.create(
@@ -120,21 +116,16 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
 
     pty_id = info.id
     title = request.title or f"Terminal {pty_id[-4:]}"
-
     # Create session tracker for WebSocket subscribers
     session = PtySession(pty_id=pty_id)
     _pty_sessions[pty_id] = session
     print(f"PTY session registered: {pty_id}, total sessions: {len(_pty_sessions)}")
-
     # Start background task to read output and distribute to subscribers
     session.read_task = asyncio.create_task(_read_pty_output(manager, pty_id, state))
-
     pty_info = _convert_pty_info(info, title=title)
-
     # Broadcast PTY created event
     event = PtyCreatedEvent.create(info=pty_info.model_dump(by_alias=True))
     await state.broadcast_event(event)
-
     return pty_info
 
 
@@ -210,13 +201,10 @@ async def update_pty(pty_id: str, request: PtyUpdateRequest, state: StateDep) ->
 
     # Title is handled at the API level, not in the PTY manager
     title = request.title if request.title else f"Terminal {pty_id[-4:]}"
-
     pty_info = _convert_pty_info(info, title=title)
-
     # Broadcast PTY updated event
     event = PtyUpdatedEvent.create(info=pty_info.model_dump(by_alias=True))
     await state.broadcast_event(event)
-
     return pty_info
 
 
@@ -226,12 +214,10 @@ async def remove_pty(pty_id: str, state: StateDep) -> dict[str, bool]:
     from agentpool_server.opencode_server.models.events import PtyDeletedEvent
 
     manager = _get_pty_manager(state)
-
     # Kill the PTY session
     success = await manager.kill(pty_id)
     if not success:
         raise HTTPException(status_code=404, detail="PTY session not found")
-
     # Cleanup session tracker
     session = _pty_sessions.pop(pty_id, None)
     if session:
@@ -259,7 +245,6 @@ async def connect_pty(websocket: WebSocket, pty_id: str) -> None:
     # Get state from websocket's app
 
     state: ServerState = websocket.app.state.server_state
-
     try:
         manager = _get_pty_manager(state)
     except HTTPException:
@@ -281,13 +266,11 @@ async def connect_pty(websocket: WebSocket, pty_id: str) -> None:
 
     # PTY exists, accept the WebSocket connection
     await websocket.accept()
-
     # Get or create session tracker
     if pty_id not in _pty_sessions:
         _pty_sessions[pty_id] = PtySession(pty_id=pty_id)
     session = _pty_sessions[pty_id]
     session.subscribers.add(websocket)
-
     # Send buffered output
     if session.buffer:
         try:
@@ -300,7 +283,6 @@ async def connect_pty(websocket: WebSocket, pty_id: str) -> None:
         while True:
             # Receive input from client
             data = await websocket.receive_text()
-
             # Write to PTY stdin
             info = await manager.get_info(pty_id)
             if info and info.status == "running":
