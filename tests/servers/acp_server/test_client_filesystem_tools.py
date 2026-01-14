@@ -6,6 +6,7 @@ from exxec import MockExecutionEnvironment
 import pytest
 
 from agentpool import Agent, AgentContext, AgentsManifest, NativeAgentConfig
+from agentpool.tools.base import ToolResult
 from agentpool_toolsets.fsspec_toolset import FSSpecTools
 
 
@@ -95,8 +96,8 @@ async def test_write_text_file_success(
         content="Hello, World!\nThis is written content.\n",
     )
 
-    assert isinstance(result, dict)
-    assert result["path"] == "/home/user/output.txt"
+    assert isinstance(result, ToolResult)
+    assert "/home/user/output.txt" in result.content
 
     # Verify content was written
     content = await mock_env.get_file_content("/home/user/output.txt")
@@ -117,8 +118,8 @@ async def test_write_text_file_json(
         agent_ctx=agent_ctx, path="/home/user/config.json", content=json_str
     )
 
-    assert isinstance(result, dict)
-    assert result["path"] == "/home/user/config.json"
+    assert isinstance(result, ToolResult)
+    assert "/home/user/config.json" in result.content
 
     content = await mock_env.get_file_content("/home/user/config.json")
     assert content == json_str.encode()
@@ -152,8 +153,8 @@ async def test_write_empty_file(
         agent_ctx=agent_ctx, path="/home/user/empty_output.txt", content=""
     )
 
-    assert isinstance(result, dict)
-    assert result["path"] == "/home/user/empty_output.txt"
+    assert isinstance(result, ToolResult)
+    assert "/home/user/empty_output.txt" in result.content
 
     content = await mock_env.get_file_content("/home/user/empty_output.txt")
     assert content == b""
@@ -191,8 +192,8 @@ async def test_write_file_with_unicode(
     write_tool = next(tool for tool in tools if tool.name == "write")
     result = await write_tool.execute(agent_ctx=agent_ctx, path="/home/output.txt", content=content)
 
-    assert isinstance(result, dict)
-    assert result["path"] == "/home/output.txt"
+    assert isinstance(result, ToolResult)
+    assert "/home/output.txt" in result.content
 
     written = await mock_env.get_file_content("/home/output.txt")
     assert written == content.encode()
