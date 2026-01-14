@@ -33,6 +33,7 @@ from agentpool.tool_impls.download_file import create_download_file_tool
 from agentpool.tool_impls.grep import create_grep_tool
 from agentpool.tool_impls.list_directory import create_list_directory_tool
 from agentpool.tool_impls.read import create_read_tool
+from agentpool.tools.base import ToolResult
 from agentpool_toolsets.builtin.file_edit import replace_content
 from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import StreamingFuzzyMatcher
 from agentpool_toolsets.fsspec_toolset.diagnostics import (
@@ -749,7 +750,7 @@ class FSSpecTools(ResourceProvider):
         description: str,
         replace_all: bool = False,
         line_hint: int | None = None,
-    ) -> str:
+    ) -> str | ToolResult:
         r"""Edit a file by applying multiple replacements in one operation.
 
         Uses sophisticated matching strategies to handle whitespace, indentation,
@@ -836,7 +837,44 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation("edit", path=path, success=False, error=error_msg)
             return error_msg
         else:
-            return success_msg
+            # Generate unified diff for OpenCode UI
+            from difflib import unified_diff
+
+            from agentpool.tools.base import ToolResult
+
+            # Ensure content ends with newline for proper diff formatting
+            original_for_diff = (
+                original_content if original_content.endswith("\n") else original_content + "\n"
+            )
+            new_for_diff = new_content if new_content.endswith("\n") else new_content + "\n"
+
+            diff_lines = unified_diff(
+                original_for_diff.splitlines(keepends=True),
+                new_for_diff.splitlines(keepends=True),
+                fromfile=f"a/{Path(path).name}",
+                tofile=f"b/{Path(path).name}",
+            )
+            diff = "".join(diff_lines)
+
+            # Count additions and deletions
+            original_lines = set(original_content.splitlines())
+            new_lines = set(new_content.splitlines())
+            additions = len(new_lines - original_lines)
+            deletions = len(original_lines - new_lines)
+
+            return ToolResult(
+                content=success_msg,
+                metadata={
+                    "diff": diff,
+                    "filediff": {
+                        "file": str(Path(path).absolute()),
+                        "before": original_content,
+                        "after": new_content,
+                        "additions": additions,
+                        "deletions": deletions,
+                    },
+                },
+            )
 
     async def regex_replace_lines(  # noqa: PLR0915
         self,

@@ -546,7 +546,33 @@ class ToolCallCompleteEvent:
     """The name of the agent that made the tool call."""
     message_id: str
     """The message ID associated with this tool call."""
+    metadata: dict[str, Any] | None = None
+    """Optional metadata for UI/client use (diffs, diagnostics, etc.)."""
     event_kind: Literal["tool_call_complete"] = "tool_call_complete"
+    """Event type identifier."""
+
+
+@dataclass(kw_only=True)
+class ToolResultMetadataEvent:
+    """Sidechannel event carrying tool result metadata stripped by Claude SDK.
+
+    The Claude SDK strips the `_meta` field from MCP CallToolResult when converting
+    to ToolResultBlock, losing UI-only metadata (diffs, diagnostics, etc.).
+
+    This event provides a sidechannel to preserve that metadata:
+    - Tool returns ToolResult with metadata
+    - ToolManagerBridge emits this event with metadata before converting
+    - ClaudeCodeAgent correlates by tool_call_id and enriches ToolCallCompleteEvent
+    - Downstream consumers (OpenCode, ACP) receive complete events with metadata
+
+    This avoids polluting LLM context with UI-only data while preserving it for clients.
+    """
+
+    tool_call_id: str
+    """The ID of the tool call this metadata belongs to."""
+    metadata: dict[str, Any]
+    """Metadata for UI/client use (diffs, diagnostics, etc.)."""
+    event_kind: Literal["tool_result_metadata"] = "tool_result_metadata"
     """Event type identifier."""
 
 

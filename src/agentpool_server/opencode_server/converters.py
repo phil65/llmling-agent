@@ -296,6 +296,7 @@ def convert_tool_complete_event(
             title=f"Completed {existing_part.tool}",
             input=existing_input,
             output=output,
+            metadata=event.metadata or {},
             time=TimeStartEndCompacted(start=now_ms() - 1000, end=now_ms()),
         )
 

@@ -23,6 +23,7 @@ from .events import (
     ToolCallContentItem,
     ToolCallProgressEvent,
     ToolCallStartEvent,
+    ToolResultMetadataEvent,
 )
 from .event_emitter import StreamEventEmitter
 from .builtin_handlers import (
@@ -75,6 +76,7 @@ __all__ = [
     "ToolCallContentItem",
     "ToolCallProgressEvent",
     "ToolCallStartEvent",
+    "ToolResultMetadataEvent",
     "detailed_print_handler",
     "event_handler_processor",
     "extract_file_path_from_tool_call",

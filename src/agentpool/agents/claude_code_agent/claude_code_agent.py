@@ -1079,6 +1079,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         tool_accumulator = ToolCallAccumulator()
         # Track files modified during this run
         file_tracker = FileTracker()
+        # Accumulate metadata events by tool_call_id (workaround for SDK stripping _meta)
+        tool_metadata: dict[str, dict[str, Any]] = {}
         # Set deps on tool bridge for access during tool invocations
         # (ContextVar doesn't work because MCP server runs in a separate task)
         if self._tool_bridge:
@@ -1112,6 +1114,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 async for event_or_message in merged_events:
                     # Check if it's a queued event (from tools via EventEmitter)
                     if not isinstance(event_or_message, Message):
+                        # Capture metadata events for correlation with tool results
+                        from agentpool.agents.events import ToolResultMetadataEvent
+
+                        if isinstance(event_or_message, ToolResultMetadataEvent):
+                            tool_metadata[event_or_message.tool_call_id] = event_or_message.metadata
+                            # Don't yield metadata events - they're internal correlation only
+                            continue
                         # It's an event from the queue - yield it immediately
                         await handler(None, event_or_message)
                         yield event_or_message
@@ -1210,6 +1219,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         tool_result=content,
                                         agent_name=self.name,
                                         message_id="",
+                                        metadata=tool_metadata.get(tc_id),
                                     )
                                     await handler(None, tool_done_event)
                                     yield tool_done_event
@@ -1262,6 +1272,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     tool_result=result_content,
                                     agent_name=self.name,
                                     message_id="",
+                                    metadata=tool_metadata.get(tc_id),
                                 )
                                 await handler(None, tool_complete_event)
                                 yield tool_complete_event

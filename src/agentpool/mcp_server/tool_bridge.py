@@ -475,6 +475,24 @@ class ToolManagerBridge:
                 result = await self._bridge.invoke_tool_with_context(
                     self._tool, ctx, arguments.copy()
                 )
+
+                # Emit metadata event for ClaudeCodeAgent to correlate
+                # (works around Claude SDK stripping MCP _meta field)
+                from agentpool.agents.events import ToolResultMetadataEvent
+                from agentpool.tools.base import ToolResult as AgentPoolToolResult
+
+                if isinstance(result, AgentPoolToolResult) and result.metadata:
+                    logger.info(
+                        "Emitting ToolResultMetadataEvent",
+                        tool_call_id=tool_call_id,
+                        metadata_keys=list(result.metadata.keys()),
+                    )
+                    event = ToolResultMetadataEvent(
+                        tool_call_id=tool_call_id,
+                        metadata=result.metadata,
+                    )
+                    await ctx.events.emit_event(event)
+
                 return _convert_to_tool_result(result)
 
         # Create a custom FastMCP Tool that wraps our tool

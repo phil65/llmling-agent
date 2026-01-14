@@ -495,6 +495,7 @@ async def _process_message(  # noqa: PLR0915
                 case ToolCallCompleteEvent(
                     tool_call_id=tool_call_id,
                     tool_result=result,
+                    metadata=event_metadata,
                 ) if tool_call_id in tool_parts:
                     existing = tool_parts[tool_call_id]
                     result_str = str(result) if result else ""
@@ -514,6 +515,7 @@ async def _process_message(  # noqa: PLR0915
                             title=f"Completed {existing.tool}",
                             input=tool_input,
                             output=result_str,
+                            metadata=event_metadata or {},
                             time=TimeStartEndCompacted(start=now, end=now_ms()),
                         )
 
