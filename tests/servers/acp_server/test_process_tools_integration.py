@@ -279,7 +279,7 @@ async def test_execute_command(
 
     bash_tool = create_bash_tool(env=mock_env)
 
-    result = await bash_tool.execute(
+    result = await bash_tool.execute_and_unwrap(
         ctx=agent_ctx,
         command="echo hello world",
     )

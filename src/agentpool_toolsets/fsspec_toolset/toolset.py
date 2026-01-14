@@ -33,6 +33,7 @@ from agentpool.tool_impls.download_file import create_download_file_tool
 from agentpool.tool_impls.grep import create_grep_tool
 from agentpool.tool_impls.list_directory import create_list_directory_tool
 from agentpool.tool_impls.read import create_read_tool
+from agentpool.tools.base import ToolResult
 from agentpool_toolsets.builtin.file_edit import replace_content
 from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import StreamingFuzzyMatcher
 from agentpool_toolsets.fsspec_toolset.diagnostics import (
@@ -65,7 +66,7 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageHistory
     from agentpool.prompts.conversion_manager import ConversionManager
     from agentpool.repomap import RepoMap
-    from agentpool.tools.base import Tool, ToolResult
+    from agentpool.tools.base import Tool
 
 
 logger = get_logger(__name__)

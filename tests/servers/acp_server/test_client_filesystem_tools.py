@@ -40,7 +40,7 @@ async def test_read_file_success(
 
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read")
-    result = await read_tool.execute(ctx=agent_ctx, path="/home/user/test.txt")
+    result = await read_tool.execute_and_unwrap(ctx=agent_ctx, path="/home/user/test.txt")
 
     assert isinstance(result, str)
     assert "Hello, World!" in result
@@ -59,7 +59,7 @@ async def test_read_file_with_line_and_limit(
 
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read")
-    result = await read_tool.execute(ctx=agent_ctx, path="/home/large_file.txt", line=2, limit=2)
+    result = await read_tool.execute_and_unwrap(ctx=agent_ctx, path="/home/large_file.txt", line=2, limit=2)
 
     assert isinstance(result, str)
     content_lines = result.split("\n")
@@ -75,7 +75,7 @@ async def test_read_file_error(
     """Test file reading error handling."""
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read")
-    result = await read_tool.execute(ctx=agent_ctx, path="/home/user/nonexistent.txt")
+    result = await read_tool.execute_and_unwrap(ctx=agent_ctx, path="/home/user/nonexistent.txt")
     assert "error" in result
 
 
@@ -132,7 +132,7 @@ async def test_read_empty_file(
 
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read")
-    result = await read_tool.execute(ctx=agent_ctx, path="/home/user/empty.txt")
+    result = await read_tool.execute_and_unwrap(ctx=agent_ctx, path="/home/user/empty.txt")
 
     assert isinstance(result, str)
     assert result == ""
@@ -168,7 +168,7 @@ async def test_read_file_with_unicode(
 
     tools = await fs_tools.get_tools()
     read_tool = next(tool for tool in tools if tool.name == "read")
-    result = await read_tool.execute(ctx=agent_ctx, path="/home/user/unicode.txt")
+    result = await read_tool.execute_and_unwrap(ctx=agent_ctx, path="/home/user/unicode.txt")
 
     assert isinstance(result, str)
     assert "世界" in result
@@ -209,7 +209,7 @@ async def test_read_then_write(
     write_tool = next(tool for tool in tools if tool.name == "write")
 
     # Read original
-    result = await read_tool.execute(ctx=agent_ctx, path="/home/user/test.txt")
+    result = await read_tool.execute_and_unwrap(ctx=agent_ctx, path="/home/user/test.txt")
     assert result == "original content"
 
     # Write new content
@@ -218,7 +218,7 @@ async def test_read_then_write(
     )
 
     # Read modified
-    result = await read_tool.execute(ctx=agent_ctx, path="/home/user/test.txt")
+    result = await read_tool.execute_and_unwrap(ctx=agent_ctx, path="/home/user/test.txt")
     assert result == "modified content"
 
 

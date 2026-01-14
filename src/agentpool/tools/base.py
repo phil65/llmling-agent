@@ -191,6 +191,21 @@ class Tool[TOutputType = Any]:
         """Execute tool, handling both sync and async cases."""
         return await execute(self.get_callable(), *args, **kwargs, use_thread=True)
 
+    async def execute_and_unwrap(self, *args: Any, **kwargs: Any) -> Any:
+        """Execute tool and unwrap ToolResult if present.
+
+        This is a convenience method for tests and direct tool usage that want
+        plain content instead of ToolResult objects.
+
+        Returns:
+            If tool returns ToolResult, returns ToolResult.content.
+            Otherwise returns the raw result.
+        """
+        result = await self.execute(*args, **kwargs)
+        if isinstance(result, ToolResult):
+            return result.content
+        return result
+
     @classmethod
     def from_code(
         cls,
