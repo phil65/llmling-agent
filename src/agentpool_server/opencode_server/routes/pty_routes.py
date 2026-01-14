@@ -10,7 +10,7 @@ import contextlib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from fastapi import APIRouter, HTTPException, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect  # noqa: TC002
 
 from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.models import PtyCreateRequest, PtyInfo, PtyUpdateRequest
@@ -18,7 +18,6 @@ from agentpool_server.opencode_server.models import PtyCreateRequest, PtyInfo, P
 
 if TYPE_CHECKING:
     from exxec.pty_manager import PtyManagerProtocol
-    from fastapi import WebSocket
 
     from agentpool_server.opencode_server.state import ServerState
 
