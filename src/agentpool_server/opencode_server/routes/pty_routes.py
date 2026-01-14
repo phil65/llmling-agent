@@ -252,14 +252,23 @@ async def connect_pty(websocket: WebSocket, pty_id: str) -> None:
     try:
         manager = _get_pty_manager(state)
     except HTTPException:
-        await websocket.close(code=4501, reason="PTY not supported")
+        # Must accept before we can close
+        await websocket.accept()
+        await websocket.close(code=1003, reason="PTY not supported")
+        return
+    except Exception as e:
+        await websocket.accept()
+        await websocket.close(code=1011, reason=f"Error: {e}")
         return
 
+    # Check if PTY exists - if not, immediately reject like OpenCode does
     info = await manager.get_info(pty_id)
     if not info:
-        await websocket.close(code=4004, reason="PTY session not found")
+        await websocket.accept()
+        await websocket.close(code=1003, reason="PTY session not found")
         return
 
+    # PTY exists, accept the WebSocket connection
     await websocket.accept()
 
     # Get or create session tracker
