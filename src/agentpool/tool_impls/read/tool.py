@@ -11,7 +11,7 @@ from pydantic_ai import BinaryContent
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.log import get_logger
 from agentpool.mime_utils import guess_type, is_binary_content, is_binary_mime
-from agentpool.tools.base import Tool
+from agentpool.tools.base import Tool, ToolResult
 
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
+class ReadTool(Tool[ToolResult]):
     """Read files from the filesystem with support for text, binary, and image content.
 
     A standalone tool for reading files with advanced features:
@@ -69,7 +69,7 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
 
     def get_callable(
         self,
-    ) -> Callable[..., Awaitable[str | BinaryContent | list[str | BinaryContent]]]:
+    ) -> Callable[..., Awaitable[ToolResult]]:
         """Return the read method as the callable."""
         return self._read
 
@@ -122,7 +122,7 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
         encoding: str = "utf-8",
         line: int | None = None,
         limit: int | None = None,
-    ) -> str | BinaryContent | list[str | BinaryContent]:
+    ) -> ToolResult:
         """Read the content of a text file, or use vision capabilities to read images or documents.
 
         Args:
@@ -163,7 +163,13 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
                         # Converter doesn't support this file type, fall back to binary
                         pass
                     else:
-                        return content
+                        # Converter returned markdown
+                        lines = content.splitlines()
+                        preview = "\n".join(lines[:20])
+                        return ToolResult(
+                            content=content,
+                            metadata={"preview": preview, "truncated": False},
+                        )
 
                 # Fall back to native binary handling
                 data = await self._get_fs(ctx)._cat_file(path)
@@ -180,8 +186,17 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
                     )
                     if note:
                         # Return resized image with dimension note for coordinate mapping
-                        return [note, BinaryContent(data=data, media_type=mime, identifier=path)]
-                return BinaryContent(data=data, media_type=mime, identifier=path)
+                        return ToolResult(
+                            content=[
+                                note,
+                                BinaryContent(data=data, media_type=mime, identifier=path),
+                            ],
+                            metadata={"preview": "Image read successfully", "truncated": False},
+                        )
+                return ToolResult(
+                    content=[BinaryContent(data=data, media_type=mime, identifier=path)],
+                    metadata={"preview": "Binary file read successfully", "truncated": False},
+                )
 
             # Read content and probe for binary (git-style null byte detection)
             data = await self._get_fs(ctx)._cat_file(path)
@@ -195,7 +210,13 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
                         # Converter doesn't support this file type, fall back to binary
                         pass
                     else:
-                        return content
+                        # Converter returned markdown
+                        lines = content.splitlines()
+                        preview = "\n".join(lines[:20])
+                        return ToolResult(
+                            content=content,
+                            metadata={"preview": preview, "truncated": False},
+                        )
 
                 # Fall back to native binary handling
                 await ctx.events.file_operation("read", path=path, success=True)
@@ -210,8 +231,17 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
                         data, mime, self.max_image_size, self.max_image_bytes
                     )
                     if note:
-                        return [note, BinaryContent(data=data, media_type=mime, identifier=path)]
-                return BinaryContent(data=data, media_type=mime, identifier=path)
+                        return ToolResult(
+                            content=[
+                                note,
+                                BinaryContent(data=data, media_type=mime, identifier=path),
+                            ],
+                            metadata={"preview": "Image read successfully", "truncated": False},
+                        )
+                return ToolResult(
+                    content=[BinaryContent(data=data, media_type=mime, identifier=path)],
+                    metadata={"preview": "Binary file read successfully", "truncated": False},
+                )
 
             content = data.decode(encoding)
 
@@ -245,7 +275,11 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
 
         except Exception as e:  # noqa: BLE001
             await ctx.events.file_operation("read", path=path, success=False, error=str(e))
-            return f"error: Failed to read file {path}: {e}"
+            error_msg = f"error: Failed to read file {path}: {e}"
+            return ToolResult(
+                content=error_msg,
+                metadata={"preview": "", "truncated": False},
+            )
         else:
             # Emit file content for UI display (formatted at ACP layer)
             from agentpool.agents.events import FileContentItem
@@ -257,5 +291,15 @@ class ReadTool(Tool[str | BinaryContent | list[str | BinaryContent]]):
                 items=[FileContentItem(content=content, path=path, start_line=display_start_line)],
                 replace_content=True,
             )
-            # Return raw content for agent
-            return content
+
+            # Prepare metadata for OpenCode UI
+            lines = content.splitlines()
+            preview = "\n".join(lines[:20])
+            # Check if content was truncated
+            was_truncated = "[Content truncated" in content
+
+            # Return result with metadata
+            return ToolResult(
+                content=content,
+                metadata={"preview": preview, "truncated": was_truncated},
+            )

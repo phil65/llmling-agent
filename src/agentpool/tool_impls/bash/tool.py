@@ -17,7 +17,7 @@ from exxec.events import (
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.log import get_logger
 from agentpool.tool_impls.bash.helpers import format_output, truncate_output
-from agentpool.tools.base import Tool
+from agentpool.tools.base import Tool, ToolResult
 
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class BashTool(Tool[str]):
+class BashTool(Tool[ToolResult]):
     """Execute shell commands and return the output.
 
     A standalone, configurable tool for running bash commands. Can be configured
@@ -49,7 +49,7 @@ class BashTool(Tool[str]):
     timeout: float | None = None
     """Default command timeout in seconds. None means no timeout."""
 
-    def get_callable(self) -> Callable[..., Awaitable[str]]:
+    def get_callable(self) -> Callable[..., Awaitable[ToolResult]]:
         """Return the execute method as the callable."""
         return self._execute
 
@@ -66,7 +66,7 @@ class BashTool(Tool[str]):
         output_limit: int | None = None,
         timeout: float | None = None,
         filter_lines: str | None = None,
-    ) -> str:
+    ) -> ToolResult:
         """Execute a shell command and return the output.
 
         Args:
@@ -131,7 +131,11 @@ class BashTool(Tool[str]):
                     stdout = "".join(stdout_lines)
                     stderr = "".join(stderr_lines)
                 except re.error as regex_err:
-                    return f"Invalid filter regex: {regex_err}"
+                    error_msg = f"Invalid filter regex: {regex_err}"
+                    return ToolResult(
+                        content=error_msg,
+                        metadata={"output": "", "exit": None, "description": command},
+                    )
 
             # Apply output limit if specified
             truncated = False
@@ -143,12 +147,25 @@ class BashTool(Tool[str]):
             # Format error response
             if error_msg:
                 output = stdout + stderr if stdout or stderr else ""
-                return f"{output}\n\nError: {error_msg}\nExit code: {exit_code}"
+                result_output = f"{output}\n\nError: {error_msg}\nExit code: {exit_code}"
+                return ToolResult(
+                    content=result_output,
+                    metadata={"output": output, "exit": exit_code, "description": command},
+                )
 
         except Exception as e:  # noqa: BLE001
             error_id = process_id or f"cmd_{uuid.uuid4().hex[:8]}"
             await ctx.events.process_started(error_id, command, success=False, error=str(e))
-            return f"Error executing command: {e}"
+            error_msg = f"Error executing command: {e}"
+            return ToolResult(
+                content=error_msg,
+                metadata={"output": "", "exit": None, "description": command},
+            )
 
         # Format success response
-        return format_output(stdout, stderr, exit_code, truncated)
+        formatted_output = format_output(stdout, stderr, exit_code, truncated)
+        combined_output = stdout + stderr
+        return ToolResult(
+            content=formatted_output,
+            metadata={"output": combined_output, "exit": exit_code, "description": command},
+        )

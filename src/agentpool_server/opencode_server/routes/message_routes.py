@@ -419,6 +419,8 @@ async def _process_message(  # noqa: PLR0915
                     tool_input=event_tool_input,
                 ) if tool_call_id:
                     # Extract text content from items and accumulate
+                    # TODO: Handle TerminalContentItem for bash tool streaming - need to
+                    # properly stream terminal output to OpenCode UI metadata
                     new_output = ""
                     file_paths: list[str] = []
                     for item in items:

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.log import get_logger
-from agentpool.tools.base import Tool
+from agentpool.tools.base import Tool, ToolResult
 
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class GrepTool(Tool[str]):
+class GrepTool(Tool[ToolResult]):
     """Search file contents for patterns using grep.
 
     A standalone tool for searching file contents with:
@@ -53,7 +53,7 @@ class GrepTool(Tool[str]):
     _grep_backend: GrepBackend | None = field(default=None, init=False)
     """Cached grep backend detection."""
 
-    def get_callable(self) -> Callable[..., Awaitable[str]]:
+    def get_callable(self) -> Callable[..., Awaitable[ToolResult]]:
         """Return the grep method as the callable."""
         return self._grep
 
@@ -92,7 +92,7 @@ class GrepTool(Tool[str]):
         case_sensitive: bool = False,
         max_matches: int = 100,
         context_lines: int = 0,
-    ) -> str:
+    ) -> ToolResult:
         """Search file contents for a pattern.
 
         Args:
@@ -161,7 +161,11 @@ class GrepTool(Tool[str]):
                 )
 
             if "error" in result:
-                return f"Error: {result['error']}"
+                error_msg = f"Error: {result['error']}"
+                return ToolResult(
+                    content=error_msg,
+                    metadata={"matches": 0, "truncated": False},
+                )
 
             # Format output
             matches = result.get("matches", "")
@@ -184,6 +188,13 @@ class GrepTool(Tool[str]):
                 replace_content=True,
             )
         except Exception as e:  # noqa: BLE001
-            return f"Error: Grep failed: {e}"
+            error_msg = f"Error: Grep failed: {e}"
+            return ToolResult(
+                content=error_msg,
+                metadata={"matches": 0, "truncated": False},
+            )
         else:
-            return output
+            return ToolResult(
+                content=output,
+                metadata={"matches": match_count, "truncated": was_truncated},
+            )

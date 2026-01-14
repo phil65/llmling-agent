@@ -29,7 +29,7 @@ def wrap_tool[TReturn](  # noqa: PLR0915
     tool: Tool[TReturn],
     agent_ctx: AgentContext,
     hooks: AgentHooks | None = None,
-) -> Callable[..., Awaitable[TReturn | None]]:
+) -> Callable[..., Awaitable[TReturn | ToolReturn | None]]:
     """Wrap tool with confirmation handling and hooks.
 
     Strategy:
@@ -60,7 +60,7 @@ def wrap_tool[TReturn](  # noqa: PLR0915
         tool_input: dict[str, Any],
         *args: Any,
         **kwargs: Any,
-    ) -> TReturn | None:
+    ) -> TReturn | None | ToolReturn:
         """Execute tool with pre/post hooks."""
         # Pre-tool hooks
         if hooks:
@@ -81,7 +81,7 @@ def wrap_tool[TReturn](  # noqa: PLR0915
 
         # Execute the tool
         start_time = time.perf_counter()
-        result = await execute_fn(*args, **kwargs)
+        result: TReturn | ToolResult | ToolReturn = await execute_fn(*args, **kwargs)
         duration_ms = (time.perf_counter() - start_time) * 1000
 
         # Convert AgentPool ToolResult to pydantic-ai ToolReturn
@@ -107,7 +107,9 @@ def wrap_tool[TReturn](  # noqa: PLR0915
 
     if run_ctx_key or agent_ctx_key:
         # Tool has RunContext and/or AgentContext
-        async def wrapped(ctx: RunContext, *args: Any, **kwargs: Any) -> TReturn | None:  # pyright: ignore
+        async def wrapped(
+            ctx: RunContext, *args: Any, **kwargs: Any
+        ) -> TReturn | None | ToolReturn:  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
                 # Populate AgentContext with RunContext data if needed
@@ -145,7 +147,7 @@ def wrap_tool[TReturn](  # noqa: PLR0915
 
     else:
         # Tool has no context - normal function call
-        async def wrapped(*args: Any, **kwargs: Any) -> TReturn | None:  # type: ignore[misc]
+        async def wrapped(*args: Any, **kwargs: Any) -> TReturn | None | ToolReturn:  # type: ignore[misc]
             result = await agent_ctx.handle_confirmation(tool, kwargs)
             if result == "allow":
                 tool_input = kwargs.copy()

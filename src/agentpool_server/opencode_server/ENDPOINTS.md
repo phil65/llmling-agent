@@ -313,6 +313,44 @@ duty opencode
 
 ---
 
+## Tool Metadata Support - Complete OpenCode UI Coverage
+
+**These are ALL 11 tools registered in OpenCode's UI that use metadata for enhanced rendering:**
+
+| # | Tool | AgentPool | Metadata | UI Feature |
+|---|------|-----------|----------|------------|
+| 1 | `read` | ✅ **DONE** | `preview`, `truncated` | File preview, truncation badge |
+| 2 | `list` | ✅ **DONE** | `count`, `truncated` | File count, directory tree |
+| 3 | `glob` | ❌ **MISSING** | `count`, `truncated` | File count, pattern display |
+| 4 | `grep` | ✅ **DONE** | `matches`, `truncated` | Match count badge |
+| 5 | `webfetch` | ❌ **MISSING** | `url`, `format` | URL display |
+| 6 | `task` | ❌ **MISSING** | `summary`, `sessionId` | **Sub-agent tool list** |
+| 7 | `bash` | ✅ **DONE** | `output`, `exit`, `description` | Live output, exit code |
+| 8 | `edit` | ✅ **DONE** | `diff`, `filediff`, `diagnostics` | **Diff viewer**, LSP errors |
+| 9 | `write` | ⚠️ **PARTIAL** | `diagnostics`, `filepath`, `exists` | Code viewer, LSP errors |
+| 10 | `todowrite` | ✅ **DONE** | `todos` | **Interactive checkboxes** |
+| 11 | `question` | ✅ **DONE** | `answers` | **Q&A display** |
+
+### Summary
+- **Total:** 11 OpenCode UI tools
+- **Implemented:** 6/11 (✅)
+- **Partial:** 1/11 (⚠️)
+- **Missing:** 4/11 (❌)
+
+### Missing Tools for 100% Coverage
+1. **`glob`** - File pattern matching (HIGH priority - complements grep)
+2. **`task`** - Sub-agent execution tracking (HIGH priority - delegation)
+3. **`webfetch`** - Web content fetching (LOW priority - external)
+4. **`write` diagnostics** - LSP integration (MEDIUM priority)
+
+### Other OpenCode Tools (Not UI-Rendered)
+These exist in OpenCode but don't have special UI treatment:
+- `plan`, `batch`, `multiedit`, `patch`, `lsp`, `skill`, `codesearch`, `websearch`
+
+See [`OPENCODE_UI_TOOLS_COMPLETE.md`](file:///home/phil65/dev/oss/agentpool/OPENCODE_UI_TOOLS_COMPLETE.md) for detailed metadata specs.
+
+---
+
 ## Tool UI Rendering
 
 The OpenCode TUI has special rendering for certain tool names. Tools must use these exact names

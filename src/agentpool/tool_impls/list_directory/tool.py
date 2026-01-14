@@ -12,7 +12,7 @@ from upathtools import is_directory
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.log import get_logger
-from agentpool.tools.base import Tool
+from agentpool.tools.base import Tool, ToolResult
 
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class ListDirectoryTool(Tool[str]):
+class ListDirectoryTool(Tool[ToolResult]):
     """List files in a directory with filtering support.
 
     A standalone tool for listing directory contents with:
@@ -48,7 +48,7 @@ class ListDirectoryTool(Tool[str]):
     max_items: int = 500
     """Maximum number of items to return (safety limit)."""
 
-    def get_callable(self) -> Callable[..., Awaitable[str]]:
+    def get_callable(self) -> Callable[..., Awaitable[ToolResult]]:
         """Return the list_directory method as the callable."""
         return self._list_directory
 
@@ -85,7 +85,7 @@ class ListDirectoryTool(Tool[str]):
         pattern: str = "*",
         exclude: list[str] | None = None,
         max_depth: int = 1,
-    ) -> str:
+    ) -> ToolResult:
         """List files in a directory with filtering support.
 
         Args:
@@ -113,7 +113,10 @@ class ListDirectoryTool(Tool[str]):
             if not await fs._exists(path):
                 error_msg = f"Path does not exist: {path}"
                 await ctx.events.file_operation("list", path=path, success=False, error=error_msg)
-                return f"Error: {error_msg}"
+                return ToolResult(
+                    content=f"Error: {error_msg}",
+                    metadata={"count": 0, "truncated": False},
+                )
 
             # Build glob path
             glob_pattern = f"{path.rstrip('/')}/{pattern}"
@@ -134,7 +137,11 @@ class ListDirectoryTool(Tool[str]):
                     suggestions.append("Use exclude parameter to filter out unwanted directories.")
 
                 suggestion_text = " ".join(suggestions) if suggestions else ""
-                return f"Error: Too many items ({total_found:,}). {suggestion_text}"
+                error_msg = f"Error: Too many items ({total_found:,}). {suggestion_text}"
+                return ToolResult(
+                    content=error_msg,
+                    metadata={"count": total_found, "truncated": True},
+                )
 
             for file_path, file_info in paths.items():  # pyright: ignore[reportAttributeAccessIssue]
                 rel_path = os.path.relpath(str(file_path), path)
@@ -173,6 +180,18 @@ class ListDirectoryTool(Tool[str]):
             )
         except (OSError, ValueError, FileNotFoundError) as e:
             await ctx.events.file_operation("list", path=path, success=False, error=str(e))
-            return f"Error: Could not list directory: {path}. Ensure path is absolute and exists."
+            error_msg = (
+                f"Error: Could not list directory: {path}. Ensure path is absolute and exists."
+            )
+            return ToolResult(
+                content=error_msg,
+                metadata={"count": 0, "truncated": False},
+            )
         else:
-            return result
+            total_items = len(files) + len(dirs)
+            # Check if we hit the limit (truncation)
+            was_truncated = total_items >= self.max_items
+            return ToolResult(
+                content=result,
+                metadata={"count": total_items, "truncated": was_truncated},
+            )

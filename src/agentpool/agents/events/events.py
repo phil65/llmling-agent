@@ -652,6 +652,7 @@ type RichAgentStreamEvent[OutputDataT] = (
     | PlanUpdateEvent
     | CompactionEvent
     | SubAgentEvent
+    | ToolResultMetadataEvent
     | CustomEvent[Any]
 )
 

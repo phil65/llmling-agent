@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.agents.events import TextContentItem
 from agentpool.resource_providers import ResourceProvider
+from agentpool.tools.base import ToolResult
 from agentpool.utils.streams import TodoPriority, TodoStatus  # noqa: TC001
 
 
@@ -95,7 +96,7 @@ class PlanProvider(ResourceProvider):
 
         return tools
 
-    async def get_plan(self, agent_ctx: AgentContext) -> str:
+    async def get_plan(self, agent_ctx: AgentContext) -> ToolResult:
         """Get the current plan formatted as markdown.
 
         Args:
@@ -111,7 +112,10 @@ class PlanProvider(ResourceProvider):
                 title="Fetched plan (empty)",
                 items=[TextContentItem(text="*No tasks in plan yet.*")],
             )
-            return "## Plan\n\n*No plan entries yet.*"
+            return ToolResult(
+                content="## Plan\n\n*No plan entries yet.",
+                metadata={"todos": []},
+            )
 
         lines = ["## Plan", ""]
         status_icons = {
@@ -145,13 +149,19 @@ class PlanProvider(ResourceProvider):
             items=[TextContentItem(text=plan_text)],
         )
 
-        return plan_text
+        # Convert to OpenCode format for metadata
+        todos = [{"content": e.content, "status": e.status} for e in tracker.entries]
+
+        return ToolResult(
+            content=plan_text,
+            metadata={"todos": todos},
+        )
 
     async def set_plan(
         self,
         agent_ctx: AgentContext,
         entries: list[dict[str, Any]],
-    ) -> str:
+    ) -> ToolResult:
         """Replace the entire plan with new entries (declarative/bulk update).
 
         This is more efficient than multiple add/update calls when setting
@@ -170,7 +180,10 @@ class PlanProvider(ResourceProvider):
         """
         tracker = self._get_tracker(agent_ctx)
         if tracker is None:
-            return "Error: No pool available for plan tracking"
+            return ToolResult(
+                content="Error: No pool available for plan tracking",
+                metadata={"todos": []},
+            )
 
         # Clear existing entries
         tracker.clear()
@@ -213,7 +226,13 @@ class PlanProvider(ResourceProvider):
             items=[TextContentItem(text=details)],
         )
 
-        return f"Plan updated with {entry_count} entries"
+        # Convert to OpenCode format for metadata
+        todos = [{"content": e.content, "status": e.status} for e in tracker.entries]
+
+        return ToolResult(
+            content=f"Plan updated with {entry_count} entries",
+            metadata={"todos": todos},
+        )
 
     async def add_plan_entry(
         self,

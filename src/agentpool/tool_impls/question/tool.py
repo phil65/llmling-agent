@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, assert_never
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
-from agentpool.tools.base import Tool
+from agentpool.tools.base import Tool, ToolResult
 
 
 if TYPE_CHECKING:
@@ -48,14 +48,14 @@ class OpenCodeQuestionInfo:
 
 
 @dataclass
-class QuestionTool(Tool[str]):
+class QuestionTool(Tool[ToolResult]):
     """Tool for asking the user clarifying questions.
 
     Enables agents to ask users for additional information or clarification
     when needed to complete a task effectively.
     """
 
-    def get_callable(self) -> Callable[..., Awaitable[str]]:
+    def get_callable(self) -> Callable[..., Awaitable[ToolResult]]:
         """Get the tool callable."""
         return self._execute
 
@@ -64,7 +64,7 @@ class QuestionTool(Tool[str]):
         ctx: AgentContext,
         prompt: str,
         response_schema: dict[str, Any] | None = None,
-    ) -> str:
+    ) -> ToolResult:
         """Ask the user a clarifying question.
 
         Args:
@@ -88,15 +88,40 @@ class QuestionTool(Tool[str]):
                     value = content["value"]
                     # Handle list responses (multi-select)
                     if isinstance(value, list):
-                        return ", ".join(str(v) for v in value)
-                    return str(value)
+                        answer_str = ", ".join(str(v) for v in value)
+                        # OpenCode expects array of arrays (one per question)
+                        return ToolResult(
+                            content=answer_str,
+                            metadata={
+                                "answers": [value]
+                            },  # Single question, array of selected values
+                        )
+                    # Single answer
+                    answer_str = str(value)
+                    return ToolResult(
+                        content=answer_str,
+                        metadata={"answers": [[answer_str]]},  # Single question, single answer
+                    )
                 # Fallback for plain content
-                return str(content)
+                answer_str = str(content)
+                return ToolResult(
+                    content=answer_str,
+                    metadata={"answers": [[answer_str]]},
+                )
             case ElicitResult(action="cancel"):
-                return "User cancelled the request"
+                return ToolResult(
+                    content="User cancelled the request",
+                    metadata={"answers": []},
+                )
             case ElicitResult():
-                return "User declined to answer"
+                return ToolResult(
+                    content="User declined to answer",
+                    metadata={"answers": []},
+                )
             case ErrorData(message=message):
-                return f"Error: {message}"
+                return ToolResult(
+                    content=f"Error: {message}",
+                    metadata={"answers": []},
+                )
             case _ as unreachable:
                 assert_never(unreachable)
