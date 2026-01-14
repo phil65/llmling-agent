@@ -327,7 +327,7 @@ duty opencode
 | 6 | `task` | ❌ **MISSING** | `summary`, `sessionId` | **Sub-agent tool list** |
 | 7 | `bash` | ✅ **DONE** | `output`, `exit`, `description` | Live output, exit code |
 | 8 | `edit` | ✅ **DONE** | `diff`, `filediff`, `diagnostics` | **Diff viewer**, LSP errors |
-| 9 | `write` | ⚠️ **PARTIAL** | `diagnostics`, `filepath`, `exists` | Code viewer, LSP errors |
+| 9 | `write` | ⚠️ **PARTIAL** | `filePath`, `content`, (TODO: `diagnostics`) | Code viewer, LSP errors |
 | 10 | `todowrite` | ✅ **DONE** | `todos` | **Interactive checkboxes** |
 | 11 | `question` | ✅ **DONE** | `answers` | **Q&A display** |
 
@@ -379,7 +379,7 @@ Some tools also use `props.metadata` for additional UI data:
 | Tool | Metadata Fields | Description |
 |------|-----------------|-------------|
 | `edit` | `filediff`, `diagnostics` | Diff data and LSP diagnostics |
-| `write` | `diagnostics` | LSP diagnostics for the written file |
+| `write` | `filePath`, `content` | File path and content for UI display (diagnostics TODO) |
 | `bash` | `command` | Fallback if `input.command` missing |
 | `task` | `summary`, `sessionId` | Child tool summary and session ID |
 

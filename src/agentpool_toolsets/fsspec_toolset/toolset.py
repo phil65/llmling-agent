@@ -550,7 +550,7 @@ class FSSpecTools(ResourceProvider):
         content: str,
         mode: str = "w",
         overwrite: bool = False,
-    ) -> str:
+    ) -> str | ToolResult:
         """Write content to a file.
 
         Args:
@@ -560,7 +560,7 @@ class FSSpecTools(ResourceProvider):
             overwrite: Must be True to overwrite existing files (safety check)
 
         Returns:
-            Success or error message
+            Success message or ToolResult with metadata
         """
         path = self._resolve_path(path, agent_ctx)
         msg = f"Writing file: {path}"
@@ -615,6 +615,7 @@ class FSSpecTools(ResourceProvider):
 
             # Emit file operation with content for UI display
             from agentpool.agents.events import DiffContentItem
+            from agentpool.tools.base import ToolResult
 
             await agent_ctx.events.tool_call_progress(
                 title=f"Wrote: {path}",
@@ -623,13 +624,37 @@ class FSSpecTools(ResourceProvider):
                 ],
             )
 
-            # Run diagnostics if enabled
+            # Run diagnostics if enabled (include in message for agent)
             diagnostics_msg = ""
             if diagnostics_output := await self._run_diagnostics(agent_ctx, path):
                 diagnostics_msg = f"\n\nDiagnostics:\n{diagnostics_output}"
 
             action = "Appended to" if mode == "a" and file_exists else "Wrote"
-            return f"{action} {path} ({content_bytes} bytes){diagnostics_msg}"
+            success_msg = f"{action} {path} ({content_bytes} bytes){diagnostics_msg}"
+
+            # TODO: Include diagnostics in metadata for UI display
+            # Expected metadata shape:
+            # {
+            #   "diagnostics": {
+            #     "<file_path>": [
+            #       {
+            #         "range": {"start": {"line": 0, "character": 0}, "end": {...}},
+            #         "message": "...",
+            #         "severity": 1  # 1=error, 2=warning, 3=info, 4=hint
+            #       }
+            #     ]
+            #   }
+            # }
+
+            return ToolResult(
+                content=success_msg,  # Agent sees this (includes diagnostics text)
+                metadata={
+                    # Include file content for UI display (used by OpenCode TUI)
+                    "filePath": str(Path(path).absolute()),
+                    "content": content,
+                    # TODO: Add structured diagnostics here for UI
+                },
+            )
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("write", path=path, success=False, error=str(e))
             return f"Error: Failed to write file {path}: {e}"
