@@ -355,7 +355,7 @@ class ToolManagerBridge:
         else:
             # Fallback: use async get_tools() method
             current_tools = await self._mcp.get_tools()
-            current_names = {t.name for t in current_tools}
+            current_names = {t.name for t in current_tools}  # type: ignore[attr-defined]
         new_tools = await self.node.tools.get_tools(state="enabled")
         new_names = {t.name for t in new_tools}
 
