@@ -96,6 +96,13 @@ def acp_command(
             help="WebSocket port (only used with --transport websocket)",
         ),
     ] = 8765,
+    mcp_config: Annotated[
+        str | None,
+        t.Option(
+            "--mcp-config",
+            help='MCP servers configuration as JSON (format: {"mcpServers": {...}})',
+        ),
+    ] = None,
 ) -> None:
     r"""Run agents as an ACP (Agent Client Protocol) server.
 
@@ -172,6 +179,54 @@ def acp_command(
             load_skills=load_skills,
             transport=transport_config,
         )
+
+    # Inject MCP servers from --mcp-config if provided
+    # TODO: Consider adding to specific agent's MCP manager instead of pool-level
+    # for better isolation (currently all agents in pool share these servers)
+    if mcp_config:
+        try:
+            mcp_data = json.loads(mcp_config)
+            if "mcpServers" not in mcp_data:
+                raise t.BadParameter("MCP config must contain 'mcpServers' key")
+
+            from agentpool_config.mcp_server import (
+                SSEMCPServerConfig,
+                StreamableHTTPMCPServerConfig,
+            )
+
+            for server_name, server_cfg in mcp_data["mcpServers"].items():
+                # Parse server config based on transport type
+                if "transport" in server_cfg:
+                    if server_cfg["transport"] == "sse":
+                        server = SSEMCPServerConfig(
+                            name=server_name,
+                            url=server_cfg["url"],
+                        )
+                    elif server_cfg["transport"] == "http":
+                        server = StreamableHTTPMCPServerConfig(
+                            name=server_name,
+                            url=server_cfg["url"],
+                        )
+                    else:
+                        msg = f"Unsupported transport type: {server_cfg['transport']}"
+                        raise t.BadParameter(msg)
+                else:
+                    # Default to HTTP if no transport specified
+                    server = StreamableHTTPMCPServerConfig(
+                        name=server_name,
+                        url=server_cfg["url"],
+                    )
+
+                acp_server.pool.mcp.add_server_config(server)
+                logger.info(
+                    "Added MCP server from --mcp-config",
+                    server_name=server_name,
+                    url=server_cfg.get("url"),
+                )
+        except json.JSONDecodeError as e:
+            msg = f"Invalid JSON in --mcp-config: {e}"
+            raise t.BadParameter(msg) from e
+
     if show_messages:
         logger.info("Message activity logging enabled")
     if debug_messages:
