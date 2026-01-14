@@ -418,7 +418,10 @@ class MCPClient:
         meta = None
         if agent_ctx and agent_ctx.tool_call_id:
             # Use the same key that tool_bridge expects: "claudecode/toolUseId"
-            meta = {"claudecode/toolUseId": agent_ctx.tool_call_id}
+            # Ensure it's a string (handles both real values and mocks)
+            tool_call_id = str(agent_ctx.tool_call_id) if agent_ctx.tool_call_id else None
+            if tool_call_id:
+                meta = {"claudecode/toolUseId": tool_call_id}
 
         try:
             result = await self._client.call_tool(
