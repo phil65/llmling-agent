@@ -263,7 +263,14 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             startup_delay=self._startup_delay,
         )
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
-        return AgentContext(node=self, pool=self.agent_pool, config=cfg, definition=defn, data=data)
+        return AgentContext(
+            node=self,
+            pool=self.agent_pool,
+            config=cfg,
+            definition=defn,
+            input_provider=self._input_provider,
+            data=data,
+        )
 
     async def __aenter__(self) -> Self:
         """Enter async context - initialize client and base resources."""

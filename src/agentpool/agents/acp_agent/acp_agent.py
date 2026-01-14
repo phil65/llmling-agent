@@ -256,7 +256,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
         return AgentContext(
-            node=self, pool=self.agent_pool, config=self.config, definition=defn, data=data
+            node=self,
+            pool=self.agent_pool,
+            config=self.config,
+            definition=defn,
+            input_provider=self._input_provider,
+            data=data,
         )
 
     async def _setup_toolsets(self) -> None:
