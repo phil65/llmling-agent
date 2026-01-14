@@ -332,16 +332,21 @@ class ACPSession:
             return
         self.log.info("Initializing MCP servers", server_count=len(self.mcp_servers))
         cfgs = [convert_acp_mcp_server_to_config(s) for s in self.mcp_servers]
-        # Define accessible roots for MCP servers
-        # root = Path(self.cwd).resolve().as_uri() if self.cwd else None
-        for _cfg in cfgs:
+        # Add each MCP server to the current agent's MCP manager dynamically
+        for cfg in cfgs:
             try:
-                # Server will be initialized when MCP manager enters context
-                self.log.info("Added MCP servers", server_count=len(cfgs))
-                await self._register_mcp_prompts_as_commands()
+                await self.agent.mcp.setup_server(cfg)
+                self.log.info(
+                    "Added MCP server to agent", server_name=cfg.name, agent=self.current_agent_name
+                )
             except Exception:
-                self.log.exception("Failed to initialize MCP manager")
+                self.log.exception("Failed to setup MCP server", server_name=cfg.name)
                 # Don't fail session creation, just log the error
+        # Register MCP prompts as commands after all servers are added
+        try:
+            await self._register_mcp_prompts_as_commands()
+        except Exception:
+            self.log.exception("Failed to register MCP prompts as commands")
 
     async def init_project_context(self) -> None:
         """Load AGENTS.md/CLAUDE.md file and stage as initial context.
