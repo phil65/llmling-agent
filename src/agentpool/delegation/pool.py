@@ -228,8 +228,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """Create and start a tool bridge for exposing tools to external agents.
 
         This creates an in-process MCP server that exposes the given node's
-        tools. The returned bridge can be added to ACP agents or Claude Code
-        agents to give them access to internal toolsets.
+        tools. The returned bridge is tracked and will be cleaned up when
+        the pool exits.
 
         Args:
             node: The agent node whose tools to expose
@@ -239,20 +239,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         Returns:
             Started ToolManagerBridge instance
-
-        Example:
-            ```python
-            async with AgentPool() as pool:
-                # Create bridge from an agent's tools
-                bridge = await pool.create_tool_bridge(
-                    pool.agents["orchestrator"],
-                    name="orchestrator_tools",
-                )
-                # Add to ACP agent
-                await pool.acp_agents["claude"].add_tool_bridge(bridge)
-                # Or add to Claude Code agent
-                await pool.claude_code_agents["coder"].add_tool_bridge(bridge)
-            ```
         """
         from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
 

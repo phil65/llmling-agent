@@ -135,7 +135,6 @@ if TYPE_CHECKING:
         MCPServerStatus,
     )
     from agentpool.delegation import AgentPool
-    from agentpool.mcp_server.tool_bridge import ToolManagerBridge
     from agentpool.messaging import MessageHistory
     from agentpool.models.claude_code_agents import SettingSource
     from agentpool.ui.base import InputProvider
@@ -340,9 +339,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._sdk_session_id: str | None = None  # Session ID from Claude SDK init message
         self.deps_type = type(None)
 
+        from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
+
         # ToolBridge state for exposing toolsets via MCP
-        self._tool_bridge: ToolManagerBridge | None = None
-        self._owns_bridge = False  # Track if we created the bridge (for cleanup)
+        bridge_config = BridgeConfig(server_name=f"agentpool-{self.name}-tools")
+        self._tool_bridge = ToolManagerBridge(node=self, config=bridge_config)
         self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
 
         # Track pending tool call for permission matching
@@ -418,7 +419,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         native MCP support. Also converts external MCP servers to SDK format.
         """
         from agentpool.agents.claude_code_agent.converters import convert_mcp_servers_to_sdk_format
-        from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
 
         # Convert external MCP servers to SDK format first
         if self._external_mcp_servers:
@@ -432,33 +432,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Create providers from tool configs and add to tool manager
         for provider in self._config.get_tool_providers():
             self.tools.add_provider(provider)
-        server_name = f"agentpool-{self.name}-tools"
-        config = BridgeConfig(server_name=server_name)
-        self._tool_bridge = ToolManagerBridge(node=self, config=config)
+        # Start bridge to expose tools via MCP
         await self._tool_bridge.start()
-        self._owns_bridge = True
         # Get Claude SDK-compatible MCP config and merge into our servers dict
         mcp_config = self._tool_bridge.get_claude_mcp_server_config()
         self._mcp_servers.update(mcp_config)
         self.log.info("Tools initialized", tool_count=len(self._config.tools))
-
-    async def add_tool_bridge(self, bridge: ToolManagerBridge) -> None:
-        """Add an external tool bridge to expose its tools via MCP.
-
-        The bridge must already be started. Its MCP server config will be
-        added to the Claude SDK options. Use this for bridges created externally
-        (e.g., from AgentPool). For toolsets defined in config, bridges
-        are created automatically.
-
-        Args:
-            bridge: Started ToolManagerBridge instance
-        """
-        if self._tool_bridge is None:  # Don't replace our own bridge
-            self._tool_bridge = bridge
-        # Get Claude SDK-compatible config and merge
-        mcp_config = bridge.get_claude_mcp_server_config()
-        self._mcp_servers.update(mcp_config)
-        self.log.info("Added external tool bridge", server_name=bridge.config.server_name)
 
     @property
     def model_name(self) -> str | None:
@@ -877,10 +856,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._connection_task = None
 
         # Clean up tool bridge first
-        if self._tool_bridge and self._owns_bridge:
-            await self._tool_bridge.stop()
-        self._tool_bridge = None
-        self._owns_bridge = False
+        await self._tool_bridge.stop()
         self._mcp_servers.clear()
         if self._client:
             try:
@@ -1088,8 +1064,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         tool_metadata: dict[str, dict[str, Any]] = {}
         # Set deps on tool bridge for access during tool invocations
         # (ContextVar doesn't work because MCP server runs in a separate task)
-        if self._tool_bridge:
-            self._tool_bridge.current_deps = deps
+        self._tool_bridge.current_deps = deps
 
         # Handle ephemeral execution (fork session if store_history=False)
         fork_client = None
@@ -1453,8 +1428,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     get_logger(__name__).warning(f"Error disconnecting fork client: {e}")
 
             # Clear deps from tool bridge
-            if self._tool_bridge:
-                self._tool_bridge.current_deps = None
+            self._tool_bridge.current_deps = None
 
         # Flush any remaining response parts
         if current_response_parts:

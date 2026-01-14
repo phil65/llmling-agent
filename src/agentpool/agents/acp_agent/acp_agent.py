@@ -99,7 +99,6 @@ if TYPE_CHECKING:
         BuiltinEventHandlerType,
     )
     from agentpool.delegation import AgentPool
-    from agentpool.mcp_server.tool_bridge import ToolManagerBridge
     from agentpool.messaging import MessageHistory
     from agentpool.models.acp_agents import BaseACPAgentConfig
     from agentpool.ui.base import InputProvider
@@ -200,10 +199,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._agent_info: Implementation | None = None
         self._session_id: str | None = None
         self._state: ACPSessionState | None = None
+        from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
+
         self.deps_type = type(None)
         self._extra_mcp_servers: list[McpServer] = []
-        self._tool_bridge: ToolManagerBridge | None = None
-        self._owns_bridge = False  # Track if we created the bridge (for cleanup)
+        # Create bridge (not started yet) - will be started in _setup_toolsets if needed
+        bridge_config = BridgeConfig(server_name=f"agentpool-{self.name}-tools")
+        self._tool_bridge = ToolManagerBridge(node=self, config=bridge_config)
         # Client execution environment (for subprocess requests) - falls back to env
         self._client_env: ExecutionEnvironment | None = config.get_client_execution_environment()
         # Track the prompt task for cancellation
@@ -265,19 +267,14 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
 
     async def _setup_toolsets(self) -> None:
-        """Initialize toolsets from config and create bridge if needed."""
-        from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
-
+        """Initialize toolsets from config and start bridge if needed."""
         if not isinstance(self.config, MCPCapableACPAgentConfig) or not self.config.tools:
             return
         # Create providers from tool configs and add to tool manager
         for provider in self.config.get_tool_providers():
             self.tools.add_provider(provider)
-        # Auto-create bridge to expose tools via MCP
-        config = BridgeConfig(server_name=f"agentpool-{self.name}-tools")
-        self._tool_bridge = ToolManagerBridge(node=self, config=config)
+        # Start bridge to expose tools via MCP
         await self._tool_bridge.start()
-        self._owns_bridge = True
         # Add bridge's MCP server to session
         mcp_config = self._tool_bridge.get_mcp_server_config()
         self._extra_mcp_servers.append(mcp_config)
@@ -398,29 +395,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         model = self._state.current_model_id if self._state else None
         self.log.info("ACP session created", session_id=self._session_id, model=model)
 
-    async def add_tool_bridge(self, bridge: ToolManagerBridge) -> None:
-        """Add an external tool bridge to expose its tools via MCP.
-
-        The bridge must already be started. Its MCP server config will be
-        added to the session. Use this for bridges created externally
-        (e.g., from AgentPool). For toolsets defined in config, bridges
-        are created automatically.
-
-        Args:
-            bridge: Started ToolManagerBridge instance
-        """
-        if self._tool_bridge is None:  # Don't replace our own bridge
-            self._tool_bridge = bridge
-        mcp_config = bridge.get_mcp_server_config()
-        self._extra_mcp_servers.append(mcp_config)
-        self.log.info("Added external tool bridge", url=bridge.url)
-
     async def _cleanup(self) -> None:
         """Clean up resources."""
-        if self._tool_bridge and self._owns_bridge:  # Stop our own bridge if we created it
-            await self._tool_bridge.stop()
-        self._tool_bridge = None
-        self._owns_bridge = False
+        await self._tool_bridge.stop()
         self._extra_mcp_servers.clear()
 
         if self._client_handler:
@@ -561,8 +538,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Set deps on tool bridge for access during tool invocations
 
         # (ContextVar doesn't work because MCP server runs in a separate task)
-        if self._tool_bridge:
-            self._tool_bridge.current_deps = deps
+        self._tool_bridge.current_deps = deps
 
         # Accumulate metadata events by tool_call_id (workaround for MCP stripping _meta)
         tool_metadata: dict[str, dict[str, Any]] = {}
@@ -623,8 +599,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._cancelled = True
         finally:
             # Clear deps from tool bridge
-            if self._tool_bridge:
-                self._tool_bridge.current_deps = None
+            self._tool_bridge.current_deps = None
 
         # Handle cancellation - emit partial message
         if self._cancelled:

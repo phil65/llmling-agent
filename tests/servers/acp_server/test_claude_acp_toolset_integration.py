@@ -60,7 +60,6 @@ async def test_claude_acp_with_subagent_toolset_setup(manifest_with_claude: Agen
         assert isinstance(agent, ACPAgent)
         # Verify toolset bridge was set up
         assert agent._tool_bridge is not None
-        assert agent._owns_bridge is True
         # Verify the MCP server is running
         assert agent._tool_bridge.port > 0
         assert "mcp" in agent._tool_bridge.url

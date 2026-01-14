@@ -68,7 +68,6 @@ async def test_claude_code_with_subagent_toolset_setup(
         # Pool already enters agent context, so bridge should be set up
         # Verify toolset bridge was set up
         assert agent._tool_bridge is not None
-        assert agent._owns_bridge is True
         # Verify tools are registered (SubagentToolset always has tools)
         tools = await agent.tools.get_tools()
         assert len(tools) > 0
