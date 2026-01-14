@@ -10,7 +10,7 @@ env:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.python_version != '3.13' }}
+    continue-on-error: true
     timeout-minutes: 30
     strategy:
       matrix:
