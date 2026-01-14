@@ -32,7 +32,9 @@ if TYPE_CHECKING:
 
     type AnyTransformFn[T] = Callable[[T], T | Awaitable[T]]
     type OptionalAwaitable[T] = T | Awaitable[T]
-    type ToolType = str | AnyCallable | Tool
+    # Import path string for dynamic tool loading (e.g., "mymodule:my_tool")
+    type ImportPathString = str
+    type ToolType = ImportPathString | AnyCallable | Tool
     # Define what we consider JSON-serializable
     type JsonPrimitive = None | bool | int | float | str
     type SessionIdType = str | UUID | None
