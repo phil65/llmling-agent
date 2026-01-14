@@ -1,0 +1,65 @@
+[
+  {
+    "payload": {
+      "kind": "edit",
+      "rawInput": {
+        "description": "Rename function from old to new",
+        "new_string": "def new_function():",
+        "old_string": "def old_function():",
+        "path": "/test/example.py"
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Editing: /test/example.py",
+      "toolCallId": "pyd_ai_tool_call_id__edit"
+    },
+    "type": "tool_call"
+  },
+  {
+    "payload": {
+      "kind": "edit",
+      "locations": [
+        {
+          "line": 0,
+          "path": "/test/example.py"
+        }
+      ],
+      "sessionUpdate": "tool_call_update",
+      "title": "Editing file: /test/example.py",
+      "toolCallId": "pyd_ai_tool_call_id__edit"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "newText": "def new_function():\n    pass\n",
+          "oldText": "def old_function():\n    pass\n",
+          "path": "/test/example.py",
+          "type": "diff"
+        }
+      ],
+      "locations": [
+        {
+          "line": 0,
+          "path": "/test/example.py"
+        }
+      ],
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
+      "title": "Editing: /test/example.py",
+      "toolCallId": "pyd_ai_tool_call_id__edit"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "rawOutput": "Successfully edited example.py: Rename function from old to new (1 lines changed)",
+      "sessionUpdate": "tool_call_update",
+      "status": "completed",
+      "toolCallId": "pyd_ai_tool_call_id__edit"
+    },
+    "type": "tool_call_update"
+  }
+]

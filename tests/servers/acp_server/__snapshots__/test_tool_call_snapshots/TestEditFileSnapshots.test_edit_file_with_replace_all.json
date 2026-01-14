@@ -1,0 +1,51 @@
+[
+  {
+    "payload": {
+      "kind": "edit",
+      "rawInput": {
+        "file_path": "/test/multi.py",
+        "new_string": "renamed",
+        "old_string": "func1",
+        "replace_all": true
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Editing: /test/multi.py",
+      "toolCallId": "pyd_ai_tool_call_id__edit"
+    },
+    "type": "tool_call"
+  },
+  {
+    "payload": {
+      "content": [
+        {
+          "content": {
+            "text": "Error: 3 validation errors:\n```json\n[\n  {\n    \"type\": \"missing\",\n    \"loc\": [\n      \"path\"\n    ],\n    \"msg\": \"Field required\",\n    \"input\": {\n      \"file_path\": \"/test/multi.py\",\n      \"old_string\": \"func1\",\n      \"new_string\": \"renamed\",\n      \"replace_all\": true\n    }\n  },\n  {\n    \"type\": \"missing\",\n    \"loc\": [\n      \"description\"\n    ],\n    \"msg\": \"Field required\",\n    \"input\": {\n      \"file_path\": \"/test/multi.py\",\n      \"old_string\": \"func1\",\n      \"new_string\": \"renamed\",\n      \"replace_all\": true\n    }\n  },\n  {\n    \"type\": \"extra_forbidden\",\n    \"loc\": [\n      \"file_path\"\n    ],\n    \"msg\": \"Extra inputs are not permitted\",\n    \"input\": \"/test/multi.py\"\n  }\n]\n```\n\nFix the errors and try again.",
+            "type": "text"
+          },
+          "type": "content"
+        }
+      ],
+      "sessionUpdate": "tool_call_update",
+      "status": "failed",
+      "toolCallId": "pyd_ai_tool_call_id__edit"
+    },
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "kind": "edit",
+      "rawInput": {
+        "file_path": "/test/multi.py",
+        "new_string": "renamed",
+        "old_string": "func1",
+        "replace_all": true
+      },
+      "sessionUpdate": "tool_call",
+      "status": "pending",
+      "title": "Editing: /test/multi.py",
+      "toolCallId": "pyd_ai_8fda9ba0785d46a4a809dcdea9e21dd0"
+    },
+    "type": "tool_call"
+  }
+]

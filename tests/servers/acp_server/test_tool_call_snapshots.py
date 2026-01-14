@@ -239,6 +239,57 @@ class TestExecuteCommandSnapshots:
         assert messages == json_snapshot
 
 
+class TestEditFileSnapshots:
+    """Snapshot tests for edit tool (file editing with diff)."""
+
+    async def test_edit_file_simple(
+        self,
+        harness: ToolCallTestHarness,
+        json_snapshot: SnapshotAssertion,
+    ) -> None:
+        """Test simple file edit produces expected notifications with diff content."""
+        # Set up initial file content
+        await harness.mock_env.set_file_content(
+            "/test/example.py", "def old_function():\n    pass\n"
+        )
+
+        messages = await harness.execute_tool(
+            tool_name="edit",
+            tool_args={
+                "path": "/test/example.py",
+                "old_string": "def old_function():",
+                "new_string": "def new_function():",
+                "description": "Rename function from old to new",
+            },
+            tools=[FSSpecToolsetConfig()],
+        )
+
+        assert messages == json_snapshot
+
+    async def test_edit_file_with_replace_all(
+        self,
+        harness: ToolCallTestHarness,
+        json_snapshot: SnapshotAssertion,
+    ) -> None:
+        """Test edit with replace_all produces expected notifications."""
+        content = "def func1():\n    func1()\n\ndef func2():\n    func1()\n"
+        await harness.mock_env.set_file_content("/test/multi.py", content)
+
+        messages = await harness.execute_tool(
+            tool_name="edit",
+            tool_args={
+                "path": "/test/multi.py",
+                "old_string": "func1",
+                "new_string": "renamed",
+                "description": "Replace all func1 occurrences",
+                "replace_all": True,
+            },
+            tools=[FSSpecToolsetConfig()],
+        )
+
+        assert messages == json_snapshot
+
+
 class TestMCPToolSnapshots:
     """Snapshot tests for MCP tool calls."""
 
