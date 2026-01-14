@@ -3,9 +3,10 @@
     "payload": {
       "kind": "edit",
       "rawInput": {
-        "file_path": "/test/multi.py",
+        "description": "Replace all func1 occurrences",
         "new_string": "renamed",
         "old_string": "func1",
+        "path": "/test/multi.py",
         "replace_all": true
       },
       "sessionUpdate": "tool_call",
@@ -17,35 +18,49 @@
   },
   {
     "payload": {
-      "content": [
+      "kind": "edit",
+      "locations": [
         {
-          "content": {
-            "text": "Error: 3 validation errors:\n```json\n[\n  {\n    \"type\": \"missing\",\n    \"loc\": [\n      \"path\"\n    ],\n    \"msg\": \"Field required\",\n    \"input\": {\n      \"file_path\": \"/test/multi.py\",\n      \"old_string\": \"func1\",\n      \"new_string\": \"renamed\",\n      \"replace_all\": true\n    }\n  },\n  {\n    \"type\": \"missing\",\n    \"loc\": [\n      \"description\"\n    ],\n    \"msg\": \"Field required\",\n    \"input\": {\n      \"file_path\": \"/test/multi.py\",\n      \"old_string\": \"func1\",\n      \"new_string\": \"renamed\",\n      \"replace_all\": true\n    }\n  },\n  {\n    \"type\": \"extra_forbidden\",\n    \"loc\": [\n      \"file_path\"\n    ],\n    \"msg\": \"Extra inputs are not permitted\",\n    \"input\": \"/test/multi.py\"\n  }\n]\n```\n\nFix the errors and try again.",
-            "type": "text"
-          },
-          "type": "content"
+          "line": 0,
+          "path": "/test/multi.py"
         }
       ],
       "sessionUpdate": "tool_call_update",
-      "status": "failed",
+      "title": "Editing file: /test/multi.py",
       "toolCallId": "pyd_ai_tool_call_id__edit"
     },
     "type": "tool_call_update"
   },
   {
     "payload": {
-      "kind": "edit",
-      "rawInput": {
-        "file_path": "/test/multi.py",
-        "new_string": "renamed",
-        "old_string": "func1",
-        "replace_all": true
-      },
-      "sessionUpdate": "tool_call",
-      "status": "pending",
+      "content": [
+        {
+          "newText": "def renamed():\n    renamed()\n\ndef func2():\n    renamed()\n",
+          "oldText": "def func1():\n    func1()\n\ndef func2():\n    func1()\n",
+          "path": "/test/multi.py",
+          "type": "diff"
+        }
+      ],
+      "locations": [
+        {
+          "line": 0,
+          "path": "/test/multi.py"
+        }
+      ],
+      "sessionUpdate": "tool_call_update",
+      "status": "in_progress",
       "title": "Editing: /test/multi.py",
-      "toolCallId": "pyd_ai_8fda9ba0785d46a4a809dcdea9e21dd0"
+      "toolCallId": "pyd_ai_tool_call_id__edit"
     },
-    "type": "tool_call"
+    "type": "tool_call_update"
+  },
+  {
+    "payload": {
+      "rawOutput": "Successfully edited multi.py: Replace all func1 occurrences (3 lines changed)",
+      "sessionUpdate": "tool_call_update",
+      "status": "completed",
+      "toolCallId": "pyd_ai_tool_call_id__edit"
+    },
+    "type": "tool_call_update"
   }
 ]

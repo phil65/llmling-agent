@@ -54,13 +54,7 @@
   },
   {
     "payload": {
-      "rawOutput": {
-        "bytes_written": 15,
-        "file_existed": true,
-        "mode": "w",
-        "path": "/test/existing.txt",
-        "size": 15
-      },
+      "rawOutput": "Wrote /test/existing.txt (15 bytes)",
       "sessionUpdate": "tool_call_update",
       "status": "completed",
       "toolCallId": "pyd_ai_tool_call_id__write"
