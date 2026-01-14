@@ -1,18 +1,13 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/phil65/agentpool/refs/heads/main/schema/config-schema.json
 agents:
   # ACP-enabled agent with terminal and file access
-  claude:
-    type: acp
-    provider: claude
-    display_name: "Claude Code"
-    description: "Claude Code through ACP"
-    env: # override to make sure subscription is used
-      ANTHROPIC_API_KEY: ""
-
-    tools:
-      - type: code
-      - type: subagent
-      - type: plan
+  # claude:
+  #   type: acp
+  #   provider: claude
+  #   display_name: "Claude Code"
+  #   description: "Claude Code through ACP"
+  #   env: # override to make sure subscription is used
+  #     ANTHROPIC_API_KEY: ""
   codex:
     type: acp
     provider: codex

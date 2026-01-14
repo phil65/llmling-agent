@@ -17,7 +17,7 @@ import pytest
 
 from agentpool import AgentPool
 from agentpool.agents.acp_agent import ACPAgent
-from agentpool.models.acp_agents.mcp_capable import ClaudeACPAgentConfig
+from agentpool.models.acp_agents.non_mcp import ClaudeACPAgentConfig
 from agentpool.models.manifest import AgentsManifest
 from agentpool_config.toolsets import SubagentToolsetConfig
 
