@@ -269,7 +269,9 @@ def create_app(  # noqa: PLR0915
         # Register callback to run when first SSE client connects
         state.on_first_subscriber = check_for_updates
 
-        yield
+        # Enter pool context to initialize session store and other components
+        async with pool:
+            yield
 
         # Shutdown - clean up
         pool.todos.on_change = None
