@@ -95,9 +95,18 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
 
     manager = _get_pty_manager(state)
 
+    # Limit number of PTY sessions to prevent resource exhaustion
+    sessions = await manager.list_sessions()
+    if len(sessions) >= 20:  # Max 20 concurrent PTY sessions
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many PTY sessions ({len(sessions)}). Close some terminals first.",
+        )
+
     # Use working dir from state if not specified
     cwd = request.cwd or state.working_dir
 
+    print(f"Creating PTY: command={request.command}, args={request.args}, cwd={cwd}")
     try:
         info = await manager.create(
             command=request.command,
@@ -105,6 +114,7 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
             cwd=cwd,
             env=request.env,
         )
+        print(f"PTY created successfully: {info.id}, status={info.status}")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to create PTY: {e}") from e
 
@@ -114,6 +124,7 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
     # Create session tracker for WebSocket subscribers
     session = PtySession(pty_id=pty_id)
     _pty_sessions[pty_id] = session
+    print(f"PTY session registered: {pty_id}, total sessions: {len(_pty_sessions)}")
 
     # Start background task to read output and distribute to subscribers
     session.read_task = asyncio.create_task(_read_pty_output(manager, pty_id, state))
