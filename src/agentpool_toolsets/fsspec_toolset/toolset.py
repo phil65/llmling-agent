@@ -33,7 +33,7 @@ from agentpool.tool_impls.download_file import create_download_file_tool
 from agentpool.tool_impls.grep import create_grep_tool
 from agentpool.tool_impls.list_directory import create_list_directory_tool
 from agentpool.tool_impls.read import create_read_tool
-from agentpool.tools.base import ToolResult
+from agentpool.tools.base import ToolResult  # noqa: TC001
 from agentpool_toolsets.builtin.file_edit import replace_content
 from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import StreamingFuzzyMatcher
 from agentpool_toolsets.fsspec_toolset.diagnostics import (
