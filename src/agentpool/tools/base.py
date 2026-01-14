@@ -7,30 +7,6 @@ from dataclasses import dataclass, field
 import inspect
 from typing import TYPE_CHECKING, Any, Literal
 
-
-@dataclass
-class ToolResult:
-    """Structured tool result with content for LLM and metadata for UI.
-
-    This abstraction allows tools to return rich data that gets converted to
-    agent-specific formats (pydantic-ai ToolReturn, FastMCP ToolResult, etc.).
-
-    Attributes:
-        content: What the LLM sees - can be string or list of content blocks
-        structured_content: Machine-readable JSON data (optional)
-        metadata: UI/application data that is NOT sent to the LLM
-    """
-
-    content: str | list[Any]
-    """Content sent to the LLM (text, images, etc.)"""
-
-    structured_content: dict[str, Any] | None = None
-    """Structured JSON data for programmatic access (optional)"""
-
-    metadata: dict[str, Any] | None = None
-    """Metadata for UI/app use - NOT sent to LLM (diffs, diagnostics, etc.)"""
-
-
 import logfire
 from pydantic_ai.tools import Tool as PydanticAiTool
 import schemez
@@ -49,11 +25,11 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from mcp.types import Tool as MCPTool
+    from pydantic_ai import UserContent
     from schemez import FunctionSchema, Property
 
     from agentpool.common_types import ToolSource
     from agentpool.tools.manager import ToolState
-
 
 logger = get_logger(__name__)
 ToolKind = Literal[
@@ -68,6 +44,29 @@ ToolKind = Literal[
     "switch_mode",
     "other",
 ]
+
+
+@dataclass
+class ToolResult:
+    """Structured tool result with content for LLM and metadata for UI.
+
+    This abstraction allows tools to return rich data that gets converted to
+    agent-specific formats (pydantic-ai ToolReturn, FastMCP ToolResult, etc.).
+
+    Attributes:
+        content: What the LLM sees - can be string or list of content blocks
+        structured_content: Machine-readable JSON data (optional)
+        metadata: UI/application data that is NOT sent to the LLM
+    """
+
+    content: str | list[UserContent]
+    """Content sent to the LLM (text, images, etc.)"""
+
+    structured_content: dict[str, Any] | None = None
+    """Structured JSON data for programmatic access (optional)"""
+
+    metadata: dict[str, Any] | None = None
+    """Metadata for UI/app use - NOT sent to LLM (diffs, diagnostics, etc.)."""
 
 
 @dataclass
