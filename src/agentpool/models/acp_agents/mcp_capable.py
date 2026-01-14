@@ -675,7 +675,85 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
         return args
 
 
+class AgentpoolACPAgentConfig(MCPCapableACPAgentConfig):
+    """Configuration for agentpool's own ACP server.
+
+    This allows using agentpool serve-acp as an ACP agent, with MCP bridge support
+    for tool metadata preservation.
+
+    Example:
+        ```yaml
+        acp_agents:
+          my_agentpool:
+            type: agentpool
+            config_path: path/to/agent_config.yml
+            agent: agent_name  # Optional: specific agent to use
+            mcp_servers:
+              - type: stdio
+                command: mcp-server-filesystem
+                args: ["--root", "/workspace"]
+        ```
+    """
+
+    model_config = ConfigDict(title="Agentpool ACP Agent")
+
+    provider: Literal["agentpool"] = Field("agentpool", init=False)
+    """Discriminator for agentpool ACP agent."""
+
+    config_path: str | None = None
+    """Path to agentpool configuration file (optional)."""
+
+    agent: str | None = None
+    """Specific agent name to use from config (defaults to first agent)."""
+
+    file_access: bool = True
+    """Enable file system access for the agent."""
+
+    terminal_access: bool = True
+    """Enable terminal access for the agent."""
+
+    load_skills: bool = True
+    """Load client-side skills from .claude/skills directory."""
+
+    def get_command(self) -> str:
+        """Get the command to run agentpool serve-acp."""
+        return "agentpool"
+
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+        """Build command arguments for agentpool serve-acp."""
+        args = ["serve-acp"]
+
+        # Add config path if specified
+        if self.config_path:
+            args.append(self.config_path)
+
+        # Add agent selection
+        if self.agent:
+            args.extend(["--agent", self.agent])
+
+        # Add file/terminal access flags
+        if not self.file_access:
+            args.append("--no-file-access")
+        if not self.terminal_access:
+            args.append("--no-terminal-access")
+
+        # Add skills flag
+        if not self.load_skills:
+            args.append("--no-skills")
+
+        # Convert inherited mcp_servers to --mcp-config format
+        mcp_json = self.build_mcp_config_json()
+        if mcp_json:
+            args.extend(["--mcp-config", mcp_json])
+
+        return args
+
+
 # Union of all ACP agent config types
 MCPCapableACPAgentConfigTypes = (
-    ClaudeACPAgentConfig | FastAgentACPAgentConfig | AuggieACPAgentConfig | KimiACPAgentConfig
+    ClaudeACPAgentConfig
+    | FastAgentACPAgentConfig
+    | AuggieACPAgentConfig
+    | KimiACPAgentConfig
+    | AgentpoolACPAgentConfig
 )
