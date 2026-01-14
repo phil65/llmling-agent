@@ -60,12 +60,10 @@ from agentpool.agents.events import (
 )
 from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
-from agentpool.common_types import (
-    IndividualEventHandler,
-)
+from agentpool.common_types import IndividualEventHandler
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
-from agentpool.models.acp_agents import ACPAgentConfig, MCPCapableACPAgentConfig
+from agentpool.models.acp_agents import ACPAgentConfig
 from agentpool.utils.streams import merge_queue_into_iterator
 from agentpool.utils.subprocess_utils import SubprocessError, monitor_process
 from agentpool.utils.token_breakdown import calculate_usage_from_parts
@@ -85,19 +83,14 @@ if TYPE_CHECKING:
     from acp.agent.protocol import Agent as ACPAgentProtocol
     from acp.client.connection import ClientSideConnection
     from acp.client.protocol import Client
-    from acp.schema import (
-        Implementation,
-        RequestPermissionRequest,
-        RequestPermissionResponse,
-    )
+    from acp.schema import Implementation, RequestPermissionRequest, RequestPermissionResponse
+    from acp.schema.capabilities import AgentCapabilities
     from acp.schema.mcp import McpServer
     from agentpool.agents import AgentContext
     from agentpool.agents.acp_agent.client_handler import ACPClientHandler
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
-    from agentpool.common_types import (
-        BuiltinEventHandlerType,
-    )
+    from agentpool.common_types import BuiltinEventHandlerType
     from agentpool.delegation import AgentPool
     from agentpool.messaging import MessageHistory
     from agentpool.models.acp_agents import BaseACPAgentConfig
@@ -197,6 +190,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._connection: ClientSideConnection | None = None
         self._client_handler: ACPClientHandler | None = None
         self._agent_info: Implementation | None = None
+        self._agent_capabilities: AgentCapabilities | None = None
         self._session_id: str | None = None
         self._state: ACPSessionState | None = None
         from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
@@ -268,7 +262,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _setup_toolsets(self) -> None:
         """Initialize toolsets from config and start bridge if needed."""
-        if not isinstance(self.config, MCPCapableACPAgentConfig) or not self.config.tools:
+        if not self.config.tools:
             return
         # Create providers from tool configs and add to tool manager
         for provider in self.config.get_tool_providers():
@@ -360,24 +354,70 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
         init_response = await self._connection.initialize(init_request)
         self._agent_info = init_response.agent_info
-        self.log.info("ACP connection initialized", agent_info=self._agent_info)
+        self._agent_capabilities = init_response.agent_capabilities
+
+        # Log MCP capabilities if present
+        mcp_caps = self._agent_capabilities.mcp_capabilities if self._agent_capabilities else None
+        self.log.info(
+            "ACP connection initialized",
+            agent_info=self._agent_info,
+            mcp_http=mcp_caps.http if mcp_caps else False,
+            mcp_sse=mcp_caps.sse if mcp_caps else False,
+        )
 
     async def _create_session(self) -> None:
         """Create a new ACP session with configured MCP servers."""
         from acp.schema import NewSessionRequest
+        from acp.schema.mcp import HttpMcpServer, SseMcpServer
         from agentpool.agents.acp_agent.acp_converters import mcp_configs_to_acp
 
         if not self._connection:
             msg = "Connection not initialized"
             raise RuntimeError(msg)
 
+        # Check which MCP transports the agent supports
+        supports_http = (
+            self._agent_capabilities
+            and self._agent_capabilities.mcp_capabilities
+            and self._agent_capabilities.mcp_capabilities.http
+        )
+        supports_sse = (
+            self._agent_capabilities
+            and self._agent_capabilities.mcp_capabilities
+            and self._agent_capabilities.mcp_capabilities.sse
+        )
+
         mcp_servers: list[McpServer] = []  # Collect MCP servers from config
         # Add servers from config (converted to ACP format)
         config_servers = self.config.get_mcp_servers()
         if config_servers:
             mcp_servers.extend(mcp_configs_to_acp(config_servers))
-        # Add any extra MCP servers (e.g., from tool bridges)
-        mcp_servers.extend(self._extra_mcp_servers)
+
+        # Filter extra MCP servers (e.g., from tool bridges) based on agent capabilities
+        if self._extra_mcp_servers:
+            supported_servers = []
+            unsupported_servers = []
+
+            for server in self._extra_mcp_servers:
+                if isinstance(server, HttpMcpServer) and not supports_http:
+                    unsupported_servers.append((server, "HTTP"))
+                elif isinstance(server, SseMcpServer) and not supports_sse:
+                    unsupported_servers.append((server, "SSE"))
+                else:
+                    # Stdio servers or supported transport types
+                    supported_servers.append(server)
+
+            if unsupported_servers:
+                transports = ", ".join(sorted({t for _, t in unsupported_servers}))
+                self.log.warning(
+                    "Agent does not support some MCP transports, skipping servers",
+                    unsupported_transports=transports,
+                    unsupported_count=len(unsupported_servers),
+                    supported_http=supports_http,
+                    supported_sse=supports_sse,
+                )
+
+            mcp_servers.extend(supported_servers)
         cwd = self.config.cwd or str(Path.cwd())
         session_request = NewSessionRequest(cwd=cwd, mcp_servers=mcp_servers)
         response = await self._connection.new_session(session_request)
