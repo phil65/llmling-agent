@@ -97,7 +97,7 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
 
     # Limit number of PTY sessions to prevent resource exhaustion
     sessions = await manager.list_sessions()
-    if len(sessions) >= 20:  # Max 20 concurrent PTY sessions
+    if len(sessions) >= 20:  # Max 20 concurrent PTY sessions  # noqa: PLR2004
         raise HTTPException(
             status_code=429,
             detail=f"Too many PTY sessions ({len(sessions)}). Close some terminals first.",
@@ -267,7 +267,7 @@ async def connect_pty(websocket: WebSocket, pty_id: str) -> None:
         await websocket.accept()
         await websocket.close(code=1003, reason="PTY not supported")
         return
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         await websocket.accept()
         await websocket.close(code=1011, reason=f"Error: {e}")
         return

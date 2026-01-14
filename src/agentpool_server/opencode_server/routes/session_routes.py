@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal
@@ -330,6 +331,8 @@ async def abort_session(session_id: str, state: StateDep) -> bool:
     # Interrupt the agent to cancel any ongoing stream
     try:
         await state.agent.interrupt()
+        # Give a moment for the cancellation to propagate
+        await asyncio.sleep(0.1)
     except Exception:  # noqa: BLE001
         pass
 

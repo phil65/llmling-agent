@@ -562,6 +562,9 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Success message or ToolResult with metadata
         """
+        from agentpool.agents.events import DiffContentItem
+        from agentpool.tools.base import ToolResult
+
         path = self._resolve_path(path, agent_ctx)
         msg = f"Writing file: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
@@ -606,17 +609,6 @@ class FSSpecTools(ResourceProvider):
                     pass  # If we can't read, just write new content
 
             await self._write(agent_ctx, path, content)
-
-            try:
-                info = await fs._info(path)
-                size = info.get("size", content_bytes)
-            except (OSError, KeyError):
-                size = content_bytes
-
-            # Emit file operation with content for UI display
-            from agentpool.agents.events import DiffContentItem
-            from agentpool.tools.base import ToolResult
-
             await agent_ctx.events.tool_call_progress(
                 title=f"Wrote: {path}",
                 items=[
