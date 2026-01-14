@@ -131,7 +131,8 @@ class MCPServer(BaseServer):
                 idempotentHint=tool.hints.idempotent,
                 openWorldHint=tool.hints.open_world,
             )
-            self.fastmcp.tool(annotations=tool_annotations, task=True)(tool_handler)
+            # TODO: set task=True?
+            self.fastmcp.tool(annotations=tool_annotations)(tool_handler)
 
         self._tools_registered = True
         logger.info("Registered MCP tools", count=len(tools))
