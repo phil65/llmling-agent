@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Awaitable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import replace
+from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any, Self, TypedDict, TypeVar, overload
 from uuid import uuid4
@@ -25,6 +26,7 @@ from pydantic_ai import (
     RunContext,
     ToolReturnPart,
 )
+from pydantic_ai.messages import ModelResponse, TextPart as PydanticTextPart
 from pydantic_ai.models import Model
 
 from agentpool.agents.base_agent import BaseAgent
@@ -110,8 +112,6 @@ def _extract_text_from_messages(
     Returns:
         Concatenated text content from all ModelResponse TextParts
     """
-    from pydantic_ai.messages import ModelResponse, TextPart as PydanticTextPart
-
     content = "".join(
         part.content
         for msg in messages
@@ -385,8 +385,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         Returns:
             Configured Agent instance
         """
-        from pathlib import Path
-
         from agentpool.models.manifest import AgentsManifest
         from agentpool.utils.result_utils import to_type
         from agentpool_config.system_prompts import (
