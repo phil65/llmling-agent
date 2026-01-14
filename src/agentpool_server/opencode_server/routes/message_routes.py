@@ -239,7 +239,8 @@ async def _process_message(  # noqa: PLR0915
     for part in user_parts:
         await state.broadcast_event(PartUpdatedEvent.create(part))
     state.session_status[session_id] = SessionStatus(type="busy")
-    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="busy")))
+    status_event = SessionStatusEvent.create(session_id, SessionStatus(type="busy"))
+    await state.broadcast_event(status_event)
     # Extract user prompt text
     user_prompt = extract_user_prompt_from_parts([p.model_dump() for p in request.parts])
     # Create assistant message with sortable ID (must come after user message)
