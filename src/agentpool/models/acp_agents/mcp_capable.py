@@ -9,14 +9,11 @@ import anyenv
 from pydantic import BaseModel, ConfigDict, Field
 
 from agentpool.models.acp_agents.base import BaseACPAgentConfig
-from agentpool_config import AnyToolConfig, BaseToolConfig  # noqa: TC001
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
-from agentpool_config.toolsets import BaseToolsetConfig
 
 
 if TYPE_CHECKING:
     from agentpool.prompts.manager import PromptManager
-    from agentpool.resource_providers import ResourceProvider
 
 
 ClaudeCodeModelName = Literal["default", "sonnet", "opus", "haiku", "sonnet[1m]", "opusplan"]
@@ -49,51 +46,6 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
     Extends BaseACPAgentConfig with MCP-specific capabilities including toolsets
     that can be exposed via an internal MCP bridge.
     """
-
-    tools: list[AnyToolConfig | str] = Field(
-        default_factory=list,
-        title="Tools",
-        examples=[
-            [
-                {"type": "subagent"},
-                {"type": "agent_management"},
-                "webbrowser:open",
-            ],
-        ],
-    )
-    """Tools and toolsets to expose to this ACP agent via MCP bridge.
-
-    Supports both single tools and toolsets. These will be started as an
-    in-process MCP server and made available to the external ACP agent.
-    """
-
-    def get_tool_providers(self) -> list[ResourceProvider]:
-        """Get all resource providers for this agent's tools.
-
-        Returns:
-            List of ResourceProvider instances
-        """
-        from agentpool.resource_providers import StaticResourceProvider
-        from agentpool.tools.base import Tool
-
-        providers: list[ResourceProvider] = []
-        static_tools: list[Tool] = []
-
-        for tool_config in self.tools:
-            try:
-                if isinstance(tool_config, BaseToolsetConfig):
-                    providers.append(tool_config.get_provider())
-                elif isinstance(tool_config, str):
-                    static_tools.append(Tool.from_callable(tool_config))
-                elif isinstance(tool_config, BaseToolConfig):
-                    static_tools.append(tool_config.get_tool())
-            except Exception:  # noqa: BLE001
-                continue
-
-        if static_tools:
-            providers.append(StaticResourceProvider(name="tools", tools=static_tools))
-
-        return providers
 
     def build_mcp_config_json(self) -> str | None:
         """Convert inherited mcp_servers to standard MCP config JSON format.

@@ -14,14 +14,17 @@ from exxec_config import (
 )
 from pydantic import ConfigDict, Field
 
+from agentpool_config import AnyToolConfig, BaseToolConfig  # noqa: TC001
 from agentpool_config.nodes import NodeConfig
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
+from agentpool_config.toolsets import BaseToolsetConfig
 
 
 if TYPE_CHECKING:
     from exxec import ExecutionEnvironment
 
     from agentpool.prompts.manager import PromptManager
+    from agentpool.resource_providers import ResourceProvider
 
 
 class BaseACPAgentConfig(NodeConfig):
@@ -53,6 +56,23 @@ class BaseACPAgentConfig(NodeConfig):
         examples=[{"PATH": "/usr/local/bin:/usr/bin", "DEBUG": "1"}],
     )
     """Environment variables to set."""
+
+    tools: list[AnyToolConfig | str] = Field(
+        default_factory=list,
+        title="Tools",
+        examples=[
+            [
+                {"type": "subagent"},
+                {"type": "agent_management"},
+                "webbrowser:open",
+            ],
+        ],
+    )
+    """Tools and toolsets to expose to this ACP agent via MCP bridge.
+
+    Supports both single tools and toolsets. These will be started as an
+    in-process MCP server and made available to the external ACP agent.
+    """
 
     execution_environment: Annotated[
         ExecutionEnvironmentStr | ExecutionEnvironmentConfig,
@@ -131,6 +151,34 @@ class BaseACPAgentConfig(NodeConfig):
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Get command arguments."""
         raise NotImplementedError
+
+    def get_tool_providers(self) -> list[ResourceProvider]:
+        """Get all resource providers for this agent's tools.
+
+        Returns:
+            List of ResourceProvider instances
+        """
+        from agentpool.resource_providers import StaticResourceProvider
+        from agentpool.tools.base import Tool
+
+        providers: list[ResourceProvider] = []
+        static_tools: list[Tool] = []
+
+        for tool_config in self.tools:
+            try:
+                if isinstance(tool_config, BaseToolsetConfig):
+                    providers.append(tool_config.get_provider())
+                elif isinstance(tool_config, str):
+                    static_tools.append(Tool.from_callable(tool_config))
+                elif isinstance(tool_config, BaseToolConfig):
+                    static_tools.append(tool_config.get_tool())
+            except Exception:  # noqa: BLE001
+                continue
+
+        if static_tools:
+            providers.append(StaticResourceProvider(name="tools", tools=static_tools))
+
+        return providers
 
     async def render_system_prompt(
         self,
