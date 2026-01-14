@@ -396,7 +396,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Filter extra MCP servers (e.g., from tool bridges) based on agent capabilities
         if self._extra_mcp_servers:
             supported_servers: list[McpServer] = []
-            unsupported_servers: list[McpServer] = []
+            unsupported_servers: list[tuple[McpServer, str]] = []
 
             for server in self._extra_mcp_servers:
                 if isinstance(server, HttpMcpServer) and not supports_http:
