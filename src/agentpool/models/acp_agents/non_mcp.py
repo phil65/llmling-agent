@@ -13,88 +13,6 @@ if TYPE_CHECKING:
     from agentpool.prompts.manager import PromptManager
 
 
-class ClaudeACPAgentConfig(BaseACPAgentConfig):
-    """Configuration for Claude Code via ACP.
-
-    WARNING: Prefer the native claude-code-agent for more functionality.
-
-    Provides typed settings for the claude-code-acp server.
-
-    Important Limitations:
-        The `claude-code-acp` binary is a pure ACP protocol adapter that does NOT
-        accept CLI arguments. Configuration must be provided through:
-
-        1. **ACP Protocol** - MCP servers via `mcp_servers` field (works)
-        2. **Settings Files** - `.claude.json`, `.claude/settings.json` (works)
-        3. **Environment Variables** - `ANTHROPIC_API_KEY`, etc. (works)
-        4. **`_meta` field** - Not yet implemented in agentpool (future)
-
-        For full Claude Code functionality with programmatic control, consider using
-        native agentpool tools instead, which provide better diff visualization and
-        more direct control.
-
-    When to use this provider:
-        - You specifically want Claude Code's behavior and slash commands
-        - You need compatibility with Claude Code settings files (.claude.json)
-        - You want to use Claude Code's planning mode and permission system
-        - You're migrating from the `claude` CLI
-
-    When to use native agentpool tools instead:
-        - You want proper diff visualization in the UI (Edit tool)
-        - You need programmatic control over tool configuration
-        - You prefer Python-based tool implementations
-        - You want better performance (no extra Node.js process)
-
-    Note:
-        If ANTHROPIC_API_KEY is set in your environment, Claude Code will use it
-        directly instead of the subscription. To force subscription usage, unset it
-        or set `env: {"ANTHROPIC_API_KEY": ""}` in the config.
-
-    Example:
-        ```yaml
-        agents:
-          claude_coder:
-            type: acp
-            provider: claude
-            cwd: /path/to/project
-            env:
-              ANTHROPIC_API_KEY: ""  # Use subscription instead of API key
-
-            # MCP servers work via ACP protocol:
-            mcp_servers:
-              - name: filesystem
-                type: stdio
-                command: uvx
-                args: [mcp-server-filesystem, /path/to/allow]
-
-            # For other settings, use .claude/settings.json:
-            # {
-            #   "permissions": {
-            #     "allow": ["Read", "Write", "Edit"],
-            #     "deny": ["WebSearch", "WebFetch"]
-            #   }
-            # }
-        ```
-
-    See Also:
-        - docs/acp_meta_field_reference.md - Protocol extensibility details
-        - docs/claude_acp_vs_native_tools.md - Comparison with native tools
-    """
-
-    model_config = ConfigDict(json_schema_extra={"title": "Claude ACP Agent Configuration"})
-
-    provider: Literal["claude"] = Field("claude", init=False)
-    """Discriminator for Claude ACP agent."""
-
-    def get_command(self) -> str:
-        """Returns 'claude-code-acp' binary (no CLI args supported)."""
-        return "claude-code-acp"
-
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
-        """Returns empty list (claude-code-acp uses pure stdin/stdout, no CLI args)."""
-        return []
-
-
 class CodexACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Zed Codex via ACP.
 
@@ -944,8 +862,7 @@ class GeminiACPAgentConfig(BaseACPAgentConfig):
 
 # Union of all ACP agent config types
 RegularACPAgentConfigTypes = (
-    ClaudeACPAgentConfig
-    | CodexACPAgentConfig
+    CodexACPAgentConfig
     | OpenCodeACPAgentConfig
     | GooseACPAgentConfig
     | OpenHandsACPAgentConfig

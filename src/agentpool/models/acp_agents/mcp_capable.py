@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, Literal, assert_never
+from typing import TYPE_CHECKING, Any, Literal, assert_never, cast
 
-from pydantic import ConfigDict, Field
+import anyenv
+from pydantic import BaseModel, ConfigDict, Field
 
 from agentpool.models.acp_agents.base import BaseACPAgentConfig
 from agentpool_config import AnyToolConfig, BaseToolConfig  # noqa: TC001
+from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from agentpool_config.toolsets import BaseToolsetConfig
 
 
@@ -146,6 +148,176 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
             return None
 
         return json.dumps({"mcpServers": mcp_servers})
+
+
+class ClaudeACPAgentConfig(MCPCapableACPAgentConfig):
+    """Configuration for Claude Code via ACP.
+
+    Provides typed settings for the claude-code-acp server.
+
+    Note:
+        If ANTHROPIC_API_KEY is set in your environment, Claude Code will use it
+        directly instead of the subscription. To force subscription usage, set
+        `env: {"ANTHROPIC_API_KEY": ""}` in the config.
+
+    Example:
+        ```yaml
+        agents:
+          coder:
+            type: acp
+            provider: claude
+            cwd: /path/to/project
+            model: sonnet
+            permission_mode: acceptEdits
+            env:
+              ANTHROPIC_API_KEY: ""  # Use subscription instead of API key
+            allowed_tools:
+              - Read
+              - Write
+              - Bash(git:*)
+        ```
+    """
+
+    model_config = ConfigDict(json_schema_extra={"title": "Claude ACP Agent Configuration"})
+
+    provider: Literal["claude"] = Field("claude", init=False)
+    """Discriminator for Claude ACP agent."""
+
+    include_builtin_system_prompt: bool = Field(
+        default=True,
+        title="Include Builtin System Prompt",
+    )
+    """If True, system_prompt is appended to Claude's builtin prompt.
+    If False, system_prompt replaces the builtin prompt entirely."""
+
+    model: ClaudeCodeModelName | None = Field(
+        default=None,
+        title="Model",
+        examples=["sonnet", "opus", "claude-sonnet-4-20250514"],
+    )
+    """Model override. Use alias ('sonnet', 'opus') or full name."""
+
+    permission_mode: ClaudeCodePermissionmode | None = Field(
+        default=None,
+        title="Permission Mode",
+        examples=["acceptEdits", "bypassPermissions", "plan"],
+    )
+    """Permission handling mode for tool execution."""
+
+    allowed_tools: list[ClaudeCodeToolName | str] | None = Field(
+        default=None,
+        title="Allowed Tools",
+        examples=[["Read", "Write", "Bash(git:*)"], ["Edit", "Glob"]],
+    )
+    """Whitelist of allowed tools (e.g., ['Read', 'Write', 'Bash(git:*)'])."""
+
+    disallowed_tools: list[ClaudeCodeToolName | str] | None = Field(
+        default=None,
+        title="Disallowed Tools",
+        examples=[["WebSearch", "WebFetch"], ["KillShell"]],
+    )
+    """Blacklist of disallowed tools."""
+
+    strict_mcp_config: bool = Field(default=False, title="Strict MCP Config")
+    """Only use MCP servers from mcp_config, ignoring all other configs."""
+
+    add_dir: list[str] | None = Field(
+        default=None,
+        title="Additional Directories",
+        examples=[["/tmp", "/var/log"], ["/home/user/data"]],
+    )
+    """Additional directories to allow tool access to."""
+
+    builtin_tools: list[ClaudeCodeToolName | str] | None = Field(
+        default=None,
+        title="Built-in Tools",
+        examples=[["Bash", "Edit", "Read"], []],
+    )
+    """Available tools from Claude's built-in set. Empty list disables all tools."""
+
+    fallback_model: ClaudeCodeModelName | None = Field(
+        default=None,
+        title="Fallback Model",
+        examples=["sonnet", "haiku"],
+    )
+    """Fallback model when default is overloaded."""
+
+    auto_approve: bool = Field(
+        default=False,
+        title="Auto Approve",
+    )
+    """Bypass all permission checks. Only for sandboxed environments."""
+
+    output_type: str | StructuredResponseConfig | None = Field(
+        default=None,
+        title="Output Type",
+        examples=[
+            "json_response",
+            {"response_schema": {"type": "import", "import_path": "mymodule:MyModel"}},
+        ],
+    )
+    """Structured output configuration. Generates --output-format and --json-schema."""
+
+    def get_command(self) -> str:
+        """Get the command to spawn the ACP server."""
+        return "claude-code-acp"
+
+    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+        """Build command arguments from settings."""
+        args: list[str] = []
+
+        # Handle system prompt from base class
+        rendered_prompt = await self.render_system_prompt(prompt_manager)
+        if rendered_prompt:
+            if self.include_builtin_system_prompt:
+                args.extend(["--append-system-prompt", rendered_prompt])
+            else:
+                args.extend(["--system-prompt", rendered_prompt])
+        if self.model:
+            args.extend(["--model", self.model])
+        if self.permission_mode:
+            args.extend(["--permission-mode", self.permission_mode])
+        if self.allowed_tools:
+            args.extend(["--allowed-tools", *self.allowed_tools])
+        if self.disallowed_tools:
+            args.extend(["--disallowed-tools", *self.disallowed_tools])
+
+        # Convert inherited mcp_servers to Claude's --mcp-config JSON format
+        mcp_json = self.build_mcp_config_json()
+        if mcp_json:
+            args.extend(["--mcp-config", mcp_json])
+
+        if self.strict_mcp_config:
+            args.append("--strict-mcp-config")
+        if self.add_dir:
+            args.extend(["--add-dir", *self.add_dir])
+        if self.builtin_tools is not None:
+            if self.builtin_tools:
+                args.extend(["--tools", ",".join(self.builtin_tools)])
+            else:
+                args.extend(["--tools", ""])
+        if self.fallback_model:
+            args.extend(["--fallback-model", self.fallback_model])
+        if self.auto_approve:
+            args.append("--dangerously-skip-permissions")
+        if self.output_type:
+            args.extend(["--output-format", "json"])
+            schema = self._resolve_json_schema()
+            if schema:
+                args.extend(["--json-schema", schema])
+
+        return args
+
+    def _resolve_json_schema(self) -> str | None:
+        """Resolve output_type to a JSON schema string."""
+        if self.output_type is None:
+            return None
+        if isinstance(self.output_type, str):
+            # Named reference - caller must resolve
+            return None
+        # StructuredResponseConfig - resolve schema via get_schema()
+        model_cls = cast(type[BaseModel], self.output_type.response_schema.get_schema())
+        return anyenv.dump_json(model_cls.model_json_schema())
 
 
 class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
@@ -579,5 +751,9 @@ class AgentpoolACPAgentConfig(MCPCapableACPAgentConfig):
 
 # Union of all ACP agent config types
 MCPCapableACPAgentConfigTypes = (
-    FastAgentACPAgentConfig | AuggieACPAgentConfig | KimiACPAgentConfig | AgentpoolACPAgentConfig
+    ClaudeACPAgentConfig
+    | FastAgentACPAgentConfig
+    | AuggieACPAgentConfig
+    | KimiACPAgentConfig
+    | AgentpoolACPAgentConfig
 )
