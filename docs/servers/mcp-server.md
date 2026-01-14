@@ -178,41 +178,6 @@ For HTTP-based communication:
 agentpool serve-mcp config.yml --transport sse --port 3001
 ```
 
-Used for network-accessible servers.
-
-## Programmatic Usage
-
-```python
-from agentpool.mcp_server import serve_mcp
-from agentpool import Agent
-
-async def main():
-    agent = Agent("assistant", model="openai:gpt-4o")
-    
-    async with agent:
-        # Serve tools via MCP
-        await serve_mcp(
-            agent=agent,
-            transport="sse",
-            port=3001,
-        )
-```
-
-## Security Considerations
-
-When exposing tools via MCP:
-
-- **Network exposure**: SSE transport is network-accessible
-- **Tool permissions**: All exposed tools can be called
-- **Resource access**: Exposed resources are readable
-- **No authentication**: MCP doesn't have built-in auth
-
-Best practices:
-
-- Bind to localhost for local-only access
-- Use firewall rules for network deployment
-- Limit exposed toolsets to what's needed
-- Use read-only resources when possible
 
 ## Consuming MCP Servers
 
@@ -226,8 +191,8 @@ agents:
         command: uvx
         args: ["some-mcp-server"]
         
-      - type: sse
-        url: http://localhost:3001/sse
+      - type: streamable-http
+        url: http://localhost:3001/mcp
 ```
 
 See [MCP Server Integration](../advanced/mcp-servers.md) for consuming MCP servers.

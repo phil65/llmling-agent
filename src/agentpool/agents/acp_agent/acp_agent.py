@@ -269,7 +269,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         for provider in self.config.get_tool_providers():
             self.tools.add_provider(provider)
         # Auto-create bridge to expose tools via MCP
-        config = BridgeConfig(transport="sse", server_name=f"agentpool-{self.name}-tools")
+        config = BridgeConfig(server_name=f"agentpool-{self.name}-tools")
         self._tool_bridge = ToolManagerBridge(node=self, config=config)
         await self._tool_bridge.start()
         self._owns_bridge = True

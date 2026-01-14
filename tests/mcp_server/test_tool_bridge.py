@@ -36,7 +36,6 @@ async def test_bridge_config_defaults():
     config = BridgeConfig()
     assert config.host == "127.0.0.1"
     assert config.port == 0  # Auto-select
-    assert config.transport == "sse"
     assert config.server_name == "agentpool-toolmanager"
 
 
@@ -77,9 +76,9 @@ async def test_create_tool_bridge_helper():
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        async with create_tool_bridge(agent, transport="sse") as bridge:
+        async with create_tool_bridge(agent) as bridge:
             assert bridge.port > 0
-            assert "/sse" in bridge.url
+            assert "/mcp" in bridge.url
 
 
 async def test_bridge_registers_tools():
@@ -96,25 +95,12 @@ async def test_bridge_registers_tools():
             assert tools[0].name == "simple_add"
 
 
-async def test_get_mcp_server_config_sse():
-    """Test generating SSE MCP server config."""
-    async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
-        agent.tools.register_tool(simple_add)
-        cfg = BridgeConfig(transport="sse")
-        async with ToolManagerBridge(node=agent, config=cfg) as bridge:
-            config = bridge.get_mcp_server_config()
-            assert config.name == "agentpool-toolmanager"
-            assert str(config.url).startswith("http://")
-            assert "/sse" in str(config.url)
-
-
 async def test_get_mcp_server_config_http():
     """Test generating HTTP MCP server config."""
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        cfg = BridgeConfig(transport="streamable-http")
+        cfg = BridgeConfig()
         async with ToolManagerBridge(node=agent, config=cfg) as bridge:
             config = bridge.get_mcp_server_config()
             assert config.name == "agentpool-toolmanager"
@@ -223,7 +209,7 @@ async def test_tool_call_via_mcp_client():
     are called through MCP.
     """
     from mcp import ClientSession
-    from mcp.client.sse import sse_client
+    from mcp.client.streamable_http import streamable_http_client
 
     captured_tool_call_ids: list[str] = []
 
@@ -238,8 +224,8 @@ async def test_tool_call_via_mcp_client():
         agent.tools.register_tool(capture_id_tool)
 
         async with (
-            create_tool_bridge(agent, transport="sse") as bridge,
-            sse_client(bridge.url) as (read_stream, write_stream),
+            create_tool_bridge(agent) as bridge,
+            streamable_http_client(bridge.url) as (read_stream, write_stream, _),
             ClientSession(read_stream, write_stream) as session,
         ):
             await session.initialize()
@@ -264,7 +250,7 @@ async def test_tool_call_with_meta_tool_use_id():
     This test simulates that behavior by passing meta to call_tool.
     """
     from mcp import ClientSession
-    from mcp.client.sse import sse_client
+    from mcp.client.streamable_http import streamable_http_client
 
     captured_tool_call_ids: list[str] = []
 
@@ -278,8 +264,8 @@ async def test_tool_call_with_meta_tool_use_id():
         agent.tools.register_tool(capture_id_tool)
 
         async with (
-            create_tool_bridge(agent, transport="sse") as bridge,
-            sse_client(bridge.url) as (read_stream, write_stream),
+            create_tool_bridge(agent) as bridge,
+            streamable_http_client(bridge.url) as (read_stream, write_stream, _),
             ClientSession(read_stream, write_stream) as session,
         ):
             await session.initialize()
@@ -351,7 +337,7 @@ async def test_claude_code_mcp_bridge_integration():
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(capture_context_tool)
 
-        async with create_tool_bridge(agent, transport="streamable-http") as bridge:
+        async with create_tool_bridge(agent) as bridge:
             options = ClaudeAgentOptions(
                 mcp_servers={
                     "test_bridge": {

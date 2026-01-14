@@ -15,7 +15,7 @@ import asyncio
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field, replace
 import inspect
-from typing import TYPE_CHECKING, Any, Literal, Self, get_args, get_origin
+from typing import TYPE_CHECKING, Any, Self, get_args, get_origin
 from uuid import uuid4
 
 import anyio
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from pydantic_ai import RunContext
     from uvicorn import Server
 
-    from acp.schema.mcp import HttpMcpServer, SseMcpServer
+    from acp.schema.mcp import HttpMcpServer
     from agentpool.agents import AgentContext
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.tools.base import Tool
@@ -218,9 +218,6 @@ class BridgeConfig:
     port: int = 0
     """Port to bind to (0 = auto-select available port)."""
 
-    transport: Literal["sse", "streamable-http"] = "sse"
-    """Transport protocol: 'sse' or 'streamable-http'."""
-
     server_name: str = "agentpool-toolmanager"
     """Name for the MCP server."""
 
@@ -352,7 +349,7 @@ class ToolManagerBridge:
             # Keys are prefixed with 'tool:', e.g., 'tool:bash'
             current_names = {
                 key.removeprefix("tool:")
-                for key in self._mcp._local_provider._components.keys()
+                for key in self._mcp._local_provider._components
                 if key.startswith("tool:")
             }
         else:
@@ -386,19 +383,16 @@ class ToolManagerBridge:
     @property
     def url(self) -> str:
         """Get the server URL."""
-        path = "/sse" if self.config.transport == "sse" else "/mcp"
-        return f"http://{self.config.host}:{self.port}{path}"
+        return f"http://{self.config.host}:{self.port}/mcp"
 
-    def get_mcp_server_config(self) -> HttpMcpServer | SseMcpServer:
+    def get_mcp_server_config(self) -> HttpMcpServer:
         """Get ACP-compatible MCP server configuration.
 
         Returns config suitable for passing to ACP agent's NewSessionRequest.
         """
-        from acp.schema import HttpMcpServer, SseMcpServer
+        from acp.schema import HttpMcpServer
 
         url = HttpUrl(self.url)
-        if self.config.transport == "sse":
-            return SseMcpServer(name=self.config.server_name, url=url, headers=[])
         return HttpMcpServer(name=self.config.server_name, url=url, headers=[])
 
     def get_claude_mcp_server_config(self) -> dict[str, McpServerConfig]:
@@ -564,7 +558,7 @@ class ToolManagerBridge:
                 port = s.getsockname()[1]
         self._actual_port = port
         # Create the ASGI app
-        app = self._mcp.http_app(transport=self.config.transport)
+        app = self._mcp.http_app(transport="http")
         # Configure uvicorn
         cfg = uvicorn.Config(
             app=app, host=self.config.host, port=port, log_level="warning", ws="websockets-sansio"
@@ -575,7 +569,7 @@ class ToolManagerBridge:
         self._server_task = asyncio.create_task(self._server.serve(), name=name)
         await anyio.sleep(0.1)  # Wait briefly for server to start
         msg = "ToolManagerBridge started"
-        logger.info(msg, url=self.url, transport=self.config.transport)
+        logger.info(msg, url=self.url)
 
 
 @asynccontextmanager
@@ -584,7 +578,6 @@ async def create_tool_bridge(
     *,
     host: str = "127.0.0.1",
     port: int = 0,
-    transport: Literal["sse", "streamable-http"] = "sse",
 ) -> AsyncIterator[ToolManagerBridge]:
     """Create and start a ToolManagerBridge as a context manager.
 
@@ -592,12 +585,11 @@ async def create_tool_bridge(
         node: The node whose tools to expose
         host: Host to bind to
         port: Port to bind to (0 = auto-select)
-        transport: Transport protocol ('sse' or 'streamable-http')
 
     Yields:
         Running ToolManagerBridge instance
     """
-    config = BridgeConfig(host=host, port=port, transport=transport)
+    config = BridgeConfig(host=host, port=port)
     bridge = ToolManagerBridge(node=node, config=config)
     async with bridge:
         yield bridge

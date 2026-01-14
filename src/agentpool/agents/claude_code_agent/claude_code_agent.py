@@ -428,7 +428,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         for provider in self._config.get_tool_providers():
             self.tools.add_provider(provider)
         server_name = f"agentpool-{self.name}-tools"
-        config = BridgeConfig(transport="streamable-http", server_name=server_name)
+        config = BridgeConfig(server_name=server_name)
         self._tool_bridge = ToolManagerBridge(node=self, config=config)
         await self._tool_bridge.start()
         self._owns_bridge = True

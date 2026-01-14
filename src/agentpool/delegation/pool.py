@@ -7,7 +7,7 @@ from asyncio import Lock
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Self, Unpack, overload
+from typing import TYPE_CHECKING, Any, Self, Unpack, overload
 
 from anyenv import ProcessManager
 import anyio
@@ -224,7 +224,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str = "pool_tools",
         host: str = "127.0.0.1",
         port: int = 0,
-        transport: Literal["sse", "streamable-http"] = "sse",
     ) -> ToolManagerBridge:
         """Create and start a tool bridge for exposing tools to external agents.
 
@@ -237,7 +236,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             name: Unique name for this bridge
             host: Host to bind the HTTP server to
             port: Port to bind to (0 = auto-select)
-            transport: Transport protocol ('sse' or 'streamable-http')
 
         Returns:
             Started ToolManagerBridge instance
@@ -265,7 +263,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         config = BridgeConfig(
             host=host,
             port=port,
-            transport=transport,
             server_name=f"agentpool-{name}",
         )
         bridge = ToolManagerBridge(node=node, config=config)
