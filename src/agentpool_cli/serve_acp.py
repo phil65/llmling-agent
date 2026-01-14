@@ -8,6 +8,7 @@ integration with file system access, permission handling, and terminal support.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from typing import TYPE_CHECKING, Annotated, Literal
 
@@ -19,12 +20,14 @@ from agentpool_cli import log, resolve_agent_config
 
 if TYPE_CHECKING:
     from acp import Transport
+    from agentpool_config.mcp_server import MCPServerConfig
 
 
 logger = log.get_logger(__name__)
 
 
-def acp_command(
+def acp_command(  # noqa: PLR0915
+    # Too many statements - complex CLI command with many options
     config: Annotated[str | None, t.Argument(help="Path to agent configuration (optional)")] = None,
     file_access: Annotated[
         bool,
@@ -198,7 +201,7 @@ def acp_command(
                 # Parse server config based on transport type
                 if "transport" in server_cfg:
                     if server_cfg["transport"] == "sse":
-                        server = SSEMCPServerConfig(
+                        server: MCPServerConfig = SSEMCPServerConfig(
                             name=server_name,
                             url=server_cfg["url"],
                         )
