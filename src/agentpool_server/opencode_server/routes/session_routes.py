@@ -322,12 +322,21 @@ async def delete_session(session_id: str, state: StateDep) -> bool:
 
 @router.post("/{session_id}/abort")
 async def abort_session(session_id: str, state: StateDep) -> bool:
-    """Abort a running session."""
+    """Abort a running session by interrupting the agent."""
     session = await get_or_load_session(state, session_id)
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
-    # TODO: Actually abort running operations
+
+    # Interrupt the agent to cancel any ongoing stream
+    try:
+        await state.agent.interrupt()
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Update and broadcast session status to notify clients
     state.session_status[session_id] = SessionStatus(type="idle")
+    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="idle")))
+
     return True
 
 
