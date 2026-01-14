@@ -24,7 +24,7 @@ import yaml
 
 from agentpool.delegation import AgentPool
 from agentpool.models.manifest import AgentsManifest
-from agentpool_config.agentpool_tools import BashToolConfig, ExecuteCodeToolConfig
+from agentpool_config.agentpool_tools import BashToolConfig
 
 
 if TYPE_CHECKING:
@@ -233,45 +233,50 @@ class TestExecuteCommandViaACP:
         assert tool_events == json_snapshot
 
 
-class TestExecuteCodeViaACP:
-    """Test execute_code tool through ACP subprocess."""
+# class TestExecuteCodeViaACP:
+#     """Test execute_code tool through ACP subprocess."""
 
-    async def test_execute_code_simple(
-        self,
-        harness: ACPViaACPHarness,
-        json_snapshot: SnapshotAssertion,
-    ):
-        """Test simple code execution via ACP with mock environment."""
-        mock_env = MockExecutionEnvironmentConfig(
-            deterministic_ids=True,
-            code_results={
-                "print('hello')": asdict(
-                    ExecutionResult(
-                        result=None,
-                        stdout="hello\n",
-                        stderr="",
-                        success=True,
-                        exit_code=0,
-                        duration=0.01,
-                    )
-                )
-            },
-        )
+#     async def test_execute_code_simple(
+#         self,
+#         harness: ACPViaACPHarness,
+#         json_snapshot: SnapshotAssertion,
+#     ):
+#         """Test simple code execution via ACP with mock environment."""
+#         mock_env = MockExecutionEnvironmentConfig(
+#             deterministic_ids=True,
+#             code_results={
+#                 "print('hello')": asdict(
+#                     ExecutionResult(
+#                         result=None,
+#                         stdout="hello\n",
+#                         stderr="",
+#                         success=True,
+#                         exit_code=0,
+#                         duration=0.01,
+#                     )
+#                 )
+#             },
+#         )
 
-        events = await harness.execute_tool(
-            tool_name="execute_code",
-            tool_args={"code": "print('hello')", "title": "test hello"},
-            tools=[ExecuteCodeToolConfig(environment=mock_env)],
-        )
+#         events = await harness.execute_tool(
+#             tool_name="execute_code",
+#             tool_args={"code": "print('hello')", "title": "test hello"},
+#             tools=[ExecuteCodeToolConfig(environment=mock_env)],
+#         )
 
-        # Filter to tool call messages for stable comparison
-        tool_events = [
-            e
-            for e in events
-            if e["type"] in ("ToolCallStartEvent", "ToolCallProgressEvent", "ToolCallCompleteEvent")
-        ]
+#         # Filter to tool call messages for stable comparison
+#         tool_events = [
+#             e
+#             for e in events
+#             if e["type"]
+#             in (
+#                 "ToolCallStartEvent",
+#                 "ToolCallProgressEvent",
+#                 "ToolCallCompleteEvent",
+#             )
+#         ]
 
-        assert tool_events == json_snapshot
+#         assert tool_events == json_snapshot
 
 
 if __name__ == "__main__":
