@@ -274,7 +274,7 @@ def _run_toad_websocket(config: str | None, port: int) -> None:
 
 
 @ui_app.command("desktop")
-def opencode_desktop_command(
+def opencode_desktop_command(  # noqa: PLR0915
     config: Annotated[
         str | None,
         t.Argument(help="Path to agent configuration (optional, not used with --attach)"),
@@ -352,7 +352,7 @@ def opencode_desktop_command(
                     with config_file.open("w") as f:
                         json.dump(existing_config, f, indent=2)
                     logger.info("Cleared server configuration from config file")
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     logger.warning("Failed to clear config", error=str(e))
         else:
             # Configure desktop app to use specified server
@@ -366,7 +366,7 @@ def opencode_desktop_command(
                 try:
                     with config_file.open() as f:
                         existing_config = json.load(f)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     logger.warning("Failed to read existing config", error=str(e))
 
             # Update server configuration
@@ -380,7 +380,7 @@ def opencode_desktop_command(
                     json.dump(existing_config, f, indent=2)
                 logger.info("Updated desktop app configuration", config=str(config_file))
             except Exception as e:
-                logger.error("Failed to write config", error=str(e))
+                logger.exception("Failed to write config", error=str(e))
                 raise t.Exit(1) from e
 
         # Launch desktop app
@@ -409,7 +409,7 @@ def opencode_desktop_command(
                     msg = (
                         "Could not find OpenCode desktop app. Please install it or launch manually."
                     )
-                    raise FileNotFoundError(msg)
+                    raise FileNotFoundError(msg)  # noqa: TRY301
 
             if port != 0:
                 logger.info(
@@ -424,7 +424,7 @@ def opencode_desktop_command(
                 )
 
         except Exception as e:
-            logger.error("Failed to launch desktop app", error=str(e))
+            logger.exception("Failed to launch desktop app", error=str(e))
             logger.info(
                 "Configuration has been updated. Please launch the OpenCode desktop app manually.",
                 config=str(config_file),
@@ -485,7 +485,7 @@ def opencode_desktop_command(
             try:
                 with config_file.open() as f:
                     existing_config = json.load(f)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to read existing config", error=str(e))
 
         existing_config["server"] = {
@@ -497,7 +497,7 @@ def opencode_desktop_command(
             with config_file.open("w") as f:
                 json.dump(existing_config, f, indent=2)
             logger.info("Configured desktop app", config=str(config_file))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning("Failed to write config", error=str(e))
 
         # Launch desktop app
@@ -520,7 +520,7 @@ def opencode_desktop_command(
                         continue
                 else:
                     msg = "Could not find OpenCode desktop app"
-                    raise FileNotFoundError(msg)
+                    raise FileNotFoundError(msg)  # noqa: TRY301
 
             logger.info(
                 "Desktop app launched",
@@ -532,7 +532,7 @@ def opencode_desktop_command(
             server.wait()
 
         except FileNotFoundError as e:
-            logger.error(
+            logger.exception(
                 "Desktop app not found. Please install OpenCode desktop app or launch it manually.",
                 config=str(config_file),
             )
