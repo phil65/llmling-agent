@@ -414,9 +414,15 @@ class MCPClient:
 
             self._current_elicitation_handler = elicitation_handler
 
+        # Prepare metadata to pass tool_call_id to the MCP server
+        meta = None
+        if agent_ctx and agent_ctx.tool_call_id:
+            # Use the same key that tool_bridge expects: "claudecode/toolUseId"
+            meta = {"claudecode/toolUseId": agent_ctx.tool_call_id}
+
         try:
             result = await self._client.call_tool(
-                name, arguments, progress_handler=progress_handler
+                name, arguments, progress_handler=progress_handler, meta=meta
             )
             content = await self._from_mcp_content(result.content)
             # Decision logic for return type
