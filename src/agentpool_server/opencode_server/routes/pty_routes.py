@@ -176,6 +176,7 @@ async def get_pty(pty_id: str, state: StateDep) -> PtyInfo:
     return _convert_pty_info(info)
 
 
+@router.put("/{pty_id}")
 @router.patch("/{pty_id}")
 async def update_pty(pty_id: str, request: PtyUpdateRequest, state: StateDep) -> PtyInfo:
     """Update PTY session (title, resize)."""
