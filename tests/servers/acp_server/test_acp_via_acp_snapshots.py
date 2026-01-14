@@ -175,7 +175,9 @@ class TestExecuteCommandViaACP:
 
         # Filter to tool call messages for stable comparison
         tool_events = [
-            e for e in events if e["type"] in ("ToolCallStartEvent", "ToolCallProgressEvent")
+            e
+            for e in events
+            if e["type"] in ("ToolCallStartEvent", "ToolCallProgressEvent", "ToolCallCompleteEvent")
         ]
 
         assert tool_events == json_snapshot
@@ -214,7 +216,9 @@ class TestExecuteCodeViaACP:
 
         # Filter to tool call messages for stable comparison
         tool_events = [
-            e for e in events if e["type"] in ("ToolCallStartEvent", "ToolCallProgressEvent")
+            e
+            for e in events
+            if e["type"] in ("ToolCallStartEvent", "ToolCallProgressEvent", "ToolCallCompleteEvent")
         ]
 
         assert tool_events == json_snapshot
