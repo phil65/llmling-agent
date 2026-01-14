@@ -16,4 +16,5 @@ agents:
       # - type: code
       - type: search
       - type: plan
+      - type: question
       # - type: debug
