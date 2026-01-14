@@ -343,7 +343,22 @@ class ToolManagerBridge:
             return
 
         # Get current and new tool sets
-        current_names = set(self._mcp._tool_manager._tools.keys())
+        # Support both old and new FastMCP API
+        if hasattr(self._mcp, "_tool_manager"):
+            # Old API (<=2.12.4): direct access to _tool_manager
+            current_names = set(self._mcp._tool_manager._tools.keys())
+        elif hasattr(self._mcp, "_local_provider"):
+            # New API (git): tools stored in _local_provider._components
+            # Keys are prefixed with 'tool:', e.g., 'tool:bash'
+            current_names = {
+                key.removeprefix("tool:")
+                for key in self._mcp._local_provider._components.keys()
+                if key.startswith("tool:")
+            }
+        else:
+            # Fallback: use async get_tools() method
+            current_tools = await self._mcp.get_tools()
+            current_names = {t.name for t in current_tools}
         new_tools = await self.node.tools.get_tools(state="enabled")
         new_names = {t.name for t in new_tools}
 
