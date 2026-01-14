@@ -28,7 +28,7 @@
     "title": "Running: python",
     "tool_call_id": "pyd_ai_tool_call_id__execute_code",
     "tool_input": null,
-    "tool_name": null,
+    "tool_name": "execute_code",
     "total": null,
     "type": "ToolCallProgressEvent"
   },
@@ -47,7 +47,7 @@
     "title": "hello\n",
     "tool_call_id": "pyd_ai_tool_call_id__execute_code",
     "tool_input": null,
-    "tool_name": null,
+    "tool_name": "execute_code",
     "total": null,
     "type": "ToolCallProgressEvent"
   },
@@ -70,22 +70,19 @@
     "title": "Process exited [✓ exit 0]",
     "tool_call_id": "pyd_ai_tool_call_id__execute_code",
     "tool_input": null,
-    "tool_name": null,
+    "tool_name": "execute_code",
     "total": null,
     "type": "ToolCallProgressEvent"
   },
   {
-    "event_kind": "tool_call_progress",
-    "items": [],
-    "message": "hello\n",
-    "progress": null,
-    "replace_content": false,
-    "status": "completed",
-    "title": null,
+    "agent_name": "test_client",
+    "event_kind": "tool_call_complete",
+    "message_id": "",
+    "metadata": null,
     "tool_call_id": "pyd_ai_tool_call_id__execute_code",
-    "tool_input": null,
-    "tool_name": null,
-    "total": null,
-    "type": "ToolCallProgressEvent"
+    "tool_input": {},
+    "tool_name": "unknown",
+    "tool_result": "Tool executed successfully",
+    "type": "ToolCallCompleteEvent"
   }
 ]

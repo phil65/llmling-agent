@@ -22,7 +22,8 @@ import pytest
 from syrupy.extensions.json import JSONSnapshotExtension
 import yaml
 
-from agentpool.agents.acp_agent import ACPAgent
+from agentpool.delegation import AgentPool
+from agentpool.models.manifest import AgentsManifest
 from agentpool_config.agentpool_tools import BashToolConfig, ExecuteCodeToolConfig
 
 
@@ -48,19 +49,15 @@ def temp_dir():
         yield Path(tmpdir)
 
 
-def create_config_file(
-    temp_dir: Path,
-    tool_name: str,
-    tool_args: dict[str, Any],
-    tools: list[BaseToolConfig] | None = None,
-) -> Path:
-    """Create a YAML config file for the subprocess agent.
+def create_server_config_file(temp_dir: Path, tool_name: str, tool_args: dict[str, Any]) -> Path:
+    """Create a simple server config with Native Agent (no tools).
+
+    The server agent is "dumb" - it has no tools. Tools are provided via MCP bridge.
 
     Args:
         temp_dir: Directory to write config file to
-        tool_name: Name of the tool to call
-        tool_args: Arguments for the tool
-        tools: List of tool configs (tools should include their own environment if needed)
+        tool_name: Name of the tool to call (for test model)
+        tool_args: Arguments for the tool (for test model)
     """
     agent_config: dict[str, Any] = {
         "type": "native",
@@ -69,14 +66,46 @@ def create_config_file(
             "call_tools": [tool_name],
             "tool_args": {tool_name: tool_args},
         },
+        # NO tools defined - they come from MCP bridge
     }
-
-    if tools:
-        agent_config["tools"] = [t.model_dump(mode="json") for t in tools]
 
     config = {"agents": {"test_agent": agent_config}}
 
-    config_path = temp_dir / "config.yml"
+    config_path = temp_dir / "server_config.yml"
+    config_path.write_text(yaml.dump(config, default_flow_style=False))
+    return config_path
+
+
+def create_client_config_file(
+    temp_dir: Path,
+    server_config_path: Path,
+    tool_name: str,
+    tool_args: dict[str, Any],
+    tools: list[BaseToolConfig],
+    mock_env: MockExecutionEnvironmentConfig,
+) -> Path:
+    """Create client config that spawns ACP server with MCP bridge.
+
+    Args:
+        temp_dir: Directory to write config file to
+        server_config_path: Path to the server config file
+        tool_name: Name of the tool to call
+        tool_args: Arguments for the tool
+        tools: Tool configs with environment (will be provided via MCP bridge)
+        mock_env: Mock execution environment for deterministic IDs
+    """
+    agent_config: dict[str, Any] = {
+        "type": "acp",
+        "provider": "agentpool",
+        "config_path": str(server_config_path),
+        "agent": "test_agent",
+        "tools": [t.model_dump(mode="json") for t in tools],
+        "execution_environment": mock_env.model_dump(mode="json"),
+    }
+
+    config = {"agents": {"test_client": agent_config}}
+
+    config_path = temp_dir / "client_config.yml"
     config_path.write_text(yaml.dump(config, default_flow_style=False))
     return config_path
 
@@ -96,36 +125,57 @@ class ACPViaACPHarness:
         self,
         tool_name: str,
         tool_args: dict[str, Any],
-        tools: list[BaseToolConfig] | None = None,
+        tools: list[BaseToolConfig],
     ) -> list[dict[str, Any]]:
-        """Execute a tool via ACP subprocess and capture full event details.
+        """Execute a tool via ACP subprocess with MCP bridge and capture events.
+
+        This creates:
+        1. Server config: "dumb" Native Agent with no tools
+        2. Client config: ACP agent that spawns the server and provides tools via MCP bridge
 
         Args:
             tool_name: Name of tool to execute
             tool_args: Arguments to pass to tool
-            tools: Standalone tool configurations (tools should include their own environment)
+            tools: Tool configurations (provided to client, bridged to server via MCP)
         """
-        config_path = create_config_file(
+        # Create server config (dumb agent with no tools)
+        server_config_path = create_server_config_file(
             self.temp_dir,
             tool_name,
             tool_args,
+        )
+
+        # Extract mock environment from first tool (all should have same env)
+        mock_env = None
+        for tool in tools:
+            if hasattr(tool, "environment") and tool.environment:
+                mock_env = tool.environment
+                break
+        if not mock_env:
+            # Default mock env with deterministic IDs
+            from exxec.mock_provider import MockExecutionEnvironmentConfig
+
+            mock_env = MockExecutionEnvironmentConfig(deterministic_ids=True)
+
+        # Create client config (ACP agent with tools that will be bridged)
+        client_config_path = create_client_config_file(
+            self.temp_dir,
+            server_config_path,
+            tool_name,
+            tool_args,
             tools=tools,
+            mock_env=mock_env,
         )
 
         self.recorded_events.clear()
 
-        async with ACPAgent(
-            name="agentpool_via_acp",
-            command="uv",
-            args=[
-                "run",
-                "agentpool",
-                "serve-acp",
-                "--no-skills",
-                str(config_path),
-            ],
-            cwd=str(self.temp_dir),
-        ) as agent:
+        # Use AgentPool to instantiate the client agent from config
+        manifest = AgentsManifest.from_file(client_config_path)
+        pool = AgentPool(manifest=manifest)
+
+        async with pool:
+            # ACP agents are in pool.all_agents dict
+            agent = pool.all_agents["test_client"]
             async for event in agent.run_stream("Execute the tool"):
                 from dataclasses import asdict
 

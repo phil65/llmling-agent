@@ -336,7 +336,7 @@ def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | No
                 raw_input=raw_input or {},
             )
 
-        # Tool call progress -> ToolCallProgressEvent
+        # Tool call progress -> ToolCallProgressEvent or ToolCallCompleteEvent
         case ToolCallProgress(
             tool_call_id=tool_call_id,
             status=status,
@@ -344,6 +344,20 @@ def acp_to_native_event(update: SessionUpdate) -> RichAgentStreamEvent[Any] | No
             content=content,
             raw_output=raw_output,
         ):
+            # If completed, return ToolCallCompleteEvent for metadata injection
+            if status == "completed":
+                from agentpool.agents.events import ToolCallCompleteEvent
+
+                return ToolCallCompleteEvent(
+                    tool_call_id=tool_call_id,
+                    tool_name=title or "unknown",
+                    tool_input={},  # ACP doesn't provide input in progress updates
+                    tool_result=str(raw_output) if raw_output else "",
+                    agent_name="",  # Will be set by agent
+                    message_id="",
+                    metadata=None,  # Will be injected by agent from metadata accumulator
+                )
+            # Otherwise return progress event
             return ToolCallProgressEvent(
                 tool_call_id=tool_call_id,
                 status=status or "in_progress",

@@ -28,6 +28,7 @@ Example:
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from importlib.metadata import metadata
 import os
 from pathlib import Path
@@ -53,6 +54,7 @@ from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import (
     RunStartedEvent,
     StreamCompleteEvent,
+    ToolCallCompleteEvent,
     ToolCallStartEvent,
     resolve_event_handlers,
 )
@@ -551,10 +553,14 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 yield self._state.events[last_idx]
                 last_idx += 1
 
-        # Set deps on tool bridge for access during tool invocations
+            # Set deps on tool bridge for access during tool invocations
+
         # (ContextVar doesn't work because MCP server runs in a separate task)
         if self._tool_bridge:
             self._tool_bridge.current_deps = deps
+
+        # Accumulate metadata events by tool_call_id (workaround for MCP stripping _meta)
+        tool_metadata: dict[str, dict[str, Any]] = {}
 
         # Merge ACP events with custom events from queue
         try:
@@ -562,10 +568,34 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 poll_acp_events(), self._event_queue
             ) as merged_events:
                 async for event in file_tracker(merged_events):
+                    # Capture metadata events for correlation with tool results
+                    from agentpool.agents.events import ToolResultMetadataEvent
+
+                    if isinstance(event, ToolResultMetadataEvent):
+                        tool_metadata[event.tool_call_id] = event.metadata
+                        # Don't yield metadata events - they're internal correlation only
+                        continue
+
                     # Check for cancellation
                     if self._cancelled:
                         self.log.info("Stream cancelled by user")
                         break
+
+                    # Inject metadata into ToolCallCompleteEvent
+                    # (converted from completed ToolCallProgress)
+                    if isinstance(event, ToolCallCompleteEvent):
+                        # Enrich with agent name and metadata from our accumulator
+                        enriched_event = event
+                        if not enriched_event.agent_name:
+                            enriched_event = replace(enriched_event, agent_name=self.name)
+                        if (
+                            enriched_event.metadata is None
+                            and enriched_event.tool_call_id in tool_metadata
+                        ):
+                            enriched_event = replace(
+                                enriched_event, metadata=tool_metadata[enriched_event.tool_call_id]
+                            )
+                        event = enriched_event  # noqa: PLW2901
 
                     # Extract content from events and build parts in arrival order
                     match event:
