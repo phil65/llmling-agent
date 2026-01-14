@@ -183,6 +183,7 @@ def convert_pydantic_tool_return_part(
             title=f"Completed {part.tool_name}",
             input=existing_input,
             output=output,
+            metadata=part.metadata or {},  # Extract metadata from ToolReturnPart
             time=TimeStartEndCompacted(start=now_ms() - 1000, end=now_ms()),
         )
 
