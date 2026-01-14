@@ -550,7 +550,7 @@ class FSSpecTools(ResourceProvider):
         content: str,
         mode: str = "w",
         overwrite: bool = False,
-    ) -> dict[str, Any]:
+    ) -> str:
         """Write content to a file.
 
         Args:
@@ -560,7 +560,7 @@ class FSSpecTools(ResourceProvider):
             overwrite: Must be True to overwrite existing files (safety check)
 
         Returns:
-            Dictionary with success info or error details
+            Success or error message
         """
         path = self._resolve_path(path, agent_ctx)
         msg = f"Writing file: {path}"
@@ -572,7 +572,7 @@ class FSSpecTools(ResourceProvider):
             if mode not in ("w", "a"):
                 msg = f"Invalid mode '{mode}'. Use 'w' (write) or 'a' (append)"
                 await agent_ctx.events.file_operation("write", path=path, success=False, error=msg)
-                return {"error": msg}
+                return f"Error: {msg}"
 
             # Check size limit
             if content_bytes > self.max_file_size:
@@ -581,7 +581,7 @@ class FSSpecTools(ResourceProvider):
                     f"({self.max_file_size} bytes)"
                 )
                 await agent_ctx.events.file_operation("write", path=path, success=False, error=msg)
-                return {"error": msg}
+                return f"Error: {msg}"
 
             # Check if file exists and overwrite protection
             fs = self._get_fs(agent_ctx)
@@ -593,7 +593,7 @@ class FSSpecTools(ResourceProvider):
                     f"This is a safety measure to prevent accidental data loss."
                 )
                 await agent_ctx.events.file_operation("write", path=path, success=False, error=msg)
-                return {"error": msg}
+                return f"Error: {msg}"
 
             # Handle append mode: read existing content and prepend it
             if mode == "a" and file_exists:
@@ -613,13 +613,6 @@ class FSSpecTools(ResourceProvider):
             except (OSError, KeyError):
                 size = content_bytes
 
-            result: dict[str, Any] = {
-                "path": path,
-                "size": size,
-                "mode": mode,
-                "file_existed": file_exists,
-                "bytes_written": content_bytes,
-            }
             # Emit file operation with content for UI display
             from agentpool.agents.events import DiffContentItem
 
@@ -631,13 +624,15 @@ class FSSpecTools(ResourceProvider):
             )
 
             # Run diagnostics if enabled
+            diagnostics_msg = ""
             if diagnostics_output := await self._run_diagnostics(agent_ctx, path):
-                result["diagnostics"] = diagnostics_output
+                diagnostics_msg = f"\n\nDiagnostics:\n{diagnostics_output}"
+
+            action = "Appended to" if mode == "a" and file_exists else "Wrote"
+            return f"{action} {path} ({content_bytes} bytes){diagnostics_msg}"
         except Exception as e:  # noqa: BLE001
             await agent_ctx.events.file_operation("write", path=path, success=False, error=str(e))
-            return {"error": f"Failed to write file {path}: {e}"}
-        else:
-            return result
+            return f"Error: Failed to write file {path}: {e}"
 
     async def delete_path(  # noqa: D417
         self, agent_ctx: AgentContext, path: str, recursive: bool = False
