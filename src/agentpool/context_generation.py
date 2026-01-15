@@ -31,7 +31,11 @@ logger = get_logger(__name__)
 LARGE_FILE_THRESHOLD = 8192  # ~2000 tokens
 
 
-async def get_resource_context(path: Path, fs: AsyncFileSystem | None = None) -> str | None:
+async def get_resource_context(
+    path: Path,
+    fs: AsyncFileSystem | None = None,
+    max_files_to_read: int | None = None,
+) -> str | None:
     """Get context for a resource (file or directory).
 
     This is the main entry point for generating context. It routes to the
@@ -40,6 +44,7 @@ async def get_resource_context(path: Path, fs: AsyncFileSystem | None = None) ->
     Args:
         path: File or directory path
         fs: Optional AsyncFileSystem to use (defaults to LocalFileSystem)
+        max_files_to_read: Maximum files to read for directories (None = unlimited)
 
     Returns:
         Context string if applicable, None if generation fails or path doesn't exist
@@ -50,14 +55,20 @@ async def get_resource_context(path: Path, fs: AsyncFileSystem | None = None) ->
 
     try:
         if path.is_dir():
-            return await generate_directory_context(path, fs=fs)
+            return await generate_directory_context(
+                path, fs=fs, max_files_to_read=max_files_to_read
+            )
         return await generate_file_context(path, fs=fs)
     except OSError as e:
         logger.warning("Failed to generate context", path=str(path), error=str(e))
         return None
 
 
-async def generate_directory_context(path: Path, fs: AsyncFileSystem | None = None) -> str | None:
+async def generate_directory_context(
+    path: Path,
+    fs: AsyncFileSystem | None = None,
+    max_files_to_read: int | None = None,
+) -> str | None:
     """Generate a repository map for a directory.
 
     Creates a hierarchical view of the directory's code structure, showing:
@@ -70,6 +81,7 @@ async def generate_directory_context(path: Path, fs: AsyncFileSystem | None = No
     Args:
         path: Directory path
         fs: Optional AsyncFileSystem to use (defaults to LocalFileSystem)
+        max_files_to_read: Maximum number of files to read and analyze (None = unlimited)
 
     Returns:
         Repository map string or None if generation fails
@@ -88,32 +100,71 @@ async def generate_directory_context(path: Path, fs: AsyncFileSystem | None = No
 
         # Find all source files in the directory (non-recursive for now)
         # TODO: Add recursive option with depth control
-        # TODO: Make file extensions configurable
-        files = [
-            str(item)
-            for item in path.iterdir()
-            if item.is_file() and item.suffix in {".py", ".js", ".ts", ".jsx", ".tsx"}
+        from agentpool.repomap import is_language_supported
+
+        all_files = [
+            item for item in path.iterdir() if item.is_file() and is_language_supported(item.name)
         ]
 
-        if not files:
+        if not all_files:
             logger.debug("No source files found in directory", path=str(path))
             return f"Directory: {path}\n(No source files found)"
 
-        # Generate the map
-        logger.info("Generating repomap", file_count=len(files), path=str(path))
-        map_content = await repo_map.get_map(files)
+        # Prioritize important files (config files, __init__.py, etc.)
+        from agentpool.repomap import is_important
 
-        if map_content:
-            logger.info(
-                "Successfully generated repomap",
-                content_length=len(map_content),
-                path=str(path),
-            )
-            header = f"# Repository map for {path.name}\n\n"
-            return header + map_content
+        priority_files = [f for f in all_files if is_important(f.name) or f.name == "__init__.py"]
+        other_files = [f for f in all_files if f not in priority_files]
 
-        logger.warning("Repomap generation returned empty", path=str(path))
-        return f"Directory: {path}"
+        # Select top N files for detailed analysis
+        if max_files_to_read is not None:
+            selected_files = (priority_files + other_files)[:max_files_to_read]
+            remaining_files = all_files[max_files_to_read:]
+        else:
+            selected_files = priority_files + other_files
+            remaining_files = []
+
+        logger.info(
+            "Generating repomap",
+            total_files=len(all_files),
+            selected=len(selected_files),
+            remaining=len(remaining_files),
+            path=str(path),
+        )
+
+        # Generate the map for selected files
+        files_to_analyze = [str(f) for f in selected_files]
+        map_content = await repo_map.get_map(files_to_analyze)
+
+        if not map_content:
+            logger.warning("Repomap generation returned empty", path=str(path))
+            return f"Directory: {path}"
+
+        logger.info(
+            "Successfully generated repomap",
+            content_length=len(map_content),
+            path=str(path),
+        )
+
+        # Build output with header
+        header = f"# Repository map for {path.name}\n\n"
+        if remaining_files:
+            header += f"## Detailed structure (analyzed {len(selected_files)} of {len(all_files)} files):\n\n"
+
+        result = header + map_content
+
+        # Append listing of remaining files
+        if remaining_files:
+            result += "\n\n## Additional files (not analyzed):\n"
+            for file in remaining_files:
+                try:
+                    size_kb = file.stat().st_size / 1024
+                    result += f"- {file.name} ({size_kb:.1f} KB)\n"
+                except OSError:
+                    # If stat fails, just show name
+                    result += f"- {file.name}\n"
+
+        return result
 
     except OSError as e:
         logger.warning("Failed to generate directory context", path=str(path), error=str(e))

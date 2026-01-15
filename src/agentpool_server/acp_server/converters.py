@@ -141,7 +141,8 @@ async def _get_resource_context(
     # Use the context_generation module
     from agentpool.context_generation import get_resource_context
 
-    return await get_resource_context(path, fs=fs)
+    # Limit to 50 files for ACP to avoid excessive network calls
+    return await get_resource_context(path, fs=fs, max_files_to_read=50)
 
 
 async def from_acp_content(
