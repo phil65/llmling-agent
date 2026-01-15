@@ -157,21 +157,15 @@ class ListAgentsCommand(NodeCommand):
             raise CommandError(msg)
 
         rows = []
-        for name, agent in ctx.context.pool.agents.items():
-            typ = "dynamic" if name not in ctx.context.definition.agents else "static"
+        # Iterate over all nodes in the pool
+        for name, node in ctx.context.pool.all_agents.items():
+            # Only include agents (nodes with AGENT_TYPE attribute)
+            lifecycle = "dynamic" if name not in ctx.context.definition.agents else "static"
             rows.append({
                 "Name": name,
-                "Model": str(agent.model_name or ""),
-                "Type": f"agent ({typ})",
-                "Description": agent.description or "",
-            })
-
-        for name, acp_agent in ctx.context.pool.acp_agents.items():
-            rows.append({
-                "Name": name,
-                "Model": str(acp_agent.model_name or ""),
-                "Type": "acp_agent",
-                "Description": acp_agent.description or "",
+                "Model": str(node.model_name or "") or "",
+                "Type": f"{node.AGENT_TYPE} ({lifecycle})",
+                "Description": node.description or "",
             })
 
         headers = ["Name", "Model", "Type", "Description"]

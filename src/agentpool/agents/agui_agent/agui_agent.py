@@ -11,7 +11,7 @@ locally and results sent back.
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 from uuid import uuid4
 
 from anyenv.processes import hard_kill
@@ -117,6 +117,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             result = await agent.run("Test prompt")
         ```
     """
+
+    AGENT_TYPE: ClassVar = "agui"
 
     def __init__(
         self,

@@ -7,7 +7,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
 import time
-from typing import TYPE_CHECKING, Any, Self, TypedDict, TypeVar, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict, TypeVar, overload
 from uuid import uuid4
 
 from anyenv import method_spawner
@@ -112,6 +112,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
     Generically typed with: Agent[Type of Dependencies, Type of Result]
     """
+
+    AGENT_TYPE: ClassVar = "native"
 
     def __init__(  # noqa: PLR0915
         # we dont use AgentKwargs here so that we can work with explicit ones in the ctor

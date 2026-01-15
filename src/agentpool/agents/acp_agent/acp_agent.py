@@ -31,7 +31,7 @@ import asyncio
 from dataclasses import replace
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 import uuid
 
 import anyio
@@ -117,6 +117,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         agent = ACPAgent(command="claude-code-acp", cwd="/project")
         ```
     """
+
+    AGENT_TYPE: ClassVar = "acp"
 
     def __init__(
         self,

@@ -59,7 +59,7 @@ import asyncio
 import contextlib
 from decimal import Decimal
 import re
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self
 import uuid
 
 import anyio
@@ -183,6 +183,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     - Event conversion from Claude SDK to agentpool events
     - Tool confirmation via input provider
     """
+
+    AGENT_TYPE: ClassVar = "claude"
 
     def __init__(
         self,

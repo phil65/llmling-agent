@@ -7,7 +7,7 @@ import asyncio
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, ClassVar, overload
 
 from anyenv import MultiEventHandler, method_spawner
 from anyenv.signals import BoundSignal, Signal
@@ -77,6 +77,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     Signals:
         - run_failed: Emitted when agent execution fails with error details
     """
+
+    # Abstract class variable - subclasses must define this
+    AGENT_TYPE: ClassVar[str]
 
     @dataclass(frozen=True)
     class RunFailedEvent:
