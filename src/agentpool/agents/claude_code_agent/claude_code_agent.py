@@ -200,7 +200,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         disallowed_tools: list[str] | None = None,
         system_prompt: str | Sequence[str] | None = None,
         include_builtin_system_prompt: bool = True,
-        model: AnthropicMaxModelName | str | None = None,
+        model: AnthropicMaxModelName | str | None = "opus",
         max_turns: int | None = None,
         max_budget_usd: float | None = None,
         max_thinking_tokens: int | None = None,

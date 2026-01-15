@@ -97,7 +97,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     """Working directory for Claude Code operations."""
 
     model: AnthropicMaxModelName | str | None = Field(
-        default=None,
+        default="opus",
         title="Model",
         examples=["claude-sonnet-4-5", "claude-opus-4", "claude-haiku-3-5"],
     )
