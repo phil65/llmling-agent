@@ -142,9 +142,11 @@ def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None
     from agentpool.agents.events import (
         CompactionEvent,
         PartDeltaEvent,
+        PlanUpdateEvent,
         ToolCallCompleteEvent,
         ToolCallStartEvent,
     )
+    from agentpool.resource_providers.plan_provider import PlanEntry
     from codex_adapter.models import (
         AgentMessageDeltaData,
         CommandExecutionOutputDeltaData,
@@ -154,6 +156,7 @@ def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None
         ThreadCompactedData,
         ThreadItemCommandExecution,
         ThreadItemMcpToolCall,
+        TurnPlanUpdatedData,
     )
 
     match event.event_type:
@@ -243,6 +246,23 @@ def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None
                 trigger="auto",
                 phase="completed",
             )
+
+        # Turn plan updated - agent's plan for current turn
+        case "turn/plan/updated" if isinstance(event.data, TurnPlanUpdatedData):
+            # Convert Codex steps to PlanEntry format
+            entries = [
+                PlanEntry(
+                    content=step.step,
+                    priority="medium",  # Codex doesn't provide priority
+                    status=(
+                        "in_progress"
+                        if step.status == "inProgress"
+                        else step.status  # pending/completed map directly
+                    ),
+                )
+                for step in event.data.plan
+            ]
+            return PlanUpdateEvent(entries=entries)
 
     return None
 

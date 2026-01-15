@@ -390,6 +390,20 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                         await event_handlers(None, native_event)
                         yield native_event
 
+                        # Handle plan updates - sync to pool.todos
+                        from agentpool.agents.events import PlanUpdateEvent
+
+                        if (
+                            isinstance(native_event, PlanUpdateEvent)
+                            and self.agent_pool
+                            and self.agent_pool.todos
+                        ):
+                            # Replace all entries in pool.todos with Codex plan
+                            entries = [
+                                (e.content, e.priority, e.status) for e in native_event.entries
+                            ]
+                            self.agent_pool.todos.replace_all(entries)
+
                         # Accumulate text for final message
                         from pydantic_ai import TextPartDelta
 
