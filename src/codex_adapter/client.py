@@ -7,11 +7,15 @@ from collections.abc import AsyncIterator, Mapping  # noqa: TC003
 import contextlib
 import json
 import logging
-from typing import TYPE_CHECKING, Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from pydantic import BaseModel, TypeAdapter
 
-from codex_adapter.codex_types import CodexThread, HttpMcpServer, StdioMcpServer
+from codex_adapter.codex_types import (
+    CodexThread,
+    HttpMcpServer,
+    StdioMcpServer,
+)
 from codex_adapter.events import CodexEvent
 from codex_adapter.exceptions import CodexProcessError, CodexRequestError
 from codex_adapter.models import (
@@ -41,16 +45,16 @@ from codex_adapter.models import (
 )
 
 
-# Type aliases for API parameters
-ReasoningEffort = Literal["low", "medium", "high"]
-ApprovalPolicy = Literal["always", "never", "auto"]
-
 ResultType = TypeVar("ResultType", bound=BaseModel)
 
 if TYPE_CHECKING:
     from typing import Self
 
-    from codex_adapter.codex_types import McpServerConfig
+    from codex_adapter.codex_types import (
+        ApprovalPolicy,
+        McpServerConfig,
+        ReasoningEffort,
+    )
     from codex_adapter.models import ModelData, SkillData, TurnInputItem
 
 logger = logging.getLogger(__name__)

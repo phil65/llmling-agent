@@ -8,12 +8,12 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import ConfigDict, Field
 
 from agentpool.models.agents import AnyToolConfig  # noqa: TC001
+from agentpool_config.nodes import BaseAgentConfig
 
 
 if TYPE_CHECKING:
     from agentpool.resource_providers import ResourceProvider
-
-from agentpool_config.nodes import BaseAgentConfig
+    from codex_adapter import ApprovalPolicy, ReasoningEffort
 
 
 class CodexAgentConfig(BaseAgentConfig):
@@ -46,8 +46,7 @@ class CodexAgentConfig(BaseAgentConfig):
         examples=[
             "gpt-5.1-codex-max",
             "gpt-5.1-codex-mini",
-            "gpt-5-codex",
-            "claude-opus-4",
+            "gpt-5.2",
         ],
     )
     """Model to use for the Codex session.
@@ -56,23 +55,24 @@ class CodexAgentConfig(BaseAgentConfig):
     Use the agent's get_available_models() method to fetch the current list from your server.
     """
 
-    reasoning_effort: Literal["low", "medium", "high"] | None = Field(
+    reasoning_effort: ReasoningEffort | None = Field(
         default=None,
         title="Reasoning Effort",
-        examples=["medium", "high"],
+        examples=["medium", "high", "xhigh"],
     )
     """Reasoning effort level for the model."""
 
-    approval_policy: Literal["always", "never", "auto"] | None = Field(
+    approval_policy: ApprovalPolicy = Field(
         default="never",
         title="Approval Policy",
-        examples=["never", "auto"],
+        examples=["never", "auto", "unlessTrusted"],
     )
     """Tool call approval policy.
 
     - "never": Execute tools without requesting approval (default for programmatic use)
     - "always": Always request approval before executing tools
     - "auto": Request approval based on risk assessment
+    - "unlessTrusted": Auto-approve trusted operations, ask for others
     """
 
     tools: list[AnyToolConfig | str] = Field(

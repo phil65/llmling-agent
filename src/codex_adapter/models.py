@@ -7,7 +7,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from codex_adapter.codex_types import ModelProvider
+from codex_adapter.codex_types import ModelProvider, ReasoningEffort
 
 
 # ============================================================================
@@ -54,7 +54,7 @@ class ThreadStartParams(CodexBaseModel):
 
     cwd: str | None = None
     model: str | None = None
-    effort: Literal["low", "medium", "high"] | None = None
+    effort: ReasoningEffort | None = None
 
 
 class ThreadResumeParams(CodexBaseModel):
@@ -100,12 +100,27 @@ class TextInputItem(CodexBaseModel):
 class LocalImageInputItem(CodexBaseModel):
     """Local image file input for a turn."""
 
-    type: Literal["local_image"] = "local_image"
+    type: Literal["localImage"] = "localImage"
+    path: str
+
+
+class ImageInputItem(CodexBaseModel):
+    """Image URL input for a turn."""
+
+    type: Literal["image"] = "image"
+    url: str
+
+
+class SkillInputItem(CodexBaseModel):
+    """Skill input for a turn."""
+
+    type: Literal["skill"] = "skill"
+    name: str
     path: str
 
 
 # Discriminated union of input types
-TurnInputItem = TextInputItem | LocalImageInputItem
+TurnInputItem = TextInputItem | LocalImageInputItem | ImageInputItem | SkillInputItem
 
 
 class TurnStartParams(CodexBaseModel):
@@ -114,8 +129,11 @@ class TurnStartParams(CodexBaseModel):
     thread_id: str
     input: list[TurnInputItem]
     model: str | None = None
-    effort: Literal["low", "medium", "high"] | None = None
-    approval_policy: Literal["always", "never", "auto"] | None = None
+    effort: ReasoningEffort | None = None
+    approval_policy: Literal["always", "never", "auto", "unlessTrusted"] | None = None
+    cwd: str | None = None
+    sandbox_policy: dict[str, Any] | None = None  # Sandbox config - flexible structure
+    summary: Literal["concise"] | None = None
     output_schema: dict[str, Any] | None = None  # JSON Schema - arbitrary structure
 
 
@@ -507,17 +525,30 @@ class SkillsListResponse(CodexBaseModel):
     data: list[SkillsContainer]
 
 
+class ReasoningEffortOption(CodexBaseModel):
+    """A reasoning effort option with metadata."""
+
+    reasoning_effort: ReasoningEffort
+    description: str | None = None
+
+
 class ModelData(CodexBaseModel):
     """A single model definition."""
 
     id: str
     model: str
+    description: str | None = None
+    display_name: str | None = None
+    is_default: bool = False
+    supported_reasoning_efforts: list[ReasoningEffortOption] | None = None
+    default_reasoning_effort: ReasoningEffort | None = None
 
 
 class ModelListResponse(CodexBaseModel):
     """Response for model/list request."""
 
     data: list[ModelData]
+    next_cursor: str | None = None
 
 
 class CommandExecResponse(CodexBaseModel):

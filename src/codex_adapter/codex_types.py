@@ -10,6 +10,8 @@ from pydantic import BaseModel
 
 # Type aliases for Codex types
 ModelProvider = Literal["openai", "anthropic", "google", "mistral"]
+ReasoningEffort = Literal["low", "medium", "high", "xhigh"]
+ApprovalPolicy = Literal["always", "never", "auto", "unlessTrusted"]
 TurnStatus = Literal["pending", "inProgress", "completed", "error", "interrupted"]
 ItemType = Literal[
     "reasoning",

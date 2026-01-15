@@ -10,8 +10,9 @@ Example:
                 print(event.data.text, end="", flush=True)
 """
 
-from codex_adapter.client import ApprovalPolicy, CodexClient, ReasoningEffort
+from codex_adapter.client import CodexClient
 from codex_adapter.codex_types import (
+    ApprovalPolicy,
     CodexThread,
     CodexTurn,
     HttpMcpServer,
@@ -19,6 +20,7 @@ from codex_adapter.codex_types import (
     ItemType,
     McpServerConfig,
     ModelProvider,
+    ReasoningEffort,
     StdioMcpServer,
     TurnStatus,
 )
@@ -29,10 +31,12 @@ from codex_adapter.models import (
     CommandExecResponse,
     CommandExecutionOutputDeltaData,
     EventData,
+    ImageInputItem,
     LocalImageInputItem,
     ModelData,
     ReasoningTextDeltaData,
     SkillData,
+    SkillInputItem,
     TextInputItem,
     ThreadData,
     ThreadListResponse,
@@ -60,6 +64,7 @@ __all__ = [
     "EventData",
     "EventType",
     "HttpMcpServer",
+    "ImageInputItem",
     "ItemStatus",
     "ItemType",
     "LocalImageInputItem",
@@ -69,6 +74,7 @@ __all__ = [
     "ReasoningEffort",
     "ReasoningTextDeltaData",
     "SkillData",
+    "SkillInputItem",
     "StdioMcpServer",
     "TextInputItem",
     "ThreadData",

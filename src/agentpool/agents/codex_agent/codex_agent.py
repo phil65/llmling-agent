@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import PartDeltaEvent, RunStartedEvent, StreamCompleteEvent
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
-    from codex_adapter import CodexClient
+    from codex_adapter import ApprovalPolicy, CodexClient, ReasoningEffort
 
 
 logger = get_logger(__name__)
@@ -133,9 +133,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.config = config
         self._client: CodexClient | None = None
         self._thread_id: str | None = None
-        self._approval_policy: Literal["always", "never", "auto"] = (
-            config.approval_policy or "never"
-        )
+        self._approval_policy: ApprovalPolicy = config.approval_policy or "never"
         # Store MCP servers separately - will be passed to CodexClient
         # External MCP servers from config (already processed to MCPServerConfig objects)
         # If mcp_servers param provided, we need to process it similarly
@@ -161,7 +159,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Track current settings (for when they change mid-session)
         self._current_model: str | None = None
-        self._current_effort: Literal["low", "medium", "high"] | None = None
+        self._current_effort: ReasoningEffort | None = None
 
         # Create bridge for exposing our tools via MCP
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
@@ -580,13 +578,16 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                 elif "gemini" in model_id.lower():
                     provider = "google"
 
-                # Create basic ModelInfo (Codex doesn't provide pricing/capability details)
+                # Use display_name and description from API if available
+                name = model_data.display_name or model_data.id
+                description = model_data.description or f"Model: {model_id}"
+
                 models.append(
                     TokModelInfo(
                         id=model_id,
-                        name=model_data.id,
+                        name=name,
                         provider=provider,
-                        description=f"Model: {model_id}",
+                        description=description,
                     )
                 )
 
@@ -618,6 +619,12 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                 category_id="approval_policy",
             ),
             ModeInfo(
+                id="unlessTrusted",
+                name="Unless Trusted",
+                description="Auto-approve trusted operations, ask for others",
+                category_id="approval_policy",
+            ),
+            ModeInfo(
                 id="auto",
                 name="Auto-Approve Safe",
                 description="Auto-approve low-risk tools, ask for high-risk",
@@ -640,25 +647,31 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             )
         )
 
-        # Reasoning effort modes
+        # Reasoning effort modes - try to get from current model's supported efforts
         current_effort = self.config.reasoning_effort or "medium"
         effort_modes = [
             ModeInfo(
                 id="low",
                 name="Low Effort",
-                description="Fast, minimal reasoning",
+                description="Fast responses with lighter reasoning",
                 category_id="reasoning_effort",
             ),
             ModeInfo(
                 id="medium",
                 name="Medium Effort",
-                description="Balanced reasoning",
+                description="Balanced reasoning depth for everyday tasks",
                 category_id="reasoning_effort",
             ),
             ModeInfo(
                 id="high",
                 name="High Effort",
-                description="Deep reasoning",
+                description="Deep reasoning for complex problems",
+                category_id="reasoning_effort",
+            ),
+            ModeInfo(
+                id="xhigh",
+                name="Extra High Effort",
+                description="Maximum reasoning depth for complex problems",
                 category_id="reasoning_effort",
             ),
         ]
@@ -702,7 +715,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         Codex supports:
         - approval_policy: "always", "never", "auto"
-        - reasoning_effort: "low", "medium", "high"
+        - reasoning_effort: "low", "medium", "high", "xhigh"
         - model: Any valid model identifier
 
         Approval policy can be changed without restarting thread.
@@ -725,15 +738,15 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         if not category_id:
             if mode_id in ["always", "never", "auto"]:
                 category_id = "approval_policy"
-            elif mode_id in ["low", "medium", "high"]:
+            elif mode_id in ["low", "medium", "high", "xhigh"]:
                 category_id = "reasoning_effort"
             else:
                 category_id = "model"
 
         # Handle based on category
         if category_id == "approval_policy":
-            if mode_id not in ["always", "never", "auto"]:
-                msg = f"Invalid approval policy: {mode_id}. Must be 'always', 'never', or 'auto'"
+            if mode_id not in ["always", "never", "auto", "unlessTrusted"]:
+                msg = f"Invalid approval policy: {mode_id}"
                 raise ValueError(msg)
 
             # Update instance attribute (doesn't require thread restart)
@@ -742,7 +755,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             self.log.info("Approval policy changed", policy=mode_id)
 
         elif category_id == "reasoning_effort":
-            if mode_id not in ["low", "medium", "high"]:
+            if mode_id not in ["low", "medium", "high", "xhigh"]:
                 msg = f"Invalid reasoning effort: {mode_id}"
                 raise ValueError(msg)
 
