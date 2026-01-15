@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from agentpool.talk import Talk, TeamTalk
     from agentpool.talk.stats import AggregatedMessageStats, MessageStats
     from agentpool.tools.base import FunctionTool
+    from agentpool.ui.base import InputProvider
     from agentpool_config.forward_targets import ConnectionType
     from agentpool_config.mcp_server import MCPServerConfig
 
@@ -139,11 +140,16 @@ class MessageNode[TDeps, TResult](ABC):
         stats = [talk.stats for talk in self.connections.get_connections()]
         return AggregatedTalkStats(stats=stats)
 
-    def get_context(self, data: Any = None) -> NodeContext:
+    def get_context(
+        self,
+        data: Any = None,
+        input_provider: InputProvider | None = None,
+    ) -> NodeContext:
         """Create a new context for this node.
 
         Args:
             data: Optional custom data to attach to the context
+            input_provider: Optional input provider override
 
         Returns:
             A new NodeContext instance

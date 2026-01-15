@@ -240,11 +240,16 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """
         return self._client_env if self._client_env is not None else self.env
 
-    def get_context(self, data: Any = None) -> AgentContext:
+    def get_context(
+        self,
+        data: Any = None,
+        input_provider: InputProvider | None = None,
+    ) -> AgentContext:
         """Create a new context for this agent.
 
         Args:
             data: Optional custom data to attach to the context
+            input_provider: Optional input provider override
         """
         from agentpool.agents.context import AgentContext
         from agentpool.models.manifest import AgentsManifest
@@ -255,7 +260,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             pool=self.agent_pool,
             config=self.config,
             definition=defn,
-            input_provider=self._input_provider,
+            input_provider=input_provider or self._input_provider,
             data=data,
         )
 

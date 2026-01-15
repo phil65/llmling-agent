@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from agentpool.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from agentpool.messaging import ChatMessage, TeamResponse
     from agentpool.talk.stats import AggregatedTalkStats
+    from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.session import SessionQuery
 
@@ -327,11 +328,16 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                     msg = f"Invalid node type: {type(node)}"
                     raise ValueError(msg)
 
-    def get_context(self, data: Any = None) -> TeamContext:
+    def get_context(
+        self,
+        data: Any = None,
+        input_provider: InputProvider | None = None,
+    ) -> TeamContext:
         """Create a new context for this team.
 
         Args:
             data: Optional custom data to attach to the context
+            input_provider: Optional input provider override
 
         Returns:
             A new TeamContext instance
@@ -364,6 +370,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 pool=shared_pool,
                 config=team_config,
                 definition=shared_pool.manifest if shared_pool else AgentsManifest(),
+                input_provider=input_provider,
                 data=data,
             )
 
@@ -375,6 +382,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             pool=shared_pool,
             config=team_config,
             definition=shared_pool.manifest if shared_pool else AgentsManifest(),
+            input_provider=input_provider,
             data=data,
         )
 

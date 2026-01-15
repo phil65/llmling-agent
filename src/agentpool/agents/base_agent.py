@@ -266,11 +266,16 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         await self.agent_reset.emit(event)
 
     @abstractmethod
-    def get_context(self, data: Any = None) -> AgentContext[Any]:
+    def get_context(
+        self,
+        data: Any = None,
+        input_provider: InputProvider | None = None,
+    ) -> AgentContext[Any]:
         """Create a new context for this agent.
 
         Args:
             data: Optional custom data to attach to the context
+            input_provider: Optional input provider override
 
         Returns:
             A new AgentContext instance

@@ -389,11 +389,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             output_type=output_type,
         )
 
-    def get_context(self, data: Any = None) -> AgentContext:
+    def get_context(
+        self,
+        data: Any = None,
+        input_provider: InputProvider | None = None,
+    ) -> AgentContext:
         """Create a new context for this agent.
 
         Args:
             data: Optional custom data to attach to the context
+            input_provider: Optional input provider override
 
         Returns:
             A new AgentContext instance
@@ -407,7 +412,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             pool=self.agent_pool,
             config=self._config,
             definition=defn,
-            input_provider=self._input_provider,
+            input_provider=input_provider or self._input_provider,
             data=data,
         )
 

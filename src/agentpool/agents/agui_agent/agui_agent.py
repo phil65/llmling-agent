@@ -233,11 +233,16 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             agent_pool=agent_pool,
         )
 
-    def get_context(self, data: Any = None) -> AgentContext:
+    def get_context(
+        self,
+        data: Any = None,
+        input_provider: InputProvider | None = None,
+    ) -> AgentContext:
         """Create a new context for this agent.
 
         Args:
             data: Optional custom data to attach to the context
+            input_provider: Optional input provider override
 
         Returns:
             A new AgentContext instance
@@ -246,6 +251,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         from agentpool.models.agui_agents import AGUIAgentConfig
         from agentpool.models.manifest import AgentsManifest
 
+        effective_provider = input_provider or self._input_provider
         cfg = AGUIAgentConfig(  # type: ignore[call-arg]
             name=self.name,
             description=self.description,
@@ -253,7 +259,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             endpoint=self.endpoint,
             timeout=self.timeout,
             headers=self.headers,
-            input_provider=self._input_provider,
+            input_provider=effective_provider,
             startup_command=self._startup_command,
             startup_delay=self._startup_delay,
         )
@@ -263,7 +269,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             pool=self.agent_pool,
             config=cfg,
             definition=defn,
-            input_provider=self._input_provider,
+            input_provider=effective_provider,
             data=data,
         )
 

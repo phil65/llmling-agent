@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AsyncExitStack, asynccontextmanager
-from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
 import time
@@ -573,11 +572,16 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """Set agent name."""
         self._name = value
 
-    def get_context(self, data: TDeps | None = None) -> AgentContext[TDeps]:  # type: ignore[override]
+    def get_context(  # type: ignore[override]
+        self,
+        data: TDeps | None = None,
+        input_provider: InputProvider | None = None,
+    ) -> AgentContext[TDeps]:
         """Create a new context for this agent.
 
         Args:
             data: Optional custom data to attach to the context
+            input_provider: Optional input provider override
 
         Returns:
             A new AgentContext instance
@@ -588,7 +592,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             node=self,
             definition=self._manifest,
             config=self._agent_config,
-            input_provider=self._input_provider,
+            input_provider=input_provider or self._input_provider,
             pool=self.agent_pool,
             data=data,
         )
@@ -728,12 +732,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             builtin_tools=self._builtin_tools,
         )
 
-        base_context = self.get_context()
-        context_for_tools = (
-            base_context
-            if input_provider is None
-            else replace(base_context, input_provider=input_provider)
-        )
+        context_for_tools = self.get_context(input_provider=input_provider)
 
         for tool in tools:
             wrapped = wrap_tool(tool, context_for_tools, hooks=self.hooks)
