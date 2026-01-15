@@ -39,8 +39,6 @@ from pydantic_ai import (
     ModelRequest,
     ModelResponse,
     TextPart,
-    ThinkingPart,
-    ToolCallPart,
     UserPromptPart,
 )
 
@@ -71,7 +69,7 @@ if TYPE_CHECKING:
     from anyio.abc import Process
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
-    from pydantic_ai import UserContent
+    from pydantic_ai import ThinkingPart, ToolCallPart, UserContent
     from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
@@ -336,70 +334,29 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         init_response = await self._connection.initialize(init_request)
         self._agent_info = init_response.agent_info
         self._agent_capabilities = init_response.agent_capabilities
-        # Log MCP capabilities if present
-        mcp_caps = self._agent_capabilities.mcp_capabilities if self._agent_capabilities else None
-        self.log.info(
-            "ACP connection initialized",
-            agent_info=self._agent_info,
-            mcp_http=mcp_caps.http if mcp_caps else False,
-            mcp_sse=mcp_caps.sse if mcp_caps else False,
-        )
+        self.log.info("ACP connection initialized", agent_info=self._agent_info)
 
     async def _create_session(self) -> None:
         """Create a new ACP session with configured MCP servers."""
         from acp.schema import NewSessionRequest
-        from acp.schema.mcp import HttpMcpServer, SseMcpServer
         from agentpool.agents.acp_agent.acp_converters import mcp_configs_to_acp
+        from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities
 
         if not self._connection:
             msg = "Connection not initialized"
             raise RuntimeError(msg)
 
-        # Check which MCP transports the agent supports
-        supports_http = (
-            self._agent_capabilities
-            and self._agent_capabilities.mcp_capabilities
-            and self._agent_capabilities.mcp_capabilities.http
-        )
-        supports_sse = (
-            self._agent_capabilities
-            and self._agent_capabilities.mcp_capabilities
-            and self._agent_capabilities.mcp_capabilities.sse
-        )
-
-        # Collect all MCP servers (config + extra) and filter by agent capabilities
+        # Collect all MCP servers (config + extra)
         all_servers = self._extra_mcp_servers[:]
         # Add servers from config (converted to ACP format)
         config_servers = self.config.get_mcp_servers()
         if config_servers:
             all_servers.extend(mcp_configs_to_acp(config_servers))
-        # Add extra MCP servers (e.g., from tool bridges)
-        # Filter servers based on agent transport capabilities
-        supported_servers: list[McpServer] = []
-        unsupported_servers: list[tuple[McpServer, str]] = []
-
-        for server in all_servers:
-            if isinstance(server, HttpMcpServer) and not supports_http:
-                unsupported_servers.append((server, "HTTP"))
-            elif isinstance(server, SseMcpServer) and not supports_sse:
-                unsupported_servers.append((server, "SSE"))
-            else:
-                # Stdio servers or supported transport types
-                supported_servers.append(server)
-
-        if unsupported_servers:
-            transports = ", ".join(sorted({t for _, t in unsupported_servers}))
-            server_names = ", ".join(s.name for s, _ in unsupported_servers)
-            self.log.warning(
-                "Agent does not support some MCP transports, skipping servers",
-                unsupported_transports=transports,
-                skipped_servers=server_names,
-                unsupported_count=len(unsupported_servers),
-                supported_http=supports_http,
-                supported_sse=supports_sse,
-            )
-
-        mcp_servers = supported_servers
+        mcp_servers = filter_servers_by_capabilities(
+            all_servers,
+            self._agent_capabilities,
+            logger=self.log,
+        )
         cwd = self.config.cwd or str(Path.cwd())
         session_request = NewSessionRequest(cwd=cwd, mcp_servers=mcp_servers)
         response = await self._connection.new_session(session_request)
@@ -550,12 +507,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                         tool_metadata[event.tool_call_id] = event.metadata
                         # Don't yield metadata events - they're internal correlation only
                         continue
-
                     # Check for cancellation
                     if self._cancelled:
                         self.log.info("Stream cancelled by user")
                         break
-
                     # Inject metadata into ToolCallCompleteEvent
                     # (converted from completed ToolCallProgress)
                     if isinstance(event, ToolCallCompleteEvent):
@@ -571,7 +526,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                                 enriched_event, metadata=tool_metadata[enriched_event.tool_call_id]
                             )
                         event = enriched_event  # noqa: PLW2901
-
                     # Extract content from events and build parts in arrival order
                     part = event_to_part(event)
                     if isinstance(part, TextPart):
