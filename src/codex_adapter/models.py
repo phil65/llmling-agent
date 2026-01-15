@@ -166,7 +166,9 @@ class TurnError(CodexBaseModel):
     """Turn error information."""
 
     message: str
-    codex_error_info: dict[str, Any] | None = None  # Error metadata - varied structure
+    codex_error_info: dict[str, Any] | str | None = (
+        None  # Error metadata - varied structure (dict or string like "other")
+    )
     additional_details: str | None = None
 
 

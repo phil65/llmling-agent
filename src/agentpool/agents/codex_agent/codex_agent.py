@@ -313,7 +313,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._client = None
         self._thread_id = None
 
-    async def _stream_events(
+    async def _stream_events(  # noqa: PLR0915
         self,
         prompts: list[UserContent],
         *,
@@ -375,6 +375,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         yield run_started
         # Stream turn events with bridge context set
         accumulated_text: list[str] = []
+        token_usage_data: dict[str, int] | None = None
         # Pass output type directly - adapter handles conversion to JSON schema
         output_schema = None if self._output_type is str else self._output_type
         try:
@@ -385,6 +386,19 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                     approval_policy=self._approval_policy,
                     output_schema=output_schema,
                 ):
+                    # Capture token usage from Codex event before conversion
+                    if event.event_type == "thread/tokenUsage/updated":
+                        from codex_adapter.models import ThreadTokenUsageUpdatedData
+
+                        if isinstance(event.data, ThreadTokenUsageUpdatedData):
+                            usage = event.data.token_usage.last
+                            token_usage_data = {
+                                "input_tokens": usage.input_tokens,
+                                "output_tokens": usage.output_tokens,
+                                "cache_read_tokens": usage.cached_input_tokens,
+                                "reasoning_tokens": usage.reasoning_output_tokens,
+                            }
+
                     # Convert Codex event to native event
                     if native_event := codex_to_native_event(event):
                         await event_handlers(None, native_event)
@@ -417,12 +431,42 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Emit completion event
         final_text = "".join(accumulated_text)
+
+        # Build cost_info and usage from token data if available
+        from decimal import Decimal
+
+        from pydantic_ai.usage import RequestUsage, RunUsage
+
+        from agentpool.messaging.messages import TokenCost
+
+        cost_info: TokenCost | None = None
+        request_usage = RequestUsage()
+
+        if token_usage_data:
+            run_usage = RunUsage(
+                input_tokens=token_usage_data.get("input_tokens", 0),
+                output_tokens=token_usage_data.get("output_tokens", 0),
+                cache_read_tokens=token_usage_data.get("cache_read_tokens", 0),
+                cache_write_tokens=0,  # Codex doesn't provide cache write tokens
+            )
+            # TODO: Calculate actual cost - for now set to 0
+            cost_info = TokenCost(token_usage=run_usage, total_cost=Decimal(0))
+            request_usage = RequestUsage(
+                input_tokens=token_usage_data.get("input_tokens", 0),
+                output_tokens=token_usage_data.get("output_tokens", 0),
+                cache_read_tokens=token_usage_data.get("cache_read_tokens", 0),
+                cache_write_tokens=0,
+            )
+
         complete_msg = ChatMessage(
             content=final_text,
             role="assistant",
             message_id=final_message_id,
             conversation_id=final_conversation_id,
             parent_id=parent_id,
+            cost_info=cost_info,
+            usage=request_usage,
+            model_name=self.model_name,
         )
 
         complete_event = StreamCompleteEvent(
