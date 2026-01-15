@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import PartDeltaEvent, RunStartedEvent, StreamCompleteEvent
@@ -133,6 +133,9 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.config = config
         self._client: CodexClient | None = None
         self._thread_id: str | None = None
+        self._approval_policy: Literal["always", "never", "auto"] = (
+            config.approval_policy or "never"
+        )
         # Store MCP servers separately - will be passed to CodexClient
         # External MCP servers from config (already processed to MCPServerConfig objects)
         # If mcp_servers param provided, we need to process it similarly
@@ -158,7 +161,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Track current settings (for when they change mid-session)
         self._current_model: str | None = None
-        self._current_effort: str | None = None
+        self._current_effort: Literal["low", "medium", "high"] | None = None
 
         # Create bridge for exposing our tools via MCP
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
@@ -355,17 +358,14 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Convert prompts to text
         prompt_text = "\n\n".join(str(p) for p in prompts)
-
         # Generate IDs if not provided
         run_id = str(uuid4())
         final_message_id = message_id or str(uuid4())
         final_conversation_id = conversation_id or self.conversation_id
-
         # Ensure conversation_id is set (should always be from base class)
         if final_conversation_id is None:
             msg = "conversation_id must be set"
             raise ValueError(msg)
-
         # Emit run started event
         run_started = RunStartedEvent(
             thread_id=final_conversation_id,
@@ -373,19 +373,16 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
         await event_handlers(None, run_started)
         yield run_started
-
         # Stream turn events with bridge context set
         accumulated_text: list[str] = []
-
         # Pass output type directly - adapter handles conversion to JSON schema
         output_schema = None if self._output_type is str else self._output_type
-
         try:
             async with self._tool_bridge.set_run_context(deps, input_provider):
                 async for event in self._client.turn_stream(
                     self._thread_id,
                     prompt_text,
-                    approval_policy=self.config.approval_policy,
+                    approval_policy=self._approval_policy,
                     output_schema=output_schema,
                 ):
                     # Convert Codex event to native event
@@ -445,7 +442,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         self.log.debug("Setting result type", output_type=output_type)
         self._output_type = to_type(output_type)  # type: ignore[assignment]
-        return self  # type: ignore[return-value]
+        return self
 
     async def set_model(self, model: str) -> None:
         """Set the model for this agent.
@@ -554,7 +551,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         categories: list[ModeCategory] = []
 
         # Approval policy modes
-        current_policy = self.config.approval_policy or "never"
+        current_policy = self._approval_policy
         policy_modes = [
             ModeInfo(
                 id="never",
@@ -681,8 +678,9 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                 msg = f"Invalid approval policy: {mode_id}. Must be 'always', 'never', or 'auto'"
                 raise ValueError(msg)
 
-            # Update config (doesn't require thread restart)
-            self.config.approval_policy = mode_id  # type: ignore[assignment]
+            # Update instance attribute (doesn't require thread restart)
+            # Type assertion: we've already validated mode_id is one of the valid values
+            self._approval_policy = mode_id  # type: ignore[assignment]
             self.log.info("Approval policy changed", policy=mode_id)
 
         elif category_id == "reasoning_effort":
@@ -692,7 +690,8 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
             if not self._client or not self._thread_id:
                 # Store for initialization
-                self._current_effort = mode_id
+                # Type assertion: we've already validated mode_id is one of the valid values
+                self._current_effort = mode_id  # type: ignore[assignment]
                 self.log.info("Reasoning effort set for initialization", effort=mode_id)
                 return
 
@@ -707,7 +706,8 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                 effort=mode_id,  # type: ignore[arg-type]
             )
             self._thread_id = thread.id
-            self._current_effort = mode_id
+            # Type assertion: we've already validated mode_id is one of the valid values
+            self._current_effort = mode_id  # type: ignore[assignment]
 
             self.log.info(
                 "Reasoning effort changed - new thread started",

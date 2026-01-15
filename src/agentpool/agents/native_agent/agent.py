@@ -1114,23 +1114,33 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     async def list_sessions(self) -> list[SessionInfo]:
         """List sessions from storage.
 
-        For native agents, queries the pool's storage (if available) for all sessions
+        For native agents, queries the pool's session store for all sessions
         associated with this agent.
 
         Returns:
             List of SessionInfo-compatible SessionData objects
         """
-        if not self.agent_pool or not self.agent_pool.storage:
+        if not self.agent_pool:
             return []
 
-        # Get sessions from storage
+        # Get sessions from session store
         try:
-            return await self.agent_pool.storage.sessions.get_all(agent_name=self.name)
-            # SessionData already implements SessionInfo protocol
-            # (has session_id, cwd, title, updated_at properties)
+            # Get session IDs from store
+            session_ids = await self.agent_pool.sessions.store.list_sessions(agent_name=self.name)
+
+            # Load each session to get full SessionData
+            result: list[SessionInfo] = []
+            for session_id in session_ids:
+                session_data = await self.agent_pool.sessions.store.load(session_id)
+                if session_data:
+                    # SessionData implements SessionInfo protocol
+                    result.append(session_data)  # type: ignore[arg-type]
+
         except Exception:
             self.log.exception("Failed to list sessions")
             return []
+        else:
+            return result
 
     async def load_session(self, session_id: str) -> SessionData | None:
         """Load and restore a session from storage.
@@ -1143,31 +1153,35 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         Returns:
             SessionData if session was found and loaded, None otherwise
         """
-        if not self.agent_pool or not self.agent_pool.storage:
+        if not self.agent_pool:
             return None
 
         try:
-            # Load session data
-            session_data = await self.agent_pool.storage.sessions.load(session_id)
+            # Load session data from session store
+            session_data = await self.agent_pool.sessions.store.load(session_id)
             if not session_data:
                 return None
 
-            # Load conversation history if available
-            if self.agent_pool.storage.provider.can_load_history:
-                messages = await self.agent_pool.storage.provider.get_conversation_messages(
-                    conversation_id=session_data.conversation_id,
-                    include_ancestors=False,
-                )
-                # Restore to conversation history
-                self.conversation.chat_messages.clear()
-                self.conversation.chat_messages.extend(messages)
-                self.log.info(
-                    "Session loaded with conversation history",
-                    session_id=session_id,
-                    message_count=len(messages),
-                )
+            # Load conversation history if available from storage providers
+            if self.agent_pool.storage.providers:
+                provider = self.agent_pool.storage.providers[0]
+                if provider.can_load_history:
+                    messages = await provider.get_conversation_messages(
+                        conversation_id=session_data.conversation_id,
+                        include_ancestors=False,
+                    )
+                    # Restore to conversation history
+                    self.conversation.chat_messages.clear()
+                    self.conversation.chat_messages.extend(messages)
+                    self.log.info(
+                        "Session loaded with conversation history",
+                        session_id=session_id,
+                        message_count=len(messages),
+                    )
+                else:
+                    self.log.info("Session loaded (no history support)", session_id=session_id)
             else:
-                self.log.info("Session loaded (no history support)", session_id=session_id)
+                self.log.info("Session loaded (no storage providers)", session_id=session_id)
 
         except Exception:
             self.log.exception("Failed to load session", session_id=session_id)

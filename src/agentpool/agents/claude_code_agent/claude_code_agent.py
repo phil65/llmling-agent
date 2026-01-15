@@ -1814,30 +1814,33 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         from agentpool.sessions.models import SessionData
         from agentpool.utils.now import get_now
+        from agentpool_storage.models import QueryFilters
 
         try:
             # Use storage sessions API which works with Claude provider
-            conversations = await self._claude_storage.get_conversations(
-                filters=type(
-                    "Filters",
-                    (),
-                    {"agent_name": self.name, "since": None, "query": None, "limit": None},
-                )()
+            filters = QueryFilters(
+                agent_name=self.name,
+                since=None,
+                query=None,
+                limit=None,
             )
+            conversations = await self._claude_storage.get_conversations(filters=filters)
 
             result: list[SessionInfo] = []
             for conv_data, messages in conversations:
                 # Build SessionData from conversation
                 last_active = get_now()
-                cwd = None
+                cwd: str | None = None
 
                 if messages:
                     last_msg = messages[-1]
                     if last_msg.timestamp:
                         last_active = last_msg.timestamp
                     # Extract cwd from message metadata if available
-                    if hasattr(last_msg, "metadata") and last_msg.metadata:
-                        cwd = last_msg.metadata.get("cwd")
+                    if last_msg.metadata:
+                        cwd_val = last_msg.metadata.get("cwd")
+                        if isinstance(cwd_val, str):
+                            cwd = cwd_val
 
                 # Parse start_time
                 try:
@@ -1905,9 +1908,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
             # Try to extract cwd from message metadata
             for msg in reversed(messages):
-                if hasattr(msg, "metadata") and msg.metadata and "cwd" in msg.metadata:
-                    cwd = msg.metadata["cwd"]
-                    break
+                if msg.metadata and "cwd" in msg.metadata:
+                    cwd_val = msg.metadata["cwd"]
+                    if isinstance(cwd_val, str):
+                        cwd = cwd_val
+                        break
 
             return SessionData(
                 session_id=session_id,

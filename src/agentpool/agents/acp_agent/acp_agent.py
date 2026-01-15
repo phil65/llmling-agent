@@ -858,7 +858,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         Returns:
             List of SessionInfo objects from the ACP server
         """
+        from datetime import datetime
+
         from acp.schema import ListSessionsRequest
+        from agentpool.sessions.models import SessionData
+        from agentpool.utils.now import get_now
 
         if not self._connection:
             msg = "Not connected to ACP server"
@@ -867,11 +871,32 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         try:
             request = ListSessionsRequest()
             response = await self._connection.list_sessions(request)
-            # ACP's SessionInfo already matches our protocol
-            return list(response.sessions)  # type: ignore[return-value]
+
+            # Convert ACP SessionInfo to agentpool SessionData
+            result: list[SessionInfo] = []
+            for acp_session in response.sessions:
+                # Parse timestamp if available
+                updated_at = get_now()
+                if acp_session.updated_at:
+                    with contextlib.suppress(ValueError, AttributeError):
+                        updated_at = datetime.fromisoformat(acp_session.updated_at)
+
+                session_data = SessionData(
+                    session_id=acp_session.session_id,
+                    agent_name=self.name,
+                    conversation_id=acp_session.session_id,
+                    cwd=acp_session.cwd,
+                    created_at=updated_at,
+                    last_active=updated_at,
+                    metadata={"title": acp_session.title} if acp_session.title else {},
+                )
+                result.append(session_data)  # type: ignore[arg-type]
+
         except Exception:
             self.log.exception("Failed to list sessions from ACP server")
             return []
+        else:
+            return result
 
     async def load_session(self, session_id: str) -> SessionData | None:
         """Load and restore a session from the remote ACP server.
