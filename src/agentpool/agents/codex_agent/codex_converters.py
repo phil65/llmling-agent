@@ -140,6 +140,7 @@ def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None
     from pydantic_ai import TextPartDelta, ThinkingPartDelta
 
     from agentpool.agents.events import (
+        CompactionEvent,
         PartDeltaEvent,
         ToolCallCompleteEvent,
         ToolCallStartEvent,
@@ -150,94 +151,98 @@ def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None
         ItemCompletedData,
         ItemStartedData,
         ReasoningTextDeltaData,
+        ThreadCompactedData,
         ThreadItemCommandExecution,
         ThreadItemMcpToolCall,
     )
 
     match event.event_type:
         # Text deltas from agent messages
-        case "item/agentMessage/delta":
-            if isinstance(event.data, AgentMessageDeltaData):
-                return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=event.data.delta))
+        case "item/agentMessage/delta" if isinstance(event.data, AgentMessageDeltaData):
+            return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=event.data.delta))
 
         # Reasoning/thinking deltas
-        case "item/reasoning/textDelta":
-            if isinstance(event.data, ReasoningTextDeltaData):
-                return PartDeltaEvent(
-                    index=0, delta=ThinkingPartDelta(content_delta=event.data.delta)
-                )
+        case "item/reasoning/textDelta" if isinstance(event.data, ReasoningTextDeltaData):
+            return PartDeltaEvent(index=0, delta=ThinkingPartDelta(content_delta=event.data.delta))
 
         # Tool/command started
-        case "item/started":
-            if isinstance(event.data, ItemStartedData):
-                item = event.data.item
-                # Command execution (built-in shell commands)
-                if isinstance(item, ThreadItemCommandExecution):
-                    return ToolCallStartEvent(
-                        tool_call_id=item.id,
-                        tool_name="bash",
-                        title=f"Execute: {item.command}",
-                        raw_input={"command": item.command, "cwd": item.cwd},
-                    )
-                # MCP tool calls
-                if isinstance(item, ThreadItemMcpToolCall):
-                    return ToolCallStartEvent(
-                        tool_call_id=item.id,
-                        tool_name=item.tool,
-                        title=f"Call {item.tool}",
-                        raw_input=(
-                            item.arguments
-                            if isinstance(item.arguments, dict)
-                            else {"args": item.arguments}
-                        ),
-                    )
+        case "item/started" if isinstance(event.data, ItemStartedData):
+            item = event.data.item
+            # Command execution (built-in shell commands)
+            if isinstance(item, ThreadItemCommandExecution):
+                return ToolCallStartEvent(
+                    tool_call_id=item.id,
+                    tool_name="bash",
+                    title=f"Execute: {item.command}",
+                    raw_input={"command": item.command, "cwd": item.cwd},
+                )
+            # MCP tool calls
+            if isinstance(item, ThreadItemMcpToolCall):
+                return ToolCallStartEvent(
+                    tool_call_id=item.id,
+                    tool_name=item.tool,
+                    title=f"Call {item.tool}",
+                    raw_input=(
+                        item.arguments
+                        if isinstance(item.arguments, dict)
+                        else {"args": item.arguments}
+                    ),
+                )
 
         # Tool/command completed
-        case "item/completed":
-            if isinstance(event.data, ItemCompletedData):
-                item = event.data.item
-                # Command execution completed
-                if isinstance(item, ThreadItemCommandExecution):
-                    output = item.aggregated_output or ""
-                    return ToolCallCompleteEvent(
-                        tool_name="bash",
-                        tool_call_id=item.id,
-                        tool_input={"command": item.command, "cwd": item.cwd},
-                        tool_result=output,
-                        agent_name="codex",  # Will be overridden by agent
-                        message_id=event.data.turn_id,
+        case "item/completed" if isinstance(event.data, ItemCompletedData):
+            item = event.data.item
+            # Command execution completed
+            if isinstance(item, ThreadItemCommandExecution):
+                output = item.aggregated_output or ""
+                return ToolCallCompleteEvent(
+                    tool_name="bash",
+                    tool_call_id=item.id,
+                    tool_input={"command": item.command, "cwd": item.cwd},
+                    tool_result=output,
+                    agent_name="codex",  # Will be overridden by agent
+                    message_id=event.data.turn_id,
+                )
+            # MCP tool call completed
+            if isinstance(item, ThreadItemMcpToolCall):
+                # Format result content as string
+                result_text = ""
+                if item.result and item.result.content:
+                    # McpContentBlock allows extra fields, cast to dict to access
+                    result_text = "\n".join(
+                        str(dict(block.model_dump()).get("text", ""))
+                        for block in item.result.content
                     )
-                # MCP tool call completed
-                if isinstance(item, ThreadItemMcpToolCall):
-                    # Format result content as string
-                    result_text = ""
-                    if item.result and item.result.content:
-                        # McpContentBlock allows extra fields, cast to dict to access
-                        result_text = "\n".join(
-                            str(dict(block.model_dump()).get("text", ""))
-                            for block in item.result.content
-                        )
-                    elif item.error:
-                        result_text = f"Error: {item.error.message}"
+                elif item.error:
+                    result_text = f"Error: {item.error.message}"
 
-                    return ToolCallCompleteEvent(
-                        tool_name=item.tool,
-                        tool_call_id=item.id,
-                        tool_input=(
-                            item.arguments
-                            if isinstance(item.arguments, dict)
-                            else {"args": item.arguments}
-                        ),
-                        tool_result=result_text,
-                        agent_name="codex",  # Will be overridden by agent
-                        message_id=event.data.turn_id,
-                    )
+                return ToolCallCompleteEvent(
+                    tool_name=item.tool,
+                    tool_call_id=item.id,
+                    tool_input=(
+                        item.arguments
+                        if isinstance(item.arguments, dict)
+                        else {"args": item.arguments}
+                    ),
+                    tool_result=result_text,
+                    agent_name="codex",  # Will be overridden by agent
+                    message_id=event.data.turn_id,
+                )
 
         # Command execution output streaming
-        case "item/commandExecution/outputDelta":
-            if isinstance(event.data, CommandExecutionOutputDeltaData):
-                # This is streaming tool output - emit as text delta
-                return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=event.data.delta))
+        case "item/commandExecution/outputDelta" if isinstance(
+            event.data, CommandExecutionOutputDeltaData
+        ):
+            # This is streaming tool output - emit as text delta
+            return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=event.data.delta))
+
+        # Thread compacted - history was summarized
+        case "thread/compacted" if isinstance(event.data, ThreadCompactedData):
+            return CompactionEvent(
+                session_id=event.data.thread_id,
+                trigger="auto",
+                phase="completed",
+            )
 
     return None
 
