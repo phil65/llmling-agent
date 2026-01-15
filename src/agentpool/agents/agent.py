@@ -39,7 +39,6 @@ from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory
-from agentpool.prompts.convert import convert_prompts
 from agentpool.storage import StorageManager
 from agentpool.tools import Tool, ToolManager
 from agentpool.tools.exceptions import ToolError
@@ -774,7 +773,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         run_id = str(uuid4())
         # Initialize conversation_id on first run and log to storage
         # Conversation ID initialization handled by BaseAgent
-        processed_prompts = prompts
         await self.message_received.emit(user_msg)
         start_time = time.perf_counter()
         history_list = message_history.get_history()
@@ -801,10 +799,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         yield run_started
 
         agentlet = await self.get_agentlet(None, self._output_type, input_provider)
-        content = await convert_prompts(processed_prompts)
         response_msg: ChatMessage[Any] | None = None
-        # Prepend pending context parts (content is already pydantic-ai format)
-        converted = [*pending_parts, *content]
+        # Prepend pending context parts (prompts are already pydantic-ai UserContent format)
+        converted = [*pending_parts, *prompts]
         history = [m for run in history_list for m in run.to_pydantic_ai()]
         # Track tool call starts to combine with results later
         pending_tcs: dict[str, BaseToolCallPart] = {}
