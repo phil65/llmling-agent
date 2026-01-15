@@ -16,13 +16,14 @@ import subprocess
 from typing import TYPE_CHECKING, Any, Literal
 
 import anyio
+from anyio.abc import ByteReceiveStream, ByteSendStream
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Mapping
     from pathlib import Path
 
-    from anyio.abc import ByteReceiveStream, ByteSendStream, Process
+    from anyio.abc import Process
     from websockets.asyncio.server import ServerConnection
 
     from acp.agent.connection import AgentSideConnection
@@ -262,7 +263,7 @@ async def _serve_websocket(
         await conn.close()
 
 
-class _WebSocketReadStream(anyio.abc.ByteReceiveStream):
+class _WebSocketReadStream(ByteReceiveStream):
     """Adapter to read from WebSocket as a ByteReceiveStream."""
 
     def __init__(self, websocket: Any) -> None:
@@ -293,7 +294,7 @@ class _WebSocketReadStream(anyio.abc.ByteReceiveStream):
         pass
 
 
-class _WebSocketWriteStream(anyio.abc.ByteSendStream):
+class _WebSocketWriteStream(ByteSendStream):
     """Adapter to write to WebSocket as a ByteSendStream."""
 
     def __init__(self, websocket: Any) -> None:

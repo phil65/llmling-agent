@@ -6,6 +6,7 @@ import sys
 from typing import TYPE_CHECKING, Any
 
 import anyio
+from anyio.abc import ByteReceiveStream, ByteSendStream
 
 from acp.agent.connection import AgentSideConnection
 from acp.client.connection import ClientSideConnection
@@ -33,7 +34,7 @@ __all__ = [
 ]
 
 
-class StdinStream(anyio.abc.ByteReceiveStream):
+class StdinStream(ByteReceiveStream):
     """Wrapper for stdin that implements ByteReceiveStream interface."""
 
     async def receive(self, max_bytes: int = 65536) -> bytes:
@@ -54,7 +55,7 @@ class StdinStream(anyio.abc.ByteReceiveStream):
         """Close is a no-op for stdin."""
 
 
-class StdoutStream(anyio.abc.ByteSendStream):
+class StdoutStream(ByteSendStream):
     """Wrapper for stdout that implements ByteSendStream interface."""
 
     async def send(self, item: bytes) -> None:

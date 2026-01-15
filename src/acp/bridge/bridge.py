@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import Path
 
-    import anyio
+    from anyio.abc import Process
     from starlette.requests import Request
 
     from acp.schema import AgentMethod
@@ -76,7 +76,7 @@ class ACPBridge:
         self.cwd = cwd
         self.settings = settings or BridgeSettings()
         self._connection: ClientSideConnection | None = None
-        self._process: anyio.abc.Process | None = None
+        self._process: Process | None = None
 
     async def _handle_acp_request(self, request: Request) -> Response:
         """Handle incoming ACP JSON-RPC requests."""
