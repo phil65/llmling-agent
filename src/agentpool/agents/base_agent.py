@@ -474,6 +474,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Stream events from implementation
         final_message = None
         self._current_stream_task = asyncio.current_task()
+        conversation = message_history if message_history is not None else self.conversation
         try:
             async for event in self._stream_events(
                 converted_prompts,
@@ -483,7 +484,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 message_id=message_id,
                 conversation_id=conversation_id,
                 parent_id=parent_id,
-                message_history=message_history,
+                message_history=conversation,
                 input_provider=input_provider,
                 wait_for_connections=wait_for_connections,
                 deps=deps,
@@ -527,13 +528,13 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self,
         prompts: list[UserContent],
         *,
-        user_msg: Any,  # ChatMessage but imported in run_stream
+        user_msg: ChatMessage[Any],
+        message_history: MessageHistory,
         effective_parent_id: str | None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
-        message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,

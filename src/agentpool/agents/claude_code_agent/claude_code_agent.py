@@ -974,12 +974,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         prompts: list[UserContent],
         *,
         user_msg: ChatMessage[Any],
+        message_history: MessageHistory,
         effective_parent_id: str | None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
-        message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,
@@ -1023,7 +1023,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if not self._client:
             raise RuntimeError("Agent not initialized - use async context manager")
 
-        conversation = message_history if message_history is not None else self.conversation
         # Use provided event handlers or fall back to agent's handlers
         if event_handlers is not None:
             handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
@@ -1032,7 +1031,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         else:
             handler = self.event_handler
         # Get pending parts from conversation (staged content)
-        pending_parts = conversation.get_pending_parts()
+        pending_parts = message_history.get_pending_parts()
         # Combine pending parts with new prompts, then join into single string for Claude SDK
         all_parts = [*pending_parts, *prompts]
         prompt_text = " ".join(str(p) for p in all_parts)

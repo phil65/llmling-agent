@@ -468,12 +468,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         prompts: list[UserContent],
         *,
         user_msg: ChatMessage[Any],
+        message_history: MessageHistory,
         effective_parent_id: str | None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
-        message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,
@@ -497,7 +497,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
-        conversation = message_history if message_history is not None else self.conversation
         # Use provided event handlers or fall back to agent's handlers
         if event_handlers is not None:
             handlers = resolve_event_handlers(event_handlers)
@@ -527,7 +526,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         await handler(None, run_started)
         yield run_started
         content_blocks = convert_to_acp_content(processed_prompts)
-        pending_parts = conversation.get_pending_parts()
+        pending_parts = message_history.get_pending_parts()
         final_blocks = [*to_acp_content_blocks(pending_parts), *content_blocks]
         # Handle ephemeral execution (fork session if store_history=False)
         session_id = self._session_id

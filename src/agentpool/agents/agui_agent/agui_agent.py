@@ -365,32 +365,18 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         prompts: list[UserContent],
         *,
         user_msg: ChatMessage[Any],
+        message_history: MessageHistory,
         effective_parent_id: str | None,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
-        message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
         # Update input provider if provided
-        if input_provider is not None:
-            self._input_provider = input_provider
-
-        # Use provided event handlers or fall back to agent's handlers
-        if event_handlers is not None:
-            from anyenv import MultiEventHandler
-
-            from agentpool.agents.events import resolve_event_handlers
-
-            handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
-                resolve_event_handlers(event_handlers)
-            )
-        else:
-            handler = self.event_handler
 
         from ag_ui.core import (
             RunAgentInput,
@@ -402,13 +388,26 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             ToolCallStartEvent as AGUIToolCallStartEvent,
             UserMessage,
         )
+        from anyenv import MultiEventHandler
 
         from agentpool.agents.agui_agent.agui_converters import (
             agui_to_native_event,
             to_agui_input_content,
             to_agui_tool,
         )
+        from agentpool.agents.events import resolve_event_handlers
         from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
+
+        if input_provider is not None:
+            self._input_provider = input_provider
+
+        # Use provided event handlers or fall back to agent's handlers
+        if event_handlers is not None:
+            handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
+                resolve_event_handlers(event_handlers)
+            )
+        else:
+            handler = self.event_handler
 
         if not self._client:
             msg = "Agent not initialized - use async context manager"
@@ -416,14 +415,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Reset cancellation state
         self._cancelled = False
-
-        # Conversation ID initialization handled by BaseAgent
-
         # Set thread_id from conversation_id (needed for AG-UI protocol)
         if self._thread_id is None:
             self._thread_id = self.conversation_id
 
-        conversation = message_history if message_history is not None else self.conversation
         processed_prompts = prompts
         self._run_id = str(uuid4())  # New run ID for each run
         self._chunk_transformer.reset()  # Reset chunk transformer
@@ -446,7 +441,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         await handler(None, run_started)
         yield run_started
         # Get pending parts from conversation and convert them
-        pending_parts = conversation.get_pending_parts()
+        pending_parts = message_history.get_pending_parts()
         pending_content = to_agui_input_content(pending_parts)
         # Convert user message content to AGUI format using processed prompts
         user_content = to_agui_input_content(processed_prompts)
@@ -512,15 +507,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                         tool_call_id=tc_id, tool_call_name=name
                                     ) if name:
                                         tool_accumulator.start(tc_id, name)
-                                        self.log.debug(
-                                            "Tool call started",
-                                            tool_call_id=tc_id,
-                                            tool=name,
-                                        )
-
                                     case AGUIToolCallArgsEvent(tool_call_id=tc_id, delta=delta):
                                         tool_accumulator.add_args(tc_id, delta)
-
                                     case AGUIToolCallEndEvent(tool_call_id=tc_id):
                                         if result := tool_accumulator.complete(tc_id):
                                             tool_name, args = result
@@ -531,12 +519,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                                     args=args,
                                                     tool_call_id=tc_id,
                                                 )
-                                            )
-                                            self.log.debug(
-                                                "Tool call completed",
-                                                tool_call_id=tc_id,
-                                                tool=tool_name,
-                                                args=args,
                                             )
 
                                 # Convert to native event and distribute to handlers

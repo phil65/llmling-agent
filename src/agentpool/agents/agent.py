@@ -756,12 +756,12 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         prompts: list[UserContent],
         *,
         user_msg: ChatMessage[Any],
+        message_history: MessageHistory,
         effective_parent_id: str | None,
         store_history: bool = True,
         message_id: str | None = None,
         conversation_id: str | None = None,
         parent_id: str | None = None,
-        message_history: MessageHistory | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
         deps: TDeps | None = None,
@@ -772,7 +772,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         from agentpool.agents.events import resolve_event_handlers
 
-        conversation = message_history if message_history is not None else self.conversation
         # Use provided event handlers or fall back to agent's handlers
         if event_handlers is not None:
             handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
@@ -789,8 +788,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         processed_prompts = prompts
         await self.message_received.emit(user_msg)
         start_time = time.perf_counter()
-        history_list = conversation.get_history()
-        pending_parts = conversation.get_pending_parts()
+        history_list = message_history.get_history()
+        pending_parts = message_history.get_pending_parts()
         # Execute pre-run hooks
         if self.hooks:
             pre_run_result = await self.hooks.run_pre_run_hooks(
