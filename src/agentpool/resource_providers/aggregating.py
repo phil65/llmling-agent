@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from agentpool.resource_providers.base import ResourceChangeEvent, ResourceProvider
 
@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from agentpool.resource_providers.resource_info import ResourceInfo
     from agentpool.tools.base import Tool
 
+ToolMode = Literal["codemode"]
+
 _ = ResourceChangeEvent  # Used at runtime in method signatures
 
 
@@ -28,15 +30,23 @@ class AggregatingResourceProvider(ResourceProvider):
 
     kind = "aggregating"
 
-    def __init__(self, providers: list[ResourceProvider], name: str = "aggregating") -> None:
+    def __init__(
+        self,
+        providers: list[ResourceProvider],
+        name: str = "aggregating",
+        tool_mode: ToolMode | None = None,
+    ) -> None:
         """Initialize provider with list of providers to aggregate.
 
         Args:
             providers: Resource providers to aggregate (stores reference to list)
             name: Name for this provider
+            tool_mode: Optional tool execution mode ("codemode" wraps all tools)
         """
         super().__init__(name=name)
         self._providers: list[ResourceProvider] = []
+        self.tool_mode = tool_mode
+        self._codemode_provider: ResourceProvider | None = None
         # Use property setter to set up signal forwarding
         self.providers = providers
 
@@ -81,8 +91,35 @@ class AggregatingResourceProvider(ResourceProvider):
         await self.skills_changed.emit(event)
 
     async def get_tools(self) -> Sequence[Tool]:
-        """Get tools from all providers."""
-        return [t for provider in self.providers for t in await provider.get_tools()]
+        """Get tools from all providers.
+
+        If tool_mode="codemode", wraps all tools in a single Python execution tool.
+        """
+        # Get all tools from child providers
+        all_tools = [t for provider in self.providers for t in await provider.get_tools()]
+
+        # If codemode, wrap all tools in a single codemode tool
+        if self.tool_mode == "codemode":
+            from agentpool.resource_providers.codemode.provider import (
+                CodeModeResourceProvider,
+            )
+            from agentpool.resource_providers.static import StaticResourceProvider
+
+            # Always create fresh static provider with current tools
+            static = StaticResourceProvider("codemode_static", tools=all_tools)
+
+            if self._codemode_provider is None:
+                self._codemode_provider = CodeModeResourceProvider([static])
+            else:
+                # Update the providers list on existing codemode provider
+                # Type narrowing: we know it's CodeModeResourceProvider at this point
+                codemode = self._codemode_provider
+                assert isinstance(codemode, CodeModeResourceProvider)
+                codemode.providers = [static]
+
+            return list(await self._codemode_provider.get_tools())
+
+        return all_tools
 
     async def get_prompts(self) -> list[BasePrompt]:
         """Get prompts from all providers."""

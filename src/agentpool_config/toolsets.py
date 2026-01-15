@@ -642,13 +642,45 @@ class CustomToolsetConfig(BaseToolsetConfig):
         return provider_cls(name=provider_cls.__name__)
 
 
+class AggregatingToolsetConfig(BaseToolsetConfig):
+    """Configuration for aggregating multiple toolsets."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "x-icon": "octicon:package-16",
+            "x-doc-title": "Aggregating Toolset",
+        }
+    )
+
+    type: Literal["aggregating"] = Field("aggregating", init=False)
+    """Aggregating toolset."""
+
+    toolsets: list[ToolsetConfig] = Field(title="Toolsets to aggregate")
+    """List of toolsets to aggregate."""
+
+    tool_mode: Literal["codemode"] | None = Field(None, title="Tool execution mode")
+    """Optional tool mode. Set to 'codemode' to wrap all tools in Python execution."""
+
+    def get_provider(self) -> ResourceProvider:
+        """Create aggregating provider."""
+        from agentpool.resource_providers import AggregatingResourceProvider
+
+        providers = [p.get_provider() for p in self.toolsets]
+        return AggregatingResourceProvider(
+            providers=providers, name="aggregating", tool_mode=self.tool_mode
+        )
+
+
 class CodeModeToolsetConfig(BaseToolsetConfig):
-    """Configuration for code mode tools."""
+    """Configuration for code mode tools.
+
+    DEPRECATED: Use AggregatingToolsetConfig with tool_mode='codemode' instead.
+    """
 
     model_config = ConfigDict(
         json_schema_extra={
             "x-icon": "octicon:code-square-16",
-            "x-doc-title": "Code Mode Toolset",
+            "x-doc-title": "Code Mode Toolset (Deprecated)",
         }
     )
 
@@ -659,11 +691,16 @@ class CodeModeToolsetConfig(BaseToolsetConfig):
     """List of toolsets to expose as a codemode toolset."""
 
     def get_provider(self) -> ResourceProvider:
-        """Create Codemode toolset."""
-        from agentpool.resource_providers.codemode import CodeModeResourceProvider
+        """Create Codemode toolset.
+
+        NOTE: This now delegates to AggregatingResourceProvider with tool_mode='codemode'.
+        """
+        from agentpool.resource_providers import AggregatingResourceProvider
 
         providers = [p.get_provider() for p in self.toolsets]
-        return CodeModeResourceProvider(providers=providers)
+        return AggregatingResourceProvider(
+            providers=providers, name="codemode", tool_mode="codemode"
+        )
 
 
 class RemoteCodeModeToolsetConfig(BaseToolsetConfig):
@@ -895,6 +932,7 @@ ToolsetConfig = Annotated[
     | VFSToolsetConfig
     | SubagentToolsetConfig
     | WorkersToolsetConfig
+    | AggregatingToolsetConfig
     | CodeModeToolsetConfig
     | RemoteCodeModeToolsetConfig
     | SearchToolsetConfig
