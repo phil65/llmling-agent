@@ -56,6 +56,7 @@ from agentpool.agents.events import (
     StreamCompleteEvent,
     ToolCallCompleteEvent,
     ToolCallStartEvent,
+    ToolResultMetadataEvent,
     resolve_event_handlers,
 )
 from agentpool.agents.events.processors import FileTracker
@@ -148,6 +149,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         tool_confirmation_mode: ToolConfirmationMode = "always",
         commands: Sequence[BaseCommand] | None = None,
     ) -> None:
+        from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
+
         # Build config from kwargs if not provided
         if config is None:
             if command is None:
@@ -193,8 +196,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._agent_capabilities: AgentCapabilities | None = None
         self._session_id: str | None = None
         self._state: ACPSessionState | None = None
-        from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
-
         self.deps_type = type(None)
         self._extra_mcp_servers: list[McpServer] = []
         # Create bridge (not started yet) - will be started in _setup_toolsets if needed
@@ -307,7 +308,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         args = await self.config.get_args(prompt_manager)
         cmd = [self.config.get_command(), *args]
         self.log.info("Starting ACP subprocess", command=cmd)
-
         self._process = await anyio.open_process(
             cmd,
             stdin=subprocess.PIPE,
@@ -355,7 +355,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         init_response = await self._connection.initialize(init_request)
         self._agent_info = init_response.agent_info
         self._agent_capabilities = init_response.agent_capabilities
-
         # Log MCP capabilities if present
         mcp_caps = self._agent_capabilities.mcp_capabilities if self._agent_capabilities else None
         self.log.info(
@@ -389,15 +388,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Collect all MCP servers (config + extra) and filter by agent capabilities
         all_servers: list[McpServer] = []
-
         # Add servers from config (converted to ACP format)
         config_servers = self.config.get_mcp_servers()
         if config_servers:
             all_servers.extend(mcp_configs_to_acp(config_servers))
-
         # Add extra MCP servers (e.g., from tool bridges)
         all_servers.extend(self._extra_mcp_servers)
-
         # Filter servers based on agent transport capabilities
         supported_servers: list[McpServer] = []
         unsupported_servers: list[tuple[McpServer, str]] = []
@@ -447,14 +443,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if self._tool_bridge._mcp is not None:
             await self._tool_bridge.stop()
         self._extra_mcp_servers.clear()
-
         if self._client_handler:
-            try:
-                await self._client_handler.cleanup()
-            except Exception:
-                self.log.exception("Error cleaning up client handler")
+            await self._client_handler.cleanup()
             self._client_handler = None
-
         if self._connection:
             try:
                 await self._connection.close()
@@ -539,12 +530,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         content_blocks = convert_to_acp_content(processed_prompts)
         pending_parts = conversation.get_pending_parts()
         final_blocks = [*to_acp_content_blocks(pending_parts), *content_blocks]
-
         # Handle ephemeral execution (fork session if store_history=False)
         session_id = self._session_id
         if not store_history and self._session_id:
             # Fork the current session to execute without affecting main history
-
             cwd = self.config.cwd or str(Path.cwd())
             fork_request = ForkSessionRequest(session_id=self._session_id, cwd=cwd)
             fork_response = await self._connection.fork_session(fork_request)
@@ -587,10 +576,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # (ContextVar doesn't work because MCP server runs in a separate task)
         self._tool_bridge.current_deps = deps
-
         # Accumulate metadata events by tool_call_id (workaround for MCP stripping _meta)
         tool_metadata: dict[str, dict[str, Any]] = {}
-
         # Merge ACP events with custom events from queue
         try:
             async with merge_queue_into_iterator(
@@ -598,8 +585,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             ) as merged_events:
                 async for event in file_tracker(merged_events):
                     # Capture metadata events for correlation with tool results
-                    from agentpool.agents.events import ToolResultMetadataEvent
-
                     if isinstance(event, ToolResultMetadataEvent):
                         tool_metadata[event.tool_call_id] = event.metadata
                         # Don't yield metadata events - they're internal correlation only
@@ -946,7 +931,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Update local state from response
             if response.config_options:
                 self._state.config_options = list(response.config_options)
-
             self.log.info("ACP server Config option changed", config_id=category_id, value=mode_id)
             return
 
@@ -954,21 +938,17 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if category_id == "permissions":
             mode_request = SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id)
             await self._connection.set_session_mode(mode_request)
-
             # Update local state
             if self._state.modes:
                 self._state.modes.current_mode_id = mode_id
-
             self.log.info("Mode changed on remote ACP server (legacy)", mode_id=mode_id)
 
         elif category_id == "model":
             model_request = SetSessionModelRequest(session_id=self._session_id, model_id=mode_id)
             await self._connection.set_session_model(model_request)
-
             # Update local state
             if self._state.models:
                 self._state.models.current_model_id = mode_id
-
             self.log.info("Model changed on remote ACP server (legacy)", model_id=mode_id)
 
         else:

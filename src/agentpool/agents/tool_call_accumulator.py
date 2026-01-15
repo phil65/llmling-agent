@@ -28,9 +28,7 @@ def repair_partial_json(buffer: str) -> str:
     """
     if not buffer:
         return "{}"
-
     result = buffer.rstrip()
-
     # Check if we're in the middle of a string by counting unescaped quotes
     in_string = False
     i = 0
@@ -51,14 +49,11 @@ def repair_partial_json(buffer: str) -> str:
     result = result.rstrip()
     if result.endswith(","):
         result = result[:-1]
-
     # Balance braces and brackets
     open_braces = result.count("{") - result.count("}")
     open_brackets = result.count("[") - result.count("]")
-
     result += "]" * max(0, open_brackets)
     result += "}" * max(0, open_braces)
-
     return result
 
 

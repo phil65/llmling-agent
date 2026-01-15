@@ -125,10 +125,10 @@ class ACPWebSocketServer:
         try:
             async for raw_message in websocket:
                 try:
-                    message = json.loads(raw_message)
+                    message = anyenv.load_json(raw_message, return_type=dict)
                     logger.debug("WebSocket → Agent: %s", message.get("method", message.get("id")))
                     await self._send_to_agent(message)
-                except json.JSONDecodeError:
+                except anyenv.JsonLoadError:
                     logger.exception("Invalid JSON from WebSocket")
                     error_response = {
                         "jsonrpc": "2.0",
@@ -154,16 +154,10 @@ class ACPWebSocketServer:
             self._reader = reader
             self._writer = writer
             self._process = process
-
             # Start forwarding agent output to WebSocket
             forward_task = asyncio.create_task(self._agent_to_websocket())
-
             try:
-                async with websockets.serve(
-                    self._handle_client,
-                    self.host,
-                    self.port,
-                ):
+                async with websockets.serve(self._handle_client, self.host, self.port):
                     logger.info("WebSocket server running on ws://%s:%d", self.host, self.port)
                     await self._shutdown.wait()
             finally:
