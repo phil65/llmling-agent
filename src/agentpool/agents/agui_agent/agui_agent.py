@@ -400,14 +400,13 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         if self._thread_id is None:
             self._thread_id = self.conversation_id
 
-        processed_prompts = prompts
         run_id = str(uuid4())  # New run ID for each run
         chunk_transformer = ChunkTransformer()  # Create chunk transformer for this run
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ModelRequest...
         # This mirrors pydantic-ai's new_messages() which includes the initial user request.
         model_messages: list[ModelResponse | ModelRequest] = []
         # Start with the user's request (same as pydantic-ai's new_messages())
-        initial_request = ModelRequest(parts=[UserPromptPart(content=processed_prompts)])
+        initial_request = ModelRequest(parts=[UserPromptPart(content=prompts)])
         model_messages.append(initial_request)
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         text_chunks: list[str] = []  # For final content string
@@ -418,12 +417,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         await event_handlers(None, run_started)
         yield run_started
         # Get pending parts from conversation and convert them
-        pending_parts = message_history.get_pending_parts()
-        pending_content = to_agui_input_content(pending_parts)
         # Convert user message content to AGUI format using processed prompts
-        user_content = to_agui_input_content(processed_prompts)
+        final_content = to_agui_input_content(prompts)
         # Combine pending parts with new content
-        final_content = [*pending_content, *user_content]
         user_message = UserMessage(id=str(uuid4()), content=final_content)
         # Convert registered tools to AG-UI format
         available_tools = await self.tools.get_tools(state="enabled")
@@ -603,11 +599,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 break
 
         text_content = "".join(text_chunks)
-
         # Calculate approximate token usage from what we can observe
-        input_parts = [*processed_prompts, *pending_parts]
         usage, cost_info = await calculate_usage_from_parts(
-            input_parts=input_parts,
+            input_parts=prompts,
             response_parts=current_response_parts,
             text_content=text_content,
             model_name=self.model_name,

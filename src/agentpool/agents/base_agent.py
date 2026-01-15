@@ -451,6 +451,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Get message history (either passed or agent's own)
         conversation = message_history if message_history is not None else self.conversation
         # Determine effective parent_id (from param or last message in history)
+        pending_parts = conversation.get_pending_parts()
         effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()
         # Initialize or adopt conversation_id
         if self.conversation_id is None:
@@ -511,7 +512,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                     raise RuntimeError(msg)  # noqa: TRY301
 
             async for event in self._stream_events(
-                converted_prompts,
+                [*pending_parts, *converted_prompts],
                 user_msg=user_msg,
                 effective_parent_id=effective_parent_id,
                 store_history=store_history,

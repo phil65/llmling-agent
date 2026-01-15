@@ -1020,10 +1020,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if not self._client:
             raise RuntimeError("Agent not initialized - use async context manager")
         # Get pending parts from conversation (staged content)
-        pending_parts = message_history.get_pending_parts()
         # Combine pending parts with new prompts, then join into single string for Claude SDK
-        all_parts = [*pending_parts, *prompts]
-        prompt_text = " ".join(str(p) for p in all_parts)
+        #
+        prompt_text = " ".join(str(p) for p in prompts)
 
         # Inject thinking instruction if enabled
         if self._thinking_mode == "on":

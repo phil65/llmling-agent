@@ -480,7 +480,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
 
         from acp.schema import ForkSessionRequest, PromptRequest
-        from acp.utils import to_acp_content_blocks
         from agentpool.agents.acp_agent.acp_converters import (
             convert_to_acp_content,
             to_finish_reason,
@@ -493,15 +492,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
-        # Prepare for ACP content block conversion
-        processed_prompts = prompts
         run_id = str(uuid.uuid4())
         self._state.clear()  # Reset state
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ...
         # This mirrors pydantic-ai's new_messages() which includes the initial user request.
         model_messages: list[ModelResponse | ModelRequest] = []
         # Start with the user's request (same as pydantic-ai's new_messages())
-        initial_request = ModelRequest(parts=[UserPromptPart(content=processed_prompts)])
+        initial_request = ModelRequest(parts=[UserPromptPart(content=prompts)])
         model_messages.append(initial_request)
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         text_chunks: list[str] = []  # For final content string
@@ -514,9 +511,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
         await event_handlers(None, run_started)
         yield run_started
-        content_blocks = convert_to_acp_content(processed_prompts)
-        pending_parts = message_history.get_pending_parts()
-        final_blocks = [*to_acp_content_blocks(pending_parts), *content_blocks]
+        final_blocks = convert_to_acp_content(prompts)
         # Handle ephemeral execution (fork session if store_history=False)
         session_id = self._session_id
         if not store_history and self._session_id:
@@ -656,9 +651,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         text_content = "".join(text_chunks)
         # Calculate approximate token usage from what we can observe
-        input_parts = [*processed_prompts, *pending_parts]
         usage, cost_info = await calculate_usage_from_parts(
-            input_parts=input_parts,
+            input_parts=prompts,
             response_parts=current_response_parts,
             text_content=text_content,
             model_name=self.model_name,

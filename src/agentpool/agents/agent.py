@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import replace
 from datetime import timedelta
@@ -48,7 +47,7 @@ from agentpool.utils.streams import merge_queue_into_iterator
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
+    from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine, Sequence
     from types import TracebackType
 
     from anyenv import MultiEventHandler
@@ -769,8 +768,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         run_id = str(uuid4())
         start_time = time.perf_counter()
         history_list = message_history.get_history()
-        pending_parts = message_history.get_pending_parts()
-
         assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
         run_started = RunStartedEvent(
             thread_id=self.conversation_id, run_id=run_id, agent_name=self.name
@@ -781,13 +778,12 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         agentlet = await self.get_agentlet(None, self._output_type, input_provider)
         response_msg: ChatMessage[Any] | None = None
         # Prepend pending context parts (prompts are already pydantic-ai UserContent format)
-        converted = [*pending_parts, *prompts]
         history = [m for run in history_list for m in run.to_pydantic_ai()]
         # Track tool call starts to combine with results later
         pending_tcs: dict[str, BaseToolCallPart] = {}
         file_tracker = FileTracker()
         async with agentlet.iter(
-            converted,
+            prompts,
             deps=deps,  # type: ignore[arg-type]
             message_history=history,
             usage_limits=self._default_usage_limits,
