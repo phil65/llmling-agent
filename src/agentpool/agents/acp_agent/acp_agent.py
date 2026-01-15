@@ -38,22 +38,19 @@ import anyio
 from pydantic_ai import (
     ModelRequest,
     ModelResponse,
-    PartDeltaEvent,
     TextPart,
-    TextPartDelta,
     ThinkingPart,
-    ThinkingPartDelta,
     ToolCallPart,
     UserPromptPart,
 )
 
+from agentpool.agents.acp_agent.acp_converters import event_to_part
 from agentpool.agents.acp_agent.session_state import ACPSessionState
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import (
     RunStartedEvent,
     StreamCompleteEvent,
     ToolCallCompleteEvent,
-    ToolCallStartEvent,
     ToolResultMetadataEvent,
 )
 from agentpool.agents.events.processors import FileTracker
@@ -576,19 +573,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                         event = enriched_event  # noqa: PLW2901
 
                     # Extract content from events and build parts in arrival order
-                    match event:
-                        case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)):
-                            text_chunks.append(delta)
-                            current_response_parts.append(TextPart(content=delta))
-                        case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta)) if delta:
-                            current_response_parts.append(ThinkingPart(content=delta))
-                        case ToolCallStartEvent(
-                            tool_call_id=tc_id, tool_name=tc_name, raw_input=tc_input
-                        ):
-                            current_response_parts.append(
-                                ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
-                            )
-
+                    part = event_to_part(event)
+                    if isinstance(part, TextPart):
+                        text_chunks.append(part.content)
+                    if part:
+                        current_response_parts.append(part)
                     await event_handlers(None, event)
                     yield event
         except asyncio.CancelledError:
