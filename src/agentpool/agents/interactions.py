@@ -221,7 +221,7 @@ class Interactions:
                 items = list(selections.nodes)
                 label_map = {get_label(item): item for item in items}
             case AgentPool():
-                items = list(selections.agents.values())
+                items = list(selections.all_agents.values())
                 label_map = {get_label(item): item for item in items}
             case _:
                 items = list(selections)

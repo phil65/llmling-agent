@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, Literal, get_args
 
 from slashed import CompletionItem, CompletionProvider
 
-from agentpool.agents.base_agent import AgentTypeLiteral
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.messaging.context import NodeContext  # noqa: TC001
 
@@ -15,6 +14,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from slashed import CompletionContext
+
+    from agentpool.agents.base_agent import AgentTypeLiteral
 
 
 def get_available_agents(

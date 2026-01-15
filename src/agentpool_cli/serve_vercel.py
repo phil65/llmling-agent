@@ -222,7 +222,7 @@ def vercel_command(  # noqa: PLR0915
 
     print(f"Starting Vercel AI server on http://{host}:{port}")
     print(f"Chat endpoint: POST http://{host}:{port}/chat")
-    print(f"Available agents: {list(pool.agents.keys())}")
+    print(f"Available agents: {list(pool.all_agents.keys())}")
 
     uvicorn.run(app, host=host, port=port, log_level=log_level.lower())
 
