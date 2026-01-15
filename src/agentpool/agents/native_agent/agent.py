@@ -13,7 +13,6 @@ from uuid import uuid4
 from anyenv import method_spawner
 import logfire
 from pydantic_ai import Agent as PydanticAgent, CallToolsNode, ModelRequestNode, RunContext
-from pydantic_ai.messages import ModelResponse, TextPart as PydanticTextPart
 from pydantic_ai.models import Model
 
 from agentpool.agents.base_agent import BaseAgent
@@ -81,32 +80,6 @@ logger = get_logger(__name__)
 NoneType = type(None)
 
 TResult = TypeVar("TResult")
-
-
-def _extract_text_from_messages(
-    messages: list[Any], include_interruption_note: bool = False
-) -> str:
-    """Extract text content from pydantic-ai messages.
-
-    Args:
-        messages: List of ModelRequest/ModelResponse messages
-        include_interruption_note: Whether to append interruption notice
-
-    Returns:
-        Concatenated text content from all ModelResponse TextParts
-    """
-    content = "".join(
-        part.content
-        for msg in messages
-        if isinstance(msg, ModelResponse)
-        for part in msg.parts
-        if isinstance(part, PydanticTextPart)
-    )
-    if include_interruption_note:
-        if content:
-            content += "\n\n"
-        content += "[Request interrupted by user]"
-    return content
 
 
 class AgentKwargs(TypedDict, total=False):
@@ -749,6 +722,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
         from pydantic_graph import End
 
+        from agentpool.agents.native_agent.helpers import extract_text_from_messages
+
         message_id = message_id or str(uuid4())
         run_id = str(uuid4())
         start_time = time.perf_counter()
@@ -826,7 +801,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             # Build response message
             response_time = time.perf_counter() - start_time
             if self._cancelled:
-                partial_content = _extract_text_from_messages(
+                partial_content = extract_text_from_messages(
                     agent_run.all_messages(), include_interruption_note=True
                 )
                 response_msg = ChatMessage(

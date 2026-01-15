@@ -6,6 +6,7 @@ via the A2A (Agent-to-Agent) protocol, with each agent accessible at its own rou
 
 from __future__ import annotations
 
+from functools import partial
 from typing import TYPE_CHECKING
 
 from agentpool.log import get_logger
@@ -72,8 +73,6 @@ class A2AServer(HTTPServer):
         Returns:
             List of Route objects for each agent plus root listing endpoint
         """
-        from functools import partial
-
         from fasta2a import FastA2A  # type: ignore[import-untyped]
         from fasta2a.broker import InMemoryBroker  # type: ignore[import-untyped]
         from fasta2a.storage import InMemoryStorage  # type: ignore[import-untyped]
@@ -83,7 +82,6 @@ class A2AServer(HTTPServer):
         from agentpool_server.a2a_server.agent_worker import AgentWorker, worker_lifespan
 
         routes: list[Route] = []
-
         # Create route for each agent in the pool
         for agent_name in self.pool.agents:
 
@@ -124,7 +122,6 @@ class A2AServer(HTTPServer):
                 )
             )
             routes.append(Route(f"/{agent_name}/docs", agent_handler, methods=["GET"]))
-
             self.log.debug("Registered A2A routes", agent=agent_name, route=f"/{agent_name}")
 
         # Add root endpoint that lists available agents
@@ -150,11 +147,7 @@ class A2AServer(HTTPServer):
             })
 
         routes.append(Route("/", list_agents, methods=["GET"]))
-
-        self.log.info(
-            "Created A2A routes",
-            agent_count=len(self.pool.agents),
-        )
+        self.log.info("Created A2A routes", agent_count=len(self.pool.agents))
         return routes
 
     def get_agent_url(self, agent_name: str) -> str:

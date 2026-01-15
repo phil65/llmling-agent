@@ -8,7 +8,9 @@ from pydantic_ai import (
     BaseToolCallPart,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
+    ModelResponse,
     PartStartEvent,
+    TextPart,
     ToolReturnPart,
 )
 
@@ -55,3 +57,27 @@ def process_tool_event(
                     message_id=message_id,
                 )
     return None
+
+
+def extract_text_from_messages(messages: list[Any], include_interruption_note: bool = False) -> str:
+    """Extract text content from pydantic-ai messages.
+
+    Args:
+        messages: List of ModelRequest/ModelResponse messages
+        include_interruption_note: Whether to append interruption notice
+
+    Returns:
+        Concatenated text content from all ModelResponse TextParts
+    """
+    content = "".join(
+        part.content
+        for msg in messages
+        if isinstance(msg, ModelResponse)
+        for part in msg.parts
+        if isinstance(part, TextPart)
+    )
+    if include_interruption_note:
+        if content:
+            content += "\n\n"
+        content += "[Request interrupted by user]"
+    return content
