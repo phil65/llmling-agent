@@ -1055,11 +1055,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         file_tracker = FileTracker()
         # Accumulate metadata events by tool_call_id (workaround for SDK stripping _meta)
         tool_metadata: dict[str, dict[str, Any]] = {}
-        # Set deps and input_provider on tool bridge for access during tool invocations
-        # (ContextVar doesn't work because MCP server runs in a separate task)
-        self._tool_bridge.current_deps = deps
-        self._tool_bridge.current_input_provider = input_provider
-
         # Handle ephemeral execution (fork session if store_history=False)
         fork_client = None
         active_client = self._client
@@ -1079,12 +1074,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             await fork_client.connect()
             active_client = fork_client
 
+        # Set deps/input_provider on tool bridge (ContextVar doesn't work - separate task)
         try:
             await active_client.query(prompt_text)
             # Merge SDK messages with event queue for real-time tool event streaming
-            async with merge_queue_into_iterator(
-                active_client.receive_response(), self._event_queue
-            ) as merged_events:
+            async with (
+                self._tool_bridge.set_run_context(deps, input_provider),
+                merge_queue_into_iterator(
+                    active_client.receive_response(), self._event_queue
+                ) as merged_events,
+            ):
                 async for event_or_message in merged_events:
                     # Check if it's a queued event (from tools via EventEmitter)
                     if not isinstance(event_or_message, Message):
@@ -1420,10 +1419,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     await fork_client.disconnect()
                 except Exception as e:  # noqa: BLE001
                     get_logger(__name__).warning(f"Error disconnecting fork client: {e}")
-
-            # Clear deps and input_provider from tool bridge
-            self._tool_bridge.current_deps = None
-            self._tool_bridge.current_input_provider = None
 
         # Flush any remaining response parts
         if current_response_parts:

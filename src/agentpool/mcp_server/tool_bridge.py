@@ -12,7 +12,7 @@ the pool and avoiding IPC serialization overhead.
 from __future__ import annotations
 
 import asyncio
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field, replace
 import inspect
 from typing import TYPE_CHECKING, Any, Self, get_args, get_origin
@@ -28,7 +28,7 @@ from agentpool.utils.signatures import filter_schema_params, get_params_matching
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import AsyncIterator, Callable
 
     from claude_agent_sdk.types import McpServerConfig
     from fastmcp import Context, FastMCP
@@ -237,10 +237,10 @@ class ToolManagerBridge:
     server_name: str = "agentpool-toolmanager"
     """Name for the MCP server."""
 
-    current_deps: Any = field(default=None, init=False, repr=False)
+    _current_deps: Any = field(default=None, init=False, repr=False)
     """Current dependencies for tool invocations (set by run_stream)."""
 
-    current_input_provider: InputProvider | None = field(default=None, init=False, repr=False)
+    _current_input_provider: InputProvider | None = field(default=None, init=False, repr=False)
     """Current input provider for tool invocations (set by run_stream)."""
 
     _mcp: FastMCP | None = field(default=None, init=False, repr=False)
@@ -463,8 +463,8 @@ class ToolManagerBridge:
                 # Try to get Claude's original tool_call_id from request metadata
                 tc_id = _extract_tool_call_id(mcp_context)
                 # Get deps and input_provider from bridge (set by run_stream on the agent)
-                current_deps = self._bridge.current_deps
-                current_input_provider = self._bridge.current_input_provider
+                current_deps = self._bridge._current_deps
+                current_input_provider = self._bridge._current_input_provider
                 # Create context with tool-specific metadata from node's context.
                 ctx = replace(
                     self._bridge.node.get_context(
@@ -495,6 +495,32 @@ class ToolManagerBridge:
         # Create a custom FastMCP Tool that wraps our tool
         bridge_tool = _BridgeTool(tool=tool, bridge=self)
         self._mcp.add_tool(bridge_tool)
+
+    @asynccontextmanager
+    async def set_run_context(
+        self,
+        deps: Any = None,
+        input_provider: InputProvider | None = None,
+    ) -> AsyncIterator[None]:
+        """Context manager for setting run-scoped state.
+
+        Ensures _current_deps and _current_input_provider are properly set for
+        the duration of the run and cleaned up afterwards.
+
+        Args:
+            deps: Dependencies to set for tool invocations
+            input_provider: Input provider to set for tool invocations
+
+        Yields:
+            None
+        """
+        self._current_deps = deps
+        self._current_input_provider = input_provider
+        try:
+            yield
+        finally:
+            self._current_deps = None
+            self._current_input_provider = None
 
     async def invoke_tool_with_context(
         self,

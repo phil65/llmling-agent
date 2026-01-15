@@ -558,18 +558,15 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 yield self._state.events[last_idx]
                 last_idx += 1
 
-            # Set deps and input_provider on tool bridge for access during tool invocations
-
-        # (ContextVar doesn't work because MCP server runs in a separate task)
-        self._tool_bridge.current_deps = deps
-        self._tool_bridge.current_input_provider = input_provider
         # Accumulate metadata events by tool_call_id (workaround for MCP stripping _meta)
         tool_metadata: dict[str, dict[str, Any]] = {}
         # Merge ACP events with custom events from queue
+        # Set deps/input_provider on tool bridge (ContextVar doesn't work - separate task)
         try:
-            async with merge_queue_into_iterator(
-                poll_acp_events(), self._event_queue
-            ) as merged_events:
+            async with (
+                self._tool_bridge.set_run_context(deps, input_provider),
+                merge_queue_into_iterator(poll_acp_events(), self._event_queue) as merged_events,
+            ):
                 async for event in file_tracker(merged_events):
                     # Capture metadata events for correlation with tool results
                     if isinstance(event, ToolResultMetadataEvent):
@@ -617,10 +614,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         except asyncio.CancelledError:
             self.log.info("Stream cancelled via task cancellation")
             self._cancelled = True
-        finally:
-            # Clear deps and input_provider from tool bridge
-            self._tool_bridge.current_deps = None
-            self._tool_bridge.current_input_provider = None
 
         # Handle cancellation - emit partial message
         if self._cancelled:
