@@ -46,11 +46,7 @@ if TYPE_CHECKING:
     from agentpool.agents.agui_agent import AGUIAgent
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.claude_code_agent import ClaudeCodeAgent
-    from agentpool.common_types import (
-        AgentName,
-        BuiltinEventHandlerType,
-        IndividualEventHandler,
-    )
+    from agentpool.common_types import AgentName, BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation.base_team import BaseTeam
     from agentpool.mcp_server.tool_bridge import ToolManagerBridge
     from agentpool.messaging import ChatMessage
@@ -246,11 +242,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             msg = f"Tool bridge {name!r} already exists"
             raise ValueError(msg)
 
-        config = BridgeConfig(
-            host=host,
-            port=port,
-            server_name=f"agentpool-{name}",
-        )
+        config = BridgeConfig(host=host, port=port, server_name=f"agentpool-{name}")
         bridge = ToolManagerBridge(node=node, config=config)
         await bridge.start()
         self._tool_bridges[name] = bridge
