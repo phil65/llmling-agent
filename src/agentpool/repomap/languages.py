@@ -57,7 +57,7 @@ def is_language_supported(fname: str) -> bool:
     Returns:
         True if language is supported for tag extraction
     """
-    from grep_ast import filename_to_lang
+    from grep_ast import filename_to_lang  # type: ignore[import-untyped]
 
     lang = filename_to_lang(fname)
     if not lang:
@@ -67,12 +67,8 @@ def is_language_supported(fname: str) -> bool:
 
 
 def get_supported_languages_md() -> str:
-    """Generate markdown table of supported languages.
-
-    Returns:
-        Markdown-formatted table showing supported languages and extensions
-    """
-    from grep_ast.parsers import PARSERS
+    """Generate markdown table of supported languages."""
+    from grep_ast.parsers import PARSERS  # type: ignore[import-untyped]
 
     supported = get_supported_languages()
 

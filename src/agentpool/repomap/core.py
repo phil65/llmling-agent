@@ -19,11 +19,11 @@ from agentpool.repomap.utils import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import Sequence
 
     from fsspec import AbstractFileSystem
 
-    from agentpool.models import FileInfo, RepoMapResult, TokenCounter
+    from agentpool.repomap.types import FileInfo, RepoMapResult, TokenCounter
 
 # Constants
 CACHE_VERSION = 3
@@ -103,7 +103,7 @@ class RepoMap:
 
     async def _info(self, path: str) -> FileInfo | None:
         """Get file info."""
-        from agentpool.models import FileInfo
+        from agentpool.repomap.types import FileInfo
 
         try:
             info = await self.fs._info(path)
@@ -256,7 +256,7 @@ class RepoMap:
         """
         import re
 
-        from agentpool.models import RepoMapResult
+        from agentpool.repomap.types import RepoMapResult
 
         if not files:
             return RepoMapResult(
@@ -327,19 +327,18 @@ class RepoMap:
         if cached is not None and cached.get("mtime") == file_mtime:
             return cast(list[Tag], cached["data"])
 
-        data = [tag async for tag in self._get_tags_raw(fname, rel_fname)]
+        data = await self._get_tags_raw(fname, rel_fname)
 
         self.TAGS_CACHE[cache_key] = {"mtime": file_mtime, "data": data}
         return data
 
-    async def _get_tags_raw(self, fname: str, rel_fname: str) -> AsyncIterator[Tag]:
+    async def _get_tags_raw(self, fname: str, rel_fname: str) -> list[Tag]:
         """Extract tags from a file using tree-sitter."""
         content = await self._cat_file(fname)
         if not content:
-            return
+            return []
 
-        async for tag in get_tags_from_content(fname, rel_fname, content):
-            yield tag
+        return get_tags_from_content(content, fname)
 
     async def _get_ranked_tags(  # noqa: PLR0915
         self,
@@ -583,7 +582,7 @@ class RepoMap:
         """Render a tree representation of a file with lines of interest."""
         import re
 
-        from grep_ast import TreeContext
+        from grep_ast import TreeContext  # type: ignore[import-untyped]
 
         if line_ranges is None:
             line_ranges = {}

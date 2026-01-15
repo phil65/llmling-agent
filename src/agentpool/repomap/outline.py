@@ -77,7 +77,7 @@ def get_file_map_from_content(  # noqa: PLR0915
     Returns:
         Formatted structure map or None if language not supported
     """
-    from grep_ast import TreeContext
+    from grep_ast import TreeContext  # type: ignore[import-untyped]
 
     if not is_language_supported(filename):
         return None

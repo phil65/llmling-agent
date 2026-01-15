@@ -40,6 +40,7 @@ from agentpool.repomap.context import (
     get_resource_context,
 )
 from agentpool.repomap.core import RepoMap
+from agentpool.repomap.types import FileInfo, RepoMapResult, TokenCounter
 from agentpool.repomap.languages import (
     get_supported_languages,
     get_supported_languages_md,
@@ -51,8 +52,11 @@ from agentpool.repomap.tags import Tag, get_tags_from_content
 from agentpool.repomap.utils import find_src_files, is_important, truncate_with_notice
 
 __all__ = [
+    "FileInfo",
     "RepoMap",
+    "RepoMapResult",
     "Tag",
+    "TokenCounter",
     "find_src_files",
     "generate_directory_context",
     "generate_file_context",

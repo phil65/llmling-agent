@@ -34,8 +34,8 @@ def get_tags_from_content(content: str, filename: str) -> list[Tag]:
     Returns:
         List of Tag objects (definitions and references)
     """
-    from grep_ast import filename_to_lang
-    from grep_ast.tsl import get_language, get_parser
+    from grep_ast import filename_to_lang  # type: ignore[import-untyped]
+    from grep_ast.tsl import get_language, get_parser  # type: ignore[import-untyped]
     from pygments.lexers import guess_lexer_for_filename
     from pygments.token import Token
     from tree_sitter import Query, QueryCursor
