@@ -335,7 +335,7 @@ class ToolManagerBridge:
             # Keys are prefixed with 'tool:', e.g., 'tool:bash'
             current_names = {
                 key.removeprefix("tool:")
-                for key in self._mcp._local_provider._components
+                for key in self._mcp._local_provider._components  # pyright: ignore[reportAttributeAccessIssue]
                 if key.startswith("tool:")
             }
         else:

@@ -332,13 +332,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         if agents is None:
             agents = list(self.agents.keys())
-
-        team = Team(
-            name=name,
-            description=description,
-            agents=[self.get_agent(i) if isinstance(i, str) else i for i in agents],
-            shared_prompt=shared_prompt,
-        )
+        resolved = [self.get_agent(i) if isinstance(i, str) else i for i in agents]
+        team = Team(resolved, name=name, description=description, shared_prompt=shared_prompt)
         if name:
             self[name] = team
         return team

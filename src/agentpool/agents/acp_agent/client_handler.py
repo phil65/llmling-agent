@@ -195,6 +195,8 @@ class ACPClientHandler(Client):
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
         """Handle permission requests via InputProvider."""
+        from agentpool.tools import FunctionTool
+
         name = params.tool_call.title or "operation"
         logger.info("Permission requested", tool_name=name)
 
@@ -204,7 +206,6 @@ class ACPClientHandler(Client):
             option_id = params.options[0].option_id
             logger.debug("Auto-granting permission (tool_confirmation_mode=never)", tool_name=name)
             return RequestPermissionResponse.allowed(option_id)
-
         # Try callback second (forwards to parent session for nested ACP agents)
         if self._agent.acp_permission_callback:
             # return RequestPermissionResponse.allowed(option_id=params.options[0].option_id) # "acceptEdits"  # noqa: E501
@@ -230,8 +231,6 @@ class ACPClientHandler(Client):
             )
             ctx.tool_input = args
             # Create a dummy tool representation from ACP params
-            from agentpool.tools import FunctionTool
-
             tool = FunctionTool(
                 callable=lambda: None, name=params.tool_call.tool_call_id, description=name
             )
@@ -244,7 +243,6 @@ class ACPClientHandler(Client):
                 if result == "skip":
                     return RequestPermissionResponse.denied()
                 return RequestPermissionResponse.denied()  # abort_run
-
             except Exception:
                 logger.exception("Failed to get permission via input provider")
                 return RequestPermissionResponse.denied()
@@ -256,7 +254,6 @@ class ACPClientHandler(Client):
         """Read text from file via ExecutionEnvironment filesystem."""
         if not self.allow_file_operations:
             raise RuntimeError("File operations not allowed")
-
         fs = self.env.get_fs()
         try:
             content_bytes = await fs._cat_file(params.path)

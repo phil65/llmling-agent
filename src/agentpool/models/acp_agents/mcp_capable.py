@@ -13,15 +13,7 @@ if TYPE_CHECKING:
     from agentpool.prompts.manager import PromptManager
 
 
-class MCPCapableACPAgentConfig(BaseACPAgentConfig):
-    """Base class for ACP agents that support MCP (Model Context Protocol) servers.
-
-    Extends BaseACPAgentConfig with MCP-specific capabilities including toolsets
-    that can be exposed via an internal MCP bridge.
-    """
-
-
-class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
+class FastAgentACPAgentConfig(BaseACPAgentConfig):
     """Configuration for fast-agent via ACP.
 
     Robust LLM agent with comprehensive MCP support.
@@ -107,7 +99,7 @@ class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
         return args
 
 
-class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
+class AuggieACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Auggie (Augment Code) via ACP.
 
     AI agent that brings Augment Code's power to the terminal.
@@ -264,7 +256,7 @@ class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
         return args
 
 
-class KimiACPAgentConfig(MCPCapableACPAgentConfig):
+class KimiACPAgentConfig(BaseACPAgentConfig):
     """Configuration for Kimi CLI via ACP.
 
     Command-line agent from Moonshot AI with ACP support.
@@ -346,7 +338,7 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
         return args
 
 
-class AgentpoolACPAgentConfig(MCPCapableACPAgentConfig):
+class AgentpoolACPAgentConfig(BaseACPAgentConfig):
     """Configuration for agentpool's own ACP server.
 
     This allows using agentpool serve-acp as an ACP agent, with MCP bridge support
