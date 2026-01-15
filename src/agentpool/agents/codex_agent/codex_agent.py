@@ -378,7 +378,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Pass output type directly - adapter handles conversion to JSON schema
         output_schema = None if self._output_type is str else self._output_type
         try:
-            async with self._tool_bridge.set_run_context(deps, input_provider):
+            async with self._tool_bridge.set_run_context(deps, input_provider, prompt=prompt_text):
                 async for event in self._client.turn_stream(
                     self._thread_id,
                     prompt_text,

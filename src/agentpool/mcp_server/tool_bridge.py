@@ -28,12 +28,13 @@ from agentpool.utils.signatures import filter_schema_params, get_params_matching
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable
+    from collections.abc import AsyncIterator, Callable, Sequence
 
     from claude_agent_sdk.types import McpServerConfig
     from fastmcp import Context, FastMCP
     from fastmcp.tools.tool import ToolResult
     from pydantic_ai import RunContext
+    from pydantic_ai.messages import UserContent
     from uvicorn import Server
 
     from acp.schema.mcp import HttpMcpServer
@@ -41,7 +42,6 @@ if TYPE_CHECKING:
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.tools.base import Tool
     from agentpool.ui.base import InputProvider
-
 _ = ResourceChangeEvent  # Used at runtime in method signature
 
 
@@ -110,7 +110,10 @@ def _get_run_context_param_names(fn: Callable[..., Any]) -> set[str]:
     return get_params_matching_predicate(fn, lambda p: _is_run_context_type(p.annotation))
 
 
-def _create_stub_run_context(ctx: AgentContext[Any]) -> RunContext[Any]:
+def _create_stub_run_context(
+    ctx: AgentContext[Any],
+    prompt: str | Sequence[UserContent] | None = None,
+) -> RunContext[Any]:
     """Create a stub RunContext from AgentContext for MCP bridge tool invocations.
 
     This provides a best-effort RunContext for tools that require it when
@@ -119,6 +122,7 @@ def _create_stub_run_context(ctx: AgentContext[Any]) -> RunContext[Any]:
 
     Args:
         ctx: The AgentContext available in the bridge
+        prompt: The current prompt being processed
 
     Returns:
         A RunContext with available information populated
@@ -142,7 +146,7 @@ def _create_stub_run_context(ctx: AgentContext[Any]) -> RunContext[Any]:
         deps=ctx.data,
         model=model,
         usage=RunUsage(),
-        prompt=None,
+        prompt=prompt,
         messages=[],
         tool_name=ctx.tool_name,
         tool_call_id=ctx.tool_call_id,
@@ -242,6 +246,11 @@ class ToolManagerBridge:
 
     _current_input_provider: InputProvider | None = field(default=None, init=False, repr=False)
     """Current input provider for tool invocations (set by run_stream)."""
+
+    _current_prompt: str | Sequence[UserContent] | None = field(
+        default=None, init=False, repr=False
+    )
+    """Current prompt for tool invocations (set by run_stream)."""
 
     _mcp: FastMCP | None = field(default=None, init=False, repr=False)
     """FastMCP server instance."""
@@ -522,26 +531,30 @@ class ToolManagerBridge:
         self,
         deps: Any = None,
         input_provider: InputProvider | None = None,
+        prompt: str | Sequence[UserContent] | None = None,
     ) -> AsyncIterator[None]:
         """Context manager for setting run-scoped state.
 
-        Ensures _current_deps and _current_input_provider are properly set for
-        the duration of the run and cleaned up afterwards.
+        Ensures _current_deps, _current_input_provider, and _current_prompt are
+        properly set for the duration of the run and cleaned up afterwards.
 
         Args:
             deps: Dependencies to set for tool invocations
             input_provider: Input provider to set for tool invocations
+            prompt: Current prompt being processed
 
         Yields:
             None
         """
         self._current_deps = deps
         self._current_input_provider = input_provider
+        self._current_prompt = prompt
         try:
             yield
         finally:
             self._current_deps = None
             self._current_input_provider = None
+            self._current_prompt = None
 
     async def invoke_tool_with_context(
         self,
@@ -562,7 +575,7 @@ class ToolManagerBridge:
         # Inject RunContext parameters (as stub since we're outside pydantic-ai)
         run_context_param_names = _get_run_context_param_names(fn)
         if run_context_param_names:
-            stub_run_ctx = _create_stub_run_context(ctx)
+            stub_run_ctx = _create_stub_run_context(ctx, prompt=self._current_prompt)
             for param_name in run_context_param_names:
                 if param_name not in kwargs:
                     kwargs[param_name] = stub_run_ctx

@@ -499,7 +499,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Set deps/input_provider on tool bridge (ContextVar doesn't work - separate task)
         try:
             async with (
-                self._tool_bridge.set_run_context(deps, input_provider),
+                self._tool_bridge.set_run_context(deps, input_provider, prompt=prompts),
                 merge_queue_into_iterator(poll_acp_events(), self._event_queue) as merged_events,
             ):
                 async for event in file_tracker(merged_events):
