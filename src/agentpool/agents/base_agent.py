@@ -47,6 +47,7 @@ if TYPE_CHECKING:
         PromptCompatible,
     )
     from agentpool.delegation import AgentPool, Team, TeamRun
+    from agentpool.hooks import AgentHooks
     from agentpool.messaging import ChatMessage
     from agentpool.talk.stats import MessageStats
     from agentpool.ui.base import InputProvider
@@ -120,6 +121,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         commands: Sequence[BaseCommand] | None = None,
+        hooks: AgentHooks | None = None,
     ) -> None:
         """Initialize base agent with shared infrastructure.
 
@@ -137,6 +139,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             tool_confirmation_mode: How tool execution confirmation is handled
             event_handlers: Event handlers for this agent
             commands: Slash commands to register with this agent
+            hooks: Agent hooks for intercepting agent behavior at run and tool events
         """
         from exxec import LocalExecutionEnvironment
         from slashed import CommandStore
@@ -169,6 +172,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self.event_handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
             resolved_handlers
         )
+        self.hooks = hooks
         self._cancelled = False
         self._current_stream_task: asyncio.Task[Any] | None = None
         # Deferred initialization support - subclasses set True in __aenter__,
@@ -403,7 +407,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             self._background_task = None
 
     @method_spawner
-    async def run_stream(
+    async def run_stream(  # noqa: PLR0915
         self,
         *prompts: PromptCompatible,
         store_history: bool = True,
@@ -492,6 +496,20 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         conversation = message_history if message_history is not None else self.conversation
         await self.message_received.emit(user_msg)
         try:
+            # Execute pre-run hooks
+            if self.hooks:
+                pre_run_result = await self.hooks.run_pre_run_hooks(
+                    agent_name=self.name,
+                    prompt=user_msg.content
+                    if isinstance(user_msg.content, str)
+                    else str(user_msg.content),
+                    conversation_id=self.conversation_id,
+                )
+                if pre_run_result.get("decision") == "deny":
+                    reason = pre_run_result.get("reason", "Blocked by pre-run hook")
+                    msg = f"Run blocked: {reason}"
+                    raise RuntimeError(msg)  # noqa: TRY301
+
             async for event in self._stream_events(
                 converted_prompts,
                 user_msg=user_msg,
@@ -524,6 +542,18 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         # Post-processing after stream completes
         if final_message is not None:
+            # Execute post-run hooks
+            if self.hooks:
+                prompt_str = (
+                    user_msg.content if isinstance(user_msg.content, str) else str(user_msg.content)
+                )
+                await self.hooks.run_post_run_hooks(
+                    agent_name=self.name,
+                    prompt=prompt_str,
+                    result=final_message.content,
+                    conversation_id=self.conversation_id,
+                )
+
             # Emit signal (always - for event handlers)
             await self.message_sent.emit(final_message)
             # Conditional persistence based on store_history

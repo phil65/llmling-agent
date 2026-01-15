@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Awaitable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import replace
+from datetime import timedelta
 from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any, Self, TypedDict, TypeVar, overload
@@ -278,6 +279,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
             commands=all_commands,
+            hooks=hooks,
         )
 
         # Store config for context creation
@@ -774,19 +776,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         start_time = time.perf_counter()
         history_list = message_history.get_history()
         pending_parts = message_history.get_pending_parts()
-        # Execute pre-run hooks
-        if self.hooks:
-            pre_run_result = await self.hooks.run_pre_run_hooks(
-                agent_name=self.name,
-                prompt=user_msg.content
-                if isinstance(user_msg.content, str)
-                else str(user_msg.content),
-                conversation_id=self.conversation_id,
-            )
-            if pre_run_result.get("decision") == "deny":
-                reason = pre_run_result.get("reason", "Blocked by pre-run hook")
-                msg = f"Run blocked: {reason}"
-                raise RuntimeError(msg)
 
         assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
         run_started = RunStartedEvent(
@@ -889,18 +878,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             else:
                 msg = "Stream completed without producing a result"
                 raise RuntimeError(msg)
-
-        # Execute post-run hooks
-        if self.hooks:
-            prompt_str = (
-                user_msg.content if isinstance(user_msg.content, str) else str(user_msg.content)
-            )
-            await self.hooks.run_post_run_hooks(
-                agent_name=self.name,
-                prompt=prompt_str,
-                result=response_msg.content,
-                conversation_id=self.conversation_id,
-            )
 
         # Send additional enriched completion event
         complete_event = StreamCompleteEvent(message=response_msg)
@@ -1130,8 +1107,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         Returns:
             List of tokonomics ModelInfo, or None if discovery fails
         """
-        from datetime import timedelta
-
         from tokonomics.model_discovery import get_all_models
 
         try:
