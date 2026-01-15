@@ -620,6 +620,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if self.tool_confirmation_mode == "never":
             return PermissionResultAllow()
 
+        # Plan mode: auto-deny all tool executions (planning only, no execution)
+        if self._permission_mode == "plan":
+            return PermissionResultDeny(message="Plan mode active - tool execution disabled")
+
         # For "acceptEdits" mode: auto-allow edit/write tools only
         if self._permission_mode == "acceptEdits":
             # Extract the actual tool name from MCP-style names
