@@ -9,11 +9,11 @@ from pydantic import ConfigDict, Field
 
 from agentpool.models.agents import AnyToolConfig  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
+from codex_adapter import ApprovalPolicy, ReasoningEffort  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from agentpool.resource_providers import ResourceProvider
-    from codex_adapter import ApprovalPolicy, ReasoningEffort
 
 
 class CodexAgentConfig(BaseAgentConfig):
