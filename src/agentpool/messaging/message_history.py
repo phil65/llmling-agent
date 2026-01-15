@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
     from upathtools import JoinablePathLike
 
-    from agentpool.agents.agent import Agent
+    from agentpool.agents.native_agent import Agent
     from agentpool.common_types import MessageRole, SessionIdType
     from agentpool.messaging import ChatMessage
     from agentpool.prompts.conversion_manager import ConversionManager

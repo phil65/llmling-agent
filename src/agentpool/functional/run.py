@@ -11,7 +11,7 @@ from agentpool import Agent
 
 
 if TYPE_CHECKING:
-    from agentpool.agents.agent import AgentKwargs
+    from agentpool.agents.native_agent import AgentKwargs
     from agentpool.common_types import PromptCompatible
 
 

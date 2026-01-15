@@ -463,7 +463,7 @@ class MCPDiscoveryToolset(ResourceProvider):
 if __name__ == "__main__":
     import asyncio
 
-    from agentpool.agents.agent import Agent
+    from agentpool.agents.native_agent import Agent
 
     async def main() -> None:
         """End-to-end example: Add MCP discovery toolset to an agent and call a tool."""

@@ -15,7 +15,7 @@ def setup_env(env: jinja2.Environment) -> None:
     Args:
         env: The jinjarope environment to extend
     """
-    from agentpool.agents.agent import Agent
+    from agentpool.agents.native_agent import Agent
     from agentpool.functional import (
         run_agent,
         run_agent_sync,

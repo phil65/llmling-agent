@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING, Literal, get_args
 
-from agentpool.agents.agent import Agent
+from agentpool.agents.native_agent import Agent
 from agentpool.log import get_logger
 
 

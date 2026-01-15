@@ -42,10 +42,10 @@ if TYPE_CHECKING:
     from upathtools import JoinablePathLike
 
     from agentpool.agents.acp_agent import ACPAgent
-    from agentpool.agents.agent import AgentKwargs
     from agentpool.agents.agui_agent import AGUIAgent
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+    from agentpool.agents.native_agent import AgentKwargs
     from agentpool.common_types import AgentName, BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation.base_team import BaseTeam
     from agentpool.messaging import ChatMessage

@@ -12,35 +12,21 @@ from uuid import uuid4
 
 from anyenv import method_spawner
 import logfire
-from pydantic_ai import (
-    Agent as PydanticAgent,
-    BaseToolCallPart,
-    CallToolsNode,
-    FunctionToolCallEvent,
-    FunctionToolResultEvent,
-    ModelRequestNode,
-    PartStartEvent,
-    RunContext,
-    ToolReturnPart,
-)
+from pydantic_ai import Agent as PydanticAgent, CallToolsNode, ModelRequestNode, RunContext
 from pydantic_ai.messages import ModelResponse, TextPart as PydanticTextPart
 from pydantic_ai.models import Model
 
 from agentpool.agents.base_agent import BaseAgent
-from agentpool.agents.events import (
-    RunStartedEvent,
-    StreamCompleteEvent,
-    ToolCallCompleteEvent,
-)
+from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
+from agentpool.agents.native_agent.helpers import process_tool_event
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory
 from agentpool.storage import StorageManager
 from agentpool.tools import Tool, ToolManager
 from agentpool.tools.exceptions import ToolError
 from agentpool.utils.inspection import get_argument_key
-from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool.utils.result_utils import to_type
 from agentpool.utils.streams import merge_queue_into_iterator
 
@@ -52,7 +38,7 @@ if TYPE_CHECKING:
     from anyenv import MultiEventHandler
     from exxec import ExecutionEnvironment
     from llmling_models_config import AnyModelConfig
-    from pydantic_ai import UsageLimits, UserContent
+    from pydantic_ai import BaseToolCallPart, UsageLimits, UserContent
     from pydantic_ai.builtin_tools import AbstractBuiltinTool
     from pydantic_ai.output import OutputSpec
     from pydantic_ai.settings import ModelSettings
@@ -710,7 +696,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """Create pydantic-ai agent from current state."""
         # Monkey patch pydantic-ai to recognize AgentContext
 
-        from agentpool.agents.tool_wrapping import wrap_tool
+        from agentpool.agents.native_agent.tool_wrapping import wrap_tool
 
         tools = await self.tools.get_tools(state="enabled")
         final_type = to_type(output_type) if output_type not in [None, str] else self._output_type
@@ -809,7 +795,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                     break
                                 await event_handlers(None, event)
                                 yield event
-                                combined = self._process_tool_event(event, pending_tcs, message_id)
+                                combined = process_tool_event(
+                                    self.name, event, pending_tcs, message_id
+                                )
                                 if combined:
                                     await event_handlers(None, combined)
                                     yield combined
@@ -825,7 +813,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                     break
                                 await event_handlers(None, event)
                                 yield event
-                                combined = self._process_tool_event(event, pending_tcs, message_id)
+                                combined = process_tool_event(
+                                    self.name, event, pending_tcs, message_id
+                                )
                                 if combined:
                                     await event_handlers(None, combined)
                                     yield combined
@@ -872,41 +862,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         complete_event = StreamCompleteEvent(message=response_msg)
         await event_handlers(None, complete_event)
         yield complete_event
-
-    def _process_tool_event(
-        self,
-        event: RichAgentStreamEvent[Any],
-        pending_tool_calls: dict[str, BaseToolCallPart],
-        message_id: str,
-    ) -> ToolCallCompleteEvent | None:
-        """Process tool-related events and return combined event when complete.
-
-        Args:
-            event: The streaming event to process
-            pending_tool_calls: Dict tracking in-progress tool calls by ID
-            message_id: Message ID for the combined event
-
-        Returns:
-            ToolCallCompleteEvent if a tool call completed, None otherwise
-        """
-        match event:
-            case PartStartEvent(part=BaseToolCallPart() as tool_part):
-                pending_tool_calls[tool_part.tool_call_id] = tool_part
-            case FunctionToolCallEvent(part=tool_part):
-                pending_tool_calls[tool_part.tool_call_id] = tool_part
-            case FunctionToolResultEvent(tool_call_id=call_id) as result_event:
-                if call_info := pending_tool_calls.pop(call_id, None):
-                    return ToolCallCompleteEvent(
-                        tool_name=call_info.tool_name,
-                        tool_call_id=call_id,
-                        tool_input=safe_args_as_dict(call_info),
-                        tool_result=result_event.result.content
-                        if isinstance(result_event.result, ToolReturnPart)
-                        else result_event.result,
-                        agent_name=self.name,
-                        message_id=message_id,
-                    )
-        return None
 
     @method_spawner
     async def run_job(

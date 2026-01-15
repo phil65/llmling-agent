@@ -11,7 +11,7 @@ from agentpool.messaging.message_history import MessageHistory
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from agentpool.agents.agent import Agent
+    from agentpool.agents.native_agent import Agent
     from agentpool.delegation.pool import AgentPool
     from agentpool.messaging import ChatMessage
     from agentpool.sessions.manager import SessionManager

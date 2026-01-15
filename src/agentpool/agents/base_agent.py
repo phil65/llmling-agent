@@ -34,10 +34,10 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from acp.schema import AvailableCommandsUpdate, ConfigOptionUpdate
-    from agentpool.agents.agent import Agent
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory, ModeInfo
+    from agentpool.agents.native_agent import Agent
     from agentpool.common_types import (
         AgentName,
         BuiltinEventHandlerType,
@@ -210,7 +210,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             group = analyzer & planner & executor  # Create group of 3
             group = analyzer & existing_group  # Add to existing group
         """
-        from agentpool.agents.agent import Agent
+        from agentpool.agents.native_agent import Agent
         from agentpool.delegation.team import Team
 
         match other:
@@ -238,7 +238,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     def __or__(self, other: MessageNode[Any, Any] | ProcessorCallback[Any]) -> TeamRun[Any, Any]:
         # Create new execution with sequential mode (for piping)
         from agentpool import TeamRun
-        from agentpool.agents.agent import Agent
+        from agentpool.agents.native_agent import Agent
 
         if callable(other):
             other = Agent.from_callback(other)
