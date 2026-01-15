@@ -842,6 +842,73 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self.log.exception("Failed to connect Claude Code client")
             raise
 
+    async def reconnect(self, *, resume_session: bool = True) -> None:
+        """Reconnect to Claude Code SDK, optionally resuming the current session.
+
+        This is useful for recovering from hangs or connection issues without
+        losing conversation history.
+
+        Args:
+            resume_session: If True, attempt to resume the current session using
+                the stored session ID. If False, start a fresh session.
+        """
+        self.log.info(
+            "Reconnecting Claude Code agent (resume=%s, session_id=%s)",
+            resume_session,
+            self._sdk_session_id,
+        )
+
+        # Cancel existing connection if active
+        if self._connection_task and not self._connection_task.done():
+            self._connection_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._connection_task
+        self._connection_task = None
+
+        # Clean up tool bridge
+        if self._tool_bridge._mcp is not None:
+            await self._tool_bridge.stop()
+        self._mcp_servers.clear()
+
+        # Disconnect existing client
+        if self._client:
+            try:
+                await self._client.disconnect()
+                self.log.info("Disconnected existing Claude Code client")
+            except Exception:
+                self.log.exception("Error disconnecting Claude Code client during reconnect")
+            self._client = None
+
+        # Store session ID if we want to resume
+        session_to_resume = self._sdk_session_id if resume_session else None
+
+        # Clear session ID if not resuming
+        if not resume_session:
+            self._sdk_session_id = None
+
+        # Recreate client with new options
+        from claude_agent_sdk import ClaudeSDKClient
+
+        formatted_prompt = await self.sys_prompts.format_system_prompt(self)
+        options = self._build_options(formatted_system_prompt=formatted_prompt)
+
+        # Override resume option if specified
+        if session_to_resume:
+            options.resume = session_to_resume
+            self.log.info("Attempting to resume session: %s", session_to_resume)
+
+        self._client = ClaudeSDKClient(options=options)
+
+        # Reconnect in background
+        try:
+            self._connection_task = asyncio.create_task(self._do_connect())
+            await self._connection_task
+            mode = "resumed" if session_to_resume else "fresh"
+            self.log.info("Claude Code agent reconnected successfully (%s session)", mode)
+        except Exception:
+            self.log.exception("Error reconnecting Claude Code agent")
+            raise
+
     async def ensure_initialized(self) -> None:
         """Wait for background connection task to complete."""
         if self._connection_task:
