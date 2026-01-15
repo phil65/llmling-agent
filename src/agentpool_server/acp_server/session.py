@@ -455,7 +455,8 @@ class ACPSession:
             Stop reason
         """
         self._cancelled = False
-        contents = await from_acp_content(content_blocks)
+        fs = self.agent.env.get_fs() if self.agent.env else None
+        contents = await from_acp_content(content_blocks, fs=fs)
         self.log.debug("Converted content", content=contents)
         if not contents:
             self.log.warning("Empty prompt received")
