@@ -490,6 +490,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         final_message = None
         self._current_stream_task = asyncio.current_task()
         conversation = message_history if message_history is not None else self.conversation
+        await self.message_received.emit(user_msg)
         try:
             async for event in self._stream_events(
                 converted_prompts,

@@ -771,9 +771,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         message_id = message_id or str(uuid4())
         run_id = str(uuid4())
-        # Initialize conversation_id on first run and log to storage
-        # Conversation ID initialization handled by BaseAgent
-        await self.message_received.emit(user_msg)
         start_time = time.perf_counter()
         history_list = message_history.get_history()
         pending_parts = message_history.get_pending_parts()
