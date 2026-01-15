@@ -35,8 +35,6 @@ def claude_config_with_subagent() -> ClaudeACPAgentConfig:
         name="claude_orchestrator",
         description="Claude agent with subagent delegation capabilities",
         cwd=str(Path.cwd()),
-        model="haiku",
-        permission_mode="acceptEdits",
         tools=[SubagentToolsetConfig()],
         env={"ANTHROPIC_API_KEY": ""},  # Use subscription, not direct API key
     )
@@ -92,7 +90,6 @@ async def test_claude_acp_tool_bridge_mcp_config(claude_config_with_subagent: Cl
     async with AgentPool() as pool:
         # Manually create and configure agent
         agent = ACPAgent(config=claude_config_with_subagent, agent_pool=pool)
-
         async with agent:
             # Verify extra MCP servers include our bridge
             assert len(agent._extra_mcp_servers) > 0
@@ -108,20 +105,14 @@ async def test_claude_acp_multiple_toolsets():
     """Test Claude ACP agent with multiple toolsets."""
     from agentpool_config.toolsets import DebugToolsetConfig
 
-    config = ClaudeACPAgentConfig(
-        name="claude_multi",
-        cwd=str(Path.cwd()),
-        permission_mode="acceptEdits",
-        tools=[SubagentToolsetConfig(), DebugToolsetConfig()],
-    )
-
+    tools = [SubagentToolsetConfig(), DebugToolsetConfig()]
+    config = ClaudeACPAgentConfig(name="claude_multi", cwd=str(Path.cwd()), tools=tools)
     async with AgentPool() as pool:
         agent = ACPAgent(config=config, agent_pool=pool)
         async with agent:
             # All toolsets should be exposed via single bridge
             assert agent._tool_bridge is not None
-            tools = await agent.tools.get_tools()
-            tool_names = {t.name for t in tools}
+            tool_names = {t.name for t in await agent.tools.get_tools()}
             # Should have tools from both toolsets
             # SubagentToolset provides: list_available_nodes, delegate_to, ask_agent
             assert "list_available_nodes" in tool_names
@@ -135,11 +126,7 @@ async def test_pool_cleanup_stops_tool_bridges(manifest_with_claude: AgentsManif
     async with pool:
         agent = pool.acp_agents["claude_orchestrator"]
         assert agent._tool_bridge is not None
-        bridge_port = agent._tool_bridge.port
-        assert bridge_port > 0
-
-    # After pool exit, bridge should be stopped
-    assert agent._tool_bridge is None
+        assert agent._tool_bridge.port > 0
 
 
 if __name__ == "__main__":

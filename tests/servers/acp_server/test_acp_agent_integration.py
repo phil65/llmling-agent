@@ -181,15 +181,12 @@ async def test_acp_agent_terminal_operations(tmp_path: Path, test_config_file: P
 async def test_acp_agent_cleanup_on_error(acp_agent_config: ACPAgentConfig):
     """Test that resources are cleaned up even when errors occur."""
     agent = ACPAgent(config=acp_agent_config)
-
     # Enter context
     await agent.__aenter__()
     assert agent._process is not None
     process = agent._process
-
     # Exit context (simulating cleanup)
     await agent.__aexit__(None, None, None)
-
     # Process should be terminated
     assert agent._process is None
     # Give it a moment to fully terminate

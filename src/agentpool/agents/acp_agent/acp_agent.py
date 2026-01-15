@@ -119,7 +119,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     Example:
         ```python
         # From config
-        config = ClaudeACPAgentConfig(cwd="/project", model="sonnet")
+        config = ClaudeACPAgentConfig(cwd="/project")
         agent = ACPAgent(config=config, agent_pool=pool)
 
         # From kwargs
@@ -387,37 +387,43 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             and self._agent_capabilities.mcp_capabilities.sse
         )
 
-        mcp_servers: list[McpServer] = []  # Collect MCP servers from config
+        # Collect all MCP servers (config + extra) and filter by agent capabilities
+        all_servers: list[McpServer] = []
+
         # Add servers from config (converted to ACP format)
         config_servers = self.config.get_mcp_servers()
         if config_servers:
-            mcp_servers.extend(mcp_configs_to_acp(config_servers))
+            all_servers.extend(mcp_configs_to_acp(config_servers))
 
-        # Filter extra MCP servers (e.g., from tool bridges) based on agent capabilities
-        if self._extra_mcp_servers:
-            supported_servers: list[McpServer] = []
-            unsupported_servers: list[tuple[McpServer, str]] = []
+        # Add extra MCP servers (e.g., from tool bridges)
+        all_servers.extend(self._extra_mcp_servers)
 
-            for server in self._extra_mcp_servers:
-                if isinstance(server, HttpMcpServer) and not supports_http:
-                    unsupported_servers.append((server, "HTTP"))
-                elif isinstance(server, SseMcpServer) and not supports_sse:
-                    unsupported_servers.append((server, "SSE"))
-                else:
-                    # Stdio servers or supported transport types
-                    supported_servers.append(server)
+        # Filter servers based on agent transport capabilities
+        supported_servers: list[McpServer] = []
+        unsupported_servers: list[tuple[McpServer, str]] = []
 
-            if unsupported_servers:
-                transports = ", ".join(sorted({t for _, t in unsupported_servers}))
-                self.log.warning(
-                    "Agent does not support some MCP transports, skipping servers",
-                    unsupported_transports=transports,
-                    unsupported_count=len(unsupported_servers),
-                    supported_http=supports_http,
-                    supported_sse=supports_sse,
-                )
+        for server in all_servers:
+            if isinstance(server, HttpMcpServer) and not supports_http:
+                unsupported_servers.append((server, "HTTP"))
+            elif isinstance(server, SseMcpServer) and not supports_sse:
+                unsupported_servers.append((server, "SSE"))
+            else:
+                # Stdio servers or supported transport types
+                supported_servers.append(server)
 
-            mcp_servers.extend(supported_servers)
+        if unsupported_servers:
+            transports = ", ".join(sorted({t for _, t in unsupported_servers}))
+            server_names = ", ".join(s.name for s, _ in unsupported_servers)
+            self.log.warning(
+                "Agent does not support some MCP transports, skipping servers",
+                unsupported_transports=transports,
+                skipped_servers=server_names,
+                unsupported_count=len(unsupported_servers),
+                supported_http=supports_http,
+                supported_sse=supports_sse,
+            )
+
+        mcp_servers = supported_servers
         cwd = self.config.cwd or str(Path.cwd())
         session_request = NewSessionRequest(cwd=cwd, mcp_servers=mcp_servers)
         response = await self._connection.new_session(session_request)
@@ -437,7 +443,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _cleanup(self) -> None:
         """Clean up resources."""
-        await self._tool_bridge.stop()
+        # Only stop bridge if it was started (has _mcp set)
+        if self._tool_bridge._mcp is not None:
+            await self._tool_bridge.stop()
         self._extra_mcp_servers.clear()
 
         if self._client_handler:

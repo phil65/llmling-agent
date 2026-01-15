@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import json
-from typing import TYPE_CHECKING, Any, Literal, assert_never
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
 
@@ -20,60 +19,6 @@ class MCPCapableACPAgentConfig(BaseACPAgentConfig):
     Extends BaseACPAgentConfig with MCP-specific capabilities including toolsets
     that can be exposed via an internal MCP bridge.
     """
-
-    def build_mcp_config_json(self) -> str | None:
-        """Convert inherited mcp_servers to standard MCP config JSON format.
-
-        This format is used by Claude Desktop, VS Code extensions, and other tools.
-
-        Returns:
-            JSON string for MCP config, or None if no servers configured.
-        """
-        from urllib.parse import urlparse
-
-        from agentpool_config.mcp_server import (
-            SSEMCPServerConfig,
-            StdioMCPServerConfig,
-            StreamableHTTPMCPServerConfig,
-        )
-
-        servers = self.get_mcp_servers()
-        if not servers:
-            return None
-
-        mcp_servers: dict[str, dict[str, Any]] = {}
-        for idx, server in enumerate(servers):
-            # Determine server name: explicit > derived
-            match server:
-                case _ if server.name:
-                    name = server.name
-                case StdioMCPServerConfig(args=[*_, last]):
-                    name = last.split("/")[-1].split("@")[0]
-                case StdioMCPServerConfig(command=cmd):
-                    name = cmd
-                case SSEMCPServerConfig(url=url) | StreamableHTTPMCPServerConfig(url=url):
-                    name = urlparse(str(url)).hostname or f"server_{idx}"
-                case _ as unreachable:
-                    assert_never(unreachable)  # ty: ignore
-
-            config: dict[str, Any]
-            match server:
-                case StdioMCPServerConfig(command=command, args=args):
-                    config = {"command": command, "args": args}
-                    if server.env:
-                        config["env"] = server.get_env_vars()
-                case SSEMCPServerConfig(url=url):
-                    config = {"url": str(url), "transport": "sse"}
-                case StreamableHTTPMCPServerConfig(url=url):
-                    config = {"url": str(url), "transport": "http"}
-                case _ as unreachable:
-                    assert_never(unreachable)  # ty: ignore
-            mcp_servers[name] = config
-
-        if not mcp_servers:
-            return None
-
-        return json.dumps({"mcpServers": mcp_servers})
 
 
 class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
@@ -148,35 +93,17 @@ class FastAgentACPAgentConfig(MCPCapableACPAgentConfig):
     async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
         """Build command arguments from settings."""
         args: list[str] = []
-
         if self.model:
             args.extend(["--model", self.model])
         if self.shell_access:
             args.append("-x")
         if self.skills_dir:
             args.extend(["--skills-dir", self.skills_dir])
-
         # Collect URLs from toolsets bridge + user-specified URL
-        urls: list[str] = []
         if self.url:
-            urls.append(self.url)
-
-        # Extract URLs from MCP config JSON (from toolsets)
-        mcp_json = self.build_mcp_config_json()
-        if mcp_json:
-            mcp_config = json.loads(mcp_json)
-            urls.extend(
-                server_config["url"]
-                for server_config in mcp_config.get("mcpServers", {}).values()
-                if "url" in server_config
-            )
-
-        if urls:
-            args.extend(["--url", ",".join(urls)])
-
+            args.extend(["--url", self.url])
         if self.auth:
             args.extend(["--auth", self.auth])
-
         return args
 
 
@@ -321,12 +248,6 @@ class AuggieACPAgentConfig(MCPCapableACPAgentConfig):
             args.extend(["--augment-token-file", self.augment_token_file])
         if self.github_api_token:
             args.extend(["--github-api-token", self.github_api_token])
-
-        # Convert inherited mcp_servers to Auggie's --mcp-config format
-        mcp_json = self.build_mcp_config_json()
-        if mcp_json:
-            args.extend(["--mcp-config", mcp_json])
-
         if self.permission:
             for perm in self.permission:
                 args.extend(["--permission", perm])
@@ -417,12 +338,6 @@ class KimiACPAgentConfig(MCPCapableACPAgentConfig):
             args.extend(["--model", self.model])
         if self.work_dir:
             args.extend(["--work-dir", self.work_dir])
-
-        # Convert inherited mcp_servers to Kimi's --mcp-config format
-        mcp_json = self.build_mcp_config_json()
-        if mcp_json:
-            args.extend(["--mcp-config", mcp_json])
-
         if self.auto_approve:
             args.append("--yolo")
         if self.thinking is not None and self.thinking:
@@ -486,22 +401,12 @@ class AgentpoolACPAgentConfig(MCPCapableACPAgentConfig):
         # Add agent selection
         if self.agent:
             args.extend(["--agent", self.agent])
-
-        # Add file/terminal access flags
         if not self.file_access:
             args.append("--no-file-access")
         if not self.terminal_access:
             args.append("--no-terminal-access")
-
-        # Add skills flag
         if not self.load_skills:
             args.append("--no-skills")
-
-        # Convert inherited mcp_servers to --mcp-config format
-        mcp_json = self.build_mcp_config_json()
-        if mcp_json:
-            args.extend(["--mcp-config", mcp_json])
-
         return args
 
 

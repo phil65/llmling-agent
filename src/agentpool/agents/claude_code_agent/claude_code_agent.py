@@ -856,7 +856,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._connection_task = None
 
         # Clean up tool bridge first
-        await self._tool_bridge.stop()
+        # Only stop bridge if it was started (has _mcp set)
+        if self._tool_bridge._mcp is not None:
+            await self._tool_bridge.stop()
         self._mcp_servers.clear()
         if self._client:
             try:
