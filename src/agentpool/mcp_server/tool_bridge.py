@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from agentpool.agents import AgentContext
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.tools.base import Tool
+    from agentpool.ui.base import InputProvider
 
 _ = ResourceChangeEvent  # Used at runtime in method signature
 
@@ -238,6 +239,9 @@ class ToolManagerBridge:
 
     current_deps: Any = field(default=None, init=False, repr=False)
     """Current dependencies for tool invocations (set by run_stream)."""
+
+    current_input_provider: InputProvider | None = field(default=None, init=False, repr=False)
+    """Current input provider for tool invocations (set by run_stream)."""
 
     _mcp: FastMCP | None = field(default=None, init=False, repr=False)
     """FastMCP server instance."""
@@ -458,11 +462,15 @@ class ToolManagerBridge:
                     mcp_context = None
                 # Try to get Claude's original tool_call_id from request metadata
                 tc_id = _extract_tool_call_id(mcp_context)
-                # Get deps from bridge (set by run_stream on the agent)
+                # Get deps and input_provider from bridge (set by run_stream on the agent)
                 current_deps = self._bridge.current_deps
+                current_input_provider = self._bridge.current_input_provider
                 # Create context with tool-specific metadata from node's context.
                 ctx = replace(
-                    self._bridge.node.get_context(data=current_deps),
+                    self._bridge.node.get_context(
+                        data=current_deps,
+                        input_provider=current_input_provider,
+                    ),
                     tool_name=self._tool.name,
                     tool_call_id=tc_id,
                     tool_input=arguments,

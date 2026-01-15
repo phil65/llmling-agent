@@ -1055,9 +1055,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         file_tracker = FileTracker()
         # Accumulate metadata events by tool_call_id (workaround for SDK stripping _meta)
         tool_metadata: dict[str, dict[str, Any]] = {}
-        # Set deps on tool bridge for access during tool invocations
+        # Set deps and input_provider on tool bridge for access during tool invocations
         # (ContextVar doesn't work because MCP server runs in a separate task)
         self._tool_bridge.current_deps = deps
+        self._tool_bridge.current_input_provider = input_provider
 
         # Handle ephemeral execution (fork session if store_history=False)
         fork_client = None
@@ -1420,8 +1421,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 except Exception as e:  # noqa: BLE001
                     get_logger(__name__).warning(f"Error disconnecting fork client: {e}")
 
-            # Clear deps from tool bridge
+            # Clear deps and input_provider from tool bridge
             self._tool_bridge.current_deps = None
+            self._tool_bridge.current_input_provider = None
 
         # Flush any remaining response parts
         if current_response_parts:

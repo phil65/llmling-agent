@@ -558,10 +558,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 yield self._state.events[last_idx]
                 last_idx += 1
 
-            # Set deps on tool bridge for access during tool invocations
+            # Set deps and input_provider on tool bridge for access during tool invocations
 
         # (ContextVar doesn't work because MCP server runs in a separate task)
         self._tool_bridge.current_deps = deps
+        self._tool_bridge.current_input_provider = input_provider
         # Accumulate metadata events by tool_call_id (workaround for MCP stripping _meta)
         tool_metadata: dict[str, dict[str, Any]] = {}
         # Merge ACP events with custom events from queue
@@ -617,8 +618,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             self.log.info("Stream cancelled via task cancellation")
             self._cancelled = True
         finally:
-            # Clear deps from tool bridge
+            # Clear deps and input_provider from tool bridge
             self._tool_bridge.current_deps = None
+            self._tool_bridge.current_input_provider = None
 
         # Handle cancellation - emit partial message
         if self._cancelled:

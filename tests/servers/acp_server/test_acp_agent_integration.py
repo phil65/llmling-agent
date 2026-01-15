@@ -220,11 +220,14 @@ async def test_acp_agent_with_input_provider(acp_agent_config: ACPAgentConfig):
             assert agent._client_handler is not None
             assert agent._client_handler._input_provider is input_provider
 
-            # Test updating input_provider in run method
+            # Test that input_provider can be overridden per-run
+            # Note: This is scoped to the run, doesn't permanently mutate agent
             new_provider = StdlibInputProvider()
             with anyio.fail_after(15.0):
                 await agent.run("Test", input_provider=new_provider)
-            assert agent._input_provider is new_provider
+            # Agent keeps its original input_provider
+            assert agent._input_provider is input_provider
+            # But client_handler is updated for the run (implementation detail)
             assert agent._client_handler._input_provider is new_provider
 
     except TimeoutError:
@@ -239,14 +242,17 @@ async def test_acp_agent_input_provider_in_run_stream(acp_agent_config: ACPAgent
 
     try:
         async with ACPAgent(config=acp_agent_config) as agent:
+            # Store original provider (might be None or default)
+            original_provider = agent._input_provider
             chunks: list[RichAgentStreamEvent[Any]] = []
 
             with anyio.fail_after(15.0):
                 async for chunk in agent.run_stream("Hi", input_provider=input_provider):
                     chunks.append(chunk)  # noqa: PERF401
 
-            # Verify input provider was set
-            assert agent._input_provider is input_provider
+            # Verify agent keeps original provider (input_provider is scoped to the run)
+            assert agent._input_provider is original_provider
+            # Client handler may be updated during run (implementation detail)
             assert agent._client_handler is not None
             assert agent._client_handler._input_provider is input_provider
 
