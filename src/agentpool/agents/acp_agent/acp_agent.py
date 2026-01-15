@@ -28,6 +28,7 @@ Example:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from dataclasses import replace
 import os
 from pathlib import Path
@@ -87,6 +88,7 @@ if TYPE_CHECKING:
     from agentpool.delegation import AgentPool
     from agentpool.messaging import MessageHistory
     from agentpool.models.acp_agents import BaseACPAgentConfig
+    from agentpool.sessions import SessionData, SessionInfo
     from agentpool.ui.base import InputProvider
     from agentpool_config.nodes import ToolConfirmationMode
 
@@ -847,6 +849,134 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         else:
             msg = f"Unknown category: {category_id}. Available: permissions, model"
             raise ValueError(msg)
+
+    async def list_sessions(self) -> list[SessionInfo]:
+        """List sessions from the remote ACP server.
+
+        Queries the ACP server for available sessions.
+
+        Returns:
+            List of SessionInfo objects from the ACP server
+        """
+        from acp.schema import ListSessionsRequest
+
+        if not self._connection:
+            msg = "Not connected to ACP server"
+            raise RuntimeError(msg)
+
+        try:
+            request = ListSessionsRequest()
+            response = await self._connection.list_sessions(request)
+            # ACP's SessionInfo already matches our protocol
+            return list(response.sessions)  # type: ignore[return-value]
+        except Exception:
+            self.log.exception("Failed to list sessions from ACP server")
+            return []
+
+    async def load_session(self, session_id: str) -> SessionData | None:
+        """Load and restore a session from the remote ACP server.
+
+        Switches the remote ACP server to use the specified session. The conversation
+        history is managed remotely by the ACP server, so no local history restoration
+        is needed.
+
+        Args:
+            session_id: Unique identifier for the session to load
+
+        Returns:
+            SessionData if session was found and loaded, None otherwise
+        """
+        from acp.schema import LoadSessionRequest
+        from agentpool.agents.acp_agent.acp_converters import mcp_configs_to_acp
+        from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities
+        from agentpool.sessions.models import SessionData
+
+        if not self._connection:
+            self.log.error("Cannot load session: not connected to ACP server")
+            return None
+
+        try:
+            # Collect all MCP servers (config + extra) for the load request
+            all_servers = self._extra_mcp_servers[:]
+            config_servers = self.config.get_mcp_servers()
+            if config_servers:
+                all_servers.extend(mcp_configs_to_acp(config_servers))
+
+            mcp_servers = filter_servers_by_capabilities(
+                all_servers,
+                self._agent_capabilities,
+                logger=self.log,
+            )
+
+            cwd = self.config.cwd or str(Path.cwd())
+            load_request = LoadSessionRequest(
+                session_id=session_id,
+                cwd=cwd,
+                mcp_servers=mcp_servers or None,
+            )
+
+            # Load session on the remote server
+            response = await self._connection.load_session(load_request)
+
+            # Update local session ID and state
+            self._session_id = session_id
+            if self._state:
+                self._state.session_id = session_id
+                # Update config_options if available
+                if response.config_options:
+                    self._state.config_options = list(response.config_options)
+                # Legacy: Update models and modes for backward compatibility
+                if response.models:
+                    self._state.models = response.models
+                    self._state.current_model_id = response.models.current_model_id
+                if response.modes:
+                    self._state.modes = response.modes
+
+            self.log.info("Session loaded from ACP server", session_id=session_id)
+
+            # Try to get full session metadata by listing sessions
+            # This gives us title, updated_at, etc.
+            try:
+                sessions = await self.list_sessions()
+                session_info = next((s for s in sessions if s.session_id == session_id), None)
+                if session_info:
+                    from datetime import datetime
+
+                    from agentpool.utils.now import get_now
+
+                    # Convert SessionInfo to SessionData
+                    updated_at = get_now()
+                    if session_info.updated_at:
+                        with contextlib.suppress(ValueError, AttributeError):
+                            updated_at = datetime.fromisoformat(session_info.updated_at)
+
+                    return SessionData(
+                        session_id=session_id,
+                        agent_name=self.name,
+                        conversation_id=session_id,
+                        cwd=session_info.cwd,
+                        last_active=updated_at,
+                        created_at=updated_at,
+                        metadata={"title": session_info.title} if session_info.title else {},
+                    )
+            except Exception:  # noqa: BLE001
+                self.log.debug("Could not fetch session metadata", session_id=session_id)
+
+            # Fallback: Return minimal SessionData
+            from agentpool.utils.now import get_now
+
+            return SessionData(
+                session_id=session_id,
+                agent_name=self.name,
+                conversation_id=session_id,
+                cwd=cwd,
+                last_active=get_now(),
+                created_at=get_now(),
+            )
+
+        except Exception:
+            self.log.exception("Failed to load session from ACP server", session_id=session_id)
+            return None
 
 
 if __name__ == "__main__":

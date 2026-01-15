@@ -49,6 +49,8 @@ if TYPE_CHECKING:
     from agentpool.delegation import AgentPool, Team, TeamRun
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import ChatMessage
+    from agentpool.sessions.models import SessionData
+    from agentpool.sessions.protocol import SessionInfo
     from agentpool.talk.stats import MessageStats
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
@@ -847,5 +849,32 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         Raises:
             ValueError: If mode_id or category_id is invalid
+        """
+        ...
+
+    @abstractmethod
+    async def list_sessions(self) -> list[SessionInfo]:
+        """List available sessions for this agent.
+
+        Returns session information including session IDs, working directories,
+        titles, and last update timestamps.
+
+        Returns:
+            List of SessionInfo objects (protocol-compatible)
+        """
+        ...
+
+    @abstractmethod
+    async def load_session(self, session_id: str) -> SessionData | None:
+        """Load and restore a session by ID.
+
+        Loads session data and restores the conversation history for the specified session.
+        For agents that support session persistence, this switches the active session.
+
+        Args:
+            session_id: Unique identifier for the session to load
+
+        Returns:
+            SessionData if session was found and loaded, None otherwise
         """
         ...

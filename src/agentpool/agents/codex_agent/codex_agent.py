@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Self
 
@@ -30,6 +31,8 @@ if TYPE_CHECKING:
     from agentpool.delegation import AgentPool
     from agentpool.messaging import MessageHistory
     from agentpool.models.codex_agents import CodexAgentConfig
+    from agentpool.sessions import SessionData
+    from agentpool.sessions.protocol import SessionInfo
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
@@ -719,3 +722,93 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         else:
             msg = f"Unknown category: {category_id}"
             raise ValueError(msg)
+
+    async def list_sessions(self) -> list[SessionInfo]:
+        """List threads from Codex server.
+
+        Queries the Codex server for available threads (sessions).
+
+        Returns:
+            List of SessionInfo objects converted from Codex ThreadData
+        """
+        from datetime import datetime
+
+        from agentpool.sessions.models import SessionData
+
+        if not self._client:
+            return []
+
+        try:
+            response = await self._client.thread_list()
+            result: list[SessionInfo] = []
+
+            for thread_data in response.data:
+                # Convert Codex ThreadData to SessionData
+                # created_at is Unix timestamp (seconds)
+                created_at = datetime.fromtimestamp(thread_data.created_at, tz=UTC)
+
+                session_data = SessionData(
+                    session_id=thread_data.id,
+                    agent_name=self.name,
+                    conversation_id=thread_data.id,
+                    cwd=thread_data.cwd or str(self.config.cwd or Path.cwd()),
+                    created_at=created_at,
+                    last_active=created_at,  # Codex doesn't track separate last_active
+                    metadata={"title": thread_data.preview} if thread_data.preview else {},
+                )
+
+                result.append(session_data)  # type: ignore[arg-type]
+
+        except Exception:
+            self.log.exception("Failed to list Codex threads")
+            return []
+        else:
+            return result
+
+    async def load_session(self, session_id: str) -> SessionData | None:
+        """Load and resume a thread from Codex server.
+
+        Resumes the specified thread on the Codex server, making it the active thread
+        for this agent. The conversation history is managed by the Codex server.
+
+        Args:
+            session_id: Thread ID to resume
+
+        Returns:
+            SessionData if thread was resumed successfully, None otherwise
+        """
+        from datetime import datetime
+
+        from agentpool.sessions.models import SessionData
+
+        if not self._client:
+            self.log.error("Cannot load session: Codex client not initialized")
+            return None
+
+        try:
+            # Resume the thread on Codex server
+            thread = await self._client.thread_resume(session_id)
+
+            # Update current thread ID
+            self._thread_id = thread.id
+
+            self.log.info("Thread resumed from Codex server", thread_id=thread.id)
+
+            # Build SessionData from the resumed thread
+            created_at = datetime.fromtimestamp(thread.created_at, tz=UTC)
+            # CodexThread doesn't include cwd, use config default
+            cwd = str(self.config.cwd or Path.cwd())
+
+            return SessionData(
+                session_id=thread.id,
+                agent_name=self.name,
+                conversation_id=thread.id,
+                cwd=cwd,
+                created_at=created_at,
+                last_active=created_at,  # Codex doesn't track separate last_active
+                metadata={"title": thread.preview} if thread.preview else {},
+            )
+
+        except Exception:
+            self.log.exception("Failed to resume Codex thread", session_id=session_id)
+            return None

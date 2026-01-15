@@ -58,6 +58,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from decimal import Decimal
+from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self
 import uuid
@@ -138,6 +139,7 @@ if TYPE_CHECKING:
     from agentpool.delegation import AgentPool
     from agentpool.messaging import MessageHistory
     from agentpool.models.claude_code_agents import SettingSource
+    from agentpool.sessions import SessionData, SessionInfo
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
@@ -351,6 +353,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Track pending tool call for permission matching
         # Maps tool_name to tool_call_id for matching permissions to tool call UI parts
         self._pending_tool_call_ids: dict[str, str] = {}
+
+        # Create Claude storage provider for session management
+        from agentpool_config.storage import ClaudeStorageConfig
+        from agentpool_storage.claude_provider import ClaudeStorageProvider
+
+        claude_config = ClaudeStorageConfig(path="~/.claude")
+        self._claude_storage = ClaudeStorageProvider(claude_config)
 
     @classmethod
     def from_config(
@@ -1792,6 +1801,126 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         else:
             msg = f"Unknown category: {category_id}. Available: permissions, model, thinking_level"
             raise ValueError(msg)
+
+    async def list_sessions(self) -> list[SessionInfo]:
+        """List sessions from Claude storage.
+
+        Queries the Claude storage provider (~/.claude/projects/) for available sessions.
+
+        Returns:
+            List of SessionInfo objects
+        """
+        from datetime import datetime
+
+        from agentpool.sessions.models import SessionData
+        from agentpool.utils.now import get_now
+
+        try:
+            # Use storage sessions API which works with Claude provider
+            conversations = await self._claude_storage.get_conversations(
+                filters=type(
+                    "Filters",
+                    (),
+                    {"agent_name": self.name, "since": None, "query": None, "limit": None},
+                )()
+            )
+
+            result: list[SessionInfo] = []
+            for conv_data, messages in conversations:
+                # Build SessionData from conversation
+                last_active = get_now()
+                cwd = None
+
+                if messages:
+                    last_msg = messages[-1]
+                    if last_msg.timestamp:
+                        last_active = last_msg.timestamp
+                    # Extract cwd from message metadata if available
+                    if hasattr(last_msg, "metadata") and last_msg.metadata:
+                        cwd = last_msg.metadata.get("cwd")
+
+                # Parse start_time
+                try:
+                    created_at = datetime.fromisoformat(conv_data["start_time"])
+                except (ValueError, KeyError):
+                    created_at = last_active
+
+                session_data = SessionData(
+                    session_id=conv_data["id"],
+                    agent_name=self.name,
+                    conversation_id=conv_data["id"],
+                    cwd=cwd or str(self._cwd or Path.cwd()),
+                    created_at=created_at,
+                    last_active=last_active,
+                    metadata={"title": conv_data.get("title")} if conv_data.get("title") else {},
+                )
+                result.append(session_data)  # type: ignore[arg-type]
+
+        except Exception:
+            self.log.exception("Failed to list Claude sessions")
+            return []
+        else:
+            return result
+
+    async def load_session(self, session_id: str) -> SessionData | None:
+        """Load and restore a session from Claude storage.
+
+        Loads session data from Claude JSONL files and restores the conversation
+        history for this agent.
+
+        Args:
+            session_id: Unique identifier for the session to load
+
+        Returns:
+            SessionData if session was found and loaded, None otherwise
+        """
+        from agentpool.sessions.models import SessionData
+        from agentpool.utils.now import get_now
+
+        try:
+            # Load conversation messages from Claude storage
+            messages = await self._claude_storage.get_conversation_messages(
+                conversation_id=session_id,
+                include_ancestors=False,
+            )
+
+            if not messages:
+                self.log.warning("No messages found in session", session_id=session_id)
+                return None
+
+            # Restore to conversation history
+            self.conversation.chat_messages.clear()
+            self.conversation.chat_messages.extend(messages)
+
+            self.log.info(
+                "Session loaded with conversation history",
+                session_id=session_id,
+                message_count=len(messages),
+            )
+
+            # Build SessionData from loaded messages
+            last_active = messages[-1].timestamp if messages[-1].timestamp else get_now()
+            created_at = messages[0].timestamp if messages[0].timestamp else last_active
+            cwd = str(self._cwd or Path.cwd())
+
+            # Try to extract cwd from message metadata
+            for msg in reversed(messages):
+                if hasattr(msg, "metadata") and msg.metadata and "cwd" in msg.metadata:
+                    cwd = msg.metadata["cwd"]
+                    break
+
+            return SessionData(
+                session_id=session_id,
+                agent_name=self.name,
+                conversation_id=session_id,
+                cwd=cwd,
+                created_at=created_at,
+                last_active=last_active,
+            )
+
+        except Exception:
+            self.log.exception("Failed to load Claude session", session_id=session_id)
+            return None
 
 
 if __name__ == "__main__":

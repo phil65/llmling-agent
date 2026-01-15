@@ -66,6 +66,7 @@ if TYPE_CHECKING:
     from agentpool.models.manifest import AgentsManifest
     from agentpool.prompts.prompts import PromptType
     from agentpool.resource_providers import ResourceProvider
+    from agentpool.sessions import SessionData, SessionInfo
     from agentpool.tools.base import FunctionTool
     from agentpool.ui.base import InputProvider
     from agentpool_config.knowledge import Knowledge
@@ -1109,6 +1110,70 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         else:
             msg = f"Unknown category: {category_id}. Available: permissions, model"
             raise ValueError(msg)
+
+    async def list_sessions(self) -> list[SessionInfo]:
+        """List sessions from storage.
+
+        For native agents, queries the pool's storage (if available) for all sessions
+        associated with this agent.
+
+        Returns:
+            List of SessionInfo-compatible SessionData objects
+        """
+        if not self.agent_pool or not self.agent_pool.storage:
+            return []
+
+        # Get sessions from storage
+        try:
+            return await self.agent_pool.storage.sessions.get_all(agent_name=self.name)
+            # SessionData already implements SessionInfo protocol
+            # (has session_id, cwd, title, updated_at properties)
+        except Exception:
+            self.log.exception("Failed to list sessions")
+            return []
+
+    async def load_session(self, session_id: str) -> SessionData | None:
+        """Load and restore a session from storage.
+
+        Loads session data and restores the conversation history for this agent.
+
+        Args:
+            session_id: Unique identifier for the session to load
+
+        Returns:
+            SessionData if session was found and loaded, None otherwise
+        """
+        if not self.agent_pool or not self.agent_pool.storage:
+            return None
+
+        try:
+            # Load session data
+            session_data = await self.agent_pool.storage.sessions.load(session_id)
+            if not session_data:
+                return None
+
+            # Load conversation history if available
+            if self.agent_pool.storage.provider.can_load_history:
+                messages = await self.agent_pool.storage.provider.get_conversation_messages(
+                    conversation_id=session_data.conversation_id,
+                    include_ancestors=False,
+                )
+                # Restore to conversation history
+                self.conversation.chat_messages.clear()
+                self.conversation.chat_messages.extend(messages)
+                self.log.info(
+                    "Session loaded with conversation history",
+                    session_id=session_id,
+                    message_count=len(messages),
+                )
+            else:
+                self.log.info("Session loaded (no history support)", session_id=session_id)
+
+        except Exception:
+            self.log.exception("Failed to load session", session_id=session_id)
+            return None
+        else:
+            return session_data
 
 
 if __name__ == "__main__":

@@ -60,6 +60,7 @@ if TYPE_CHECKING:
     from agentpool.delegation import AgentPool
     from agentpool.messaging import MessageHistory
     from agentpool.models.agui_agents import AGUIAgentConfig
+    from agentpool.sessions import SessionData, SessionInfo
     from agentpool.tools import Tool
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
@@ -684,6 +685,30 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         """
         msg = "AG-UI agent does not support mode switching - model is controlled by remote server"
         raise ValueError(msg)
+
+    async def list_sessions(self) -> list[SessionInfo]:
+        """List sessions for AG-UI agent.
+
+        AG-UI agents don't currently support session listing.
+
+        Returns:
+            Empty list (not supported)
+        """
+        return []
+
+    async def load_session(self, session_id: str) -> SessionData | None:
+        """Load a session for AG-UI agent.
+
+        AG-UI agents don't currently support session loading.
+
+        Args:
+            session_id: Unique identifier for the session to load
+
+        Returns:
+            None (not supported)
+        """
+        self.log.warning("AG-UI agents do not support session loading", session_id=session_id)
+        return None
 
 
 if __name__ == "__main__":
