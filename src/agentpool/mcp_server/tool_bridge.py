@@ -532,7 +532,7 @@ class ToolManagerBridge:
         deps: Any = None,
         input_provider: InputProvider | None = None,
         prompt: str | Sequence[UserContent] | None = None,
-    ) -> AsyncIterator[None]:
+    ) -> AsyncIterator[Self]:
         """Context manager for setting run-scoped state.
 
         Ensures _current_deps, _current_input_provider, and _current_prompt are
@@ -550,7 +550,7 @@ class ToolManagerBridge:
         self._current_input_provider = input_provider
         self._current_prompt = prompt
         try:
-            yield
+            yield self
         finally:
             self._current_deps = None
             self._current_input_provider = None
