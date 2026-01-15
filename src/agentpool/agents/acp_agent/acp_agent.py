@@ -257,6 +257,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             definition=defn,
             input_provider=input_provider or self._input_provider,
             data=data,
+            model_name=self.model_name,
         )
 
     async def _setup_toolsets(self) -> None:

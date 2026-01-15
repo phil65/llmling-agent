@@ -552,6 +552,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             input_provider=input_provider or self._input_provider,
             pool=self.agent_pool,
             data=data,
+            model_name=self.model_name,
         )
 
     def _resolve_model_string(self, model: str) -> tuple[Model, ModelSettings | None]:

@@ -117,12 +117,15 @@ def wrap_tool[TReturn](  # noqa: PLR0915
                     agent_ctx.data = ctx.deps
 
                 if agent_ctx_key:  # inject AgentContext
+                    # Build model_name from RunContext's model (provider:model_name format)
+                    model_name = f"{ctx.model.system}:{ctx.model.model_name}" if ctx.model else None
                     # Create per-call copy with tool execution fields (avoids race condition)
                     call_ctx = replace(
                         agent_ctx,
                         tool_name=ctx.tool_name,
                         tool_call_id=ctx.tool_call_id,
                         tool_input=kwargs.copy(),
+                        model_name=model_name,
                     )
                     kwargs[agent_ctx_key] = call_ctx
 

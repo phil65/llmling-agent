@@ -92,6 +92,9 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     tool_input: dict[str, Any] = field(default_factory=dict)
     """Input arguments for the current tool call."""
 
+    model_name: str | None = None
+    """Model name in provider:model format (e.g., 'anthropic:claude-haiku-4-5')."""
+
     @property
     def native_agent(self) -> Agent[TDeps, Any]:
         """Current agent, type-narrowed to native pydantic-ai Agent."""

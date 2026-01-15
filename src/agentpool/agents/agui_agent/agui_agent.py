@@ -274,6 +274,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             definition=defn,
             input_provider=effective_provider,
             data=data,
+            model_name=self.model_name,
         )
 
     async def __aenter__(self) -> Self:
