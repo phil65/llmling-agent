@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from ag_ui.core import Message, ToolMessage
+    from anyenv import MultiEventHandler
     from evented_config import EventConfig
     from pydantic_ai import UserContent
     from slashed import BaseCommand
@@ -372,7 +373,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: MultiEventHandler[IndividualEventHandler],
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
@@ -388,26 +389,16 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             ToolCallStartEvent as AGUIToolCallStartEvent,
             UserMessage,
         )
-        from anyenv import MultiEventHandler
 
         from agentpool.agents.agui_agent.agui_converters import (
             agui_to_native_event,
             to_agui_input_content,
             to_agui_tool,
         )
-        from agentpool.agents.events import resolve_event_handlers
         from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
         if input_provider is not None:
             self._input_provider = input_provider
-
-        # Use provided event handlers or fall back to agent's handlers
-        if event_handlers is not None:
-            handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
-                resolve_event_handlers(event_handlers)
-            )
-        else:
-            handler = self.event_handler
 
         if not self._client:
             msg = "Agent not initialized - use async context manager"
@@ -438,7 +429,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             agent_name=self.name,
         )
 
-        await handler(None, run_started)
+        await event_handlers(None, run_started)
         yield run_started
         # Get pending parts from conversation and convert them
         pending_parts = message_history.get_pending_parts()
@@ -529,18 +520,18 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                     while not self._event_queue.empty():
                                         try:
                                             custom_event = self._event_queue.get_nowait()
-                                            await handler(None, custom_event)
+                                            await event_handlers(None, custom_event)
                                             yield custom_event
                                         except asyncio.QueueEmpty:
                                             break
                                     # Distribute to handlers
-                                    await handler(None, native_event)
+                                    await event_handlers(None, native_event)
                                     yield native_event
 
                         # Flush any pending chunk events at end of stream
                         for event in self._chunk_transformer.flush():
                             if native_event := agui_to_native_event(event):
-                                await handler(None, native_event)
+                                await event_handlers(None, native_event)
                                 yield native_event
 
                 except httpx.HTTPError:
@@ -611,7 +602,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 metadata=file_tracker.get_metadata(),
             )
             complete_event = StreamCompleteEvent(message=final_message)
-            await handler(None, complete_event)
+            await event_handlers(None, complete_event)
             yield complete_event
             return
 
@@ -623,7 +614,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         while not self._event_queue.empty():
             try:
                 queued_event = self._event_queue.get_nowait()
-                await handler(None, queued_event)
+                await event_handlers(None, queued_event)
                 yield queued_event
             except asyncio.QueueEmpty:
                 break
@@ -652,7 +643,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             cost_info=cost_info,
         )
         complete_event = StreamCompleteEvent(message=final_message)
-        await handler(None, complete_event)
+        await event_handlers(None, complete_event)
         yield complete_event  # Post-processing handled by base class
 
     @property

@@ -57,11 +57,9 @@ from agentpool.agents.events import (
     ToolCallCompleteEvent,
     ToolCallStartEvent,
     ToolResultMetadataEvent,
-    resolve_event_handlers,
 )
 from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
-from agentpool.common_types import IndividualEventHandler
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.models.acp_agents import ACPAgentConfig
@@ -74,6 +72,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
     from types import TracebackType
 
+    from anyenv import MultiEventHandler
     from anyio.abc import Process
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
@@ -91,7 +90,7 @@ if TYPE_CHECKING:
     from agentpool.agents.acp_agent.client_handler import ACPClientHandler
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
-    from agentpool.common_types import BuiltinEventHandlerType
+    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation import AgentPool
     from agentpool.messaging import MessageHistory
     from agentpool.models.acp_agents import BaseACPAgentConfig
@@ -475,11 +474,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: MultiEventHandler[IndividualEventHandler],
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
-        from anyenv import MultiEventHandler
 
         from acp.schema import ForkSessionRequest, PromptRequest
         from acp.utils import to_acp_content_blocks
@@ -489,20 +487,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
 
         # Update input provider if provided
-        if input_provider is not None:
-            self._input_provider = input_provider
-            if self._client_handler:
-                self._client_handler._input_provider = input_provider
+        if input_provider is not None and self._client_handler:
+            self._client_handler._input_provider = input_provider
         if not self._connection or not self._session_id or not self._state:
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
-
-        # Use provided event handlers or fall back to agent's handlers
-        if event_handlers is not None:
-            handlers = resolve_event_handlers(event_handlers)
-            handler = MultiEventHandler[IndividualEventHandler](handlers)
-        else:
-            handler = self.event_handler
 
         # Prepare for ACP content block conversion
         processed_prompts = prompts
@@ -523,7 +512,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             run_id=run_id,
             agent_name=self.name,
         )
-        await handler(None, run_started)
+        await event_handlers(None, run_started)
         yield run_started
         content_blocks = convert_to_acp_content(processed_prompts)
         pending_parts = message_history.get_pending_parts()
@@ -623,7 +612,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                                 ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
                             )
 
-                    await handler(None, event)
+                    await event_handlers(None, event)
                     yield event
         except asyncio.CancelledError:
             self.log.info("Stream cancelled via task cancellation")
@@ -647,7 +636,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 finish_reason="stop",
             )
             complete_event = StreamCompleteEvent(message=message)
-            await handler(None, complete_event)
+            await event_handlers(None, complete_event)
             yield complete_event
             self._prompt_task = None
             return
@@ -692,7 +681,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             cost_info=cost_info,
         )
         complete_event = StreamCompleteEvent(message=message)
-        await handler(None, complete_event)
+        await event_handlers(None, complete_event)
         yield complete_event  # Emit final StreamCompleteEvent - post-processing handled by base
 
     @property

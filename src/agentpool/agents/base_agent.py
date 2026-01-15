@@ -436,6 +436,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         Yields:
             Stream events during execution
         """
+        from anyenv import MultiEventHandler
+
+        from agentpool.agents.events import resolve_event_handlers
         from agentpool.messaging import ChatMessage
         from agentpool.utils.identifiers import generate_session_id
 
@@ -471,6 +474,15 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             conversation_id=self.conversation_id,
         )
 
+        # Resolve event handlers
+
+        if event_handlers is not None:
+            resolved_handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
+                resolve_event_handlers(event_handlers)
+            )
+        else:
+            resolved_handler = self.event_handler
+
         # Stream events from implementation
         final_message = None
         self._current_stream_task = asyncio.current_task()
@@ -488,7 +500,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 input_provider=input_provider,
                 wait_for_connections=wait_for_connections,
                 deps=deps,
-                event_handlers=event_handlers,
+                event_handlers=resolved_handler,
             ):
                 yield event
                 # Capture final message from StreamCompleteEvent
@@ -536,7 +548,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: MultiEventHandler[IndividualEventHandler],
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:

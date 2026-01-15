@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Coroutine, Sequence
     from types import TracebackType
 
+    from anyenv import MultiEventHandler
     from exxec import ExecutionEnvironment
     from llmling_models_config import AnyModelConfig
     from pydantic_ai import UsageLimits, UserContent
@@ -765,20 +766,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
         deps: TDeps | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: MultiEventHandler[IndividualEventHandler],
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
-        from anyenv import MultiEventHandler
         from pydantic_graph import End
 
-        from agentpool.agents.events import resolve_event_handlers
-
-        # Use provided event handlers or fall back to agent's handlers
-        if event_handlers is not None:
-            handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
-                resolve_event_handlers(event_handlers)
-            )
-        else:
-            handler = self.event_handler
         message_id = message_id or str(uuid4())
         run_id = str(uuid4())
         # Reset cancellation state
@@ -808,7 +799,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         run_started = RunStartedEvent(
             thread_id=self.conversation_id, run_id=run_id, agent_name=self.name
         )
-        await handler(None, run_started)
+        await event_handlers(None, run_started)
         yield run_started
 
         agentlet = await self.get_agentlet(None, self._output_type, input_provider)
@@ -846,11 +837,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                             async for event in file_tracker(merged):
                                 if self._cancelled:
                                     break
-                                await handler(None, event)
+                                await event_handlers(None, event)
                                 yield event
                                 combined = self._process_tool_event(event, pending_tcs, message_id)
                                 if combined:
-                                    await handler(None, combined)
+                                    await event_handlers(None, combined)
                                     yield combined
 
                     # Stream events from tool call node
@@ -862,11 +853,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                             async for event in file_tracker(merged):
                                 if self._cancelled:
                                     break
-                                await handler(None, event)
+                                await event_handlers(None, event)
                                 yield event
                                 combined = self._process_tool_event(event, pending_tcs, message_id)
                                 if combined:
-                                    await handler(None, combined)
+                                    await event_handlers(None, combined)
                                     yield combined
             except asyncio.CancelledError:
                 self.log.info("Stream cancelled via task cancellation")
@@ -889,7 +880,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     finish_reason="stop",
                 )
                 complete_event = StreamCompleteEvent(message=response_msg)
-                await handler(None, complete_event)
+                await event_handlers(None, complete_event)
                 yield complete_event
                 return
 
@@ -921,7 +912,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Send additional enriched completion event
         complete_event = StreamCompleteEvent(message=response_msg)
-        await handler(None, complete_event)
+        await event_handlers(None, complete_event)
         yield complete_event
 
     def _process_tool_event(
