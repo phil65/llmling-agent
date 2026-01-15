@@ -29,10 +29,8 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
-from importlib.metadata import metadata
 import os
 from pathlib import Path
-import subprocess
 from typing import TYPE_CHECKING, Any, Self
 import uuid
 
@@ -98,8 +96,6 @@ if TYPE_CHECKING:
     from agentpool_config.nodes import ToolConfirmationMode
 
 logger = get_logger(__name__)
-
-PROTOCOL_VERSION = 1
 
 
 class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
@@ -311,14 +307,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         args = await self.config.get_args(prompt_manager)
         cmd = [self.config.get_command(), *args]
         self.log.info("Starting ACP subprocess", command=cmd)
-        self._process = await anyio.open_process(
-            cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env={**os.environ, **self.config.env},
-            cwd=str(self.config.cwd) if self.config.cwd else None,
-        )
+        env = {**os.environ, **self.config.env}
+        cwd = str(self.config.cwd) if self.config.cwd else None
+        self._process = await anyio.open_process(cmd, env=env, cwd=cwd)
         if not self._process.stdin or not self._process.stdout:
             msg = "Failed to create subprocess pipes"
             raise RuntimeError(msg)
@@ -327,7 +318,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     async def _initialize(self) -> None:
         """Initialize the ACP connection."""
         from acp.client.connection import ClientSideConnection
-        from acp.schema import InitializeRequest
         from agentpool.agents.acp_agent.client_handler import ACPClientHandler
 
         if not self._process or not self._process.stdin or not self._process.stdout:
@@ -345,16 +335,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             input_stream=self._process.stdin,
             output_stream=self._process.stdout,
         )
-        pkg_meta = metadata("agentpool")
-        init_request = InitializeRequest.create(
-            title=pkg_meta["Name"],
-            version=pkg_meta["Version"],
-            name="agentpool",
-            protocol_version=PROTOCOL_VERSION,
-            terminal=self.config.allow_terminal,
-            read_text_file=self.config.allow_file_operations,
-            write_text_file=self.config.allow_file_operations,
-        )
+        init_request = self.config.create_initialize_request()
         init_response = await self._connection.initialize(init_request)
         self._agent_info = init_response.agent_info
         self._agent_capabilities = init_response.agent_capabilities
@@ -781,7 +762,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         from acp.schema import CancelNotification
 
         self._cancelled = True
-
         # Send cancel notification to the remote ACP server
         if self._connection and self._session_id:
             try:
