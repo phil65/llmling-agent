@@ -774,6 +774,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         input_provider: InputProvider | None = None,
         event_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> Agent[TAgentDeps, Any]:
+        from jinja2 import Template
+
         from agentpool import Agent
         from agentpool.models.agents import NativeAgentConfig
         from agentpool.utils.result_utils import to_type
@@ -783,6 +785,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             LibraryPromptConfig,
             StaticPromptConfig,
         )
+        from agentpool_toolsets.builtin.workers import WorkersTools
 
         manifest = self.manifest
         # Get config from inline agents or file agents
@@ -814,8 +817,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
                         template_content = template_path.read_text("utf-8")
                         if variables:  # Apply variables if any
-                            from jinja2 import Template
-
                             template = Template(template_content)
                             content = template.render(**variables)
                         else:
@@ -838,8 +839,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             toolsets_list.append(config_tool_provider)
         # Convert workers config to a toolset (backwards compatibility)
         if config.workers:
-            from agentpool_toolsets.builtin.workers import WorkersTools
-
             workers_provider = WorkersTools(workers=list(config.workers), name="workers")
             toolsets_list.append(workers_provider)
         # Step 1: Get agent-specific output type (same as before)
@@ -860,7 +859,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         builtin_tools = config.get_builtin_tools()
 
         return Agent(
-            # context=context,
             model=model,
             model_settings=model_settings,
             system_prompt=sys_prompts,

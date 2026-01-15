@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Mapping
     from pathlib import Path
 
-    from anyio.abc import ByteReceiveStream, ByteSendStream, Process
+    from anyio.abc import Process
 
     from acp.agent.protocol import Agent
     from acp.client.protocol import Client
