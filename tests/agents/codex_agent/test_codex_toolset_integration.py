@@ -36,7 +36,7 @@ def codex_config_with_subagent() -> CodexAgentConfig:
         name="codex_orchestrator",
         description="Codex agent with subagent delegation capabilities",
         cwd=str(Path.cwd()),
-        model="gpt-5.1-codex-max",
+        model="gpt-5.1-codex-mini",
         reasoning_effort="medium",
         tools=[SubagentToolsetConfig()],
     )
@@ -95,7 +95,7 @@ async def test_codex_multiple_toolsets():
     config = CodexAgentConfig(
         name="codex_multi",
         cwd=str(Path.cwd()),
-        model="gpt-5.1-codex-max",
+        model="gpt-5.1-codex-mini",
         reasoning_effort="medium",
         tools=[SubagentToolsetConfig(), SkillsToolsetConfig()],
     )
@@ -119,7 +119,7 @@ async def test_codex_mcp_servers_config():
     config = CodexAgentConfig(
         name="codex_mixed",
         cwd=str(Path.cwd()),
-        model="gpt-5.1-codex-max",
+        model="gpt-5.1-codex-mini",
         reasoning_effort="medium",
         tools=[SubagentToolsetConfig()],
         mcp_servers=[StdioMCPServerConfig(name="external_test", command="echo", args=["test"])],

@@ -165,7 +165,7 @@ def codex_agent_config() -> dict[str, Any]:
     """Create CodexAgent config kwargs."""
     return {
         "name": "codex-test-agent",
-        "model": "gpt-5.1-codex-max",
+        "model": "gpt-5.1-codex-mini",
         "cwd": str(Path.cwd()),
         "reasoning_effort": "medium",
     }
