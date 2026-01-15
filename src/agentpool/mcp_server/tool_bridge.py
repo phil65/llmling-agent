@@ -222,7 +222,7 @@ class ToolManagerBridge:
         ```python
         async with AgentPool() as pool:
             agent = pool.agents["my_agent"]
-            bridge = ToolManagerBridge(node=agent, port=8765)
+            bridge = ToolManagerBridge(node=agent, _init_port=8765)
             async with bridge:
                 # Bridge is running, get MCP config for ACP agent
                 mcp_config = bridge.get_mcp_server_config()
@@ -236,7 +236,7 @@ class ToolManagerBridge:
     host: str = "127.0.0.1"
     """Host to bind the HTTP server to."""
 
-    port: int = 0
+    _init_port: int = 0
     """Port to bind to (0 = auto-select available port)."""
 
     server_name: str = "agentpool-toolmanager"
@@ -543,7 +543,7 @@ class ToolManagerBridge:
             raise RuntimeError(msg)
 
         # Determine actual port (auto-select if 0)
-        port = self.port
+        port = self._init_port
         if port == 0:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.bind((self.host, 0))
@@ -581,6 +581,6 @@ async def create_tool_bridge(
     Yields:
         Running ToolManagerBridge instance
     """
-    bridge = ToolManagerBridge(node=node, host=host, port=port)
+    bridge = ToolManagerBridge(node=node, host=host, _init_port=port)
     async with bridge:
         yield bridge

@@ -48,7 +48,6 @@ if TYPE_CHECKING:
     from agentpool.agents.claude_code_agent import ClaudeCodeAgent
     from agentpool.common_types import AgentName, BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation.base_team import BaseTeam
-    from agentpool.mcp_server.tool_bridge import ToolManagerBridge
     from agentpool.messaging import ChatMessage
     from agentpool.messaging.compaction import CompactionPipeline
     from agentpool.models import AnyAgentConfig
@@ -135,7 +134,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         servers = self.manifest.get_mcp_servers()
         self.mcp = MCPManager(name="pool_mcp", servers=servers, owner="pool")
         self.skills = SkillsManager(name="pool_skills", owner="pool")
-        self._tool_bridges: dict[str, ToolManagerBridge] = {}
         self._tasks = TaskRegistry()
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
@@ -213,53 +211,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     agent.tools.remove_provider(aggregating_provider.name)
                 await self.cleanup()
 
-    async def create_tool_bridge(
-        self,
-        node: BaseAgent[Any, Any],
-        *,
-        name: str = "pool_tools",
-        host: str = "127.0.0.1",
-        port: int = 0,
-    ) -> ToolManagerBridge:
-        """Create and start a tool bridge for exposing tools to external agents.
-
-        This creates an in-process MCP server that exposes the given node's
-        tools. The returned bridge is tracked and will be cleaned up when
-        the pool exits.
-
-        Args:
-            node: The agent node whose tools to expose
-            name: Unique name for this bridge
-            host: Host to bind the HTTP server to
-            port: Port to bind to (0 = auto-select)
-
-        Returns:
-            Started ToolManagerBridge instance
-        """
-        from agentpool.mcp_server.tool_bridge import ToolManagerBridge
-
-        if name in self._tool_bridges:
-            msg = f"Tool bridge {name!r} already exists"
-            raise ValueError(msg)
-
-        bridge = ToolManagerBridge(node=node, host=host, port=port, server_name=f"agentpool-{name}")
-        await bridge.start()
-        self._tool_bridges[name] = bridge
-        return bridge
-
-    async def get_tool_bridge(self, name: str) -> ToolManagerBridge:
-        """Get a tool bridge by name."""
-        if name not in self._tool_bridges:
-            msg = f"Tool bridge {name!r} not found"
-            raise KeyError(msg)
-        return self._tool_bridges[name]
-
-    async def remove_tool_bridge(self, name: str) -> None:
-        """Stop and remove a tool bridge."""
-        if name in self._tool_bridges:
-            await self._tool_bridges[name].stop()
-            del self._tool_bridges[name]
-
     @property
     def is_running(self) -> bool:
         """Check if the agent pool is running."""
@@ -267,10 +218,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
     async def cleanup(self) -> None:
         """Clean up all agents."""
-        # Clean up tool bridges first
-        for bridge in list(self._tool_bridges.values()):
-            await bridge.stop()
-        self._tool_bridges.clear()
         # Clean up background processes
         await self.process_manager.cleanup()
         await self.exit_stack.aclose()

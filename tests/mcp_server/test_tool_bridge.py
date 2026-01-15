@@ -31,22 +31,12 @@ async def list_pool_agents(ctx: AgentContext) -> str:
     return ", ".join(ctx.pool.agents.keys())
 
 
-async def test_bridge_defaults():
-    """Test ToolManagerBridge has sensible defaults."""
-    async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
-        bridge = ToolManagerBridge(node=agent)
-        assert bridge.host == "127.0.0.1"
-        assert bridge.port == 0  # Auto-select
-        assert bridge.server_name == "agentpool-toolmanager"
-
-
 async def test_bridge_lifecycle():
     """Test bridge start/stop lifecycle."""
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        bridge = ToolManagerBridge(node=agent, port=0)
+        bridge = ToolManagerBridge(node=agent, _init_port=0)
         # Not started yet
         assert bridge._mcp is None
         assert bridge._actual_port is None
@@ -65,7 +55,7 @@ async def test_bridge_context_manager():
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        async with ToolManagerBridge(node=agent, port=0) as bridge:
+        async with ToolManagerBridge(node=agent, _init_port=0) as bridge:
             assert bridge.port > 0
             assert bridge._server is not None
 
@@ -87,7 +77,7 @@ async def test_bridge_registers_tools():
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        async with ToolManagerBridge(node=agent, port=0) as bridge:
+        async with ToolManagerBridge(node=agent, _init_port=0) as bridge:
             assert bridge._mcp is not None  # The MCP server should have our tool registered
             # FastMCP stores tools internally - we verify via the tool count
             tools = await agent.tools.get_tools()
@@ -107,34 +97,6 @@ async def test_get_mcp_server_config_http():
             assert "/mcp" in str(config.url)
 
 
-async def test_pool_create_tool_bridge():
-    """Test creating tool bridge via AgentPool."""
-    async with AgentPool() as pool:
-        # Create a minimal agent to get a tool manager
-        agent = await pool.add_agent(name="test_agent", model="test", system_prompt="Test")
-        # Create bridge from agent
-        bridge = await pool.create_tool_bridge(agent, name="test_bridge")
-
-        assert bridge.port > 0
-        assert "test_bridge" in pool._tool_bridges
-        # Cleanup should stop bridges
-        await pool.remove_tool_bridge("test_bridge")
-        assert "test_bridge" not in pool._tool_bridges
-
-
-async def test_pool_tool_bridge_cleanup():
-    """Test that pool cleanup stops all bridges."""
-    pool = AgentPool()
-    async with pool:
-        agent = await pool.add_agent(name="test_agent", model="test", system_prompt="Test")
-        await pool.create_tool_bridge(agent, name="bridge1")
-        await pool.create_tool_bridge(agent, name="bridge2")
-        assert len(pool._tool_bridges) == 2
-
-    # After exiting, bridges should be cleaned up
-    assert len(pool._tool_bridges) == 0
-
-
 async def test_bridge_with_context_tools():
     """Test that tools requiring AgentContext work through bridge."""
     async with AgentPool() as pool:
@@ -143,7 +105,7 @@ async def test_bridge_with_context_tools():
         agent.tools.register_tool(simple_add)
         agent.tools.register_tool(list_pool_agents)
 
-        async with ToolManagerBridge(node=agent, port=0):
+        async with ToolManagerBridge(node=agent, _init_port=0):
             # Both tools should be registered
             tools = await agent.tools.get_tools()
             assert len(tools) == 2
@@ -157,28 +119,12 @@ async def test_proxy_context_creation():
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="owner", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        ToolManagerBridge(node=agent, port=0)
+        ToolManagerBridge(node=agent, _init_port=0)
         # The bridge uses node.get_context() and replaces tool fields
         # We verify the node's context has the right properties
         ctx = agent.get_context()
         assert ctx.node_name == "owner"
         assert ctx.pool is pool
-
-
-async def test_duplicate_bridge_name_raises():
-    """Test that creating bridge with duplicate name raises."""
-    async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
-        await pool.create_tool_bridge(agent, name="my_bridge")
-        with pytest.raises(ValueError, match="already exists"):
-            await pool.create_tool_bridge(agent, name="my_bridge")
-
-
-async def test_get_nonexistent_bridge_raises():
-    """Test that getting nonexistent bridge raises KeyError."""
-    async with AgentPool() as pool:
-        with pytest.raises(KeyError, match="not found"):
-            await pool.get_tool_bridge("nonexistent")
 
 
 async def test_acp_agent_toolsets_adds_providers():
