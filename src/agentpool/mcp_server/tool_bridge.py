@@ -209,20 +209,6 @@ def _extract_tool_call_id(context: Context | None) -> str:
 
 
 @dataclass
-class BridgeConfig:
-    """Configuration for the ToolManager MCP bridge."""
-
-    host: str = "127.0.0.1"
-    """Host to bind the HTTP server to."""
-
-    port: int = 0
-    """Port to bind to (0 = auto-select available port)."""
-
-    server_name: str = "agentpool-toolmanager"
-    """Name for the MCP server."""
-
-
-@dataclass
 class ToolManagerBridge:
     """Exposes a node's tools as an MCP server for ACP agents.
 
@@ -236,7 +222,7 @@ class ToolManagerBridge:
         ```python
         async with AgentPool() as pool:
             agent = pool.agents["my_agent"]
-            bridge = ToolManagerBridge(node=agent, config=BridgeConfig(port=8765))
+            bridge = ToolManagerBridge(node=agent, port=8765)
             async with bridge:
                 # Bridge is running, get MCP config for ACP agent
                 mcp_config = bridge.get_mcp_server_config()
@@ -247,8 +233,14 @@ class ToolManagerBridge:
     node: BaseAgent[Any, Any]
     """The node whose tools to expose."""
 
-    config: BridgeConfig = field(default_factory=BridgeConfig)
-    """Bridge configuration."""
+    host: str = "127.0.0.1"
+    """Host to bind the HTTP server to."""
+
+    port: int = 0
+    """Port to bind to (0 = auto-select available port)."""
+
+    server_name: str = "agentpool-toolmanager"
+    """Name for the MCP server."""
 
     current_deps: Any = field(default=None, init=False, repr=False)
     """Current dependencies for tool invocations (set by run_stream)."""
@@ -278,7 +270,7 @@ class ToolManagerBridge:
         """Start the HTTP MCP server in the background."""
         from fastmcp import FastMCP
 
-        self._mcp = FastMCP(name=self.config.server_name)
+        self._mcp = FastMCP(name=self.server_name)
         await self._register_tools()
         self._subscribe_to_tool_changes()
         await self._start_server()
@@ -383,7 +375,7 @@ class ToolManagerBridge:
     @property
     def url(self) -> str:
         """Get the server URL."""
-        return f"http://{self.config.host}:{self.port}/mcp"
+        return f"http://{self.host}:{self.port}/mcp"
 
     def get_mcp_server_config(self) -> HttpMcpServer:
         """Get ACP-compatible MCP server configuration.
@@ -393,7 +385,7 @@ class ToolManagerBridge:
         from acp.schema import HttpMcpServer
 
         url = HttpUrl(self.url)
-        return HttpMcpServer(name=self.config.server_name, url=url, headers=[])
+        return HttpMcpServer(name=self.server_name, url=url, headers=[])
 
     def get_claude_mcp_server_config(self) -> dict[str, McpServerConfig]:
         """Get Claude Agent SDK-compatible MCP server configuration.
@@ -418,8 +410,8 @@ class ToolManagerBridge:
 
         # Use HTTP transport to preserve _meta field with claudecode/toolUseId
         # SDK transport drops _meta in Claude Agent SDK's query.py
-        url = f"http://{self.config.host}:{self.port}/mcp"
-        return {self.config.server_name: {"type": "http", "url": url}}
+        url = f"http://{self.host}:{self.port}/mcp"
+        return {self.server_name: {"type": "http", "url": url}}
 
     async def _register_tools(self) -> None:
         """Register all node tools with the FastMCP server."""
@@ -551,21 +543,21 @@ class ToolManagerBridge:
             raise RuntimeError(msg)
 
         # Determine actual port (auto-select if 0)
-        port = self.config.port
+        port = self.port
         if port == 0:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind((self.config.host, 0))
+                s.bind((self.host, 0))
                 port = s.getsockname()[1]
         self._actual_port = port
         # Create the ASGI app
         app = self._mcp.http_app(transport="http")
         # Configure uvicorn
         cfg = uvicorn.Config(
-            app=app, host=self.config.host, port=port, log_level="warning", ws="websockets-sansio"
+            app=app, host=self.host, port=port, log_level="warning", ws="websockets-sansio"
         )
         self._server = uvicorn.Server(cfg)
         # Start server in background task
-        name = f"mcp-bridge-{self.config.server_name}"
+        name = f"mcp-bridge-{self.server_name}"
         self._server_task = asyncio.create_task(self._server.serve(), name=name)
         await anyio.sleep(0.1)  # Wait briefly for server to start
         msg = "ToolManagerBridge started"
@@ -589,7 +581,6 @@ async def create_tool_bridge(
     Yields:
         Running ToolManagerBridge instance
     """
-    config = BridgeConfig(host=host, port=port)
-    bridge = ToolManagerBridge(node=node, config=config)
+    bridge = ToolManagerBridge(node=node, host=host, port=port)
     async with bridge:
         yield bridge

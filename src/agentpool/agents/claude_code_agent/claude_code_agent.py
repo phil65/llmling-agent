@@ -339,11 +339,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._sdk_session_id: str | None = None  # Session ID from Claude SDK init message
         self.deps_type = type(None)
 
-        from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
+        from agentpool.mcp_server.tool_bridge import ToolManagerBridge
 
         # ToolBridge state for exposing toolsets via MCP
-        bridge_config = BridgeConfig(server_name=f"agentpool-{self.name}-tools")
-        self._tool_bridge = ToolManagerBridge(node=self, config=bridge_config)
+        self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
         self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
 
         # Track pending tool call for permission matching

@@ -236,14 +236,13 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         Returns:
             Started ToolManagerBridge instance
         """
-        from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
+        from agentpool.mcp_server.tool_bridge import ToolManagerBridge
 
         if name in self._tool_bridges:
             msg = f"Tool bridge {name!r} already exists"
             raise ValueError(msg)
 
-        config = BridgeConfig(host=host, port=port, server_name=f"agentpool-{name}")
-        bridge = ToolManagerBridge(node=node, config=config)
+        bridge = ToolManagerBridge(node=node, host=host, port=port, server_name=f"agentpool-{name}")
         await bridge.start()
         self._tool_bridges[name] = bridge
         return bridge

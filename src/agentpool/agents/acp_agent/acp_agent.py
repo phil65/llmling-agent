@@ -149,7 +149,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         tool_confirmation_mode: ToolConfirmationMode = "always",
         commands: Sequence[BaseCommand] | None = None,
     ) -> None:
-        from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge
+        from agentpool.mcp_server.tool_bridge import ToolManagerBridge
 
         # Build config from kwargs if not provided
         if config is None:
@@ -199,8 +199,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.deps_type = type(None)
         self._extra_mcp_servers: list[McpServer] = []
         # Create bridge (not started yet) - will be started in _setup_toolsets if needed
-        bridge_config = BridgeConfig(server_name=f"agentpool-{self.name}-tools")
-        self._tool_bridge = ToolManagerBridge(node=self, config=bridge_config)
+        self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
         # Client execution environment (for subprocess requests) - falls back to env
         self._client_env: ExecutionEnvironment | None = config.get_client_execution_environment()
         # Track the prompt task for cancellation

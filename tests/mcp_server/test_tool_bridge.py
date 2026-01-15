@@ -8,7 +8,7 @@ import pytest
 
 from agentpool import AgentPool
 from agentpool.agents.acp_agent import ACPAgent
-from agentpool.mcp_server.tool_bridge import BridgeConfig, ToolManagerBridge, create_tool_bridge
+from agentpool.mcp_server.tool_bridge import ToolManagerBridge, create_tool_bridge
 from agentpool.models.acp_agents.non_mcp import ClaudeACPAgentConfig
 from agentpool_config.toolsets import SkillsToolsetConfig, SubagentToolsetConfig
 
@@ -31,12 +31,14 @@ async def list_pool_agents(ctx: AgentContext) -> str:
     return ", ".join(ctx.pool.agents.keys())
 
 
-async def test_bridge_config_defaults():
-    """Test BridgeConfig has sensible defaults."""
-    config = BridgeConfig()
-    assert config.host == "127.0.0.1"
-    assert config.port == 0  # Auto-select
-    assert config.server_name == "agentpool-toolmanager"
+async def test_bridge_defaults():
+    """Test ToolManagerBridge has sensible defaults."""
+    async with AgentPool() as pool:
+        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
+        bridge = ToolManagerBridge(node=agent)
+        assert bridge.host == "127.0.0.1"
+        assert bridge.port == 0  # Auto-select
+        assert bridge.server_name == "agentpool-toolmanager"
 
 
 async def test_bridge_lifecycle():
@@ -44,7 +46,7 @@ async def test_bridge_lifecycle():
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        bridge = ToolManagerBridge(node=agent, config=BridgeConfig(port=0))
+        bridge = ToolManagerBridge(node=agent, port=0)
         # Not started yet
         assert bridge._mcp is None
         assert bridge._actual_port is None
@@ -63,8 +65,7 @@ async def test_bridge_context_manager():
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        cfg = BridgeConfig(port=0)
-        async with ToolManagerBridge(node=agent, config=cfg) as bridge:
+        async with ToolManagerBridge(node=agent, port=0) as bridge:
             assert bridge.port > 0
             assert bridge._server is not None
 
@@ -86,8 +87,7 @@ async def test_bridge_registers_tools():
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        cfg = BridgeConfig(port=0)
-        async with ToolManagerBridge(node=agent, config=cfg) as bridge:
+        async with ToolManagerBridge(node=agent, port=0) as bridge:
             assert bridge._mcp is not None  # The MCP server should have our tool registered
             # FastMCP stores tools internally - we verify via the tool count
             tools = await agent.tools.get_tools()
@@ -100,8 +100,7 @@ async def test_get_mcp_server_config_http():
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        cfg = BridgeConfig()
-        async with ToolManagerBridge(node=agent, config=cfg) as bridge:
+        async with ToolManagerBridge(node=agent) as bridge:
             config = bridge.get_mcp_server_config()
             assert config.name == "agentpool-toolmanager"
             assert str(config.url).startswith("http://")
@@ -144,7 +143,7 @@ async def test_bridge_with_context_tools():
         agent.tools.register_tool(simple_add)
         agent.tools.register_tool(list_pool_agents)
 
-        async with ToolManagerBridge(node=agent, config=BridgeConfig(port=0)):
+        async with ToolManagerBridge(node=agent, port=0):
             # Both tools should be registered
             tools = await agent.tools.get_tools()
             assert len(tools) == 2
@@ -158,8 +157,7 @@ async def test_proxy_context_creation():
     async with AgentPool() as pool:
         agent = await pool.add_agent(name="owner", model="test", system_prompt="Test")
         agent.tools.register_tool(simple_add)
-        cfg = BridgeConfig(port=0)
-        ToolManagerBridge(node=agent, config=cfg)
+        ToolManagerBridge(node=agent, port=0)
         # The bridge uses node.get_context() and replaces tool fields
         # We verify the node's context has the right properties
         ctx = agent.get_context()
