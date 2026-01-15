@@ -27,6 +27,10 @@ Nodes are the core building blocks of AgentPool. This section covers the differe
 
 [Claude Code agents](claude-code-agents.md) provide native integration with the Claude Agent SDK. While Claude Code can also be used via the ACP bridge, this direct integration offers lower latency, tighter integration, and the ability to expose AgentPool's internal toolsets to Claude Code via MCP.
 
+### Codex Agents
+
+[Codex agents](codex-agents.md) integrate with the Codex app-server via its JSON-RPC protocol. Codex provides advanced code editing capabilities with configurable reasoning effort levels and tool approval policies. Like Claude Code agents, Codex agents can leverage AgentPool's internal toolsets through MCP bridging.
+
 
 ## Teams
 
@@ -38,10 +42,12 @@ Nodes are the core building blocks of AgentPool. This section covers the differe
 
 ## Quick Comparison
 
-| Feature | Standard Agent | Claude Code Agent | ACP Agent | AG-UI Agent | Team |
-|---------|---------------|-------------------|-----------|-------------|------|
-| Runs in-process | Yes | Yes (SDK) | No | No | Yes |
-| Full configuration | Yes | Yes | Limited | Limited | Yes |
-| External tools | Via toolsets | Built-in + MCP bridge | Built-in | Via server | Via members |
-| Streaming | Yes | Yes | Yes | Yes | Yes |
-| Use case | Primary agents | Coding tasks | External agents | Remote services | Coordination |
+| Feature | Standard Agent | Claude Code Agent | Codex Agent | ACP Agent | AG-UI Agent | Team |
+|---------|---------------|-------------------|-------------|-----------|-------------|------|
+| Runs in-process | Yes | Yes (SDK) | Yes (subprocess) | No | No | Yes |
+| Full configuration | Yes | Yes | Yes | Limited | Limited | Yes |
+| External tools | Via toolsets | Built-in + MCP bridge | Native + MCP bridge | Built-in | Via server | Via members |
+| Structured output | Result tools | Result tools | JSON Schema | Limited | Limited | Via members |
+| Reasoning control | Model-dependent | Extended thinking | Effort levels | Model-dependent | Model-dependent | Via members |
+| Streaming | Yes | Yes | Yes | Yes | Yes | Yes |
+| Use case | Primary agents | Claude coding | Codex coding | External agents | Remote services | Coordination |

@@ -11217,6 +11217,557 @@
       "title": "Codex ACP Agent Configuration",
       "type": "object"
     },
+    "CodexAgentConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for Codex app-server agent.\n\nWraps the Codex app-server via its JSON-RPC protocol, enabling\nintegration with agentpool's agent ecosystem.",
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Identifier for the node. Set from dict key, not from YAML.",
+          "title": "Name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "config_file_path": {
+          "default": null,
+          "description": "Config file path for resolving relative paths.",
+          "examples": [
+            "/path/to/config.yml",
+            "configs/agent.yaml"
+          ],
+          "title": "Configuration file path",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "default": null,
+          "description": "Human-readable display name for the node.",
+          "examples": [
+            "Main Agent",
+            "Web Searcher",
+            "Code Assistant"
+          ],
+          "title": "Display name",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": null,
+          "description": "Optional description of the agent / team.",
+          "examples": [
+            "Main conversation agent",
+            "Handles web search requests"
+          ],
+          "title": "Node description",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "triggers": {
+          "description": "Event sources that activate this agent / team",
+          "examples": [
+            [
+              {
+                "name": "daily_check",
+                "prompt": "Daily status update",
+                "schedule": "0 9 * * *",
+                "type": "time"
+              }
+            ],
+            [
+              {
+                "extensions": [
+                  ".py"
+                ],
+                "name": "code_watcher",
+                "paths": [
+                  "./src"
+                ],
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "email": "#/$defs/EmailConfig",
+                "file": "#/$defs/FileWatchConfig",
+                "time": "#/$defs/TimeEventConfig",
+                "webhook": "#/$defs/WebhookConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/FileWatchConfig"
+              },
+              {
+                "$ref": "#/$defs/WebhookConfig"
+              },
+              {
+                "$ref": "#/$defs/EmailConfig"
+              },
+              {
+                "$ref": "#/$defs/TimeEventConfig"
+              }
+            ]
+          },
+          "title": "Event triggers",
+          "type": "array"
+        },
+        "connections": {
+          "description": "Targets to forward results to.",
+          "examples": [
+            [
+              {
+                "connection_type": "run",
+                "name": "output_agent",
+                "type": "node",
+                "wait_for_completion": true
+              }
+            ],
+            [
+              {
+                "path": "logs/messages.txt",
+                "template": "{{ message.content }}",
+                "type": "file"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "callable": "#/$defs/CallableConnectionConfig",
+                "file": "#/$defs/FileConnectionConfig",
+                "node": "#/$defs/NodeConnectionConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NodeConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/FileConnectionConfig"
+              },
+              {
+                "$ref": "#/$defs/CallableConnectionConfig"
+              }
+            ]
+          },
+          "title": "Message forwarding targets",
+          "type": "array"
+        },
+        "mcp_servers": {
+          "description": "List of MCP server configurations:\n- str entries are converted to StdioMCPServerConfig\n- MCPServerConfig for full server configuration",
+          "examples": [
+            [
+              "uvx some-server"
+            ],
+            [
+              {
+                "type": "streamable-http",
+                "url": "http://mcp.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "discriminator": {
+                  "mapping": {
+                    "sse": "#/$defs/SSEMCPServerConfig",
+                    "stdio": "#/$defs/StdioMCPServerConfig",
+                    "streamable-http": "#/$defs/StreamableHTTPMCPServerConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/StdioMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SSEMCPServerConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/StreamableHTTPMCPServerConfig"
+                  }
+                ]
+              }
+            ]
+          },
+          "title": "MCP servers",
+          "type": "array"
+        },
+        "input_provider": {
+          "default": null,
+          "description": "Provider for human-input-handling.",
+          "title": "Input provider",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_handlers": {
+          "description": "Event handlers for processing agent stream events.\n\nSupports:\n- builtin: Simple/detailed console output\n- tts: Text-to-speech synthesis\n- callback: Custom handler via import path",
+          "examples": [
+            [
+              {
+                "handler": "simple",
+                "type": "builtin"
+              }
+            ]
+          ],
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "builtin": "#/$defs/StdoutEventHandlerConfig",
+                "callback": "#/$defs/CallbackEventHandlerConfig",
+                "file": "#/$defs/FileStreamEventHandlerConfig",
+                "tts-edge": "#/$defs/EdgeTTSEventHandlerConfig",
+                "tts-openai": "#/$defs/TTSEventHandlerConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/StdoutEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/CallbackEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/FileStreamEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/TTSEventHandlerConfig"
+              },
+              {
+                "$ref": "#/$defs/EdgeTTSEventHandlerConfig"
+              }
+            ]
+          },
+          "title": "Event handlers",
+          "type": "array"
+        },
+        "requires_tool_confirmation": {
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
+          "enum": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "type": {
+          "const": "codex",
+          "default": "codex",
+          "description": "Top-level discriminator for agent type.",
+          "title": "Type",
+          "type": "string"
+        },
+        "cwd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": [
+                "string"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Working directory for Codex session.",
+          "examples": [
+            "/path/to/project",
+            ".",
+            "/home/user/myproject"
+          ],
+          "title": "Working Directory"
+        },
+        "model": {
+          "default": null,
+          "description": "Model to use for the Codex session.\n\nCodex app-server provides its own set of models (e.g., gpt-5.1-codex-max).\nUse the agent's get_available_models() method to fetch the current list from your server.",
+          "examples": [
+            "gpt-5.1-codex-max",
+            "gpt-5.1-codex-mini",
+            "gpt-5-codex",
+            "claude-opus-4"
+          ],
+          "title": "Model",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reasoning_effort": {
+          "anyOf": [
+            {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Reasoning effort level for the model.",
+          "examples": [
+            "medium",
+            "high"
+          ],
+          "title": "Reasoning Effort"
+        },
+        "tools": {
+          "description": "Tools and toolsets to expose to Codex via MCP bridge.\n\nThese will be started as an in-process MCP server and made available\nto the Codex agent.",
+          "examples": [
+            [
+              {
+                "type": "subagent"
+              },
+              {
+                "type": "agent_management"
+              },
+              "webbrowser:open"
+            ]
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "bash": "#/$defs/BashToolConfig",
+                    "builtin": {
+                      "discriminator": {
+                        "mapping": {
+                          "code_execution": "#/$defs/CodeExecutionToolConfig",
+                          "image_generation": "#/$defs/ImageGenerationToolConfig",
+                          "mcp_server": "#/$defs/MCPServerToolConfig",
+                          "memory": "#/$defs/MemoryToolConfig",
+                          "web_fetch": "#/$defs/WebFetchToolConfig",
+                          "web_search": "#/$defs/WebSearchToolConfig"
+                        },
+                        "propertyName": "builtin_type"
+                      },
+                      "oneOf": [
+                        {
+                          "$ref": "#/$defs/WebSearchToolConfig"
+                        },
+                        {
+                          "$ref": "#/$defs/CodeExecutionToolConfig"
+                        },
+                        {
+                          "$ref": "#/$defs/WebFetchToolConfig"
+                        },
+                        {
+                          "$ref": "#/$defs/ImageGenerationToolConfig"
+                        },
+                        {
+                          "$ref": "#/$defs/MemoryToolConfig"
+                        },
+                        {
+                          "$ref": "#/$defs/MCPServerToolConfig"
+                        }
+                      ]
+                    },
+                    "code": "#/$defs/CodeToolsetConfig",
+                    "code_mode": "#/$defs/CodeModeToolsetConfig",
+                    "composio": "#/$defs/ComposioToolSetConfig",
+                    "config_creation": "#/$defs/ConfigCreationToolsetConfig",
+                    "custom": "#/$defs/CustomToolsetConfig",
+                    "debug": "#/$defs/DebugToolsetConfig",
+                    "delete_path": "#/$defs/DeletePathToolConfig",
+                    "download_file": "#/$defs/DownloadFileToolConfig",
+                    "entry_points": "#/$defs/EntryPointToolsetConfig",
+                    "execute_code": "#/$defs/ExecuteCodeToolConfig",
+                    "file_access": "#/$defs/FSSpecToolsetConfig",
+                    "grep": "#/$defs/GrepToolConfig",
+                    "import": "#/$defs/ImportToolConfig",
+                    "import_tools": "#/$defs/ImportToolsToolsetConfig",
+                    "list_directory": "#/$defs/ListDirectoryToolConfig",
+                    "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
+                    "notifications": "#/$defs/NotificationsToolsetConfig",
+                    "openapi": "#/$defs/OpenAPIToolsetConfig",
+                    "plan": "#/$defs/PlanToolsetConfig",
+                    "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                    "question": "#/$defs/QuestionToolConfig",
+                    "read": "#/$defs/ReadToolConfig",
+                    "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
+                    "search": "#/$defs/SearchToolsetConfig",
+                    "skills": "#/$defs/SkillsToolsetConfig",
+                    "subagent": "#/$defs/SubagentToolsetConfig",
+                    "vfs": "#/$defs/VFSToolsetConfig",
+                    "workers": "#/$defs/WorkersToolsetConfig"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/ImportToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AgentCliToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/QuestionToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/BashToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DeletePathToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DownloadFileToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ExecuteCodeToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/GrepToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ListDirectoryToolConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ReadToolConfig"
+                  },
+                  {
+                    "discriminator": {
+                      "mapping": {
+                        "code_execution": "#/$defs/CodeExecutionToolConfig",
+                        "image_generation": "#/$defs/ImageGenerationToolConfig",
+                        "mcp_server": "#/$defs/MCPServerToolConfig",
+                        "memory": "#/$defs/MemoryToolConfig",
+                        "web_fetch": "#/$defs/WebFetchToolConfig",
+                        "web_search": "#/$defs/WebSearchToolConfig"
+                      },
+                      "propertyName": "builtin_type"
+                    },
+                    "oneOf": [
+                      {
+                        "$ref": "#/$defs/WebSearchToolConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/CodeExecutionToolConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/WebFetchToolConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/ImageGenerationToolConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/MemoryToolConfig"
+                      },
+                      {
+                        "$ref": "#/$defs/MCPServerToolConfig"
+                      }
+                    ]
+                  },
+                  {
+                    "$ref": "#/$defs/OpenAPIToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/EntryPointToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ComposioToolSetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ProcessManagementToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SkillsToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/CodeToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/FSSpecToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/VFSToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SubagentToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/CodeModeToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/SearchToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/NotificationsToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ConfigCreationToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ImportToolsToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/PlanToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/DebugToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/CustomToolsetConfig"
+                  }
+                ]
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Tools",
+          "type": "array"
+        }
+      },
+      "title": "CodexAgentConfig",
+      "type": "object",
+      "x-doc-title": "Codex Agent Configuration",
+      "x-icon": "octicon:code-16"
+    },
     "CommandHookConfig": {
       "additionalProperties": false,
       "description": "Hook that executes a shell command.\n\nThe command receives hook input as JSON via stdin and should return\nJSON output via stdout. Exit code 0 = success, exit code 2 = block.",
@@ -47995,6 +48546,7 @@
             },
             "agui": "#/$defs/AGUIAgentConfig",
             "claude_code": "#/$defs/ClaudeCodeAgentConfig",
+            "codex": "#/$defs/CodexAgentConfig",
             "native": "#/$defs/NativeAgentConfig"
           },
           "propertyName": "type"
@@ -48008,6 +48560,9 @@
           },
           {
             "$ref": "#/$defs/ClaudeCodeAgentConfig"
+          },
+          {
+            "$ref": "#/$defs/CodexAgentConfig"
           },
           {
             "discriminator": {

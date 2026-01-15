@@ -58,6 +58,7 @@ if TYPE_CHECKING:
     from agentpool.models.agents import NativeAgentConfig
     from agentpool.models.agui_agents import AGUIAgentConfig
     from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
+    from agentpool.models.codex_agents import CodexAgentConfig
     from agentpool.tools.base import Tool
 
 
@@ -73,7 +74,13 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
     Generically typed with AgentContext[Type of Dependencies]
     """
 
-    config: NativeAgentConfig | BaseACPAgentConfig | AGUIAgentConfig | ClaudeCodeAgentConfig
+    config: (
+        NativeAgentConfig
+        | BaseACPAgentConfig
+        | AGUIAgentConfig
+        | ClaudeCodeAgentConfig
+        | CodexAgentConfig
+    )
     """Current agent's specific configuration."""
 
     tool_name: str | None = None

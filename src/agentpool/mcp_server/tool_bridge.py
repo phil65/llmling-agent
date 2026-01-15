@@ -411,6 +411,27 @@ class ToolManagerBridge:
         url = f"http://127.0.0.1:{self.port}/mcp"
         return {self.server_name: {"type": "http", "url": url}}
 
+    def get_codex_mcp_server_config(self) -> tuple[str, Any]:
+        """Get Codex app-server-compatible MCP server configuration.
+
+        Returns a tuple of (server_name, HttpMcpServer) suitable for adding
+        to CodexClient mcp_servers dict.
+
+        Returns:
+            Tuple of (server name, HttpMcpServer config)
+
+        Raises:
+            RuntimeError: If bridge not started (no server running)
+        """
+        from codex_adapter.codex_types import HttpMcpServer as CodexHttpMcpServer
+
+        if self._actual_port is None:
+            msg = "Bridge not started - call start() first"
+            raise RuntimeError(msg)
+
+        url = f"http://127.0.0.1:{self.port}/mcp"
+        return (self.server_name, CodexHttpMcpServer(url=url))
+
     async def _register_tools(self) -> None:
         """Register all node tools with the FastMCP server."""
         if not self._mcp:

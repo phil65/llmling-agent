@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from agentpool.agents.agui_agent import AGUIAgent
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+    from agentpool.agents.codex_agent import CodexAgent
     from agentpool.agents.native_agent import AgentKwargs
     from agentpool.common_types import AgentName, BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation.base_team import BaseTeam
@@ -385,6 +386,13 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         return {i.name: i for i in self._items.values() if isinstance(i, ClaudeCodeAgent)}
 
     @property
+    def codex_agents(self) -> dict[str, CodexAgent]:
+        """Get Codex agents dict."""
+        from agentpool.agents.codex_agent import CodexAgent
+
+        return {i.name: i for i in self._items.values() if isinstance(i, CodexAgent)}
+
+    @property
     def all_agents(self) -> dict[str, BaseAgent[Any, Any]]:
         """Get all agents (regular, ACP, and AG-UI)."""
         from agentpool.agents.base_agent import BaseAgent
@@ -710,6 +718,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.models.agents import NativeAgentConfig
         from agentpool.models.agui_agents import AGUIAgentConfig
         from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
+        from agentpool.models.codex_agents import CodexAgentConfig
 
         # Ensure name is set on config
         if config.name is None:
@@ -749,6 +758,15 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     input_provider=self._input_provider,
                     agent_pool=self,
                     output_type=output_type,
+                )
+            case CodexAgentConfig():
+                from agentpool.agents.codex_agent import CodexAgent
+
+                return CodexAgent.from_config(
+                    config,
+                    event_handlers=self.event_handlers,
+                    input_provider=self._input_provider,
+                    agent_pool=self,
                 )
             case BaseACPAgentConfig():
                 from agentpool.agents.acp_agent import ACPAgent

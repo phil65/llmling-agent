@@ -61,7 +61,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 # Literal type for all agent types
-type AgentTypeLiteral = Literal["native", "acp", "agui", "claude"]
+type AgentTypeLiteral = Literal["native", "acp", "agui", "claude", "codex"]
 
 
 class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):

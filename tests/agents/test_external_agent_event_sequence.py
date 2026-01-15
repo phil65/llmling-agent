@@ -1,6 +1,6 @@
 """Integration tests for event sequence consistency across agent types.
 
-These tests verify that all agent types (Agent, ACPAgent, ClaudeCodeAgent)
+These tests verify that all agent types (Agent, ACPAgent, ClaudeCodeAgent, CodexAgent)
 emit events in a consistent sequence when executing the same logical flow:
 text -> tool call -> text.
 
@@ -10,7 +10,7 @@ The tests use two collection methods:
 
 Both should capture the same events, ensuring event handlers receive everything.
 
-Run with: pytest tests/agents/test_event_sequence_consistency.py -v -m integration
+Run with: pytest tests/agents/test_external_agent_event_sequence.py -v -m integration
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ import pytest
 
 from agentpool import Agent
 from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+from agentpool.agents.codex_agent import CodexAgent
 from agentpool.agents.events import StreamCompleteEvent, ToolCallCompleteEvent
 
 
@@ -126,7 +127,7 @@ agents:
     type: native
     model: openai:gpt-4o-mini
     tools:
-      - tests.agents.test_event_sequence_consistency:create_echo_tool
+      - tests.agents.test_external_agent_event_sequence:create_echo_tool
 """
     config_file = tmp_path / "test_config.yml"
     config_file.write_text(config_yaml)
@@ -157,6 +158,25 @@ def claude_code_agent_config() -> dict[str, Any]:
         "allowed_tools": ["Bash"],
         "permission_mode": "bypassPermissions",
     }
+
+
+@pytest.fixture
+def codex_agent_config() -> dict[str, Any]:
+    """Create CodexAgent config kwargs."""
+    return {
+        "name": "codex-test-agent",
+        "model": "gpt-5.1-codex-max",
+        "cwd": str(Path.cwd()),
+        "reasoning_effort": "medium",
+    }
+
+
+@pytest.fixture(params=["claude_code", "codex"])
+def external_agent_config(request: pytest.FixtureRequest) -> tuple[type, dict[str, Any]]:
+    """Parametrized fixture for external agent configs."""
+    if request.param == "claude_code":
+        return ClaudeCodeAgent, request.getfixturevalue("claude_code_agent_config")
+    return CodexAgent, request.getfixturevalue("codex_agent_config")
 
 
 # --- Tests ---
@@ -245,6 +265,72 @@ Follow these steps exactly:
                     collector.iterated_events.append(event)
     except TimeoutError:
         pytest.skip("Claude Code agent took too long to respond")
+
+    # Verify both collection methods got the same events
+    iterated_types = collector.get_iterated_types()
+    handler_types = collector.get_handler_types()
+    assert iterated_types == handler_types, "Handler should receive same events as iteration"
+
+    # Verify key event sequence
+    key_events = extract_key_events(collector.iterated_events)
+    assert key_events[0] == "RunStartedEvent", "Must start with RunStartedEvent"
+    assert key_events[-1] == "StreamCompleteEvent", "Must end with StreamCompleteEvent"
+
+
+async def test_codex_agent_event_sequence(codex_agent_config: dict[str, Any]):
+    """Test CodexAgent emits events in expected sequence."""
+    collector = EventCollector()
+
+    prompt = """\
+Follow these steps exactly:
+1. Say "I will run a command"
+2. Run: echo "hello from codex"
+3. Say "Done"
+"""
+
+    try:
+        async with CodexAgent(**codex_agent_config) as agent:
+            with anyio.fail_after(60.0):
+                async for event in agent.run_stream(
+                    prompt, event_handlers=[collector.handle_event]
+                ):
+                    collector.iterated_events.append(event)
+    except TimeoutError:
+        pytest.skip("Codex agent took too long to respond")
+
+    # Verify both collection methods got the same events
+    iterated_types = collector.get_iterated_types()
+    handler_types = collector.get_handler_types()
+    assert iterated_types == handler_types, "Handler should receive same events as iteration"
+
+    # Verify key event sequence
+    key_events = extract_key_events(collector.iterated_events)
+    assert key_events[0] == "RunStartedEvent", "Must start with RunStartedEvent"
+    assert key_events[-1] == "StreamCompleteEvent", "Must end with StreamCompleteEvent"
+
+
+async def test_external_agent_event_consistency(
+    external_agent_config: tuple[type, dict[str, Any]],
+):
+    """Parametrized test for external agents (ClaudeCode and Codex) event sequence."""
+    agent_class, config = external_agent_config
+    collector = EventCollector()
+
+    prompt = """\
+Follow these steps exactly:
+1. Say "Starting task"
+2. Say "Task complete"
+"""
+
+    try:
+        async with agent_class(**config) as agent:
+            with anyio.fail_after(60.0):
+                async for event in agent.run_stream(
+                    prompt, event_handlers=[collector.handle_event]
+                ):
+                    collector.iterated_events.append(event)
+    except TimeoutError:
+        pytest.skip(f"{agent_class.__name__} took too long to respond")
 
     # Verify both collection methods got the same events
     iterated_types = collector.get_iterated_types()

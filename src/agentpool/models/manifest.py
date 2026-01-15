@@ -16,6 +16,7 @@ from agentpool.models.acp_agents import ACPAgentConfigTypes
 from agentpool.models.agents import AnyToolConfig, NativeAgentConfig  # noqa: F401
 from agentpool.models.agui_agents import AGUIAgentConfig
 from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
+from agentpool.models.codex_agents import CodexAgentConfig
 from agentpool.models.file_agents import FileAgentConfig
 from agentpool_config.commands import CommandConfig, StaticCommandConfig
 from agentpool_config.compaction import CompactionConfig
@@ -59,7 +60,11 @@ ResourceConfig = _FileSystemConfigUnion | str
 
 # Unified agent config type with top-level discriminator
 AnyAgentConfig = Annotated[
-    NativeAgentConfig | AGUIAgentConfig | ClaudeCodeAgentConfig | ACPAgentConfigTypes,
+    NativeAgentConfig
+    | AGUIAgentConfig
+    | ClaudeCodeAgentConfig
+    | CodexAgentConfig
+    | ACPAgentConfigTypes,
     Field(discriminator="type"),
 ]
 

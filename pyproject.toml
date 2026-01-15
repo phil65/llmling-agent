@@ -442,6 +442,7 @@ module-name = [
   "agentpool_server",
   "agentpool_toolsets",
   "acp",
+  "codex_adapter",
 ]
 wheel-exclude = [
   ".mypy_cache/**",
