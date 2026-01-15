@@ -14,7 +14,6 @@ from uuid import uuid4
 
 from anyenv import method_spawner
 import logfire
-from pydantic import ValidationError
 from pydantic_ai import (
     Agent as PydanticAgent,
     BaseToolCallPart,
@@ -1077,21 +1076,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     self.model_settings = old_settings
                 if output_type:
                     self.to_structured(old_type)
-
-    async def validate_against(
-        self,
-        prompt: str,
-        criteria: type[OutputDataT],
-        **kwargs: Any,
-    ) -> bool:
-        """Check if agent's response satisfies stricter criteria."""
-        result = await self.run(prompt, **kwargs)
-        try:
-            criteria.model_validate(result.content.model_dump())  # type: ignore
-        except ValidationError:
-            return False
-        else:
-            return True
 
     async def get_available_models(self) -> list[ModelInfo] | None:
         """Get available models for this agent.
