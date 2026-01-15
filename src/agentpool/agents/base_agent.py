@@ -7,7 +7,7 @@ import asyncio
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, ClassVar, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, overload
 
 from anyenv import MultiEventHandler, method_spawner
 from anyenv.signals import BoundSignal, Signal
@@ -60,6 +60,9 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# Literal type for all agent types
+type AgentTypeLiteral = Literal["native", "acp", "agui", "claude"]
+
 
 class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     """Base class for Agent, ACPAgent, AGUIAgent, and ClaudeCodeAgent.
@@ -79,7 +82,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     """
 
     # Abstract class variable - subclasses must define this
-    AGENT_TYPE: ClassVar[str]
+    AGENT_TYPE: ClassVar[AgentTypeLiteral]
 
     @dataclass(frozen=True)
     class RunFailedEvent:

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Literal, get_args
 
 from slashed import CompletionItem, CompletionProvider
 
+from agentpool.agents.base_agent import AgentTypeLiteral
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.messaging.context import NodeContext  # noqa: TC001
 
@@ -18,24 +19,23 @@ if TYPE_CHECKING:
 
 def get_available_agents(
     ctx: CompletionContext[AgentContext[Any]],
-    agent_type: Literal["all", "regular", "acp"] = "all",
+    agent_type: AgentTypeLiteral | Literal["all"] = "all",
 ) -> list[str]:
     """Get available agent names.
 
     Args:
         ctx: Completion context
-        agent_type: Filter by agent type ("all", "regular", or "acp")
+        agent_type: Filter by agent type ("native", "acp", "agui", "claude", or "all")
     """
     if not ctx.command_context.context.pool:
         return []
     pool = ctx.command_context.context.pool
-    match agent_type:
-        case "all":
-            return list(pool.all_agents.keys())
-        case "regular":
-            return list(pool.agents.keys())
-        case "acp":
-            return list(pool.acp_agents.keys())
+
+    if agent_type == "all":
+        return list(pool.all_agents.keys())
+
+    # Filter by AGENT_TYPE attribute
+    return [name for name, agent in pool.all_agents.items() if agent_type == agent.AGENT_TYPE]
 
 
 def get_available_nodes(ctx: CompletionContext[NodeContext[Any]]) -> list[str]:
