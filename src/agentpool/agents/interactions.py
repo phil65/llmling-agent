@@ -115,7 +115,7 @@ class Interactions:
             yield structured_agent
         finally:
             # Restore original output type
-            self.agent._output_type = old_output_type
+            self.agent.to_structured(old_output_type)
 
     # async def conversation(
     #     self,
