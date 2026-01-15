@@ -772,8 +772,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         message_id = message_id or str(uuid4())
         run_id = str(uuid4())
-        # Reset cancellation state
-        self._cancelled = False
         # Initialize conversation_id on first run and log to storage
         # Conversation ID initialization handled by BaseAgent
         processed_prompts = prompts

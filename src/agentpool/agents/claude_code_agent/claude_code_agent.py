@@ -1004,8 +1004,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Ensure client is connected (waits for deferred init if needed)
         await self.ensure_initialized()
-        # Reset cancellation state
-        self._cancelled = False
         # Initialize conversation_id on first run and log to storage
         # Use passed conversation_id if provided (e.g., from chained agents)
         # TODO: decide whether we should store CC sessions ourselves

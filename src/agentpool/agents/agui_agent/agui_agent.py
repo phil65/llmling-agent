@@ -370,8 +370,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
-        # Update input provider if provided
-
         from ag_ui.core import (
             RunAgentInput,
             TextMessageChunkEvent,
@@ -398,8 +396,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             msg = "Agent not initialized - use async context manager"
             raise RuntimeError(msg)
 
-        # Reset cancellation state
-        self._cancelled = False
         # Set thread_id from conversation_id (needed for AG-UI protocol)
         if self._thread_id is None:
             self._thread_id = self.conversation_id

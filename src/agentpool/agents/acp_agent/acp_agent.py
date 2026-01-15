@@ -529,7 +529,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             self.log.debug("Forked session", parent=self._session_id, fork=session_id)
         prompt_request = PromptRequest(session_id=session_id, prompt=final_blocks)
         self.log.debug("Starting streaming prompt", num_blocks=len(final_blocks))
-        self._cancelled = False  # Reset cancellation state
         # Run prompt in background
         prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
         self._prompt_task = prompt_task

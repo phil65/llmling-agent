@@ -483,6 +483,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         else:
             resolved_handler = self.event_handler
 
+        # Reset cancellation state for this run
+        self._cancelled = False
+
         # Stream events from implementation
         final_message = None
         self._current_stream_task = asyncio.current_task()
