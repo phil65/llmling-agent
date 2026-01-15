@@ -27,7 +27,6 @@ from pydantic_ai import (
     UserPromptPart,
 )
 
-from agentpool.agents.agui_agent.chunk_transformer import ChunkTransformer
 from agentpool.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
@@ -187,13 +186,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Client state
         self._client: httpx.AsyncClient | None = None
         self._thread_id: str | None = None
-        self._run_id: str | None = None
-
         # Override tools with provided tools
         self.tools = ToolManager(tools)
-
-        # Chunk transformer for normalizing CHUNK events
-        self._chunk_transformer = ChunkTransformer()
 
     @classmethod
     def from_config(
@@ -294,7 +288,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             await self._client.aclose()
             self._client = None
         self._thread_id = None
-        self._run_id = None
         if self._startup_process:  # Stop server if we started it
             await self._stop_server()
         self.log.debug("AG-UI client closed")
@@ -395,6 +388,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             to_agui_input_content,
             to_agui_tool,
         )
+        from agentpool.agents.agui_agent.chunk_transformer import ChunkTransformer
         from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
         if input_provider is not None:
@@ -411,8 +405,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._thread_id = self.conversation_id
 
         processed_prompts = prompts
-        self._run_id = str(uuid4())  # New run ID for each run
-        self._chunk_transformer.reset()  # Reset chunk transformer
+        run_id = str(uuid4())  # New run ID for each run
+        chunk_transformer = ChunkTransformer()  # Create chunk transformer for this run
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ModelRequest...
         # This mirrors pydantic-ai's new_messages() which includes the initial user request.
         model_messages: list[ModelResponse | ModelRequest] = []
@@ -425,7 +419,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
         run_started = RunStartedEvent(
             thread_id=self._thread_id or self.conversation_id,
-            run_id=self._run_id or str(uuid4()),
+            run_id=run_id,
             agent_name=self.name,
         )
 
@@ -441,13 +435,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         user_message = UserMessage(id=str(uuid4()), content=final_content)
         # Convert registered tools to AG-UI format
         available_tools = await self.tools.get_tools(state="enabled")
-        agui_tools = [to_agui_tool(t) for t in available_tools]
-        tools_by_name = {t.name: t for t in available_tools}
         # Build initial messages list
         messages: list[Message] = [user_message]
         tool_accumulator = ToolCallAccumulator()
         pending_tool_results: list[ToolMessage] = []
-        self.log.debug("Sending prompt to AG-UI agent", tool_names=[t.name for t in agui_tools])
         # Track files modified during this run
         file_tracker = FileTracker()
         # Loop to handle tool calls - agent may request multiple rounds
@@ -460,10 +451,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
                 request_data = RunAgentInput(
                     thread_id=self._thread_id or self.conversation_id,
-                    run_id=self._run_id,
+                    run_id=run_id,
                     state={},
                     messages=messages,
-                    tools=agui_tools,
+                    tools=[to_agui_tool(t) for t in available_tools],
                     context=[],
                     forwarded_props={},
                 )
@@ -481,7 +472,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                 break
 
                             # Transform chunks to proper START/CONTENT/END sequences
-                            transformed_events = self._chunk_transformer.transform(raw_event)
+                            transformed_events = chunk_transformer.transform(raw_event)
 
                             for event in transformed_events:
                                 # Handle events for accumulation and tool calls
@@ -529,7 +520,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                     yield native_event
 
                         # Flush any pending chunk events at end of stream
-                        for event in self._chunk_transformer.flush():
+                        for event in chunk_transformer.flush():
                             if native_event := agui_to_native_event(event):
                                 await event_handlers(None, native_event)
                                 yield native_event
@@ -549,7 +540,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 # Execute pending tool calls locally and collect results
                 pending_tool_results = await execute_tool_calls(
                     tool_calls_pending,
-                    tools_by_name,
+                    {t.name: t for t in available_tools},
                     confirmation_mode=self.tool_confirmation_mode,
                     input_provider=self._input_provider,
                     context=self.get_context(),
