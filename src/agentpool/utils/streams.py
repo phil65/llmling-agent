@@ -710,6 +710,29 @@ class TodoTracker:
             self.entries.clear()
             self._notify_change()
 
+    def replace_all(
+        self,
+        entries: list[tuple[str, TodoPriority, TodoStatus]],
+    ) -> None:
+        """Replace all entries with new ones (single notification).
+
+        More efficient than clear() + multiple add() calls since it only
+        triggers one change notification.
+
+        Args:
+            entries: List of (content, priority, status) tuples
+        """
+        self.entries.clear()
+        for content, priority, status in entries:
+            entry = TodoEntry(
+                id=self._next_id(),
+                content=content,
+                priority=priority,
+                status=status,
+            )
+            self.entries.append(entry)
+        self._notify_change()
+
     def get_by_status(self, status: TodoStatus) -> list[TodoEntry]:
         """Get all entries with a specific status.
 
