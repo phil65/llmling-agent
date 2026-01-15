@@ -316,7 +316,7 @@ Select ONE option by its exact label."""
 
         match selections:
             case AgentPool():
-                items: list[Any] = list(selections.agents.values())
+                items: list[Any] = list(selections.all_agents.values())
                 label_map: Mapping[str, Any] = {get_label(item): item for item in items}
             case Mapping():
                 label_map = selections

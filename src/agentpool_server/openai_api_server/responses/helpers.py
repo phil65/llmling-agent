@@ -15,12 +15,11 @@ from agentpool_server.openai_api_server.responses.models import (
 
 
 if TYPE_CHECKING:
-    from agentpool.agents import Agent
-    from agentpool.agents.acp_agent import ACPAgent
+    from agentpool.agents.base_agent import BaseAgent
     from agentpool_server.openai_api_server.responses.models import ResponseRequest
 
 
-async def handle_request(request: ResponseRequest, agent: Agent[Any, Any] | ACPAgent) -> Response:
+async def handle_request(request: ResponseRequest, agent: BaseAgent[Any, Any]) -> Response:
     from fastapi import HTTPException
 
     match request.input:

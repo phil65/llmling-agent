@@ -122,7 +122,7 @@ class ACPServer(BaseServer):
             config_path=str(config_path),
             transport=transport,
         )
-        agent_names = list(server.pool.agents.keys())
+        agent_names = list(server.pool.all_agents.keys())
 
         # Validate specified agent exists if provided
         if agent and agent not in agent_names:

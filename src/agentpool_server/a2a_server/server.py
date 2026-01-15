@@ -83,13 +83,13 @@ class A2AServer(HTTPServer):
 
         routes: list[Route] = []
         # Create route for each agent in the pool
-        for agent_name in self.pool.agents:
+        for agent_name in self.pool.all_agents:
 
             async def agent_handler(request: Request, agent_name: str = agent_name) -> Response:
                 """Handle A2A requests for a specific agent."""
                 try:
                     # Get the agent from pool
-                    agent = self.pool.agents.get(agent_name)
+                    agent = self.pool.all_agents.get(agent_name)
                     if agent is None:
                         error = {"error": f"Agent '{agent_name}' not found"}
                         return JSONResponse(error, status_code=404)
@@ -137,7 +137,7 @@ class A2AServer(HTTPServer):
                     "docs": f"/{name}/docs",
                     "model": agent.model_name,
                 }
-                for name, agent in self.pool.agents.items()
+                for name, agent in self.pool.all_agents.items()
             ]
             return JSONResponse({
                 "agents": agent_list,
@@ -147,7 +147,7 @@ class A2AServer(HTTPServer):
             })
 
         routes.append(Route("/", list_agents, methods=["GET"]))
-        self.log.info("Created A2A routes", agent_count=len(self.pool.agents))
+        self.log.info("Created A2A routes", agent_count=len(self.pool.all_agents))
         return routes
 
     def get_agent_url(self, agent_name: str) -> str:
@@ -184,5 +184,5 @@ class A2AServer(HTTPServer):
                 "agent_card": self.get_agent_card_url(name),
                 "docs": f"{self.base_url}/{name}/docs",
             }
-            for name in self.pool.agents
+            for name in self.pool.all_agents
         }

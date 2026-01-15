@@ -53,7 +53,7 @@ def api_command(
     pool = AgentPool(manifest)
 
     if show_messages:
-        for agent in pool.agents.values():
+        for agent in pool.all_agents.values():
             agent.message_sent.connect(on_message)
 
     server = OpenAIAPIServer(pool, cors=cors, docs=docs)

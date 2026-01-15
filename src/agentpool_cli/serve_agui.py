@@ -55,7 +55,7 @@ def agui_command(
     async def run_server() -> None:
         async with AgentPool(manifest) as pool:
             if show_messages:
-                for agent in pool.agents.values():
+                for agent in pool.all_agents.values():
                     agent.message_sent.connect(on_message)
 
             server = AGUIServer(pool, host=host, port=port)
@@ -64,7 +64,7 @@ def agui_command(
                     "AG-UI server started",
                     host=host,
                     port=port,
-                    agents=list(pool.agents.keys()),
+                    agents=list(pool.all_agents.keys()),
                 )
                 # List agent routes
                 for name, url in server.list_agent_routes().items():

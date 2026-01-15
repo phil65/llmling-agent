@@ -152,7 +152,7 @@ class OpenAIAPIServer(BaseServer):
         from fastapi import HTTPException
 
         try:
-            agent = self.pool.agents[req_body.model]
+            agent = self.pool.all_agents[req_body.model]
             return await handle_request(req_body, agent)
         except KeyError:
             raise HTTPException(404, f"Model {req_body.model} not found") from None

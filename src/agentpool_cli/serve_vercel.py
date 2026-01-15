@@ -70,7 +70,7 @@ def vercel_command(  # noqa: PLR0915
     pool = AgentPool(manifest)
 
     if show_messages:
-        for agent in pool.agents.values():
+        for agent in pool.all_agents.values():
             agent.message_sent.connect(on_message)
 
     # Create FastAPI app

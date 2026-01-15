@@ -118,5 +118,5 @@ class ServerBridge(abc.ABC):
     def __repr__(self) -> str:
         """String representation of the server."""
         status = "running" if self._running else "stopped"
-        pool_info = f"pool-{len(self._pool.agents)}-agents"
+        pool_info = f"pool-{len(self._pool.all_agents)}-agents"
         return f"{self.__class__.__name__}({pool_info}, {status})"

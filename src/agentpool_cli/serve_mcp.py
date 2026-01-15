@@ -63,7 +63,7 @@ def serve_command(
         server = MCPServer(pool, server_config)
         async with pool, server:
             if show_messages:
-                for agent in pool.agents.values():
+                for agent in pool.all_agents.values():
                     agent.message_sent.connect(on_message)
 
             try:
