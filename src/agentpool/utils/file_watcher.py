@@ -199,7 +199,6 @@ class GitBranchWatcher:
 
         repo = Path(self.repo_path)
         git_dir = repo / ".git"
-
         # Handle git worktrees - .git might be a file pointing to the real git dir
         if git_dir.is_file():
             content = git_dir.read_text().strip()
@@ -212,12 +211,8 @@ class GitBranchWatcher:
 
         # Get initial branch
         self._current_branch = await get_git_branch(self.repo_path)
-        logger.info(
-            "GitBranchWatcher started (polling), repo: %s, initial branch: %s",
-            self.repo_path,
-            self._current_branch,
-        )
-
+        msg = "GitBranchWatcher started (polling), repo: %s, initial branch: %s"
+        logger.info(msg, self.repo_path, self._current_branch)
         self._stop_event.clear()
         self._task = asyncio.create_task(self._poll_loop())
 
@@ -225,10 +220,7 @@ class GitBranchWatcher:
         """Internal polling loop."""
         while not self._stop_event.is_set():
             try:
-                await asyncio.wait_for(
-                    self._stop_event.wait(),
-                    timeout=self.poll_interval,
-                )
+                await asyncio.wait_for(self._stop_event.wait(), timeout=self.poll_interval)
                 break  # Stop event was set
             except TimeoutError:
                 # Poll interval elapsed, check for changes

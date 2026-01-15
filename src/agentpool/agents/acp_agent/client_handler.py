@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from asyncio import Event
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -48,6 +49,15 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+class TimeoutableEvent(Event):
+    """Event that can be waited on with a timeout."""
+
+    async def wait_with_timeout(self, timeout: float | None = None) -> bool:
+        if timeout:
+            return await asyncio.wait_for(super().wait(), timeout)
+        return await super().wait()
+
+
 class ACPClientHandler(Client):
     """Client handler that collects session updates and handles agent requests.
 
@@ -76,7 +86,7 @@ class ACPClientHandler(Client):
         self._agent = agent
         self.state = state
         self._input_provider = input_provider
-        self._update_event = asyncio.Event()
+        self._update_event = TimeoutableEvent()
         # Map ACP terminal IDs to process manager IDs (for local execution only)
         self._terminal_to_process: dict[str, str] = {}
         # Copy tool confirmation mode from agent (can be updated via set_tool_confirmation_mode)

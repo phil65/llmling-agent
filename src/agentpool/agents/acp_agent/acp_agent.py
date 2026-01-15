@@ -475,18 +475,14 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             while not prompt_task.done():
                 if self._client_handler:
                     try:
-                        await asyncio.wait_for(
-                            self._client_handler._update_event.wait(), timeout=0.05
-                        )
+                        await self._client_handler._update_event.wait_with_timeout(0.05)
                         self._client_handler._update_event.clear()
                     except TimeoutError:
                         pass
-
                 # Yield new events from state
                 while last_idx < len(self._state.events):
                     yield self._state.events[last_idx]
                     last_idx += 1
-
             # Yield remaining events after prompt completes
             while last_idx < len(self._state.events):
                 yield self._state.events[last_idx]
@@ -718,7 +714,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if self._prompt_task and not self._prompt_task.done():
             self._prompt_task.cancel()
             self.log.info("Cancelled prompt task")
-
         # Also cancel current stream task (from base class)
         if self._current_stream_task and not self._current_stream_task.done():
             self._current_stream_task.cancel()

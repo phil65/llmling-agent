@@ -225,6 +225,8 @@ def event_to_part(
             return ThinkingPart(content=delta)
         case ToolCallStartEvent(tool_call_id=tc_id, tool_name=tc_name, raw_input=tc_input):
             return ToolCallPart(tool_name=tc_name, args=tc_input, tool_call_id=tc_id)
+        case _:
+            return None
 
 
 def convert_to_acp_content(prompts: Sequence[UserContent]) -> list[ContentBlock]:
