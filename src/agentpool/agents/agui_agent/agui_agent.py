@@ -417,12 +417,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         text_chunks: list[str] = []  # For final content string
 
         assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
-        run_started = RunStartedEvent(
-            thread_id=self._thread_id or self.conversation_id,
-            run_id=run_id,
-            agent_name=self.name,
-        )
-
+        thread_id = self._thread_id or self.conversation_id
+        run_started = RunStartedEvent(thread_id=thread_id, run_id=run_id, agent_name=self.name)
         await event_handlers(None, run_started)
         yield run_started
         # Get pending parts from conversation and convert them
