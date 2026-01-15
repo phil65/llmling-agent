@@ -65,14 +65,14 @@ class CodexAgentConfig(BaseAgentConfig):
     approval_policy: ApprovalPolicy = Field(
         default="never",
         title="Approval Policy",
-        examples=["never", "auto", "unlessTrusted"],
+        examples=["never", "on-request", "on-failure", "untrusted"],
     )
     """Tool call approval policy.
 
     - "never": Execute tools without requesting approval (default for programmatic use)
-    - "always": Always request approval before executing tools
-    - "auto": Request approval based on risk assessment
-    - "unlessTrusted": Auto-approve trusted operations, ask for others
+    - "on-request": Request approval when tools request it
+    - "on-failure": Request approval when tool execution fails
+    - "untrusted": Always request approval (most restrictive)
     """
 
     tools: list[AnyToolConfig | str] = Field(

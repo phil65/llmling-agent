@@ -7,7 +7,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from codex_adapter.codex_types import ModelProvider, ReasoningEffort
+from codex_adapter.codex_types import (
+    ApprovalPolicy,
+    ModelProvider,
+    ReasoningEffort,
+)
 
 
 # ============================================================================
@@ -130,7 +134,7 @@ class TurnStartParams(CodexBaseModel):
     input: list[TurnInputItem]
     model: str | None = None
     effort: ReasoningEffort | None = None
-    approval_policy: Literal["always", "never", "auto", "unlessTrusted"] | None = None
+    approval_policy: ApprovalPolicy | None = None
     cwd: str | None = None
     sandbox_policy: dict[str, Any] | None = None  # Sandbox config - flexible structure
     summary: Literal["concise"] | None = None

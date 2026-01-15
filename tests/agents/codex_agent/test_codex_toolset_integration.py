@@ -38,6 +38,7 @@ def codex_config_with_subagent() -> CodexAgentConfig:
         cwd=str(Path.cwd()),
         model="gpt-5.1-codex-mini",
         reasoning_effort="medium",
+        approval_policy="never",
         tools=[SubagentToolsetConfig()],
     )
 
@@ -97,6 +98,7 @@ async def test_codex_multiple_toolsets():
         cwd=str(Path.cwd()),
         model="gpt-5.1-codex-mini",
         reasoning_effort="medium",
+        approval_policy="never",
         tools=[SubagentToolsetConfig(), SkillsToolsetConfig()],
     )
 
@@ -121,6 +123,7 @@ async def test_codex_mcp_servers_config():
         cwd=str(Path.cwd()),
         model="gpt-5.1-codex-mini",
         reasoning_effort="medium",
+        approval_policy="never",
         tools=[SubagentToolsetConfig()],
         mcp_servers=[StdioMCPServerConfig(name="external_test", command="echo", args=["test"])],
     )
