@@ -139,7 +139,7 @@ async def _get_resource_context(
     path = Path(path_str)
 
     # Use the context_generation module
-    from agentpool.context_generation import get_resource_context
+    from agentpool.repomap import get_resource_context
 
     # Limit to 50 files for ACP to avoid excessive network calls
     return await get_resource_context(path, fs=fs, max_files_to_read=50)

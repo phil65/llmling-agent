@@ -18,11 +18,15 @@ Future enhancements could include:
 
 from __future__ import annotations
 
-from pathlib import Path  # noqa: TC003
-
-from fsspec.asyn import AsyncFileSystem
+from typing import TYPE_CHECKING
 
 from agentpool.log import get_logger
+
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from fsspec.asyn import AsyncFileSystem
 
 
 logger = get_logger(__name__)
@@ -76,8 +80,6 @@ async def generate_directory_context(
     - Classes, functions, and other symbols
     - Dependencies between files (when available)
 
-    Currently supports: Python, JavaScript, TypeScript, JSX, TSX
-
     Args:
         path: Directory path
         fs: Optional AsyncFileSystem to use (defaults to LocalFileSystem)
@@ -86,22 +88,21 @@ async def generate_directory_context(
     Returns:
         Repository map string or None if generation fails
     """
+    from fsspec.implementations.local import LocalFileSystem
+
+    from agentpool.repomap.core import RepoMap
+    from agentpool.repomap.languages import is_language_supported
+    from agentpool.repomap.utils import is_important
+
     logger.info("Generating directory context", path=str(path))
 
     try:
-        from fsspec.implementations.local import LocalFileSystem
-
-        from agentpool.repomap import RepoMap
-
         # Use provided filesystem or fall back to local
         if fs is None:
             fs = LocalFileSystem()
         repo_map = RepoMap(fs, root_path=str(path), max_tokens=4096)
 
         # Find all source files in the directory (non-recursive for now)
-        # TODO: Add recursive option with depth control
-        from agentpool.repomap import is_language_supported
-
         all_files = [
             item for item in path.iterdir() if item.is_file() and is_language_supported(item.name)
         ]
@@ -111,8 +112,6 @@ async def generate_directory_context(
             return f"Directory: {path}\n(No source files found)"
 
         # Prioritize important files (config files, __init__.py, etc.)
-        from agentpool.repomap import is_important
-
         priority_files = [f for f in all_files if is_important(f.name) or f.name == "__init__.py"]
         other_files = [f for f in all_files if f not in priority_files]
 
@@ -149,7 +148,10 @@ async def generate_directory_context(
         # Build output with header
         header = f"# Repository map for {path.name}\n\n"
         if remaining_files:
-            header += f"## Detailed structure (analyzed {len(selected_files)} of {len(all_files)} files):\n\n"
+            header += (
+                f"## Detailed structure "
+                f"(analyzed {len(selected_files)} of {len(all_files)} files):\n\n"
+            )
 
         result = header + map_content
 
@@ -164,11 +166,11 @@ async def generate_directory_context(
                     # If stat fails, just show name
                     result += f"- {file.name}\n"
 
-        return result
-
     except OSError as e:
         logger.warning("Failed to generate directory context", path=str(path), error=str(e))
         return None
+    else:
+        return result
 
 
 async def generate_file_context(path: Path, fs: AsyncFileSystem | None = None) -> str | None:
@@ -187,6 +189,9 @@ async def generate_file_context(path: Path, fs: AsyncFileSystem | None = None) -
     Returns:
         File context string or None if generation fails
     """
+    from agentpool.repomap.outline import generate_file_outline
+    from agentpool.repomap.utils import truncate_with_notice
+
     logger.info("Generating file context", path=str(path))
 
     try:
@@ -202,51 +207,25 @@ async def generate_file_context(path: Path, fs: AsyncFileSystem | None = None) -
         # For large files, try to generate outline
         if len(content) > LARGE_FILE_THRESHOLD:
             logger.info("File is large, generating outline", path=str(path), size=len(content))
-            outline = await _generate_file_outline(path, content)
+
+            # Use centralized outline generation
+            outline = await generate_file_outline(path, fs=fs, content=content)
             if outline:
-                return outline
+                logger.info("Generated file outline", path=str(path), outline_length=len(outline))
+                return f"# File outline for {path}\n\n{outline}"
 
             # No outline available, truncate content
             logger.debug("No outline available, truncating", path=str(path))
-            from agentpool.repomap import truncate_with_notice
-
             return truncate_with_notice(str(path), content)
 
         # Small file, return full content
         logger.debug("File is small, returning full content", path=str(path), size=len(content))
-        return content
 
     except OSError as e:
         logger.warning("Failed to generate file context", path=str(path), error=str(e))
         return None
-
-
-async def _generate_file_outline(path: Path, content: str) -> str | None:
-    """Generate an outline/structure map for a file.
-
-    Uses tree-sitter to parse the file and extract structural information
-    like classes, functions, methods, etc.
-
-    Args:
-        path: File path (used for language detection)
-        content: File content
-
-    Returns:
-        Outline string or None if generation fails or language not supported
-    """
-    try:
-        from agentpool.repomap import get_file_map_from_content
-
-        file_map = get_file_map_from_content(str(path), content)
-        if file_map:
-            logger.info("Generated file outline", path=str(path), outline_length=len(file_map))
-            return f"# File outline for {path}\n\n{file_map}"
-
-        return None
-
-    except OSError as e:
-        logger.debug("Failed to generate file outline", path=str(path), error=str(e))
-        return None
+    else:
+        return content
 
 
 # Future enhancements:
