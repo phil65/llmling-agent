@@ -12,7 +12,7 @@ the pool and avoiding IPC serialization overhead.
 from __future__ import annotations
 
 import asyncio
-from contextlib import asynccontextmanager, suppress
+from contextlib import suppress
 from dataclasses import dataclass, field, replace
 import inspect
 from typing import TYPE_CHECKING, Any, Self, get_args, get_origin
@@ -28,7 +28,7 @@ from agentpool.utils.signatures import filter_schema_params, get_params_matching
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable
+    from collections.abc import Callable
 
     from claude_agent_sdk.types import McpServerConfig
     from fastmcp import Context, FastMCP
@@ -222,7 +222,7 @@ class ToolManagerBridge:
         ```python
         async with AgentPool() as pool:
             agent = pool.agents["my_agent"]
-            bridge = ToolManagerBridge(node=agent, _init_port=8765)
+            bridge = ToolManagerBridge(node=agent)
             async with bridge:
                 # Bridge is running, get MCP config for ACP agent
                 mcp_config = bridge.get_mcp_server_config()
@@ -232,12 +232,6 @@ class ToolManagerBridge:
 
     node: BaseAgent[Any, Any]
     """The node whose tools to expose."""
-
-    host: str = "127.0.0.1"
-    """Host to bind the HTTP server to."""
-
-    _init_port: int = 0
-    """Port to bind to (0 = auto-select available port)."""
 
     server_name: str = "agentpool-toolmanager"
     """Name for the MCP server."""
@@ -375,7 +369,7 @@ class ToolManagerBridge:
     @property
     def url(self) -> str:
         """Get the server URL."""
-        return f"http://{self.host}:{self.port}/mcp"
+        return f"http://127.0.0.1:{self.port}/mcp"
 
     def get_mcp_server_config(self) -> HttpMcpServer:
         """Get ACP-compatible MCP server configuration.
@@ -410,7 +404,7 @@ class ToolManagerBridge:
 
         # Use HTTP transport to preserve _meta field with claudecode/toolUseId
         # SDK transport drops _meta in Claude Agent SDK's query.py
-        url = f"http://{self.host}:{self.port}/mcp"
+        url = f"http://127.0.0.1:{self.port}/mcp"
         return {self.server_name: {"type": "http", "url": url}}
 
     async def _register_tools(self) -> None:
@@ -454,21 +448,23 @@ class ToolManagerBridge:
                 """Execute the wrapped tool with context bridging."""
                 from fastmcp.server.dependencies import get_context
 
+                from agentpool.agents.events import ToolResultMetadataEvent
+                from agentpool.tools.base import ToolResult as AgentPoolToolResult
+
                 # Get FastMCP context from context variable (not passed as parameter)
                 try:
                     mcp_context: Context | None = get_context()
                 except LookupError:
                     mcp_context = None
-
                 # Try to get Claude's original tool_call_id from request metadata
-                tool_call_id = _extract_tool_call_id(mcp_context)
+                tc_id = _extract_tool_call_id(mcp_context)
                 # Get deps from bridge (set by run_stream on the agent)
                 current_deps = self._bridge.current_deps
                 # Create context with tool-specific metadata from node's context.
                 ctx = replace(
                     self._bridge.node.get_context(data=current_deps),
                     tool_name=self._tool.name,
-                    tool_call_id=tool_call_id,
+                    tool_call_id=tc_id,
                     tool_input=arguments,
                 )
                 # Invoke with context - copy arguments since invoke_tool_with_context
@@ -476,24 +472,16 @@ class ToolManagerBridge:
                 result = await self._bridge.invoke_tool_with_context(
                     self._tool, ctx, arguments.copy()
                 )
-
                 # Emit metadata event for ClaudeCodeAgent to correlate
                 # (works around Claude SDK stripping MCP _meta field)
-                from agentpool.agents.events import ToolResultMetadataEvent
-                from agentpool.tools.base import ToolResult as AgentPoolToolResult
-
                 if isinstance(result, AgentPoolToolResult) and result.metadata:
                     logger.info(
                         "Emitting ToolResultMetadataEvent",
-                        tool_call_id=tool_call_id,
-                        metadata_keys=list(result.metadata.keys()),
-                    )
-                    event = ToolResultMetadataEvent(
-                        tool_call_id=tool_call_id,
+                        tool_call_id=tc_id,
                         metadata=result.metadata,
                     )
+                    event = ToolResultMetadataEvent(tool_call_id=tc_id, metadata=result.metadata)
                     await ctx.events.emit_event(event)
-
                 return _convert_to_tool_result(result)
 
         # Create a custom FastMCP Tool that wraps our tool
@@ -511,13 +499,11 @@ class ToolManagerBridge:
         Handles tools that expect AgentContext, RunContext, or neither.
         """
         fn = tool.get_callable()
-
         # Inject AgentContext parameters
         context_param_names = _get_context_param_names(fn)
         for param_name in context_param_names:
             if param_name not in kwargs:
                 kwargs[param_name] = ctx
-
         # Inject RunContext parameters (as stub since we're outside pydantic-ai)
         run_context_param_names = _get_run_context_param_names(fn)
         if run_context_param_names:
@@ -525,7 +511,6 @@ class ToolManagerBridge:
             for param_name in run_context_param_names:
                 if param_name not in kwargs:
                     kwargs[param_name] = stub_run_ctx
-
         # Execute the tool
         result = fn(**kwargs)
         if inspect.isawaitable(result):
@@ -542,18 +527,14 @@ class ToolManagerBridge:
             msg = "MCP server not initialized"
             raise RuntimeError(msg)
 
-        # Determine actual port (auto-select if 0)
-        port = self._init_port
-        if port == 0:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind((self.host, 0))
-                port = s.getsockname()[1]
+        # Auto-select an available port
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
         self._actual_port = port
-        # Create the ASGI app
-        app = self._mcp.http_app(transport="http")
-        # Configure uvicorn
+        app = self._mcp.http_app(transport="http")  # Create the ASGI app
         cfg = uvicorn.Config(
-            app=app, host=self.host, port=port, log_level="warning", ws="websockets-sansio"
+            app=app, host="127.0.0.1", port=port, log_level="warning", ws="websockets-sansio"
         )
         self._server = uvicorn.Server(cfg)
         # Start server in background task
@@ -562,25 +543,3 @@ class ToolManagerBridge:
         await anyio.sleep(0.1)  # Wait briefly for server to start
         msg = "ToolManagerBridge started"
         logger.info(msg, url=self.url)
-
-
-@asynccontextmanager
-async def create_tool_bridge(
-    node: BaseAgent[Any, Any],
-    *,
-    host: str = "127.0.0.1",
-    port: int = 0,
-) -> AsyncIterator[ToolManagerBridge]:
-    """Create and start a ToolManagerBridge as a context manager.
-
-    Args:
-        node: The node whose tools to expose
-        host: Host to bind to
-        port: Port to bind to (0 = auto-select)
-
-    Yields:
-        Running ToolManagerBridge instance
-    """
-    bridge = ToolManagerBridge(node=node, host=host, _init_port=port)
-    async with bridge:
-        yield bridge
