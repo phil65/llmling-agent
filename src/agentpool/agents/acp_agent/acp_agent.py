@@ -390,13 +390,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
 
         # Collect all MCP servers (config + extra) and filter by agent capabilities
-        all_servers: list[McpServer] = []
+        all_servers = self._extra_mcp_servers[:]
         # Add servers from config (converted to ACP format)
         config_servers = self.config.get_mcp_servers()
         if config_servers:
             all_servers.extend(mcp_configs_to_acp(config_servers))
         # Add extra MCP servers (e.g., from tool bridges)
-        all_servers.extend(self._extra_mcp_servers)
         # Filter servers based on agent transport capabilities
         supported_servers: list[McpServer] = []
         unsupported_servers: list[tuple[McpServer, str]] = []
@@ -813,17 +812,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         if not self._state or not self._state.models:
             return None
-
         # Convert ACP ModelInfo to tokonomics ModelInfo
-        result: list[ModelInfo] = []
-        for acp_model in self._state.models.available_models:
-            toko_model = ModelInfo(
-                id=acp_model.model_id,
-                name=acp_model.name,
-                description=acp_model.description,
-            )
-            result.append(toko_model)
-        return result
+        return [
+            ModelInfo(id=m.model_id, name=m.name, description=m.description)
+            for m in self._state.models.available_models
+        ]
 
     async def get_modes(self) -> list[ModeCategory]:
         """Get available modes from the ACP session state.
