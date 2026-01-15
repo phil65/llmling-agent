@@ -15,10 +15,13 @@ from pydantic_ai import (
 )
 
 from agentpool.agents.events import ToolCallCompleteEvent
+from agentpool.agents.modes import ModeCategory, ModeInfo
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 
 
 if TYPE_CHECKING:
+    from tokonomics.model_discovery import ModelInfo
+
     from agentpool.agents.events import RichAgentStreamEvent
 
 
@@ -81,3 +84,44 @@ def extract_text_from_messages(messages: list[Any], include_interruption_note: b
             content += "\n\n"
         content += "[Request interrupted by user]"
     return content
+
+
+def get_permission_category(current_mode: str) -> ModeCategory:
+    return ModeCategory(
+        id="permissions",
+        name="Permissions",
+        available_modes=[
+            ModeInfo(
+                id="default",
+                name="Default",
+                description="Require confirmation for tools marked as needing it",
+                category_id="permissions",
+            ),
+            ModeInfo(
+                id="acceptEdits",
+                name="Accept Edits",
+                description="Auto-approve all tool calls without confirmation",
+                category_id="permissions",
+            ),
+        ],
+        current_mode_id=current_mode,
+        category="mode",
+    )
+
+
+def get_model_category(current_model: str, models: list[ModelInfo]) -> ModeCategory:
+    return ModeCategory(
+        id="model",
+        name="Model",
+        available_modes=[
+            ModeInfo(
+                id=m.id,
+                name=m.name or m.id,
+                description=m.description or "",
+                category_id="model",
+            )
+            for m in models
+        ],
+        current_mode_id=current_model,
+        category="model",
+    )

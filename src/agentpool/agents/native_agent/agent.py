@@ -350,6 +350,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             LibraryPromptConfig,
             StaticPromptConfig,
         )
+        from agentpool_toolsets.builtin.workers import WorkersTools
 
         # Get manifest from pool or create empty one
         if manifest is None:
@@ -357,7 +358,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Use provided name, fall back to config.name, then default
         name = name or config.name or "agent"
-
         # Normalize system_prompt to a list for iteration
         sys_prompts: list[str] = []
         prompt_source = config.system_prompt
@@ -400,8 +400,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             toolsets_list.append(config_tool_provider)
         # Convert workers config to a toolset (backwards compatibility)
         if config.workers:
-            from agentpool_toolsets.builtin.workers import WorkersTools
-
             workers_provider = WorkersTools(workers=list(config.workers), name="workers")
             toolsets_list.append(workers_provider)
         # Resolve output type
@@ -734,7 +732,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         )
         await event_handlers(None, run_started)
         yield run_started
-
         agentlet = await self.get_agentlet(None, self._output_type, input_provider)
         response_msg: ChatMessage[Any] | None = None
         # Prepend pending context parts (prompts are already pydantic-ai UserContent format)
@@ -1030,63 +1027,21 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         Returns:
             List of ModeCategory for permissions and models
         """
-        from agentpool.agents.modes import ModeCategory, ModeInfo
-
-        categories: list[ModeCategory] = []
-
-        # Permission modes
-        mode_id_map = {
-            "per_tool": "default",
-            "always": "default",
-            "never": "acceptEdits",
-        }
-        current_id = mode_id_map.get(self.tool_confirmation_mode, "default")
-
-        categories.append(
-            ModeCategory(
-                id="permissions",
-                name="Permissions",
-                available_modes=[
-                    ModeInfo(
-                        id="default",
-                        name="Default",
-                        description="Require confirmation for tools marked as needing it",
-                        category_id="permissions",
-                    ),
-                    ModeInfo(
-                        id="acceptEdits",
-                        name="Accept Edits",
-                        description="Auto-approve all tool calls without confirmation",
-                        category_id="permissions",
-                    ),
-                ],
-                current_mode_id=current_id,
-                category="mode",
-            )
+        from agentpool.agents.native_agent.helpers import (
+            get_model_category,
+            get_permission_category,
         )
 
-        # Model selection
+        categories: list[ModeCategory] = []
+        mode_id_map = {"per_tool": "default", "always": "default", "never": "acceptEdits"}
+        current_id = mode_id_map.get(self.tool_confirmation_mode, "default")
+        mode_category = get_permission_category(current_id)
+        categories.append(mode_category)
         models = await self.get_available_models()
         if models:
             current_model = self.model_name or (models[0].id if models else "")
-            categories.append(
-                ModeCategory(
-                    id="model",
-                    name="Model",
-                    available_modes=[
-                        ModeInfo(
-                            id=m.id,
-                            name=m.name or m.id,
-                            description=m.description or "",
-                            category_id="model",
-                        )
-                        for m in models
-                    ],
-                    current_mode_id=current_model,
-                    category="model",
-                )
-            )
-
+            model_category = get_model_category(current_model, models)
+            categories.append(model_category)
         return categories
 
     async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
