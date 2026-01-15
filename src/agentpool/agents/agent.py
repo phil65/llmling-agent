@@ -15,7 +15,6 @@ from uuid import uuid4
 from anyenv import method_spawner
 import logfire
 from pydantic import ValidationError
-from pydantic._internal import _typing_extra
 from pydantic_ai import (
     Agent as PydanticAgent,
     BaseToolCallPart,
@@ -559,15 +558,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """
         from llmling_models import function_to_model
 
+        from agentpool.utils.signatures import get_return_type
+
         name = name or callback.__name__ or "processor"
         model = function_to_model(callback)
-        output_type = _typing_extra.get_function_type_hints(callback).get("return")
-        if (  # If async, unwrap from Awaitable
-            output_type
-            and hasattr(output_type, "__origin__")
-            and output_type.__origin__ is Awaitable
-        ):
-            output_type = output_type.__args__[0]
+        output_type = get_return_type(callback)
         return Agent(model=model, name=name, output_type=output_type or str, **kwargs)
 
     @property

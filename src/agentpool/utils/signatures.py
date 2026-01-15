@@ -5,6 +5,8 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Any, get_args, get_origin
 
+from pydantic._internal import _typing_extra
+
 from agentpool.log import get_logger
 
 
@@ -13,6 +15,38 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+def get_return_type(
+    fn: Callable[..., Any],
+    *,
+    unwrap_awaitable: bool = True,
+) -> type | None:
+    """Get the return type of a function, optionally unwrapping Awaitable.
+
+    Args:
+        fn: Function to inspect
+        unwrap_awaitable: If True, unwrap Awaitable[T] -> T for async functions
+
+    Returns:
+        The return type annotation, or None if not annotated
+
+    Example:
+        async def foo() -> Awaitable[int]: ...
+        get_return_type(foo)  # Returns: int
+        get_return_type(foo, unwrap_awaitable=False)  # Returns: Awaitable[int]
+    """
+    hints = _typing_extra.get_function_type_hints(fn)
+    return_type = hints.get("return")
+
+    if not return_type:
+        return None
+
+    if unwrap_awaitable and get_origin(return_type) is Awaitable:
+        args = get_args(return_type)
+        return args[0] if args else None
+
+    return return_type
 
 
 _CONTEXT_TYPE_NAMES = frozenset({
