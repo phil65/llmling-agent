@@ -10,7 +10,7 @@ from agentpool.agents.modes import ModeInfo
 
 
 if TYPE_CHECKING:
-    from claude_agent_sdk import PermissionMode
+    from clawd_code_sdk import PermissionMode
 
 
 VALID_MODES: set[PermissionMode] = {

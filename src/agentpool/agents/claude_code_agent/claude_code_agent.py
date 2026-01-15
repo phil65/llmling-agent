@@ -106,7 +106,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from anyenv import MultiEventHandler
-    from claude_agent_sdk import (
+    from clawd_code_sdk import (
         ClaudeAgentOptions,
         ClaudeSDKClient,
         McpServerConfig,
@@ -115,7 +115,7 @@ if TYPE_CHECKING:
         ToolPermissionContext,
         ToolUseBlock,
     )
-    from claude_agent_sdk.types import HookContext, HookInput, SyncHookJSONOutput
+    from clawd_code_sdk.types import HookContext, HookInput, SyncHookJSONOutput
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import UserContent
@@ -488,7 +488,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             Dictionary mapping hook event names to HookMatcher lists
         """
-        from claude_agent_sdk.types import HookMatcher
+        from clawd_code_sdk.types import HookMatcher
 
         async def on_pre_compact(
             input_data: HookInput,
@@ -515,8 +515,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Args:
             formatted_system_prompt: Pre-formatted system prompt from SystemPrompts manager
         """
-        from claude_agent_sdk import ClaudeAgentOptions
-        from claude_agent_sdk.types import SystemPromptPreset
+        from clawd_code_sdk import ClaudeAgentOptions
+        from clawd_code_sdk.types import SystemPromptPreset
 
         from agentpool.agents.claude_code_agent.converters import to_output_format
 
@@ -554,7 +554,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Build environment variables
         env = dict(self._environment or {})
-        env["CLAUDE_AGENT_SDK_SKIP_VERSION_CHECK"] = "1"
+        env["clawd_code_sdk_SKIP_VERSION_CHECK"] = "1"
         env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
         if "LSP" in builtin_tools:
             # Enable LSP tool support
@@ -608,7 +608,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         import uuid
 
-        from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
+        from clawd_code_sdk import PermissionResultAllow, PermissionResultDeny
 
         from agentpool.tools import FunctionTool
 
@@ -722,7 +722,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             PermissionResult with updated input containing user's answers
         """
-        from claude_agent_sdk import PermissionResultAllow, PermissionResultDeny
+        from clawd_code_sdk import PermissionResultAllow, PermissionResultDeny
 
         if not self._input_provider:
             return PermissionResultDeny(message="No input provider configured for questions")
@@ -826,7 +826,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
     async def __aenter__(self) -> Self:
         """Connect to Claude Code with deferred client connection."""
-        from claude_agent_sdk import ClaudeSDKClient
+        from clawd_code_sdk import ClaudeSDKClient
 
         await super().__aenter__()
         await self._setup_toolsets()  # Setup toolsets before building opts (they add MCP servers)
@@ -897,7 +897,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self._sdk_session_id = None
 
         # Recreate client with new options
-        from claude_agent_sdk import ClaudeSDKClient
+        from clawd_code_sdk import ClaudeSDKClient
 
         formatted_prompt = await self.sys_prompts.format_system_prompt(self)
         options = self._build_options(formatted_system_prompt=formatted_prompt)
@@ -1006,7 +1006,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             kwargs: dict[str, str],
         ) -> None:
             """Execute the Claude Code slash command."""
-            from claude_agent_sdk.types import (
+            from clawd_code_sdk.types import (
                 AssistantMessage,
                 ResultMessage,
                 TextBlock,
@@ -1070,7 +1070,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
-        from claude_agent_sdk import (
+        from clawd_code_sdk import (
             AssistantMessage,
             Message,
             ResultMessage,
@@ -1081,7 +1081,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             ToolUseBlock as ToolUseBlockType,
             UserMessage,
         )
-        from claude_agent_sdk.types import StreamEvent
+        from clawd_code_sdk.types import StreamEvent
 
         from agentpool.agents.events.infer_info import derive_rich_tool_info
         from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
@@ -1141,7 +1141,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if not store_history and self._sdk_session_id:
             # Create fork client that shares parent's context but has separate session ID
             # See: src/agentpool/agents/claude_code_agent/FORKING.md
-            from claude_agent_sdk import ClaudeSDKClient
+            from clawd_code_sdk import ClaudeSDKClient
 
             # Build options using same method as main client
             fork_options = self._build_options()
@@ -1943,7 +1943,7 @@ if __name__ == "__main__":
 
     async def main() -> None:
         """Demo: Basic call to Claude Code."""
-        from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
+        from clawd_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
 
         options = ClaudeAgentOptions(include_partial_messages=True)
         client = ClaudeSDKClient(options=options)

@@ -30,7 +30,7 @@ from agentpool.utils.signatures import filter_schema_params, get_params_matching
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Sequence
 
-    from claude_agent_sdk.types import McpServerConfig
+    from clawd_code_sdk.types import McpServerConfig
     from fastmcp import Context, FastMCP
     from fastmcp.tools.tool import ToolResult
     from pydantic_ai import RunContext

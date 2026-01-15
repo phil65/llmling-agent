@@ -15,7 +15,7 @@ from agentpool.agents.events import ToolCallCompleteEvent, ToolCallStartEvent
 
 
 if TYPE_CHECKING:
-    from claude_agent_sdk import ContentBlock, McpServerConfig, Message, ToolUseBlock
+    from clawd_code_sdk import ContentBlock, McpServerConfig, Message, ToolUseBlock
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool_config.mcp_server import MCPServerConfig as NativeMCPServerConfig
@@ -31,7 +31,7 @@ def content_block_to_event(block: ContentBlock, index: int = 0) -> RichAgentStre
     Returns:
         Corresponding streaming event, or None if not mappable
     """
-    from claude_agent_sdk import TextBlock, ThinkingBlock, ToolUseBlock
+    from clawd_code_sdk import TextBlock, ThinkingBlock, ToolUseBlock
 
     from agentpool.agents.events.infer_info import derive_rich_tool_info
 
@@ -70,7 +70,7 @@ def claude_message_to_events(
     Returns:
         List of corresponding streaming events
     """
-    from claude_agent_sdk import AssistantMessage, ToolResultBlock, ToolUseBlock
+    from clawd_code_sdk import AssistantMessage, ToolResultBlock, ToolUseBlock
 
     events: list[RichAgentStreamEvent[Any]] = []
 
@@ -115,7 +115,7 @@ def convert_mcp_servers_to_sdk_format(
     Returns:
         Dict mapping server names to SDK-compatible config dicts
     """
-    from claude_agent_sdk import McpServerConfig
+    from clawd_code_sdk import McpServerConfig
 
     from agentpool_config.mcp_server import (
         SSEMCPServerConfig,

@@ -141,8 +141,8 @@ See test files in project root:
 ## Example: Complete Ephemeral Query
 
 ```python
-from claude_agent_sdk import ClaudeSDKClient
-from claude_agent_sdk.types import ClaudeAgentOptions, ResultMessage, AssistantMessage
+from clawd_code_sdk import ClaudeSDKClient
+from clawd_code_sdk.types import ClaudeAgentOptions, ResultMessage, AssistantMessage
 
 class ClaudeCodeAgent:
     def __init__(self):
