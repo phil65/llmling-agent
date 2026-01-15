@@ -108,15 +108,14 @@ class Interactions:
                 result = await agent.run(prompt)
         """
         # Save original output type
-        old_output_type = getattr(self.agent, "_output_type", None)
+        old_output_type = self.agent._output_type
         try:
             # Configure structured output
             structured_agent = self.agent.to_structured(output_type)
             yield structured_agent
         finally:
             # Restore original output type
-            if hasattr(self.agent, "_output_type"):
-                self.agent._output_type = old_output_type
+            self.agent._output_type = old_output_type
 
     # async def conversation(
     #     self,

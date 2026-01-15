@@ -119,6 +119,12 @@ class SupportsStructuredOutput(Protocol):
     structured output from agents.
     """
 
+    @property
+    def _output_type(self) -> type[Any]: ...
+
+    @_output_type.setter
+    def _output_type(self, value: type[Any]) -> None: ...
+
     def to_structured[T](self, output_type: type[T]) -> SupportsStructuredOutput:
         """Create a copy of this agent configured for structured output.
 
