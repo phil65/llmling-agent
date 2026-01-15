@@ -294,12 +294,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         elif system_prompt:
             all_prompts.append(system_prompt)
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=self._manifest.prompt_manager)
-        # Store hooks
         self.hooks = hooks
-        # Store default usage limits
         self._default_usage_limits = usage_limits
-        # Store providers for model discovery
-        self._providers = list(providers) if providers else None
+        self._providers = list(providers) if providers else None  # model discovery
 
     def __repr__(self) -> str:
         desc = f", {self.description!r}" if self.description else ""
