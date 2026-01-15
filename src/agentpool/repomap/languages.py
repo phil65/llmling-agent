@@ -68,7 +68,7 @@ def is_language_supported(fname: str) -> bool:
 
 def get_supported_languages_md() -> str:
     """Generate markdown table of supported languages."""
-    from grep_ast.parsers import PARSERS  # type: ignore[import-untyped]
+    from grep_ast.parsers import PARSERS
 
     supported = get_supported_languages()
 

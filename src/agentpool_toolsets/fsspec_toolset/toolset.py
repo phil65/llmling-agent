@@ -65,7 +65,6 @@ if TYPE_CHECKING:
     from agentpool.common_types import ModelType
     from agentpool.messaging import MessageHistory
     from agentpool.prompts.conversion_manager import ConversionManager
-    from agentpool.repomap import RepoMap
     from agentpool.tools.base import Tool
 
 
@@ -146,7 +145,6 @@ class FSSpecTools(ResourceProvider):
         self._diagnostics: DiagnosticsManager | None = None
         self._large_file_tokens = large_file_tokens
         self._map_max_tokens = map_max_tokens
-        self._repomap: RepoMap | None = None
         self._edit_tool = edit_tool
         self._max_image_size = max_image_size
         self._max_image_bytes = max_image_bytes
@@ -189,28 +187,26 @@ class FSSpecTools(ResourceProvider):
             return format_diagnostics_table(result.diagnostics)
         return None
 
-    async def _get_file_map(self, path: str, agent_ctx: AgentContext) -> str | None:
+    async def _get_file_map(
+        self, path: str, agent_ctx: AgentContext, content: str | None = None
+    ) -> str | None:
         """Get structure map for a large file if language is supported.
 
         Args:
-            path: Absolute file path
+            path: Absolute file path (for language detection)
             agent_ctx: Agent context for filesystem access
+            content: Optional pre-loaded file content (avoids duplicate read)
 
         Returns:
             Structure map string or None if language not supported
         """
-        from agentpool.repomap import RepoMap, is_language_supported
+        from agentpool.repomap import generate_file_outline
 
-        if not is_language_supported(path):
-            return None
-
-        # Lazy init repomap - use file's directory as root
-        if self._repomap is None:
-            root = str(Path(path).parent)
-            fs = self._get_fs(agent_ctx)
-            self._repomap = RepoMap(fs, root, max_tokens=self._map_max_tokens)
-
-        return await self._repomap.get_file_map(path, max_tokens=self._map_max_tokens)
+        # Use centralized outline generation
+        fs = self._get_fs(agent_ctx)
+        return await generate_file_outline(
+            path, fs=fs, content=content, max_tokens=self._map_max_tokens
+        )
 
     def _resolve_path(self, path: str, agent_ctx: AgentContext) -> str:
         """Resolve a potentially relative path to an absolute path.
@@ -469,7 +465,7 @@ class FSSpecTools(ResourceProvider):
             tokens_approx = len(content) // 4
             if line is None and limit is None and tokens_approx > self._large_file_tokens:
                 # Try structure map for supported languages
-                map_result = await self._get_file_map(path, agent_ctx)
+                map_result = await self._get_file_map(path, agent_ctx, content=content)
                 if map_result:
                     await agent_ctx.events.file_operation("read", path=path, success=True)
                     content = map_result

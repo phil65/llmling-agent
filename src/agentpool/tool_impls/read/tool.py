@@ -65,8 +65,6 @@ class ReadTool(Tool[ToolResult]):
     map_max_tokens: int = 2048
     """Maximum tokens for structure map output."""
 
-    _repomap = None  # RepoMap instance (lazy-init)
-
     def get_callable(
         self,
     ) -> Callable[..., Awaitable[ToolResult]]:
@@ -100,20 +98,26 @@ class ReadTool(Tool[ToolResult]):
             return str(Path(cwd) / path)
         return path
 
-    async def _get_file_map(self, path: str, ctx: AgentContext) -> str | None:
-        """Get structure map for a large file if language is supported."""
-        from agentpool.repomap import RepoMap, is_language_supported
+    async def _get_file_map(
+        self, path: str, ctx: AgentContext, content: str | None = None
+    ) -> str | None:
+        """Get structure map for a large file if language is supported.
 
-        if not is_language_supported(path):
-            return None
+        Args:
+            path: File path (for language detection)
+            ctx: Agent context for filesystem access
+            content: Optional pre-loaded file content (avoids duplicate read)
 
-        # Lazy init repomap - use file's directory as root
-        if self._repomap is None:
-            root = str(Path(path).parent)
-            fs = self._get_fs(ctx)
-            self._repomap = RepoMap(fs, root, max_tokens=self.map_max_tokens)
+        Returns:
+            Structure map or None if language not supported
+        """
+        from agentpool.repomap import generate_file_outline
 
-        return await self._repomap.get_file_map(path, max_tokens=self.map_max_tokens)
+        # Use centralized outline generation
+        fs = self._get_fs(ctx)
+        return await generate_file_outline(
+            path, fs=fs, content=content, max_tokens=self.map_max_tokens
+        )
 
     async def _read(  # noqa: PLR0911, PLR0915
         self,
@@ -249,7 +253,7 @@ class ReadTool(Tool[ToolResult]):
             tokens_approx = len(content) // 4
             if line is None and limit is None and tokens_approx > self.large_file_tokens:
                 # Try structure map for supported languages
-                map_result = await self._get_file_map(path, ctx)
+                map_result = await self._get_file_map(path, ctx, content=content)
                 if map_result:
                     await ctx.events.file_operation("read", path=path, success=True)
                     content = map_result
