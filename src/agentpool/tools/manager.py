@@ -50,23 +50,18 @@ class ToolManager:
             tools: Initial tools to register
             tool_mode: Tool execution mode (None or "codemode")
         """
+        from agentpool.resource_providers.codemode.provider import CodeModeResourceProvider
+
         super().__init__()
         self.external_providers: list[ResourceProvider] = []
         self.worker_provider = StaticResourceProvider(name="workers")
         self.builtin_provider = StaticResourceProvider(name="builtin")
         self.tool_mode = tool_mode
-
-        # CodeModeResourceProvider gets populated with providers in providers property
-        from agentpool.resource_providers.codemode.provider import CodeModeResourceProvider
-
         self._codemode_provider: CodeModeResourceProvider = CodeModeResourceProvider([])
-
         # Forward to provider methods
         self.tool = self.builtin_provider.tool
         self.register_tool = self.builtin_provider.register_tool
         self.register_worker = self.worker_provider.register_worker
-
-        # Register initial tools
         for tool in tools or []:
             t = self._validate_item(tool)
             self.builtin_provider.add_tool(t)
