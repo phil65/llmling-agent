@@ -613,11 +613,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         lines = ["flowchart LR"]
 
         # Add all agents as nodes
-        for name in self.agents:
+        for name in self.all_agents:
             lines.append(f"    {name}[{name}]")  # noqa: PERF401
 
         # Add all connections as edges
-        for agent in self.agents.values():
+        for agent in self.all_agents.values():
             connections = agent.connections.get_connections()
             for talk in connections:
                 source = talk.source.name

@@ -133,9 +133,9 @@ def vercel_command(  # noqa: PLR0915
         if agent_name:
             selected_agent = pool.get_agent(agent_name)
         else:
-            if not pool.agents:
+            if not pool.all_agents:
                 return JSONResponse({"error": "No agents available"}, status_code=500)
-            first_name = next(iter(pool.agents.keys()))
+            first_name = next(iter(pool.all_agents.keys()))
             selected_agent = pool.get_agent(first_name)
 
         async def generate_stream() -> AsyncIterator[str]:
@@ -208,7 +208,7 @@ def vercel_command(  # noqa: PLR0915
         return {
             "agents": [
                 {"name": name, "description": agent.description}
-                for name, agent in pool.agents.items()
+                for name, agent in pool.all_agents.items()
             ]
         }
 

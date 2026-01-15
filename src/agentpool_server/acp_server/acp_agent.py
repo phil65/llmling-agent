@@ -253,7 +253,7 @@ class AgentPoolACPAgent(ACPAgent):
         self.tasks = TaskManager()
         self._initialized = False
 
-        agent_count = len(self.agent_pool.agents)
+        agent_count = len(self.agent_pool.all_agents)
         logger.info("Created ACP agent implementation", agent_count=agent_count)
         if self.debug_commands:
             logger.info("Debug slash commands enabled for ACP testing")
