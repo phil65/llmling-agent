@@ -171,9 +171,14 @@ class ACPClientHandler(Client):
                 self._update_event.set()
                 return
 
-            case ConfigOptionUpdate():
+            case ConfigOptionUpdate(config_id=config_id, value_id=value_id):
+                # Update the config option in state
+                for config_opt in self.state.config_options:
+                    if config_opt.id == config_id:
+                        config_opt.current_value = value_id
+                        break
                 await self._agent.state_updated.emit(update)
-                logger.debug("Config option updated", update=update)
+                logger.debug("Config option updated", config_id=config_id, value_id=value_id)
                 self._update_event.set()
                 return
 
