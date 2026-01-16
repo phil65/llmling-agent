@@ -84,16 +84,14 @@ This seamless integration of callables allows you to:
 
 ## Callables for prompts
 
-AgentPool also allows to pass Callables for system and user prompts which can get re-evaluted
-for each run.
+AgentPool also allows to pass Callables for user prompts:
 
 ```python
+def my_user_prompt() -> str:
+    return f"Current time: {datetime.now()}"
 
-def my_system_prompt(ctx: AgentContext) -> str:  # context optional
-    return "You are an AI assistant."
-
-agent = Agent(system_prompts=[my_system_prompt])
-agent.run("Hello, how are you?")
-# or:
 agent.run(my_user_prompt)
 ```
+
+!!! note
+    System prompts are evaluated once when the agent enters its async context and remain fixed for the agent's lifetime. This enables prompt caching.

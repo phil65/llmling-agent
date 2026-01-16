@@ -20,8 +20,6 @@ An agent maintains several types of state that influence its behavior. While som
 
 ```python
 async with Agent(...) as agent:
-    # Modify system prompts by reference
-    agent.sys_prompts.add("technical_style")
     # Register tools
     agent.tools.register_tool(my_tool)
     # Change model
@@ -41,8 +39,6 @@ AgentPool's context managers allow temporary state modifications that automatica
 
 ```python
 async with agent.temporary_state(
-    system_prompts=["Be very concise"],  # Temporary prompts
-    replace_prompts=True,  # Replace instead of append
     tools=[callable_1, callable_2],  # Temporary tools
     replace_tools=True,  # Replace existing tools
     history=["Previous relevant chat"],  # Temporary history
@@ -53,6 +49,9 @@ async with agent.temporary_state(
     result = await modified_agent.run("Summarize this.")
     # Original state is restored after the block
 ```
+
+!!! note
+    System prompts cannot be changed at runtime. They are fixed when the agent enters its async context (`__aenter__`). This ensures prompt caching works correctly and prevents confusing mid-conversation changes.
 
 ## Memory Management
 

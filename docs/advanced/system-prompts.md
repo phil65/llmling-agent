@@ -260,23 +260,12 @@ You MUST use these tools to complete your tasks:
 Do not attempt to perform tasks without using appropriate tools.
 ```
 
-### 3. Temporary System prompts
+### System Prompt Timing
 
-For temporary system prompt changes, The system prompt manager provides an async context manager:
-
-```python
-# Temporarily use a different system prompt
-with agent.sys_prompts.temporary_prompt(prompt):
-    # temporary prompt additional to agent's prompts
-    ...
-
-# Temporarily add sys_prompts and disable all others
-with agent.sys_prompts.temporary_prompt(prompt, exclusive=True):
-    # Only prompt is used here
-    ...
-
-# Original prompts are restored after context exit
-```
+!!! important "System prompts are fixed at startup"
+    System prompts are formatted once when the agent enters its context (`async with agent:`)
+    and remain fixed for the lifetime of that context. This enables prompt caching for
+    better performance. To use different system prompts, create a new agent context.
 
 ## Caching
 
@@ -348,9 +337,6 @@ AgentPool includes a library of pre-defined system prompts that can be used acro
 You can reference prompts from the library:
 
 ```python
-# Add a single library prompt by reference
-agent.sys_prompts.add("step_by_step")
-
 # In YAML configuration:
 agents:
   my_agent:
