@@ -558,10 +558,33 @@ class ToolManagerBridge:
         ctx: AgentContext[Any],
         kwargs: dict[str, Any],
     ) -> Any:
-        """Invoke a tool with proper context injection.
+        """Invoke a tool with proper context injection and hooks.
 
         Handles tools that expect AgentContext, RunContext, or neither.
+        Runs pre/post tool hooks if configured on the node.
         """
+        import time
+
+        from agentpool.tasks import ToolSkippedError
+
+        hooks = self.node.hooks
+
+        # Run pre-tool hooks
+        if hooks:
+            pre_result = await hooks.run_pre_tool_hooks(
+                agent_name=ctx.node_name,
+                tool_name=tool.name,
+                tool_input=kwargs,
+                conversation_id=None,
+            )
+            if pre_result.get("decision") == "deny":
+                reason = pre_result.get("reason", "Blocked by pre-tool hook")
+                msg = f"Tool {tool.name} blocked: {reason}"
+                raise ToolSkippedError(msg)
+            # Apply modified input if provided
+            if modified := pre_result.get("modified_input"):
+                kwargs.update(modified)
+
         fn = tool.get_callable()
         # Inject AgentContext parameters
         context_param_names = _get_context_param_names(fn)
@@ -575,10 +598,25 @@ class ToolManagerBridge:
             for param_name in run_context_param_names:
                 if param_name not in kwargs:
                     kwargs[param_name] = stub_run_ctx
+
         # Execute the tool
+        start_time = time.perf_counter()
         result = fn(**kwargs)
         if inspect.isawaitable(result):
             result = await result
+        duration_ms = (time.perf_counter() - start_time) * 1000
+
+        # Run post-tool hooks
+        if hooks:
+            await hooks.run_post_tool_hooks(
+                agent_name=ctx.node_name,
+                tool_name=tool.name,
+                tool_input=kwargs,
+                tool_output=result,
+                duration_ms=duration_ms,
+                conversation_id=None,
+            )
+
         return result
 
     async def _start_server(self) -> None:
