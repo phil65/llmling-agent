@@ -11,11 +11,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from pydantic import BaseModel, TypeAdapter
 
-from codex_adapter.codex_types import (
-    CodexThread,
-    HttpMcpServer,
-    StdioMcpServer,
-)
+from codex_adapter.codex_types import CodexThread, HttpMcpServer, StdioMcpServer
 from codex_adapter.events import CodexEvent
 from codex_adapter.exceptions import CodexProcessError, CodexRequestError
 from codex_adapter.models import (
@@ -50,11 +46,7 @@ ResultType = TypeVar("ResultType", bound=BaseModel)
 if TYPE_CHECKING:
     from typing import Self
 
-    from codex_adapter.codex_types import (
-        ApprovalPolicy,
-        McpServerConfig,
-        ReasoningEffort,
-    )
+    from codex_adapter.codex_types import ApprovalPolicy, McpServerConfig, ReasoningEffort
     from codex_adapter.models import ModelData, SkillData, TurnInputItem
 
 logger = logging.getLogger(__name__)
@@ -314,11 +306,7 @@ class CodexClient:
         Returns:
             ThreadListResponse with data (list of threads) and next_cursor
         """
-        params = ThreadListParams(
-            cursor=cursor,
-            limit=limit,
-            model_providers=model_providers,
-        )
+        params = ThreadListParams(cursor=cursor, limit=limit, model_providers=model_providers)
         result = await self._send_request("thread/list", params)
         return ThreadListResponse.model_validate(result)
 
