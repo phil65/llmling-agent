@@ -297,6 +297,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -455,6 +456,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -1725,6 +1729,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -1883,6 +1888,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -2335,6 +2343,151 @@
       "title": "AggregatedConverterConfig",
       "type": "object"
     },
+    "AggregatingToolsetConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for aggregating multiple toolsets.",
+      "properties": {
+        "namespace": {
+          "default": null,
+          "description": "Optional namespace prefix for tool names",
+          "examples": [
+            "web",
+            "files"
+          ],
+          "title": "Tool namespace",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "const": "aggregating",
+          "default": "aggregating",
+          "description": "Aggregating toolset.",
+          "title": "Type",
+          "type": "string"
+        },
+        "toolsets": {
+          "description": "List of toolsets to aggregate.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "aggregating": "#/$defs/AggregatingToolsetConfig",
+                "code": "#/$defs/CodeToolsetConfig",
+                "code_mode": "#/$defs/CodeModeToolsetConfig",
+                "composio": "#/$defs/ComposioToolSetConfig",
+                "config_creation": "#/$defs/ConfigCreationToolsetConfig",
+                "custom": "#/$defs/CustomToolsetConfig",
+                "debug": "#/$defs/DebugToolsetConfig",
+                "entry_points": "#/$defs/EntryPointToolsetConfig",
+                "file_access": "#/$defs/FSSpecToolsetConfig",
+                "import_tools": "#/$defs/ImportToolsToolsetConfig",
+                "mcp_discovery": "#/$defs/MCPDiscoveryToolsetConfig",
+                "notifications": "#/$defs/NotificationsToolsetConfig",
+                "openapi": "#/$defs/OpenAPIToolsetConfig",
+                "plan": "#/$defs/PlanToolsetConfig",
+                "process_management": "#/$defs/ProcessManagementToolsetConfig",
+                "remote_code_mode": "#/$defs/RemoteCodeModeToolsetConfig",
+                "search": "#/$defs/SearchToolsetConfig",
+                "skills": "#/$defs/SkillsToolsetConfig",
+                "subagent": "#/$defs/SubagentToolsetConfig",
+                "vfs": "#/$defs/VFSToolsetConfig",
+                "workers": "#/$defs/WorkersToolsetConfig"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/OpenAPIToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/EntryPointToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ComposioToolSetConfig"
+              },
+              {
+                "$ref": "#/$defs/ProcessManagementToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SkillsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/FSSpecToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/VFSToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SubagentToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/WorkersToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/AggregatingToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/RemoteCodeModeToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/SearchToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/NotificationsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ConfigCreationToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/ImportToolsToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/PlanToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/DebugToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/MCPDiscoveryToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/CustomToolsetConfig"
+              }
+            ]
+          },
+          "title": "Toolsets to aggregate",
+          "type": "array"
+        },
+        "tool_mode": {
+          "anyOf": [
+            {
+              "const": "codemode",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional tool mode. Set to 'codemode' to wrap all tools in Python execution.",
+          "title": "Tool execution mode"
+        }
+      },
+      "required": [
+        "toolsets"
+      ],
+      "title": "AggregatingToolsetConfig",
+      "type": "object",
+      "x-doc-title": "Aggregating Toolset",
+      "x-icon": "octicon:package-16"
+    },
     "AmpACPAgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for Amp (AmpCode) via ACP.\n\nACP bridge adapter that spawns the Amp CLI internally. The amp-acp bridge\nitself has no CLI configuration options. It spawns `amp --no-notifications`\nand bridges the communication to ACP protocol.\n\nConfiguration is done via environment variables:\n- AMP_EXECUTABLE: Path to amp binary (default: 'amp' from PATH)\n- AMP_PREFER_SYSTEM_PATH: Set to '1' to use system amp instead of npx version\n- AMP_API_KEY: API key for Amp service\n- AMP_URL: URL for Amp service (default: https://ampcode.com/)\n- AMP_SETTINGS_FILE: Path to settings file\n\nFor amp CLI configuration (permissions, MCP servers, etc.), use the amp\nsettings file at ~/.config/amp/settings.json\n\nExample:\n    ```yaml\n    agents:\n      amp:\n        type: acp\n        provider: amp\n        cwd: /path/to/project\n        env:\n          AMP_EXECUTABLE: /usr/local/bin/amp\n          AMP_PREFER_SYSTEM_PATH: \"1\"\n          AMP_API_KEY: your-api-key\n    ```",
@@ -2632,6 +2785,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -2790,6 +2944,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -4130,6 +4287,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -4288,6 +4446,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -6972,6 +7133,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -7130,6 +7292,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -8340,6 +8505,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -8498,6 +8664,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -9124,7 +9293,7 @@
               "type": "null"
             }
           ],
-          "default": null,
+          "default": "opus",
           "description": "Model to use for this agent. Defaults to Claude's default model.",
           "examples": [
             "claude-sonnet-4-5",
@@ -9586,6 +9755,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -9744,6 +9914,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -10129,7 +10302,7 @@
     },
     "CodeModeToolsetConfig": {
       "additionalProperties": false,
-      "description": "Configuration for code mode tools.",
+      "description": "Configuration for code mode tools.\n\nDEPRECATED: Use AggregatingToolsetConfig with tool_mode='codemode' instead.",
       "properties": {
         "namespace": {
           "default": null,
@@ -10156,6 +10329,7 @@
           "items": {
             "discriminator": {
               "mapping": {
+                "aggregating": "#/$defs/AggregatingToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
@@ -10211,6 +10385,9 @@
                 "$ref": "#/$defs/WorkersToolsetConfig"
               },
               {
+                "$ref": "#/$defs/AggregatingToolsetConfig"
+              },
+              {
                 "$ref": "#/$defs/CodeModeToolsetConfig"
               },
               {
@@ -10251,7 +10428,7 @@
       ],
       "title": "CodeModeToolsetConfig",
       "type": "object",
-      "x-doc-title": "Code Mode Toolset",
+      "x-doc-title": "Code Mode Toolset (Deprecated)",
       "x-icon": "octicon:code-square-16"
     },
     "CodeToolsetConfig": {
@@ -10670,6 +10847,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -10828,6 +11006,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -11513,8 +11694,7 @@
           "examples": [
             "gpt-5.1-codex-max",
             "gpt-5.1-codex-mini",
-            "gpt-5-codex",
-            "claude-opus-4"
+            "gpt-5.2"
           ],
           "title": "Model",
           "type": [
@@ -11528,7 +11708,8 @@
               "enum": [
                 "low",
                 "medium",
-                "high"
+                "high",
+                "xhigh"
               ],
               "type": "string"
             },
@@ -11540,9 +11721,28 @@
           "description": "Reasoning effort level for the model.",
           "examples": [
             "medium",
-            "high"
+            "high",
+            "xhigh"
           ],
           "title": "Reasoning Effort"
+        },
+        "approval_policy": {
+          "default": "never",
+          "description": "Tool call approval policy.\n\n- \"never\": Execute tools without requesting approval (default for programmatic use)\n- \"on-request\": Request approval when tools request it\n- \"on-failure\": Request approval when tool execution fails\n- \"untrusted\": Always request approval (most restrictive)",
+          "enum": [
+            "untrusted",
+            "on-failure",
+            "on-request",
+            "never"
+          ],
+          "examples": [
+            "never",
+            "on-request",
+            "on-failure",
+            "untrusted"
+          ],
+          "title": "Approval Policy",
+          "type": "string"
         },
         "tools": {
           "description": "Tools and toolsets to expose to Codex via MCP bridge.\n\nThese will be started as an in-process MCP server and made available\nto the Codex agent.",
@@ -11563,6 +11763,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -11721,6 +11922,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -12572,6 +12776,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -12730,6 +12935,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -19749,6 +19957,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -19907,6 +20116,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -21801,6 +22013,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -21959,6 +22172,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -23566,6 +23782,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -23724,6 +23941,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -26088,6 +26308,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -26246,6 +26467,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -29439,6 +29663,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -29597,6 +29822,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -31648,6 +31876,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -31806,6 +32035,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -33737,6 +33969,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -33895,6 +34128,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -34608,6 +34844,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -34766,6 +35003,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -37545,6 +37785,7 @@
           "items": {
             "discriminator": {
               "mapping": {
+                "aggregating": "#/$defs/AggregatingToolsetConfig",
                 "code": "#/$defs/CodeToolsetConfig",
                 "code_mode": "#/$defs/CodeModeToolsetConfig",
                 "composio": "#/$defs/ComposioToolSetConfig",
@@ -37598,6 +37839,9 @@
               },
               {
                 "$ref": "#/$defs/WorkersToolsetConfig"
+              },
+              {
+                "$ref": "#/$defs/AggregatingToolsetConfig"
               },
               {
                 "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -40222,6 +40466,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -40380,6 +40625,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
@@ -46046,6 +46294,7 @@
                 "discriminator": {
                   "mapping": {
                     "agent_cli": "#/$defs/AgentCliToolConfig",
+                    "aggregating": "#/$defs/AggregatingToolsetConfig",
                     "bash": "#/$defs/BashToolConfig",
                     "builtin": {
                       "discriminator": {
@@ -46204,6 +46453,9 @@
                   },
                   {
                     "$ref": "#/$defs/WorkersToolsetConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/AggregatingToolsetConfig"
                   },
                   {
                     "$ref": "#/$defs/CodeModeToolsetConfig"
