@@ -37,6 +37,9 @@ def disable_logfire(tmp_path_factory):
     # Use temp directory for Claude storage during tests
     claude_test_dir = tmp_path_factory.mktemp("claude_config")
     os.environ["CLAUDE_CONFIG_DIR"] = str(claude_test_dir)
+    # Use temp directory for Codex data during tests
+    codex_test_dir = tmp_path_factory.mktemp("codex_home")
+    os.environ["CODEX_HOME"] = str(codex_test_dir)
 
     # Mock logfire configure to be a no-op
     try:
