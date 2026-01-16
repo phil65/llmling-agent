@@ -118,6 +118,8 @@ async def test_codex_multiple_toolsets():
 async def test_codex_mcp_servers_config():
     """Test that MCP servers config includes both external and bridge servers."""
     # Create config with both external MCP server and toolset
+    # Use the actual test MCP server instead of a bogus 'echo' command
+    test_server_path = Path(__file__).parent.parent.parent / "mcp_server" / "server.py"
     config = CodexAgentConfig(
         name="codex_mixed",
         cwd=str(Path.cwd()),
@@ -125,7 +127,13 @@ async def test_codex_mcp_servers_config():
         reasoning_effort="medium",
         approval_policy="never",
         tools=[SubagentToolsetConfig()],
-        mcp_servers=[StdioMCPServerConfig(name="external_test", command="echo", args=["test"])],
+        mcp_servers=[
+            StdioMCPServerConfig(
+                name="external_test",
+                command="uv",
+                args=["run", "python", str(test_server_path)],
+            )
+        ],
     )
 
     async with AgentPool() as pool:

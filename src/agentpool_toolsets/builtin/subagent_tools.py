@@ -215,7 +215,7 @@ class SubagentTools(StaticResourceProvider):
         """
         from agentpool import Agent
 
-        if not ctx.pool:
+        if ctx.pool is None:
             msg = "No agent pool available"
             raise ToolError(msg)
         lines: list[str] = []
@@ -314,7 +314,7 @@ class SubagentTools(StaticResourceProvider):
         Returns:
             The agent's response
         """
-        if not ctx.pool:
+        if ctx.pool is None:
             msg = "No agent pool available"
             raise ToolError(msg)
 
