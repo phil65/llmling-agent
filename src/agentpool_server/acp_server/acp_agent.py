@@ -480,42 +480,43 @@ class AgentPoolACPAgent(ACPAgent):
     async def list_sessions(self, params: ListSessionsRequest) -> ListSessionsResponse:
         """List available sessions.
 
-        Returns sessions from both active memory and persistent storage.
-        Supports pagination via cursor and optional cwd filtering.
+        Delegates to the current agent's list_sessions method which handles
+        fetching sessions from storage with proper titles.
         """
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
 
         try:
-            # Get session IDs from storage (includes both active and persisted)
-            session_ids = await self.session_manager.list_sessions(active_only=False)
-            # Build SessionInfo objects
+            # Get agent from active session or use default
+            agent = None
+            for session in self.session_manager._active.values():
+                agent = session.agent
+                break
+
+            if agent is None:
+                # No active session, get default agent
+                default_name = next(iter(self.agent_pool.manifest.agents.keys()))
+                agent = self.agent_pool.get_agent(default_name)
+
+            # Delegate to agent's list_sessions
+            logger.info("Listing sessions for agent", agent_name=agent.name, agent_type=type(agent).__name__)
+            agent_sessions = await agent.list_sessions()
+            logger.info("Agent returned sessions", count=len(agent_sessions))
+
+            # Convert to ACP SessionInfo
+            # TODO: Re-enable cwd filter once session storage is unified
             sessions: list[SessionInfo] = []
-            for session_id in session_ids:
-                # Try active session first
-                active_session = self.session_manager.get_session(session_id)
-                if active_session:
-                    # Filter by cwd if specified
-                    if params.cwd and active_session.cwd != params.cwd:
-                        continue
-                    title = f"Session with {active_session.current_agent_name}"
-                    sessions.append(
-                        SessionInfo(session_id=session_id, cwd=active_session.cwd, title=title)
+            for s in agent_sessions:
+                # if params.cwd and s.cwd != params.cwd:
+                #     continue
+                sessions.append(
+                    SessionInfo(
+                        session_id=s.session_id,
+                        cwd=s.cwd or "",
+                        title=s.title,
+                        updated_at=s.updated_at,
                     )
-                else:
-                    # Load from storage to get details
-                    data = await self.session_manager.session_manager.store.load(session_id)
-                    if data:
-                        # Filter by cwd if specified
-                        if params.cwd and data.cwd != params.cwd:
-                            continue
-                        info = SessionInfo(
-                            session_id=session_id,
-                            cwd=data.cwd or "",
-                            title=f"Session with {data.agent_name}",
-                            updated_at=data.last_active.isoformat(),
-                        )
-                        sessions.append(info)
+                )
 
             logger.info("Listed sessions", count=len(sessions))
             return ListSessionsResponse(sessions=sessions)

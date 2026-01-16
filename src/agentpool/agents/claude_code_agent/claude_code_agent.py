@@ -1830,8 +1830,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         try:
             # Use storage sessions API which works with Claude provider
+            # Don't filter by agent name - Claude storage uses 'claude' for all
             filters = QueryFilters(
-                agent_name=self.name,
+                agent_name=None,
                 since=None,
                 query=None,
                 limit=None,

@@ -28,12 +28,15 @@ def vision_model() -> str:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def disable_logfire():
-    """Disable logfire for all tests."""
+def disable_logfire(tmp_path_factory):
+    """Disable logfire for all tests and set up test directories."""
     # Set environment variable to disable logfire
     os.environ["LOGFIRE_DISABLE"] = "true"
     # Also disable observability entirely
     os.environ["OBSERVABILITY_ENABLED"] = "false"
+    # Use temp directory for Claude storage during tests
+    claude_test_dir = tmp_path_factory.mktemp("claude_config")
+    os.environ["CLAUDE_CONFIG_DIR"] = str(claude_test_dir)
 
     # Mock logfire configure to be a no-op
     try:

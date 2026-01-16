@@ -1096,7 +1096,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """List sessions from storage.
 
         For native agents, queries the pool's session store for all sessions
-        associated with this agent.
+        associated with this agent. Fetches conversation titles from storage.
 
         Returns:
             List of SessionInfo-compatible SessionData objects
@@ -1111,9 +1111,16 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
             # Load each session to get full SessionData
             result: list[SessionInfo] = []
+            storage = self.agent_pool.storage
             for session_id in session_ids:
                 session_data = await self.agent_pool.sessions.store.load(session_id)
                 if session_data:
+                    # Fetch title from conversation storage if not in metadata
+                    if not session_data.title and storage:
+                        title = await storage.get_conversation_title(session_data.conversation_id)
+                        if title:
+                            # Update metadata with title
+                            session_data = session_data.with_metadata(title=title)
                     # SessionData implements SessionInfo protocol
                     result.append(session_data)  # type: ignore[arg-type]
 
