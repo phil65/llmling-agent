@@ -386,7 +386,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                     # Convert Codex event to native event
                     if native_event := codex_to_native_event(event):
                         await event_handlers(None, native_event)
-                        yield native_event
+                        yield native_event  # type: ignore[misc]
 
                         # Handle plan updates - sync to pool.todos
                         if (
@@ -428,8 +428,29 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 cache_write_tokens=0,
             )
 
-        complete_msg = ChatMessage(
-            content=final_text,
+        # Parse structured output if output_type is not str
+        final_content: OutputDataT
+        if self._output_type is not str and self._output_type is not None:
+            import json
+
+            from pydantic import TypeAdapter
+
+            try:
+                parsed = json.loads(final_text)
+                adapter = TypeAdapter(self._output_type)
+                final_content = adapter.validate_python(parsed)
+            except (json.JSONDecodeError, ValueError) as e:
+                self.log.warning(
+                    "Failed to parse structured output, returning raw text",
+                    error=str(e),
+                    output_type=self._output_type,
+                )
+                final_content = final_text  # type: ignore[assignment]
+        else:
+            final_content = final_text  # type: ignore[assignment]
+
+        complete_msg: ChatMessage[OutputDataT] = ChatMessage(
+            content=final_content,
             role="assistant",
             message_id=final_message_id,
             conversation_id=final_conversation_id,
@@ -439,7 +460,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             model_name=self.model_name,
         )
 
-        complete_event = StreamCompleteEvent(message=complete_msg)
+        complete_event: StreamCompleteEvent[OutputDataT] = StreamCompleteEvent(message=complete_msg)
         await event_handlers(None, complete_event)
         yield complete_event
 
