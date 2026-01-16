@@ -483,6 +483,7 @@ class ToolManagerBridge:
             async def run(self, arguments: dict[str, Any]) -> ToolResult:
                 """Execute the wrapped tool with context bridging."""
                 from fastmcp.server.dependencies import get_context
+                from fastmcp.tools.tool import ToolResult
                 from mcp.types import TextContent
 
                 from agentpool.agents.events import ToolResultMetadataEvent
@@ -497,7 +498,7 @@ class ToolManagerBridge:
                         f"Tool '{self._tool.name}' called with invalid arguments. "
                         f"Ensure arguments match the schema.\n\nValidation errors:\n{e}"
                     )
-                    return AgentPoolToolResult(content=[TextContent(type="text", text=error_msg)])
+                    return ToolResult(content=[TextContent(type="text", text=error_msg)])
 
                 # Get FastMCP context from context variable (not passed as parameter)
                 try:
