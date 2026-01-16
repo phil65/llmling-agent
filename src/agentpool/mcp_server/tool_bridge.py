@@ -513,11 +513,7 @@ class ToolManagerBridge:
                 # Emit metadata event for ClaudeCodeAgent to correlate
                 # (works around Claude SDK stripping MCP _meta field)
                 if isinstance(result, AgentPoolToolResult) and result.metadata:
-                    logger.info(
-                        "Emitting ToolResultMetadataEvent",
-                        tool_call_id=tc_id,
-                        metadata=result.metadata,
-                    )
+                    logger.info("Emitting ToolResultMetadataEvent", tool_call_id=tc_id)
                     event = ToolResultMetadataEvent(tool_call_id=tc_id, metadata=result.metadata)
                     await ctx.events.emit_event(event)
                 return _convert_to_tool_result(result)

@@ -76,7 +76,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         display_name: str | None = None,
         cwd: str | Path | None = None,
         model: str | None = None,
-        reasoning_effort: str | None = None,
+        reasoning_effort: ReasoningEffort | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
@@ -103,19 +103,15 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             tool_confirmation_mode: Tool confirmation behavior
             event_handlers: Event handlers for this agent
         """
+        from agentpool.mcp_server.tool_bridge import ToolManagerBridge
         from agentpool.models.codex_agents import CodexAgentConfig
+        from agentpool_config.mcp_server import BaseMCPServerConfig
 
         # Build config from kwargs if not provided
         if config is None:
-            config = CodexAgentConfig(
-                cwd=cwd,
-                model=model,
-                reasoning_effort=reasoning_effort,
-            )
-
+            config = CodexAgentConfig(cwd=cwd, model=model, reasoning_effort=reasoning_effort)
         # Use provided name or config name, fallback to "codex"
         agent_name = name or config.name or "codex"
-
         super().__init__(
             name=agent_name,
             description=description or config.description,
@@ -139,16 +135,10 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         # If mcp_servers param provided, we need to process it similarly
         if mcp_servers:
             # Convert any strings to MCPServerConfig objects
-            from agentpool_config.mcp_server import StdioMCPServerConfig
-
             processed: list[MCPServerConfig] = []
             for server in mcp_servers:
                 if isinstance(server, str):
-                    parts = server.split()
-                    if not parts:
-                        msg = "MCP server command string is empty"
-                        raise ValueError(msg)
-                    processed.append(StdioMCPServerConfig(command=parts[0], args=parts[1:]))
+                    processed.append(BaseMCPServerConfig.from_string(server))
                 else:
                     processed.append(server)
             self._external_mcp_servers = processed
@@ -160,10 +150,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Track current settings (for when they change mid-session)
         self._current_model: str | None = None
         self._current_effort: ReasoningEffort | None = None
-
-        # Create bridge for exposing our tools via MCP
-        from agentpool.mcp_server.tool_bridge import ToolManagerBridge
-
         self._tool_bridge = ToolManagerBridge(
             node=self,
             server_name=f"agentpool-{self.name}-tools",
