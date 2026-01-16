@@ -106,6 +106,11 @@ class ModeCategory:
     Examples:
         - Permissions: default, acceptEdits
         - Behavior: plan, code, architect
+
+    TODO: Consider adding an `is_static` field to indicate whether modes are
+    known in advance (Codex, Claude Code) vs dynamic (ACP where modes can
+    change based on model selection). This would help consumers like OpenCode
+    decide whether to fetch modes once at startup or handle updates.
     """
 
     id: ModeCategoryId | str
