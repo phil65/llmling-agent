@@ -347,6 +347,58 @@ class ClaudeStorageProvider(StorageProvider):
                         sessions.append((session_id, f))
         return sessions
 
+    def _extract_title(
+        self,
+        session_path: Path,
+        max_chars: int = 60,
+    ) -> str | None:
+        """Extract title from session file efficiently.
+
+        Looks for a summary entry first, then falls back to the first line
+        of the first user message. Stops reading as soon as a title is found.
+
+        Args:
+            session_path: Path to the JSONL session file
+            max_chars: Maximum characters for title (truncates with '...')
+
+        Returns:
+            Extracted title or None if no suitable content found
+        """
+        if not session_path.exists():
+            return None
+
+        try:
+            with session_path.open(encoding="utf-8", errors="ignore") as fp:
+                for line in fp:
+                    # Summary entries take priority
+                    if '"type":"summary"' in line:
+                        try:
+                            entry = json.loads(line)
+                            if summary := entry.get("summary"):
+                                return str(summary)
+                        except json.JSONDecodeError:
+                            pass
+
+                    # First user message as fallback - stop here
+                    if '"type":"user"' in line:
+                        try:
+                            entry = json.loads(line)
+                            msg = entry.get("message", {})
+                            content = msg.get("content", "")
+                            if isinstance(content, str) and content:
+                                # Use first line only, strip whitespace
+                                first_line = content.split("\n")[0].strip()
+                                if len(first_line) > max_chars:
+                                    return first_line[:max_chars] + "..."
+                                return first_line if first_line else None
+                        except json.JSONDecodeError:
+                            pass
+                        break  # Stop after first user message
+        except OSError:
+            pass
+
+        return None
+
     def _read_session(self, session_path: Path) -> list[ClaudeJSONLEntry]:
         """Read all entries from a session file."""
         entries: list[ClaudeJSONLEntry] = []
@@ -829,7 +881,7 @@ class ClaudeStorageProvider(StorageProvider):
             conv_data = ConvData(
                 id=session_id,
                 agent=messages[0].name or "claude",
-                title=None,
+                title=self._extract_title(session_path),
                 start_time=(first_timestamp or get_now()).isoformat(),
                 messages=msg_data_list,
                 token_usage=token_usage_data,
