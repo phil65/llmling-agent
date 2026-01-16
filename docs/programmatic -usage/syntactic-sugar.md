@@ -135,8 +135,8 @@ print(combined.shared_prompt)
 # Ensure clarity
 
 # Individual agent system prompts remain unchanged
-print(agent1.system_prompts)  # ["You are an analyzer."]
-print(agent2.system_prompts)  # ["You are a summarizer."]
+print(agent1.sys_prompts.prompts)  # ["You are an analyzer."]
+print(agent2.sys_prompts.prompts)  # ["You are a summarizer."]
 ```
 
 The shared prompt provides team-level instructions without modifying individual agent behaviors. This is useful for:

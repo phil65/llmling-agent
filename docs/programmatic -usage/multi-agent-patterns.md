@@ -57,11 +57,13 @@ main_agent.register_worker(
 Best for: Parallel execution or group coordination
 
 ```python
+# Parallel execution
 team = Team([agent1, agent2, agent3])
-result = await team.run_parallel("Analyze this data")
+result = await team.execute("Analyze this data")
 
-# Or chain through team
-team.chain("Process this sequentially")
+# Sequential execution (use TeamRun)
+run = agent1 | agent2 | agent3
+result = await run.run("Process this sequentially")
 ```
 
 ## 4. Decorator Pattern (Testing/Scripting)

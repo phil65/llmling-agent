@@ -212,7 +212,7 @@ async def dynamic_team(
 ):
     team = [pool.get_agent(name) for name in ["agent1", "agent2"]]
     group = Team(team)
-    return await group.run_parallel(task)
+    return await group.execute(task)
 ```
 
 4. **Context Sharing**: Use shared dependencies for coordinated agents:
@@ -224,7 +224,7 @@ async def shared_analysis(
     context: Context,
 ):
     group = Team[Context]([analyzer1, analyzer2])
-    return await group.run_parallel("Analyze using shared context")
+    return await group.execute("Analyze using shared context")
 ```
 
 The connection between your YAML manifest and the injection system is made through the AgentPool:

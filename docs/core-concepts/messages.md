@@ -155,13 +155,15 @@ class TeamResponse(list[AgentResponse]):
 ```python
 # Execute team
 team = pool.create_team(["analyzer", "planner", "executor"])
-response = await team.run_parallel("Process this task")
+response = await team.execute("Process this task")
 
 # Access results
 for agent_response in response:
     print(f"{agent_response.agent_name}: {agent_response.message.content}")
-    if not agent_response.success:
-        print(f"Error: {agent_response.error}")
+
+# Check for errors
+for name, error in response.errors.items():
+    print(f"Error in {name}: {error}")
 
 # Get specific agent's result
 if analyzer := response.by_agent("analyzer"):

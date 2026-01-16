@@ -46,47 +46,45 @@ All team members work simultaneously:
 
 ```python
 # Run all agents in parallel
-team_response = await team.run_parallel(prompt="Analyze this code")
+team_response = await team.execute(prompt="Analyze this code")
 
 # Access results
 for response in team_response:
-    if response.success:
-        print(f"{response.agent_name}: {response.message.content}")
-    else:
-        print(f"{response.agent_name} failed: {response.error}")
+    print(f"{response.agent_name}: {response.message.content}")
 
-# Get timing information
-print(team_response.format_durations())
+# Check for errors
+for agent_name, error in team_response.errors.items():
+    print(f"{agent_name} failed: {error}")
 ```
 
 ### Sequential Execution
 
-Agents execute one after another:
+For sequential execution, use `TeamRun` instead:
 
 ```python
-# Run agents in sequence
-results = await team.run(prompt="Review this PR")
+from agentpool import TeamRun
 
-# Access ordered results
-for response in results:
-    print(f"Step {response.agent_name}: {response.message.content}")
+# Create sequential pipeline
+run = TeamRun([agent1, agent2, agent3])
+# or use the pipe operator
+run = agent1 | agent2 | agent3
+
+# Execute sequentially
+result = await run.run("Review this PR")
 ```
 
-### Chain Execution
+### Streaming Results
 
-Pass data through a chain of agents:
+Stream messages as they arrive from parallel execution:
 
 ```python
-# Each agent processes previous agent's output
-final_message = await team.chain(
-    initial_message,
-    require_all=True  # Fail if any agent fails
-)
+# Yield messages as agents complete
+async for msg in team.run_iter("Analyze this"):
+    print(f"Result: {msg.content}")
 
-# Or stream the chain results
-async with team.chain_stream(initial_message) as stream:
-    async for chunk in stream.stream_output():
-        print(chunk)
+# Or stream events
+async for event in team.run_stream("Analyze this"):
+    print(event)
 ```
 
 ## Team as a Target Container
@@ -119,8 +117,7 @@ Share content and capabilities across team members:
 ```python
 await team.distribute(
     content="Shared context information",
-    tools=["tool1", "tool2"],         # Tools to share
-    resources=["resource1.txt"]       # Resources to share
+    tools=["tool1", "tool2"],         # Tool names to enable
 )
 ```
 
@@ -129,18 +126,18 @@ await team.distribute(
 Teams provide rich response objects:
 
 ```python
-team_response = await team.run_parallel(prompt)
+team_response = await team.execute(prompt)
 
-failed = team_response.failed_agents         # List of failed agents
+# Access errors
+for name, error in team_response.errors.items():
+    print(f"{name} failed: {error}")
 
 # Timing information
-print(f"Total duration: {team_response.duration}s")
+print(f"Total duration: {team_response.duration}")
 
-# Get specific agent's result
-planner_response = team_response.by_agent("planner")
-
-# Convert to chat message
-message = team_response.to_chat_message()
+# Access individual responses
+for response in team_response:
+    print(f"{response.agent_name}: {response.message.content}")
 ```
 
 ## Team Composition
@@ -306,17 +303,17 @@ analysis_team = pool.create_team(
 analysis_team >> result_collector
 
 # Run analysis
-await analysis_team.run_parallel("Analyze this code")
+await analysis_team.execute("Analyze this code")
 ```
 
 ### Team Task information
 
 ```python
-team_response = await team.run_parallel(prompt)
+team_response = await team.execute(prompt)
 
-print(f"Execution time: {team_response.duration:.2f}s")
-print(f"Failed: {len(team_response.failed_agents)}")
+print(f"Execution time: {team_response.duration}")
+print(f"Errors: {len(team_response.errors)}")
 
-for response in team_response.failed:
-    print(f"Error in {response.agent_name}: {response.error}")
+for agent_name, error in team_response.errors.items():
+    print(f"Error in {agent_name}: {error}")
 ```

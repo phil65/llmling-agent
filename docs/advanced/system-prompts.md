@@ -135,9 +135,9 @@ def generate_context_prompt(user_id: str, session_type: str) -> str:
     return f"You are assisting {user_data.name} with {session_type}."
 ```
 
-## Dynamic System Prompts
+## Callable Prompts
 
-System prompts can be dynamic, either evaluating once on first run or for each interaction:
+System prompts can include callables that are evaluated when the agent context starts:
 
 ```python
 from agentpool import Agent
@@ -150,11 +150,14 @@ agent = Agent(
     name="weather_advisor",
     system_prompt=[
         "You are a weather advisor.",
-        get_weather_context  # Updates each run
+        get_weather_context  # Evaluated at context entry
     ]
 )
-agent.sys_prompts.dynamic = True  # Already default
 ```
+
+!!! note "Evaluation Timing"
+    Callable prompts are evaluated once when entering the agent context (`async with agent:`).
+    The result is then cached for the lifetime of that context.
 
 ## Mixed Prompt Types
 
@@ -244,7 +247,7 @@ Use them when appropriate to complete your tasks.
 For strict enforcement:
 
 ```python
-agent.sys_prompts.inject_tools = "required"
+agent.sys_prompts.inject_tools = "all"
 agent.sys_prompts.tool_usage_style = "strict"
 ```
 
@@ -266,18 +269,6 @@ Do not attempt to perform tasks without using appropriate tools.
     System prompts are formatted once when the agent enters its context (`async with agent:`)
     and remain fixed for the lifetime of that context. This enables prompt caching for
     better performance. To use different system prompts, create a new agent context.
-
-## Caching
-
-Dynamic prompts can be cached to avoid unnecessary re-evaluation:
-
-```python
-# Cache after first evaluation
-agent.sys_prompts.dynamic = False
-
-# Always re-evaluate (default)
-agent.sys_prompts.dynamic = True
-```
 
 ## Agent Info Injection
 
@@ -303,16 +294,16 @@ While rarely needed, you can customize the complete template used to generate th
 agent.sys_prompts.template = custom_template
 ```
 
-In the global spacename, you will have
+The template has access to:
 
-- the `agent`
-- the `prompts` in form of `AnyPromptType`.
-- `to_prompt` helper (AnyPromptType -> str)
-- the `dynamic` setting (bool)
-- the `inject_tools` setting (bool)
-- the `tool_usage_style` setting (Literal["suggestive", "strict"])
+- `agent` - the agent instance
+- `prompts` - the list of prompts (`AnyPromptType`)
+- `to_prompt` - helper filter to convert prompts to strings
+- `inject_agent_info` - whether to include agent name/description
+- `inject_tools` - tool injection mode (`"off"` or `"all"`)
+- `tool_usage_style` - tool usage style (`"suggestive"` or `"strict"`)
 
-For further information, check out agent/sys_prompts.py in the codebase.
+See `src/agentpool/agents/sys_prompts.py` for implementation details.
 
 !!! info "About Prompt Engineering"
     By default, AgentPool does not engage in prompt engineering or manipulation. The features described
@@ -455,9 +446,4 @@ project/
 7. **Version Control**: Include templates in version control
 8. **Documentation**: Document variables and function signatures
 
-## Function Limitations
 
-!!! info "Async Function Support"
-    Currently, function-generated prompts only support synchronous functions.
-    Async function support is planned for future releases when the agent
-    initialization process becomes asynchronous.
