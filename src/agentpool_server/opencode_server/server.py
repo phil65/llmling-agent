@@ -229,11 +229,28 @@ def create_app(  # noqa: PLR0915
             Change.deleted: "unlink",
         }
 
+        # Get ignore patterns from config
+        ignore_patterns: list[str] = []
+        if state.config and state.config.watcher and state.config.watcher.ignore:
+            ignore_patterns = state.config.watcher.ignore
+
+        def should_ignore(file_path: str) -> bool:
+            """Check if a file path should be ignored."""
+            import fnmatch
+
+            # Always ignore .git
+            if "/.git/" in file_path or file_path.endswith("/.git"):
+                return True
+            # Check user-configured patterns
+            rel_path = file_path
+            if state.working_dir and file_path.startswith(state.working_dir):
+                rel_path = file_path[len(state.working_dir) :].lstrip("/")
+            return any(fnmatch.fnmatch(rel_path, pat) for pat in ignore_patterns)
+
         async def on_file_change(changes: AbstractSet[tuple[Change, str]]) -> None:
             """Broadcast file changes to all subscribers."""
             for change_type, file_path in changes:
-                # Skip .git directory changes
-                if "/.git/" in file_path or file_path.endswith("/.git"):
+                if should_ignore(file_path):
                     continue
                 event_type = change_type_map.get(change_type, "change")
                 log.info("Broadcasting file.watcher.updated: %s %s", event_type, file_path)

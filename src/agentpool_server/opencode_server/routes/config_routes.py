@@ -154,7 +154,7 @@ async def get_config(state: StateDep) -> Config:
     """Get server configuration."""
     import os
 
-    from agentpool_server.opencode_server.models.config import Keybinds
+    from agentpool_server.opencode_server.models.config import Keybinds, WatcherConfig
 
     # Initialize config if not yet set
     if state.config is None:
@@ -163,6 +163,12 @@ async def get_config(state: StateDep) -> Config:
     # Ensure keybinds are set with defaults
     if state.config.keybinds is None:
         state.config.keybinds = Keybinds()
+
+    # Ensure watcher config is set with sensible defaults
+    if state.config.watcher is None:
+        state.config.watcher = WatcherConfig(
+            ignore=["node_modules/**", "__pycache__/**", ".venv/**", "*.pyc", ".mypy_cache/**"]
+        )
 
     # Set a default model if not already configured
     if state.config.model is None:
