@@ -866,10 +866,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             resume_session: If True, attempt to resume the current session using
                 the stored session ID. If False, start a fresh session.
         """
+        # Recreate client with new options
+        from clawd_code_sdk import ClaudeSDKClient
+
         self.log.info(
-            "Reconnecting Claude Code agent (resume=%s, session_id=%s)",
-            resume_session,
-            self._sdk_session_id,
+            "Reconnecting Claude Code agent", resume=resume_session, session_id=self._sdk_session_id
         )
 
         # Cancel existing connection if active
@@ -900,16 +901,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if not resume_session:
             self._sdk_session_id = None
 
-        # Recreate client with new options
-        from clawd_code_sdk import ClaudeSDKClient
-
         formatted_prompt = await self.sys_prompts.format_system_prompt(self)
         options = self._build_options(formatted_system_prompt=formatted_prompt)
 
         # Override resume option if specified
         if session_to_resume:
             options.resume = session_to_resume
-            self.log.info("Attempting to resume session: %s", session_to_resume)
+            self.log.info("Attempting to resume session", session=session_to_resume)
 
         self._client = ClaudeSDKClient(options=options)
 
@@ -918,7 +916,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self._connection_task = asyncio.create_task(self._do_connect())
             await self._connection_task
             mode = "resumed" if session_to_resume else "fresh"
-            self.log.info("Claude Code agent reconnected successfully (%s session)", mode)
+            self.log.info("Claude Code agent reconnected successfully", session_mode=mode)
         except Exception:
             self.log.exception("Error reconnecting Claude Code agent")
             raise
@@ -995,6 +993,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             A slashed Command that executes via Claude Code
         """
+        from clawd_code_sdk.types import AssistantMessage, ResultMessage, TextBlock, UserMessage
         from slashed import Command
 
         name = cmd_info.name
@@ -1010,13 +1009,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             kwargs: dict[str, str],
         ) -> None:
             """Execute the Claude Code slash command."""
-            from clawd_code_sdk.types import (
-                AssistantMessage,
-                ResultMessage,
-                TextBlock,
-                UserMessage,
-            )
-
             # Build command string
             args_str = " ".join(args) if args else ""
             if kwargs:
@@ -1588,7 +1580,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         self._model = model
         self._current_model = model
-
         # Ensure client is connected before setting model
         if self._client:
             await self.ensure_initialized()
