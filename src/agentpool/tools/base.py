@@ -106,6 +106,9 @@ class Tool[TOutputType = Any]:
     category: ToolKind | None = None
     """The category of the tool."""
 
+    instructions: str | None = None
+    """Instructions for how to use this tool effectively."""
+
     __repr__ = dataclasses_no_defaults_repr
 
     @abstractmethod

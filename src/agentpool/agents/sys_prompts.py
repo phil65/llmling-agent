@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Literal
 
 from agentpool import text_templates
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
     from toprompt import AnyPromptType
 
     from agentpool.agents.base_agent import BaseAgent
@@ -140,27 +137,6 @@ class SystemPrompts:
             evaluated.append(result)
         self.prompts = evaluated
         self._cached = True
-
-    @asynccontextmanager
-    async def temporary_prompt(
-        self, prompt: AnyPromptType, exclusive: bool = False
-    ) -> AsyncIterator[None]:
-        """Temporarily override system prompts.
-
-        Args:
-            prompt: Single prompt or sequence of prompts to use temporarily
-            exclusive: Whether to only use given prompt. If False, prompt will be
-                       appended to the agents prompts temporarily.
-        """
-        from toprompt import to_prompt
-
-        original_prompts = self.prompts.copy()
-        new_prompt = await to_prompt(prompt)
-        self.prompts = [new_prompt] if not exclusive else [*self.prompts, new_prompt]
-        try:
-            yield
-        finally:
-            self.prompts = original_prompts
 
     async def format_system_prompt(self, agent: BaseAgent[Any, Any]) -> str:
         """Format complete system prompt."""

@@ -295,6 +295,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         elif system_prompt:
             all_prompts.append(system_prompt)
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=self._manifest.prompt_manager)
+        self._formatted_system_prompt: str | None = None  # Set in __aenter__
         self.hooks = hooks
         self._default_usage_limits = usage_limits
         self._providers = list(providers) if providers else None  # model discovery
@@ -457,6 +458,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             else:
                 for coro in coros:
                     await coro
+
+            # Format system prompt once at startup (enables caching)
+            self._formatted_system_prompt = await self.sys_prompts.format_system_prompt(self)
         except Exception as e:
             msg = "Failed to initialize agent"
             raise RuntimeError(msg) from e
@@ -681,7 +685,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             name=self.name,
             model=model_,
             model_settings=self.model_settings,
-            instructions=await self.sys_prompts.format_system_prompt(self),
+            instructions=self._formatted_system_prompt,
             retries=self._retries,
             end_strategy=self._end_strategy,
             output_retries=self._output_retries,
@@ -954,9 +958,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     async def temporary_state[T](
         self,
         *,
-        system_prompts: list[AnyPromptType] | None = None,
         output_type: type[T] | None = None,
-        replace_prompts: bool = False,
         tools: list[ToolType] | None = None,
         replace_tools: bool = False,
         history: list[AnyPromptType] | SessionQuery | None = None,
@@ -967,9 +969,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """Temporarily modify agent state.
 
         Args:
-            system_prompts: Temporary system prompts to use
             output_type: Temporary output type to use
-            replace_prompts: Whether to replace existing prompts
             tools: Temporary tools to make available
             replace_tools: Whether to replace existing tools
             history: Conversation history (prompts or query)
@@ -983,11 +983,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             old_type = self._output_type
             self.to_structured(output_type)
         async with AsyncExitStack() as stack:
-            if system_prompts is not None:  # System prompts
-                await stack.enter_async_context(
-                    self.sys_prompts.temporary_prompt(system_prompts, exclusive=replace_prompts)
-                )
-
             if tools is not None:  # Tools
                 await stack.enter_async_context(
                     self.tools.temporary_tools(tools, exclusive=replace_tools)
