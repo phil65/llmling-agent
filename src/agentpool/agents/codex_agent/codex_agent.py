@@ -623,7 +623,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         # Handle based on category
         if category_id == "mode":
-            if mode_id not in ["always", "never", "auto", "unlessTrusted"]:
+            if mode_id not in ["never", "on-request", "on-failure", "untrusted"]:
                 msg = f"Invalid approval policy: {mode_id}"
                 raise ValueError(msg)
 
