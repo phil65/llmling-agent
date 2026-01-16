@@ -357,5 +357,5 @@ class DebugTools(StaticResourceProvider):
             }
             metadata_path = f"scripts/{timestamp}_{title}.json"
             self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
-
+        assert result_str
         return result_str
