@@ -1677,7 +1677,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             List of ModeCategory for permissions and models
         """
         from agentpool.agents.claude_code_agent.static_info import MODES
-        from agentpool.agents.modes import ModeCategory, ModeInfo
+        from agentpool.agents.modes import ModeCategory
 
         categories: list[ModeCategory] = []
         # Permission modes
@@ -1751,33 +1751,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         return categories
 
-    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
-        """Set a mode within a category.
-
-        For Claude Code, this handles:
-        - "permissions" category: permission modes from the SDK
-        - "model" category: model selection
-        - "thinking_level" category: extended thinking budget allocation
-
-        Args:
-            mode: The mode to set - ModeInfo object or mode ID string
-            category_id: Category ID ("permissions", "model", or "thinking_level")
-
-        Raises:
-            ValueError: If the category or mode is unknown
-        """
+    async def _set_mode(self, mode_id: str, category_id: str) -> None:
+        """Handle permissions, model, and thinking_level mode switching."""
         from agentpool.agents.claude_code_agent.static_info import VALID_MODES
-
-        # Extract mode_id and category from ModeInfo if provided
-        if isinstance(mode, ModeInfo):
-            mode_id = mode.id
-            category_id = category_id or mode.category_id
-        else:
-            mode_id = mode
-
-        # Default to permissions if no category specified
-        if category_id is None:
-            category_id = "permissions"
 
         if category_id == "permissions":
             # Map mode_id to PermissionMode

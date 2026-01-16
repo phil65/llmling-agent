@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from acp.schema import AvailableCommandsUpdate
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
-    from agentpool.agents.modes import ConfigOptionChanged, ModeCategory, ModeInfo
+    from agentpool.agents.modes import ConfigOptionChanged, ModeCategory
     from agentpool.agents.native_agent import Agent
     from agentpool.common_types import (
         AgentName,
@@ -830,26 +830,39 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """
         ...
 
-    @abstractmethod
     async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
         """Set a mode within a category.
 
-        Each agent type handles mode switching according to its own semantics:
-        - Native Agent: Maps to tool confirmation mode
-        - ClaudeCodeAgent: Maps to SDK permission mode
-        - ACPAgent: Forwards to remote server
-        - AGUIAgent: No-op (no modes supported)
+        Extracts mode_id and category_id from the input, then delegates to
+        the agent-specific `_set_mode` implementation.
 
         Args:
             mode: The mode to activate - either a ModeInfo object or mode ID string.
                   If ModeInfo, category_id is extracted from it (unless overridden).
-            category_id: Optional category ID. If None and mode is a string,
-                         uses the first category. If None and mode is ModeInfo,
-                         uses the mode's category_id.
+            category_id: Category ID. Required if mode is a string.
 
         Raises:
-            ValueError: If mode_id or category_id is invalid
+            ValueError: If mode_id or category_id is invalid or missing
         """
+        if isinstance(mode, ModeInfo):
+            mode_id = mode.id
+            resolved_category = category_id or mode.category_id
+        else:
+            mode_id = mode
+            if not category_id:
+                msg = "category_id is required when mode is a string"
+                raise ValueError(msg)
+            resolved_category = category_id
+
+        if not resolved_category:
+            msg = "category_id could not be determined from ModeInfo"
+            raise ValueError(msg)
+
+        await self._set_mode(mode_id, resolved_category)
+
+    @abstractmethod
+    async def _set_mode(self, mode_id: str, category_id: str) -> None:
+        """Agent-specific mode switching implementation."""
         ...
 
     @abstractmethod

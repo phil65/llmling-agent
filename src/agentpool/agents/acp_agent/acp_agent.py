@@ -53,7 +53,6 @@ from agentpool.agents.events import (
     ToolResultMetadataEvent,
 )
 from agentpool.agents.events.processors import FileTracker
-from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.models.acp_agents import ACPAgentConfig
@@ -771,32 +770,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             available_models=self._state.models,
         )
 
-    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
-        """Set a mode on the remote ACP server.
-
-        For ACPAgent, this forwards the mode/model change to the remote ACP server.
-        Prefers new set_session_config_option if config_options are available,
-        falls back to legacy set_session_mode/set_session_model.
-
-        Args:
-            mode: The mode to set - ModeInfo object or mode ID string
-            category_id: Category ID (config option ID)
-
-        Raises:
-            RuntimeError: If not connected to ACP server
-            ValueError: If mode is not available
-        """
+    async def _set_mode(self, mode_id: str, category_id: str) -> None:
+        """Forward mode change to remote ACP server."""
         from acp.schema import (
             SetSessionConfigOptionRequest,
             SetSessionModeRequest,
         )
-
-        # Extract mode_id and category from ModeInfo if provided
-        if isinstance(mode, ModeInfo):
-            mode_id = mode.id
-            category_id = category_id or mode.category_id
-        else:
-            mode_id = mode
 
         if not self._connection or not self._session_id or not self._state:
             msg = "Not connected to ACP server"
@@ -804,23 +783,16 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Validate mode is available
         available_modes = await self.get_modes()
-        matching_category = (
-            next((c for c in available_modes if c.id == category_id), None) if category_id else None
-        )
+        matching_category = next((c for c in available_modes if c.id == category_id), None)
 
         if matching_category:
             valid_ids = {m.id for m in matching_category.available_modes}
             if mode_id not in valid_ids:
                 msg = f"Unknown {category_id}: {mode_id}. Available: {valid_ids}"
                 raise ValueError(msg)
-        elif category_id:
-            # Category specified but not found
+        else:
             available_cats = {c.id for c in available_modes}
             msg = f"Unknown category: {category_id}. Available: {available_cats}"
-            raise ValueError(msg)
-        else:
-            # No category specified and no match found
-            msg = "category_id is required when mode is a string"
             raise ValueError(msg)
 
         # Prefer new config_options API if available

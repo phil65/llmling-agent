@@ -18,7 +18,6 @@ from pydantic_ai.models import Model
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.agents.events.processors import FileTracker
-from agentpool.agents.modes import ModeInfo
 from agentpool.agents.native_agent.helpers import process_tool_event
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory
@@ -1059,31 +1058,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             categories.append(model_category)
         return categories
 
-    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
-        """Set a mode for this agent.
-
-        Native agents support:
-        - "permissions" category: default, acceptEdits
-        - "model" category: any available model ID
-
-        Args:
-            mode: Mode to activate - ModeInfo object or mode ID string
-            category_id: Category ID ("permissions" or "model")
-
-        Raises:
-            ValueError: If mode_id or category_id is invalid
-        """
-        # Extract mode_id and category from ModeInfo if provided
-        if isinstance(mode, ModeInfo):
-            mode_id = mode.id
-            category_id = category_id or mode.category_id
-        else:
-            mode_id = mode
-
-        # Default to permissions if no category specified
-        if category_id is None:
-            category_id = "permissions"
-
+    async def _set_mode(self, mode_id: str, category_id: str) -> None:
+        """Handle permissions and model mode switching."""
         if category_id == "permissions":
             # Map mode_id to confirmation mode
             mode_map: dict[str, ToolConfirmationMode] = {

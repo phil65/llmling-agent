@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
     from agentpool.agents import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
-    from agentpool.agents.modes import ModeCategory, ModeInfo
+    from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation import AgentPool
     from agentpool.hooks import AgentHooks
@@ -455,11 +455,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 adapter = TypeAdapter(self._output_type)
                 final_content = adapter.validate_python(parsed)
             except (json.JSONDecodeError, ValueError) as e:
-                self.log.warning(
-                    "Failed to parse structured output, returning raw text",
-                    error=str(e),
-                    output_type=self._output_type,
-                )
+                msg = "Failed to parse structured output, returning raw text"
+                self.log.warning(msg, error=str(e), output_type=self._output_type)
                 final_content = final_text  # type: ignore[assignment]
         else:
             final_content = final_text  # type: ignore[assignment]
@@ -627,38 +624,9 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             )
         return categories
 
-    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
-        """Set a mode within a category.
-
-        Codex supports:
-        - approval_policy: "always", "never", "auto"
-        - reasoning_effort: "low", "medium", "high", "xhigh"
-        - model: Any valid model identifier
-
-        Approval policy can be changed without restarting thread.
-        Reasoning effort and model require archiving current thread and starting new one.
-
-        Args:
-            mode: Mode to set (ModeInfo or mode ID string)
-            category_id: Category ID ("approval_policy", "reasoning_effort", or "model")
-        """
-        from agentpool.agents.modes import ConfigOptionChanged, ModeInfo as ModeInfoType
-
-        # Extract mode ID and infer category if needed
-        if isinstance(mode, ModeInfoType):
-            mode_id = mode.id
-            category_id = category_id or mode.category_id
-        else:
-            mode_id = mode
-
-        # If no category specified, try to infer from mode_id
-        if not category_id:
-            if mode_id in ["always", "never", "auto"]:
-                category_id = "approval_policy"
-            elif mode_id in ["low", "medium", "high", "xhigh"]:
-                category_id = "reasoning_effort"
-            else:
-                category_id = "model"
+    async def _set_mode(self, mode_id: str, category_id: str) -> None:
+        """Handle approval_policy, reasoning_effort, and model mode switching."""
+        from agentpool.agents.modes import ConfigOptionChanged
 
         # Handle based on category
         if category_id == "approval_policy":

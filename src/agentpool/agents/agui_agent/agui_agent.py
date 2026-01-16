@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
-    from agentpool.agents.modes import ModeCategory, ModeInfo
+    from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
         BuiltinEventHandlerType,
         IndividualEventHandler,
@@ -677,18 +677,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         """
         return []
 
-    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
-        """Set a mode for AG-UI agent.
-
-        AG-UI doesn't support mode switching - model is controlled by remote server.
-
-        Args:
-            mode: The mode to set (not supported)
-            category_id: Category ID (not supported)
-
-        Raises:
-            ValueError: Always - AG-UI doesn't support modes
-        """
+    async def _set_mode(self, mode_id: str, category_id: str) -> None:
+        """AG-UI doesn't support mode switching."""
         msg = "AG-UI agent does not support mode switching - model is controlled by remote server"
         raise ValueError(msg)
 
