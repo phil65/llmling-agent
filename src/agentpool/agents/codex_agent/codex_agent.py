@@ -84,6 +84,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         env: ExecutionEnvironment | None = None,
         input_provider: InputProvider | None = None,
+        output_type: type[OutputDataT] = str,  # type: ignore[assignment]
         tool_confirmation_mode: ToolConfirmationMode = "always",
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
     ) -> None:
@@ -102,6 +103,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             mcp_servers: MCP server configurations
             env: Execution environment
             input_provider: Provider for user input
+            output_type: Output type for structured responses (default: str)
             tool_confirmation_mode: Tool confirmation behavior
             event_handlers: Event handlers for this agent
         """
@@ -124,6 +126,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             enable_logging=enable_logging,
             env=env,
             input_provider=input_provider,
+            output_type=output_type,
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
         )
@@ -173,6 +176,18 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         Returns:
             Configured agent instance
         """
+        from agentpool.models.manifest import AgentsManifest
+        from agentpool.utils.result_utils import to_type
+
+        # Resolve output type from config
+        manifest = agent_pool.manifest if agent_pool else AgentsManifest()
+        agent_output_type = config.output_type or str
+        if isinstance(agent_output_type, str) and agent_output_type != "str":
+            # Try to resolve from manifest responses
+            resolved_output_type = to_type(agent_output_type, manifest.responses)
+        else:
+            resolved_output_type = to_type(agent_output_type)
+
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
@@ -184,6 +199,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             event_handlers=merged_handlers or None,
             input_provider=input_provider,
             agent_pool=agent_pool,
+            output_type=resolved_output_type,  # type: ignore[arg-type]
         )
 
     def get_context(

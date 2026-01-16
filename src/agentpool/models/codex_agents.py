@@ -9,6 +9,7 @@ from pydantic import ConfigDict, Field
 
 from agentpool.models.agents import AnyToolConfig  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
+from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from codex_adapter import ApprovalPolicy, ReasoningEffort  # noqa: TC001
 
 
@@ -43,11 +44,7 @@ class CodexAgentConfig(BaseAgentConfig):
     model: str | None = Field(
         default=None,
         title="Model",
-        examples=[
-            "gpt-5.1-codex-max",
-            "gpt-5.1-codex-mini",
-            "gpt-5.2",
-        ],
+        examples=["gpt-5.1-codex-max", "gpt-5.1-codex-mini", "gpt-5.2"],
     )
     """Model to use for the Codex session.
 
@@ -90,6 +87,17 @@ class CodexAgentConfig(BaseAgentConfig):
 
     These will be started as an in-process MCP server and made available
     to the Codex agent.
+    """
+
+    output_type: str | StructuredResponseConfig | None = Field(
+        default=None,
+        examples=["json_response", "code_output"],
+        title="Response type",
+    )
+    """Optional structured output type for responses.
+
+    Can be either a reference to a response defined in manifest.responses,
+    or an inline StructuredResponseConfig.
     """
 
     def get_tool_providers(self) -> list[ResourceProvider]:
