@@ -5,6 +5,9 @@ from __future__ import annotations
 from datetime import UTC
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Self
+from uuid import uuid4
+
+from pydantic_ai import TextPartDelta
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import PartDeltaEvent, RunStartedEvent, StreamCompleteEvent
@@ -24,10 +27,7 @@ if TYPE_CHECKING:
     from agentpool.agents import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory, ModeInfo
-    from agentpool.common_types import (
-        BuiltinEventHandlerType,
-        IndividualEventHandler,
-    )
+    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation import AgentPool
     from agentpool.messaging import MessageHistory
     from agentpool.models.codex_agents import CodexAgentConfig
@@ -333,8 +333,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         Yields:
             Stream events from Codex execution
         """
-        from uuid import uuid4
-
         from agentpool.agents.codex_agent.codex_converters import codex_to_native_event
 
         if not self._client or not self._thread_id:
@@ -398,13 +396,10 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                             and self.agent_pool.todos
                         ):
                             # Replace all entries in pool.todos with Codex plan
-                            entries = [
+                            # PlanEntry uses same Literal values as Todo types
+                            self.agent_pool.todos.replace_all([
                                 (e.content, e.priority, e.status) for e in native_event.entries
-                            ]
-                            self.agent_pool.todos.replace_all(entries)
-
-                        # Accumulate text for final message
-                        from pydantic_ai import TextPartDelta
+                            ])
 
                         match native_event:
                             case PartDeltaEvent(delta=TextPartDelta(content_delta=text)):
