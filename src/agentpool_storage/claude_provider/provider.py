@@ -215,6 +215,39 @@ class ClaudeFileHistoryEntry(ClaudeBaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ClaudeProgressData(ClaudeBaseModel):
+    """Progress data for MCP tool operations."""
+
+    type: str  # e.g., "mcp_progress"
+    status: str  # e.g., "started", "completed"
+    server_name: str | None = None
+    tool_name: str | None = None
+    elapsed_time_ms: int | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ClaudeProgressEntry(ClaudeBaseModel):
+    """Progress entry for tracking tool execution status."""
+
+    type: Literal["progress"]
+    uuid: str
+    parent_uuid: str | None = None
+    session_id: str
+    timestamp: str
+    data: ClaudeProgressData
+    tool_use_id: str | None = None
+    parent_tool_use_id: str | None = None
+    # Common fields
+    cwd: str = ""
+    git_branch: str = ""
+    version: str = ""
+    user_type: UserType = "external"
+    is_sidechain: bool = False
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 # Discriminated union for all entry types
 ClaudeJSONLEntry = Annotated[
     ClaudeUserEntry
@@ -222,7 +255,8 @@ ClaudeJSONLEntry = Annotated[
     | ClaudeQueueOperationEntry
     | ClaudeSystemEntry
     | ClaudeSummaryEntry
-    | ClaudeFileHistoryEntry,
+    | ClaudeFileHistoryEntry
+    | ClaudeProgressEntry,
     Field(discriminator="type"),
 ]
 
