@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
+class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     """MessageNode that wraps a Codex app-server instance.
 
     This allows integrating Codex into the agentpool ecosystem, enabling
@@ -435,7 +435,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
     def to_structured[NewOutputDataT](
         self,
         output_type: type[NewOutputDataT],
-    ) -> CodexAgent[TDeps]:
+    ) -> CodexAgent[TDeps, NewOutputDataT]:
         """Configure agent for structured output.
 
         Codex supports structured output via output_schema parameter in turn_stream.
@@ -452,7 +452,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         self.log.debug("Setting result type", output_type=output_type)
         self._output_type = to_type(output_type)  # type: ignore[assignment]
-        return self
+        return self  # type: ignore[return-value]
 
     async def set_model(self, model: str) -> None:
         """Set the model for this agent.
@@ -470,17 +470,13 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._current_model = model
             self.log.info("Model set for initialization", model=model)
             return
-
         # Archive current thread and start new one with new model
         old_thread_id = self._thread_id
         await self._client.thread_archive(old_thread_id)
         # Start new thread with new model, preserving other settings
         cwd = str(self.config.cwd or Path.cwd())
-        thread = await self._client.thread_start(
-            cwd=cwd,
-            model=model,
-            effort=self.config.reasoning_effort,
-        )
+        effort = self.config.reasoning_effort
+        thread = await self._client.thread_start(cwd=cwd, model=model, effort=effort)
         self._thread_id = thread.id
         self._current_model = model
         await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=model))
@@ -695,16 +691,13 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         if not self._client:
             return []
-
         try:
             response = await self._client.thread_list()
             result: list[SessionInfo] = []
-
             for thread_data in response.data:
                 # Convert Codex ThreadData to SessionData
                 # created_at is Unix timestamp (seconds)
                 created_at = datetime.fromtimestamp(thread_data.created_at, tz=UTC)
-
                 session_data = SessionData(
                     session_id=thread_data.id,
                     agent_name=self.name,
