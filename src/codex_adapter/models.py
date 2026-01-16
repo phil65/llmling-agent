@@ -8,7 +8,12 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from codex_adapter.codex_types import ApprovalPolicy, ModelProvider, ReasoningEffort
+from codex_adapter.codex_types import (
+    ApprovalPolicy,
+    ModelProvider,
+    ReasoningEffort,
+    SandboxMode,
+)
 
 
 # Strict validation in tests to catch schema changes, lenient in production
@@ -60,19 +65,42 @@ class ThreadStartParams(CodexBaseModel):
 
     cwd: str | None = None
     model: str | None = None
-    effort: ReasoningEffort | None = None
+    model_provider: str | None = None
+    base_instructions: str | None = None
+    developer_instructions: str | None = None
+    approval_policy: ApprovalPolicy | None = None
+    sandbox: SandboxMode | None = None
+    config: dict[str, Any] | None = None
 
 
 class ThreadResumeParams(CodexBaseModel):
     """Parameters for thread/resume request."""
 
     thread_id: str
+    path: str | None = None
+    cwd: str | None = None
+    model: str | None = None
+    model_provider: str | None = None
+    base_instructions: str | None = None
+    developer_instructions: str | None = None
+    approval_policy: ApprovalPolicy | None = None
+    sandbox: SandboxMode | None = None
+    config: dict[str, Any] | None = None
 
 
 class ThreadForkParams(CodexBaseModel):
     """Parameters for thread/fork request."""
 
     thread_id: str
+    path: str | None = None
+    cwd: str | None = None
+    model: str | None = None
+    model_provider: str | None = None
+    base_instructions: str | None = None
+    developer_instructions: str | None = None
+    approval_policy: ApprovalPolicy | None = None
+    sandbox: SandboxMode | None = None
+    config: dict[str, Any] | None = None
 
 
 class ThreadListParams(CodexBaseModel):

@@ -12,6 +12,7 @@ from pydantic import BaseModel
 ModelProvider = Literal["openai", "anthropic", "google", "mistral"]
 ReasoningEffort = Literal["low", "medium", "high", "xhigh"]
 ApprovalPolicy = Literal["untrusted", "on-failure", "on-request", "never"]
+SandboxMode = Literal["read-only", "workspace-write", "danger-full-access"]
 TurnStatus = Literal["pending", "inProgress", "completed", "error", "interrupted"]
 ItemType = Literal[
     "reasoning",

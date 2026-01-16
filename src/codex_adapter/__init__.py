@@ -21,6 +21,7 @@ from codex_adapter.codex_types import (
     McpServerConfig,
     ModelProvider,
     ReasoningEffort,
+    SandboxMode,
     StdioMcpServer,
     TurnStatus,
 )
@@ -73,6 +74,7 @@ __all__ = [
     "ModelProvider",
     "ReasoningEffort",
     "ReasoningTextDeltaData",
+    "SandboxMode",
     "SkillData",
     "SkillInputItem",
     "StdioMcpServer",

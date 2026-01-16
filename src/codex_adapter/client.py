@@ -46,7 +46,12 @@ ResultType = TypeVar("ResultType", bound=BaseModel)
 if TYPE_CHECKING:
     from typing import Self
 
-    from codex_adapter.codex_types import ApprovalPolicy, McpServerConfig, ReasoningEffort
+    from codex_adapter.codex_types import (
+        ApprovalPolicy,
+        McpServerConfig,
+        ReasoningEffort,
+        SandboxMode,
+    )
     from codex_adapter.models import ModelData, SkillData, TurnInputItem
 
 logger = logging.getLogger(__name__)
@@ -224,19 +229,38 @@ class CodexClient:
         *,
         cwd: str | None = None,
         model: str | None = None,
-        effort: ReasoningEffort | None = None,
+        model_provider: str | None = None,
+        base_instructions: str | None = None,
+        developer_instructions: str | None = None,
+        approval_policy: ApprovalPolicy | None = None,
+        sandbox: SandboxMode | None = None,
+        config: dict[str, Any] | None = None,
     ) -> CodexThread:
         """Start a new conversation thread.
 
         Args:
             cwd: Working directory for the thread
             model: Model to use (e.g., "gpt-5-codex")
-            effort: Reasoning effort
+            model_provider: Model provider (e.g., "openai", "anthropic")
+            base_instructions: Base system instructions for the thread
+            developer_instructions: Developer-provided instructions
+            approval_policy: Tool approval policy
+            sandbox: Sandbox mode for file operations
+            config: Additional configuration overrides
 
         Returns:
             CodexThread: The created thread
         """
-        params = ThreadStartParams(cwd=cwd, model=model, effort=effort)
+        params = ThreadStartParams(
+            cwd=cwd,
+            model=model,
+            model_provider=model_provider,
+            base_instructions=base_instructions,
+            developer_instructions=developer_instructions,
+            approval_policy=approval_policy,
+            sandbox=sandbox,
+            config=config,
+        )
         result = await self._send_request("thread/start", params)
         response = ThreadResponse.model_validate(result)
         thread = CodexThread(
@@ -248,16 +272,49 @@ class CodexClient:
         self._active_threads[thread.id] = thread
         return thread
 
-    async def thread_resume(self, thread_id: str) -> CodexThread:
+    async def thread_resume(
+        self,
+        thread_id: str,
+        *,
+        path: str | None = None,
+        cwd: str | None = None,
+        model: str | None = None,
+        model_provider: str | None = None,
+        base_instructions: str | None = None,
+        developer_instructions: str | None = None,
+        approval_policy: ApprovalPolicy | None = None,
+        sandbox: SandboxMode | None = None,
+        config: dict[str, Any] | None = None,
+    ) -> CodexThread:
         """Resume an existing thread by ID.
 
         Args:
-            thread_id: The thread ID to resume
+            thread_id: ID of the thread to resume
+            path: Path to thread storage
+            cwd: Working directory override
+            model: Model override
+            model_provider: Model provider override
+            base_instructions: Base system instructions override
+            developer_instructions: Developer instructions override
+            approval_policy: Tool approval policy override
+            sandbox: Sandbox mode override
+            config: Additional configuration overrides
 
         Returns:
             CodexThread: The resumed thread
         """
-        params = ThreadResumeParams(thread_id=thread_id)
+        params = ThreadResumeParams(
+            thread_id=thread_id,
+            path=path,
+            cwd=cwd,
+            model=model,
+            model_provider=model_provider,
+            base_instructions=base_instructions,
+            developer_instructions=developer_instructions,
+            approval_policy=approval_policy,
+            sandbox=sandbox,
+            config=config,
+        )
         result = await self._send_request("thread/resume", params)
         response = ThreadResponse.model_validate(result)
         thread = CodexThread(
@@ -269,16 +326,49 @@ class CodexClient:
         self._active_threads[thread.id] = thread
         return thread
 
-    async def thread_fork(self, thread_id: str) -> CodexThread:
+    async def thread_fork(
+        self,
+        thread_id: str,
+        *,
+        path: str | None = None,
+        cwd: str | None = None,
+        model: str | None = None,
+        model_provider: str | None = None,
+        base_instructions: str | None = None,
+        developer_instructions: str | None = None,
+        approval_policy: ApprovalPolicy | None = None,
+        sandbox: SandboxMode | None = None,
+        config: dict[str, Any] | None = None,
+    ) -> CodexThread:
         """Fork an existing thread into a new thread with copied history.
 
         Args:
-            thread_id: The thread ID to fork from
+            thread_id: ID of the thread to fork
+            path: Path to thread storage
+            cwd: Working directory for the forked thread
+            model: Model override for forked thread
+            model_provider: Model provider override
+            base_instructions: Base system instructions for forked thread
+            developer_instructions: Developer instructions for forked thread
+            approval_policy: Tool approval policy for forked thread
+            sandbox: Sandbox mode for forked thread
+            config: Additional configuration overrides
 
         Returns:
             CodexThread: The new forked thread
         """
-        params = ThreadForkParams(thread_id=thread_id)
+        params = ThreadForkParams(
+            thread_id=thread_id,
+            path=path,
+            cwd=cwd,
+            model=model,
+            model_provider=model_provider,
+            base_instructions=base_instructions,
+            developer_instructions=developer_instructions,
+            approval_policy=approval_policy,
+            sandbox=sandbox,
+            config=config,
+        )
         result = await self._send_request("thread/fork", params)
         response = ThreadResponse.model_validate(result)
         thread = CodexThread(
@@ -312,21 +402,13 @@ class CodexClient:
         return ThreadListResponse.model_validate(result)
 
     async def thread_loaded_list(self) -> list[str]:
-        """List thread IDs currently loaded in memory.
-
-        Returns:
-            List of thread IDs
-        """
+        """List thread IDs currently loaded in memory."""
         result = await self._send_request("thread/loaded/list")
         response = ThreadLoadedListResponse.model_validate(result)
         return response.data
 
     async def thread_archive(self, thread_id: str) -> None:
-        """Archive a thread (move to archived directory).
-
-        Args:
-            thread_id: The thread ID to archive
-        """
+        """Archive a thread (move to archived directory)."""
         params = ThreadArchiveParams(thread_id=thread_id)
         await self._send_request("thread/archive", params)
         if thread_id in self._active_threads:
@@ -419,13 +501,8 @@ class CodexClient:
                 if event.event_type == "turn/completed":
                     break
                 elif event.event_type == "turn/error":
-                    from codex_adapter.models import TurnErrorData
-
-                    if isinstance(event.data, TurnErrorData):
-                        error_msg = event.data.error
-                    else:
-                        error_msg = "Unknown error"
-                    raise CodexRequestError(-32000, error_msg)
+                    msg = event.data.error if isinstance(event.data, TurnErrorData) else "Error"
+                    raise CodexRequestError(-32000, msg)
         finally:
             # Cleanup turn queue
             if turn_key in self._turn_queues:

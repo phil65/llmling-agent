@@ -82,6 +82,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         cwd: str | Path | None = None,
         model: str | None = None,
         reasoning_effort: ReasoningEffort | None = None,
+        base_instructions: str | None = None,
+        developer_instructions: str | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
@@ -102,6 +104,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             cwd: Working directory for Codex
             model: Model to use (e.g., "claude-3-5-sonnet-20241022")
             reasoning_effort: Reasoning effort level ("low", "medium", "high")
+            base_instructions: Base system instructions for the session
+            developer_instructions: Developer-provided instructions
             agent_pool: Agent pool for coordination
             enable_logging: Whether to enable database logging
             mcp_servers: MCP server configurations
@@ -117,7 +121,13 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         # Build config from kwargs if not provided
         if config is None:
-            config = CodexAgentConfig(cwd=cwd, model=model, reasoning_effort=reasoning_effort)
+            config = CodexAgentConfig(
+                cwd=cwd,
+                model=model,
+                reasoning_effort=reasoning_effort,
+                base_instructions=base_instructions,
+                developer_instructions=developer_instructions,
+            )
         # Use provided name or config name, fallback to "codex"
         agent_name = name or config.name or "codex"
         super().__init__(
@@ -273,7 +283,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         thread = await self._client.thread_start(
             cwd=cwd,
             model=self.config.model,
-            effort=self.config.reasoning_effort,
+            base_instructions=self.config.base_instructions,
+            developer_instructions=self.config.developer_instructions,
         )
         self._thread_id = thread.id
         self.log.info(
@@ -680,7 +691,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             thread = await self._client.thread_start(
                 cwd=cwd,
                 model=self._current_model or self.config.model,
-                effort=mode_id,  # type: ignore[arg-type]
+                base_instructions=self.config.base_instructions,
+                developer_instructions=self.config.developer_instructions,
             )
             self._thread_id = thread.id
             # Type assertion: we've already validated mode_id is one of the valid values

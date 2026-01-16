@@ -72,6 +72,18 @@ class CodexAgentConfig(BaseAgentConfig):
     - "untrusted": Always request approval (most restrictive)
     """
 
+    base_instructions: str | None = Field(
+        default=None,
+        title="Base Instructions",
+    )
+    """Base system instructions for the Codex session."""
+
+    developer_instructions: str | None = Field(
+        default=None,
+        title="Developer Instructions",
+    )
+    """Developer-provided instructions for the Codex session."""
+
     tools: list[AnyToolConfig | str] = Field(
         default_factory=list,
         title="Tools",
