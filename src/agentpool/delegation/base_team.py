@@ -415,8 +415,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
     async def temporary_state(
         self,
         *,
-        system_prompts: list[AnyPromptType] | None = None,
-        replace_prompts: bool = False,
         tools: list[ToolType] | None = None,
         replace_tools: bool = False,
         history: list[AnyPromptType] | SessionQuery | None = None,
@@ -429,8 +427,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         All agents in the team will enter their temporary state simultaneously.
 
         Args:
-            system_prompts: Temporary system prompts to use
-            replace_prompts: Whether to replace existing prompts
             tools: Temporary tools to make available
             replace_tools: Whether to replace existing tools
             history: Conversation history (prompts or query)
@@ -448,8 +444,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             for agent in agents:
                 await stack.enter_async_context(
                     agent.temporary_state(
-                        system_prompts=system_prompts,
-                        replace_prompts=replace_prompts,
                         tools=tools,
                         replace_tools=replace_tools,
                         history=history,

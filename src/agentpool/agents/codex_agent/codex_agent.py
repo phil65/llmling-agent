@@ -114,6 +114,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             output_type: Output type for structured responses (default: str)
             tool_confirmation_mode: Tool confirmation behavior
             event_handlers: Event handlers for this agent
+            hooks: Agent hooks for pre/post tool execution
         """
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
         from agentpool.models.codex_agents import CodexAgentConfig

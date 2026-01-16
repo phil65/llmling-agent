@@ -164,6 +164,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             event_handlers: Sequence of event handlers to register
             tool_confirmation_mode: Tool confirmation mode
             commands: Slash commands
+            hooks: Agent hooks for pre/post tool execution
         """
         super().__init__(
             name=name,

@@ -59,7 +59,6 @@ async def multi_turn_chat() -> None:
         thread = await client.thread_start(
             cwd=".",
             model="gpt-5-codex",
-            effort="medium",
         )
 
         messages = [
