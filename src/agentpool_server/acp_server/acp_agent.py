@@ -719,33 +719,11 @@ class AgentPoolACPAgent(ACPAgent):
         Changes the model for the active agent in the session.
         Validates that the requested model is available via agent.get_available_models().
         """
-        from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
-
         try:
             session = self.session_manager.get_session(params.session_id)
             if not session:
                 msg = "Session not found for model switch"
                 logger.warning(msg, session_id=params.session_id)
-                return None
-
-            # Handle ACPAgent specially - pass through to nested agent's model state
-            if isinstance(session.agent, ACPAgentClient):
-                if session.agent._state and session.agent._state.models:
-                    available_ids = [
-                        m.model_id for m in session.agent._state.models.available_models
-                    ]
-                    if params.model_id not in available_ids:
-                        logger.warning(
-                            "Model not in ACPAgent's available models",
-                            model_id=params.model_id,
-                            available=available_ids,
-                        )
-                        return None
-                # TODO: Use ACP protocol once set_session_model stabilizes
-                logger.warning(
-                    "Model change for ACPAgent not yet supported (ACP protocol UNSTABLE)",
-                    model_id=params.model_id,
-                )
                 return None
 
             # Get available models from agent and validate
