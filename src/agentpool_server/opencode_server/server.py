@@ -192,7 +192,7 @@ def create_app(  # noqa: PLR0915
     project_file_watcher: Any = None
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: PLR0915
         nonlocal git_branch_watcher, project_file_watcher
         import logging
 

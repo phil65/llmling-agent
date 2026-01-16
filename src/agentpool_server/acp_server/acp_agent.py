@@ -505,19 +505,15 @@ class AgentPoolACPAgent(ACPAgent):
 
             # Convert to ACP SessionInfo
             # TODO: Re-enable cwd filter once session storage is unified
-            sessions: list[SessionInfo] = []
-            for s in agent_sessions:
-                # if params.cwd and s.cwd != params.cwd:
-                #     continue
-                sessions.append(
-                    SessionInfo(
-                        session_id=s.session_id,
-                        cwd=s.cwd or "",
-                        title=s.title,
-                        updated_at=s.updated_at,
-                    )
+            sessions = [
+                SessionInfo(
+                    session_id=s.session_id,
+                    cwd=s.cwd or "",
+                    title=s.title,
+                    updated_at=s.updated_at,
                 )
-
+                for s in agent_sessions
+            ]
             logger.info("Listed sessions", count=len(sessions))
             return ListSessionsResponse(sessions=sessions)
 

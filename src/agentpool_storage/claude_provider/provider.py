@@ -179,7 +179,6 @@ class ClaudeSystemEntry(ClaudeBaseModel):
     content: str | None = None  # Optional for subtypes like turn_duration
     subtype: str | None = None
     duration_ms: int | None = None  # For turn_duration subtype
-    duration_ms: int | None = None  # For turn_duration subtype
     slug: str | None = None
     level: int | str | None = None
     is_meta: bool = False

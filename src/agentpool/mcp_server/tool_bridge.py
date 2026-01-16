@@ -483,6 +483,7 @@ class ToolManagerBridge:
             async def run(self, arguments: dict[str, Any]) -> ToolResult:
                 """Execute the wrapped tool with context bridging."""
                 from fastmcp.server.dependencies import get_context
+                from mcp.types import TextContent
 
                 from agentpool.agents.events import ToolResultMetadataEvent
                 from agentpool.tools.base import ToolResult as AgentPoolToolResult
