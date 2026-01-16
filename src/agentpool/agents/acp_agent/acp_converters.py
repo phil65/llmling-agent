@@ -146,13 +146,13 @@ def get_modes(
                 id=m.id,
                 name=m.name,
                 description=m.description or "",
-                category_id="permissions",
+                category_id="mode",
             )
             for m in acp_modes.available_modes
         ]
         categories.append(
             ModeCategory(
-                id="permissions",
+                id="mode",
                 name="Mode",
                 available_modes=modes,
                 current_mode_id=acp_modes.current_mode_id,

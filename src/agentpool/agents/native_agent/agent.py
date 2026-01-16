@@ -1060,7 +1060,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
     async def _set_mode(self, mode_id: str, category_id: str) -> None:
         """Handle permissions and model mode switching."""
-        if category_id == "permissions":
+        if category_id == "mode":
             # Map mode_id to confirmation mode
             mode_map: dict[str, ToolConfirmationMode] = {
                 "default": "per_tool",
@@ -1073,7 +1073,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             # Emit state change signal
             from agentpool.agents.modes import ConfigOptionChanged
 
-            change = ConfigOptionChanged(config_id="permissions", value_id=mode_id)
+            change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
             await self.state_updated.emit(change)
 
         elif category_id == "model":

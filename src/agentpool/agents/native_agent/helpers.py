@@ -88,20 +88,20 @@ def extract_text_from_messages(messages: list[Any], include_interruption_note: b
 
 def get_permission_category(current_mode: str) -> ModeCategory:
     return ModeCategory(
-        id="permissions",
-        name="Permissions",
+        id="mode",
+        name="Mode",
         available_modes=[
             ModeInfo(
                 id="default",
                 name="Default",
                 description="Require confirmation for tools marked as needing it",
-                category_id="permissions",
+                category_id="mode",
             ),
             ModeInfo(
                 id="acceptEdits",
                 name="Accept Edits",
                 description="Auto-approve all tool calls without confirmation",
-                category_id="permissions",
+                category_id="mode",
             ),
         ],
         current_mode_id=current_mode,

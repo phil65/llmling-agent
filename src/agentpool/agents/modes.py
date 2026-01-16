@@ -10,6 +10,15 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 
+# Standard config option IDs aligned with ACP's SessionConfigOptionCategory.
+# See: src/acp/schema/session_state.py
+ModeCategoryId = Literal[
+    "mode",  # Session mode / permissions / approval policy
+    "model",  # Model selection
+    "thought_level",  # Thinking/reasoning effort level
+]
+
+
 @dataclass
 class ModeInfo:
     """Information about a single mode option.
@@ -26,7 +35,7 @@ class ModeInfo:
     description: str = ""
     """Optional description of what this mode does."""
 
-    category_id: str = ""
+    category_id: ModeCategoryId | str = ""
     """ID of the category this mode belongs to."""
 
 
@@ -57,7 +66,7 @@ class ModeCategory:
         - Behavior: plan, code, architect
     """
 
-    id: str
+    id: ModeCategoryId | str
     """Unique identifier for this category."""
 
     name: str

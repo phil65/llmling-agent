@@ -583,7 +583,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         categories: list[ModeCategory] = []
         categories.append(
             ModeCategory(
-                id="approval_policy",
+                id="mode",
                 name="Tool Approval",
                 available_modes=POLICY_MODES,
                 current_mode_id=self._approval_policy,
@@ -593,7 +593,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Reasoning effort modes - try to get from current model's supported efforts
         categories.append(
             ModeCategory(
-                id="reasoning_effort",
+                id="thought_level",
                 name="Reasoning Effort",
                 available_modes=EFFORT_MODES,
                 current_mode_id=self.config.reasoning_effort or "medium",
@@ -629,7 +629,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         from agentpool.agents.modes import ConfigOptionChanged
 
         # Handle based on category
-        if category_id == "approval_policy":
+        if category_id == "mode":
             if mode_id not in ["always", "never", "auto", "unlessTrusted"]:
                 msg = f"Invalid approval policy: {mode_id}"
                 raise ValueError(msg)
@@ -637,11 +637,11 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             # Update instance attribute (doesn't require thread restart)
             # Type assertion: we've already validated mode_id is one of the valid values
             self._approval_policy = mode_id  # type: ignore[assignment]
-            change = ConfigOptionChanged(config_id="approval_policy", value_id=mode_id)
+            change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
             await self.state_updated.emit(change)
             self.log.info("Approval policy changed", policy=mode_id)
 
-        elif category_id == "reasoning_effort":
+        elif category_id == "thought_level":
             if mode_id not in ["low", "medium", "high", "xhigh"]:
                 msg = f"Invalid reasoning effort: {mode_id}"
                 raise ValueError(msg)
@@ -673,7 +673,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 effort=mode_id,
             )
             # Emit state change signal
-            change = ConfigOptionChanged(config_id="reasoning_effort", value_id=mode_id)
+            change = ConfigOptionChanged(config_id="thought_level", value_id=mode_id)
             await self.state_updated.emit(change)
         elif category_id == "model":
             # set_model emits the signal

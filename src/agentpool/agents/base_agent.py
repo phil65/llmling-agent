@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from acp.schema import AvailableCommandsUpdate
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
-    from agentpool.agents.modes import ConfigOptionChanged, ModeCategory
+    from agentpool.agents.modes import ConfigOptionChanged, ModeCategory, ModeCategoryId
     from agentpool.agents.native_agent import Agent
     from agentpool.common_types import (
         AgentName,
@@ -830,7 +830,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """
         ...
 
-    async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
+    async def set_mode(
+        self, mode: ModeInfo | str, category_id: ModeCategoryId | str | None = None
+    ) -> None:
         """Set a mode within a category.
 
         Extracts mode_id and category_id from the input, then delegates to

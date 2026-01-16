@@ -77,24 +77,24 @@ MODES = [
         id="default",
         name="Default",
         description="Require confirmation for tool usage",
-        category_id="permissions",
+        category_id="mode",
     ),
     ModeInfo(
         id="acceptEdits",
         name="Accept Edits",
         description="Auto-approve file edits without confirmation",
-        category_id="permissions",
+        category_id="mode",
     ),
     ModeInfo(
         id="plan",
         name="Plan",
         description="Planning mode - no tool execution",
-        category_id="permissions",
+        category_id="mode",
     ),
     ModeInfo(
         id="bypassPermissions",
         name="Bypass Permissions",
         description="Skip all permission checks (use with caution)",
-        category_id="permissions",
+        category_id="mode",
     ),
 ]

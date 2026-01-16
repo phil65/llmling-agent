@@ -816,7 +816,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             return
 
         # Legacy: Use old set_session_mode/set_session_model APIs
-        if category_id == "permissions":
+        if category_id == "mode":
             mode_request = SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id)
             await self._connection.set_session_mode(mode_request)
             # Update local state
@@ -825,7 +825,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Emit state change signal
             from agentpool.agents.modes import ConfigOptionChanged
 
-            change = ConfigOptionChanged(config_id="permissions", value_id=mode_id)
+            change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
             await self.state_updated.emit(change)
             self.log.info("Mode changed on remote ACP server", mode_id=mode_id)
 

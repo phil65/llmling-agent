@@ -1687,7 +1687,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         categories.append(
             ModeCategory(
-                id="permissions",
+                id="mode",
                 name="Mode",
                 available_modes=MODES,
                 current_mode_id=current_id,
@@ -1730,18 +1730,18 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     id="off",
                     name="Thinking Off",
                     description="No extended thinking",
-                    category_id="thinking_level",
+                    category_id="thought_level",
                 ),
                 ModeInfo(
                     id="on",
                     name="Thinking On",
                     description="Extended thinking (~32k tokens)",
-                    category_id="thinking_level",
+                    category_id="thought_level",
                 ),
             ]
             categories.append(
                 ModeCategory(
-                    id="thinking_level",
+                    id="thought_level",
                     name="Thinking Level",
                     available_modes=thinking_modes,
                     current_mode_id=self._thinking_mode,
@@ -1755,7 +1755,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Handle permissions, model, and thinking_level mode switching."""
         from agentpool.agents.claude_code_agent.static_info import VALID_MODES
 
-        if category_id == "permissions":
+        if category_id == "mode":
             # Map mode_id to PermissionMode
             if mode_id not in VALID_MODES:
                 msg = f"Unknown permission mode: {mode_id}. Available: {list(VALID_MODES)}"
@@ -1777,7 +1777,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Emit state change signal
             from agentpool.agents.modes import ConfigOptionChanged
 
-            change = ConfigOptionChanged(config_id="permissions", value_id=mode_id)
+            change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
             await self.state_updated.emit(change)
             self.log.info("Permission mode changed", mode=mode_id)
 
@@ -1793,7 +1793,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             await self.set_model(mode_id)
             self.log.info("Model changed", model=mode_id)
 
-        elif category_id == "thinking_level":
+        elif category_id == "thought_level":
             # Check if max_thinking_tokens is configured (takes precedence over keyword)
             if self._max_thinking_tokens:
                 msg = (
@@ -1809,7 +1809,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Emit state change signal
             from agentpool.agents.modes import ConfigOptionChanged
 
-            change = ConfigOptionChanged(config_id="thinking_level", value_id=mode_id)
+            change = ConfigOptionChanged(config_id="thought_level", value_id=mode_id)
             await self.state_updated.emit(change)
             self.log.info("Thinking mode changed", mode=mode_id)
 
