@@ -243,6 +243,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -705,16 +728,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -1101,6 +1114,19 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "agui",
           "default": "agui",
@@ -1309,6 +1335,15 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "title": "Agent CLI Tool",
@@ -1674,6 +1709,29 @@
           },
           "title": "Event handlers",
           "type": "array"
+        },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
         },
         "type": {
           "const": "acp",
@@ -2137,16 +2195,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -2731,6 +2779,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -3193,16 +3264,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -4233,6 +4294,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -4695,16 +4779,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -6346,6 +6420,15 @@
           "title": "Tool metadata",
           "type": "object"
         },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "timeout": {
           "default": null,
           "description": "Command timeout in seconds. None means no timeout.",
@@ -7079,6 +7162,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -7541,16 +7647,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -8451,6 +8547,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -8914,16 +9033,6 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
-        },
         "system_prompt": {
           "anyOf": [
             {
@@ -9249,6 +9358,19 @@
           ],
           "title": "Tool confirmation mode",
           "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
         },
         "type": {
           "const": "claude_code",
@@ -10289,6 +10411,15 @@
           "title": "Tool metadata",
           "type": "object"
         },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "builtin_type": {
           "const": "code_execution",
           "default": "code_execution",
@@ -10793,6 +10924,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -11256,16 +11410,6 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
-        },
         "system_prompt": {
           "anyOf": [
             {
@@ -11657,6 +11801,19 @@
           "title": "Tool confirmation mode",
           "type": "string"
         },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "codex",
           "default": "codex",
@@ -11743,6 +11900,24 @@
           ],
           "title": "Approval Policy",
           "type": "string"
+        },
+        "base_instructions": {
+          "default": null,
+          "description": "Base system instructions for the Codex session.",
+          "title": "Base Instructions",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "developer_instructions": {
+          "default": null,
+          "description": "Developer-provided instructions for the Codex session.",
+          "title": "Developer Instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "tools": {
           "description": "Tools and toolsets to expose to Codex via MCP bridge.\n\nThese will be started as an in-process MCP server and made available\nto the Codex agent.",
@@ -11979,7 +12154,7 @@
             }
           ],
           "default": null,
-          "description": "Optional structured output type for responses.\n\nCan be either a reference to a response defined in manifest.responses,\nor an inline StructuredResponseConfig.",
+          "description": "Optional structured output type for responses. Can be either a reference to a response defined in manifest.responses, or an inline StructuredResponseConfig.",
           "examples": [
             "json_response",
             "code_output"
@@ -12742,6 +12917,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -13204,16 +13402,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -15739,6 +15927,15 @@
           "title": "Tool metadata",
           "type": "object"
         },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "environment": {
           "anyOf": [
             {
@@ -16235,6 +16432,15 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "environment": {
           "anyOf": [
@@ -17352,6 +17558,15 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "environment": {
           "anyOf": [
@@ -19923,6 +20138,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -20385,16 +20623,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -21979,6 +22207,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -22441,16 +22692,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -23748,6 +23989,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -24211,16 +24475,6 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
-        },
         "system_prompt": {
           "anyOf": [
             {
@@ -24345,6 +24599,15 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "environment": {
           "anyOf": [
@@ -25021,6 +25284,15 @@
           "title": "Tool metadata",
           "type": "object"
         },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "builtin_type": {
           "const": "image_generation",
           "default": "image_generation",
@@ -25259,6 +25531,15 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "import_path": {
           "description": "Import path to the tool function.",
@@ -26274,6 +26555,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -26736,16 +27040,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -27503,6 +27797,15 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "environment": {
           "anyOf": [
@@ -28316,6 +28619,15 @@
           "title": "Tool metadata",
           "type": "object"
         },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "builtin_type": {
           "const": "mcp_server",
           "default": "mcp_server",
@@ -28964,6 +29276,15 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "builtin_type": {
           "const": "memory",
@@ -29629,6 +29950,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -30091,16 +30435,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -31001,6 +31335,19 @@
           ],
           "title": "Tool confirmation mode",
           "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
         },
         "type": {
           "const": "native",
@@ -32458,19 +32805,6 @@
             "codemode"
           ],
           "title": "Tool execution mode"
-        },
-        "hooks": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/HooksConfig"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during session start/end, run execution, tool usage, and delegation.",
-          "title": "Lifecycle hooks"
         }
       },
       "required": [
@@ -33935,6 +34269,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -34397,16 +34754,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -34810,6 +35157,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -35272,16 +35642,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -37505,6 +37865,15 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "title": "Ask User Tool",
@@ -37567,6 +37936,15 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "environment": {
           "anyOf": [
@@ -40432,6 +40810,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -40894,16 +41295,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -46260,6 +46651,29 @@
           "title": "Event handlers",
           "type": "array"
         },
+        "requires_tool_confirmation": {
+          "default": "always",
+          "description": "Whether to automatically grant all permission requests.",
+          "enum": [
+            "never",
+            "always"
+          ],
+          "title": "Tool confirmation mode",
+          "type": "string"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HooksConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hooks for intercepting and customizing agent behavior at key lifecycle points.\n\nAllows adding context, blocking operations, modifying inputs, or triggering\nside effects during run execution and tool usage.",
+          "title": "Lifecycle hooks"
+        },
         "type": {
           "const": "acp",
           "default": "acp",
@@ -46722,16 +47136,6 @@
           "description": "Whether to allow terminal operations.",
           "title": "Allow Terminal",
           "type": "boolean"
-        },
-        "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
-          "enum": [
-            "never",
-            "always"
-          ],
-          "title": "Tool confirmation mode",
-          "type": "string"
         },
         "system_prompt": {
           "anyOf": [
@@ -47318,6 +47722,15 @@
           "title": "Tool metadata",
           "type": "object"
         },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "builtin_type": {
           "const": "web_fetch",
           "default": "web_fetch",
@@ -47508,6 +47921,15 @@
           "description": "Additional tool metadata.",
           "title": "Tool metadata",
           "type": "object"
+        },
+        "instructions": {
+          "default": null,
+          "description": "Instructions for how to use this tool effectively.",
+          "title": "Tool instructions",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "builtin_type": {
           "const": "web_search",
