@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import ConfigDict, Field
 
 from agentpool.models.agents import AnyToolConfig  # noqa: TC001
+from agentpool.models.fields import OutputTypeField  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
-from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from codex_adapter import ApprovalPolicy, ReasoningEffort  # noqa: TC001
 
 
@@ -101,16 +101,8 @@ class CodexAgentConfig(BaseAgentConfig):
     to the Codex agent.
     """
 
-    output_type: str | StructuredResponseConfig | None = Field(
-        default=None,
-        examples=["json_response", "code_output"],
-        title="Response type",
-    )
-    """Optional structured output type for responses.
-
-    Can be either a reference to a response defined in manifest.responses,
-    or an inline StructuredResponseConfig.
-    """
+    output_type: OutputTypeField = None
+    """Structured output type for responses."""
 
     def get_tool_providers(self) -> list[ResourceProvider]:
         """Get all resource providers for this agent's tools.

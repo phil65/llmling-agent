@@ -9,13 +9,13 @@ from pydantic import ConfigDict, Field
 from tokonomics.model_names import AnthropicMaxModelName  # noqa: TC002
 
 from agentpool import log
+from agentpool.models.fields import OutputTypeField  # noqa: TC001
 from agentpool.resource_providers import StaticResourceProvider
 from agentpool_config import (
     AnyToolConfig,  # noqa: TC001
     BaseToolConfig,
 )
 from agentpool_config.nodes import BaseAgentConfig
-from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
 
 
@@ -197,16 +197,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     - "bypassPermissions": Skip all permission checks (use with caution)
     """
 
-    output_type: str | StructuredResponseConfig | None = Field(
-        default=None,
-        examples=["json_response", "code_output"],
-        title="Response type",
-    )
-    """Optional structured output type for responses.
-
-    Can be either a reference to a response defined in manifest.responses,
-    or an inline StructuredResponseConfig.
-    """
+    output_type: OutputTypeField = None
 
     env: dict[str, str] | None = Field(
         default=None,

@@ -18,13 +18,13 @@ from toprompt import render_prompt
 
 from agentpool import log
 from agentpool.common_types import EndStrategy  # noqa: TC001
+from agentpool.models.fields import OutputTypeField  # noqa: TC001
 from agentpool.prompts.prompts import PromptMessage, StaticPrompt
 from agentpool.resource_providers import StaticResourceProvider
 from agentpool_config import BaseToolConfig, NativeAgentToolConfig
 from agentpool_config.builtin_tools import BaseBuiltinToolConfig
 from agentpool_config.knowledge import Knowledge  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
-from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
 from agentpool_config.session import MemoryConfig, SessionQuery
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
 from agentpool_config.toolsets import BaseToolsetConfig, ToolsetConfig
@@ -129,18 +129,7 @@ class NativeAgentConfig(BaseAgentConfig):
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/session_configuration/
     """
 
-    output_type: str | StructuredResponseConfig | None = Field(
-        default=None,
-        examples=["json_response", "code_output"],
-        title="Response type",
-        json_schema_extra={
-            "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/response_configuration/"
-        },
-    )
-    """Name of the response definition to use.
-
-    Docs: https://phil65.github.io/agentpool/YAML%20Configuration/response_configuration/
-    """
+    output_type: OutputTypeField = None
 
     retries: int = Field(default=1, ge=0, examples=[1, 3], title="Model retries")
     """Number of retries for failed operations (maps to pydantic-ai's retries)"""
