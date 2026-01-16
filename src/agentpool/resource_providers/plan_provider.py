@@ -23,6 +23,8 @@ if TYPE_CHECKING:
 PlanEntryPriority = Literal["high", "medium", "low"]
 PlanEntryStatus = Literal["pending", "in_progress", "completed"]
 PlanToolMode = Literal["granular", "declarative"]
+STATUS_ICONS = {"pending": "⬚", "in_progress": "◐", "completed": "✓"}
+PRIORITY_LABELS = {"high": "🔴", "medium": "🟡", "low": "🟢"}
 
 
 @dataclass(kw_only=True)
@@ -108,54 +110,30 @@ class PlanProvider(ResourceProvider):
         tracker = self._get_tracker(agent_ctx)
         if tracker is None or not tracker.entries:
             # Emit progress for empty plan
-            await agent_ctx.events.tool_call_progress(
-                title="Fetched plan (empty)",
-                items=[TextContentItem(text="*No tasks in plan yet.*")],
-            )
-            return ToolResult(
-                content="## Plan\n\n*No plan entries yet.",
-                metadata={"todos": []},
-            )
+            item = TextContentItem(text="*No tasks in plan yet.*")
+            await agent_ctx.events.tool_call_progress(title="Fetched plan (empty)", items=[item])
+            return ToolResult(content="## Plan\n\n*No plan entries yet.", metadata={"todos": []})
 
         lines = ["## Plan", ""]
-        status_icons = {
-            "pending": "⬚",
-            "in_progress": "◐",
-            "completed": "✓",
-        }
-        priority_labels = {
-            "high": "🔴",
-            "medium": "🟡",
-            "low": "🟢",
-        }
-        for i, entry in enumerate(tracker.entries):
-            icon = status_icons.get(entry.status, "?")
-            priority = priority_labels.get(entry.priority, "")
-            lines.append(f"{i}. {icon} {priority} {entry.content} *({entry.status})*")
 
+        for i, entry in enumerate(tracker.entries):
+            icon = STATUS_ICONS.get(entry.status, "?")
+            priority = PRIORITY_LABELS.get(entry.priority, "")
+            lines.append(f"{i}. {icon} {priority} {entry.content} *({entry.status})*")
         # Count completed entries for summary
         completed = sum(1 for e in tracker.entries if e.status == "completed")
         total = len(tracker.entries)
-
         # Build title with summary
         title = "Fetched plan with 1 task" if total == 1 else f"Fetched plan with {total} tasks"
         if completed > 0:
             title += f" ({completed} completed)"
-
         # Emit progress with plan preview
         plan_text = "\n".join(lines)
-        await agent_ctx.events.tool_call_progress(
-            title=title,
-            items=[TextContentItem(text=plan_text)],
-        )
-
+        item = TextContentItem(text=plan_text)
+        await agent_ctx.events.tool_call_progress(title=title, items=[item])
         # Convert to OpenCode format for metadata
         todos = [{"content": e.content, "status": e.status} for e in tracker.entries]
-
-        return ToolResult(
-            content=plan_text,
-            metadata={"todos": todos},
-        )
+        return ToolResult(content=plan_text, metadata={"todos": todos})
 
     async def set_plan(
         self,
@@ -185,9 +163,7 @@ class PlanProvider(ResourceProvider):
                 metadata={"todos": []},
             )
 
-        # Clear existing entries
-        tracker.clear()
-
+        tracker.clear()  # Clear existing entries
         # Add all new entries
         for entry in entries:
             content = entry.get("content", "")
@@ -198,7 +174,6 @@ class PlanProvider(ResourceProvider):
             tracker.add(content, priority=priority, status=status)
 
         await self._emit_plan_update(agent_ctx)
-
         # Build summary for user feedback
         entry_count = len(tracker.entries)
         if entry_count == 0:
@@ -212,10 +187,8 @@ class PlanProvider(ResourceProvider):
         if tracker.entries:
             lines = ["**New Plan:**"]
             for i, e in enumerate(tracker.entries):
-                priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(e.priority, "")
-                status_emoji = {"pending": "⬚", "in_progress": "◐", "completed": "✓"}.get(
-                    e.status, ""
-                )
+                priority_emoji = PRIORITY_LABELS.get(e.priority, "")
+                status_emoji = STATUS_ICONS.get(e.status, "")
                 lines.append(f"{i + 1}. {priority_emoji} {status_emoji} {e.content}")
             details = "\n".join(lines)
         else:
@@ -262,7 +235,7 @@ class PlanProvider(ResourceProvider):
         await self._emit_plan_update(agent_ctx)
 
         # User feedback
-        priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(priority, "")
+        priority_emoji = PRIORITY_LABELS.get(priority, "")
         title = f"Added task {entry_index + 1} {priority_emoji}"
         details = f"**Task {entry_index + 1}**: {content}"
         await agent_ctx.events.tool_call_progress(
@@ -316,7 +289,7 @@ class PlanProvider(ResourceProvider):
 
         # Build title with key info
         entry = tracker.entries[index]
-        status_emoji = {"pending": "⬚", "in_progress": "◐", "completed": "✓"}.get(entry.status, "")
+        status_emoji = STATUS_ICONS.get(entry.status, "")
         title = f"Updated task {index + 1} {status_emoji}"
 
         # Send detailed content
