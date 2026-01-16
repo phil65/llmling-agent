@@ -199,24 +199,47 @@ class TurnError(CodexBaseModel):
 # ============================================================================
 
 
+class ByteRange(CodexBaseModel):
+    """Byte range within a UTF-8 text buffer.
+
+    start: Start byte offset (inclusive).
+    end: End byte offset (exclusive).
+    """
+
+    start: int = Field(..., ge=0)
+    end: int = Field(..., ge=0)
+
+
+class TextElement(CodexBaseModel):
+    """Element within text content for rich input markers.
+
+    Used to render or persist rich input markers (e.g., image placeholders)
+    across history and resume without mutating the literal text.
+    """
+
+    byte_range: ByteRange
+    placeholder: str | None = None
+
+
 class UserInputText(CodexBaseModel):
     """Text user input."""
 
     type: Literal["text"] = "text"
     text: str
+    text_elements: list[TextElement] = Field(default_factory=list)
 
 
 class UserInputImage(CodexBaseModel):
     """Image URL user input."""
 
     type: Literal["image"] = "image"
-    url: str
+    image_url: str
 
 
 class UserInputLocalImage(CodexBaseModel):
     """Local image file user input."""
 
-    type: Literal["localImage"] = "localImage"
+    type: Literal["local_image"] = "local_image"
     path: str
 
 
@@ -406,6 +429,33 @@ class ThreadItemExitedReviewMode(CodexBaseModel):
     review: str
 
 
+CollabAgentTool = Literal["spawnAgent", "sendInput", "wait", "closeAgent"]
+CollabAgentToolCallStatus = Literal["inProgress", "completed", "failed"]
+CollabAgentStatus = Literal[
+    "pendingInit", "running", "completed", "errored", "shutdown", "notFound"
+]
+
+
+class CollabAgentState(CodexBaseModel):
+    """Collab agent state."""
+
+    status: CollabAgentStatus
+    message: str | None = None
+
+
+class ThreadItemCollabAgentToolCall(CodexBaseModel):
+    """Collab agent tool call item."""
+
+    type: Literal["collabAgentToolCall"] = "collabAgentToolCall"
+    id: str
+    tool: CollabAgentTool
+    status: CollabAgentToolCallStatus
+    sender_thread_id: str
+    receiver_thread_id: str | None = None
+    prompt: str | None = None
+    agent_state: CollabAgentState | None = None
+
+
 # Discriminated union of all ThreadItem types
 ThreadItem = (
     ThreadItemUserMessage
@@ -414,6 +464,7 @@ ThreadItem = (
     | ThreadItemCommandExecution
     | ThreadItemFileChange
     | ThreadItemMcpToolCall
+    | ThreadItemCollabAgentToolCall
     | ThreadItemWebSearch
     | ThreadItemImageView
     | ThreadItemEnteredReviewMode
