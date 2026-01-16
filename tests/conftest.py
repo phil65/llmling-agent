@@ -36,20 +36,32 @@ def disable_logfire(tmp_path_factory):
     os.environ["LOGFIRE_DISABLE"] = "true"
     # Also disable observability entirely
     os.environ["OBSERVABILITY_ENABLED"] = "false"
-    # Use temp directory for Claude storage during tests
-    claude_test_dir = tmp_path_factory.mktemp("claude_config")
-    # Copy credentials file if it exists so integration tests can authenticate
-    # Use copy instead of symlink for cross-platform compatibility (Windows needs admin/dev mode for symlinks)
-    real_creds = Path.home() / ".claude" / ".credentials.json"
-    if real_creds.exists():
-        import shutil
 
-        test_creds = claude_test_dir / ".credentials.json"
-        shutil.copy2(real_creds, test_creds)
-    os.environ["CLAUDE_CONFIG_DIR"] = str(claude_test_dir)
-    # Use temp directory for Codex data during tests
-    codex_test_dir = tmp_path_factory.mktemp("codex_home")
-    os.environ["CODEX_HOME"] = str(codex_test_dir)
+    # Skip config dir override in CI - not needed and credentials aren't available anyway
+    is_ci = os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS")
+    if not is_ci:
+        # Use temp directory for Claude storage during tests
+        claude_test_dir = tmp_path_factory.mktemp("claude_config")
+        # Copy credentials file if it exists so integration tests can authenticate
+        # Use copy instead of symlink for cross-platform compatibility (Windows needs admin/dev
+        # mode for symlinks)
+        real_creds = Path.home() / ".claude" / ".credentials.json"
+        if real_creds.exists():
+            import shutil
+
+            test_creds = claude_test_dir / ".credentials.json"
+            shutil.copy2(real_creds, test_creds)
+        os.environ["CLAUDE_CONFIG_DIR"] = str(claude_test_dir)
+        # Use temp directory for Codex data during tests
+        codex_test_dir = tmp_path_factory.mktemp("codex_home")
+        # Copy Codex auth file if it exists so integration tests can authenticate
+        real_codex_auth = Path.home() / ".codex" / "auth.json"
+        if real_codex_auth.exists():
+            import shutil
+
+            test_codex_auth = codex_test_dir / "auth.json"
+            shutil.copy2(real_codex_auth, test_codex_auth)
+        os.environ["CODEX_HOME"] = str(codex_test_dir)
 
     # Mock logfire configure to be a no-op
     try:
