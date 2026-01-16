@@ -154,6 +154,12 @@ class MessageRequest(OpenCodeBaseModel):
     no_reply: bool | None = None
     system: str | None = None
     tools: dict[str, bool] | None = None
+    variant: str | None = None
+    """Reasoning/thinking variant for this message.
+
+    Maps to the model's variants (e.g., 'low', 'medium', 'high', 'max').
+    When set, the agent will use this thinking effort level for the response.
+    """
 
 
 class ShellRequest(OpenCodeBaseModel):

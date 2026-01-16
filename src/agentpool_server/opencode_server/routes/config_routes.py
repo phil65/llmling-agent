@@ -154,9 +154,15 @@ async def get_config(state: StateDep) -> Config:
     """Get server configuration."""
     import os
 
+    from agentpool_server.opencode_server.models.config import Keybinds
+
     # Initialize config if not yet set
     if state.config is None:
         state.config = Config()
+
+    # Ensure keybinds are set with defaults
+    if state.config.keybinds is None:
+        state.config.keybinds = Keybinds()
 
     # Set a default model if not already configured
     if state.config.model is None:
@@ -195,6 +201,57 @@ async def update_config(state: StateDep, config_update: Config) -> Config:
         setattr(state.config, field_name, value)
 
     return state.config
+
+
+async def _get_variants_from_agent(agent: object) -> dict[str, dict[str, object]]:
+    """Get variants from agent's thought_level modes.
+
+    Only supported for Codex and Claude Code agents which have static,
+    known thought_level modes.
+
+    Args:
+        agent: The agent to get modes from
+
+    Returns:
+        Dict mapping variant names to empty config dicts (config is agent-internal)
+    """
+    from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+    from agentpool.agents.codex_agent import CodexAgent
+
+    # Only Codex and Claude Code have static thought_level modes we can expose
+    if not isinstance(agent, (CodexAgent, ClaudeCodeAgent)):
+        return {}
+
+    try:
+        mode_categories = await agent.get_modes()
+    except Exception:  # noqa: BLE001
+        return {}
+    for category in mode_categories:
+        if category.id == "thought_level":
+            # Convert modes to variants - the actual config is handled by set_mode
+            return {mode.id: {} for mode in category.available_modes}
+    return {}
+
+
+def _apply_variants_to_providers(
+    providers: list[Provider], variants: dict[str, dict[str, object]]
+) -> list[Provider]:
+    """Apply variants to all models in all providers.
+
+    For agents with known thought_level modes (Codex, Claude Code),
+    the same variants apply to all models.
+    """
+    if not variants:
+        return providers
+
+    updated_providers = []
+    for provider in providers:
+        updated_models = {
+            model_id: model.model_copy(update={"variants": variants})
+            for model_id, model in provider.models.items()
+        }
+        updated_providers.append(provider.model_copy(update={"models": updated_models}))
+    return updated_providers
 
 
 def _get_dummy_providers() -> list[Provider]:
@@ -238,6 +295,11 @@ async def get_providers(state: StateDep) -> ProvidersResponse:
     if not providers:
         providers = _get_dummy_providers()
 
+    # Get variants from agent's thought_level modes (for Codex, Claude Code, etc.)
+    variants = await _get_variants_from_agent(state.agent)
+    if variants:
+        providers = _apply_variants_to_providers(providers, variants)
+
     # Build default models map: use first model for each connected provider
     default_models: dict[str, str] = {}
     connected_providers = [
@@ -270,6 +332,11 @@ async def list_providers(state: StateDep) -> ProviderListResponse:
     # Fall back to dummy providers if no models available
     if not providers:
         providers = _get_dummy_providers()
+
+    # Get variants from agent's thought_level modes (for Codex, Claude Code, etc.)
+    variants = await _get_variants_from_agent(state.agent)
+    if variants:
+        providers = _apply_variants_to_providers(providers, variants)
 
     # Determine which providers are "connected" based on env vars
     connected = [

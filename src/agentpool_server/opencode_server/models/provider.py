@@ -36,6 +36,13 @@ class Model(OpenCodeBaseModel):
     release_date: str = ""
     temperature: bool = True
     tool_call: bool = True
+    variants: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    """Model variants for reasoning/thinking levels.
+
+    Maps variant names (e.g., 'low', 'medium', 'high', 'max') to
+    provider-specific configuration options. The TUI uses this to
+    let users cycle through thinking effort levels.
+    """
 
 
 class Provider(OpenCodeBaseModel):

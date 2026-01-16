@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -216,6 +217,7 @@ async def _process_message(  # noqa: PLR0915
             provider_id=request.model.provider_id if request.model else "agentpool",
             model_id=request.model.model_id if request.model else "default",
         ),
+        variant=request.variant,
     )
 
     # Create parts from request
@@ -289,6 +291,11 @@ async def _process_message(  # noqa: PLR0915
         agent = state.agent
         if request.agent and state.agent.agent_pool is not None:
             agent = state.agent.agent_pool.all_agents.get(request.agent, state.agent)
+
+        # Apply reasoning variant if specified
+        if request.variant:
+            with contextlib.suppress(Exception):
+                await agent.set_mode(request.variant, category_id="thought_level")
 
         # Stream events from the agent
         async for event in agent.run_stream(user_prompt, conversation_id=session_id):
