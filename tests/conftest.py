@@ -30,12 +30,22 @@ def vision_model() -> str:
 @pytest.fixture(scope="session", autouse=True)
 def disable_logfire(tmp_path_factory):
     """Disable logfire for all tests and set up test directories."""
+    from pathlib import Path
+
     # Set environment variable to disable logfire
     os.environ["LOGFIRE_DISABLE"] = "true"
     # Also disable observability entirely
     os.environ["OBSERVABILITY_ENABLED"] = "false"
     # Use temp directory for Claude storage during tests
     claude_test_dir = tmp_path_factory.mktemp("claude_config")
+    # Copy credentials file if it exists so integration tests can authenticate
+    # Use copy instead of symlink for cross-platform compatibility (Windows needs admin/dev mode for symlinks)
+    real_creds = Path.home() / ".claude" / ".credentials.json"
+    if real_creds.exists():
+        import shutil
+
+        test_creds = claude_test_dir / ".credentials.json"
+        shutil.copy2(real_creds, test_creds)
     os.environ["CLAUDE_CONFIG_DIR"] = str(claude_test_dir)
     # Use temp directory for Codex data during tests
     codex_test_dir = tmp_path_factory.mktemp("codex_home")
