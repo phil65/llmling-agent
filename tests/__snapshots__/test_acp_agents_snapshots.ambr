@@ -1,4 +1,102 @@
 # serializer version: 1
+# name: test_acp_agent_help_output[AgentpoolACPAgentConfig]
+  '''
+  === AgentpoolACPAgentConfig ===
+  
+  Command: agentpool serve-acp
+  
+  CLI Help Output:
+  ----------------------------------------------------------------------
+  Usage: agentpool serve-acp [OPTIONS] [CONFIG]                                  
+                                                                                  
+   Run agents as an ACP (Agent Client Protocol) server.                           
+                                                                                  
+   This creates an ACP-compatible JSON-RPC 2.0 server that communicates over      
+   stdio                                                                          
+   streams, enabling your agents to work with desktop applications that support   
+   the Agent Client Protocol.                                                     
+                                                                                  
+   Configuration:                                                                 
+   Config file is optional. Without a config file, creates a general-purpose      
+   agent with default settings. This is useful for clients/installers that        
+   start agents directly without configuration support.                           
+                                                                                  
+   Agent Selection:                                                               
+   Use --agent to specify which agent to use by name. Without this option,        
+   the first agent in your config is used as the default (or "agentpool"          
+   if no config provided).                                                        
+                                                                                  
+   Agent Mode Switching:                                                          
+   If your config defines multiple agents, the IDE will show a mode selector      
+   allowing users to switch between agents mid-conversation. Each agent appears   
+   as a different "mode" with its own name and capabilities.                      
+                                                                                  
+  ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+  │   config      [CONFIG]  Path to agent configuration (optional)               │
+  ╰──────────────────────────────────────────────────────────────────────────────╯
+  ╭─ Options ────────────────────────────────────────────────────────────────────╮
+  │ --file-access          --no-file-acce…                      Enable file      │
+  │                                                             system access    │
+  │                                                             for agents       │
+  │                                                             [default:        │
+  │                                                             file-access]     │
+  │ --terminal-access      --no-terminal-…                      Enable terminal  │
+  │                                                             access for       │
+  │                                                             agents           │
+  │                                                             [default:        │
+  │                                                             terminal-access] │
+  │ --show-messages                                             Show message     │
+  │                                                             activity in logs │
+  │ --debug-messages                                            Save raw         │
+  │                                                             JSON-RPC         │
+  │                                                             messages to      │
+  │                                                             debug file       │
+  │ --debug-file                              TEXT              File to save     │
+  │                                                             JSON-RPC debug   │
+  │                                                             messages         │
+  │                                                             (default:        │
+  │                                                             acp-debug.jsonl) │
+  │ --debug-commands                                            Enable debug     │
+  │                                                             slash commands   │
+  │                                                             for testing ACP  │
+  │                                                             notifications    │
+  │ --agent                                   TEXT              Name of specific │
+  │                                                             agent to use     │
+  │                                                             (defaults to     │
+  │                                                             first agent in   │
+  │                                                             config)          │
+  │ --skills               --no-skills                          Load client-side │
+  │                                                             skills from      │
+  │                                                             .claude/skills   │
+  │                                                             directory        │
+  │                                                             [default:        │
+  │                                                             skills]          │
+  │ --transport        -t                     [stdio|websocket  Transport type:  │
+  │                                           ]                 stdio (default)  │
+  │                                                             or websocket     │
+  │                                                             [default: stdio] │
+  │ --ws-host                                 TEXT              WebSocket host   │
+  │                                                             (only used with  │
+  │                                                             --transport      │
+  │                                                             websocket)       │
+  │                                                             [default:        │
+  │                                                             localhost]       │
+  │ --ws-port                                 INTEGER           WebSocket port   │
+  │                                                             (only used with  │
+  │                                                             --transport      │
+  │                                                             websocket)       │
+  │                                                             [default: 8765]  │
+  │ --mcp-config                              TEXT              MCP servers      │
+  │                                                             configuration as │
+  │                                                             JSON (format:    │
+  │                                                             {"mcpServers":   │
+  │                                                             {...}})          │
+  │ --help                                                      Show this        │
+  │                                                             message and      │
+  │                                                             exit.            │
+  ╰──────────────────────────────────────────────────────────────────────────────╯
+  '''
+# ---
 # name: test_acp_agent_help_output[AmpACPAgentConfig]
   '''
   === AmpACPAgentConfig ===

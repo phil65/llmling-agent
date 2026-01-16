@@ -1,4 +1,39 @@
 # serializer version: 1
+# name: test_acp_agent_capabilities[AgentpoolACPAgentConfig]
+  '''
+  === AgentpoolACPAgentConfig ===
+  
+  Status: ok
+  Command: agentpool serve-acp
+  
+  Agent Info:
+    name: agentpool
+    title: AgentPool
+    version: 2.6.1
+  
+  Protocol Version: 1
+  
+  Capabilities:
+  {
+    "load_session": true,
+    "mcp": {
+      "http": true,
+      "sse": true,
+      "stdio": true
+    },
+    "prompt": {
+      "audio": true,
+      "embedded_context": true,
+      "image": true
+    },
+    "session": {
+      "fork": false,
+      "list": true,
+      "resume": false
+    }
+  }
+  '''
+# ---
 # name: test_acp_agent_capabilities[AmpACPAgentConfig]
   '''
   === AmpACPAgentConfig ===
@@ -40,7 +75,7 @@
   Agent Info:
     name: auggie
     title: Auggie Agent
-    version: 0.12.0 (commit caae5f40)
+    version: 0.14.0 (commit 8aaa2dfb)
   
   Protocol Version: 1
   
@@ -84,7 +119,7 @@
   Agent Info:
     name: @zed-industries/claude-code-acp
     title: Claude Code
-    version: 0.12.6
+    version: 0.13.1
   
   Protocol Version: 1
   
@@ -102,7 +137,7 @@
       "image": true
     },
     "session": {
-      "fork": false,
+      "fork": true,
       "list": false,
       "resume": true
     }
@@ -122,7 +157,7 @@
   Agent Info:
     name: codex-acp
     title: Codex
-    version: 0.8.0
+    version: 0.8.2
   
   Protocol Version: 1
   
@@ -197,7 +232,7 @@
   Agent Info:
     name: fast-agent-acp
     title: None
-    version: 0.4.19
+    version: 0.4.31
   
   Protocol Version: 1
   
@@ -236,8 +271,8 @@
   {
     "load_session": false,
     "mcp": {
-      "http": false,
-      "sse": false,
+      "http": true,
+      "sse": true,
       "stdio": true
     },
     "prompt": {
@@ -330,7 +365,7 @@
   Agent Info:
     name: @mistralai/mistral-vibe
     title: Mistral Vibe
-    version: 1.3.3
+    version: 1.3.5
   
   Protocol Version: 1
   
@@ -365,7 +400,7 @@
   Agent Info:
     name: OpenCode
     title: None
-    version: 1.0.223
+    version: 1.1.23
   
   Protocol Version: 1
   
