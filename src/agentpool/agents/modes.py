@@ -7,7 +7,14 @@ to clients. Each agent type can define its own mode categories.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import TYPE_CHECKING, Literal, Protocol, TypeVar, runtime_checkable
+
+
+if TYPE_CHECKING:
+    from agentpool.agents.base_agent import BaseAgent
+
+# TypeVar for generic protocol - contravariant because it's used in method parameters
+AgentT_contra = TypeVar("AgentT_contra", bound="BaseAgent", contravariant=True)
 
 
 # Standard config option IDs aligned with ACP's SessionConfigOptionCategory.
@@ -54,12 +61,47 @@ class ConfigOptionChanged:
     """New value ID for this config option."""
 
 
+@runtime_checkable
+class ModeCategoryProtocol(Protocol[AgentT_contra]):
+    """Protocol for mode categories that can apply themselves.
+
+    Generic over agent type. Use ModeCategoryProtocol[CodexAgent] for
+    Codex-specific categories, ModeCategoryProtocol[BaseAgent] for
+    agent-agnostic ones.
+
+    State (current mode) lives on the agent - categories just know how to
+    read and write it via get_current() and apply().
+    """
+
+    @property
+    def id(self) -> str:
+        """Unique identifier for this category."""
+
+    @property
+    def name(self) -> str:
+        """Human-readable display name for the category."""
+
+    @property
+    def available_modes(self) -> list[ModeInfo]:
+        """List of available modes in this category."""
+
+    @property
+    def category(self) -> str | None:
+        """Optional semantic category for UX purposes."""
+
+    def get_current(self, agent: AgentT_contra) -> str:
+        """Get the current mode ID from the agent."""
+
+    async def apply(self, agent: AgentT_contra, mode_id: str) -> None:
+        """Apply a mode to the agent."""
+
+
 @dataclass
 class ModeCategory:
-    """A category of modes that can be switched.
+    """Data container for mode category information.
 
-    Represents a group of mutually exclusive modes. In the future,
-    ACP may support multiple categories rendered as separate dropdowns.
+    Used by get_modes() to expose available modes to clients.
+    For mode-switching behavior, see ModeCategoryProtocol.
 
     Examples:
         - Permissions: default, acceptEdits
