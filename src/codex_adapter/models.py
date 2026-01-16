@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from codex_adapter.codex_types import (
-    ApprovalPolicy,
-    ModelProvider,
-    ReasoningEffort,
-)
+from codex_adapter.codex_types import ApprovalPolicy, ModelProvider, ReasoningEffort
+
+
+# Strict validation in tests to catch schema changes, lenient in production
+_IN_TESTS = bool(os.environ.get("PYTEST_CURRENT_TEST"))
 
 
 # ============================================================================
@@ -23,13 +24,14 @@ class CodexBaseModel(BaseModel):
     """Base model for all Codex API models.
 
     Provides:
-    - Strict validation (forbids extra fields)
+    - Strict validation in tests (forbids extra fields to catch schema changes)
+    - Lenient validation in production (ignores extra fields for forward compat)
     - Snake_case Python fields with camelCase JSON aliases
     - Both field names and aliases accepted for parsing (populate_by_name=True)
     """
 
     model_config = ConfigDict(
-        extra="forbid",
+        extra="forbid" if _IN_TESTS else "ignore",
         populate_by_name=True,
         alias_generator=to_camel,
     )
