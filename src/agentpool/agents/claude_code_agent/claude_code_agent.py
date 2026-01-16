@@ -1877,7 +1877,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             return []
         else:
             # Sort by last_active, most recent first
-            result.sort(key=lambda s: s.last_active, reverse=True)
+            result.sort(key=lambda s: s.updated_at or "", reverse=True)
             return result
 
     async def load_session(self, session_id: str) -> SessionData | None:
