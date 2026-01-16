@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
+from agentpool_server.opencode_server.models.agent import AgentModel  # noqa: TC001
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: TC001
 
@@ -241,6 +242,8 @@ class SubtaskPart(OpenCodeBaseModel):
     """The agent handling this subtask."""
     command: str | None = None
     """Optional command associated with the subtask."""
+    model: AgentModel | None = None
+    """The model used for the subtask."""
 
 
 class APIErrorInfo(OpenCodeBaseModel):
