@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import UTC
+from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Self
 from uuid import uuid4
 
 from pydantic_ai import TextPartDelta
+from pydantic_ai.usage import RequestUsage, RunUsage
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import PartDeltaEvent, RunStartedEvent, StreamCompleteEvent
@@ -282,7 +284,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._client = None
         self._thread_id = None
 
-    async def _stream_events(  # noqa: PLR0915
+    async def _stream_events(
         self,
         prompts: list[UserContent],
         *,
@@ -318,6 +320,9 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             Stream events from Codex execution
         """
         from agentpool.agents.codex_agent.codex_converters import codex_to_native_event
+        from agentpool.agents.events import PlanUpdateEvent
+        from agentpool.messaging.messages import TokenCost
+        from codex_adapter.models import ThreadTokenUsageUpdatedData
 
         if not self._client or not self._thread_id:
             msg = "Codex client not initialized"
@@ -334,10 +339,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             msg = "conversation_id must be set"
             raise ValueError(msg)
         # Emit run started event
-        run_started = RunStartedEvent(
-            thread_id=final_conversation_id,
-            run_id=run_id,
-        )
+        run_started = RunStartedEvent(thread_id=final_conversation_id, run_id=run_id)
         await event_handlers(None, run_started)
         yield run_started
         # Stream turn events with bridge context set
@@ -354,17 +356,16 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                     output_schema=output_schema,
                 ):
                     # Capture token usage from Codex event before conversion
-                    if event.event_type == "thread/tokenUsage/updated":
-                        from codex_adapter.models import ThreadTokenUsageUpdatedData
-
-                        if isinstance(event.data, ThreadTokenUsageUpdatedData):
-                            usage = event.data.token_usage.last
-                            token_usage_data = {
-                                "input_tokens": usage.input_tokens,
-                                "output_tokens": usage.output_tokens,
-                                "cache_read_tokens": usage.cached_input_tokens,
-                                "reasoning_tokens": usage.reasoning_output_tokens,
-                            }
+                    if event.event_type == "thread/tokenUsage/updated" and isinstance(
+                        event.data, ThreadTokenUsageUpdatedData
+                    ):
+                        usage = event.data.token_usage.last
+                        token_usage_data = {
+                            "input_tokens": usage.input_tokens,
+                            "output_tokens": usage.output_tokens,
+                            "cache_read_tokens": usage.cached_input_tokens,
+                            "reasoning_tokens": usage.reasoning_output_tokens,
+                        }
 
                     # Convert Codex event to native event
                     if native_event := codex_to_native_event(event):
@@ -372,8 +373,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                         yield native_event
 
                         # Handle plan updates - sync to pool.todos
-                        from agentpool.agents.events import PlanUpdateEvent
-
                         if (
                             isinstance(native_event, PlanUpdateEvent)
                             and self.agent_pool
@@ -394,14 +393,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Emit completion event
         final_text = "".join(accumulated_text)
-
-        # Build cost_info and usage from token data if available
-        from decimal import Decimal
-
-        from pydantic_ai.usage import RequestUsage, RunUsage
-
-        from agentpool.messaging.messages import TokenCost
-
         cost_info: TokenCost | None = None
         request_usage = RequestUsage()
 
@@ -432,9 +423,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             model_name=self.model_name,
         )
 
-        complete_event = StreamCompleteEvent(
-            message=complete_msg,
-        )
+        complete_event = StreamCompleteEvent(message=complete_msg)
         await event_handlers(None, complete_event)
         yield complete_event
 
@@ -474,6 +463,8 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         Args:
             model: Model identifier
         """
+        from agentpool.agents.modes import ConfigOptionChanged
+
         if not self._client or not self._thread_id:
             # Not connected yet, just store for initialization
             self._current_model = model
@@ -483,7 +474,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Archive current thread and start new one with new model
         old_thread_id = self._thread_id
         await self._client.thread_archive(old_thread_id)
-
         # Start new thread with new model, preserving other settings
         cwd = str(self.config.cwd or Path.cwd())
         thread = await self._client.thread_start(
@@ -493,10 +483,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
         self._thread_id = thread.id
         self._current_model = model
-
-        # Emit state change signal
-        from agentpool.agents.modes import ConfigOptionChanged
-
         await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=model))
         self.log.info(
             "Model changed - new thread started",
@@ -526,39 +512,29 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         Returns:
             List of tokonomics ModelInfo for available models, or None if not connected
         """
+        from tokonomics.model_discovery.model_info import ModelInfo as TokModelInfo
+
         if not self._client:
             self.log.warning("Cannot get models: client not connected")
             return None
 
         try:
-            from tokonomics.model_discovery.model_info import ModelInfo as TokModelInfo
-
             models_data = await self._client.model_list()
             models = []
-
             for model_data in models_data:
                 # Infer provider from model name
                 model_id = model_data.model or model_data.id
-                provider = "unknown"
-                if "claude" in model_id.lower():
-                    provider = "anthropic"
-                elif "gpt" in model_id.lower() or "o1" in model_id.lower():
-                    provider = "openai"
-                elif "gemini" in model_id.lower():
-                    provider = "google"
-
                 # Use display_name and description from API if available
                 name = model_data.display_name or model_data.id
-                description = model_data.description or f"Model: {model_id}"
-
-                models.append(
-                    TokModelInfo(
-                        id=model_id,
-                        name=name,
-                        provider=provider,
-                        description=description,
-                    )
+                desc = model_data.description or f"Model: {model_id}"
+                info = TokModelInfo(
+                    id=model_id,
+                    name=name,
+                    provider="openai",
+                    description=desc,
+                    id_override=model_id,
                 )
+                models.append(info)
 
         except Exception:
             self.log.exception("Failed to fetch models from Codex")
@@ -574,86 +550,29 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         Returns:
             List of ModeCategory for approval policy, reasoning effort, and models
         """
+        from agentpool.agents.codex_agent.static_info import EFFORT_MODES, POLICY_MODES
         from agentpool.agents.modes import ModeCategory, ModeInfo
 
         categories: list[ModeCategory] = []
-
-        # Approval policy modes
-        current_policy = self._approval_policy
-        policy_modes = [
-            ModeInfo(
-                id="never",
-                name="Auto-Execute",
-                description="Execute tools without approval (default for programmatic use)",
-                category_id="approval_policy",
-            ),
-            ModeInfo(
-                id="unlessTrusted",
-                name="Unless Trusted",
-                description="Auto-approve trusted operations, ask for others",
-                category_id="approval_policy",
-            ),
-            ModeInfo(
-                id="auto",
-                name="Auto-Approve Safe",
-                description="Auto-approve low-risk tools, ask for high-risk",
-                category_id="approval_policy",
-            ),
-            ModeInfo(
-                id="always",
-                name="Always Confirm",
-                description="Request approval before executing any tool",
-                category_id="approval_policy",
-            ),
-        ]
         categories.append(
             ModeCategory(
                 id="approval_policy",
                 name="Tool Approval",
-                available_modes=policy_modes,
-                current_mode_id=current_policy,
+                available_modes=POLICY_MODES,
+                current_mode_id=self._approval_policy,
                 category="mode",
             )
         )
-
         # Reasoning effort modes - try to get from current model's supported efforts
-        current_effort = self.config.reasoning_effort or "medium"
-        effort_modes = [
-            ModeInfo(
-                id="low",
-                name="Low Effort",
-                description="Fast responses with lighter reasoning",
-                category_id="reasoning_effort",
-            ),
-            ModeInfo(
-                id="medium",
-                name="Medium Effort",
-                description="Balanced reasoning depth for everyday tasks",
-                category_id="reasoning_effort",
-            ),
-            ModeInfo(
-                id="high",
-                name="High Effort",
-                description="Deep reasoning for complex problems",
-                category_id="reasoning_effort",
-            ),
-            ModeInfo(
-                id="xhigh",
-                name="Extra High Effort",
-                description="Maximum reasoning depth for complex problems",
-                category_id="reasoning_effort",
-            ),
-        ]
         categories.append(
             ModeCategory(
                 id="reasoning_effort",
                 name="Reasoning Effort",
-                available_modes=effort_modes,
-                current_mode_id=current_effort,
+                available_modes=EFFORT_MODES,
+                current_mode_id=self.config.reasoning_effort or "medium",
                 category="thought_level",
             )
         )
-
         # Model selection
         models = await self.get_available_models()
         if models:
@@ -676,7 +595,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                     category="model",
                 )
             )
-
         return categories
 
     async def set_mode(self, mode: ModeInfo | str, category_id: str | None = None) -> None:
@@ -694,7 +612,7 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             mode: Mode to set (ModeInfo or mode ID string)
             category_id: Category ID ("approval_policy", "reasoning_effort", or "model")
         """
-        from agentpool.agents.modes import ModeInfo as ModeInfoType
+        from agentpool.agents.modes import ConfigOptionChanged, ModeInfo as ModeInfoType
 
         # Extract mode ID and infer category if needed
         if isinstance(mode, ModeInfoType):
@@ -721,9 +639,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Update instance attribute (doesn't require thread restart)
             # Type assertion: we've already validated mode_id is one of the valid values
             self._approval_policy = mode_id  # type: ignore[assignment]
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
             change = ConfigOptionChanged(config_id="approval_policy", value_id=mode_id)
             await self.state_updated.emit(change)
             self.log.info("Approval policy changed", policy=mode_id)
@@ -743,7 +658,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Archive and restart with new effort
             old_thread_id = self._thread_id
             await self._client.thread_archive(old_thread_id)
-
             cwd = str(self.config.cwd or Path.cwd())
             thread = await self._client.thread_start(
                 cwd=cwd,
@@ -753,7 +667,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._thread_id = thread.id
             # Type assertion: we've already validated mode_id is one of the valid values
             self._current_effort = mode_id  # type: ignore[assignment]
-
             self.log.info(
                 "Reasoning effort changed - new thread started",
                 old_thread=old_thread_id,
@@ -761,15 +674,11 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                 effort=mode_id,
             )
             # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
             change = ConfigOptionChanged(config_id="reasoning_effort", value_id=mode_id)
             await self.state_updated.emit(change)
-
         elif category_id == "model":
             # set_model emits the signal
             await self.set_model(mode_id)
-
         else:
             msg = f"Unknown category: {category_id}"
             raise ValueError(msg)
@@ -782,8 +691,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         Returns:
             List of SessionInfo objects converted from Codex ThreadData
         """
-        from datetime import datetime
-
         from agentpool.sessions.models import SessionData
 
         if not self._client:
@@ -828,8 +735,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         Returns:
             SessionData if thread was resumed successfully, None otherwise
         """
-        from datetime import datetime
-
         from agentpool.sessions.models import SessionData
 
         if not self._client:
@@ -839,17 +744,13 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         try:
             # Resume the thread on Codex server
             thread = await self._client.thread_resume(session_id)
-
             # Update current thread ID
             self._thread_id = thread.id
-
             self.log.info("Thread resumed from Codex server", thread_id=thread.id)
-
             # Build SessionData from the resumed thread
             created_at = datetime.fromtimestamp(thread.created_at, tz=UTC)
             # CodexThread doesn't include cwd, use config default
             cwd = str(self.config.cwd or Path.cwd())
-
             return SessionData(
                 session_id=thread.id,
                 agent_name=self.name,
