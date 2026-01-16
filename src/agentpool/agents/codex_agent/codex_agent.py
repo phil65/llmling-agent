@@ -506,17 +506,10 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
     async def set_model(self, model: str) -> None:
         """Set the model for this agent.
 
-        The model change takes effect on the next turn. Conversation history
-        is preserved since we use the same thread.
-
         Args:
             model: Model identifier
         """
-        from agentpool.agents.modes import ConfigOptionChanged
-
-        self._current_model = model
-        await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=model))
-        self.log.info("Model changed", model=model)
+        await self._set_mode(model, "model")
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set tool confirmation mode.
@@ -676,8 +669,13 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             change = ConfigOptionChanged(config_id="thought_level", value_id=mode_id)
             await self.state_updated.emit(change)
         elif category_id == "model":
-            # set_model emits the signal
-            await self.set_model(mode_id)
+            # Set model directly
+            self._current_model = mode_id
+            self.log.info("Model changed", model=mode_id)
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
         else:
             msg = f"Unknown category: {category_id}"
             raise ValueError(msg)

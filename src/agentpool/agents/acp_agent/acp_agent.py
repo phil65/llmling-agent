@@ -612,65 +612,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     async def set_model(self, model: str) -> None:
         """Update the model for the current session via ACP protocol.
 
-        Attempts to use the ACP protocol to change the model:
-        1. If config_options exist with a 'model' category, use set_session_config_option
-        2. Otherwise, use legacy set_session_model API
-
         Args:
             model: New model ID to use
-
-        Raises:
-            RuntimeError: If no active session or remote agent doesn't support model changes
         """
-        from acp.schema import SetSessionConfigOptionRequest, SetSessionModelRequest
-
-        if not self._connection or not self._session_id:
-            msg = "Cannot set model: no active session"
-            raise RuntimeError(msg)
-
-        if not self._state:
-            msg = "Cannot set model: no session state"
-            raise RuntimeError(msg)
-
-        # Try using the new unified config options API first
-        model_cfg = next((i for i in self._state.config_options if i.category == "model"), None)
-        if model_cfg:
-            # Use new unified API
-            request = SetSessionConfigOptionRequest(
-                session_id=self._session_id,
-                config_id=model_cfg.id,
-                value=model,
-            )
-            response = await self._connection.set_session_config_option(request)
-            if response:
-                # Update entire config_options state from response
-                self._state.config_options = list(response.config_options)
-                # Emit state change signal
-                from agentpool.agents.modes import ConfigOptionChanged
-
-                change = ConfigOptionChanged(config_id=model_cfg.id, value_id=model)
-                await self.state_updated.emit(change)
-                self.log.info("Model changed via SessionConfigOption", model=model)
-                return
-            msg = "set_session_config_option returned no response"
-            raise RuntimeError(msg)
-
-        # Fallback to legacy set_session_model API
-        request_legacy = SetSessionModelRequest(session_id=self._session_id, model_id=model)
-        response_legacy = await self._connection.set_session_model(request_legacy)
-        if response_legacy:
-            # Update legacy state
-            self._state.current_model_id = model
-            self.log.info("Model changed via legacy set_session_model", model=model)
-            return
-
-        # If we get here, the remote agent doesn't support model changes
-        msg = (
-            "Remote ACP agent does not support model changes. "
-            "No config_options with category='model' found and set_session_model "
-            "returned no response."
-        )
-        raise RuntimeError(msg)
+        await self._set_mode(model, "model")
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set the tool confirmation mode for this agent.
@@ -830,11 +775,26 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             self.log.info("Mode changed on remote ACP server", mode_id=mode_id)
 
         elif category_id == "model":
-            # Delegate to set_model which handles config_options properly
-            await self.set_model(mode_id)
+            # Legacy: Use set_session_model API
+            from acp.schema import SetSessionModelRequest
+
+            request = SetSessionModelRequest(session_id=self._session_id, model_id=mode_id)
+            if await self._connection.set_session_model(request):
+                self._state.current_model_id = mode_id
+                self.log.info("Model changed via legacy set_session_model", model=mode_id)
+            else:
+                msg = (
+                    "Remote ACP agent does not support model changes. "
+                    "set_session_model returned no response."
+                )
+                raise RuntimeError(msg)
+            # Emit state change signal (not emitted by legacy API)
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
 
         else:
-            msg = f"Unknown category: {category_id}. Available: permissions, model"
+            msg = f"Unknown category: {category_id}. Available: mode, model"
             raise ValueError(msg)
 
     async def list_sessions(self) -> list[SessionInfo]:

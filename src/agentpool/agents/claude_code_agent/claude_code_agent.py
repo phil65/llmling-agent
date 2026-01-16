@@ -1603,20 +1603,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Args:
             model: Model name to use
         """
-        self._model = model
-        self._current_model = model
-        # Ensure client is connected before setting model
-        if self._client:
-            await self.ensure_initialized()
-            await self._client.set_model(model)
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
-            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=model))
-            self.log.info("Model changed", model=model)
-        else:
-            # Client not created yet, model will be used during _build_options()
-            self.log.info("Model set for initialization", model=model)
+        await self._set_mode(model, "model")
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set tool confirmation mode.
@@ -1751,7 +1738,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         return categories
 
-    async def _set_mode(self, mode_id: str, category_id: str) -> None:
+    async def _set_mode(self, mode_id: str, category_id: str) -> None:  # noqa: PLR0915
         """Handle permissions, model, and thinking_level mode switching."""
         from agentpool.agents.claude_code_agent.static_info import VALID_MODES
 
@@ -1789,9 +1776,19 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 if mode_id not in valid_ids:
                     msg = f"Unknown model: {mode_id}. Available: {valid_ids}"
                     raise ValueError(msg)
-            # Set the model using set_model method (emits signal)
-            await self.set_model(mode_id)
-            self.log.info("Model changed", model=mode_id)
+            # Set the model directly
+            self._model = mode_id
+            self._current_model = mode_id
+            if self._client:
+                await self.ensure_initialized()
+                await self._client.set_model(mode_id)
+                self.log.info("Model changed", model=mode_id)
+            else:
+                self.log.info("Model set for initialization", model=mode_id)
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
 
         elif category_id == "thought_level":
             # Check if max_thinking_tokens is configured (takes precedence over keyword)

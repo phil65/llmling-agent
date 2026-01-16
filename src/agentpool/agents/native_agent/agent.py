@@ -928,17 +928,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         Args:
             model: New model to use (name or instance)
-
         """
         if isinstance(model, str):
-            self._model, settings = self._resolve_model_string(model)
-            if settings:
-                self.model_settings = settings
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
-            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=model))
+            await self._set_mode(model, "model")
         else:
+            # Direct Model instance assignment (no signal emission)
             self._model = model
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
@@ -1084,9 +1078,15 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 if mode_id not in valid_ids:
                     msg = f"Unknown model: {mode_id}. Available: {valid_ids}"
                     raise ValueError(msg)
-            # Set the model using set_model method (emits signal)
-            await self.set_model(mode_id)
+            # Set the model directly
+            self._model, settings = self._resolve_model_string(mode_id)
+            if settings:
+                self.model_settings = settings
             self.log.info("Model changed", model=mode_id)
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
 
         else:
             msg = f"Unknown category: {category_id}. Available: permissions, model"
