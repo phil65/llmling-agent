@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
-    from codex_adapter import ApprovalPolicy, CodexClient, ReasoningEffort
+    from codex_adapter import ApprovalPolicy, CodexClient, ReasoningEffort, SandboxMode
 
 
 logger = get_logger(__name__)
@@ -170,6 +170,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Track current settings (for when they change mid-session)
         self._current_model: str | None = None
         self._current_effort: ReasoningEffort | None = None
+        self._current_sandbox: SandboxMode | None = None
         self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
 
     @classmethod
@@ -388,6 +389,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                     prompt_text,
                     model=self._current_model,
                     approval_policy=self._approval_policy,
+                    sandbox_policy=self._current_sandbox,
                     output_schema=output_schema,
                 ):
                     # Capture token usage from Codex event before conversion
@@ -570,7 +572,11 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         Returns:
             List of ModeCategory for approval policy, reasoning effort, and models
         """
-        from agentpool.agents.codex_agent.static_info import EFFORT_MODES, POLICY_MODES
+        from agentpool.agents.codex_agent.static_info import (
+            EFFORT_MODES,
+            POLICY_MODES,
+            SANDBOX_MODES,
+        )
         from agentpool.agents.modes import ModeCategory, ModeInfo
 
         categories: list[ModeCategory] = []
@@ -583,14 +589,24 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 category="mode",
             )
         )
-        # Reasoning effort modes - try to get from current model's supported efforts
+        # Reasoning effort modes
         categories.append(
             ModeCategory(
                 id="thought_level",
                 name="Reasoning Effort",
                 available_modes=EFFORT_MODES,
-                current_mode_id=self.config.reasoning_effort or "medium",
+                current_mode_id=self._current_effort or "medium",
                 category="thought_level",
+            )
+        )
+        # Sandbox modes
+        categories.append(
+            ModeCategory(
+                id="sandbox",
+                name="Sandbox Mode",
+                available_modes=SANDBOX_MODES,
+                current_mode_id=self._current_sandbox or "workspaceWrite",
+                category="other",
             )
         )
         # Model selection
@@ -676,6 +692,17 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             from agentpool.agents.modes import ConfigOptionChanged
 
             await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
+
+        elif category_id == "sandbox":
+            valid = ["readOnly", "workspaceWrite", "dangerFullAccess", "externalSandbox"]
+            if mode_id not in valid:
+                msg = f"Invalid sandbox mode: {mode_id}. Valid: {valid}"
+                raise ValueError(msg)
+            self._current_sandbox = mode_id  # type: ignore[assignment]
+            self.log.info("Sandbox mode changed", sandbox=mode_id)
+            change = ConfigOptionChanged(config_id="sandbox", value_id=mode_id)
+            await self.state_updated.emit(change)
+
         else:
             msg = f"Unknown category: {category_id}"
             raise ValueError(msg)

@@ -31,6 +31,34 @@ POLICY_MODES = [
 ]
 
 
+SANDBOX_MODES = [
+    ModeInfo(
+        id="readOnly",
+        name="Read Only",
+        description="Sandbox with read-only file access",
+        category_id="sandbox",
+    ),
+    ModeInfo(
+        id="workspaceWrite",
+        name="Workspace Write",
+        description="Can write files within workspace directory",
+        category_id="sandbox",
+    ),
+    ModeInfo(
+        id="dangerFullAccess",
+        name="Full Access",
+        description="Full filesystem access (dangerous)",
+        category_id="sandbox",
+    ),
+    ModeInfo(
+        id="externalSandbox",
+        name="External Sandbox",
+        description="Use external sandbox environment",
+        category_id="sandbox",
+    ),
+]
+
+
 EFFORT_MODES = [
     ModeInfo(
         id="low",

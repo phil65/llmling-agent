@@ -435,6 +435,7 @@ class CodexClient:
         model: str | None = None,
         effort: ReasoningEffort | None = None,
         approval_policy: ApprovalPolicy | None = None,
+        sandbox_policy: SandboxMode | dict[str, Any] | None = None,
         output_schema: dict[str, Any] | type[Any] | None = None,
     ) -> AsyncIterator[CodexEvent]:
         """Start a turn and stream events.
@@ -445,6 +446,7 @@ class CodexClient:
             model: Optional model override for this turn
             effort: Optional reasoning effort override
             approval_policy: Optional approval policy
+            sandbox_policy: Optional sandbox mode or policy dict
             output_schema: Optional JSON Schema dict or Pydantic type to constrain output
 
         Yields:
@@ -467,6 +469,14 @@ class CodexClient:
                 adapter = TypeAdapter(output_schema)
                 schema_dict = adapter.json_schema()
 
+        # Handle sandbox_policy - convert string to dict if needed
+        sandbox_dict: dict[str, Any] | None = None
+        if sandbox_policy is not None:
+            if isinstance(sandbox_policy, str):
+                sandbox_dict = {"type": sandbox_policy}
+            else:
+                sandbox_dict = sandbox_policy
+
         # Build typed params
         params = TurnStartParams(
             thread_id=thread_id,
@@ -474,6 +484,7 @@ class CodexClient:
             model=model,
             effort=effort,
             approval_policy=approval_policy,
+            sandbox_policy=sandbox_dict,
             output_schema=schema_dict,
         )
 
