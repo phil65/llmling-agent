@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 import os
+import shutil
 from typing import Any
 
 import pytest
@@ -78,8 +79,15 @@ class DenyingInputProvider:
         return ElicitResult(action="cancel")
 
 
+requires_claude_code = pytest.mark.skipif(
+    shutil.which("claude") is None,
+    reason="Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code",
+)
+
+
 @pytest.mark.asyncio
 @pytest.mark.integration
+@requires_claude_code
 async def test_tool_call_event_ordering():
     """Test that tool call events are emitted in correct order.
 
@@ -152,6 +160,7 @@ async def test_tool_call_event_ordering():
 
 @pytest.mark.asyncio
 @pytest.mark.integration
+@requires_claude_code
 async def test_no_duplicate_acp_tool_call_notifications():
     """Test that each tool call produces exactly one ToolCallStart notification.
 

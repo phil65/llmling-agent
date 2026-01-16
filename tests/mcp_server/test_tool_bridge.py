@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from typing import TYPE_CHECKING
 
 from mcp import ClientSession
@@ -238,6 +239,13 @@ async def test_claude_code_passes_tool_use_id_in_meta():
     # Placeholder - see test below
 
 
+requires_claude_code = pytest.mark.skipif(
+    shutil.which("claude") is None,
+    reason="Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code",
+)
+
+
+@requires_claude_code
 async def test_claude_code_mcp_bridge_integration():
     """Integration test using our MCP bridge with Claude Code.
 
