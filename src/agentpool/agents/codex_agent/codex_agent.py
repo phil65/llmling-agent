@@ -146,14 +146,10 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._external_mcp_servers = config.get_mcp_servers()
         # Extra MCP servers in Codex format (e.g., tool bridge)
         self._extra_mcp_servers: list[tuple[str, Any]] = []
-
         # Track current settings (for when they change mid-session)
         self._current_model: str | None = None
         self._current_effort: ReasoningEffort | None = None
-        self._tool_bridge = ToolManagerBridge(
-            node=self,
-            server_name=f"agentpool-{self.name}-tools",
-        )
+        self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
 
     @classmethod
     def from_config(
@@ -223,10 +219,8 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Create providers from tool configs and add to tool manager
         for provider in self.config.get_tool_providers():
             self.tools.add_provider(provider)
-
         # Start bridge to expose tools via MCP
         await self._tool_bridge.start()
-
         # Add bridge's MCP server config to extra servers
         # get_codex_mcp_server_config returns (name, HttpMcpServer)
         bridge_config = self._tool_bridge.get_codex_mcp_server_config()
@@ -234,27 +228,22 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def __aenter__(self) -> Self:
         """Start Codex client and create thread."""
-        await super().__aenter__()
-        await self._setup_toolsets()
-
         from agentpool.agents.codex_agent.codex_converters import mcp_configs_to_codex
         from codex_adapter import CodexClient
 
+        await super().__aenter__()
+        await self._setup_toolsets()
         # Collect MCP servers: extra (bridge) + configured servers
         # Build dict mapping server name -> McpServerConfig (Codex type)
         mcp_servers_dict = {}
-
         # Add extra MCP servers (e.g., tool bridge) - already in Codex format
         mcp_servers_dict.update(dict(self._extra_mcp_servers))
-
         # Add configured/external MCP servers (convert native -> Codex format)
         if self._external_mcp_servers:
             mcp_servers_dict.update(dict(mcp_configs_to_codex(self._external_mcp_servers)))
-
         # Create and connect client with MCP servers
         self._client = CodexClient(mcp_servers=mcp_servers_dict)
         await self._client.__aenter__()
-
         # Start a thread
         cwd = str(self.config.cwd or Path.cwd())
         thread = await self._client.thread_start(
@@ -263,14 +252,9 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             effort=self.config.reasoning_effort,
         )
         self._thread_id = thread.id
-
         self.log.info(
-            "Codex thread started",
-            thread_id=self._thread_id,
-            cwd=cwd,
-            model=self.config.model,
+            "Codex thread started", thread_id=self._thread_id, cwd=cwd, model=self.config.model
         )
-
         return self
 
     async def __aexit__(
@@ -396,7 +380,6 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                             and self.agent_pool.todos
                         ):
                             # Replace all entries in pool.todos with Codex plan
-                            # PlanEntry uses same Literal values as Todo types
                             self.agent_pool.todos.replace_all([
                                 (e.content, e.priority, e.status) for e in native_event.entries
                             ])
