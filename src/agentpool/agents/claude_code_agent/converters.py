@@ -198,10 +198,10 @@ def build_sdk_hooks_from_agent_hooks(
     if hooks.pre_tool_use:
 
         async def on_pre_tool_use(
-            input_data: Any,  # PreToolUseHookInput
+            input_data: Any,
             tool_use_id: str | None,
-            context: Any,  # HookContext
-        ) -> dict[str, Any]:  # SyncHookJSONOutput
+            context: Any,
+        ) -> dict[str, Any]:
             """Adapter for pre_tool_use hooks."""
             tool_name = input_data.get("tool_name", "")
             tool_input = input_data.get("tool_input", {})
@@ -235,16 +235,16 @@ def build_sdk_hooks_from_agent_hooks(
 
             return output
 
-        result["PreToolUse"] = [HookMatcher(matcher="*", hooks=[on_pre_tool_use])]
+        result["PreToolUse"] = [HookMatcher(matcher="*", hooks=[on_pre_tool_use])]  # type: ignore[list-item]
 
     # Check if we have post_tool_use hooks
     if hooks.post_tool_use:
 
         async def on_post_tool_use(
-            input_data: Any,  # PostToolUseHookInput
+            input_data: Any,
             tool_use_id: str | None,
-            context: Any,  # HookContext
-        ) -> dict[str, Any]:  # SyncHookJSONOutput
+            context: Any,
+        ) -> dict[str, Any]:
             """Adapter for post_tool_use hooks."""
             tool_name = input_data.get("tool_name", "")
             tool_input = input_data.get("tool_input", {})
@@ -262,6 +262,6 @@ def build_sdk_hooks_from_agent_hooks(
             # Post hooks are observation-only in SDK, can add context
             return {}
 
-        result["PostToolUse"] = [HookMatcher(matcher="*", hooks=[on_post_tool_use])]
+        result["PostToolUse"] = [HookMatcher(matcher="*", hooks=[on_post_tool_use])]  # type: ignore[list-item]
 
     return result
