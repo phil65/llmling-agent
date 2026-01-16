@@ -18,7 +18,11 @@ import os
 import shutil
 from typing import Any
 
+from mcp.types import ElicitResult
 import pytest
+
+from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+from agentpool_server.acp_server.event_converter import ACPEventConverter
 
 
 # Force OAuth instead of API key for Claude Code
@@ -34,17 +38,11 @@ class EventTrace:
 
     def log_event(self, event_type: str, event: Any) -> None:
         """Log an event."""
-        self.events.append({
-            "type": event_type,
-            "event_class": type(event).__name__,
-        })
+        self.events.append({"type": event_type, "event_class": type(event).__name__})
 
     def log_permission_request(self, tool_name: str, tool_call_id: str) -> None:
         """Log a permission request."""
-        self.permission_requests.append({
-            "tool_name": tool_name,
-            "tool_call_id": tool_call_id,
-        })
+        self.permission_requests.append({"tool_name": tool_name, "tool_call_id": tool_call_id})
 
 
 class DenyingInputProvider:
@@ -65,17 +63,12 @@ class DenyingInputProvider:
         """Deny all tool calls after a small delay."""
         tool_call_id = getattr(context, "tool_call_id", "unknown")
         self.trace.log_permission_request(tool.name, tool_call_id)
-
-        # Small delay to simulate user interaction time
         await asyncio.sleep(self.delay)
-
         self.denial_count += 1
         return "skip"
 
     async def elicit_input(self, *args: Any, **kwargs: Any) -> Any:
         """Not used in this test."""
-        from mcp.types import ElicitResult
-
         return ElicitResult(action="cancel")
 
 
@@ -97,11 +90,8 @@ async def test_tool_call_event_ordering():
     3. [No ToolCallProgressEvent - removed to avoid race with permission]
     4. FunctionToolResultEvent or ToolCallCompleteEvent (after permission resolved)
     """
-    from agentpool.agents.claude_code_agent import ClaudeCodeAgent
-
     trace = EventTrace()
     input_provider = DenyingInputProvider(trace)
-
     # Track events per tool_call_id
     tool_call_events: dict[str, list[str]] = {}
 
@@ -167,13 +157,9 @@ async def test_no_duplicate_acp_tool_call_notifications():
     Duplicate notifications cause UI sync issues - the ACP client (e.g., Zed)
     may cancel permission dialogs if it receives unexpected updates.
     """
-    from agentpool.agents.claude_code_agent import ClaudeCodeAgent
-    from agentpool_server.acp_server.event_converter import ACPEventConverter
-
     trace = EventTrace()
     input_provider = DenyingInputProvider(trace)
     converter = ACPEventConverter()
-
     # Track ToolCallStart notifications per tool_call_id
     tool_call_starts: dict[str, int] = {}
 
