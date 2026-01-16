@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Self
 
 from anyenv.signals import Signal
-from psygnal import Signal as Psygnal
 from psygnal.containers import EventedList
 
 from agentpool.log import get_logger
@@ -29,9 +28,6 @@ class ConnectionManager:
     """Manages connections for both Agents and Teams."""
 
     connection_processed = Signal[Talk.ConnectionProcessed]()
-
-    node_connected = Psygnal(object)  # Node
-    connection_added = Psygnal(Talk)  # Agent
 
     def __init__(self, owner: MessageNode[Any, Any]) -> None:
         self.owner = owner
@@ -67,10 +63,8 @@ class ConnectionManager:
     async def wait_for_connections(self, _seen: set[AgentName] | None = None) -> None:
         """Wait for this agent and all connected agents to complete their tasks."""
         seen: set[AgentName] = _seen or {self.owner.name}
-
         # Wait for our own tasks
         await self.owner.task_manager.complete_tasks()
-
         # Wait for connected agents
         for agent in self.get_targets():
             if agent.name not in seen:
@@ -87,21 +81,17 @@ class ConnectionManager:
         """
         # Get direct targets
         targets = {t for conn in self._connections for t in conn.targets if conn.active}
-
         if not recursive:
             return targets
-
         # Track seen agents to prevent cycles
         seen = _seen or {self.owner.name}
         all_targets = set()
-
         for target in targets:
             if target.name not in seen:
                 targets_ = target.connections.get_targets(recursive=True, _seen=seen)
                 seen.add(target.name)
                 all_targets.add(target)
                 all_targets.update(targets_)
-
         return all_targets
 
     def has_connection_to(self, target: MessageNode[Any, Any]) -> bool:
@@ -176,11 +166,7 @@ class ConnectionManager:
             stop_condition=stop_condition,
             exit_condition=exit_condition,
         )
-        # TODO: better perhaps directly connect EventedList signal to node_connected?
-        # or emit in _on_talk_added?
-        self.node_connected.emit(target)
         self._connections.append(talk)
-        self.connection_added.emit(talk)
         if pool := source.agent_pool:
             # Always use Talk's name for registration
             if name:
