@@ -58,6 +58,7 @@ if TYPE_CHECKING:
         ToolType,
     )
     from agentpool.delegation import AgentPool
+    from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.agui_agents import AGUIAgentConfig
     from agentpool.sessions import SessionData, SessionInfo
@@ -140,6 +141,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
         commands: Sequence[BaseCommand] | None = None,
+        hooks: AgentHooks | None = None,
     ) -> None:
         """Initialize AG-UI agent client.
 
@@ -174,6 +176,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
             commands=commands,
+            hooks=hooks,
         )
 
         # AG-UI specific configuration

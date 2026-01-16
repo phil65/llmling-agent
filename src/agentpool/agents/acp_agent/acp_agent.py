@@ -86,6 +86,7 @@ if TYPE_CHECKING:
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation import AgentPool
+    from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.acp_agents import BaseACPAgentConfig
     from agentpool.sessions import SessionData, SessionInfo
@@ -142,6 +143,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "always",
         commands: Sequence[BaseCommand] | None = None,
+        hooks: AgentHooks | None = None,
     ) -> None:
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
 
@@ -176,6 +178,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
             commands=commands,
+            hooks=hooks,
         )
 
         # ACP-specific state

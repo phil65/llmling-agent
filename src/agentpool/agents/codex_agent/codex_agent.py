@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from agentpool.agents.modes import ModeCategory, ModeInfo
     from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation import AgentPool
+    from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.codex_agents import CodexAgentConfig
     from agentpool.sessions import SessionData
@@ -89,6 +90,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         output_type: type[OutputDataT] = str,  # type: ignore[assignment]
         tool_confirmation_mode: ToolConfirmationMode = "always",
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        hooks: AgentHooks | None = None,
     ) -> None:
         """Initialize Codex agent.
 
@@ -131,6 +133,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             output_type=output_type,
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
+            hooks=hooks,
         )
 
         self.config = config
