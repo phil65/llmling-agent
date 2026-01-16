@@ -178,6 +178,7 @@ class CodexClient:
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                limit=10 * 1024 * 1024,
             )
         except FileNotFoundError as exc:
             raise CodexProcessError(f"Codex binary not found: {self._codex_command}") from exc
