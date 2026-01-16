@@ -66,7 +66,7 @@ class WorkersTools(ResourceProvider):
         """Create tool for a regular agent worker with history management."""
 
         async def run(ctx: AgentContext, prompt: str) -> Any:
-            if not ctx.pool:
+            if ctx.pool is None:
                 msg = "No agent pool available"
                 raise ToolError(msg)
             if agent_name not in ctx.pool.agents:
@@ -103,7 +103,7 @@ class WorkersTools(ResourceProvider):
         from agentpool import BaseTeam
 
         async def run(ctx: AgentContext, prompt: str) -> str:
-            if not ctx.pool:
+            if ctx.pool is None:
                 msg = "No agent pool available"
                 raise ToolError(msg)
             if node_name not in ctx.pool.nodes:

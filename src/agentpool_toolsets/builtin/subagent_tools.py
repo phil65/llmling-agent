@@ -268,7 +268,7 @@ class SubagentTools(StaticResourceProvider):
         from agentpool.agents.base_agent import BaseAgent
         from agentpool.common_types import SupportsRunStream
 
-        if not ctx.pool:
+        if ctx.pool is None:
             msg = "Agent needs to be in a pool to delegate tasks"
             raise ToolError(msg)
         if agent_or_team_name not in ctx.pool.nodes:

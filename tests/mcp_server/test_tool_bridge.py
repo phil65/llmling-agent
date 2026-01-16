@@ -29,7 +29,7 @@ def simple_add(a: int, b: int) -> int:
 # Tool that needs AgentContext
 async def list_pool_agents(ctx: AgentContext) -> str:
     """List all agents in the pool."""
-    if not ctx.pool:
+    if ctx.pool is None:
         return "No pool available"
     return ", ".join(ctx.pool.agents.keys())
 

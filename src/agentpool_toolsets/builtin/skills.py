@@ -25,7 +25,7 @@ async def load_skill(ctx: AgentContext, skill_name: str) -> str:
     Returns:
         The full skill instructions for execution
     """
-    if not ctx.pool:
+    if ctx.pool is None:
         return "No agent pool available - skills require pool context"
 
     skills = ctx.pool.skills.list_skills()
@@ -49,7 +49,7 @@ async def list_skills(ctx: AgentContext) -> str:
     Returns:
         Formatted list of available skills with descriptions
     """
-    if not ctx.pool:
+    if ctx.pool is None:
         return "No agent pool available - skills require pool context"
     skills = ctx.pool.skills.list_skills()
     if not skills:
