@@ -11965,6 +11965,26 @@
           },
           "title": "Tools",
           "type": "array"
+        },
+        "output_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/StructuredResponseConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional structured output type for responses.\n\nCan be either a reference to a response defined in manifest.responses,\nor an inline StructuredResponseConfig.",
+          "examples": [
+            "json_response",
+            "code_output"
+          ],
+          "title": "Response type"
         }
       },
       "title": "CodexAgentConfig",
