@@ -69,17 +69,30 @@ async def test_codex_with_subagent_toolset_setup(
         assert "list_available_nodes" in tool_names or "delegate_to" in tool_names
 
 
-async def test_codex_subagent_tool_invocation(
-    manifest_with_codex: AgentsManifest,
-):
+@pytest.mark.flaky(reruns=3, reruns_delay=2)
+async def test_codex_subagent_tool_invocation():
     """Test invoking subagent tools through CodexAgent.
 
     Note: This test requires:
     - codex CLI to be installed and accessible
     - Valid Codex server to be running
+    - May be flaky due to external service timing
+
+    Uses a unique agent name to avoid conflicts with other tests.
     """
-    async with AgentPool(manifest=manifest_with_codex) as pool:
-        agent = pool.codex_agents["codex_orchestrator"]
+    # Create a unique config for this test to avoid conflicts with other tests
+    config = CodexAgentConfig(
+        name="codex_tool_invoker",  # Unique name
+        cwd=str(Path.cwd()),
+        model="gpt-5.1-codex-mini",
+        reasoning_effort="medium",
+        approval_policy="never",
+        tools=[SubagentToolsetConfig()],
+    )
+    manifest = AgentsManifest(agents={"codex_tool_invoker": config})
+
+    async with AgentPool(manifest=manifest) as pool:
+        agent = pool.codex_agents["codex_tool_invoker"]
         assert isinstance(agent, CodexAgent)
         # Ask the agent to list available nodes - it should have access via MCP
         prompt = "Use the list_available_nodes tool to show me available agents"
