@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING, Any, Self, get_args, get_origin
 from uuid import uuid4
 
 import anyio
-import pydantic
 from pydantic import BaseModel, HttpUrl
 
 from agentpool.agents import Agent
@@ -483,22 +482,20 @@ class ToolManagerBridge:
             async def run(self, arguments: dict[str, Any]) -> ToolResult:
                 """Execute the wrapped tool with context bridging."""
                 from fastmcp.server.dependencies import get_context
-                from fastmcp.tools.tool import ToolResult
-                from mcp.types import TextContent
 
                 from agentpool.agents.events import ToolResultMetadataEvent
                 from agentpool.tools.base import ToolResult as AgentPoolToolResult
 
                 # Validate arguments against tool's schema
-                try:
-                    param_model = self._tool.schema_obj.create_parameter_model()
-                    param_model.model_validate(arguments)
-                except pydantic.ValidationError as e:
-                    error_msg = (
-                        f"Tool '{self._tool.name}' called with invalid arguments. "
-                        f"Ensure arguments match the schema.\n\nValidation errors:\n{e}"
-                    )
-                    return ToolResult(content=[TextContent(type="text", text=error_msg)])
+                # try:
+                #     param_model = self._tool.schema_obj.create_parameter_model()
+                #     param_model.model_validate(arguments)
+                # except pydantic.ValidationError as e:
+                #     error_msg = (
+                #         f"Tool '{self._tool.name}' called with invalid arguments. "
+                #         f"Ensure arguments match the schema.\n\nValidation errors:\n{e}"
+                #     )
+                #     return ToolResult(content=[TextContent(type="text", text=error_msg)])
 
                 # Get FastMCP context from context variable (not passed as parameter)
                 try:
