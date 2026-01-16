@@ -1811,7 +1811,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self.log.info("Thinking mode changed", mode=mode_id)
 
         else:
-            msg = f"Unknown category: {category_id}. Available: permissions, model, thinking_level"
+            msg = f"Unknown category: {category_id}. Available: permissions, model, thought_level"
             raise ValueError(msg)
 
     async def list_sessions(self) -> list[SessionInfo]:
