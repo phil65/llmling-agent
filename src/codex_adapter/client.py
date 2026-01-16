@@ -35,6 +35,7 @@ from codex_adapter.models import (
     ThreadRollbackParams,
     ThreadRollbackResponse,
     ThreadStartParams,
+    TurnErrorData,
     TurnInterruptParams,
     TurnStartParams,
     TurnStartResponse,
@@ -169,7 +170,6 @@ class CodexClient:
         cmd = [self._codex_command, "app-server"]
         if self._profile:
             cmd.extend(["--profile", self._profile])
-
         # Add MCP server configurations via --config flags
         for server_name, server_config in self._mcp_servers.items():
             config_str = _mcp_config_to_toml_inline(server_name, server_config)
@@ -217,7 +217,6 @@ class CodexClient:
                 await self._process.wait()
 
         self._process = None
-
         # Reject pending requests
         for future in self._pending_requests.values():
             if not future.done():
@@ -496,7 +495,6 @@ class CodexClient:
                     break
 
                 yield event
-
                 # Check for turn completion
                 if event.event_type == "turn/completed":
                     break
@@ -580,8 +578,6 @@ class CodexClient:
             if event.event_type == "item/agentMessage/delta":
                 response_text += event.get_text_delta()
             elif event.event_type == "turn/error":
-                from codex_adapter.models import TurnErrorData
-
                 if isinstance(event.data, TurnErrorData):
                     error_msg = event.data.error
                 else:
