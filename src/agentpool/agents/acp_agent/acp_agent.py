@@ -223,6 +223,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             event_handlers=merged_handlers or None,
             input_provider=input_provider,
             agent_pool=agent_pool,
+            hooks=config.hooks.get_agent_hooks() if config.hooks else None,
         )
 
     @property

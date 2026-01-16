@@ -16,7 +16,7 @@ from pydantic import ConfigDict, Field
 
 from acp import InitializeRequest
 from agentpool_config import AnyToolConfig, BaseToolConfig  # noqa: TC001
-from agentpool_config.nodes import NodeConfig
+from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
 from agentpool_config.toolsets import BaseToolsetConfig
 
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from agentpool.resource_providers import ResourceProvider
 
 
-class BaseACPAgentConfig(NodeConfig):
+class BaseACPAgentConfig(BaseAgentConfig):
     """Base configuration for all ACP agents.
 
     Provides common fields and the interface for building commands.

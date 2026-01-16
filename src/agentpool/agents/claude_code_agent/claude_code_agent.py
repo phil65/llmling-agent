@@ -137,6 +137,7 @@ if TYPE_CHECKING:
         MCPServerStatus,
     )
     from agentpool.delegation import AgentPool
+    from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.claude_code_agents import SettingSource
     from agentpool.sessions import SessionData, SessionInfo
@@ -222,6 +223,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         tool_confirmation_mode: ToolConfirmationMode = "always",
         output_type: type[TResult] | None = None,
         commands: Sequence[BaseCommand] | None = None,
+        hooks: AgentHooks | None = None,
     ) -> None:
         """Initialize ClaudeCodeAgent.
 
@@ -258,6 +260,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             tool_confirmation_mode: Tool confirmation behavior
             output_type: Type for structured output (uses JSON schema)
             commands: Slash commands
+            hooks: Lifecycle hooks for intercepting agent behavior
         """
         from agentpool.agents.sys_prompts import SystemPrompts
 
@@ -299,6 +302,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
             commands=commands,
+            hooks=hooks,
         )
 
         self._config = config
@@ -398,6 +402,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             agent_pool=agent_pool,
             tool_confirmation_mode=config.requires_tool_confirmation,
             output_type=output_type,
+            hooks=config.hooks.get_agent_hooks() if config.hooks else None,
         )
 
     def get_context(

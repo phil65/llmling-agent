@@ -10,6 +10,7 @@ from schemez import Schema
 
 from agentpool_config.event_handlers import EventHandlerConfig
 from agentpool_config.forward_targets import ForwardingTarget
+from agentpool_config.hooks import HooksConfig
 from agentpool_config.mcp_server import (
     BaseMCPServerConfig,
     MCPServerConfig,
@@ -199,4 +200,14 @@ class BaseAgentConfig(NodeConfig):
     - "always": Always require confirmation for all tools
     - "never": Never require confirmation (ignore tool settings)
     - "per_tool": Use individual tool settings
+    """
+
+    hooks: HooksConfig | None = Field(
+        default=None,
+        title="Lifecycle hooks",
+    )
+    """Hooks for intercepting and customizing agent behavior at key lifecycle points.
+
+    Allows adding context, blocking operations, modifying inputs, or triggering
+    side effects during run execution and tool usage.
     """

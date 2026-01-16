@@ -22,7 +22,6 @@ from agentpool.prompts.prompts import PromptMessage, StaticPrompt
 from agentpool.resource_providers import StaticResourceProvider
 from agentpool_config import BaseToolConfig, NativeAgentToolConfig
 from agentpool_config.builtin_tools import BaseBuiltinToolConfig
-from agentpool_config.hooks import HooksConfig  # noqa: TC001
 from agentpool_config.knowledge import Knowledge  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.output_types import StructuredResponseConfig  # noqa: TC001
@@ -238,16 +237,6 @@ class NativeAgentConfig(BaseAgentConfig):
     """Tool execution mode:
     - None: Default mode - tools are called directly
     - "codemode": Tools are wrapped in a Python execution environment
-    """
-
-    hooks: HooksConfig | None = Field(
-        default=None,
-        title="Lifecycle hooks",
-    )
-    """Hooks for intercepting and customizing agent behavior at key lifecycle points.
-
-    Allows adding context, blocking operations, modifying inputs, or triggering
-    side effects during session start/end, run execution, tool usage, and delegation.
     """
 
     @model_validator(mode="before")
