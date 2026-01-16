@@ -497,7 +497,7 @@ class ToolManagerBridge:
                         f"Tool '{self._tool.name}' called with invalid arguments. "
                         f"Ensure arguments match the schema.\n\nValidation errors:\n{e}"
                     )
-                    return ToolResult(content=[TextContent(type="text", text=error_msg)])
+                    return AgentPoolToolResult(content=[TextContent(type="text", text=error_msg)])
 
                 # Get FastMCP context from context variable (not passed as parameter)
                 try:

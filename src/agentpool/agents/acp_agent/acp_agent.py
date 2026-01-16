@@ -30,6 +30,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from dataclasses import replace
+from datetime import datetime
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Self
@@ -189,7 +190,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._connection: ClientSideConnection | None = None
         self._client_handler: ACPClientHandler | None = None
         self._agent_info: Implementation | None = None
-        self._agent_capabilities: AgentCapabilities | None = None
+        self._caps: AgentCapabilities | None = None
         self._session_id: str | None = None
         self._state: ACPSessionState | None = None
         self.deps_type = type(None)
@@ -341,7 +342,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         init_request = self.config.create_initialize_request()
         init_response = await self._connection.initialize(init_request)
         self._agent_info = init_response.agent_info
-        self._agent_capabilities = init_response.agent_capabilities
+        self._caps = init_response.agent_capabilities
         self.log.info("ACP connection initialized", agent_info=self._agent_info)
 
     async def _create_session(self) -> None:
@@ -360,11 +361,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         config_servers = self.config.get_mcp_servers()
         if config_servers:
             all_servers.extend(mcp_configs_to_acp(config_servers))
-        mcp_servers = filter_servers_by_capabilities(
-            all_servers,
-            self._agent_capabilities,
-            logger=self.log,
-        )
+        mcp_servers = filter_servers_by_capabilities(all_servers, self._caps, logger=self.log)
         cwd = self.config.cwd or str(Path.cwd())
         session_request = NewSessionRequest(cwd=cwd, mcp_servers=mcp_servers)
         response = await self._connection.new_session(session_request)
@@ -874,22 +871,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             if config_servers:
                 all_servers.extend(mcp_configs_to_acp(config_servers))
 
-            mcp_servers = filter_servers_by_capabilities(
-                all_servers,
-                self._agent_capabilities,
-                logger=self.log,
-            )
-
+            mcp_servers = filter_servers_by_capabilities(all_servers, self._caps, logger=self.log)
             cwd = self.config.cwd or str(Path.cwd())
             load_request = LoadSessionRequest(
-                session_id=session_id,
-                cwd=cwd,
-                mcp_servers=mcp_servers or None,
+                session_id=session_id, cwd=cwd, mcp_servers=mcp_servers or None
             )
-
             # Load session on the remote server
             response = await self._connection.load_session(load_request)
-
             # Update local session ID and state
             self._session_id = session_id
             if self._state:
@@ -905,15 +893,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     self._state.modes = response.modes
 
             self.log.info("Session loaded from ACP server", session_id=session_id)
-
             # Try to get full session metadata by listing sessions
             # This gives us title, updated_at, etc.
             try:
                 sessions = await self.list_sessions()
                 session_info = next((s for s in sessions if s.session_id == session_id), None)
                 if session_info:
-                    from datetime import datetime
-
                     from agentpool.utils.now import get_now
 
                     # Convert SessionInfo to SessionData
