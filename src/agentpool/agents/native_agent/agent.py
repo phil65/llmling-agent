@@ -931,6 +931,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             self._model, settings = self._resolve_model_string(model)
             if settings:
                 self.model_settings = settings
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=model))
         else:
             self._model = model
 
@@ -1095,6 +1099,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 msg = f"Unknown permission mode: {mode_id}. Available: {list(mode_map.keys())}"
                 raise ValueError(msg)
             await self.set_tool_confirmation_mode(mode_map[mode_id])
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            change = ConfigOptionChanged(config_id="permissions", value_id=mode_id)
+            await self.state_updated.emit(change)
 
         elif category_id == "model":
             # Validate model exists
@@ -1104,7 +1113,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 if mode_id not in valid_ids:
                     msg = f"Unknown model: {mode_id}. Available: {valid_ids}"
                     raise ValueError(msg)
-            # Set the model using set_model method
+            # Set the model using set_model method (emits signal)
             await self.set_model(mode_id)
             self.log.info("Model changed", model=mode_id)
 

@@ -1593,6 +1593,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if self._client:
             await self.ensure_initialized()
             await self._client.set_model(model)
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=model))
             self.log.info("Model changed", model=model)
         else:
             # Client not created yet, model will be used during _build_options()
@@ -1678,11 +1682,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Model selection
         models = await self.get_available_models()
         if models:
-            current_model = self.model_name or (models[0].id if models else "")
+            # Use id_override if available (e.g., "opus" for Claude Code SDK)
+            def get_model_id(m: ModelInfo) -> str:
+                return m.id_override if m.id_override else m.id
+
+            current_model = self.model_name or get_model_id(models[0])
             modes = [
                 ModeInfo(
-                    id=m.id,
-                    name=m.name or m.id,
+                    id=get_model_id(m),
+                    name=m.name or get_model_id(m),
                     description=m.description or "",
                     category_id="model",
                 )
@@ -1774,7 +1782,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             if self._client:
                 await self.ensure_initialized()
                 await self._client.set_permission_mode(permission_mode)
-                self.log.info("Permission mode changed", mode=mode_id)
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            change = ConfigOptionChanged(config_id="permissions", value_id=mode_id)
+            await self.state_updated.emit(change)
+            self.log.info("Permission mode changed", mode=mode_id)
 
         elif category_id == "model":
             # Validate model exists
@@ -1784,7 +1797,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 if mode_id not in valid_ids:
                     msg = f"Unknown model: {mode_id}. Available: {valid_ids}"
                     raise ValueError(msg)
-            # Set the model using set_model method
+            # Set the model using set_model method (emits signal)
             await self.set_model(mode_id)
             self.log.info("Model changed", model=mode_id)
 
@@ -1801,6 +1814,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 msg = f"Unknown mode: {mode_id}. Available: {list(THINKING_MODE_PROMPTS.keys())}"
                 raise ValueError(msg)
             self._thinking_mode = mode_id  # type: ignore[assignment]
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            change = ConfigOptionChanged(config_id="thinking_level", value_id=mode_id)
+            await self.state_updated.emit(change)
             self.log.info("Thinking mode changed", mode=mode_id)
 
         else:

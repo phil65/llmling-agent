@@ -47,7 +47,6 @@ if TYPE_CHECKING:
     from acp import Client, RequestPermissionResponse
     from acp.schema import (
         AvailableCommandsUpdate,
-        ConfigOptionUpdate,
         ContentBlock,
         Implementation,
         McpServer,
@@ -56,6 +55,7 @@ if TYPE_CHECKING:
     from agentpool import AgentPool
     from agentpool.agents import AGUIAgent
     from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+    from agentpool.agents.modes import ConfigOptionChanged
     from agentpool.prompts.manager import PromptManager
     from agentpool.prompts.prompts import MCPClientPrompt
     from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
@@ -290,7 +290,7 @@ class ACPSession:
         self.log.info("Created ACP session", current_agent=self.current_agent_name)
 
     async def _on_state_updated(
-        self, state: ModeInfo | ModelInfo | AvailableCommandsUpdate | ConfigOptionUpdate
+        self, state: ModeInfo | ModelInfo | AvailableCommandsUpdate | ConfigOptionChanged
     ) -> None:
         """Handle state update signal from agent - forward to ACP client."""
         from acp.schema import (
@@ -300,6 +300,7 @@ class ACPSession:
             CurrentModeUpdate,
             SessionNotification,
         )
+        from agentpool.agents.modes import ConfigOptionChanged as CoreConfigOptionChanged
 
         update: CurrentModeUpdate | CurrentModelUpdate | ACPConfigOptionUpdate
         match state:
@@ -315,9 +316,31 @@ class ACPSession:
                 await self.send_available_commands_update()
                 self.log.debug("Merged and sent commands update to client")
                 return
-            case ACPConfigOptionUpdate():
-                update = state
-                self.log.debug("Forwarding config option update to client")
+            case CoreConfigOptionChanged(config_id=config_id, value_id=value_id):
+                # Get full config_options from agent (required by ACP protocol)
+                from agentpool_server.acp_server.acp_agent import get_session_config_options
+
+                config_options = await get_session_config_options(self.agent)
+                # Update the changed option's current_value
+                for opt in config_options:
+                    if opt.id == config_id:
+                        opt.current_value = value_id
+                        break
+                # Convert our core type to ACP type with full config_options
+                update = ACPConfigOptionUpdate(
+                    config_id=config_id,
+                    value_id=value_id,
+                    config_options=config_options,
+                )
+                self.log.debug("Config option change", config_id=config_id, value_id=value_id)
+                # For permissions, also send legacy CurrentModeUpdate (still needed)
+                if config_id == "permissions":
+                    legacy_update = CurrentModeUpdate(current_mode_id=value_id)
+                    legacy_notif = SessionNotification(
+                        session_id=self.session_id, update=legacy_update
+                    )
+                    await self.client.session_update(legacy_notif)
+                    self.log.debug("Also sent legacy mode update", mode_id=value_id)
 
         notification = SessionNotification(session_id=self.session_id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]

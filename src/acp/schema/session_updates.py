@@ -22,6 +22,7 @@ from acp.schema.content_blocks import (  # noqa: TC001
     TextContentBlock,
     TextResourceContents,
 )
+from acp.schema.session_state import SessionConfigOption  # noqa: TC001
 from acp.schema.slash_commands import AvailableCommand  # noqa: TC001
 from acp.schema.tool_call import (  # noqa: TC001
     ToolCallContent,
@@ -363,6 +364,9 @@ class ConfigOptionUpdate(AnnotatedObject):
 
     value_id: str
     """The new value ID for this configuration option."""
+
+    config_options: Sequence[SessionConfigOption]
+    """The full list of config options with updated values."""
 
 
 class ToolCallStart(AnnotatedObject):

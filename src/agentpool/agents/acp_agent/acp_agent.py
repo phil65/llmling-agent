@@ -642,6 +642,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             if response:
                 # Update entire config_options state from response
                 self._state.config_options = list(response.config_options)
+                # Emit state change signal
+                from agentpool.agents.modes import ConfigOptionChanged
+
+                change = ConfigOptionChanged(config_id=model_cfg.id, value_id=model)
+                await self.state_updated.emit(change)
                 self.log.info("Model changed via SessionConfigOption", model=model)
                 return
             msg = "set_session_config_option returned no response"
@@ -779,7 +784,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """
         from acp.schema import (
             SetSessionConfigOptionRequest,
-            SetSessionModelRequest,
             SetSessionModeRequest,
         )
 
@@ -827,7 +831,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Update local state from response
             if response.config_options:
                 self._state.config_options = list(response.config_options)
-            self.log.info("ACP server Config option changed", config_id=category_id, value=mode_id)
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
+            await self.state_updated.emit(change)
+            self.log.info("Config option changed", config_id=category_id, value=mode_id)
             return
 
         # Legacy: Use old set_session_mode/set_session_model APIs
@@ -837,15 +846,16 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Update local state
             if self._state.modes:
                 self._state.modes.current_mode_id = mode_id
-            self.log.info("Mode changed on remote ACP server (legacy)", mode_id=mode_id)
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            change = ConfigOptionChanged(config_id="permissions", value_id=mode_id)
+            await self.state_updated.emit(change)
+            self.log.info("Mode changed on remote ACP server", mode_id=mode_id)
 
         elif category_id == "model":
-            model_request = SetSessionModelRequest(session_id=self._session_id, model_id=mode_id)
-            await self._connection.set_session_model(model_request)
-            # Update local state
-            if self._state.models:
-                self._state.models.current_model_id = mode_id
-            self.log.info("Model changed on remote ACP server (legacy)", model_id=mode_id)
+            # Delegate to set_model which handles config_options properly
+            await self.set_model(mode_id)
 
         else:
             msg = f"Unknown category: {category_id}. Available: permissions, model"

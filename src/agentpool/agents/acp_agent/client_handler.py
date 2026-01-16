@@ -177,7 +177,11 @@ class ACPClientHandler(Client):
                     if config_opt.id == config_id:
                         config_opt.current_value = value_id
                         break
-                await self._agent.state_updated.emit(update)
+                # Convert ACP type to our core type for signal
+                from agentpool.agents.modes import ConfigOptionChanged
+
+                change = ConfigOptionChanged(config_id=config_id, value_id=value_id)
+                await self._agent.state_updated.emit(change)
                 logger.debug("Config option updated", config_id=config_id, value_id=value_id)
                 self._update_event.set()
                 return

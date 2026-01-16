@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, overload
 
 from anyenv import MultiEventHandler, method_spawner
-from anyenv.signals import BoundSignal, Signal
+from anyenv.signals import Signal
 import anyio
 
 from agentpool.agents.events import StreamCompleteEvent, resolve_event_handlers
@@ -33,10 +33,10 @@ if TYPE_CHECKING:
     from slashed import BaseCommand, CommandStore
     from tokonomics.model_discovery.model_info import ModelInfo
 
-    from acp.schema import AvailableCommandsUpdate, ConfigOptionUpdate
+    from acp.schema import AvailableCommandsUpdate
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
-    from agentpool.agents.modes import ModeCategory, ModeInfo
+    from agentpool.agents.modes import ConfigOptionChanged, ModeCategory, ModeInfo
     from agentpool.agents.native_agent import Agent
     from agentpool.common_types import (
         AgentName,
@@ -57,7 +57,7 @@ if TYPE_CHECKING:
     from agentpool_config.nodes import ToolConfirmationMode
 
     # Union type for state updates emitted via state_updated signal
-    type StateUpdate = ModeInfo | ModelInfo | AvailableCommandsUpdate | ConfigOptionUpdate
+    type StateUpdate = ModeInfo | ModelInfo | AvailableCommandsUpdate | ConfigOptionChanged
 
 
 logger = get_logger(__name__)
@@ -111,6 +111,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     agent_reset = Signal[AgentReset]()
     # Signal emitted when agent execution fails
     run_failed: Signal[RunFailedEvent] = Signal()
+    state_updated: Signal[StateUpdate] = Signal()
 
     def __init__(
         self,
@@ -188,7 +189,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self._connect_pending: bool = False
         # State change signal - emitted when mode/model/commands change
         # Uses union type for different state update kinds
-        self.state_updated: BoundSignal[StateUpdate] = BoundSignal()
         self._command_store: CommandStore = CommandStore()
         # Initialize store (registers builtin help/exit commands)
         self._command_store._initialize_sync()

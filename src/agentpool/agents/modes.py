@@ -31,6 +31,21 @@ class ModeInfo:
 
 
 @dataclass
+class ConfigOptionChanged:
+    """Atomic state change for a config option.
+
+    Emitted by agents when a config option value changes.
+    The ACP layer converts this to ACP's ConfigOptionUpdate.
+    """
+
+    config_id: str
+    """ID of the config option that changed (e.g., 'permissions', 'model')."""
+
+    value_id: str
+    """New value ID for this config option."""
+
+
+@dataclass
 class ModeCategory:
     """A category of modes that can be switched.
 

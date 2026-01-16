@@ -530,6 +530,10 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._thread_id = thread.id
         self._current_model = model
 
+        # Emit state change signal
+        from agentpool.agents.modes import ConfigOptionChanged
+
+        await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=model))
         self.log.info(
             "Model changed - new thread started",
             old_thread=old_thread_id,
@@ -753,6 +757,11 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Update instance attribute (doesn't require thread restart)
             # Type assertion: we've already validated mode_id is one of the valid values
             self._approval_policy = mode_id  # type: ignore[assignment]
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            change = ConfigOptionChanged(config_id="approval_policy", value_id=mode_id)
+            await self.state_updated.emit(change)
             self.log.info("Approval policy changed", policy=mode_id)
 
         elif category_id == "reasoning_effort":
@@ -787,8 +796,14 @@ class CodexAgent[TDeps = None](BaseAgent[TDeps, str]):
                 new_thread=self._thread_id,
                 effort=mode_id,
             )
+            # Emit state change signal
+            from agentpool.agents.modes import ConfigOptionChanged
+
+            change = ConfigOptionChanged(config_id="reasoning_effort", value_id=mode_id)
+            await self.state_updated.emit(change)
 
         elif category_id == "model":
+            # set_model emits the signal
             await self.set_model(mode_id)
 
         else:
