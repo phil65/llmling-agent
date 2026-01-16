@@ -370,6 +370,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 async for event in self._client.turn_stream(
                     self._thread_id,
                     prompt_text,
+                    model=self._current_model,
                     approval_policy=self._approval_policy,
                     output_schema=output_schema,
                 ):
@@ -492,35 +493,17 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
     async def set_model(self, model: str) -> None:
         """Set the model for this agent.
 
-        Archives the current thread and starts a new one with the new model,
-        preserving conversation history in the archive.
+        The model change takes effect on the next turn. Conversation history
+        is preserved since we use the same thread.
 
         Args:
             model: Model identifier
         """
         from agentpool.agents.modes import ConfigOptionChanged
 
-        if not self._client or not self._thread_id:
-            # Not connected yet, just store for initialization
-            self._current_model = model
-            self.log.info("Model set for initialization", model=model)
-            return
-        # Archive current thread and start new one with new model
-        old_thread_id = self._thread_id
-        await self._client.thread_archive(old_thread_id)
-        # Start new thread with new model, preserving other settings
-        cwd = str(self.config.cwd or Path.cwd())
-        effort = self.config.reasoning_effort
-        thread = await self._client.thread_start(cwd=cwd, model=model, effort=effort)
-        self._thread_id = thread.id
         self._current_model = model
         await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=model))
-        self.log.info(
-            "Model changed - new thread started",
-            old_thread=old_thread_id,
-            new_thread=self._thread_id,
-            model=model,
-        )
+        self.log.info("Model changed", model=model)
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
         """Set tool confirmation mode.
