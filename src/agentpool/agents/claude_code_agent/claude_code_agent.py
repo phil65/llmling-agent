@@ -490,10 +490,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     def _build_hooks(self) -> dict[str, list[Any]]:
         """Build SDK hooks configuration.
 
+        Combines built-in hooks (like PreCompact) with user-provided AgentHooks.
+
         Returns:
             Dictionary mapping hook event names to HookMatcher lists
         """
         from clawd_code_sdk.types import HookMatcher
+
+        from agentpool.agents.claude_code_agent.converters import (
+            build_sdk_hooks_from_agent_hooks,
+        )
 
         async def on_pre_compact(
             input_data: HookInput,
@@ -512,7 +518,21 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             await self._event_queue.put(compaction_event)
             return {"continue_": True}
 
-        return {"PreCompact": [HookMatcher(matcher=None, hooks=[on_pre_compact])]}
+        # Start with built-in hooks
+        result: dict[str, list[Any]] = {
+            "PreCompact": [HookMatcher(matcher=None, hooks=[on_pre_compact])]
+        }
+
+        # Merge AgentHooks if present
+        if self.hooks:
+            agent_hooks = build_sdk_hooks_from_agent_hooks(self.hooks, self.name)
+            for event_name, matchers in agent_hooks.items():
+                if event_name in result:
+                    result[event_name].extend(matchers)
+                else:
+                    result[event_name] = matchers
+
+        return result
 
     def _build_options(self, *, formatted_system_prompt: str | None = None) -> ClaudeAgentOptions:
         """Build ClaudeAgentOptions from runtime state.

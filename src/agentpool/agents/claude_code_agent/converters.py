@@ -172,3 +172,96 @@ def to_output_format(output_type: type) -> dict[str, Any] | None:
         schema = adapter.json_schema()
         output_format = {"type": "json_schema", "schema": schema}
     return output_format
+
+
+def build_sdk_hooks_from_agent_hooks(
+    hooks: Any,  # AgentHooks
+    agent_name: str,
+) -> dict[str, list[Any]]:
+    """Convert AgentHooks to Claude SDK hooks format.
+
+    Args:
+        hooks: AgentHooks instance with pre/post tool hooks
+        agent_name: Name of the agent for context
+
+    Returns:
+        Dictionary mapping hook event names to HookMatcher lists
+    """
+    from clawd_code_sdk.types import HookMatcher
+
+    result: dict[str, list[Any]] = {}
+
+    if not hooks:
+        return result
+
+    # Check if we have pre_tool_use hooks
+    if hooks.pre_tool_use:
+
+        async def on_pre_tool_use(
+            input_data: Any,  # PreToolUseHookInput
+            tool_use_id: str | None,
+            context: Any,  # HookContext
+        ) -> dict[str, Any]:  # SyncHookJSONOutput
+            """Adapter for pre_tool_use hooks."""
+            tool_name = input_data.get("tool_name", "")
+            tool_input = input_data.get("tool_input", {})
+
+            pre_result = await hooks.run_pre_tool_hooks(
+                agent_name=agent_name,
+                tool_name=tool_name,
+                tool_input=tool_input,
+                conversation_id=input_data.get("session_id"),
+            )
+
+            # Convert our hook result to SDK format
+            decision = pre_result.get("decision")
+            if decision == "deny":
+                reason = pre_result.get("reason", "Blocked by pre-tool hook")
+                return {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": reason,
+                    }
+                }
+
+            # Check for modified input
+            output: dict[str, Any] = {}
+            if modified := pre_result.get("modified_input"):
+                output["hookSpecificOutput"] = {
+                    "hookEventName": "PreToolUse",
+                    "updatedInput": modified,
+                }
+
+            return output
+
+        result["PreToolUse"] = [HookMatcher(matcher="*", hooks=[on_pre_tool_use])]
+
+    # Check if we have post_tool_use hooks
+    if hooks.post_tool_use:
+
+        async def on_post_tool_use(
+            input_data: Any,  # PostToolUseHookInput
+            tool_use_id: str | None,
+            context: Any,  # HookContext
+        ) -> dict[str, Any]:  # SyncHookJSONOutput
+            """Adapter for post_tool_use hooks."""
+            tool_name = input_data.get("tool_name", "")
+            tool_input = input_data.get("tool_input", {})
+            tool_response = input_data.get("tool_response")
+
+            await hooks.run_post_tool_hooks(
+                agent_name=agent_name,
+                tool_name=tool_name,
+                tool_input=tool_input,
+                tool_output=tool_response,
+                duration_ms=0,  # SDK doesn't provide timing
+                conversation_id=input_data.get("session_id"),
+            )
+
+            # Post hooks are observation-only in SDK, can add context
+            return {}
+
+        result["PostToolUse"] = [HookMatcher(matcher="*", hooks=[on_post_tool_use])]
+
+    return result
