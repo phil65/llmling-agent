@@ -721,16 +721,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         from clawd_code_sdk import PermissionResultAllow, PermissionResultDeny
 
-        if not self._input_provider:
-            return PermissionResultDeny(message="No input provider configured for questions")
-
         questions = input_data.get("questions", [])
         if not questions:
             return PermissionResultDeny(message="No questions provided")
 
         # Collect answers from the user
         answers: dict[str, str] = {}
-
         for question_obj in questions:
             question_text = question_obj.get("question", "")
             header = question_obj.get("header", "")
@@ -746,7 +742,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             option_descriptions = {
                 opt.get("label", ""): opt.get("description", "") for opt in options
             }
-
             # Get user's answer via input provider
             try:
                 # Build a display string showing the options
@@ -766,43 +761,29 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                 # Use input provider to get user response
                 ctx = self.get_context()
-                user_input = await self._input_provider.get_input(
-                    context=ctx,
-                    prompt=full_prompt,
-                )
-
+                input_provider = ctx.get_input_provider()
+                user_input = await input_provider.get_input(context=ctx, prompt=full_prompt)
                 if user_input is None:
                     return PermissionResultDeny(message="User cancelled question", interrupt=True)
-
                 # Parse user input - handle numbers, labels, or free text
                 # This follows the SDK pattern: try numeric -> try label -> use free text
-                if multi_select:
-                    # Split by comma for multi-select
+                if multi_select:  # Split by comma for multi-select
                     selections = [s.strip() for s in user_input.split(",")]
                 else:
                     selections = [user_input.strip()]
-
                 selected_values: list[str] = []
                 for selection in selections:
-                    # Try to parse as number first
-                    if selection.isdigit():
+                    if selection.isdigit():  # Try to parse as number first
                         idx = int(selection) - 1
-                        if 0 <= idx < len(option_labels):
-                            # Valid number - use the option's label
+                        if 0 <= idx < len(option_labels):  # Valid number - use the option's label
                             selected_values.append(option_labels[idx])
-                        else:
-                            # Invalid number - treat as free text
+                        else:  # Invalid number - treat as free text
                             selected_values.append(selection)
-                    else:
-                        # Try to match label (case-insensitive)
-                        matching = [
-                            lbl for lbl in option_labels if lbl.lower() == selection.lower()
-                        ]
-                        if matching:
-                            # Matched a label - use it
+                    else:  # Try to match label (case-insensitive)
+                        matching = [i for i in option_labels if i.lower() == selection.lower()]
+                        if matching:  # Matched a label - use it
                             selected_values.append(matching[0])
-                        else:
-                            # No match - use as free text
+                        else:  # No match - use as free text
                             selected_values.append(selection)
 
                 # Store answer - join multiple selections with ", "
@@ -812,14 +793,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             except Exception as e:
                 self.log.exception("Error getting clarifying question answer")
                 return PermissionResultDeny(message=f"Error collecting answer: {e}", interrupt=True)
-
         # Return the answers to Claude
-        return PermissionResultAllow(
-            updated_input={
-                "questions": questions,
-                "answers": answers,
-            }
-        )
+        return PermissionResultAllow(updated_input={"questions": questions, "answers": answers})
 
     async def __aenter__(self) -> Self:
         """Connect to Claude Code with deferred client connection."""
