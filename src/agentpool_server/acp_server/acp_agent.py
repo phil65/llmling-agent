@@ -495,7 +495,7 @@ class AgentPoolACPAgent(ACPAgent):
                 agent = self.agent_pool.get_agent(default_name)
 
             # Delegate to agent's list_sessions
-            logger.info("Listing sessions for agent", agent_name=agent.name, agent_type=type(agent).__name__)
+            logger.info("Listing sessions for agent", agent_name=agent.name)
             agent_sessions = await agent.list_sessions()
             logger.info("Agent returned sessions", count=len(agent_sessions))
 
