@@ -366,8 +366,10 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             msg = "Codex client not initialized"
             raise RuntimeError(msg)
 
-        # Convert prompts to text
-        prompt_text = "\n\n".join(str(p) for p in prompts)
+        # Convert prompts to Codex input format
+        from agentpool.agents.codex_agent.codex_converters import user_content_to_codex
+
+        input_items = user_content_to_codex(prompts)
         # Generate IDs if not provided
         run_id = str(uuid4())
         final_message_id = message_id or str(uuid4())
@@ -414,7 +416,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             async with self._tool_bridge.set_run_context(deps, input_provider, prompt=prompts):
                 raw_stream = self._client.turn_stream(
                     self._thread_id,
-                    prompt_text,
+                    input_items,
                     model=self._current_model,
                     approval_policy=self._approval_policy,
                     sandbox_policy=self._current_sandbox,

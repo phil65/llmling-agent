@@ -24,6 +24,8 @@ from pydantic_ai import (
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
 
+    from pydantic_ai import UserContent
+
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool_config.mcp_server import (
         MCPServerConfig,
@@ -33,7 +35,7 @@ if TYPE_CHECKING:
     )
     from codex_adapter.codex_types import HttpMcpServer, McpServerConfig, StdioMcpServer
     from codex_adapter.events import CodexEvent
-    from codex_adapter.models import ThreadItem
+    from codex_adapter.models import ThreadItem, TurnInputItem
 
 
 @overload
@@ -107,6 +109,34 @@ def mcp_configs_to_codex(
 ) -> list[tuple[str, McpServerConfig]]:
     """Convert a sequence of MCPServerConfig to list of (name, config) tuples."""
     return [mcp_config_to_codex(c) for c in configs]
+
+
+def user_content_to_codex(
+    content: list[UserContent],
+) -> list[TurnInputItem]:
+    """Convert pydantic-ai UserContent list to Codex TurnInputItem list."""
+    import base64
+
+    from pydantic_ai.messages import BinaryContent, ImageUrl
+
+    from codex_adapter.models import ImageInputItem, TextInputItem
+
+    result: list[TurnInputItem] = []
+    for item in content:
+        match item:
+            case str():
+                result.append(TextInputItem(text=item))
+            case ImageUrl():
+                result.append(ImageInputItem(url=item.url))
+            case BinaryContent() if item.media_type.startswith("image/"):
+                # Convert binary image to data URI
+                b64 = base64.b64encode(item.data).decode()
+                data_uri = f"data:{item.media_type};base64,{b64}"
+                result.append(ImageInputItem(url=data_uri))
+            case _:
+                # AudioUrl, DocumentUrl, VideoUrl, CachePoint - not supported by Codex
+                pass
+    return result
 
 
 def _format_tool_result(item: ThreadItem) -> str:  # noqa: PLR0911

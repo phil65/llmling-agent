@@ -263,7 +263,7 @@ class UserInputImage(CodexBaseModel):
     """Image URL user input."""
 
     type: Literal["image"] = "image"
-    image_url: str
+    url: str
 
 
 class UserInputLocalImage(CodexBaseModel):
