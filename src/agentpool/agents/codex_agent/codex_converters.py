@@ -256,7 +256,7 @@ def _thread_item_to_tool_call_part(
 
     match item:
         case ThreadItemCommandExecution():
-            args = {"command": item.command, "cwd": item.cwd}
+            args: dict[str, Any] = {"command": item.command, "cwd": item.cwd}
             return BuiltinToolCallPart(tool_name="bash", args=args, tool_call_id=item.id)
         case ThreadItemFileChange():
             args = {"changes": [c.model_dump() for c in item.changes]}

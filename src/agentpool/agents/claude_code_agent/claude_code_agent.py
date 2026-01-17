@@ -573,14 +573,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             permission_mode=permission_mode,
             env=env,
             agents=self._subagents,
-            add_dirs=self._add_dir or [],  # type: ignore[arg-type]  # SDK uses list not Sequence
+            add_dirs=self._add_dir or [],  # pyright: ignore[reportArgumentType]
             tools=self._builtin_tools,
             fallback_model=self._fallback_model,
             can_use_tool=can_use_tool,
             output_format=to_output_format(self._output_type),
             mcp_servers=self._mcp_servers or {},
             include_partial_messages=True,
-            hooks=self._build_hooks(),  # type: ignore[arg-type]
+            hooks=self._build_hooks(),  # pyright: ignore[reportArgumentType]
             setting_sources=self._setting_sources,
             extra_args=extra_args,
         )

@@ -235,7 +235,7 @@ def build_sdk_hooks_from_agent_hooks(
 
             return output
 
-        result["PreToolUse"] = [HookMatcher(matcher="*", hooks=[on_pre_tool_use])]  # type: ignore[list-item]
+        result["PreToolUse"] = [HookMatcher(matcher="*", hooks=[on_pre_tool_use])]
 
     # Check if we have post_tool_use hooks
     if hooks.post_tool_use:
@@ -262,6 +262,6 @@ def build_sdk_hooks_from_agent_hooks(
             # Post hooks are observation-only in SDK, can add context
             return {}
 
-        result["PostToolUse"] = [HookMatcher(matcher="*", hooks=[on_post_tool_use])]  # type: ignore[list-item]
+        result["PostToolUse"] = [HookMatcher(matcher="*", hooks=[on_post_tool_use])]  # pyright: ignore[reportArgumentType]
 
     return result

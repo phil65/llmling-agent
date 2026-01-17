@@ -89,10 +89,6 @@ class MessageNode[TDeps, TResult](ABC):
         self.conversation_id: str | None = None
         self.conversation_title: str | None = None
 
-    def _set_conversation_title(self, title: str) -> None:
-        """Callback for setting conversation title (called by storage manager)."""
-        self.conversation_title = title
-
     async def log_conversation(self, initial_prompt: str | None = None) -> None:
         """Log conversation to storage if enabled.
 
@@ -103,12 +99,17 @@ class MessageNode[TDeps, TResult](ABC):
         Args:
             initial_prompt: Optional initial prompt to trigger title generation.
         """
+
+        def _set_conversation_title(title: str) -> None:
+            """Callback for setting conversation title (called by storage manager)."""
+            self.conversation_title = title
+
         if self.enable_db_logging and self.storage and self.conversation_id:
             await self.storage.log_conversation(
                 conversation_id=self.conversation_id,
                 node_name=self.name,
                 initial_prompt=initial_prompt,
-                on_title_generated=self._set_conversation_title,
+                on_title_generated=_set_conversation_title,
             )
 
     async def __aenter__(self) -> Self:
@@ -164,20 +165,12 @@ class MessageNode[TDeps, TResult](ABC):
     @property
     def name(self) -> str:
         """Get agent name."""
-        return self._name or "agentpool"
-
-    @name.setter
-    def name(self, value: str) -> None:
-        self._name = value
+        return self._name
 
     @property
     def display_name(self) -> str:
         """Get human-readable display name, falls back to name."""
         return self._display_name or self._name
-
-    @display_name.setter
-    def display_name(self, value: str | None) -> None:
-        self._display_name = value
 
     def to_tool(
         self, *, name: str | None = None, description: str | None = None, **kwargs: Any
