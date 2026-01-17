@@ -172,6 +172,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         self._current_model: str | None = config.model
         self._current_effort: ReasoningEffort | None = config.reasoning_effort
         self._current_sandbox: SandboxMode | None = config.sandbox
+        self._current_turn_id: str | None = None  # Track current turn for interrupt
         self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
 
     @classmethod
@@ -385,13 +386,19 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Pass output type directly - adapter handles conversion to JSON schema
         output_schema = None if self._output_type is str else self._output_type
 
-        async def capture_token_usage(
+        async def capture_metadata(
             raw_events: AsyncIterator[CodexEvent],
         ) -> AsyncIterator[CodexEvent]:
-            """Wrapper to capture token usage before event conversion."""
+            """Wrapper to capture token usage and turn_id before event conversion."""
             nonlocal token_usage_data
+            from codex_adapter import TurnStartedData
+
             async for event in raw_events:
-                if event.event_type == "thread/tokenUsage/updated" and isinstance(
+                # Capture turn_id for interrupt support
+                if event.event_type == "turn/started" and isinstance(event.data, TurnStartedData):
+                    self._current_turn_id = event.data.turn.id
+                # Capture token usage
+                elif event.event_type == "thread/tokenUsage/updated" and isinstance(
                     event.data, ThreadTokenUsageUpdatedData
                 ):
                     usage = event.data.token_usage.last
@@ -413,8 +420,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                     sandbox_policy=self._current_sandbox,
                     output_schema=output_schema,
                 )
-                # Wrap to capture token usage, then convert to native events
-                async for native_event in convert_codex_stream(capture_token_usage(raw_stream)):
+                # Wrap to capture metadata (turn_id, token usage), then convert
+                async for native_event in convert_codex_stream(capture_metadata(raw_stream)):
                     await event_handlers(None, native_event)
                     yield native_event
 
@@ -438,6 +445,9 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         except Exception as e:
             self.log.exception("Error during Codex turn", error=str(e))
             raise
+        finally:
+            # Clear turn_id when turn completes or errors
+            self._current_turn_id = None
 
         # Emit completion event
         final_text = "".join(accumulated_text)
@@ -535,9 +545,20 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
     async def interrupt(self) -> None:
         """Interrupt current execution."""
-        # Codex doesn't have explicit interrupt, but we can track cancellation
         self._cancelled = True
-        self.log.info("Interrupt requested")
+        # Use Codex's turn_interrupt if we have an active turn
+        if self._client and self._thread_id and self._current_turn_id:
+            try:
+                await self._client.turn_interrupt(self._thread_id, self._current_turn_id)
+                self.log.info(
+                    "Codex turn interrupted",
+                    thread_id=self._thread_id,
+                    turn_id=self._current_turn_id,
+                )
+            except Exception:
+                self.log.exception("Failed to interrupt Codex turn")
+        else:
+            self.log.info("Interrupt requested (no active turn)")
 
     async def get_available_models(self) -> list[ModelInfo] | None:
         """Get available models from Codex server.
