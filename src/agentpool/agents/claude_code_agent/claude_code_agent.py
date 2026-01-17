@@ -346,7 +346,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
         self._setting_sources = setting_sources or config.setting_sources
         self._use_subscription = use_subscription or config.use_subscription
-
         # Client state
         self._client: ClaudeSDKClient | None = None
         self._connection_task: asyncio.Task[None] | None = None
@@ -373,20 +372,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         agent_pool: AgentPool[Any] | None = None,
         output_type: type[TResult] | None = None,
     ) -> Self:
-        """Create a ClaudeCodeAgent from a config object.
-
-        This is the preferred way to instantiate a ClaudeCodeAgent from configuration.
-
-        Args:
-            config: Claude Code agent configuration
-            event_handlers: Optional event handlers (merged with config handlers)
-            input_provider: Optional input provider for user interactions
-            agent_pool: Optional agent pool for coordination
-            output_type: Optional output type for structured output
-
-        Returns:
-            Configured ClaudeCodeAgent instance
-        """
+        """Create a ClaudeCodeAgent from a config object."""
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
@@ -647,7 +633,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if self._input_provider:
             # Get tool_use_id from SDK context if available (requires SDK >= 0.1.19)
             # TODO: Remove fallback once claude-agent-sdk with tool_use_id is released
-            if hasattr(context, "tool_use_id") and (tc_id := context.tool_use_id):  # pyright: ignore[reportAttributeAccessIssue]
+            if tc_id := context.tool_use_id:  # pyright: ignore[reportAttributeAccessIssue]
                 tool_call_id: str | None = tc_id
             else:
                 # Fallback: look up from streaming events or generate our own
