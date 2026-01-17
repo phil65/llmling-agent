@@ -57,6 +57,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 import re
@@ -949,7 +950,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Combine pending parts with new prompts, then join into single string for Claude SDK
         #
         prompt_text = " ".join(str(p) for p in prompts)
-
         # Inject thinking instruction if enabled
         if self._thinking_mode == "on":
             thinking_instruction = THINKING_MODE_PROMPTS[self._thinking_mode]
@@ -1410,11 +1410,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 self.log.exception("Failed to interrupt Claude Code client")
 
     async def set_model(self, model: AnthropicMaxModelName | str) -> None:
-        """Set the model for future requests.
-
-        Args:
-            model: Model name to use
-        """
+        """Set the model for future requests."""
         await self._set_mode(model, "model")
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
@@ -1614,8 +1610,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             List of SessionInfo objects
         """
-        from datetime import datetime
-
         from agentpool.sessions.models import SessionData
         from agentpool.utils.now import get_now
         from agentpool_storage.models import QueryFilters
@@ -1680,12 +1674,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from agentpool.sessions.models import SessionData
         from agentpool.utils.now import get_now
 
-        try:
-            # Load conversation messages from Claude storage
+        try:  # Load conversation messages from Claude storage
             messages = await self._claude_storage.get_conversation_messages(
                 conversation_id=session_id,
             )
-
+        except Exception:
+            self.log.exception("Failed to load Claude session", session_id=session_id)
+            return None
+        else:
             if not messages:
                 self.log.warning("No messages found in session", session_id=session_id)
                 return None
@@ -1713,10 +1709,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 created_at=created_at,
                 last_active=last_active,
             )
-
-        except Exception:
-            self.log.exception("Failed to load Claude session", session_id=session_id)
-            return None
 
 
 if __name__ == "__main__":
