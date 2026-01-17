@@ -724,7 +724,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         questions = input_data.get("questions", [])
         if not questions:
             return PermissionResultDeny(message="No questions provided")
-
         # Collect answers from the user
         answers: dict[str, str] = {}
         for question_obj in questions:
@@ -732,7 +731,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             header = question_obj.get("header", "")
             options = question_obj.get("options", [])
             multi_select = question_obj.get("multiSelect", False)
-
             if not question_text or not options:
                 continue
 
@@ -743,26 +741,24 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 opt.get("label", ""): opt.get("description", "") for opt in options
             }
             # Get user's answer via input provider
-            try:
-                # Build a display string showing the options
-                options_display = "\n".join(
-                    f"  {i + 1}. {label}"
-                    + (f" - {option_descriptions[label]}" if option_descriptions[label] else "")
-                    for i, label in enumerate(option_labels)
+            # Build a display string showing the options
+            options_display = "\n".join(
+                f"  {i + 1}. {label}"
+                + (f" - {option_descriptions[label]}" if option_descriptions[label] else "")
+                for i, label in enumerate(option_labels)
+            )
+            full_prompt = f"{formatted_question}\n\nOptions:\n{options_display}\n\n"
+            if multi_select:
+                full_prompt += (
+                    "(Enter numbers separated by commas, or type your own answer)\nYour choice: "
                 )
-                full_prompt = f"{formatted_question}\n\nOptions:\n{options_display}\n\n"
-                if multi_select:
-                    full_prompt += (
-                        "(Enter numbers separated by commas, or type your own answer)\n"
-                        "Your choice: "
-                    )
-                else:
-                    full_prompt += "(Enter a number, or type your own answer)\nYour choice: "
-
+            else:
+                full_prompt += "(Enter a number, or type your own answer)\nYour choice: "
+            try:
                 # Use input provider to get user response
-                ctx = self.get_context()
-                input_provider = ctx.get_input_provider()
-                user_input = await input_provider.get_input(context=ctx, prompt=full_prompt)
+                agent_ctx = self.get_context()
+                input_provider = agent_ctx.get_input_provider()
+                user_input = await input_provider.get_input(context=agent_ctx, prompt=full_prompt)
                 if user_input is None:
                     return PermissionResultDeny(message="User cancelled question", interrupt=True)
                 # Parse user input - handle numbers, labels, or free text
