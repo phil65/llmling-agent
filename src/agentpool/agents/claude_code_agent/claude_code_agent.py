@@ -1707,9 +1707,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         return categories
 
-    async def _set_mode(self, mode_id: str, category_id: str) -> None:  # noqa: PLR0915
+    async def _set_mode(self, mode_id: str, category_id: str) -> None:
         """Handle permissions, model, and thinking_level mode switching."""
         from agentpool.agents.claude_code_agent.static_info import VALID_MODES
+        from agentpool.agents.modes import ConfigOptionChanged
 
         if category_id == "mode":
             # Map mode_id to PermissionMode
@@ -1719,46 +1720,28 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
             permission_mode: PermissionMode = mode_id  # type: ignore[assignment]
             self._permission_mode = permission_mode
-
             # Update tool confirmation mode based on permission mode
             if mode_id == "bypassPermissions":
                 self.tool_confirmation_mode = "never"
             elif mode_id in ("default", "plan"):
                 self.tool_confirmation_mode = "always"
-
             # Update SDK client if initialized
             if self._client:
                 await self.ensure_initialized()
                 await self._client.set_permission_mode(permission_mode)
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
-            change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
-            await self.state_updated.emit(change)
-            self.log.info("Permission mode changed", mode=mode_id)
-
         elif category_id == "model":
             # Validate model exists
             models = await self.get_available_models()
             if models:
                 valid_ids = {m.id_override if m.id_override else m.id for m in models}
                 if mode_id not in valid_ids:
-                    msg = f"Unknown model: {mode_id}. Available: {valid_ids}"
-                    raise ValueError(msg)
+                    raise ValueError(f"Unknown model: {mode_id}. Available: {valid_ids}")
             # Set the model directly
             self._model = mode_id
             self._current_model = mode_id
             if self._client:
                 await self.ensure_initialized()
                 await self._client.set_model(mode_id)
-                self.log.info("Model changed", model=mode_id)
-            else:
-                self.log.info("Model set for initialization", model=mode_id)
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
-            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
-
         elif category_id == "thought_level":
             # Check if max_thinking_tokens is configured (takes precedence over keyword)
             if self._max_thinking_tokens:
@@ -1772,16 +1755,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 msg = f"Unknown mode: {mode_id}. Available: {list(THINKING_MODE_PROMPTS.keys())}"
                 raise ValueError(msg)
             self._thinking_mode = mode_id  # type: ignore[assignment]
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
-            change = ConfigOptionChanged(config_id="thought_level", value_id=mode_id)
-            await self.state_updated.emit(change)
-            self.log.info("Thinking mode changed", mode=mode_id)
-
         else:
-            msg = f"Unknown category: {category_id}. Available: permissions, model, thought_level"
-            raise ValueError(msg)
+            raise ValueError(
+                f"Unknown category: {category_id}. Available: permissions, model, thought_level"
+            )
+        change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
+        await self.state_updated.emit(change)
+        self.log.info("Config option changed", config_id=category_id, value=mode_id)
 
     async def list_sessions(self) -> list[SessionInfo]:
         """List sessions from Claude storage.
@@ -1800,20 +1780,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         try:
             # Use storage sessions API which works with Claude provider
             # Don't filter by agent name - Claude storage uses 'claude' for all
-            filters = QueryFilters(
-                agent_name=None,
-                since=None,
-                query=None,
-                limit=None,
-            )
+            filters = QueryFilters()
             conversations = await self._claude_storage.get_conversations(filters=filters)
-
             result: list[SessionInfo] = []
             for conv_data, messages in conversations:
                 # Build SessionData from conversation
                 last_active = get_now()
                 cwd: str | None = None
-
                 if messages:
                     last_msg = messages[-1]
                     if last_msg.timestamp:
@@ -1868,7 +1841,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Load conversation messages from Claude storage
             messages = await self._claude_storage.get_conversation_messages(
                 conversation_id=session_id,
-                include_ancestors=False,
             )
 
             if not messages:
