@@ -393,7 +393,7 @@ class ToolManagerBridge:
         from acp.schema import HttpMcpServer
 
         url = HttpUrl(self.url)
-        return HttpMcpServer(name=self.server_name, url=url, headers=[])
+        return HttpMcpServer(name=self.server_name, url=url)
 
     def get_claude_mcp_server_config(self) -> dict[str, McpServerConfig]:
         """Get Claude Agent SDK-compatible MCP server configuration.
@@ -550,9 +550,6 @@ class ToolManagerBridge:
             deps: Dependencies to set for tool invocations
             input_provider: Input provider to set for tool invocations
             prompt: Current prompt being processed
-
-        Yields:
-            None
         """
         self._current_deps = deps
         self._current_input_provider = input_provider
@@ -609,14 +606,11 @@ class ToolManagerBridge:
                 if param_name not in kwargs:
                     kwargs[param_name] = stub_run_ctx
 
-        # Execute the tool
         start_time = time.perf_counter()
         result = fn(**kwargs)
         if inspect.isawaitable(result):
             result = await result
         duration_ms = (time.perf_counter() - start_time) * 1000
-
-        # Run post-tool hooks
         if hooks:
             await hooks.run_post_tool_hooks(
                 agent_name=ctx.node_name,

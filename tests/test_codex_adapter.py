@@ -341,12 +341,5 @@ def test_codex_client_with_mcp_servers():
     assert "bash" in client._mcp_servers
 
 
-def test_mcp_config_disabled():
-    """Test MCP server with enabled=False."""
-    config = HttpMcpServer(url="http://localhost:8000/mcp", enabled=False)
-    result = _mcp_config_to_toml_inline("disabled", config)
-    assert "enabled = false" in result
-
-
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -34,7 +34,7 @@ class HttpMcpServer(BaseMcpServer):
     Only available when the Agent capabilities indicate `mcp_capabilities.http` is `true`.
     """
 
-    headers: Sequence[HttpHeader]
+    headers: Sequence[HttpHeader] = Field(default_factory=list)
     """HTTP headers to set when making requests to the MCP server."""
 
     type: Literal["http"] = Field(default="http", init=False)

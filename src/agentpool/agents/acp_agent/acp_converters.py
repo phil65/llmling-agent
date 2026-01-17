@@ -451,7 +451,7 @@ def mcp_config_to_acp(config: MCPServerConfig) -> McpServer:
             return SseMcpServer(name=config.name or str(url), url=url, headers=[])
 
         case StreamableHTTPMCPServerConfig(url=url):
-            return HttpMcpServer(name=config.name or str(url), url=url, headers=[])
+            return HttpMcpServer(name=config.name or str(url), url=url)
 
         case _ as unreachable:
             assert_never(unreachable)

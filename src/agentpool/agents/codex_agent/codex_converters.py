@@ -67,7 +67,6 @@ def mcp_config_to_codex(config: MCPServerConfig) -> tuple[str, McpServerConfig]:
 
     # Name should not be None by the time we use it
     server_name = config.name or f"server_{id(config)}"
-
     match config:
         case StdioMCPServerConfig():
             return (
@@ -83,25 +82,14 @@ def mcp_config_to_codex(config: MCPServerConfig) -> tuple[str, McpServerConfig]:
         case SSEMCPServerConfig():
             # Codex uses HTTP transport for SSE
             # SSE config just has URL, no separate auth fields
-            return (
-                server_name,
-                HttpMcpServer(
-                    url=str(config.url),
-                    http_headers=None,
-                    enabled=config.enabled,
-                ),
-            )
+            return (server_name, HttpMcpServer(url=str(config.url), enabled=config.enabled))
 
         case StreamableHTTPMCPServerConfig():
             # StreamableHTTP has headers field
             headers = config.headers if config.headers else None
             return (
                 server_name,
-                HttpMcpServer(
-                    url=str(config.url),
-                    http_headers=headers,
-                    enabled=config.enabled,
-                ),
+                HttpMcpServer(url=str(config.url), http_headers=headers, enabled=config.enabled),
             )
 
         case _:

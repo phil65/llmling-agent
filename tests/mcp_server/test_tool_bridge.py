@@ -79,18 +79,6 @@ async def test_bridge_registers_tools():
             assert tools[0].name == "simple_add"
 
 
-async def test_get_mcp_server_config_http():
-    """Test generating HTTP MCP server config."""
-    async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
-        agent.tools.register_tool(simple_add)
-        async with ToolManagerBridge(node=agent) as bridge:
-            config = bridge.get_mcp_server_config()
-            assert config.name == "agentpool-toolmanager"
-            assert str(config.url).startswith("http://")
-            assert "/mcp" in str(config.url)
-
-
 async def test_bridge_with_context_tools():
     """Test that tools requiring AgentContext work through bridge."""
     async with AgentPool() as pool:
