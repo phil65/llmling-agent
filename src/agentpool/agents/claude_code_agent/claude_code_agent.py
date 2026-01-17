@@ -263,6 +263,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             hooks: Lifecycle hooks for intercepting agent behavior
         """
         from agentpool.agents.sys_prompts import SystemPrompts
+        from agentpool.mcp_server.tool_bridge import ToolManagerBridge
+        from agentpool_config.storage import ClaudeStorageConfig
+        from agentpool_storage.claude_provider import ClaudeStorageProvider
 
         # Build config from kwargs if not provided
         if config is None:
@@ -278,7 +281,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 include_builtin_system_prompt=include_builtin_system_prompt,
                 max_turns=max_turns,
                 max_thinking_tokens=max_thinking_tokens,
-                permission_mode=permission_mode,
+                permission_mode=permission_mode,  # pyright: ignore[reportArgumentType]
                 mcp_servers=list(mcp_servers) if mcp_servers else [],
                 env=environment,
                 add_dir=add_dir,
@@ -347,21 +350,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._current_model: AnthropicMaxModelName | str | None = self._model
         self._sdk_session_id: str | None = None  # Session ID from Claude SDK init message
         self.deps_type = type(None)
-
-        from agentpool.mcp_server.tool_bridge import ToolManagerBridge
-
         # ToolBridge state for exposing toolsets via MCP
         self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
         self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
-
         # Track pending tool call for permission matching
         # Maps tool_name to tool_call_id for matching permissions to tool call UI parts
         self._pending_tool_call_ids: dict[str, str] = {}
-
         # Create Claude storage provider for session management
-        from agentpool_config.storage import ClaudeStorageConfig
-        from agentpool_storage.claude_provider import ClaudeStorageProvider
-
         claude_config = ClaudeStorageConfig(path="~/.claude")
         self._claude_storage = ClaudeStorageProvider(claude_config)
 
@@ -450,11 +445,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         if not self._config.tools:
             return
-
         # Create providers from tool configs and add to tool manager
         for provider in self._config.get_tool_providers():
             self.tools.add_provider(provider)
-        # Start bridge to expose tools via MCP
         await self._tool_bridge.start()
         # Get Claude SDK-compatible MCP config and merge into our servers dict
         mcp_config = self._tool_bridge.get_claude_mcp_server_config()
@@ -480,11 +473,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         result: dict[str, MCPServerStatus] = {}
         for name, config in self._mcp_servers.items():
             server_type = config.get("type", "unknown")
-            result[name] = MCPServerStatus(
-                name=name,
-                status="connected",  # Claude SDK manages connections
-                server_type=server_type,
-            )
+            result[name] = MCPServerStatus(name=name, status="connected", server_type=server_type)
         return result
 
     def _build_hooks(self) -> dict[str, list[Any]]:
@@ -497,9 +486,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         from clawd_code_sdk.types import HookMatcher
 
-        from agentpool.agents.claude_code_agent.converters import (
-            build_sdk_hooks_from_agent_hooks,
-        )
+        from agentpool.agents.claude_code_agent.converters import build_sdk_hooks_from_agent_hooks
 
         async def on_pre_compact(
             input_data: HookInput,
@@ -562,21 +549,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         permission_mode = self._permission_mode
         if self._dangerously_skip_permissions and not permission_mode:
             permission_mode = "bypassPermissions"
-
         # Determine can_use_tool callback
         bypass = permission_mode == "bypassPermissions" or self._dangerously_skip_permissions
         can_use_tool = (
             self._can_use_tool if self.tool_confirmation_mode != "never" and not bypass else None
         )
-
         # Check builtin_tools for special tools that need extra handling
         builtin_tools = self._builtin_tools or []
-
         # Build extra_args for CLI flags not directly exposed
         extra_args: dict[str, str | None] = {}
         if "Chrome" in builtin_tools:
             extra_args["chrome"] = None
-
         # Build environment variables
         env = dict(self._environment or {})
         env["clawd_code_sdk_SKIP_VERSION_CHECK"] = "1"
@@ -631,8 +614,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             PermissionResult indicating allow or deny
         """
-        import uuid
-
         from clawd_code_sdk import PermissionResultAllow, PermissionResultDeny
 
         from agentpool.tools import FunctionTool
@@ -640,15 +621,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Handle AskUserQuestion specially - this is Claude asking for clarification
         if tool_name == "AskUserQuestion":
             return await self._handle_clarifying_questions(input_data, context)
-
         # Auto-grant if confirmation mode is "never" (bypassPermissions)
         if self.tool_confirmation_mode == "never":
             return PermissionResultAllow()
-
         # Plan mode: auto-deny all tool executions (planning only, no execution)
         if self._permission_mode == "plan":
             return PermissionResultDeny(message="Plan mode active - tool execution disabled")
-
         # For "acceptEdits" mode: auto-allow edit/write tools only
         if self._permission_mode == "acceptEdits":
             # Extract the actual tool name from MCP-style names
@@ -1896,22 +1874,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             if not messages:
                 self.log.warning("No messages found in session", session_id=session_id)
                 return None
-
             # Restore to conversation history
             self.conversation.chat_messages.clear()
             self.conversation.chat_messages.extend(messages)
-
-            self.log.info(
-                "Session loaded with conversation history",
-                session_id=session_id,
-                message_count=len(messages),
-            )
-
+            self.log.info("Session loaded", session_id=session_id, message_count=len(messages))
             # Build SessionData from loaded messages
             last_active = messages[-1].timestamp if messages[-1].timestamp else get_now()
             created_at = messages[0].timestamp if messages[0].timestamp else last_active
             cwd = str(self._cwd or Path.cwd())
-
             # Try to extract cwd from message metadata
             for msg in reversed(messages):
                 if msg.metadata and "cwd" in msg.metadata:
