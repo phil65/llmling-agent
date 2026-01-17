@@ -107,6 +107,7 @@ if TYPE_CHECKING:
 
     from anyenv import MultiEventHandler
     from clawd_code_sdk import (
+        AgentDefinition,
         ClaudeAgentOptions,
         ClaudeSDKClient,
         McpServerConfig,
@@ -222,6 +223,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "always",
         output_type: type[TResult] | None = None,
+        builtin_subagents: dict[str, AgentDefinition] | None = None,
         commands: Sequence[BaseCommand] | None = None,
         hooks: AgentHooks | None = None,
     ) -> None:
@@ -259,6 +261,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             event_handlers: Event handlers for streaming events
             tool_confirmation_mode: Tool confirmation behavior
             output_type: Type for structured output (uses JSON schema)
+            builtin_subagents: builtin Subagents configuration
             commands: Slash commands
             hooks: Lifecycle hooks for intercepting agent behavior
         """
@@ -307,7 +310,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             commands=commands,
             hooks=hooks,
         )
-
+        self._subagents = builtin_subagents
         self._config = config
         self._cwd = cwd or config.cwd
         self._allowed_tools = allowed_tools or config.allowed_tools
@@ -582,6 +585,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             max_thinking_tokens=self._max_thinking_tokens,
             permission_mode=permission_mode,
             env=env,
+            agents=self._subagents,
             add_dirs=self._add_dir or [],  # type: ignore[arg-type]  # SDK uses list not Sequence
             tools=self._builtin_tools,
             fallback_model=self._fallback_model,

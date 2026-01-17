@@ -6,6 +6,7 @@ from collections.abc import Sequence  # noqa: TC003
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
+from schemez import Schema
 from tokonomics.model_names import AnthropicMaxModelName  # noqa: TC002
 
 from agentpool import log
@@ -47,6 +48,22 @@ ToolName = Literal[
     "LSP",
     "Chrome",
 ]
+
+
+class AgentDefinition(Schema):
+    """Agent definition configuration."""
+
+    description: str
+    """Description of the agent."""
+
+    prompt: str
+    """Prompt for the agent."""
+
+    tools: list[str] | None = None
+    """List of tools the agent can use."""
+
+    model: Literal["sonnet", "opus", "haiku", "inherit"] | None = None
+    """Model to use for the agent."""
 
 
 class ClaudeCodeAgentConfig(BaseAgentConfig):
@@ -215,6 +232,13 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
         examples=[["/tmp", "/var/log"], ["/home/user/data"]],
     )
     """Additional directories to allow tool access to."""
+
+    builtin_subagents: dict[str, AgentDefinition] | None = Field(
+        default=None,
+        title="Built-in Subagents",
+        examples=[{"sonnet": {"description": "Sonnet agent", "model": "sonnet"}}],
+    )
+    """Built-in subagents configuration."""
 
     builtin_tools: list[str] | None = Field(
         default=None,
