@@ -324,13 +324,20 @@ CommandAction = (
 )
 
 
+class FileChangeKind(CodexBaseModel):
+    """Kind of file change (nested object in Codex's fileChange item)."""
+
+    # Codex sends 'type' but we prefer 'kind' to avoid shadowing builtin
+    kind: Literal["add", "delete", "update"] = Field(validation_alias="type")
+    move_path: str | None = None
+
+
 class FileUpdateChange(CodexBaseModel):
     """File update change."""
 
     path: str
-    kind: Literal["add", "delete", "update"]
-    move_path: str | None = None
-    diff: str
+    kind: FileChangeKind
+    diff: str | None = None  # May be absent in "inProgress" state
 
 
 class McpContentBlock(CodexBaseModel):
