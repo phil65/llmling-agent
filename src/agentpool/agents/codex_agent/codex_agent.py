@@ -168,9 +168,9 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Extra MCP servers in Codex format (e.g., tool bridge)
         self._extra_mcp_servers: list[tuple[str, Any]] = []
         # Track current settings (for when they change mid-session)
-        self._current_model: str | None = None
-        self._current_effort: ReasoningEffort | None = None
-        self._current_sandbox: SandboxMode | None = None
+        self._current_model: str | None = config.model
+        self._current_effort: ReasoningEffort | None = config.reasoning_effort
+        self._current_sandbox: SandboxMode | None = config.sandbox
         self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
 
     @classmethod
@@ -287,6 +287,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             model=self.config.model,
             base_instructions=self.config.base_instructions,
             developer_instructions=self.config.developer_instructions,
+            sandbox=self._current_sandbox,
         )
         self._thread_id = thread.id
         self.log.info(
@@ -671,6 +672,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 model=self._current_model or self.config.model,
                 base_instructions=self.config.base_instructions,
                 developer_instructions=self.config.developer_instructions,
+                sandbox=self._current_sandbox,
             )
             self._thread_id = thread.id
             # Type assertion: we've already validated mode_id is one of the valid values

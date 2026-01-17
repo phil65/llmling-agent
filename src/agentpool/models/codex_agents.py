@@ -10,7 +10,7 @@ from pydantic import ConfigDict, Field
 from agentpool.models.agents import AnyToolConfig  # noqa: TC001
 from agentpool.models.fields import OutputTypeField  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
-from codex_adapter import ApprovalPolicy, ReasoningEffort  # noqa: TC001
+from codex_adapter import ApprovalPolicy, ReasoningEffort, SandboxMode  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -70,6 +70,21 @@ class CodexAgentConfig(BaseAgentConfig):
     - "on-request": Request approval when tools request it
     - "on-failure": Request approval when tool execution fails
     - "untrusted": Always request approval (most restrictive)
+    """
+
+    sandbox: SandboxMode = Field(
+        default="workspaceWrite",
+        title="Sandbox Mode",
+        examples=["workspaceWrite", "readOnly", "dangerFullAccess"],
+    )
+    """Sandbox mode for file operations.
+
+    - "readOnly": Can only read files, no modifications
+    - "workspaceWrite": Can write within workspace directory (default if not specified)
+    - "dangerFullAccess": Full filesystem access (use with caution)
+    - "externalSandbox": Use external sandbox environment
+
+    If not specified, Codex uses its default sandbox policy.
     """
 
     base_instructions: str | None = Field(
