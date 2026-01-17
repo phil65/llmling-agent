@@ -7,11 +7,14 @@ Provides converters for:
 
 from __future__ import annotations
 
+import base64
 from typing import TYPE_CHECKING, Any, overload
 
 from pydantic_ai import (
+    BinaryContent,
     BuiltinToolCallPart,
     BuiltinToolReturnPart,
+    ImageUrl,
     TextPart,
     TextPartDelta,
     ThinkingPart,
@@ -22,7 +25,7 @@ from pydantic_ai import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Sequence
+    from collections.abc import AsyncIterator
 
     from pydantic_ai import UserContent
 
@@ -104,21 +107,10 @@ def mcp_config_to_codex(config: MCPServerConfig) -> tuple[str, McpServerConfig]:
             raise TypeError(msg)
 
 
-def mcp_configs_to_codex(
-    configs: Sequence[MCPServerConfig],
-) -> list[tuple[str, McpServerConfig]]:
-    """Convert a sequence of MCPServerConfig to list of (name, config) tuples."""
-    return [mcp_config_to_codex(c) for c in configs]
-
-
 def user_content_to_codex(
     content: list[UserContent],
 ) -> list[TurnInputItem]:
     """Convert pydantic-ai UserContent list to Codex TurnInputItem list."""
-    import base64
-
-    from pydantic_ai.messages import BinaryContent, ImageUrl
-
     from codex_adapter.models import ImageInputItem, TextInputItem
 
     result: list[TurnInputItem] = []
@@ -205,18 +197,14 @@ def _thread_item_to_tool_return_part(  # noqa: PLR0911
     )
 
     # Only process completed items
-    if hasattr(item, "status") and item.status != "completed":
+    if hasattr(item, "status") and item.status != "completed":  # pyright: ignore[reportAttributeAccessIssue]
         return None
 
     result = _format_tool_result(item)
 
     match item:
         case ThreadItemCommandExecution():
-            return BuiltinToolReturnPart(
-                tool_name="bash",
-                content=result,
-                tool_call_id=item.id,
-            )
+            return BuiltinToolReturnPart(tool_name="bash", content=result, tool_call_id=item.id)
         case ThreadItemFileChange():
             return BuiltinToolReturnPart(
                 tool_name="file_change",
@@ -238,11 +226,7 @@ def _thread_item_to_tool_return_part(  # noqa: PLR0911
         case ThreadItemMcpToolCall():
             # TODO: Distinguish between local (ToolBridge) and remote MCP tools
             # See matching TODO in _thread_item_to_tool_call_part
-            return ToolReturnPart(
-                tool_name=item.tool,
-                content=result,
-                tool_call_id=item.id,
-            )
+            return ToolReturnPart(tool_name=item.tool, content=result, tool_call_id=item.id)
         case _:
             return None
 
@@ -272,29 +256,17 @@ def _thread_item_to_tool_call_part(
 
     match item:
         case ThreadItemCommandExecution():
-            return BuiltinToolCallPart(
-                tool_name="bash",
-                args={"command": item.command, "cwd": item.cwd},
-                tool_call_id=item.id,
-            )
+            args = {"command": item.command, "cwd": item.cwd}
+            return BuiltinToolCallPart(tool_name="bash", args=args, tool_call_id=item.id)
         case ThreadItemFileChange():
-            return BuiltinToolCallPart(
-                tool_name="file_change",
-                args={"changes": [c.model_dump() for c in item.changes]},
-                tool_call_id=item.id,
-            )
+            args = {"changes": [c.model_dump() for c in item.changes]}
+            return BuiltinToolCallPart(tool_name="file_change", args=args, tool_call_id=item.id)
         case ThreadItemWebSearch():
-            return BuiltinToolCallPart(
-                tool_name="web_search",
-                args={"query": item.query},
-                tool_call_id=item.id,
-            )
+            args = {"query": item.query}
+            return BuiltinToolCallPart(tool_name="web_search", args=args, tool_call_id=item.id)
         case ThreadItemImageView():
-            return BuiltinToolCallPart(
-                tool_name="image_view",
-                args={"path": item.path},
-                tool_call_id=item.id,
-            )
+            args = {"path": item.path}
+            return BuiltinToolCallPart(tool_name="image_view", args=args, tool_call_id=item.id)
         case ThreadItemMcpToolCall():
             # TODO: Distinguish between local (ToolBridge) and remote MCP tools
             # Currently all MCP tools use ToolCallPart, but ideally:
@@ -302,11 +274,7 @@ def _thread_item_to_tool_call_part(
             # - Tools from Codex's own MCP servers → BuiltinToolCallPart (their tools)
             # This requires tracking which tools came from ToolBridge vs Codex config
             args = item.arguments if isinstance(item.arguments, dict) else {"args": item.arguments}
-            return ToolCallPart(
-                tool_name=item.tool,
-                args=args,
-                tool_call_id=item.id,
-            )
+            return ToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id)
         case _:
             return None
 
@@ -368,11 +336,8 @@ async def convert_codex_stream(  # noqa: PLR0915
 
                 # Emit accumulated progress with replace semantics, wrapped in code block
                 output = "".join(tool_outputs[item_id])
-                yield ToolCallProgressEvent(
-                    tool_call_id=item_id,
-                    items=[TextContentItem(text=f"```\n{output}\n```")],
-                    replace_content=True,
-                )
+                items = [TextContentItem(text=f"```\n{output}\n```")]
+                yield ToolCallProgressEvent(tool_call_id=item_id, items=items, replace_content=True)
 
             # === File change output delta - ignore the summary, we show diff from item/started ===
             case "item/fileChange/outputDelta" if isinstance(event.data, FileChangeOutputDeltaData):
@@ -436,7 +401,7 @@ async def convert_codex_stream(  # noqa: PLR0915
             case "item/completed" if isinstance(event.data, ItemCompletedData):
                 item = event.data.item
                 # Clean up accumulated output for this item
-                if hasattr(item, "id") and item.id in tool_outputs:
+                if item.id in tool_outputs:
                     del tool_outputs[item.id]
 
                 if part := _thread_item_to_tool_call_part(item):
@@ -508,20 +473,12 @@ def event_to_part(
     )
 
     match event.event_type:
-        case "item/agentMessage/delta":
-            if isinstance(event.data, AgentMessageDeltaData):
-                return TextPart(content=event.data.delta)
-
-        case "item/reasoning/textDelta":
-            if isinstance(event.data, ReasoningTextDeltaData):
-                return ThinkingPart(content=event.data.delta)
-
-        case "item/started":
-            if isinstance(event.data, ItemStartedData):
-                return _thread_item_to_tool_call_part(event.data.item)
-
-        case "item/completed":
-            if isinstance(event.data, ItemCompletedData):
-                return _thread_item_to_tool_return_part(event.data.item)
-
+        case "item/agentMessage/delta" if isinstance(event.data, AgentMessageDeltaData):
+            return TextPart(content=event.data.delta)
+        case "item/reasoning/textDelta" if isinstance(event.data, ReasoningTextDeltaData):
+            return ThinkingPart(content=event.data.delta)
+        case "item/started" if isinstance(event.data, ItemStartedData):
+            return _thread_item_to_tool_call_part(event.data.item)
+        case "item/completed" if isinstance(event.data, ItemCompletedData):
+            return _thread_item_to_tool_return_part(event.data.item)
     return None

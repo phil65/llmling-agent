@@ -356,8 +356,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Collect all MCP servers (config + extra)
         all_servers = self._extra_mcp_servers[:]
         # Add servers from config (converted to ACP format)
-        config_servers = self.config.get_mcp_servers()
-        if config_servers:
+        if config_servers := self.config.get_mcp_servers():
             all_servers.extend(mcp_configs_to_acp(config_servers))
         mcp_servers = filter_servers_by_capabilities(all_servers, self._caps, logger=self.log)
         cwd = self.config.cwd or str(Path.cwd())
@@ -605,11 +604,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         return model_id if self._state and (model_id := self._state.current_model_id) else None
 
     async def set_model(self, model: str) -> None:
-        """Update the model for the current session via ACP protocol.
-
-        Args:
-            model: New model ID to use
-        """
+        """Update the model for the current session via ACP protocol."""
         await self._set_mode(model, "model")
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
@@ -779,13 +774,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             raise ValueError(msg)
 
     async def list_sessions(self) -> list[SessionInfo]:
-        """List sessions from the remote ACP server.
-
-        Queries the ACP server for available sessions.
-
-        Returns:
-            List of SessionInfo objects from the ACP server
-        """
+        """List sessions from the remote ACP server."""
         from acp.schema import ListSessionsRequest
         from agentpool.sessions.models import SessionData
         from agentpool.utils.now import get_now
@@ -824,18 +813,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             return result
 
     async def load_session(self, session_id: str) -> SessionData | None:
-        """Load and restore a session from the remote ACP server.
-
-        Switches the remote ACP server to use the specified session. The conversation
-        history is managed remotely by the ACP server, so no local history restoration
-        is needed.
-
-        Args:
-            session_id: Unique identifier for the session to load
-
-        Returns:
-            SessionData if session was found and loaded, None otherwise
-        """
+        """Load and restore a session from the remote ACP server."""
         from acp.schema import LoadSessionRequest
         from agentpool.agents.acp_agent.acp_converters import mcp_configs_to_acp
         from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities

@@ -266,7 +266,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
     async def __aenter__(self) -> Self:
         """Start Codex client and create thread."""
-        from agentpool.agents.codex_agent.codex_converters import mcp_configs_to_codex
+        from agentpool.agents.codex_agent.codex_converters import mcp_config_to_codex
         from codex_adapter import CodexClient
 
         await super().__aenter__()
@@ -278,7 +278,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         mcp_servers_dict.update(dict(self._extra_mcp_servers))
         # Add configured/external MCP servers (convert native -> Codex format)
         if self._external_mcp_servers:
-            mcp_servers_dict.update(dict(mcp_configs_to_codex(self._external_mcp_servers)))
+            servers = [mcp_config_to_codex(c) for c in self._external_mcp_servers]
+            mcp_servers_dict.update(dict(servers))
         # Create and connect client with MCP servers
         self._client = CodexClient(mcp_servers=mcp_servers_dict)
         await self._client.__aenter__()
@@ -292,9 +293,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             sandbox=self._current_sandbox,
         )
         self._thread_id = thread.id
-        self.log.info(
-            "Codex thread started", thread_id=self._thread_id, cwd=cwd, model=self.config.model
-        )
+        self.log.info("Codex thread started", thread_id=self._thread_id, cwd=cwd)
         return self
 
     async def __aexit__(
@@ -313,7 +312,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         if self._tool_bridge._mcp is not None:
             await self._tool_bridge.stop()
         self._extra_mcp_servers.clear()
-
         if self._client:
             try:
                 await self._client.__aexit__(None, None, None)
@@ -338,26 +336,11 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
-        """Stream events from Codex turn execution.
-
-        Args:
-            prompts: User prompts to send
-            user_msg: Original user message
-            message_history: Conversation history
-            effective_parent_id: Effective parent message ID
-            message_id: Optional message ID
-            conversation_id: Optional conversation ID
-            parent_id: Optional parent message ID
-            input_provider: Provider for user input
-            deps: Dependencies
-            event_handlers: Event handlers
-            wait_for_connections: Whether to wait for message routing
-            store_history: Whether to store in conversation history
-
-        Yields:
-            Stream events from Codex execution
-        """
-        from agentpool.agents.codex_agent.codex_converters import convert_codex_stream
+        """Stream events from Codex turn execution."""
+        from agentpool.agents.codex_agent.codex_converters import (
+            convert_codex_stream,
+            user_content_to_codex,
+        )
         from agentpool.agents.events import PlanUpdateEvent
         from agentpool.messaging.messages import TokenCost
         from codex_adapter.models import ThreadTokenUsageUpdatedData
@@ -365,9 +348,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         if not self._client or not self._thread_id:
             msg = "Codex client not initialized"
             raise RuntimeError(msg)
-
-        # Convert prompts to Codex input format
-        from agentpool.agents.codex_agent.codex_converters import user_content_to_codex
 
         input_items = user_content_to_codex(prompts)
         # Generate IDs if not provided
@@ -378,7 +358,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         if final_conversation_id is None:
             msg = "conversation_id must be set"
             raise ValueError(msg)
-        # Emit run started event
         run_started = RunStartedEvent(thread_id=final_conversation_id, run_id=run_id)
         await event_handlers(None, run_started)
         yield run_started
