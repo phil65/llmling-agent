@@ -68,16 +68,6 @@ async for msg in agent.run_iter(
     print(msg.content)
 ```
 
-### run_job()
-
-Executes a predefined job:
-
-```python
-result = await agent.run_job(
-    job,
-    store_history: bool = True,
-    include_agent_tools: bool = True,  # Keep agent's tools alongside job tools
-)
 ```
 
 ### run_stream()

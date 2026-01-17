@@ -56,19 +56,16 @@ def task_command(
     prompt: Annotated[str | None, t.Option("--prompt", "-p", help="Additional prompt")] = None,
 ) -> None:
     """Execute a task with the specified agent."""
+    from agentpool import AgentsManifest
+
     logger = log.get_logger(__name__)
     try:
         logger.debug("Starting task execution", name=task_name)
-
-        # Resolve configuration path
         try:
             config_path = resolve_agent_config(config)
-            logger.debug("Using config", source=config_path)
         except ValueError as e:
             msg = str(e)
             raise t.BadParameter(msg) from e
-
-        from agentpool import AgentsManifest
 
         manifest = AgentsManifest.from_file(config_path)
         result = asyncio.run(execute_job(agent_name, task_name, manifest, prompt=prompt))

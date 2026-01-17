@@ -10,7 +10,6 @@ import time
 from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict, TypeVar, overload
 from uuid import uuid4
 
-from anyenv import method_spawner
 import logfire
 from pydantic_ai import Agent as PydanticAgent, CallToolsNode, ModelRequestNode, RunContext
 from pydantic_ai.models import Model
@@ -72,7 +71,6 @@ if TYPE_CHECKING:
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
     from agentpool_config.session import MemoryConfig, SessionQuery
-    from agentpool_config.task import Job
 
 
 logger = get_logger(__name__)
@@ -845,58 +843,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         complete_event = StreamCompleteEvent(message=response_msg)
         await event_handlers(None, complete_event)
         yield complete_event
-
-    @method_spawner
-    async def run_job(
-        self,
-        job: Job[TDeps, str | None],
-        *,
-        store_history: bool = True,
-        include_agent_tools: bool = True,
-    ) -> ChatMessage[OutputDataT]:
-        """Execute a pre-defined task.
-
-        Args:
-            job: Job configuration to execute
-            store_history: Whether the message exchange should be added to the
-                           context window
-            include_agent_tools: Whether to include agent tools
-        Returns:
-            Job execution result
-
-        Raises:
-            JobError: If task execution fails
-            ValueError: If task configuration is invalid
-        """
-        from agentpool.tasks import JobError
-
-        if job.required_dependency is not None:
-            agent_ctx = self.get_context()
-            if not isinstance(agent_ctx.data, job.required_dependency):
-                msg = (
-                    f"Agent dependencies ({type(agent_ctx.data)}) "
-                    f"don't match job requirement ({job.required_dependency})"
-                )
-                raise JobError(msg)
-
-        # Load task knowledge
-        if job.knowledge:
-            # Add knowledge sources to context
-            for source in list(job.knowledge.paths):
-                await self.conversation.load_context_source(source)
-            for prompt in job.knowledge.prompts:
-                await self.conversation.load_context_source(prompt)
-        try:
-            # Register task tools temporarily
-            tools = job.get_tools()
-            async with self.tools.temporary_tools(tools, exclusive=not include_agent_tools):
-                # Execute job with job-specific tools
-                return await self.run(await job.get_prompt(), store_history=store_history)
-
-        except Exception as e:
-            self.log.exception("Task execution failed", error=str(e))
-            msg = f"Task execution failed: {e}"
-            raise JobError(msg) from e
 
     def register_worker(
         self,

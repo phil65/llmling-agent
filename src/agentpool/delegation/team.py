@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.common_types import PromptCompatible
     from agentpool.talk import Talk
-    from agentpool_config.task import Job
 
 
 class Team[TDeps = None](BaseTeam[TDeps, Any]):
@@ -224,83 +223,6 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
         # Merge all streams
         async for event in as_generated(streams):
             yield event
-
-    async def run_job[TJobResult](
-        self,
-        job: Job[TDeps, TJobResult],
-        *,
-        store_history: bool = True,
-        include_agent_tools: bool = True,
-    ) -> list[AgentResponse[TJobResult]]:
-        """Execute a job across all team members in parallel.
-
-        Args:
-            job: Job configuration to execute
-            store_history: Whether to add job execution to conversation history
-            include_agent_tools: Whether to include agent's tools alongside job tools
-
-        Returns:
-            List of responses from all agents
-
-        Raises:
-            JobError: If job execution fails for any agent
-            ValueError: If job configuration is invalid
-        """
-        from agentpool import Agent
-        from agentpool.tasks import JobError
-
-        responses: list[AgentResponse[TJobResult]] = []
-        errors: dict[str, Exception] = {}
-        start_time = get_now()
-
-        # Validate dependencies for all agents
-        if job.required_dependency is not None:
-            invalid_agents = [
-                agent.name
-                for agent in self.iter_agents()
-                if agent.deps_type is None
-                or not issubclass(agent.deps_type, job.required_dependency)
-            ]
-            if invalid_agents:
-                msg = (
-                    f"Agents {', '.join(invalid_agents)} don't have required "
-                    f"dependency type: {job.required_dependency}"
-                )
-                raise JobError(msg)
-
-        try:
-            # Load knowledge for all agents if provided
-            if job.knowledge:
-                # TODO: resources
-                tools = [t.name for t in job.get_tools()]
-                await self.distribute(content="", tools=tools)
-
-            prompt = await job.get_prompt()
-
-            async def _run(agent: MessageNode[TDeps, TJobResult]) -> None:
-                assert isinstance(agent, Agent)
-                try:
-                    async with agent.tools.temporary_tools(
-                        job.get_tools(), exclusive=not include_agent_tools
-                    ):
-                        start = perf_counter()
-                        resp = AgentResponse(
-                            agent_name=agent.name,
-                            message=await agent.run(prompt, store_history=store_history),
-                            timing=perf_counter() - start,
-                        )
-                        responses.append(resp)
-                except Exception as e:  # noqa: BLE001
-                    errors[agent.name] = e
-
-            # Run job in parallel on all agents
-            await asyncio.gather(*[_run(node) for node in self.nodes])
-            return TeamResponse(responses=responses, start_time=start_time, errors=errors)
-
-        except Exception as e:
-            msg = "Job execution failed"
-            logger.exception(msg)
-            raise JobError(msg) from e
 
 
 if __name__ == "__main__":

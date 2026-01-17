@@ -84,26 +84,6 @@ jobs:
     requires_vision: false         # Whether vision capability is needed
 ```
 
-## Using Tasks
-
-Execute tasks through the API:
-
-```python
-# Python API
-result = await agent.run_job("analyze_code")
-```
-
-You can also use the Job directly:
-
-```python
-from agentpool import AgentPool
-
-# Get job definition
-job = pool.get_job("analyze_code")
-
-# Execute job with specific agent
-result = await pool.run_job("analyze_code", agent="my-agent")
-```
 
 ## Complete Example
 
