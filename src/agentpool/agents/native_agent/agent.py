@@ -587,10 +587,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         Changing output type modifies tool definitions sent to the API.
 
         Args:
-            output_type: Type for structured responses. Can be:
-                - A Python type (Pydantic model)
-            tool_name: Optional override for result tool name
-            tool_description: Optional override for result tool description
+            output_type: Type for structured responses.
 
         Returns:
             Self (same instance, not a copy)
@@ -1019,10 +1016,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from tokonomics.model_discovery import get_all_models
 
         try:
-            return await get_all_models(
-                providers=self._providers or ["models.dev"],
-                max_age=timedelta(days=200),
-            )
+            delta = timedelta(days=200)
+            return await get_all_models(providers=self._providers or ["models.dev"], max_age=delta)
         except Exception:
             self.log.exception("Failed to discover models")
             return None
@@ -1082,9 +1077,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             if settings:
                 self.model_settings = settings
             self.log.info("Model changed", model=mode_id)
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
             await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
 
         else:
@@ -1158,11 +1150,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     # Restore to conversation history
                     self.conversation.chat_messages.clear()
                     self.conversation.chat_messages.extend(messages)
-                    self.log.info(
-                        "Session loaded with conversation history",
-                        session_id=session_id,
-                        message_count=len(messages),
-                    )
+                    msg = "Session loaded with conversation history"
+                    self.log.info(msg, session_id=session_id, message_count=len(messages))
                 else:
                     self.log.info("Session loaded (no history support)", session_id=session_id)
             else:
