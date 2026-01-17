@@ -766,16 +766,15 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         agentlet = await self.get_agentlet(None, self._output_type, input_provider)
         response_msg: ChatMessage[Any] | None = None
         # Prepend pending context parts (prompts are already pydantic-ai UserContent format)
-        history = [m for run in history_list for m in run.to_pydantic_ai()]
         # Track tool call starts to combine with results later
-        pending_tcs: dict[str, BaseToolCallPart] = {}
         file_tracker = FileTracker()
         async with agentlet.iter(
             prompts,
             deps=deps,  # type: ignore[arg-type]
-            message_history=history,
+            message_history=[m for run in history_list for m in run.to_pydantic_ai()],
             usage_limits=self._default_usage_limits,
         ) as agent_run:
+            pending_tcs: dict[str, BaseToolCallPart] = {}
             try:
                 async for node in agent_run:
                     if self._cancelled:
