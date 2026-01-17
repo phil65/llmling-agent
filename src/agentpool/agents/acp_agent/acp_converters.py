@@ -458,12 +458,5 @@ def mcp_config_to_acp(config: MCPServerConfig) -> McpServer:
 
 
 def mcp_configs_to_acp(configs: Sequence[MCPServerConfig]) -> list[McpServer]:
-    """Convert a sequence of MCPServerConfig to ACP McpServer list.
-
-    Args:
-        configs: Sequence of agentpool MCP server configurations
-
-    Returns:
-        List of ACP-compatible McpServer instances (skips unconvertible configs)
-    """
+    """Convert a sequence of MCPServerConfig to ACP McpServer list."""
     return [mcp_config_to_acp(config) for config in configs]

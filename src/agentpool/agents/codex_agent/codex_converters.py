@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, overload
 
+from pydantic_ai import TextPart, TextPartDelta, ThinkingPart, ThinkingPartDelta, ToolCallPart
+
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    from pydantic_ai import TextPart, ThinkingPart, ToolCallPart
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool_config.mcp_server import (
@@ -24,11 +24,6 @@ if TYPE_CHECKING:
     )
     from codex_adapter.codex_types import HttpMcpServer, McpServerConfig, StdioMcpServer
     from codex_adapter.events import CodexEvent
-
-
-# =============================================================================
-# MCP Server Config Converters (Native -> Codex)
-# =============================================================================
 
 
 @overload
@@ -100,20 +95,8 @@ def mcp_config_to_codex(config: MCPServerConfig) -> tuple[str, McpServerConfig]:
 def mcp_configs_to_codex(
     configs: Sequence[MCPServerConfig],
 ) -> list[tuple[str, McpServerConfig]]:
-    """Convert a sequence of MCPServerConfig to list of (name, config) tuples.
-
-    Args:
-        configs: Native MCP server configurations
-
-    Returns:
-        List of (server name, Codex-compatible config) tuples
-    """
+    """Convert a sequence of MCPServerConfig to list of (name, config) tuples."""
     return [mcp_config_to_codex(c) for c in configs]
-
-
-# =============================================================================
-# Event Converters (Codex -> AgentPool)
-# =============================================================================
 
 
 def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None:  # noqa: PLR0911
@@ -125,8 +108,6 @@ def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None
     Returns:
         Native event or None if not convertible
     """
-    from pydantic_ai import TextPartDelta, ThinkingPartDelta
-
     from agentpool.agents.events import (
         CompactionEvent,
         PartDeltaEvent,
@@ -196,25 +177,18 @@ def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None
                 )
             # MCP tool call completed
             if isinstance(item, ThreadItemMcpToolCall):
-                # Format result content as string
-                result_text = ""
+                result_text = ""  # Format result content as string
                 if item.result and item.result.content:
                     # McpContentBlock allows extra fields, cast to dict to access
-                    result_text = "\n".join(
-                        str(dict(block.model_dump()).get("text", ""))
-                        for block in item.result.content
-                    )
+                    texts = [str(i.model_dump().get("text", "")) for i in item.result.content]
+                    result_text = "\n".join(texts)
                 elif item.error:
                     result_text = f"Error: {item.error.message}"
-
+                tool_input = args if isinstance((args := item.arguments), dict) else {"args": args}
                 return ToolCallCompleteEvent(
                     tool_name=item.tool,
                     tool_call_id=item.id,
-                    tool_input=(
-                        item.arguments
-                        if isinstance(item.arguments, dict)
-                        else {"args": item.arguments}
-                    ),
+                    tool_input=tool_input,
                     tool_result=result_text,
                     agent_name="codex",  # Will be overridden by agent
                     message_id=event.data.turn_id,
@@ -226,14 +200,9 @@ def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None
         ):
             # This is streaming tool output - emit as text delta
             return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=event.data.delta))
-
         # Thread compacted - history was summarized
         case "thread/compacted" if isinstance(event.data, ThreadCompactedData):
-            return CompactionEvent(
-                session_id=event.data.thread_id,
-                trigger="auto",
-                phase="completed",
-            )
+            return CompactionEvent(session_id=event.data.thread_id, phase="completed")
 
         # Turn plan updated - agent's plan for current turn
         case "turn/plan/updated" if isinstance(event.data, TurnPlanUpdatedData):
@@ -242,11 +211,7 @@ def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None
                 PlanEntry(
                     content=step.step,
                     priority="medium",  # Codex doesn't provide priority
-                    status=(
-                        "in_progress"
-                        if step.status == "inProgress"
-                        else step.status  # pending/completed map directly
-                    ),
+                    status="in_progress" if step.status == "inProgress" else step.status,
                 )
                 for step in event.data.plan
             ]
@@ -266,8 +231,6 @@ def event_to_part(event: CodexEvent) -> TextPart | ThinkingPart | ToolCallPart |
     Returns:
         Part or None
     """
-    from pydantic_ai import TextPart, ThinkingPart, ToolCallPart
-
     from codex_adapter.models import (
         AgentMessageDeltaData,
         ItemStartedData,

@@ -645,7 +645,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Set the correct return annotation dynamically
         wrapped_tool.__annotations__ = {"prompt": str, "return": self._output_type or Any}
-
         normalized_name = self.name.replace("_", " ").title()
         docstring = f"Get expert answer from specialized agent: {normalized_name}"
         description = description or self.description
@@ -654,7 +653,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         tool_name = name or f"ask_{self.name}"
         wrapped_tool.__doc__ = docstring
         wrapped_tool.__name__ = tool_name
-
         return Tool.from_callable(
             wrapped_tool,
             name_override=tool_name,
@@ -669,8 +667,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         input_provider: InputProvider | None = None,
     ) -> PydanticAgent[TDeps, AgentOutputType]:
         """Create pydantic-ai agent from current state."""
-        # Monkey patch pydantic-ai to recognize AgentContext
-
         from agentpool.agents.native_agent.tool_wrapping import wrap_tool
 
         tools = await self.tools.get_tools(state="enabled")
@@ -1019,9 +1015,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from tokonomics.model_discovery import get_all_models
 
         try:
-            max_age = timedelta(days=200)
             return await get_all_models(
-                providers=self._providers or ["models.dev"], max_age=max_age
+                providers=self._providers or ["models.dev"],
+                max_age=timedelta(days=200),
             )
         except Exception:
             self.log.exception("Failed to discover models")
@@ -1054,6 +1050,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
     async def _set_mode(self, mode_id: str, category_id: str) -> None:
         """Handle permissions and model mode switching."""
+        from agentpool.agents.modes import ConfigOptionChanged
+
         if category_id == "mode":
             # Map mode_id to confirmation mode
             mode_map: dict[str, ToolConfirmationMode] = {
@@ -1064,9 +1062,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 msg = f"Unknown permission mode: {mode_id}. Available: {list(mode_map.keys())}"
                 raise ValueError(msg)
             await self.set_tool_confirmation_mode(mode_map[mode_id])
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
             change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
             await self.state_updated.emit(change)
 
@@ -1108,7 +1103,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         try:
             # Get session IDs from store
             session_ids = await self.agent_pool.sessions.store.list_sessions(agent_name=self.name)
-
             # Load each session to get full SessionData
             result: list[SessionInfo] = []
             storage = self.agent_pool.storage
@@ -1156,7 +1150,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 if provider.can_load_history:
                     messages = await provider.get_conversation_messages(
                         conversation_id=session_data.conversation_id,
-                        include_ancestors=False,
                     )
                     # Restore to conversation history
                     self.conversation.chat_messages.clear()

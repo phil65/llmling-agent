@@ -271,9 +271,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Create providers from tool configs and add to tool manager
         for provider in self.config.get_tool_providers():
             self.tools.add_provider(provider)
-        # Start bridge to expose tools via MCP
-        await self._tool_bridge.start()
-        # Add bridge's MCP server to session
+        await self._tool_bridge.start()  # Start bridge to expose tools via MCP
         mcp_config = self._tool_bridge.get_mcp_server_config()
         self._extra_mcp_servers.append(mcp_config)
 
@@ -630,8 +628,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         from agentpool_server.acp_server.converters import confirmation_mode_to_mode_id
 
         self.tool_confirmation_mode = mode
-        # Update client handler if it exists
-        if self._client_handler:
+        if self._client_handler:  # Update client handler if it exists
             self._client_handler.tool_confirmation_mode = mode
 
         # Forward mode change to remote ACP server if connected
@@ -716,8 +713,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Forward mode change to remote ACP server."""
         from acp.schema import (
             SetSessionConfigOptionRequest,
+            SetSessionModelRequest,
             SetSessionModeRequest,
         )
+        from agentpool.agents.modes import ConfigOptionChanged
 
         if not self._connection or not self._session_id or not self._state:
             msg = "Not connected to ACP server"
@@ -749,9 +748,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Update local state from response
             if response.config_options:
                 self._state.config_options = list(response.config_options)
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
             change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
             await self.state_updated.emit(change)
             self.log.info("Config option changed", config_id=category_id, value=mode_id)
@@ -764,17 +760,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Update local state
             if self._state.modes:
                 self._state.modes.current_mode_id = mode_id
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
             change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
             await self.state_updated.emit(change)
             self.log.info("Mode changed on remote ACP server", mode_id=mode_id)
 
         elif category_id == "model":
             # Legacy: Use set_session_model API
-            from acp.schema import SetSessionModelRequest
-
             request = SetSessionModelRequest(session_id=self._session_id, model_id=mode_id)
             if await self._connection.set_session_model(request):
                 self._state.current_model_id = mode_id
@@ -786,8 +777,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 )
                 raise RuntimeError(msg)
             # Emit state change signal (not emitted by legacy API)
-            from agentpool.agents.modes import ConfigOptionChanged
-
             await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
 
         else:
@@ -802,8 +791,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         Returns:
             List of SessionInfo objects from the ACP server
         """
-        from datetime import datetime
-
         from acp.schema import ListSessionsRequest
         from agentpool.sessions.models import SessionData
         from agentpool.utils.now import get_now
@@ -815,7 +802,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         try:
             request = ListSessionsRequest()
             response = await self._connection.list_sessions(request)
-
             # Convert ACP SessionInfo to agentpool SessionData
             result: list[SessionInfo] = []
             for acp_session in response.sessions:
@@ -859,18 +845,16 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         from agentpool.agents.acp_agent.acp_converters import mcp_configs_to_acp
         from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities
         from agentpool.sessions.models import SessionData
+        from agentpool.utils.now import get_now
 
         if not self._connection:
             self.log.error("Cannot load session: not connected to ACP server")
             return None
 
-        try:
-            # Collect all MCP servers (config + extra) for the load request
+        try:  # Collect all MCP servers (config + extra) for the load request
             all_servers = self._extra_mcp_servers[:]
-            config_servers = self.config.get_mcp_servers()
-            if config_servers:
+            if config_servers := self.config.get_mcp_servers():
                 all_servers.extend(mcp_configs_to_acp(config_servers))
-
             mcp_servers = filter_servers_by_capabilities(all_servers, self._caps, logger=self.log)
             cwd = self.config.cwd or str(Path.cwd())
             load_request = LoadSessionRequest(
@@ -899,8 +883,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 sessions = await self.list_sessions()
                 session_info = next((s for s in sessions if s.session_id == session_id), None)
                 if session_info:
-                    from agentpool.utils.now import get_now
-
                     # Convert SessionInfo to SessionData
                     updated_at = get_now()
                     if session_info.updated_at:
@@ -918,10 +900,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     )
             except Exception:  # noqa: BLE001
                 self.log.debug("Could not fetch session metadata", session_id=session_id)
-
             # Fallback: Return minimal SessionData
-            from agentpool.utils.now import get_now
-
             return SessionData(
                 session_id=session_id,
                 agent_name=self.name,

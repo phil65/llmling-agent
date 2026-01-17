@@ -21,6 +21,9 @@ from uuid import uuid4
 
 import anyio
 from pydantic import BaseModel, HttpUrl
+from pydantic_ai import RunContext
+from pydantic_ai.models.test import TestModel
+from pydantic_ai.usage import RunUsage
 
 from agentpool.agents import Agent
 from agentpool.log import get_logger
@@ -34,7 +37,6 @@ if TYPE_CHECKING:
     from clawd_code_sdk.types import McpServerConfig
     from fastmcp import Context, FastMCP
     from fastmcp.tools.tool import ToolResult
-    from pydantic_ai import RunContext
     from pydantic_ai.messages import UserContent
     from uvicorn import Server
 
@@ -53,16 +55,13 @@ def _is_agent_context_type(annotation: Any) -> bool:
     """Check if annotation is AgentContext."""
     if annotation is None or annotation is inspect.Parameter.empty:
         return False
-
     # Handle string annotations (forward references)
     if isinstance(annotation, str):
         base_name = annotation.split("[")[0].strip()
         return base_name == "AgentContext"
-
     # Check direct class match by name
     if isinstance(annotation, type) and annotation.__name__ == "AgentContext":
         return True
-
     # Check generic origin (e.g., AgentContext[SomeDeps])
     origin = get_origin(annotation)
     if origin is not None:
@@ -71,7 +70,6 @@ def _is_agent_context_type(annotation: Any) -> bool:
         # Handle Union types (e.g., AgentContext | None)
         if origin is type(None) or str(origin) in ("typing.Union", "types.UnionType"):
             return any(_is_agent_context_type(arg) for arg in get_args(annotation))
-
     return False
 
 
@@ -84,16 +82,13 @@ def _is_run_context_type(annotation: Any) -> bool:
     """Check if annotation is pydantic-ai RunContext."""
     if annotation is None or annotation is inspect.Parameter.empty:
         return False
-
     # Handle string annotations (forward references)
     if isinstance(annotation, str):
         base_name = annotation.split("[")[0].strip()
         return base_name == "RunContext"
-
     # Check direct class match by name
     if isinstance(annotation, type) and annotation.__name__ == "RunContext":
         return True
-
     # Check generic origin (e.g., RunContext[SomeDeps])
     origin = get_origin(annotation)
     if origin is not None:
@@ -102,7 +97,6 @@ def _is_run_context_type(annotation: Any) -> bool:
         # Handle Union types (e.g., RunContext | None)
         if origin is type(None) or str(origin) in ("typing.Union", "types.UnionType"):
             return any(_is_run_context_type(arg) for arg in get_args(annotation))
-
     return False
 
 
@@ -128,10 +122,6 @@ def _create_stub_run_context(
     Returns:
         A RunContext with available information populated
     """
-    from pydantic_ai import RunContext
-    from pydantic_ai.models.test import TestModel
-    from pydantic_ai.usage import RunUsage
-
     match ctx.agent:
         case Agent():
             model = ctx.agent._model or TestModel()
@@ -198,20 +188,14 @@ def _extract_tool_call_id(context: Context | None) -> str:
 
     Falls back to generating a UUID if not available.
     """
-    if context is not None:
-        try:
-            request_ctx = context.request_context
-            if request_ctx and request_ctx.meta:
-                # Access extra fields on the Meta object (extra="allow" in pydantic)
-                meta_dict = request_ctx.meta.model_dump()
-                claude_tool_id = meta_dict.get("claudecode/toolUseId")
-                if isinstance(claude_tool_id, str):
-                    logger.debug("Extracted Claude tool_call_id", tool_call_id=claude_tool_id)
-                    return claude_tool_id
-        except (AttributeError, LookupError) as e:
-            logger.warning("Error extracting tool_call_id from MCP context", error=str(e))
-    # Generate fallback UUID if no tool_call_id found in meta
-    return str(uuid4())
+    if context and (request_ctx := context.request_context) and request_ctx.meta:
+        # Access extra fields on the Meta object (extra="allow" in pydantic)
+        meta_dict = request_ctx.meta.model_dump()
+        claude_tool_id = meta_dict.get("claudecode/toolUseId")
+        if isinstance(claude_tool_id, str):
+            logger.debug("Extracted Claude tool_call_id", tool_call_id=claude_tool_id)
+            return claude_tool_id
+    return str(uuid4())  # Generate fallback UUID if no tool_call_id found in meta
 
 
 @dataclass
@@ -226,13 +210,11 @@ class ToolManagerBridge:
 
     Example:
         ```python
-        async with AgentPool() as pool:
-            agent = pool.agents["my_agent"]
-            bridge = ToolManagerBridge(node=agent)
-            async with bridge:
-                # Bridge is running, get MCP config for ACP agent
-                mcp_config = bridge.get_mcp_server_config()
-                # Pass to ACP agent...
+        bridge = ToolManagerBridge(node=agent)
+        async with bridge.set_run_context(...):
+            # Bridge is running, get MCP config for ACP agent
+            mcp_config = bridge.get_mcp_server_config()
+            # Pass to ACP agent...
         ```
     """
 
@@ -424,11 +406,9 @@ class ToolManagerBridge:
     def get_codex_mcp_server_config(self) -> tuple[str, Any]:
         """Get Codex app-server-compatible MCP server configuration.
 
-        Returns a tuple of (server_name, HttpMcpServer) suitable for adding
-        to CodexClient mcp_servers dict.
-
         Returns:
-            Tuple of (server name, HttpMcpServer config)
+            Tuple of (server name, HttpMcpServer config) suitable for adding
+            to CodexClient mcp_servers dict.
 
         Raises:
             RuntimeError: If bridge not started (no server running)
@@ -574,10 +554,7 @@ class ToolManagerBridge:
         """
         from agentpool.tasks import ToolSkippedError
 
-        hooks = self.node.hooks
-
-        # Run pre-tool hooks
-        if hooks:
+        if hooks := self.node.hooks:
             pre_result = await hooks.run_pre_tool_hooks(
                 agent_name=ctx.node_name,
                 tool_name=tool.name,
