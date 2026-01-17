@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
     from codex_adapter import ApprovalPolicy, CodexClient, ReasoningEffort, SandboxMode
+    from codex_adapter.events import CodexEvent
 
 
 logger = get_logger(__name__)
@@ -355,7 +356,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         Yields:
             Stream events from Codex execution
         """
-        from agentpool.agents.codex_agent.codex_converters import codex_to_native_event
+        from agentpool.agents.codex_agent.codex_converters import convert_codex_stream
         from agentpool.agents.events import PlanUpdateEvent
         from agentpool.messaging.messages import TokenCost
         from codex_adapter.models import ThreadTokenUsageUpdatedData
@@ -383,47 +384,56 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         token_usage_data: dict[str, int] | None = None
         # Pass output type directly - adapter handles conversion to JSON schema
         output_schema = None if self._output_type is str else self._output_type
+
+        async def capture_token_usage(
+            raw_events: AsyncIterator[CodexEvent],
+        ) -> AsyncIterator[CodexEvent]:
+            """Wrapper to capture token usage before event conversion."""
+            nonlocal token_usage_data
+            async for event in raw_events:
+                if event.event_type == "thread/tokenUsage/updated" and isinstance(
+                    event.data, ThreadTokenUsageUpdatedData
+                ):
+                    usage = event.data.token_usage.last
+                    token_usage_data = {
+                        "input_tokens": usage.input_tokens,
+                        "output_tokens": usage.output_tokens,
+                        "cache_read_tokens": usage.cached_input_tokens,
+                        "reasoning_tokens": usage.reasoning_output_tokens,
+                    }
+                yield event
+
         try:
             async with self._tool_bridge.set_run_context(deps, input_provider, prompt=prompts):
-                async for event in self._client.turn_stream(
+                raw_stream = self._client.turn_stream(
                     self._thread_id,
                     prompt_text,
                     model=self._current_model,
                     approval_policy=self._approval_policy,
                     sandbox_policy=self._current_sandbox,
                     output_schema=output_schema,
-                ):
-                    # Capture token usage from Codex event before conversion
-                    if event.event_type == "thread/tokenUsage/updated" and isinstance(
-                        event.data, ThreadTokenUsageUpdatedData
+                )
+                # Wrap to capture token usage, then convert to native events
+                async for native_event in convert_codex_stream(capture_token_usage(raw_stream)):
+                    await event_handlers(None, native_event)
+                    yield native_event
+
+                    # Handle plan updates - sync to pool.todos
+                    if (
+                        isinstance(native_event, PlanUpdateEvent)
+                        and self.agent_pool
+                        and self.agent_pool.todos
                     ):
-                        usage = event.data.token_usage.last
-                        token_usage_data = {
-                            "input_tokens": usage.input_tokens,
-                            "output_tokens": usage.output_tokens,
-                            "cache_read_tokens": usage.cached_input_tokens,
-                            "reasoning_tokens": usage.reasoning_output_tokens,
-                        }
+                        # Replace all entries in pool.todos with Codex plan
+                        self.agent_pool.todos.replace_all([
+                            (e.content, e.priority, e.status) for e in native_event.entries
+                        ])
 
-                    # Convert Codex event to native event
-                    if native_event := codex_to_native_event(event):
-                        await event_handlers(None, native_event)
-                        yield native_event  # type: ignore[misc]
-
-                        # Handle plan updates - sync to pool.todos
-                        if (
-                            isinstance(native_event, PlanUpdateEvent)
-                            and self.agent_pool
-                            and self.agent_pool.todos
-                        ):
-                            # Replace all entries in pool.todos with Codex plan
-                            self.agent_pool.todos.replace_all([
-                                (e.content, e.priority, e.status) for e in native_event.entries
-                            ])
-
-                        match native_event:
-                            case PartDeltaEvent(delta=TextPartDelta(content_delta=text)):
-                                accumulated_text.append(text)
+                    # Accumulate text for final message
+                    if isinstance(native_event, PartDeltaEvent) and isinstance(
+                        native_event.delta, TextPartDelta
+                    ):
+                        accumulated_text.append(native_event.delta.content_delta)
 
         except Exception as e:
             self.log.exception("Error during Codex turn", error=str(e))
@@ -606,7 +616,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 id="sandbox",
                 name="Sandbox Mode",
                 available_modes=SANDBOX_MODES,
-                current_mode_id=self._current_sandbox or "workspaceWrite",
+                current_mode_id=self._current_sandbox or "workspace-write",
                 category="other",
             )
         )
@@ -696,7 +706,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
 
         elif category_id == "sandbox":
-            valid = ["readOnly", "workspaceWrite", "dangerFullAccess", "externalSandbox"]
+            valid = ["read-only", "workspace-write", "danger-full-access", "external-sandbox"]
             if mode_id not in valid:
                 msg = f"Invalid sandbox mode: {mode_id}. Valid: {valid}"
                 raise ValueError(msg)

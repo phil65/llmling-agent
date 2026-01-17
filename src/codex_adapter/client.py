@@ -58,6 +58,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _kebab_to_camel(s: str) -> str:
+    """Convert kebab-case to camelCase."""
+    parts = s.split("-")
+    return parts[0] + "".join(p.capitalize() for p in parts[1:])
+
+
 def _mcp_config_to_toml_inline(name: str, config: McpServerConfig) -> str:
     """Convert MCP server config to TOML inline table format.
 
@@ -470,10 +476,13 @@ class CodexClient:
                 schema_dict = adapter.json_schema()
 
         # Handle sandbox_policy - convert string to dict if needed
+        # Turn-level API uses camelCase (workspaceWrite), thread-level uses kebab-case
         sandbox_dict: dict[str, Any] | None = None
         if sandbox_policy is not None:
             if isinstance(sandbox_policy, str):
-                sandbox_dict = {"type": sandbox_policy}
+                # Convert kebab-case to camelCase for turn API
+                camel_mode = _kebab_to_camel(sandbox_policy)
+                sandbox_dict = {"type": camel_mode}
             else:
                 sandbox_dict = sandbox_policy
 

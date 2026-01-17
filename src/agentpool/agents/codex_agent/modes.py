@@ -45,19 +45,19 @@ POLICY_MODES = [
 
 SANDBOX_MODES = [
     ModeInfo(
-        id="readOnly",
+        id="read-only",
         name="Read Only",
         description="Sandbox with read-only file access",
         category_id="sandbox",
     ),
     ModeInfo(
-        id="workspaceWrite",
+        id="workspace-write",
         name="Workspace Write",
         description="Can write files within workspace directory",
         category_id="sandbox",
     ),
     ModeInfo(
-        id="dangerFullAccess",
+        id="danger-full-access",
         name="Full Access",
         description="Full filesystem access (dangerous)",
         category_id="sandbox",
@@ -186,7 +186,7 @@ class CodexSandboxCategory(ModeCategoryProtocol["CodexAgent"]):
 
     def get_current(self, agent: CodexAgent) -> str:
         """Get current sandbox mode from agent."""
-        return agent._current_sandbox or "workspaceWrite"
+        return agent._current_sandbox or "workspace-write"
 
     async def apply(self, agent: CodexAgent, mode_id: str) -> None:
         """Apply sandbox mode."""

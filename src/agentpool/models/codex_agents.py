@@ -73,15 +73,14 @@ class CodexAgentConfig(BaseAgentConfig):
     """
 
     sandbox: SandboxMode = Field(
-        default="workspaceWrite",
+        default="workspace-write",
         title="Sandbox Mode",
-        examples=["workspaceWrite", "readOnly", "dangerFullAccess"],
+        examples=["workspace-write", "read-only", "danger-full-access"],
     )
     """Sandbox mode for file operations.
-
-    - "readOnly": Can only read files, no modifications
-    - "workspaceWrite": Can write within workspace directory (default if not specified)
-    - "dangerFullAccess": Full filesystem access (use with caution)
+    - "read-only": Can only read files, no modifications
+    - "workspace-write": Can write within workspace directory (default if not specified)
+    - "danger-full-access": Full filesystem access (use with caution)
     - "externalSandbox": Use external sandbox environment
 
     If not specified, Codex uses its default sandbox policy.

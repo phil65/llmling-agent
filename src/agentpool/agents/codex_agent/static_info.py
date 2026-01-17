@@ -33,19 +33,19 @@ POLICY_MODES = [
 
 SANDBOX_MODES = [
     ModeInfo(
-        id="readOnly",
+        id="read-only",
         name="Read Only",
         description="Sandbox with read-only file access",
         category_id="sandbox",
     ),
     ModeInfo(
-        id="workspaceWrite",
+        id="workspace-write",
         name="Workspace Write",
         description="Can write files within workspace directory",
         category_id="sandbox",
     ),
     ModeInfo(
-        id="dangerFullAccess",
+        id="danger-full-access",
         name="Full Access",
         description="Full filesystem access (dangerous)",
         category_id="sandbox",

@@ -7,7 +7,7 @@ Provides converters for:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from pydantic_ai import (
     BuiltinToolCallPart,
@@ -22,7 +22,7 @@ from pydantic_ai import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import AsyncIterator, Sequence
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool_config.mcp_server import (
@@ -109,7 +109,7 @@ def mcp_configs_to_codex(
     return [mcp_config_to_codex(c) for c in configs]
 
 
-def _format_tool_result(item: ThreadItem) -> str:
+def _format_tool_result(item: ThreadItem) -> str:  # noqa: PLR0911
     """Format tool result from a completed ThreadItem.
 
     Args:
@@ -118,11 +118,28 @@ def _format_tool_result(item: ThreadItem) -> str:
     Returns:
         Formatted result string
     """
-    from codex_adapter.models import ThreadItemCommandExecution, ThreadItemMcpToolCall
+    from codex_adapter.models import (
+        ThreadItemCommandExecution,
+        ThreadItemFileChange,
+        ThreadItemMcpToolCall,
+    )
 
     match item:
         case ThreadItemCommandExecution():
-            return item.aggregated_output or ""
+            output = item.aggregated_output or ""
+            if output:
+                return f"```\n{output}\n```"
+            return ""
+        case ThreadItemFileChange():
+            # Format file changes with their diffs
+            parts = []
+            for change in item.changes:
+                kind = change.kind.kind  # "add", "delete", or "update"
+                path = change.path
+                parts.append(f"{kind.upper()}: {path}")
+                if change.diff:
+                    parts.append(change.diff)
+            return "\n".join(parts)
         case ThreadItemMcpToolCall():
             if item.result and item.result.content:
                 texts = [str(block.model_dump().get("text", "")) for block in item.result.content]
@@ -264,19 +281,27 @@ def _thread_item_to_tool_call_part(
             return None
 
 
-def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None:  # noqa: PLR0911
-    """Convert Codex streaming event to native AgentPool event.
+async def convert_codex_stream(  # noqa: PLR0915
+    events: AsyncIterator[CodexEvent],
+) -> AsyncIterator[RichAgentStreamEvent[Any]]:
+    """Convert Codex event stream to native events with stateful accumulation.
+
+    This async generator handles stateful conversion of Codex events, including:
+    - Accumulating command execution output deltas into ToolCallProgressEvents
+    - Accumulating file change output deltas into ToolCallProgressEvents
+    - Simple 1:1 conversion for other event types
 
     Args:
-        event: Codex event from app-server
+        events: Async iterator of Codex events from the app-server
 
-    Returns:
-        Native event or None if not convertible
+    Yields:
+        Native AgentPool stream events
     """
     from agentpool.agents.events import (
         CompactionEvent,
         PartDeltaEvent,
         PlanUpdateEvent,
+        TextContentItem,
         ToolCallCompleteEvent,
         ToolCallProgressEvent,
         ToolCallStartEvent,
@@ -285,90 +310,141 @@ def codex_to_native_event(event: CodexEvent) -> RichAgentStreamEvent[str] | None
     from codex_adapter.models import (
         AgentMessageDeltaData,
         CommandExecutionOutputDeltaData,
+        FileChangeOutputDeltaData,
         ItemCompletedData,
         ItemStartedData,
         McpToolCallProgressData,
         ReasoningTextDeltaData,
         ThreadCompactedData,
         ThreadItemCommandExecution,
+        ThreadItemFileChange,
         ThreadItemMcpToolCall,
         TurnPlanUpdatedData,
     )
 
-    match event.event_type:
-        # Text deltas from agent messages
-        case "item/agentMessage/delta" if isinstance(event.data, AgentMessageDeltaData):
-            return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=event.data.delta))
+    # Accumulation state for streaming tool outputs
+    tool_outputs: dict[str, list[str]] = {}
 
-        # Reasoning/thinking deltas
-        case "item/reasoning/textDelta" if isinstance(event.data, ReasoningTextDeltaData):
-            return PartDeltaEvent(index=0, delta=ThinkingPartDelta(content_delta=event.data.delta))
+    async for event in events:
+        match event.event_type:
+            # === Stateful: Accumulate command execution output ===
+            case "item/commandExecution/outputDelta" if isinstance(
+                event.data, CommandExecutionOutputDeltaData
+            ):
+                item_id = event.data.item_id
+                if item_id not in tool_outputs:
+                    tool_outputs[item_id] = []
+                tool_outputs[item_id].append(event.data.delta)
 
-        # Tool/command started
-        case "item/started" if isinstance(event.data, ItemStartedData):
-            item = event.data.item
-            if part := _thread_item_to_tool_call_part(item):
-                # Extract title based on tool type
-                match item:
-                    case ThreadItemCommandExecution():
-                        title = f"Execute: {item.command}"
-                    case ThreadItemMcpToolCall():
-                        title = f"Call {item.tool}"
-                    case _:
-                        title = f"Call {part.tool_name}"
-
-                return ToolCallStartEvent(
-                    tool_call_id=part.tool_call_id,
-                    tool_name=part.tool_name,
-                    title=title,
-                    raw_input=part.args_as_dict(),
+                # Emit accumulated progress with replace semantics, wrapped in code block
+                output = "".join(tool_outputs[item_id])
+                yield ToolCallProgressEvent(
+                    tool_call_id=item_id,
+                    items=[TextContentItem(text=f"```\n{output}\n```")],
+                    replace_content=True,
                 )
 
-        # Tool/command completed
-        case "item/completed" if isinstance(event.data, ItemCompletedData):
-            item = event.data.item
-            if part := _thread_item_to_tool_call_part(item):
-                return ToolCallCompleteEvent(
-                    tool_name=part.tool_name,
-                    tool_call_id=part.tool_call_id,
-                    tool_input=part.args_as_dict(),
-                    tool_result=_format_tool_result(item),
-                    agent_name="codex",  # Will be overridden by agent
-                    message_id=event.data.turn_id,
+            # === File change output delta - ignore the summary, we show diff from item/started ===
+            case "item/fileChange/outputDelta" if isinstance(event.data, FileChangeOutputDeltaData):
+                # The outputDelta is just "Success. Updated..." summary - not useful
+                # We already emitted the actual diff content in item/started
+                pass
+
+            # === Stateless: Text deltas from agent messages ===
+            case "item/agentMessage/delta" if isinstance(event.data, AgentMessageDeltaData):
+                yield PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=event.data.delta))
+
+            # === Stateless: Reasoning/thinking deltas ===
+            case "item/reasoning/textDelta" if isinstance(event.data, ReasoningTextDeltaData):
+                yield PartDeltaEvent(
+                    index=0, delta=ThinkingPartDelta(content_delta=event.data.delta)
                 )
 
-        # Command execution output streaming
-        case "item/commandExecution/outputDelta" if isinstance(
-            event.data, CommandExecutionOutputDeltaData
-        ):
-            # This is streaming tool output - emit as text delta
-            return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=event.data.delta))
+            # === Stateless: Tool/command started ===
+            case "item/started" if isinstance(event.data, ItemStartedData):
+                item = event.data.item
+                if part := _thread_item_to_tool_call_part(item):
+                    # Extract title based on tool type
+                    match item:
+                        case ThreadItemCommandExecution():
+                            title = f"Execute: {item.command}"
+                        case ThreadItemFileChange():
+                            # Build title from file paths
+                            paths = [c.path for c in item.changes[:3]]  # First 3 paths
+                            if len(item.changes) > 3:  # noqa: PLR2004
+                                title = f"Edit: {', '.join(paths)} (+{len(item.changes) - 3} more)"
+                            else:
+                                title = f"Edit: {', '.join(paths)}"
+                        case ThreadItemMcpToolCall():
+                            title = f"Call {item.tool}"
+                        case _:
+                            title = f"Call {part.tool_name}"
 
-        # MCP tool call progress
-        case "item/mcpToolCall/progress" if isinstance(event.data, McpToolCallProgressData):
-            return ToolCallProgressEvent(
-                tool_call_id=event.data.item_id,
-                message=event.data.message,
-            )
+                    yield ToolCallStartEvent(
+                        tool_call_id=part.tool_call_id,
+                        tool_name=part.tool_name,
+                        title=title,
+                        raw_input=part.args_as_dict(),
+                    )
 
-        # Thread compacted - history was summarized
-        case "thread/compacted" if isinstance(event.data, ThreadCompactedData):
-            return CompactionEvent(session_id=event.data.thread_id, phase="completed")
+                    # For file changes, immediately emit the diff as progress
+                    if isinstance(item, ThreadItemFileChange):
+                        diff_parts = []
+                        for change in item.changes:
+                            kind = change.kind.kind
+                            path = change.path
+                            diff_parts.append(f"{kind.upper()}: {path}")
+                            if change.diff:
+                                diff_parts.append(change.diff)
+                        if diff_parts:
+                            yield ToolCallProgressEvent(
+                                tool_call_id=part.tool_call_id,
+                                items=[TextContentItem(text="\n".join(diff_parts))],
+                            )
 
-        # Turn plan updated - agent's plan for current turn
-        case "turn/plan/updated" if isinstance(event.data, TurnPlanUpdatedData):
-            # Convert Codex steps to PlanEntry format
-            entries = [
-                PlanEntry(
-                    content=step.step,
-                    priority="medium",  # Codex doesn't provide priority
-                    status="in_progress" if step.status == "inProgress" else step.status,
+            # === Stateful: Tool/command completed - clean up accumulator ===
+            case "item/completed" if isinstance(event.data, ItemCompletedData):
+                item = event.data.item
+                # Clean up accumulated output for this item
+                if hasattr(item, "id") and item.id in tool_outputs:
+                    del tool_outputs[item.id]
+
+                if part := _thread_item_to_tool_call_part(item):
+                    yield ToolCallCompleteEvent(
+                        tool_name=part.tool_name,
+                        tool_call_id=part.tool_call_id,
+                        tool_input=part.args_as_dict(),
+                        tool_result=_format_tool_result(item),
+                        agent_name="codex",  # Will be overridden by agent
+                        message_id=event.data.turn_id,
+                    )
+
+            # === Stateless: MCP tool call progress ===
+            case "item/mcpToolCall/progress" if isinstance(event.data, McpToolCallProgressData):
+                yield ToolCallProgressEvent(
+                    tool_call_id=event.data.item_id,
+                    message=event.data.message,
                 )
-                for step in event.data.plan
-            ]
-            return PlanUpdateEvent(entries=entries)
 
-    return None
+            # === Stateless: Thread compacted ===
+            case "thread/compacted" if isinstance(event.data, ThreadCompactedData):
+                yield CompactionEvent(session_id=event.data.thread_id, phase="completed")
+
+            # === Stateless: Turn plan updated ===
+            case "turn/plan/updated" if isinstance(event.data, TurnPlanUpdatedData):
+                entries = [
+                    PlanEntry(
+                        content=step.step,
+                        priority="medium",  # Codex doesn't provide priority
+                        status="in_progress" if step.status == "inProgress" else step.status,
+                    )
+                    for step in event.data.plan
+                ]
+                yield PlanUpdateEvent(entries=entries)
+
+            # Ignore other events (token usage, turn started/completed, etc.)
+            case _:
+                pass
 
 
 def event_to_part(
