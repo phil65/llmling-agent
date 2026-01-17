@@ -222,8 +222,7 @@ class EventManager:
         from evented.base import EventSource
 
         if config.name in self._sources:
-            msg = f"Event source already exists: {config.name}"
-            raise ValueError(msg)
+            raise ValueError(f"Event source already exists: {config.name}")
 
         try:
             source = EventSource.from_config(config)

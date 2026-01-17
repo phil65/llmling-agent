@@ -210,8 +210,7 @@ class OpenCodeSharer(TextSharer):
             msg = f"OpenCode API error (HTTP {e.response.status_code}): {e.response.text}"
             raise RuntimeError(msg) from e
         except httpx.RequestError as e:
-            msg = f"Failed to connect to OpenCode API: {e}"
-            raise RuntimeError(msg) from e
+            raise RuntimeError(f"Failed to connect to OpenCode API: {e}") from e
 
     async def _share_chat_messages(
         self,
@@ -248,8 +247,7 @@ class OpenCodeSharer(TextSharer):
             ```
         """
         if not messages:
-            msg = "Must provide at least one message"
-            raise ValueError(msg)
+            raise ValueError("Must provide at least one message")
 
         try:
             session_id = str(uuid.uuid4())
@@ -355,13 +353,11 @@ class OpenCodeSharer(TextSharer):
                 msg = "OpenCode API endpoint not found - service may be unavailable"
                 raise RuntimeError(msg) from e
             if e.response.status_code == 429:  # noqa: PLR2004
-                msg = "Rate limited by OpenCode API"
-                raise RuntimeError(msg) from e
+                raise RuntimeError("Rate limited by OpenCode API") from e
             msg = f"OpenCode API error (HTTP {e.response.status_code}): {e.response.text}"
             raise RuntimeError(msg) from e
         except httpx.RequestError as e:
-            msg = f"Failed to connect to OpenCode API: {e}"
-            raise RuntimeError(msg) from e
+            raise RuntimeError(f"Failed to connect to OpenCode API: {e}") from e
 
     async def share_conversation(
         self,

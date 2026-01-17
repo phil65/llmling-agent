@@ -426,14 +426,12 @@ class AgentsManifest(Schema):
                                     case "agui_agent":
                                         normalized.append(AGUIAgentWorkerConfig(**config))
                                     case _:
-                                        msg = f"Invalid worker type: {worker_type}"
-                                        raise ValueError(msg)
+                                        raise ValueError(f"Invalid worker type: {worker_type}")
                             else:
                                 # Determine type based on worker name
                                 worker_name = config.get("name")
                                 if not worker_name:
-                                    msg = "Worker config missing name"
-                                    raise ValueError(msg)
+                                    raise ValueError("Worker config missing name")
 
                                 if worker_name in teams:
                                     normalized.append(TeamWorkerConfig(**config))
@@ -451,8 +449,7 @@ class AgentsManifest(Schema):
                             normalized.append(worker)
 
                         case _:
-                            msg = f"Invalid worker configuration: {worker}"
-                            raise ValueError(msg)
+                            raise ValueError(f"Invalid worker configuration: {worker}")
 
                 if isinstance(agent_config, dict):
                     agent_config["workers"] = normalized
@@ -516,19 +513,16 @@ class AgentsManifest(Schema):
             ValueError: If new name already exists or if overrides invalid
         """
         if name not in self.agents:
-            msg = f"Agent {name} not found"
-            raise KeyError(msg)
+            raise KeyError(f"Agent {name} not found")
 
         actual_name = new_name or f"{name}_copy_{len(self.agents)}"
         if actual_name in self.agents:
-            msg = f"Agent {actual_name} already exists"
-            raise ValueError(msg)
+            raise ValueError(f"Agent {actual_name} already exists")
 
         config = self.agents[name].model_copy(deep=True)
         for key, value in overrides.items():
             if not hasattr(config, key):
-                msg = f"Invalid override: {key}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid override: {key}")
             setattr(config, key, value)
 
         # Handle template rendering if context provided
@@ -560,8 +554,8 @@ class AgentsManifest(Schema):
             except Exception as e:
                 path = reference if isinstance(reference, str) else reference.path
                 logger.exception("Failed to load file agent %r from %s", name, path)
-                msg = f"Failed to load file agent {name!r} from {path}: {e}"
-                raise ValueError(msg) from e
+
+                raise ValueError(f"Failed to load file agent {name!r} from {path}: {e}") from e
         return loaded
 
     @property
@@ -658,8 +652,8 @@ class AgentsManifest(Schema):
     #             isinstance(agent.output_type, str)
     #             and agent.output_type not in self.responses
     #         ):
-    #             msg = f"'{agent.output_type=}' for '{agent_id=}' not found in responses"
-    #             raise ValueError(msg)
+    #
+    #             raise ValueError(f"'{agent.output_type=}' for '{agent_id=}' not found")
     #     return self
 
     @classmethod
@@ -696,8 +690,7 @@ class AgentsManifest(Schema):
                 }
             )
         except Exception as exc:
-            msg = f"Failed to load agent config from {path}"
-            raise ValueError(msg) from exc
+            raise ValueError(f"Failed to load agent config from {path}") from exc
 
     def get_output_type(self, agent_name: str) -> type[Any] | None:
         """Get the resolved result type for an agent.

@@ -66,8 +66,7 @@ class ResourceInfo:
             RuntimeError: If no reader is available or read fails
         """
         if self._reader is None:
-            msg = f"No reader available for resource: {self.uri}"
-            raise RuntimeError(msg)
+            raise RuntimeError(f"No reader available for resource: {self.uri}")
         return await self._reader(self.uri)
 
     @property

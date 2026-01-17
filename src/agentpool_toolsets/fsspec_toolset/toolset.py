@@ -943,8 +943,7 @@ class FSSpecTools(ResourceProvider):
             # Resolve start position
             if isinstance(start, int):
                 if start < 1:
-                    msg = f"start line must be >= 1, got {start}"
-                    raise ValueError(msg)  # noqa: TRY301
+                    raise ValueError(f"start line must be >= 1, got {start}")  # noqa: TRY301
                 start_line = start
             else:
                 # Find unique occurrence of start string (raises ValueError if not found/unique)
@@ -953,8 +952,7 @@ class FSSpecTools(ResourceProvider):
             # Resolve end position
             if isinstance(end, int):
                 if end < start_line:
-                    msg = f"end line {end} must be >= start line {start_line}"
-                    raise ValueError(msg)  # noqa: TRY301
+                    raise ValueError(f"end line {end} must be >= start line {start_line}")  # noqa: TRY301
                 end_line = end
             else:
                 # Find first occurrence of end string after start (raises ValueError if not found)
@@ -962,8 +960,7 @@ class FSSpecTools(ResourceProvider):
 
             # Validate range
             if end_line > total_lines:
-                msg = f"end_line {end_line} exceeds file length {total_lines}"
-                raise ValueError(msg)  # noqa: TRY301
+                raise ValueError(f"end_line {end_line} exceeds file length {total_lines}")  # noqa: TRY301
 
             # Convert to 0-based indexing for array access
             start_idx = start_line - 1

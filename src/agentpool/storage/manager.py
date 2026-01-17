@@ -126,8 +126,7 @@ class StorageManager:
         await self.task_manager.cleanup_tasks()
 
         if errors:
-            msg = "Provider cleanup errors"
-            raise ExceptionGroup(msg, errors)
+            raise ExceptionGroup("Provider cleanup errors", errors)
 
     def cleanup(self) -> None:
         """Clean up all providers."""
@@ -189,8 +188,7 @@ class StorageManager:
 
                 return ZedStorageProvider(provider_config)
             case _:
-                msg = f"Unknown provider type: {provider_config}"
-                raise ValueError(msg)
+                raise ValueError(f"Unknown provider type: {provider_config}")
 
     def get_history_provider(self, preferred: str | None = None) -> StorageProvider:
         """Get provider for loading history.
@@ -229,8 +227,7 @@ class StorageManager:
             if provider.can_load_history:
                 return provider
 
-        msg = "No capable provider found for loading history"
-        raise RuntimeError(msg)
+        raise RuntimeError("No capable provider found for loading history")
 
     @method_spawner
     async def filter_messages(
@@ -823,8 +820,8 @@ class StorageManager:
         """
         if self.providers:
             return self.providers[0]
-        msg = "No provider found that supports project storage"
-        raise RuntimeError(msg)
+
+        raise RuntimeError("No provider found that supports project storage")
 
     @method_spawner
     async def save_project(self, project: ProjectData) -> None:

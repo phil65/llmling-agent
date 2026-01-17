@@ -74,8 +74,7 @@ class AggregatingServer(BaseServer):
             raise_exceptions: Whether to raise exceptions during server start
         """
         if not servers:
-            msg = "At least one server must be provided"
-            raise ValueError(msg)
+            raise ValueError("At least one server must be provided")
 
         super().__init__(pool, name=name, raise_exceptions=raise_exceptions)
 
@@ -101,8 +100,7 @@ class AggregatingServer(BaseServer):
                         raise
 
             if not self._initialized_servers:
-                msg = "No servers were successfully initialized"
-                raise RuntimeError(msg)  # noqa: TRY301
+                raise RuntimeError("No servers were successfully initialized")  # noqa: TRY301
 
             self.log.info(
                 "All servers initialized",
@@ -160,8 +158,7 @@ class AggregatingServer(BaseServer):
                     raise
 
         if not server_tasks:
-            msg = "No servers were successfully started"
-            raise RuntimeError(msg)
+            raise RuntimeError("No servers were successfully started")
 
         self.log.info(
             "All servers started",
@@ -218,8 +215,7 @@ class AggregatingServer(BaseServer):
             RuntimeError: If aggregating server is currently running
         """
         if self.is_running:
-            msg = "Cannot add server while aggregating server is running"
-            raise RuntimeError(msg)
+            raise RuntimeError("Cannot add server while aggregating server is running")
 
         self.servers.append(server)
         self.log.info("Added server to aggregation", server=server.name)
@@ -235,15 +231,13 @@ class AggregatingServer(BaseServer):
             ValueError: If server is not in aggregation
         """
         if self.is_running:
-            msg = "Cannot remove server while aggregating server is running"
-            raise RuntimeError(msg)
+            raise RuntimeError("Cannot remove server while aggregating server is running")
 
         try:
             self.servers.remove(server)
             self.log.info("Removed server from aggregation", server=server.name)
         except ValueError as e:
-            msg = f"Server {server.name} not found in aggregation"
-            raise ValueError(msg) from e
+            raise ValueError(f"Server {server.name} not found in aggregation") from e
 
     def get_server(self, name: str) -> BaseServer | None:
         """Get a server by name from the aggregation.

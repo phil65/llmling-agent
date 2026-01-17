@@ -35,12 +35,10 @@ def _validate_path(path: str | os.PathLike[str]) -> Path:
 
         path = sys.modules["__main__"].__file__  # type: ignore
         if not path:
-            msg = "Could not determine main module file"
-            raise ValueError(msg)
+            raise ValueError("Could not determine main module file")
     path_obj = Path(path)
     if not path_obj.exists():
-        msg = f"Module not found: {path}"
-        raise ValueError(msg)
+        raise ValueError(f"Module not found: {path}")
     return path_obj
 
 
@@ -61,8 +59,7 @@ def discover_functions(path: str | os.PathLike[str]) -> list[NodeFunction]:
     # Import module
     spec = importlib.util.spec_from_file_location(path_obj.stem, path_obj)
     if not spec or not spec.loader:
-        msg = f"Could not load module: {path}"
-        raise ImportError(msg)
+        raise ImportError(f"Could not load module: {path}")
 
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -95,16 +92,14 @@ def _sort_functions(functions: list[NodeFunction]) -> list[NodeFunction]:
         if func.name in seen:
             return
         if func.name in in_progress:
-            msg = f"Circular dependency detected: {func.name}"
-            raise ValueError(msg)
+            raise ValueError(f"Circular dependency detected: {func.name}")
 
         in_progress.add(func.name)
         # Add dependencies first
         for dep in func.depends_on:
             dep_fn = next((f for f in ordered if f.name == dep), None)
             if not dep_fn:
-                msg = f"Missing dependency {dep} for {func.name}"
-                raise ValueError(msg)
+                raise ValueError(f"Missing dependency {dep} for {func.name}")
             add_function(dep_fn)
 
         result.append(func)
@@ -181,8 +176,7 @@ async def execute_single(
         # Add and validate dependency results
         for dep in func.depends_on:
             if dep not in available_results:
-                msg = f"Missing result from {dep}"
-                raise ExecutionError(msg)  # noqa: TRY301
+                raise ExecutionError(f"Missing result from {dep}")  # noqa: TRY301
 
             value = available_results[dep]
             if dep in hints:  # If parameter is type hinted
@@ -197,8 +191,7 @@ async def execute_single(
         if "return" in hints:
             _validate_value_type(result, hints["return"], func.name, "return")
     except Exception as e:
-        msg = f"Error executing {func.name}: {e}"
-        raise ExecutionError(msg) from e
+        raise ExecutionError(f"Error executing {func.name}: {e}") from e
     else:
         return func.name, result
 

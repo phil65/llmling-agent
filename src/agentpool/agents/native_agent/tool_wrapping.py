@@ -189,11 +189,8 @@ async def _handle_confirmation_result(result: str, name: str) -> None:
     """Handle non-allow confirmation results."""
     match result:
         case "skip":
-            msg = f"Tool {name} execution skipped"
-            raise ToolSkippedError(msg)
+            raise ToolSkippedError(f"Tool {name} execution skipped")
         case "abort_run":
-            msg = "Run aborted by user"
-            raise RunAbortedError(msg)
+            raise RunAbortedError("Run aborted by user")
         case "abort_chain":
-            msg = "Agent chain aborted by user"
-            raise ChainAbortedError(msg)
+            raise ChainAbortedError("Agent chain aborted by user")

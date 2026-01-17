@@ -59,8 +59,7 @@ async def run_nodes_async(
                 break
             frame = frame.f_back
         if not frame:
-            msg = "Could not determine calling module"
-            raise RuntimeError(msg)
+            raise RuntimeError("Could not determine calling module")
         discovered = discover_functions(frame.f_globals["__file__"])
 
     if functions:

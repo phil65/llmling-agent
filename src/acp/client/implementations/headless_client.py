@@ -159,8 +159,7 @@ class HeadlessACPClient(Client):
         """Get output from terminal."""
         terminal_id = params.terminal_id
         if terminal_id not in self.terminals:
-            msg = f"Terminal {terminal_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Terminal {terminal_id} not found")
         try:
             process_id = self.terminals[terminal_id]
             output = await self.process_manager.get_output(process_id)
@@ -175,8 +174,7 @@ class HeadlessACPClient(Client):
         """Wait for terminal process to exit."""
         terminal_id = params.terminal_id
         if terminal_id not in self.terminals:
-            msg = f"Terminal {terminal_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Terminal {terminal_id} not found")
         try:
             process_id = self.terminals[terminal_id]
             exit_code = await self.process_manager.wait_for_exit(process_id)
@@ -192,8 +190,7 @@ class HeadlessACPClient(Client):
         """Kill terminal process."""
         terminal_id = params.terminal_id
         if terminal_id not in self.terminals:
-            msg = f"Terminal {terminal_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Terminal {terminal_id} not found")
         try:
             process_id = self.terminals[terminal_id]
             await self.process_manager.kill_process(process_id)
@@ -209,8 +206,7 @@ class HeadlessACPClient(Client):
         """Release terminal resources."""
         terminal_id = params.terminal_id
         if terminal_id not in self.terminals:
-            msg = f"Terminal {terminal_id} not found"
-            raise ValueError(msg)
+            raise ValueError(f"Terminal {terminal_id} not found")
         try:
             process_id = self.terminals[terminal_id]
             await self.process_manager.release_process(process_id)

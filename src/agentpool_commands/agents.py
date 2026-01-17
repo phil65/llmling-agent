@@ -68,8 +68,7 @@ class CreateAgentCommand(NodeCommand):
         """
         try:
             if not ctx.context.pool:
-                msg = "No agent pool available"
-                raise CommandError(msg)
+                raise CommandError("No agent pool available")
 
             # Get model from args or current agent
             current_agent = ctx.context.agent
@@ -89,8 +88,7 @@ class CreateAgentCommand(NodeCommand):
             await ctx.print(f"{msg}\n\n💡 Use `/connect {agent_name}` to forward messages")
 
         except ValueError as e:
-            msg = f"Failed to create agent: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to create agent: {e}") from e
 
 
 class ShowAgentCommand(NodeCommand):
@@ -153,8 +151,7 @@ class ListAgentsCommand(NodeCommand):
             ctx: Command context
         """
         if not ctx.context.pool:
-            msg = "No agent pool available"
-            raise CommandError(msg)
+            raise CommandError("No agent pool available")
 
         rows = []
         # Iterate over all nodes in the pool
@@ -191,8 +188,7 @@ class SwitchAgentCommand(NodeCommand):
             ctx: Command context
             agent_name: Name of the agent to switch to
         """
-        msg = "Temporarily disabled"
-        raise RuntimeError(msg)
+        raise RuntimeError("Temporarily disabled")
 
     def get_completer(self) -> CallbackCompleter:
         """Get completer for agent names."""
@@ -235,20 +231,17 @@ class CreateTeamCommand(NodeCommand):
             mode: How the team operates (sequential or parallel)
         """
         if not ctx.context.pool:
-            msg = "No agent pool available"
-            raise CommandError(msg)
+            raise CommandError("No agent pool available")
 
         if len(nodes) < 2:  # noqa: PLR2004
-            msg = "At least 2 members are required to create a team"
-            raise CommandError(msg)
+            raise CommandError("At least 2 members are required to create a team")
 
         # Verify all nodes exist
         node_list = list(nodes)
         for node_name in node_list:
             if node_name not in ctx.context.pool.nodes:
                 available = ", ".join(ctx.context.pool.nodes.keys())
-                msg = f"Node '{node_name}' not found. Available: {available}"
-                raise CommandError(msg)
+                raise CommandError(f"Node '{node_name}' not found. Available: {available}")
 
         # Create the team
         if mode == "sequential":

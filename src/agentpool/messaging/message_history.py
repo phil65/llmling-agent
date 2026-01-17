@@ -482,8 +482,7 @@ class MessageHistory:
                 **(metadata or {}),
             )
         except Exception as e:
-            msg = f"Failed to format prompt: {e}"
-            raise ValueError(msg) from e
+            raise ValueError(f"Failed to format prompt: {e}") from e
 
     def get_history_tokens(self) -> int:
         """Get token count for current history."""

@@ -388,8 +388,7 @@ async def dispatch_elicitation[T](
         case ElicitForm():
             return await handler.elicit_form(context, request)
         case _:
-            msg = f"Unknown elicitation type: {type(request)}"
-            raise ValueError(msg)
+            raise ValueError(f"Unknown elicitation type: {type(request)}")
 
 
 # =============================================================================
@@ -660,8 +659,7 @@ def to_mcp_schema(request: ElicitRequest) -> dict[str, Any]:
         case ElicitChoice():
             return _choice_to_schema(request)
         case ElicitUrl():
-            msg = "ElicitUrl doesn't have a JSON schema representation"
-            raise ValueError(msg)
+            raise ValueError("ElicitUrl doesn't have a JSON schema representation")
         case ElicitForm():
             properties = {name: to_mcp_schema(f) for name, f in request.fields.items()}
             return {
@@ -670,8 +668,7 @@ def to_mcp_schema(request: ElicitRequest) -> dict[str, Any]:
                 "required": request.required_fields,
             }
 
-    msg = f"Unknown elicitation type: {type(request)}"
-    raise ValueError(msg)
+    raise ValueError(f"Unknown elicitation type: {type(request)}")
 
 
 # =============================================================================

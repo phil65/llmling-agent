@@ -109,19 +109,16 @@ class ConfigStore:
 
         path_obj = to_upath(path).resolve()
         if not path_obj.exists():
-            msg = f"Config file not found: {path}"
-            raise FileNotFoundError(msg)
+            raise FileNotFoundError(f"Config file not found: {path}")
 
         if not path_obj.is_file():
-            msg = f"Path is not a file: {path}"
-            raise IsADirectoryError(msg)
+            raise IsADirectoryError(f"Path is not a file: {path}")
 
         try:
             # Try to read file to verify access
             path_obj.read_bytes()
         except PermissionError as exc:
-            msg = f"Cannot read config file: {path}"
-            raise PermissionError(msg) from exc
+            raise PermissionError(f"Cannot read config file: {path}") from exc
         # All good, save the config
         mapping = self.load_mapping()
         mapping["configs"][name] = str(path_obj)
@@ -140,8 +137,7 @@ class ConfigStore:
         """Set the active config."""
         mapping = self.load_mapping()
         if name not in mapping["configs"]:
-            msg = f"Config {name} not found"
-            raise KeyError(msg)
+            raise KeyError(f"Config {name} not found")
         mapping["active"] = name
         self.save_mapping(mapping)
 
@@ -166,6 +162,5 @@ class ConfigStore:
         """Get path for a named config."""
         mapping = self.load_mapping()
         if name not in mapping["configs"]:
-            msg = f"Config {name} not found"
-            raise KeyError(msg)
+            raise KeyError(f"Config {name} not found")
         return mapping["configs"][name]

@@ -110,8 +110,7 @@ class MCPClient:
     def _ensure_connected(self) -> None:
         """Ensure client is connected, raise RuntimeError if not."""
         if not self.connected:
-            msg = "Not connected to MCP server"
-            raise RuntimeError(msg)
+            raise RuntimeError("Not connected to MCP server")
 
     async def __aenter__(self) -> Self:
         """Enter context manager."""
@@ -195,8 +194,7 @@ class MCPClient:
                 transport = StdioTransport(command=command, args=args, env=env)
                 oauth = False
                 if force_oauth:
-                    msg = "OAuth is not supported for StdioMCPServerConfig"
-                    raise ValueError(msg)
+                    raise ValueError("OAuth is not supported for StdioMCPServerConfig")
 
             case SSEMCPServerConfig(url=url, headers=headers, auth=auth):
                 transport = SSETransport(url=url, headers=headers)
@@ -273,8 +271,7 @@ class MCPClient:
         try:
             return await self._client.list_resources()
         except Exception as e:
-            msg = f"Failed to list resources: {e}"
-            raise RuntimeError(msg) from e
+            raise RuntimeError(f"Failed to list resources: {e}") from e
 
     async def list_resource_templates(self) -> list[ResourceTemplate]:
         """Get available resource templates from the server.
@@ -298,8 +295,7 @@ class MCPClient:
         try:
             return await self._client.list_resource_templates()
         except Exception as e:
-            msg = f"Failed to list resource templates: {e}"
-            raise RuntimeError(msg) from e
+            raise RuntimeError(f"Failed to list resource templates: {e}") from e
 
     async def read_resource(self, uri: str) -> list[TextResourceContents | BlobResourceContents]:
         """Read resource content by URI.
@@ -317,8 +313,7 @@ class MCPClient:
         try:
             return await self._client.read_resource(uri)
         except Exception as e:
-            msg = f"Failed to read resource {uri!r}: {e}"
-            raise RuntimeError(msg) from e
+            raise RuntimeError(f"Failed to read resource {uri!r}: {e}") from e
 
     async def get_prompt(
         self, name: str, arguments: dict[str, str] | None = None
@@ -328,8 +323,7 @@ class MCPClient:
         try:
             return await self._client.get_prompt_mcp(name, arguments)
         except Exception as e:
-            msg = f"Failed to get prompt {name!r}: {e}"
-            raise RuntimeError(msg) from e
+            raise RuntimeError(f"Failed to get prompt {name!r}: {e}") from e
 
     def convert_tool(self, tool: MCPTool) -> FunctionTool:
         """Create a properly typed callable from MCP tool schema."""
@@ -440,11 +434,9 @@ class MCPClient:
                 case (False, False):  # Fallback to text extraction
                     return extract_text_content(result.content)
                 case _:  # Handle unexpected cases
-                    msg = f"Unexpected MCP content: {result.content}"
-                    raise ValueError(msg)  # noqa: TRY301
+                    raise ValueError(f"Unexpected MCP content: {result.content}")  # noqa: TRY301
         except Exception as e:
-            msg = f"MCP tool call failed: {e}"
-            raise RuntimeError(msg) from e
+            raise RuntimeError(f"MCP tool call failed: {e}") from e
         finally:
             # Clear per-call handler
             self._current_elicitation_handler = None

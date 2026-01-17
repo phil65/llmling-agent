@@ -68,13 +68,11 @@ class DAGNode:
             ValueError: If adding would create a cycle
         """
         if parent is self:
-            msg = "Node cannot be its own parent"
-            raise ValueError(msg)
+            raise ValueError("Node cannot be its own parent")
         if parent in self._parents:
             return  # Already a parent
         if self._is_ancestor_of(parent):
-            msg = "Adding this parent would create a cycle"
-            raise ValueError(msg)
+            raise ValueError("Adding this parent would create a cycle")
 
         self._parents.append(parent)
         parent._children.append(self)

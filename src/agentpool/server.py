@@ -56,8 +56,7 @@ class ServerBridge(abc.ABC):
             RuntimeError: If server is already running
         """
         if self._running:
-            msg = "Server is already running"
-            raise RuntimeError(msg)
+            raise RuntimeError("Server is already running")
 
         logger.info("Starting server", name=self.__class__.__name__)
         self._running = True

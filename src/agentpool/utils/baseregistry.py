@@ -153,8 +153,7 @@ class BaseRegistry[TKey, TItem](MutableMapping[TKey, TItem], ABC):
         try:
             return self._items[key]
         except KeyError as exc:
-            msg = f"Item not found: {key}"
-            raise self._error_class(msg) from exc
+            raise self._error_class(f"Item not found: {key}") from exc
 
     def __setitem__(self, key: TKey, value: Any) -> None:
         """Support dict-style assignment."""
@@ -168,8 +167,7 @@ class BaseRegistry[TKey, TItem](MutableMapping[TKey, TItem], ABC):
         if key in self._items:
             del self._items[key]
         else:
-            msg = f"Item not found: {key}"
-            raise self._error_class(msg)
+            raise self._error_class(f"Item not found: {key}")
 
     def __iter__(self) -> Iterator[TKey]:
         return iter(self._items)

@@ -23,8 +23,8 @@ def resolve_agent_config(config: str | None) -> str:
     if not config:
         if active := agent_store.get_active():
             return active.path
-        msg = "No active agent configuration set. Use 'agents set' to set one."
-        raise ValueError(msg)
+
+        raise ValueError("No active agent configuration set. Use 'agents set' to set one.")
 
     try:
         # First try as stored config name

@@ -150,8 +150,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Build config from kwargs if not provided
         if config is None:
             if command is None:
-                msg = "Either config or command must be provided"
-                raise ValueError(msg)
+                raise ValueError("Either config or command must be provided")
             config = ACPAgentConfig(
                 name=name,
                 description=description,
@@ -313,8 +312,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         cwd = str(self.config.cwd) if self.config.cwd else None
         self._process = await anyio.open_process(cmd, env=env, cwd=cwd)
         if not self._process.stdin or not self._process.stdout:
-            msg = "Failed to create subprocess pipes"
-            raise RuntimeError(msg)
+            raise RuntimeError("Failed to create subprocess pipes")
         return self._process
 
     async def _initialize(self) -> None:
@@ -323,8 +321,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         from agentpool.agents.acp_agent.client_handler import ACPClientHandler
 
         if not self._process or not self._process.stdin or not self._process.stdout:
-            msg = "Process not started"
-            raise RuntimeError(msg)
+            raise RuntimeError("Process not started")
 
         self._state = ACPSessionState(session_id="")
         self._client_handler = ACPClientHandler(self, self._state, self._input_provider)
@@ -350,8 +347,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities
 
         if not self._connection:
-            msg = "Connection not initialized"
-            raise RuntimeError(msg)
+            raise RuntimeError("Connection not initialized")
 
         # Collect all MCP servers (config + extra)
         all_servers = self._extra_mcp_servers[:]
@@ -430,8 +426,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if input_provider is not None and self._client_handler:
             self._client_handler._input_provider = input_provider
         if not self._connection or not self._session_id or not self._state:
-            msg = "Agent not initialized - use async context manager"
-            raise RuntimeError(msg)
+            raise RuntimeError("Agent not initialized - use async context manager")
 
         run_id = str(uuid.uuid4())
         self._state.clear()  # Reset state

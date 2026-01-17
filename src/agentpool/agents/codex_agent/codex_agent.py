@@ -346,8 +346,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         from codex_adapter.models import ThreadTokenUsageUpdatedData
 
         if not self._client or not self._thread_id:
-            msg = "Codex client not initialized"
-            raise RuntimeError(msg)
+            raise RuntimeError("Codex client not initialized")
 
         input_items = user_content_to_codex(prompts)
         # Generate IDs if not provided
@@ -356,8 +355,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         final_conversation_id = conversation_id or self.conversation_id
         # Ensure conversation_id is set (should always be from base class)
         if final_conversation_id is None:
-            msg = "conversation_id must be set"
-            raise ValueError(msg)
+            raise ValueError("conversation_id must be set")
         run_started = RunStartedEvent(thread_id=final_conversation_id, run_id=run_id)
         await event_handlers(None, run_started)
         yield run_started
@@ -649,8 +647,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Handle based on category
         if category_id == "mode":
             if mode_id not in ["never", "on-request", "on-failure", "untrusted"]:
-                msg = f"Invalid approval policy: {mode_id}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid approval policy: {mode_id}")
 
             # Update instance attribute (doesn't require thread restart)
             # Type assertion: we've already validated mode_id is one of the valid values
@@ -661,8 +658,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         elif category_id == "thought_level":
             if mode_id not in ["low", "medium", "high", "xhigh"]:
-                msg = f"Invalid reasoning effort: {mode_id}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid reasoning effort: {mode_id}")
 
             if not self._client or not self._thread_id:
                 # Store for initialization
@@ -706,16 +702,14 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         elif category_id == "sandbox":
             valid = ["read-only", "workspace-write", "danger-full-access", "external-sandbox"]
             if mode_id not in valid:
-                msg = f"Invalid sandbox mode: {mode_id}. Valid: {valid}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid sandbox mode: {mode_id}. Valid: {valid}")
             self._current_sandbox = mode_id  # type: ignore[assignment]
             self.log.info("Sandbox mode changed", sandbox=mode_id)
             change = ConfigOptionChanged(config_id="sandbox", value_id=mode_id)
             await self.state_updated.emit(change)
 
         else:
-            msg = f"Unknown category: {category_id}"
-            raise ValueError(msg)
+            raise ValueError(f"Unknown category: {category_id}")
 
     async def list_sessions(self) -> list[SessionInfo]:
         """List threads from Codex server.

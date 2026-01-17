@@ -92,8 +92,7 @@ class BaseMCPServerConfig(Schema):
     def _validate_tool_filters(self) -> Self:
         """Validate that enabled_tools and disabled_tools are mutually exclusive."""
         if self.enabled_tools is not None and self.disabled_tools is not None:
-            msg = "Cannot specify both 'enabled_tools' and 'disabled_tools'"
-            raise ValueError(msg)
+            raise ValueError("Cannot specify both 'enabled_tools' and 'disabled_tools'")
         return self
 
     def is_tool_allowed(self, tool_name: str) -> bool:

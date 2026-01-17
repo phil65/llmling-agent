@@ -75,8 +75,7 @@ class AddMCPServerCommand(NodeCommand):
             await ctx.print(f"**Added MCP server** `{name}` with command: `{command}`")
 
         except Exception as e:
-            msg = f"Failed to add MCP server: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to add MCP server: {e}") from e
 
 
 class AddRemoteMCPServerCommand(NodeCommand):
@@ -130,8 +129,7 @@ class AddRemoteMCPServerCommand(NodeCommand):
             await ctx.print(f"**Added remote MCP server** `{name}` at `{url}` using {transport}")
 
         except Exception as e:
-            msg = f"Failed to add remote MCP server: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to add remote MCP server: {e}") from e
 
 
 class ListMCPServersCommand(NodeCommand):

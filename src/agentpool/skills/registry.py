@@ -126,30 +126,25 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
         # Extract YAML frontmatter
         frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
         if not frontmatter_match:
-            msg = f"No YAML frontmatter found in {skill_file}"
-            raise ToolError(msg)
+            raise ToolError(f"No YAML frontmatter found in {skill_file}")
         import yamling
 
         try:
             metadata = yamling.load_yaml(frontmatter_match.group(1))
         except yamling.YAMLError as e:
-            msg = f"Invalid YAML frontmatter in {skill_file}: {e}"
-            raise ToolError(msg) from e
+            raise ToolError(f"Invalid YAML frontmatter in {skill_file}: {e}") from e
 
         # Validate required fields
         if not isinstance(metadata, dict):
-            msg = f"YAML frontmatter must be a dictionary in {skill_file}"
-            raise ToolError(msg)
+            raise ToolError(f"YAML frontmatter must be a dictionary in {skill_file}")
 
         name = metadata.get("name")
         description = metadata.get("description")
 
         if not name:
-            msg = f"Missing 'name' field in {skill_file}"
-            raise ToolError(msg)
+            raise ToolError(f"Missing 'name' field in {skill_file}")
         if not description:
-            msg = f"Missing 'description' field in {skill_file}"
-            raise ToolError(msg)
+            raise ToolError(f"Missing 'description' field in {skill_file}")
 
         # Validate limits
         if len(name) > SKILL_NAME_LIMIT:
@@ -169,8 +164,7 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
     def _validate_item(self, item: Any) -> Skill:
         """Validate and possibly transform item before registration."""
         if not isinstance(item, Skill):
-            msg = f"Expected Skill instance, got {type(item)}"
-            raise ToolError(msg)
+            raise ToolError(f"Expected Skill instance, got {type(item)}")
         return item
 
     def get_skill_instructions(self, skill_name: str) -> str:

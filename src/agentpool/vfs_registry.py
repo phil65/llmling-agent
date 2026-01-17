@@ -140,8 +140,7 @@ class VFSRegistry:
             UPath or AsyncUPath instance
         """
         if resource_name is not None and resource_name not in self._union_fs.filesystems:
-            msg = f"Resource not found: {resource_name}"
-            raise AgentPoolError(msg)
+            raise AgentPoolError(f"Resource not found: {resource_name}")
 
         return self._union_fs.get_upath(resource_name, as_async=as_async)
 
@@ -224,8 +223,7 @@ class VFSRegistry:
 
         resource = path.split("/")[0]
         if resource not in self:
-            msg = f"Resource not found: {resource}"
-            raise AgentPoolError(msg)
+            raise AgentPoolError(f"Resource not found: {resource}")
 
         files = await list_files(
             self._union_fs.get_upath(path),

@@ -459,8 +459,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             # Format system prompt once at startup (enables caching)
             self._formatted_system_prompt = await self.sys_prompts.format_system_prompt(self)
         except Exception as e:
-            msg = "Failed to initialize agent"
-            raise RuntimeError(msg) from e
+            raise RuntimeError("Failed to initialize agent") from e
         else:
             return self
 
@@ -622,8 +621,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         async def wrapped_tool(prompt: str) -> Any:
             if pass_message_history and not parent:
-                msg = "Parent agent required for message history sharing"
-                raise ToolError(msg)
+                raise ToolError("Parent agent required for message history sharing")
 
             if reset_history_on_run:
                 await self.conversation.clear()
@@ -836,8 +834,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     metadata=file_tracker.get_metadata(),
                 )
             else:
-                msg = "Stream completed without producing a result"
-                raise RuntimeError(msg)
+                raise RuntimeError("Stream completed without producing a result")
 
         # Send additional enriched completion event
         complete_event = StreamCompleteEvent(message=response_msg)

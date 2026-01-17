@@ -150,8 +150,7 @@ def get_discriminator_values(union_type: Any) -> dict[str, type]:
 
     # Verify it's a Union
     if origin not in (Union, types.UnionType):
-        msg = f"Expected Union type, got: {union_type}"
-        raise TypeError(msg)
+        raise TypeError(f"Expected Union type, got: {union_type}")
 
     # Get all types in the union
     union_args = get_args(union_type)

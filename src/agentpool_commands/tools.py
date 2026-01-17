@@ -158,8 +158,7 @@ class EnableToolCommand(NodeCommand):
             await ctx.context.agent.tools.enable_tool(name)
             await ctx.print(f"✅ **Tool** `{name}` **enabled**")
         except ValueError as e:
-            msg = f"Failed to enable tool: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to enable tool: {e}") from e
 
     def get_completer(self) -> CallbackCompleter:
         """Get completer for tool names."""
@@ -198,8 +197,7 @@ class DisableToolCommand(NodeCommand):
             await ctx.context.agent.tools.disable_tool(name)
             await ctx.print(f"❌ **Tool** `{name}` **disabled**")
         except ValueError as e:
-            msg = f"Failed to disable tool: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to disable tool: {e}") from e
 
     def get_completer(self) -> CallbackCompleter:
         """Get completer for tool names."""
@@ -260,8 +258,7 @@ class RegisterToolCommand(NodeCommand):
             )
 
         except Exception as e:
-            msg = f"Failed to register tool: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to register tool: {e}") from e
 
 
 class RegisterCodeToolCommand(NodeCommand):
@@ -317,8 +314,7 @@ class RegisterCodeToolCommand(NodeCommand):
                 f" - {registered.description or '*No description*'}"
             )
         except Exception as e:
-            msg = f"Failed to register code tool: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to register code tool: {e}") from e
 
 
 async def get_tool_names(ctx: CompletionContext[AgentContext]) -> list[str]:

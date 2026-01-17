@@ -119,8 +119,8 @@ class MessageNode[TDeps, TResult](ABC):
             await self.mcp.__aenter__()
         except Exception as e:
             await self.__aexit__(type(e), e, e.__traceback__)
-            msg = f"Failed to initialize {self.name}"
-            raise RuntimeError(msg) from e
+
+            raise RuntimeError(f"Failed to initialize {self.name}") from e
         else:
             return self
 
@@ -335,8 +335,7 @@ class MessageNode[TDeps, TResult](ABC):
                     case MessageNode():
                         targets.append(t)
                     case _:
-                        msg = f"Invalid node type: {type(t)}"
-                        raise TypeError(msg)
+                        raise TypeError(f"Invalid node type: {type(t)}")
         else:
             targets = target  # type: ignore
         return self.connections.create_connection(

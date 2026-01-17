@@ -148,16 +148,14 @@ class BraintrustPromptHub(BasePromptProvider):
                     case 401:
                         raise RuntimeError("Unauthorized: Check your Braintrust API key")
                     case 403:
-                        msg = "Forbidden: API key doesn't have permission to list prompts"
-                        raise RuntimeError(msg)
+                        raise RuntimeError("Forbidden: no permission to list prompts")
                     case 200:
                         msg = f"Failed to list prompts: {response.status_code} - {response.text}"
                         raise RuntimeError(msg)
                 try:
                     data = response.json()
                 except Exception as e:
-                    msg = f"Failed to parse response JSON: {e}"
-                    raise RuntimeError(msg) from e
+                    raise RuntimeError(f"Failed to parse response JSON: {e}") from e
 
                 objects = data.get("objects", [])
                 if not objects:

@@ -118,8 +118,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             case AgentsManifest():
                 self.manifest = manifest
             case _:
-                msg = f"Invalid config path: {manifest}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid config path: {manifest}")
 
         registry.configure_observability(self.manifest.observability)
         self._memory_log_handler = install_memory_handler()
@@ -201,8 +200,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     ) -> None:
         """Exit async context."""
         if self._running_count == 0:
-            msg = "AgentPool.__aexit__ called more times than __aenter__"
-            raise ValueError(msg)
+            raise ValueError("AgentPool.__aexit__ called more times than __aenter__")
         async with self._enter_lock:
             self._running_count -= 1
             if self._running_count == 0:
@@ -435,8 +433,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             AgentPoolError: If item is not a valid node
         """
         if not isinstance(item, MessageNode):
-            msg = f"Item must be Agent or Team, got {type(item)}"
-            raise self._error_class(msg)
+            raise self._error_class(f"Item must be Agent or Team, got {type(item)}")
         item.agent_pool = self
         return item
 
@@ -471,8 +468,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 elif member in empty_teams:
                     members.append(empty_teams[member])
                 else:
-                    msg = f"Unknown team member: {member}"
-                    raise ValueError(msg)
+                    raise ValueError(f"Unknown team member: {member}")
             team.nodes.extend(members)
             self[name] = team
 
@@ -485,8 +481,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 match target:
                     case NodeConnectionConfig(name=name_):
                         if name_ not in self:
-                            msg = f"Forward target {name_} not found for {name}"
-                            raise ValueError(msg)
+                            raise ValueError(f"Forward target {name_} not found for {name}")
                         target_node = self[name_]
                     case FileConnectionConfig(path=path_obj):
                         agent_name = f"file_writer_{Path(path_obj).stem}"
@@ -494,8 +489,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     case CallableConnectionConfig(callable=fn):
                         target_node = Agent(model=target.get_model(), name=fn.__name__)
                     case _:
-                        msg = f"Invalid connection config: {target}"
-                        raise ValueError(msg)
+                        raise ValueError(f"Invalid connection config: {target}")
 
                 source.connect_to(
                     target_node,
@@ -777,8 +771,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     agent_pool=self,
                 )
             case _:
-                msg = f"Unknown agent config type: {type(config)}"
-                raise TypeError(msg)
+                raise TypeError(f"Unknown agent config type: {type(config)}")
 
     def create_agent[TAgentDeps](  # noqa: PLR0915
         self,

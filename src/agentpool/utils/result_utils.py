@@ -22,8 +22,7 @@ def to_type(
             defn = responses[output_type]  # from defined responses
             return defn.response_schema.get_schema()
         case str():
-            msg = f"Missing responses dict for response type: {output_type!r}"
-            raise ValueError(msg)
+            raise ValueError(f"Missing responses dict for response type: {output_type!r}")
         case InlineSchemaDef():
             return output_type.get_schema()
         case None:
@@ -31,5 +30,4 @@ def to_type(
         case type() as model if issubclass(model, BaseModel | str):
             return model
         case _:
-            msg = f"Invalid output_type: {type(output_type)}"
-            raise TypeError(msg)
+            raise TypeError(f"Invalid output_type: {type(output_type)}")

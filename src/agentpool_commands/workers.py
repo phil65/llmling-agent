@@ -52,8 +52,7 @@ class AddWorkerCommand(AgentCommand):
         """
         try:
             if not ctx.context.pool:
-                msg = "No agent pool available"
-                raise CommandError(msg)  # noqa: TRY301
+                raise CommandError("No agent pool available")  # noqa: TRY301
 
             # Get worker agent from pool
             worker = ctx.context.pool.get_agent(worker_name)
@@ -76,11 +75,9 @@ class AddWorkerCommand(AgentCommand):
             )
 
         except KeyError as e:
-            msg = f"Agent not found: {worker_name}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Agent not found: {worker_name}") from e
         except Exception as e:
-            msg = f"Failed to add worker: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to add worker: {e}") from e
 
     def get_completer(self) -> CallbackCompleter:
         """Get completer for agent names."""
@@ -114,8 +111,7 @@ class RemoveWorkerCommand(AgentCommand):
             ctx.context.agent.tools.worker_provider.remove_tool(tool_name)
             await ctx.print(f"🗑️ **Removed worker tool:** `{tool_name}`")
         except Exception as e:
-            msg = f"Failed to remove worker: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to remove worker: {e}") from e
 
     def get_completer(self) -> CallbackCompleter:
         """Get completer for agent names."""

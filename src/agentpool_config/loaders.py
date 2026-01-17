@@ -110,8 +110,7 @@ class PathResourceLoaderConfig(BaseResourceLoaderConfig):
     def validate_path(self) -> PathResourceLoaderConfig:
         """Validate that the path is not empty."""
         if not self.path:
-            msg = "Path cannot be empty"
-            raise ValueError(msg)
+            raise ValueError("Path cannot be empty")
         return self
 
     def is_templated(self) -> bool:
@@ -146,8 +145,7 @@ class TextResourceLoaderConfig(BaseResourceLoaderConfig):
     def validate_content(self) -> TextResourceLoaderConfig:
         """Validate that the content is not empty."""
         if not self.content:
-            msg = "Content cannot be empty"
-            raise ValueError(msg)
+            raise ValueError("Content cannot be empty")
         return self
 
     @property
@@ -194,15 +192,13 @@ class CLIResourceLoaderConfig(BaseResourceLoaderConfig):
     def validate_command(self) -> CLIResourceLoaderConfig:
         """Validate command configuration."""
         if not self.command:
-            msg = "Command cannot be empty"
-            raise ValueError(msg)
+            raise ValueError("Command cannot be empty")
         if (
             isinstance(self.command, list | tuple)
             and not self.shell
             and not all(isinstance(part, str) for part in self.command)
         ):
-            msg = "When shell=False, all command parts must be strings"
-            raise ValueError(msg)
+            raise ValueError("When shell=False, all command parts must be strings")
         return self
 
 
@@ -282,8 +278,7 @@ class SourceResourceLoaderConfig(BaseResourceLoaderConfig):
     def validate_import_path(self) -> SourceResourceLoaderConfig:
         """Validate that the import path is properly formatted."""
         if not all(part.isidentifier() for part in self.import_path.split(".")):
-            msg = f"Invalid import path: {self.import_path}"
-            raise ValueError(msg)
+            raise ValueError(f"Invalid import path: {self.import_path}")
         return self
 
 
@@ -308,8 +303,7 @@ class CallableResourceLoaderConfig(BaseResourceLoaderConfig):
     def validate_import_path(self) -> CallableResourceLoaderConfig:
         """Validate that the import path is properly formatted."""
         if not all(part.isidentifier() for part in self.import_path.split(".")):
-            msg = f"Invalid import path: {self.import_path}"
-            raise ValueError(msg)
+            raise ValueError(f"Invalid import path: {self.import_path}")
         return self
 
     def is_templated(self) -> bool:

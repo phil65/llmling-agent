@@ -164,17 +164,14 @@ def _validate_type_args(data: Any, args: tuple[Any, ...]) -> None:
             key_type, value_type = args
             for k, v in data.items():
                 if not isinstance(k, key_type):
-                    msg = f"Invalid key type: {type(k)}, expected {key_type}"
-                    raise ValueError(msg)  # noqa: TRY004
+                    raise ValueError(f"Invalid key type: {type(k)}, expected {key_type}")  # noqa: TRY004
                 if not isinstance(v, value_type):
-                    msg = f"Invalid value type: {type(v)}, expected {value_type}"
-                    raise ValueError(msg)  # noqa: TRY004
+                    raise ValueError(f"Invalid value type: {type(v)}, expected {value_type}")  # noqa: TRY004
         case list() if len(args) == 1:
             item_type = args[0]
             for item in data:
                 if not isinstance(item, item_type):
-                    msg = f"Invalid item type: {type(item)}, expected {item_type}"
-                    raise ValueError(msg)  # noqa: TRY004
+                    raise ValueError(f"Invalid item type: {type(item)}, expected {item_type}")  # noqa: TRY004
 
 
 class ConfigCode[T](BaseCode):
@@ -202,18 +199,15 @@ class ConfigCode[T](BaseCode):
                 case _ if origin := get_origin(cls.validator_type):
                     # Handle generics like dict[str, int]
                     if not isinstance(data, origin):
-                        msg = f"Expected {origin.__name__}, got {type(data).__name__}"
-                        raise ValueError(msg)  # noqa: TRY004, TRY301
+                        raise ValueError(f"Expected {origin.__name__}, got {type(data).__name__}")  # noqa: TRY004, TRY301
                     # Validate type arguments if present
                     if args := get_args(cls.validator_type):
                         _validate_type_args(data, args)
                 case _:
-                    msg = f"Unsupported validation type: {cls.validator_type}"
-                    raise TypeError(msg)  # noqa: TRY301
+                    raise TypeError(f"Unsupported validation type: {cls.validator_type}")  # noqa: TRY301
 
         except Exception as e:
-            msg = f"Invalid YAML for {cls.validator_type.__name__}: {e}"
-            raise ValueError(msg) from e
+            raise ValueError(f"Invalid YAML for {cls.validator_type.__name__}: {e}") from e
 
         return code
 

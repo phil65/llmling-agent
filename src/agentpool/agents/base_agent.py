@@ -240,8 +240,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             case MessageNode():
                 return Team([self, other])
             case _:
-                msg = f"Invalid agent type: {type(other)}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid agent type: {type(other)}")
 
     @overload
     def __or__(self, other: MessageNode[TDeps, Any]) -> TeamRun[TDeps, Any]: ...
@@ -418,11 +417,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     async def wait(self) -> ChatMessage[TResult]:
         """Wait for background execution to complete."""
         if not self._background_task:
-            msg = "No background task running"
-            raise RuntimeError(msg)
+            raise RuntimeError("No background task running")
         if self._infinite:
-            msg = "Cannot wait on infinite execution"
-            raise RuntimeError(msg)
+            raise RuntimeError("Cannot wait on infinite execution")
         try:
             return await self._background_task
         finally:
@@ -530,8 +527,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 )
                 if pre_run_result.get("decision") == "deny":
                     reason = pre_run_result.get("reason", "Blocked by pre-run hook")
-                    msg = f"Run blocked: {reason}"
-                    raise RuntimeError(msg)  # noqa: TRY301
+                    raise RuntimeError(f"Run blocked: {reason}")  # noqa: TRY301
 
             async for event in self._stream_events(
                 [*pending_parts, *converted_prompts],
@@ -798,8 +794,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 final_message = event.message
 
         if final_message is None:
-            msg = "No final message received from stream"
-            raise RuntimeError(msg)
+            raise RuntimeError("No final message received from stream")
 
         return final_message
 
@@ -858,13 +853,11 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         else:
             mode_id = mode
             if not category_id:
-                msg = "category_id is required when mode is a string"
-                raise ValueError(msg)
+                raise ValueError("category_id is required when mode is a string")
             resolved_category = category_id
 
         if not resolved_category:
-            msg = "category_id could not be determined from ModeInfo"
-            raise ValueError(msg)
+            raise ValueError("category_id could not be determined from ModeInfo")
 
         await self._set_mode(mode_id, resolved_category)
 

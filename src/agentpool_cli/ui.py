@@ -470,8 +470,7 @@ def opencode_desktop_command(  # noqa: PLR0915
                 break
             except (TimeoutError, ConnectionRefusedError, OSError):
                 if i == max_retries - 1:
-                    msg = f"Server failed to start after {max_retries} attempts"
-                    raise RuntimeError(msg)  # noqa: B904
+                    raise RuntimeError(f"Server failed to start after {max_retries} attempts")  # noqa: B904
                 time.sleep(0.5)
 
         # Give HTTP layer a moment to be fully ready
@@ -519,8 +518,7 @@ def opencode_desktop_command(  # noqa: PLR0915
                     except FileNotFoundError:
                         continue
                 else:
-                    msg = "Could not find OpenCode desktop app"
-                    raise FileNotFoundError(msg)  # noqa: TRY301
+                    raise FileNotFoundError("Could not find OpenCode desktop app")  # noqa: TRY301
 
             logger.info(
                 "Desktop app launched",

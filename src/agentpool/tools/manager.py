@@ -175,8 +175,7 @@ class ToolManager:
         """
         tool = next((tool for tool in await self.get_tools() if tool.name == name), None)
         if not tool:
-            msg = f"Tool not found: {tool}"
-            raise ToolError(msg)
+            raise ToolError(f"Tool not found: {tool}")
         return tool
 
     async def list_prompts(self) -> list[MCPClientPrompt]:
@@ -248,8 +247,7 @@ class ToolManager:
         resources = await self.list_resources()
         resource: ResourceInfo | None = next((r for r in resources if r.name == name), None)
         if not resource:
-            msg = f"Resource not found: {name}"
-            raise ToolError(msg)
+            raise ToolError(f"Resource not found: {name}")
         return resource
 
     @asynccontextmanager

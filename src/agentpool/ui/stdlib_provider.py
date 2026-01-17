@@ -55,8 +55,7 @@ class StdlibInputProvider(InputProvider):
         try:
             return output_type.model_validate_json(raw_input)
         except Exception as e:
-            msg = f"Invalid response format: {e}"
-            raise ToolError(msg) from e
+            raise ToolError(f"Invalid response format: {e}") from e
 
     async def get_tool_confirmation(
         self,

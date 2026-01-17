@@ -144,8 +144,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             # case "concat":
             #     content = "\n".join(msg.format() for msg in all_messages)
             case _:
-                msg = f"Invalid result mode: {self.result_mode}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid result mode: {self.result_mode}")
 
         message = ChatMessage(
             content=content,
@@ -272,8 +271,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         for node in self.nodes:
             try:
                 if not isinstance(node, SupportsRunStream):
-                    msg = f"Node {node.name} does not support streaming"
-                    raise TypeError(msg)  # noqa: TRY301
+                    raise TypeError(f"Node {node.name} does not support streaming")  # noqa: TRY301
 
                 async for event in node.run_stream(*current_message, **kwargs):
                     # Handle already-wrapped SubAgentEvents (nested teams)

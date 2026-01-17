@@ -106,8 +106,7 @@ def _mcp_config_to_toml_inline(name: str, config: McpServerConfig) -> str:
             parts.append("enabled = false")
         return f"mcp_servers.{name}={{{', '.join(parts)}}}"
 
-    msg = f"Unsupported MCP server config type: {type(config)}"
-    raise ValueError(msg)
+    raise ValueError(f"Unsupported MCP server config type: {type(config)}")
 
 
 class CodexClient:

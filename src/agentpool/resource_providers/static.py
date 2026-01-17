@@ -212,8 +212,7 @@ class StaticResourceProvider(ResourceProvider):
                     pass_message_history=pass_message_history,
                 )
             case _:
-                msg = f"Unsupported worker type: {type(worker)}"
-                raise ValueError(msg)
+                raise ValueError(f"Unsupported worker type: {type(worker)}")
 
         self.add_tool(tool)
         return tool

@@ -26,8 +26,7 @@ def get_module_source(
         return "\n\n# " + "-" * 40 + "\n\n".join(sources)
 
     except ImportError as exc:
-        msg = f"Could not import module: {import_path}"
-        raise ValueError(msg) from exc
+        raise ValueError(f"Could not import module: {import_path}") from exc
 
 
 def _get_sources(
@@ -82,8 +81,7 @@ def import_callable(path: str) -> Callable[..., Any]:
         ValueError: If path cannot be imported or result isn't callable
     """
     if not path:
-        msg = "Import path cannot be empty"
-        raise ValueError(msg)
+        raise ValueError("Import path cannot be empty")
 
     # Normalize path - replace colon with dot if present
     normalized_path = path.replace(":", ".")
@@ -104,20 +102,15 @@ def import_callable(path: str) -> Callable[..., Any]:
             # Check if we got a callable
             if callable(obj):
                 return obj
-
-            msg = f"Found object at {path} but it isn't callable"
-            raise ValueError(msg)
-
+            raise ValueError(f"Found object at {path} but it isn't callable")
         except ImportError:
             # Try next shorter path
             continue
         except AttributeError:
             # Attribute not found - try next shorter path
             continue
-
     # If we get here, no import combination worked
-    msg = f"Could not import callable from path: {path}"
-    raise ValueError(msg)
+    raise ValueError(f"Could not import callable from path: {path}")
 
 
 def import_class(path: str) -> type:
@@ -135,11 +128,9 @@ def import_class(path: str) -> type:
     try:
         obj = import_callable(path)
         if not isinstance(obj, type):
-            msg = f"{path} is not a class"
-            raise TypeError(msg)  # noqa: TRY301
+            raise TypeError(f"{path} is not a class")  # noqa: TRY301
     except Exception as exc:
-        msg = f"Failed to import class from {path}"
-        raise ValueError(msg) from exc
+        raise ValueError(f"Failed to import class from {path}") from exc
     else:
         return obj
 

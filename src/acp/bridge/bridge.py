@@ -123,8 +123,7 @@ class ACPBridge:
     ) -> Any:
         """Dispatch a request to the connected agent."""
         if self._connection is None:
-            msg = "No agent connection"
-            raise RuntimeError(msg)
+            raise RuntimeError("No agent connection")
         match method:
             case "initialize":
                 init_request = InitializeRequest.model_validate(params)
@@ -184,8 +183,7 @@ class ACPBridge:
             case str() if method.startswith("_"):
                 return await self._connection.ext_method(method[1:], params or {})
             case _:
-                msg = f"Method not found: {method}"
-                raise ValueError(msg)
+                raise ValueError(f"Method not found: {method}")
 
     async def _handle_status(self, request: Request) -> Response:
         """Health check endpoint."""

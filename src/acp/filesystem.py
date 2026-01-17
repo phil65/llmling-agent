@@ -123,8 +123,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
                 partial reads)
         """
         if start is not None or end is not None:
-            msg = "ACP filesystem does not support byte range reads"
-            raise NotImplementedError(msg)
+            raise NotImplementedError("ACP filesystem does not support byte range reads")
 
         mime_type = guess_type(path)
 
@@ -143,13 +142,11 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             output, exit_code = await self.requests.run_command(cmd_str, timeout_seconds=30)
 
             if exit_code != 0:
-                msg = f"Could not read binary file {path}: {output}"
-                raise FileNotFoundError(msg)  # noqa: TRY301
+                raise FileNotFoundError(f"Could not read binary file {path}: {output}")  # noqa: TRY301
 
             return b64_cmd.parse_command(output)
         except Exception as e:
-            msg = f"Could not read file {path}: {e}"
-            raise FileNotFoundError(msg) from e
+            raise FileNotFoundError(f"Could not read file {path}: {e}") from e
 
     cat_file = sync_wrapper(_cat_file)  # pyright: ignore[reportAssignmentType]
 
@@ -167,8 +164,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
         try:
             await self.requests.write_text_file(path, content)
         except Exception as e:
-            msg = f"Could not write file {path}: {e}"
-            raise OSError(msg) from e
+            raise OSError(f"Could not write file {path}: {e}") from e
 
     put_file = sync_wrapper(_put_file)
 
@@ -214,8 +210,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             output, exit_code = await self.requests.run_command(ls_cmd, timeout_seconds=10)
 
             if exit_code != 0:
-                msg = f"Error listing directory {path!r}: {output}"
-                raise FileNotFoundError(msg)  # noqa: TRY301
+                raise FileNotFoundError(f"Error listing directory {path!r}: {output}")  # noqa: TRY301
 
             result = list_cmd.parse_command(output, path)
             if detail:
@@ -233,8 +228,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             return [item.path for item in result]  # Return full paths for consistency
 
         except Exception as e:
-            msg = f"Could not list directory {path}: {e}"
-            raise FileNotFoundError(msg) from e
+            raise FileNotFoundError(f"Could not list directory {path}: {e}") from e
 
     ls = sync_wrapper(_ls)
 
@@ -285,8 +279,7 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
                 raise FileNotFoundError(f"File not found: {path}")
             except (OSError, ValueError):
-                msg = f"Could not get file info for {path}: {e}"
-                raise FileNotFoundError(msg) from e
+                raise FileNotFoundError(f"Could not get file info for {path}: {e}") from e
 
     info = sync_wrapper(_info)
 
@@ -371,11 +364,9 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             output, exit_code = await self.requests.run_command(mkdir_cmd, timeout_seconds=5)
             success = create_cmd.parse_command(output, exit_code if exit_code is not None else 1)
             if not success:
-                msg = f"Error creating directory {path}: {output}"
-                raise OSError(msg)  # noqa: TRY301
+                raise OSError(f"Error creating directory {path}: {output}")  # noqa: TRY301
         except Exception as e:
-            msg = f"Could not create directory {path}: {e}"
-            raise OSError(msg) from e
+            raise OSError(f"Could not create directory {path}: {e}") from e
 
     makedirs = sync_wrapper(_makedirs)
 
@@ -397,11 +388,9 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             output, exit_code = await self.requests.run_command(cmd_str, timeout_seconds=30)
             success = copy_cmd.parse_command(output, exit_code if exit_code is not None else 1)
             if not success:
-                msg = f"Error copying {path1} to {path2}: {output}"
-                raise OSError(msg)  # noqa: TRY301
+                raise OSError(f"Error copying {path1} to {path2}: {output}")  # noqa: TRY301
         except Exception as e:
-            msg = f"Could not copy {path1} to {path2}: {e}"
-            raise OSError(msg) from e
+            raise OSError(f"Could not copy {path1} to {path2}: {e}") from e
 
     cp_file = sync_wrapper(_cp_file)
 
@@ -420,11 +409,9 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
             output, exit_code = await self.requests.run_command(rm_cmd, timeout_seconds=10)
             success = remove_cmd.parse_command(output, exit_code if exit_code is not None else 1)
             if not success:
-                msg = f"Error removing {path}: {output}"
-                raise OSError(msg)  # noqa: TRY301
+                raise OSError(f"Error removing {path}: {output}")  # noqa: TRY301
         except Exception as e:
-            msg = f"Could not remove {path}: {e}"
-            raise OSError(msg) from e
+            raise OSError(f"Could not remove {path}: {e}") from e
 
     rm = sync_wrapper(_rm)
 

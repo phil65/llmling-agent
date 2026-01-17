@@ -224,13 +224,11 @@ class LSPManager:
                 await asyncio.sleep(0.1)
                 if server_id in self._servers:
                     return self._servers[server_id]
-            msg = f"Timeout waiting for {server_id} to start"
-            raise RuntimeError(msg)
+            raise RuntimeError(f"Timeout waiting for {server_id} to start")
 
         config = self._server_configs.get(server_id)
         if not config:
-            msg = f"Server {server_id!r} not registered"
-            raise ValueError(msg)
+            raise ValueError(f"Server {server_id!r} not registered")
 
         # Mark as starting to prevent concurrent attempts
         self._starting.add(server_id)
@@ -268,15 +266,13 @@ class LSPManager:
             else:
                 # Cleanup on failure
                 await self.env.process_manager.kill_process(process_id)
-                msg = f"LSP proxy for {server_id} failed to start (not ready)"
-                raise RuntimeError(msg)
+                raise RuntimeError(f"LSP proxy for {server_id} failed to start (not ready)")
 
             # Read the port from the port file
             port_result = await self.env.execute_command(f"cat {port_file}")
             if not port_result.stdout or port_result.exit_code != 0:
                 await self.env.process_manager.kill_process(process_id)
-                msg = f"LSP proxy for {server_id} failed to start (no port file)"
-                raise RuntimeError(msg)
+                raise RuntimeError(f"LSP proxy for {server_id} failed to start (no port file)")
             port = int(port_result.stdout.strip())
 
             # Create server state
@@ -353,8 +349,7 @@ class LSPManager:
         response = await self._send_request(state.port, "initialize", init_params)
 
         if "error" in response:
-            msg = f"LSP initialize failed: {response['error']}"
-            raise RuntimeError(msg)
+            raise RuntimeError(f"LSP initialize failed: {response['error']}")
 
         # Store capabilities
         if "result" in response:

@@ -52,8 +52,8 @@ class MessageContent(Schema):
         if self.type == "image_base64":
             bin_content = BinaryContent(self.content.encode(), media_type="image/jpeg")
             return UserPromptPart([bin_content])
-        msg = "Unsupported content type"
-        raise ValueError(msg)
+
+        raise ValueError("Unsupported content type")
 
 
 class PromptParameter(Schema):
@@ -169,16 +169,14 @@ class StaticPrompt(BasePrompt):
         required = {arg.name for arg in self.arguments if arg.required}
         missing = required - set(provided)
         if missing:
-            msg = f"Missing required arguments: {', '.join(missing)}"
-            raise ValueError(msg)
+            raise ValueError(f"Missing required arguments: {', '.join(missing)}")
 
     def to_mcp_prompt(self) -> MCPPrompt:
         """Convert to MCP Prompt."""
         from mcp.types import Prompt as MCPPrompt
 
         if self.name is None:
-            msg = "Prompt name not set. This should be set during registration."
-            raise ValueError(msg)
+            raise ValueError("Prompt name not set. This should be set during registration.")
         args = [arg.to_mcp_argument() for arg in self.arguments]
         return MCPPrompt(name=self.name, description=self.description, arguments=args)
 
@@ -559,8 +557,7 @@ class FilePrompt(BasePrompt):
             try:
                 content = content.format(**args)
             except KeyError as exc:
-                msg = f"Missing argument in template: {exc}"
-                raise ValueError(msg) from exc
+                raise ValueError(f"Missing argument in template: {exc}") from exc
         msg_content = MessageContent(type="text", content=content)
         return [PromptMessage(role="user", content=msg_content)]
 

@@ -120,8 +120,8 @@ class ResourceProvider:
         for tool in tools:
             if tool.name == tool_name:
                 return tool
-        msg = f"Tool {tool_name!r} not found"
-        raise ValueError(msg)
+
+        raise ValueError(f"Tool {tool_name!r} not found")
 
     async def get_prompts(self) -> list[BasePrompt]:
         """Get available prompts. Override to provide prompts."""
@@ -156,8 +156,7 @@ class ResourceProvider:
         Raises:
             KeyError: If skill not found
         """
-        msg = f"Skill {skill_name!r} not found"
-        raise KeyError(msg)
+        raise KeyError(f"Skill {skill_name!r} not found")
 
     async def get_request_parts(
         self, name: str, arguments: dict[str, str] | None = None
@@ -178,13 +177,11 @@ class ResourceProvider:
         prompts = await self.get_prompts()
         prompt = next((p for p in prompts if p.name == name), None)
         if not prompt:
-            msg = f"Prompt {name!r} not found"
-            raise KeyError(msg)
+            raise KeyError(f"Prompt {name!r} not found")
 
         messages = await prompt.format(arguments or {})
         if not messages:
-            msg = f"Prompt {name!r} produced no messages"
-            raise ValueError(msg)
+            raise ValueError(f"Prompt {name!r} produced no messages")
 
         return [p for prompt_msg in messages for p in prompt_msg.to_pydantic_parts()]
 

@@ -34,8 +34,7 @@ class BuiltinPromptProvider(BasePromptProvider):
         from jinja2 import Template, meta
 
         if name not in self.prompts:
-            msg = f"Prompt not found: {name}"
-            raise KeyError(msg)
+            raise KeyError(f"Prompt not found: {name}")
 
         prompt = self.prompts[name]
         content = prompt.content
@@ -45,28 +44,27 @@ class BuiltinPromptProvider(BasePromptProvider):
         required_vars = meta.find_undeclared_variables(ast)
         if variables and (unknown_vars := (set(variables) - required_vars)):
             vars_ = ", ".join(unknown_vars)
-            msg = f"Unknown variables for prompt {name}: {vars_}"
-            raise KeyError(msg)
+
+            raise KeyError(f"Unknown variables for prompt {name}: {vars_}")
 
         if required_vars:
             if not variables:
                 req = ", ".join(required_vars)
-                msg = f"Prompt {name} requires variables: {req}"
-                raise KeyError(msg)
+
+                raise KeyError(f"Prompt {name} requires variables: {req}")
 
             # Check for missing required variables
             missing_vars = required_vars - set(variables or {})
             if missing_vars:
                 vars_ = ", ".join(missing_vars)
-                msg = f"Missing required variables for prompt {name}: {vars_}"
-                raise KeyError(msg)
+
+                raise KeyError(f"Missing required variables for prompt {name}: {vars_}")
 
             try:
                 template = Template(content, enable_async=True)
                 content = await template.render_async(**variables)
             except Exception as e:
-                msg = f"Failed to render prompt {name}: {e}"
-                raise ValueError(msg) from e
+                raise ValueError(f"Failed to render prompt {name}: {e}") from e
 
         return content
 

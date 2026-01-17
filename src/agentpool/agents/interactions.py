@@ -227,8 +227,7 @@ class Interactions:
                 label_map = {get_label(item): item for item in items}
 
         if not items:
-            msg = "No choices available"
-            raise ValueError(msg)
+            raise ValueError("No choices available")
 
         # Get descriptions for all items
         descriptions = []
@@ -251,8 +250,7 @@ Select ONE option by its exact label."""
 
         # Convert to type-safe decision
         if result.content.selection not in label_map:
-            msg = f"Invalid selection: {result.content.selection}"
-            raise ValueError(msg)
+            raise ValueError(f"Invalid selection: {result.content.selection}")
 
         selected = cast(T, label_map[result.content.selection])
         return Pick(selection=selected, reason=result.content.reason)
@@ -328,12 +326,10 @@ Select ONE option by its exact label."""
                 label_map = {get_label(item): item for item in items}
 
         if not items:
-            msg = "No choices available"
-            raise ValueError(msg)
+            raise ValueError("No choices available")
 
         if max_picks is not None and max_picks < min_picks:
-            msg = f"max_picks ({max_picks}) cannot be less than min_picks ({min_picks})"
-            raise ValueError(msg)
+            raise ValueError(f"max_picks ({max_picks}) cannot be less than min_picks ({min_picks})")
 
         descriptions = []
         for label, item in label_map.items():
@@ -363,16 +359,13 @@ List your selections, one per line, followed by your reasoning."""
         # Validate selections
         invalid = [s for s in result.content.selections if s not in label_map]
         if invalid:
-            msg = f"Invalid selections: {', '.join(invalid)}"
-            raise ValueError(msg)
+            raise ValueError(f"Invalid selections: {', '.join(invalid)}")
         num_picks = len(result.content.selections)
         if num_picks < min_picks:
-            msg = f"Too few selections: got {num_picks}, need {min_picks}"
-            raise ValueError(msg)
+            raise ValueError(f"Too few selections: got {num_picks}, need {min_picks}")
 
         if max_picks and num_picks > max_picks:
-            msg = f"Too many selections: got {num_picks}, max {max_picks}"
-            raise ValueError(msg)
+            raise ValueError(f"Too many selections: got {num_picks}, max {max_picks}")
 
         selected = [cast(T, label_map[label]) for label in result.content.selections]
         return MultiPick(selections=selected, reason=result.content.reason)
@@ -441,12 +434,10 @@ List your selections, one per line, followed by your reasoning."""
             result = await structured_agent.run(final_prompt)
         num_instances = len(result.content.instances)  # Validate counts
         if len(result.content.instances) < min_items:
-            msg = f"Found only {num_instances} instances, need {min_items}"
-            raise ValueError(msg)
+            raise ValueError(f"Found only {num_instances} instances, need {min_items}")
 
         if max_items and num_instances > max_items:
-            msg = f"Found {num_instances} instances, max is {max_items}"
-            raise ValueError(msg)
+            raise ValueError(f"Found {num_instances} instances, max is {max_items}")
         return [
             as_type(**instance.data if hasattr(instance, "data") else instance.model_dump())
             for instance in result.content.instances

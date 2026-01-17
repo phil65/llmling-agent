@@ -358,8 +358,7 @@ class ToolManagerBridge:
     def port(self) -> int:
         """Get the actual port the server is running on."""
         if self._actual_port is None:
-            msg = "Server not started"
-            raise RuntimeError(msg)
+            raise RuntimeError("Server not started")
         return self._actual_port
 
     @property
@@ -395,8 +394,7 @@ class ToolManagerBridge:
             RuntimeError: If bridge not started (no server running)
         """
         if self._actual_port is None:
-            msg = "Bridge not started - call start() first"
-            raise RuntimeError(msg)
+            raise RuntimeError("Bridge not started - call start() first")
 
         # Use HTTP transport to preserve _meta field with claudecode/toolUseId
         # SDK transport drops _meta in Claude Agent SDK's query.py
@@ -416,8 +414,7 @@ class ToolManagerBridge:
         from codex_adapter.codex_types import HttpMcpServer as CodexHttpMcpServer
 
         if self._actual_port is None:
-            msg = "Bridge not started - call start() first"
-            raise RuntimeError(msg)
+            raise RuntimeError("Bridge not started - call start() first")
 
         url = f"http://127.0.0.1:{self.port}/mcp"
         return (self.server_name, CodexHttpMcpServer(url=url))

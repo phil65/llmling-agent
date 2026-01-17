@@ -45,8 +45,7 @@ class TaskSupervisor:
         on_error: ErrorHandler | None = None,
     ) -> asyncio.Task[Any]:
         if self._closed:
-            msg = f"TaskSupervisor for {self._source} already closed"
-            raise RuntimeError(msg)
+            raise RuntimeError(f"TaskSupervisor for {self._source} already closed")
         task = asyncio.create_task(coroutine, name=name)
         self._tasks.add(task)
         task.add_done_callback(lambda t: self._on_done(t, on_error))
@@ -75,8 +74,7 @@ class TaskSupervisor:
                         handler(task, exc)
                         handled = True
                     except Exception:
-                        msg = "Error in supervisor error handler"
-                        logger.exception(msg, source=self._source)
+                        logger.exception("Error in supervisor error handler", source=self._source)
             if not handled:
                 logger.exception("Unhandled error in task", source=self._source)
 

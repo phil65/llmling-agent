@@ -395,8 +395,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._input_provider = input_provider
 
         if not self._client:
-            msg = "Agent not initialized - use async context manager"
-            raise RuntimeError(msg)
+            raise RuntimeError("Agent not initialized - use async context manager")
 
         # Set thread_id from conversation_id (needed for AG-UI protocol)
         if self._thread_id is None:

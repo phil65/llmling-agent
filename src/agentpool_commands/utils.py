@@ -52,8 +52,7 @@ class CopyClipboardCommand(NodeCommand):
         try:
             import copykitten
         except ImportError as e:
-            msg = "copykitten package required for clipboard operations"
-            raise CommandError(msg) from e
+            raise CommandError("copykitten package required for clipboard operations") from e
 
         content = await ctx.context.agent.conversation.format_history(
             num_messages=num_messages,
@@ -69,8 +68,7 @@ class CopyClipboardCommand(NodeCommand):
             copykitten.copy(content)
             await ctx.print("📋 **Messages copied to clipboard**")
         except Exception as e:
-            msg = f"Failed to copy to clipboard: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to copy to clipboard: {e}") from e
 
     @classmethod
     def condition(cls) -> bool:
@@ -100,16 +98,14 @@ class EditAgentFileCommand(NodeCommand):
         agent_ctx = agent.get_context()
         config = agent_ctx.config
         if not config.config_file_path:
-            msg = "No configuration file path available"
-            raise CommandError(msg)
+            raise CommandError("No configuration file path available")
 
         try:
             webbrowser.open(config.config_file_path)
             msg = f"🌐 **Opening agent configuration:** `{config.config_file_path}`"
             await ctx.print(msg)
         except Exception as e:
-            msg = f"Failed to open configuration file: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to open configuration file: {e}") from e
 
 
 class ShareHistoryCommand(NodeCommand):
@@ -188,8 +184,7 @@ class ShareHistoryCommand(NodeCommand):
             await ctx.print("\n".join(msg_parts))
 
         except Exception as e:
-            msg = f"Failed to share content via {provider}: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to share content via {provider}: {e}") from e
 
 
 class GetLogsCommand(NodeCommand):

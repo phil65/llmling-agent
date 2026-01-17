@@ -76,18 +76,15 @@ def extract_frontmatter(content: str, file_path: str) -> tuple[dict[str, Any], s
 
     frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n?", content, re.DOTALL)
     if not frontmatter_match:
-        msg = f"No YAML frontmatter found in {file_path}"
-        raise ValueError(msg)
+        raise ValueError(f"No YAML frontmatter found in {file_path}")
 
     try:
         metadata = yamling.load_yaml(frontmatter_match.group(1))
     except yamling.YAMLError as e:
-        msg = f"Invalid YAML frontmatter in {file_path}: {e}"
-        raise ValueError(msg) from e
+        raise ValueError(f"Invalid YAML frontmatter in {file_path}: {e}") from e
 
     if not isinstance(metadata, dict):
-        msg = f"YAML frontmatter must be a dictionary in {file_path}"
-        raise ValueError(msg)  # noqa: TRY004
+        raise ValueError(f"YAML frontmatter must be a dictionary in {file_path}")  # noqa: TRY004
 
     system_prompt = content[frontmatter_match.end() :].strip()
     return metadata, system_prompt
@@ -333,8 +330,7 @@ def parse_agent_file(
     elif detected_format == "native":
         config_kwargs = parse_native_format(metadata, system_prompt)
     else:
-        msg = f"Unknown format {detected_format!r} for {file_path}"
-        raise ValueError(msg)
+        raise ValueError(f"Unknown format {detected_format!r} for {file_path}")
 
     return NativeAgentConfig(**config_kwargs)
 

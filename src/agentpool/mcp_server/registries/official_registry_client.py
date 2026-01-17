@@ -257,8 +257,7 @@ class MCPRegistryClient:
             response.raise_for_status()
             data = response.json()
         except httpx.HTTPError as e:
-            msg = f"Failed to list servers: {e}"
-            raise MCPRegistryError(msg) from e
+            raise MCPRegistryError(f"Failed to list servers: {e}") from e
         else:
             data = RegistryListResponse(**data)
             if status:  # Filter by status from metadata
@@ -300,26 +299,22 @@ class MCPRegistryClient:
                     break
 
             if not target_wrapper:
-                msg = f"Server {server_id!r} not found in registry"
-                raise MCPRegistryError(msg)
+                raise MCPRegistryError(f"Server {server_id!r} not found in registry")
             # Get the UUID from metadata
             server_uuid = target_wrapper.meta.get(NAME, {}).get("id")
             if not server_uuid:
-                msg = f"No UUID found for server {server_id!r}"
-                raise MCPRegistryError(msg)
+                raise MCPRegistryError(f"No UUID found for server {server_id!r}")
             # Now fetch the full server details using UUID
             response = await self.client.get(f"{self.base_url}/v0/servers/{server_uuid}")
             response.raise_for_status()
             server_data = response.json()
         except httpx.HTTPStatusError as e:
             if e.response.status_code == HTTP_NOT_FOUND:
-                msg = f"Server {server_id!r} not found in registry"
-                raise MCPRegistryError(msg) from e
-            msg = f"Failed to get server details: {e}"
-            raise MCPRegistryError(msg) from e
+                raise MCPRegistryError(f"Server {server_id!r} not found in registry") from e
+
+            raise MCPRegistryError(f"Failed to get server details: {e}") from e
         except (httpx.HTTPError, ValueError, KeyError) as e:
-            msg = f"Failed to get server details: {e}"
-            raise MCPRegistryError(msg) from e
+            raise MCPRegistryError(f"Failed to get server details: {e}") from e
         else:
             server = RegistryServer(**server_data)
             ts = time.time()

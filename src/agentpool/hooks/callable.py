@@ -61,8 +61,7 @@ class CallableHook(Hook):
         """Get the callable, importing lazily if needed."""
         if self._callable is None:
             if self._import_path is None:
-                msg = "No callable or import path provided"
-                raise ValueError(msg)
+                raise ValueError("No callable or import path provided")
             self._callable = import_callable(self._import_path)
         return self._callable
 

@@ -143,8 +143,7 @@ class ServerState:
         # Get the execution environment from the agent
         env = getattr(self.agent, "env", None)
         if env is None:
-            msg = "Agent does not have an execution environment for LSP"
-            raise RuntimeError(msg)
+            raise RuntimeError("Agent does not have an execution environment for LSP")
 
         self.lsp_manager = LSPManager(env=env)
         self.lsp_manager.register_defaults()

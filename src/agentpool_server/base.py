@@ -85,8 +85,7 @@ class BaseServer:
         This is the internal implementation that subclasses override.
         The public start() method handles exception management.
         """
-        msg = "Subclasses must implement _start_async()"
-        raise NotImplementedError(msg)
+        raise NotImplementedError("Subclasses must implement _start_async()")
 
     async def start(self) -> None:
         """Start the server (blocking async - runs until stopped).
@@ -126,8 +125,7 @@ class BaseServer:
         Server will run in the background until stop() is called.
         """
         if self._server_task is not None and not self._server_task.done():
-            msg = "Server is already running in background"
-            raise RuntimeError(msg)
+            raise RuntimeError("Server is already running in background")
 
         self._shutdown_event.clear()
         self._server_task = self.task_manager.create_task(

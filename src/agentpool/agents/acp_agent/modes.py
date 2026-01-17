@@ -52,8 +52,7 @@ class ACPModeCategory(ModeCategoryProtocol["ACPAgent"]):
             raise ValueError(msg)
 
         if not agent._connection or not agent._session_id or not agent._state:
-            msg = "Not connected to ACP server"
-            raise RuntimeError(msg)
+            raise RuntimeError("Not connected to ACP server")
 
         # Try config_options API first
         if agent._state.config_options:
@@ -193,8 +192,7 @@ class ACPModelCategory(ModeCategoryProtocol["ACPAgent"]):
             raise ValueError(msg)
 
         if not agent._connection or not agent._session_id or not agent._state:
-            msg = "Not connected to ACP server"
-            raise RuntimeError(msg)
+            raise RuntimeError("Not connected to ACP server")
 
         # Try config_options API first
         if agent._state.config_options:
@@ -334,12 +332,10 @@ class ACPGenericCategory(ModeCategoryProtocol["ACPAgent"]):
             raise ValueError(msg)
 
         if not agent._connection or not agent._session_id or not agent._state:
-            msg = "Not connected to ACP server"
-            raise RuntimeError(msg)
+            raise RuntimeError("Not connected to ACP server")
 
         if not agent._state.config_options:
-            msg = f"Server does not support config_options, cannot set '{self.id}'"
-            raise RuntimeError(msg)
+            raise RuntimeError(f"Server does not support config_options, cannot set {self.id!r}")
 
         config_request = SetSessionConfigOptionRequest(
             session_id=agent._session_id,

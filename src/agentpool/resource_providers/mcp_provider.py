@@ -73,8 +73,7 @@ class MCPResourceProvider(ResourceProvider):
         except Exception as e:
             # Clean up in case of error
             await self.__aexit__(type(e), e, e.__traceback__)
-            msg = "Failed to initialize MCP manager"
-            raise RuntimeError(msg) from e
+            raise RuntimeError("Failed to initialize MCP manager") from e
 
         return self
 

@@ -38,8 +38,8 @@ class FabricPromptHub(BasePromptProvider):
                 return response.text
             if (response := await client.get(user_url)).status_code == 200:  # noqa: PLR2004
                 return response.text
-            msg = f"Template {name!r} not found in Fabric repository"
-            raise ValueError(msg)
+
+            raise ValueError(f"Template {name!r} not found in Fabric repository")
 
     async def list_prompts(self) -> list[str]:
         """List available prompts from Fabric repository."""

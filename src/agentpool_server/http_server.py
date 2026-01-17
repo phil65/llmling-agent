@@ -100,8 +100,7 @@ class HTTPServer(BaseServer):
         try:
             import uvicorn
         except ImportError as e:
-            msg = "Please install 'uvicorn' to use HTTPServer. You can use: uv add uvicorn"
-            raise ImportError(msg) from e
+            raise ImportError("Please install 'uvicorn' to use HTTPServer.") from e
 
         self.log.info(
             "Starting HTTP server",

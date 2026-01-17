@@ -43,8 +43,7 @@ class SearchHistoryCommand(NodeCommand):
             limit: Maximum results to return
         """
         if not ctx.context.pool:
-            msg = "No agent pool available for history search"
-            raise CommandError(msg)
+            raise CommandError("No agent pool available for history search")
 
         try:
             from agentpool_storage.formatters import format_output
@@ -58,5 +57,4 @@ class SearchHistoryCommand(NodeCommand):
             output = format_output(results)
             await ctx.print(f"## Search Results\n\n{output}")
         except Exception as e:
-            msg = f"Failed to search history: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Failed to search history: {e}") from e

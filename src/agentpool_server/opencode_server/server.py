@@ -125,8 +125,7 @@ def create_app(  # noqa: PLR0915
         # Use first agent as default
         agent = next(iter(pool.all_agents.values()), None)
         if agent is None:
-            msg = "Pool has no agents"
-            raise ValueError(msg)
+            raise ValueError("Pool has no agents")
 
     state = ServerState(
         working_dir=working_dir or str(Path.cwd()),

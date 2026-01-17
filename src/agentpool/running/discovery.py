@@ -91,8 +91,7 @@ def node_function(
                     for i in items
                 ]
             case _:
-                msg = f"Invalid depends_on: {depends_on}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid depends_on: {depends_on}")
         # TODO: we still need to inject the deps in execution part.
         metadata = NodeFunction(func=func, depends_on=depends_on_ or [], deps=deps)
         func._node_function = metadata  # type: ignore

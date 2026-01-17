@@ -86,8 +86,7 @@ class OpenAPITools(ResourceProvider):
                         to_upath(temp_path).unlink(missing_ok=True)
 
             if not self._spec:
-                msg = f"Empty or invalid OpenAPI spec from {self.spec_url}"
-                raise ValueError(msg)  # noqa: TRY301
+                raise ValueError(f"Empty or invalid OpenAPI spec from {self.spec_url}")  # noqa: TRY301
 
             self._schemas = self._spec.get("components", {}).get("schemas", {})
             self._operations = parse_operations(self._spec.get("paths", {}))
@@ -97,8 +96,7 @@ class OpenAPITools(ResourceProvider):
                 logger.warning("No operations found in spec %s.", self.spec_url)
 
         except Exception as e:
-            msg = f"Failed to load OpenAPI spec from {self.spec_url}"
-            raise ValueError(msg) from e
+            raise ValueError(f"Failed to load OpenAPI spec from {self.spec_url}") from e
         else:
             return self._spec
 

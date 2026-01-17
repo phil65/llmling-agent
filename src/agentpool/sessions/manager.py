@@ -137,16 +137,14 @@ class SessionManager:
         """
         # Validate agent exists
         if agent_name not in self._pool.all_agents:
-            msg = f"Agent '{agent_name}' not found in pool"
-            raise KeyError(msg)
+            raise KeyError(f"Agent '{agent_name}' not found in pool")
 
         async with self._lock:
             # Generate or validate session ID
             if session_id is None:
                 session_id = self.generate_session_id()
             elif session_id in self._active:
-                msg = f"Session '{session_id}' already exists"
-                raise ValueError(msg)
+                raise ValueError(f"Session '{session_id}' already exists")
 
             # Get or create project if cwd provided and storage available
             project_id: str | None = None

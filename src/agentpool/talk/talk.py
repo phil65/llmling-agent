@@ -170,8 +170,7 @@ class Talk[TTransmittedData = Any]:
                 talks = [t.__rshift__(other) for t in self.targets]
                 return TeamTalk([self, *talks])
             case _:
-                msg = f"Invalid agent type: {type(other)}"
-                raise TypeError(msg)
+                raise TypeError(f"Invalid agent type: {type(other)}")
 
     async def _evaluate_condition(
         self,
@@ -412,8 +411,7 @@ class Talk[TTransmittedData = Any]:
 
                 return results
             case _:
-                msg = f"Invalid queue strategy: {self.queue_strategy}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid queue strategy: {self.queue_strategy}")
 
     def when(self, condition: AnyFilterFn) -> Self:
         """Add condition for message forwarding."""
@@ -532,8 +530,7 @@ class TeamTalk[TTransmittedData = Any](list["Talk | TeamTalk"]):
                 talks = [t.connect_to(other) for t in self.targets]
                 return TeamTalk([self, *talks])
             case _:
-                msg = f"Invalid agent type: {type(other)}"
-                raise TypeError(msg)
+                raise TypeError(f"Invalid agent type: {type(other)}")
 
     @property
     def targets(self) -> list[MessageNode[Any, Any]]:

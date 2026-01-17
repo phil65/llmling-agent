@@ -151,8 +151,7 @@ class ClientSession:
             KeyError: If agent not found in pool
         """
         if agent_name not in self._pool.all_agents:
-            msg = f"Agent '{agent_name}' not found in pool"
-            raise KeyError(msg)
+            raise KeyError(f"Agent '{agent_name}' not found in pool")
 
         self._agent = self._pool.get_agent(agent_name)
         self._data = self._data.with_agent(agent_name)

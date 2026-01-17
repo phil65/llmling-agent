@@ -262,8 +262,7 @@ class MCPServer(BaseServer):
         try:
             return self.server.request_context.session
         except LookupError as exc:
-            msg = "No active request context"
-            raise RuntimeError(msg) from exc
+            raise RuntimeError("No active request context") from exc
 
     async def report_progress(
         self,

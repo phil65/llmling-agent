@@ -138,5 +138,5 @@ class AggregatingResourceProvider(ResourceProvider):
                 return await provider.get_request_parts(name, arguments)
             except KeyError:
                 continue
-        msg = f"Prompt {name!r} not found in any provider"
-        raise KeyError(msg)
+
+        raise KeyError(f"Prompt {name!r} not found in any provider")

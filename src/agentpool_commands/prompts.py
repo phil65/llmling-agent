@@ -32,8 +32,7 @@ class ShowPromptCommand(NodeCommand):
             prompt = await ctx.context.prompt_manager.get(identifier)
             await ctx.print(f"## 📝 Prompt Content\n\n```\n{prompt}\n```")
         except Exception as e:
-            msg = f"Error getting prompt: {e}"
-            raise CommandError(msg) from e
+            raise CommandError(f"Error getting prompt: {e}") from e
 
     def get_completer(self) -> PromptCompleter:
         """Get completer for prompt names."""

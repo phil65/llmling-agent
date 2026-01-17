@@ -136,8 +136,7 @@ class PromptManager:
         """
         provider_name = provider or "builtin"
         if provider_name not in self.providers:
-            msg = f"Unknown prompt provider: {provider_name}"
-            raise KeyError(msg)
+            raise KeyError(f"Unknown prompt provider: {provider_name}")
 
         provider_instance = self.providers[provider_name]
         try:
@@ -149,8 +148,7 @@ class PromptManager:
 
             return await provider_instance.get_prompt(identifier, **kwargs)
         except Exception as e:
-            msg = f"Failed to get prompt {identifier!r} from {provider_name}"
-            raise RuntimeError(msg) from e
+            raise RuntimeError(f"Failed to get prompt {identifier!r} from {provider_name}") from e
 
     @method_spawner
     async def get(self, reference: str) -> str:

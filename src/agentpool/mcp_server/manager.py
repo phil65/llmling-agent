@@ -67,8 +67,7 @@ class MCPManager:
                 await asyncio.gather(*tasks)
         except Exception as e:
             await self.__aexit__(type(e), e, e.__traceback__)
-            msg = "Failed to initialize MCP manager"
-            raise RuntimeError(msg) from e
+            raise RuntimeError("Failed to initialize MCP manager") from e
 
         return self
 
@@ -127,8 +126,7 @@ class MCPManager:
         """
         if not config.enabled:
             if add_to_config:
-                msg = f"Server config {config.client_id} is disabled"
-                raise ValueError(msg)
+                raise ValueError(f"Server config {config.client_id} is disabled")
             return None
 
         if add_to_config:

@@ -13,7 +13,7 @@ from dataclasses import dataclass
 import logging
 import os
 import subprocess
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, assert_never
 
 import anyio
 from anyio.abc import ByteReceiveStream, ByteSendStream
@@ -142,9 +142,8 @@ async def serve(
             await _serve_websocket(agent, host, port, shutdown_event, debug_file, **kwargs)
         case StreamTransport(reader=reader, writer=writer):
             await _serve_streams(agent, reader, writer, shutdown_event, debug_file, **kwargs)
-        case _:
-            msg = f"Unsupported transport: {transport}"
-            raise ValueError(msg)
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 async def _serve_stdio(
@@ -431,8 +430,7 @@ async def spawn_stdio_transport(
     if process.stdout is None or process.stdin is None:
         process.kill()
         await process.wait()
-        msg = "spawn_stdio_transport requires stdout/stdin pipes"
-        raise RuntimeError(msg)
+        raise RuntimeError("spawn_stdio_transport requires stdout/stdin pipes")
 
     stderr_task: asyncio.Task[None] | None = None
     if log_stderr and process.stderr is not None:

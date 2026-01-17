@@ -146,8 +146,7 @@ class Jinja2EnvironmentConfig(Schema):
             kwargs["tests"] = {tool.name: tool.get_callable() for tool in tools}
 
         except Exception as exc:
-            msg = f"Failed to import Jinja2 filters/tests: {exc}"
-            raise ValueError(msg) from exc
+            raise ValueError(f"Failed to import Jinja2 filters/tests: {exc}") from exc
 
         return kwargs
 

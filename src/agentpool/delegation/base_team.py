@@ -220,11 +220,9 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
     async def wait(self) -> ChatMessage[Any] | None:
         """Wait for background execution to complete and return last message."""
         if not self._main_task:
-            msg = "No execution running"
-            raise RuntimeError(msg)
+            raise RuntimeError("No execution running")
         if self._infinite:
-            msg = "Cannot wait on infinite execution"
-            raise RuntimeError(msg)
+            raise RuntimeError("Cannot wait on infinite execution")
         try:
             return await self._main_task
         finally:
@@ -247,8 +245,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             **kwargs: Additional args for execute()
         """
         if self._main_task:
-            msg = "Execution already running"
-            raise RuntimeError(msg)
+            raise RuntimeError("Execution already running")
         self._infinite = max_count is None
 
         async def _continuous() -> ChatMessage[Any] | None:
@@ -325,8 +322,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 case Agent():
                     yield node
                 case _:
-                    msg = f"Invalid node type: {type(node)}"
-                    raise ValueError(msg)
+                    raise ValueError(f"Invalid node type: {type(node)}")
 
     def get_context(
         self,
@@ -375,8 +371,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             )
 
         if len(pool_ids) > 1:
-            msg = f"Team members in {self.name} belong to different pools"
-            raise ValueError(msg)
+            raise ValueError(f"Team members in {self.name} belong to different pools")
         return TeamContext(
             node=self,
             pool=shared_pool,

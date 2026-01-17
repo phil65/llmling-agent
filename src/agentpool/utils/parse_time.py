@@ -66,8 +66,7 @@ def parse_time_period(period: str) -> timedelta:
     # Handle sign
     sign_match = _SIGN_PATTERN.match(period)
     if not sign_match:
-        msg = f"Invalid time format: {period}"
-        raise ValueError(msg)
+        raise ValueError(f"Invalid time format: {period}")
 
     sign = -1 if sign_match.group("sign") == "-" else 1
     unsigned = sign_match.group("unsigned")
@@ -80,8 +79,6 @@ def parse_time_period(period: str) -> timedelta:
             secs = sum(_MULTIPLIERS[unit] * float(val) for unit, val in matches.items())
             return timedelta(seconds=sign * secs)
         except (ValueError, KeyError) as e:
-            msg = f"Invalid time value in: {period}"
-            raise ValueError(msg) from e
+            raise ValueError(f"Invalid time value in: {period}") from e
 
-    msg = f"Unsupported time format: {period}"
-    raise ValueError(msg)
+    raise ValueError(f"Unsupported time format: {period}")

@@ -178,8 +178,7 @@ class NodeConfig(Schema):
                 case str():
                     parts = server.split()
                     if not parts:
-                        msg = "Empty MCP server command"
-                        raise ValueError(msg)
+                        raise ValueError("Empty MCP server command")
 
                     configs.append(StdioMCPServerConfig(command=parts[0], args=parts[1:]))
                 case BaseMCPServerConfig():

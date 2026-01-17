@@ -692,8 +692,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     async def _do_connect(self) -> None:
         """Actually connect the client. Runs in background task."""
         if not self._client:
-            msg = "Client not created - call __aenter__ first"
-            raise RuntimeError(msg)
+            raise RuntimeError("Client not created - call __aenter__ first")
 
         try:
             await self._client.connect()
@@ -915,6 +914,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         from clawd_code_sdk import (
             AssistantMessage,
+            ClaudeSDKClient,
             Message,
             ResultMessage,
             SystemMessage,
@@ -926,6 +926,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
         from clawd_code_sdk.types import StreamEvent
 
+        from agentpool.agents.events import ToolResultMetadataEvent
         from agentpool.agents.events.infer_info import derive_rich_tool_info
         from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
@@ -983,8 +984,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if not store_history and self._sdk_session_id:
             # Create fork client that shares parent's context but has separate session ID
             # See: src/agentpool/agents/claude_code_agent/FORKING.md
-            from clawd_code_sdk import ClaudeSDKClient
-
             # Build options using same method as main client
             fork_options = self._build_options()
             # Add fork-specific parameters
@@ -1009,8 +1008,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     # Check if it's a queued event (from tools via EventEmitter)
                     if not isinstance(event_or_message, Message):
                         # Capture metadata events for correlation with tool results
-                        from agentpool.agents.events import ToolResultMetadataEvent
-
                         if isinstance(event_or_message, ToolResultMetadataEvent):
                             tool_metadata[event_or_message.tool_call_id] = event_or_message.metadata
                             # Don't yield metadata events - they're internal correlation only
@@ -1085,26 +1082,22 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         response = ModelResponse(parts=current_response_parts)
                                         model_messages.append(response)
                                         current_response_parts = []
-
                                     # Get tool name from pending calls
                                     tool_use = pending_tool_calls.pop(tc_id, None)
                                     tool_name = _strip_mcp_prefix(
                                         tool_use.name if tool_use else "unknown"
                                     )
                                     tool_input = tool_use.input if tool_use else {}
-
                                     # Create ToolReturnPart for the result
                                     tool_return_part = ToolReturnPart(
                                         tool_name=tool_name, content=content, tool_call_id=tc_id
                                     )
-
                                     # Emit FunctionToolResultEvent (for session.py to complete UI)
                                     func_result_event = FunctionToolResultEvent(
                                         result=tool_return_part
                                     )
                                     await event_handlers(None, func_result_event)
                                     yield func_result_event
-
                                     # Also emit ToolCallCompleteEvent for consumers that expect it
                                     tool_done_event = ToolCallCompleteEvent(
                                         tool_name=tool_name,
@@ -1117,7 +1110,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     )
                                     await event_handlers(None, tool_done_event)
                                     yield tool_done_event
-
                                     # Add tool return as ModelRequest
                                     model_messages.append(ModelRequest(parts=[tool_return_part]))
 
@@ -1131,7 +1123,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             if isinstance(user_block, ToolResultBlock):
                                 tc_id = user_block.tool_use_id
                                 result_content = user_block.content
-
                                 # Flush response parts
                                 if current_response_parts:
                                     model_messages.append(
@@ -1145,19 +1136,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     tool_use.name if tool_use else "unknown"
                                 )
                                 tool_input = tool_use.input if tool_use else {}
-
                                 # Create ToolReturnPart for the result
                                 tool_return_part = ToolReturnPart(
                                     tool_name=tool_name,
                                     content=result_content,
                                     tool_call_id=tc_id,
                                 )
-
                                 # Emit FunctionToolResultEvent (for session.py to complete UI)
                                 func_result_event = FunctionToolResultEvent(result=tool_return_part)
                                 await event_handlers(None, func_result_event)
                                 yield func_result_event
-
                                 # Also emit ToolCallCompleteEvent for consumers that expect it
                                 tool_complete_event = ToolCallCompleteEvent(
                                     tool_name=tool_name,
@@ -1170,7 +1158,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 )
                                 await event_handlers(None, tool_complete_event)
                                 yield tool_complete_event
-
                                 # Add tool return as ModelRequest
                                 model_messages.append(ModelRequest(parts=[tool_return_part]))
 

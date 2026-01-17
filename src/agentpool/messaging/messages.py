@@ -439,8 +439,8 @@ class ChatMessage[TContent]:
         for message in reversed(self.messages):
             if isinstance(message, ModelResponse):
                 return message
-        msg = "No response found in the message history"
-        raise ValueError(msg)
+
+        raise ValueError("No response found in the message history")
 
     def to_request(self) -> Self:
         """Convert this message to a request message.
@@ -570,14 +570,12 @@ class ChatMessage[TContent]:
         match style:
             case "custom":
                 if not template:
-                    msg = "Custom style requires a template"
-                    raise ValueError(msg)
+                    raise ValueError("Custom style requires a template")
                 template_str = template
             case _ if style in MESSAGE_TEMPLATES:
                 template_str = MESSAGE_TEMPLATES[style]
             case _:
-                msg = f"Invalid style: {style}"
-                raise ValueError(msg)
+                raise ValueError(f"Invalid style: {style}")
         template_obj = env.from_string(template_str)
         vars_ = {
             **(self.__dict__),

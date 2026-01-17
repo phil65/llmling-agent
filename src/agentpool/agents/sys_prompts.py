@@ -76,15 +76,13 @@ class SystemPrompts:
             await sys_prompts.add_by_reference("langfuse:expert@v2")
         """
         if not self.prompt_manager:
-            msg = "No prompt_manager available to resolve prompts"
-            raise RuntimeError(msg)
+            raise RuntimeError("No prompt_manager available to resolve prompts")
 
         try:
             content = await self.prompt_manager.get(reference)
             self.prompts.append(content)
         except Exception as e:
-            msg = f"Failed to add prompt {reference!r}"
-            raise RuntimeError(msg) from e
+            raise RuntimeError(f"Failed to add prompt {reference!r}") from e
 
     async def add(
         self,
@@ -107,8 +105,7 @@ class SystemPrompts:
             await sys_prompts.add("expert", provider="langfuse", version="v2")
         """
         if not self.prompt_manager:
-            msg = "No prompt_manager available to resolve prompts"
-            raise RuntimeError(msg)
+            raise RuntimeError("No prompt_manager available to resolve prompts")
 
         try:
             content = await self.prompt_manager.get_from(
@@ -120,8 +117,8 @@ class SystemPrompts:
             self.prompts.append(content)
         except Exception as e:
             ref = f"{provider + ':' if provider else ''}{identifier}"
-            msg = f"Failed to add prompt {ref!r}"
-            raise RuntimeError(msg) from e
+
+            raise RuntimeError(f"Failed to add prompt {ref!r}") from e
 
     def clear(self) -> None:
         """Clear all system prompts."""
