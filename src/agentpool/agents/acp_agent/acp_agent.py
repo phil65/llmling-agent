@@ -709,23 +709,17 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         from agentpool.agents.modes import ConfigOptionChanged
 
         if not self._connection or not self._session_id or not self._state:
-            msg = "Not connected to ACP server"
-            raise RuntimeError(msg)
-
+            raise RuntimeError("Not connected to ACP server")
         # Validate mode is available
         available_modes = await self.get_modes()
         matching_category = next((c for c in available_modes if c.id == category_id), None)
-
         if matching_category:
             valid_ids = {m.id for m in matching_category.available_modes}
             if mode_id not in valid_ids:
-                msg = f"Unknown {category_id}: {mode_id}. Available: {valid_ids}"
-                raise ValueError(msg)
+                raise ValueError(f"Unknown {category_id}: {mode_id}. Available: {valid_ids}")
         else:
             available_cats = {c.id for c in available_modes}
-            msg = f"Unknown category: {category_id}. Available: {available_cats}"
-            raise ValueError(msg)
-
+            raise ValueError(f"Unknown category: {category_id}. Available: {available_cats}")
         # Prefer new config_options API if available
         if self._state.config_options:
             assert category_id
@@ -738,40 +732,26 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Update local state from response
             if response.config_options:
                 self._state.config_options = list(response.config_options)
-            change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
-            await self.state_updated.emit(change)
-            self.log.info("Config option changed", config_id=category_id, value=mode_id)
-            return
-
         # Legacy: Use old set_session_mode/set_session_model APIs
-        if category_id == "mode":
+        elif category_id == "mode":
             mode_request = SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id)
             await self._connection.set_session_mode(mode_request)
             # Update local state
             if self._state.modes:
                 self._state.modes.current_mode_id = mode_id
-            change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
-            await self.state_updated.emit(change)
-            self.log.info("Mode changed on remote ACP server", mode_id=mode_id)
-
         elif category_id == "model":
             # Legacy: Use set_session_model API
             request = SetSessionModelRequest(session_id=self._session_id, model_id=mode_id)
             if await self._connection.set_session_model(request):
                 self._state.current_model_id = mode_id
-                self.log.info("Model changed via legacy set_session_model", model=mode_id)
+                self.log.info("Model changed via legacy set_session_model")
             else:
-                msg = (
-                    "Remote ACP agent does not support model changes. "
-                    "set_session_model returned no response."
-                )
-                raise RuntimeError(msg)
-            # Emit state change signal (not emitted by legacy API)
-            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
-
+                raise RuntimeError("Remote ACP agent does not support model changes.")
         else:
-            msg = f"Unknown category: {category_id}. Available: mode, model"
-            raise ValueError(msg)
+            raise ValueError(f"Unknown category: {category_id}. Available: mode, model")
+        self.log.info("Config option changed", config_id=category_id, value=mode_id)
+        change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
+        await self.state_updated.emit(change)
 
     async def list_sessions(self) -> list[SessionInfo]:
         """List sessions from the remote ACP server."""
@@ -780,8 +760,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         from agentpool.utils.now import get_now
 
         if not self._connection:
-            msg = "Not connected to ACP server"
-            raise RuntimeError(msg)
+            raise RuntimeError("Not connected to ACP server")
 
         try:
             request = ListSessionsRequest()
