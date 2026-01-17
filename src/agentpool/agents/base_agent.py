@@ -837,21 +837,20 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """
         ...
 
+    @overload
+    async def set_mode(self, mode: ModeInfo) -> None: ...
+
+    @overload
+    async def set_mode(self, mode: str, category_id: ModeCategoryId | str) -> None: ...
+
     async def set_mode(
         self, mode: ModeInfo | str, category_id: ModeCategoryId | str | None = None
     ) -> None:
         """Set a mode within a category.
 
-        Extracts mode_id and category_id from the input, then delegates to
-        the agent-specific `_set_mode` implementation.
-
         Args:
             mode: The mode to activate - either a ModeInfo object or mode ID string.
-                  If ModeInfo, category_id is extracted from it (unless overridden).
-            category_id: Category ID. Required if mode is a string.
-
-        Raises:
-            ValueError: If mode_id or category_id is invalid or missing
+            category_id: Category ID. Required if mode is a string, optional if ModeInfo.
         """
         if isinstance(mode, ModeInfo):
             mode_id = mode.id
