@@ -97,26 +97,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         When the server requests a tool call, the tool is executed locally and the
         result is sent back. This enables human-in-the-loop workflows and local
         capability exposure to remote agents.
-
-    Example:
-        ```python
-        # Connect to existing server
-        async with AGUIAgent(
-            endpoint="http://localhost:8000/agent/run",
-            name="tool-agent",
-            tools=[my_tool_function],
-        ) as agent:
-            # Remote agent can request execution of my_tool_function
-            result = await agent.run("Use the tool to help me")
-
-        # Start server automatically (useful for testing)
-        async with AGUIAgent(
-            endpoint="http://localhost:8000/agent/run",
-            name="test-agent",
-            startup_command="ag ui agent config.yml",
-            startup_delay=2.0,
-        ) as agent:
-            result = await agent.run("Test prompt")
         ```
     """
 
@@ -138,6 +118,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
+        input_provider: InputProvider | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
         commands: Sequence[BaseCommand] | None = None,
@@ -160,6 +141,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             mcp_servers: MCP servers to connect
             agent_pool: Agent pool for multi-agent coordination
             enable_logging: Whether to enable database logging
+            input_provider: Provider for user input/confirmations
             event_configs: Event trigger configurations
             event_handlers: Sequence of event handlers to register
             tool_confirmation_mode: Tool confirmation mode
@@ -176,6 +158,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             event_configs=event_configs,
             tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
+            input_provider=input_provider,
             commands=commands,
             hooks=hooks,
         )
@@ -184,12 +167,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.endpoint = endpoint
         self.timeout = timeout
         self.headers = headers or {}
-
         # Startup command configuration
         self._startup_command = startup_command
         self._startup_delay = startup_delay
         self._startup_process: Process | None = None
-
         # Client state
         self._client: httpx.AsyncClient | None = None
         self._thread_id: str | None = None
@@ -231,6 +212,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             display_name=config.display_name,
             event_handlers=merged_handlers or None,
             timeout=config.timeout,
+            input_provider=input_provider,
             headers=config.headers,
             startup_command=config.startup_command,
             startup_delay=config.startup_delay,
