@@ -680,7 +680,7 @@ class AgentPoolACPAgent(ACPAgent):
                 logger.warning("Session not found for mode switch", session_id=params.session_id)
                 return None
             # Call set_mode directly - agent handles mode-specific logic
-            await session.agent.set_mode(params.mode_id)
+            await session.agent.set_mode(params.mode_id, category_id="mode")
             # Update stored mode state for ACPAgent
             if (
                 isinstance(session.agent, ACPAgentClient)
