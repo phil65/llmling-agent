@@ -644,15 +644,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         else:
             self.log.info("Tool confirmation mode changed (local only)", mode=mode)
 
-    async def interrupt(self) -> None:
-        """Interrupt the currently running stream.
-
-        Sends a CancelNotification to the remote ACP server and cancels
-        the local prompt task.
-        """
+    async def _interrupt(self) -> None:
+        """Send CancelNotification to remote ACP server and cancel local tasks."""
         from acp.schema import CancelNotification
 
-        self._cancelled = True
         # Send cancel notification to the remote ACP server
         if self._connection and self._session_id:
             try:

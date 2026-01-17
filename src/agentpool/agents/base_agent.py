@@ -108,10 +108,19 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         new_tools: dict[str, bool]
         timestamp: datetime = field(default_factory=get_now)
 
+    @dataclass(frozen=True)
+    class InterruptEvent:
+        """Emitted when agent is interrupted."""
+
+        agent_name: AgentName
+        timestamp: datetime = field(default_factory=get_now)
+
     agent_reset = Signal[AgentReset]()
     # Signal emitted when agent execution fails
     run_failed: Signal[RunFailedEvent] = Signal()
     state_updated: Signal[StateUpdate] = Signal()
+    # Signal emitted when agent is interrupted
+    interrupted: Signal[InterruptEvent] = Signal()
 
     def __init__(
         self,
@@ -662,19 +671,17 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     async def interrupt(self) -> None:
         """Interrupt the currently running stream.
 
-        This method is called when cancellation is requested. The default
-        implementation sets the cancelled flag and cancels the current stream task.
-
-        Subclasses may override to add protocol-specific cancellation:
-        - ACPAgent: Send CancelNotification to remote server
-        - ClaudeCodeAgent: Call client.interrupt()
-
-        The cancelled flag should be checked in run_stream loops to exit early.
+        Sets the cancelled flag, calls subclass-specific _interrupt(),
+        and emits the interrupted signal.
         """
         self._cancelled = True
-        if self._current_stream_task and not self._current_stream_task.done():
-            self._current_stream_task.cancel()
-            logger.info("Interrupted agent stream", agent=self.name)
+        await self._interrupt()
+        await self.interrupted.emit(self.InterruptEvent(agent_name=self.name))
+        logger.info("Agent interrupted", agent=self.name)
+
+    @abstractmethod
+    async def _interrupt(self) -> None:
+        """Subclass-specific interrupt implementation."""
 
     async def get_stats(self) -> MessageStats:
         """Get message statistics."""

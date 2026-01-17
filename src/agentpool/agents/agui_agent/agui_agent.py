@@ -331,6 +331,11 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.tool_confirmation_mode = mode
         self.log.info("Tool confirmation mode changed", mode=mode)
 
+    async def _interrupt(self) -> None:
+        """Cancel the current stream task."""
+        if self._current_stream_task and not self._current_stream_task.done():
+            self._current_stream_task.cancel()
+
     async def _start_server(self) -> None:
         """Start the AG-UI server subprocess."""
         if not self._startup_command:

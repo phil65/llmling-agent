@@ -543,10 +543,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         self.tool_confirmation_mode = mode
         self.log.info("Tool confirmation mode updated", mode=mode)
 
-    async def interrupt(self) -> None:
-        """Interrupt current execution."""
-        self._cancelled = True
-        # Use Codex's turn_interrupt if we have an active turn
+    async def _interrupt(self) -> None:
+        """Call Codex turn_interrupt if there's an active turn."""
         if self._client and self._thread_id and self._current_turn_id:
             try:
                 await self._client.turn_interrupt(self._thread_id, self._current_turn_id)
@@ -557,8 +555,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 )
             except Exception:
                 self.log.exception("Failed to interrupt Codex turn")
-        else:
-            self.log.info("Interrupt requested (no active turn)")
 
     async def get_available_models(self) -> list[ModelInfo] | None:
         """Get available models from Codex server.
