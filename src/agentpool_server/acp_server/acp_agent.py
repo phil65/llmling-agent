@@ -283,22 +283,22 @@ class AgentPoolACPAgent(ACPAgent):
 
     async def new_session(self, params: NewSessionRequest) -> NewSessionResponse:
         """Create a new session."""
+        from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
+
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
+        names = list(self.agent_pool.all_agents.keys())
+        if not names:
+            logger.error("No agents available for session creation")
+            raise RuntimeError("No agents available")
 
+        # Use specified default agent or fall back to first agent
+        if self.default_agent and self.default_agent in names:
+            default_name = self.default_agent
+        else:
+            default_name = names[0]
+        logger.info("Creating new session", agents=names, default_agent=default_name)
         try:
-            names = list(self.agent_pool.all_agents.keys())
-            if not names:
-                logger.error("No agents available for session creation")
-                raise RuntimeError("No agents available")  # noqa: TRY301
-
-            # Use specified default agent or fall back to first agent
-            if self.default_agent and self.default_agent in names:
-                default_name = self.default_agent
-            else:
-                default_name = names[0]
-
-            logger.info("Creating new session", agents=names, default_agent=default_name)
             session_id = await self.session_manager.create_session(
                 default_agent_name=default_name,
                 cwd=params.cwd,
@@ -308,10 +308,6 @@ class AgentPoolACPAgent(ACPAgent):
                 client_capabilities=self.client_capabilities,
                 client_info=self.client_info,
             )
-
-            # Get mode and model information from the agent
-            from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
-
             state: SessionModeState | None = None
             models: SessionModelState | None = None
             config_options: list[SessionConfigOption] = []
@@ -539,7 +535,6 @@ class AgentPoolACPAgent(ACPAgent):
             client=self.client,
             acp_agent=self,
             mcp_servers=params.mcp_servers,
-            session_id=None,  # Let it generate a new ID
             client_capabilities=self.client_capabilities,
             client_info=self.client_info,
         )
@@ -684,10 +679,8 @@ class AgentPoolACPAgent(ACPAgent):
             if not session:
                 logger.warning("Session not found for mode switch", session_id=params.session_id)
                 return None
-
             # Call set_mode directly - agent handles mode-specific logic
             await session.agent.set_mode(params.mode_id)
-
             # Update stored mode state for ACPAgent
             if (
                 isinstance(session.agent, ACPAgentClient)
@@ -696,12 +689,7 @@ class AgentPoolACPAgent(ACPAgent):
             ):
                 session.agent._state.modes.current_mode_id = params.mode_id
 
-            logger.info(
-                "Set mode",
-                mode_id=params.mode_id,
-                session_id=params.session_id,
-                agent_type=type(session.agent).__name__,
-            )
+            logger.info("Set mode", mode_id=params.mode_id, session_id=params.session_id)
             return SetSessionModeResponse()
 
         except Exception:
@@ -769,7 +757,6 @@ class AgentPoolACPAgent(ACPAgent):
             # Forward to agent's set_mode method
             # config_id maps to category_id, value maps to mode_id
             await session.agent.set_mode(params.value, category_id=params.config_id)
-
             # Return updated config options
             config_options = await get_session_config_options(session.agent)
             return SetSessionConfigOptionResponse(config_options=config_options)
