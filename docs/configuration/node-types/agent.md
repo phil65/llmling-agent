@@ -27,7 +27,7 @@ Agent configuration includes:
 ## Configuration Reference
 
 /// mknodes
-{{ "agentpool.models.agents.native_agentConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False) }}
+{{ "agentpool.models.agents.NativeAgentConfig" | schema_to_markdown(display_mode="yaml", header_style="pymdownx", as_listitem=False) }}
 ///
 
 ## Configuration Inheritance
