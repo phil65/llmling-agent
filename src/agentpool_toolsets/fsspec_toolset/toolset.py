@@ -36,7 +36,6 @@ from agentpool.tool_impls.list_directory import create_list_directory_tool
 from agentpool.tool_impls.read import create_read_tool
 from agentpool.tools.base import ToolResult  # noqa: TC001
 from agentpool_toolsets.builtin.file_edit import replace_content
-from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import StreamingFuzzyMatcher
 from agentpool_toolsets.fsspec_toolset.diagnostics import (
     DiagnosticsConfig,
     DiagnosticsManager,
@@ -1384,6 +1383,8 @@ class FSSpecTools(ResourceProvider):
         Parses diff incrementally, uses DP matcher to find locations as old_text
         streams, and applies new_text edits as they arrive.
         """
+        from sublime_search import StreamingFuzzyMatcher
+
         parser = StreamingDiffParser()
         matcher = StreamingFuzzyMatcher(original_content)
 

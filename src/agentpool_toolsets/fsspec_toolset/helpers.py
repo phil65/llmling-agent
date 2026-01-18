@@ -10,7 +10,6 @@ from typing import Any
 from pydantic_ai import ModelRetry
 
 from agentpool.log import get_logger
-from agentpool_toolsets.builtin.file_edit.fuzzy_matcher import StreamingFuzzyMatcher
 
 
 logger = get_logger(__name__)
@@ -251,6 +250,8 @@ async def apply_diff_edits_streaming(
     Raises:
         ModelRetry: If edits cannot be applied (for agent retry)
     """
+    from sublime_search import StreamingFuzzyMatcher
+
     hunks = parse_locationless_diff(diff_response)
 
     if not hunks:
