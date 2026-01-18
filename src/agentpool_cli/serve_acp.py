@@ -131,6 +131,7 @@ def acp_command(  # noqa: PLR0915
     from acp import StdioTransport, WebSocketTransport
     from agentpool import log
     from agentpool.config_resources import ACP_ASSISTANT
+    from agentpool_config.mcp_server import SSEMCPServerConfig, StreamableHTTPMCPServerConfig
     from agentpool_server.acp_server import ACPServer
 
     # Build transport config
@@ -149,39 +150,26 @@ def acp_command(  # noqa: PLR0915
     logger.info("Configured file logging with rollover", log_file=str(log_file))
 
     if config:
-        # Use config file
         try:
             config_path = resolve_agent_config(config)
         except ValueError as e:
-            msg = str(e)
-            raise t.BadParameter(msg) from e
-
+            raise t.BadParameter(str(e)) from e
         logger.info("Starting ACP server", config_path=config_path, transport=transport)
-        acp_server = ACPServer.from_config(
-            config_path,
-            file_access=file_access,
-            terminal_access=terminal_access,
-            debug_messages=debug_messages,
-            debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
-            debug_commands=debug_commands,
-            agent=agent,
-            load_skills=load_skills,
-            transport=transport_config,
-        )
     else:
-        # Use default ACP assistant config
+        config_path = ACP_ASSISTANT
         logger.info("Starting ACP server with default configuration", transport=transport)
-        acp_server = ACPServer.from_config(
-            ACP_ASSISTANT,
-            file_access=file_access,
-            terminal_access=terminal_access,
-            debug_messages=debug_messages,
-            debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
-            debug_commands=debug_commands,
-            agent=agent,
-            load_skills=load_skills,
-            transport=transport_config,
-        )
+
+    acp_server = ACPServer.from_config(
+        config_path,
+        file_access=file_access,
+        terminal_access=terminal_access,
+        debug_messages=debug_messages,
+        debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
+        debug_commands=debug_commands,
+        agent=agent,
+        load_skills=load_skills,
+        transport=transport_config,
+    )
 
     # Inject MCP servers from --mcp-config if provided
     # TODO: Consider adding to specific agent's MCP manager instead of pool-level
@@ -192,33 +180,21 @@ def acp_command(  # noqa: PLR0915
             if "mcpServers" not in mcp_data:
                 raise t.BadParameter("MCP config must contain 'mcpServers' key")
 
-            from agentpool_config.mcp_server import (
-                SSEMCPServerConfig,
-                StreamableHTTPMCPServerConfig,
-            )
-
             for server_name, server_cfg in mcp_data["mcpServers"].items():
-                # Parse server config based on transport type
-                if "transport" in server_cfg:
-                    if server_cfg["transport"] == "sse":
+                match server_cfg.get("transport"):
+                    case "sse":
                         server: MCPServerConfig = SSEMCPServerConfig(
                             name=server_name,
                             url=server_cfg["url"],
                         )
-                    elif server_cfg["transport"] == "http":
+                    case "http" | None:  # Default to HTTP
                         server = StreamableHTTPMCPServerConfig(
                             name=server_name,
                             url=server_cfg["url"],
                         )
-                    else:
-                        msg = f"Unsupported transport type: {server_cfg['transport']}"
+                    case unknown:
+                        msg = f"Unsupported transport type: {unknown}"
                         raise t.BadParameter(msg)
-                else:
-                    # Default to HTTP if no transport specified
-                    server = StreamableHTTPMCPServerConfig(
-                        name=server_name,
-                        url=server_cfg["url"],
-                    )
 
                 acp_server.pool.mcp.add_server_config(server)
                 logger.info(
