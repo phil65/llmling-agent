@@ -6,6 +6,7 @@ allowing OpenCode TUI and SDK clients to interact with AgentPool agents.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated
 
 from platformdirs import user_log_path
@@ -88,7 +89,6 @@ def opencode_command(
         config_path = CLAUDE_CODE_ASSISTANT
 
     logger.info("Starting OpenCode server", config_path=config_path, host=host, port=port)
-
     # Load agent from config
     pool = AgentPool(config_path, main_agent_name=agent)
 
@@ -103,8 +103,6 @@ def opencode_command(
             )
             logger.info("Server starting", url=f"http://{host}:{port}")
             await server.run_async()
-
-    import asyncio
 
     try:
         asyncio.run(run_server())
