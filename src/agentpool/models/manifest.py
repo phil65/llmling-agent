@@ -154,6 +154,26 @@ class AgentsManifest(Schema):
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/agent_configuration/
     """
 
+    default_agent: str | None = None
+    """Name of the default/main agent.
+
+    When set, this agent is used as the primary entry point for conversations.
+    If not set, falls back to the first agent in the agents dict.
+
+    Example:
+        ```yaml
+        agents:
+          assistant:
+            type: native
+            model: openai:gpt-4
+          reviewer:
+            type: native
+            model: openai:gpt-4
+
+        default_agent: assistant
+        ```
+    """
+
     file_agents: dict[str, str | FileAgentConfig] = Field(
         default_factory=dict,
         examples=[

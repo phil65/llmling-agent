@@ -401,6 +401,32 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         return {i.name: i for i in self._items.values() if isinstance(i, BaseAgent)}
 
     @property
+    def default_agent(self) -> BaseAgent[Any, Any]:
+        """Get the default/main agent.
+
+        Returns the agent specified by manifest.default_agent, or falls back
+        to the first agent if not set.
+
+        Raises:
+            RuntimeError: If no agents are available.
+            ValueError: If the specified default_agent doesn't exist.
+        """
+        agents = self.all_agents
+        if not agents:
+            msg = "No agents available in pool"
+            raise RuntimeError(msg)
+
+        if self.manifest.default_agent:
+            name = self.manifest.default_agent
+            if name not in agents:
+                msg = f"Default agent '{name}' not found. Available: {list(agents.keys())}"
+                raise ValueError(msg)
+            return agents[name]
+
+        # Fallback to first agent
+        return next(iter(agents.values()))
+
+    @property
     def teams(self) -> dict[str, BaseTeam[Any, Any]]:
         """Get agents dict (backward compatibility)."""
         from agentpool.delegation.base_team import BaseTeam

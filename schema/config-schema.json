@@ -1349,6 +1349,63 @@
       "title": "Agent CLI Tool",
       "type": "object"
     },
+    "AgentDefinition": {
+      "additionalProperties": false,
+      "description": "Agent definition configuration.",
+      "properties": {
+        "description": {
+          "description": "Description of the agent.",
+          "title": "Description",
+          "type": "string"
+        },
+        "prompt": {
+          "description": "Prompt for the agent.",
+          "title": "Prompt",
+          "type": "string"
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "List of tools the agent can use.",
+          "title": "Tools"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "enum": [
+                "sonnet",
+                "opus",
+                "haiku",
+                "inherit"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model to use for the agent.",
+          "title": "Model"
+        }
+      },
+      "required": [
+        "description",
+        "prompt"
+      ],
+      "title": "AgentDefinition",
+      "type": "object"
+    },
     "AgentOpsObservabilityConfig": {
       "additionalProperties": false,
       "description": "Configuration for AgentOps endpoint.",
@@ -9690,7 +9747,7 @@
             }
           ],
           "default": null,
-          "description": "Optional structured output type for responses.\n\nCan be either a reference to a response defined in manifest.responses,\nor an inline StructuredResponseConfig.",
+          "description": "Optional structured output type for responses. Can be either a reference to a response defined in manifest.responses, or an inline StructuredResponseConfig.",
           "examples": [
             "json_response",
             "code_output"
@@ -9743,6 +9800,30 @@
             ]
           ],
           "title": "Additional Directories"
+        },
+        "builtin_subagents": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/AgentDefinition"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Built-in subagents configuration.",
+          "examples": [
+            {
+              "sonnet": {
+                "description": "Sonnet agent",
+                "model": "sonnet"
+              }
+            }
+          ],
+          "title": "Built-in Subagents"
         },
         "builtin_tools": {
           "anyOf": [
@@ -11899,6 +11980,23 @@
             "untrusted"
           ],
           "title": "Approval Policy",
+          "type": "string"
+        },
+        "sandbox": {
+          "default": "workspace-write",
+          "description": "Sandbox mode for file operations.\n- \"read-only\": Can only read files, no modifications\n- \"workspace-write\": Can write within workspace directory (default if not specified)\n- \"danger-full-access\": Full filesystem access (use with caution)\n- \"externalSandbox\": Use external sandbox environment\n\nIf not specified, Codex uses its default sandbox policy.",
+          "enum": [
+            "read-only",
+            "workspace-write",
+            "danger-full-access",
+            "external-sandbox"
+          ],
+          "examples": [
+            "workspace-write",
+            "read-only",
+            "danger-full-access"
+          ],
+          "title": "Sandbox Mode",
           "type": "string"
         },
         "base_instructions": {
@@ -32483,8 +32581,7 @@
             }
           ],
           "default": null,
-          "description": "Name of the response definition to use.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/response_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/response_configuration/",
+          "description": "Optional structured output type for responses. Can be either a reference to a response defined in manifest.responses, or an inline StructuredResponseConfig.",
           "examples": [
             "json_response",
             "code_output"
@@ -49341,6 +49438,15 @@
       "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/agent_configuration/",
       "title": "Agents",
       "type": "object"
+    },
+    "default_agent": {
+      "default": null,
+      "description": "Name of the default/main agent.\n\nWhen set, this agent is used as the primary entry point for conversations.\nIf not set, falls back to the first agent in the agents dict.\n\nExample:\n    ```yaml\n    agents:\n      assistant:\n        type: native\n        model: openai:gpt-4\n      reviewer:\n        type: native\n        model: openai:gpt-4\n\n    default_agent: assistant\n    ```",
+      "title": "Default Agent",
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "file_agents": {
       "additionalProperties": {
