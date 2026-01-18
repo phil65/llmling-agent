@@ -136,22 +136,22 @@ class ACPServer(BaseServer):
         return server
 
     def _resolve_default_agent(self) -> BaseAgent[Any, Any]:
-        """Resolve the default agent from name or get first agent in pool.
+        """Resolve the default agent from name or get pool's default agent.
 
         Returns:
             The resolved agent instance
 
         Raises:
             RuntimeError: If no agents are available
+            ValueError: If specified agent doesn't exist
         """
-        agent_names = list(self.pool.all_agents.keys())
-        if not agent_names:
-            msg = "No agents available in pool"
-            raise RuntimeError(msg)
-
-        # Use specified agent name or fall back to first agent
-        agent_name = self.agent if self.agent and self.agent in agent_names else agent_names[0]
-        return self.pool.all_agents[agent_name]
+        # Use specified agent name or fall back to pool's default agent
+        if self.agent:
+            if self.agent not in self.pool.all_agents:
+                msg = f"Agent '{self.agent}' not found in pool"
+                raise ValueError(msg)
+            return self.pool.all_agents[self.agent]
+        return self.pool.default_agent
 
     async def _start_async(self) -> None:
         """Start the ACP server (blocking async - runs until stopped)."""

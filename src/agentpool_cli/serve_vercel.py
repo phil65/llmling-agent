@@ -130,13 +130,7 @@ def vercel_command(  # noqa: PLR0915
             return JSONResponse({"error": "No user text found"}, status_code=400)
 
         # Determine which agent to use
-        if agent_name:
-            selected_agent = pool.get_agent(agent_name)
-        else:
-            if not pool.all_agents:
-                return JSONResponse({"error": "No agents available"}, status_code=500)
-            first_name = next(iter(pool.all_agents.keys()))
-            selected_agent = pool.get_agent(first_name)
+        selected_agent = pool.get_agent(agent_name) if agent_name else pool.default_agent
 
         async def generate_stream() -> AsyncIterator[str]:
             """Generate Vercel AI Data Stream Protocol events.

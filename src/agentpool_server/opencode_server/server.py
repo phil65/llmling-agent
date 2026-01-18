@@ -104,7 +104,7 @@ def create_app(  # noqa: PLR0915
     Args:
         pool: AgentPool for session persistence and agent access.
         agent_name: Name of the agent to use for handling messages.
-                   If None, uses the first agent in the pool.
+                   If None, uses the pool's default agent.
         working_dir: Working directory for file operations. Defaults to cwd.
 
     Returns:
@@ -122,10 +122,8 @@ def create_app(  # noqa: PLR0915
             msg = f"Agent '{agent_name}' not found in pool"
             raise ValueError(msg)
     else:
-        # Use first agent as default
-        agent = next(iter(pool.all_agents.values()), None)
-        if agent is None:
-            raise ValueError("Pool has no agents")
+        # Use default agent from pool
+        agent = pool.default_agent
 
     state = ServerState(
         working_dir=working_dir or str(Path.cwd()),

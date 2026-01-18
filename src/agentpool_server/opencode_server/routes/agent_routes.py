@@ -54,7 +54,7 @@ async def list_agents(state: StateDep) -> list[Agent]:
 
     pool = state.agent.agent_pool
     agents: list[Agent] = []
-    first_agent_name = next(iter(pool.all_agents.keys()), None)
+    default_agent_name = pool.default_agent.name
 
     for name, agent in pool.all_agents.items():
         # Get description from agent
@@ -64,7 +64,7 @@ async def list_agents(state: StateDep) -> list[Agent]:
                 description=agent.description or f"Agent: {name}",
                 # model=AgentModel(model_id=agent.model_name or "unknown", provider_id=""),
                 mode="primary",  # All agents visible for now; add hidden config later
-                default=(name == first_agent_name),  # First agent is default
+                default=(name == default_agent_name),  # Default agent from pool
             )
         )
 
