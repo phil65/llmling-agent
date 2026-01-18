@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-GrepBackend = Literal["python", "ripgrep", "grep"]
+GrepBackend = Literal["fsspec", "ripgrep", "grep"]
 
 
 # Default patterns to exclude from grep searches
