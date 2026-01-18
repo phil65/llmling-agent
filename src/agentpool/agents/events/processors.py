@@ -29,7 +29,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
+
+from pydantic_ai import PartDeltaEvent, TextPartDelta, ThinkingPartDelta, ToolCallPartDelta
 
 
 if TYPE_CHECKING:
@@ -43,6 +45,8 @@ if TYPE_CHECKING:
 type StreamProcessorCallable = Callable[
     [AsyncIterator[RichAgentStreamEvent[Any]]], AsyncIterator[RichAgentStreamEvent[Any]]
 ]
+# Delta type identifiers for batching
+type _DeltaType = Literal["text", "thinking", "tool_call"] | None
 
 
 @runtime_checkable
@@ -252,3 +256,94 @@ def event_handler_processor(
 
 # Convenience alias for backwards compatibility with existing FileTracker usage
 FileTracker = FileTrackingProcessor
+
+
+async def batch_stream_deltas(  # noqa: PLR0915
+    stream: AsyncIterator[RichAgentStreamEvent[Any]],
+) -> AsyncIterator[RichAgentStreamEvent[Any]]:
+    """Batch consecutive delta events, yielding when event type changes.
+
+    This reduces UI update frequency by accumulating consecutive deltas of the same
+    type and yielding them as a single event when the type changes.
+
+    Batches:
+    - TextPartDelta events (consecutive deltas combined into one)
+    - ThinkingPartDelta events (consecutive deltas combined into one)
+    - ToolCallPartDelta events (consecutive deltas combined into one)
+
+    All other events pass through immediately and flush any pending batch.
+    PartStartEvents pass through unchanged.
+
+    Args:
+        stream: Async iterator of stream events from agent.run_stream()
+
+    Yields:
+        Stream events with consecutive deltas batched together
+    """
+    pending_content: list[str] = []
+    pending_type: _DeltaType = None
+    pending_index: int = 0  # For PartDeltaEvent.index
+
+    def _make_batched_event() -> PartDeltaEvent:
+        """Create a synthetic PartDeltaEvent from accumulated content."""
+        content = "".join(pending_content)
+        delta: TextPartDelta | ThinkingPartDelta | ToolCallPartDelta
+        match pending_type:
+            case "text":
+                delta = TextPartDelta(content_delta=content)
+            case "thinking":
+                delta = ThinkingPartDelta(content_delta=content)
+            case "tool_call":
+                delta = ToolCallPartDelta(args_delta=content)
+            case _:
+                msg = f"Unexpected pending type: {pending_type}"
+                raise ValueError(msg)
+        return PartDeltaEvent(index=pending_index, delta=delta)
+
+    async for event in stream:
+        match event:
+            case PartDeltaEvent(delta=TextPartDelta(content_delta=content), index=idx):
+                if pending_type == "text":
+                    pending_content.append(content)
+                else:
+                    if pending_type is not None and pending_content:
+                        yield _make_batched_event()
+                    pending_content = [content]
+                    pending_type = "text"
+                    pending_index = idx
+
+            case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=content), index=idx):
+                if content is None:
+                    continue
+                if pending_type == "thinking":
+                    pending_content.append(content)
+                else:
+                    if pending_type is not None and pending_content:
+                        yield _make_batched_event()
+                    pending_content = [content]
+                    pending_type = "thinking"
+                    pending_index = idx
+
+            case PartDeltaEvent(delta=ToolCallPartDelta(args_delta=args), index=idx) if isinstance(
+                args, str
+            ):
+                if pending_type == "tool_call":
+                    pending_content.append(args)
+                else:
+                    if pending_type is not None and pending_content:
+                        yield _make_batched_event()
+                    pending_content = [args]
+                    pending_type = "tool_call"
+                    pending_index = idx
+
+            case _:
+                # Any other event: flush pending batch and pass through
+                if pending_type is not None and pending_content:
+                    yield _make_batched_event()
+                    pending_content = []
+                    pending_type = None
+                yield event
+
+    # Flush any remaining batch at end of stream
+    if pending_type is not None and pending_content:
+        yield _make_batched_event()

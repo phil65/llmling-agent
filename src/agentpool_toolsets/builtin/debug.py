@@ -344,8 +344,7 @@ class DebugTools(StaticResourceProvider):
 
             # Write script file
             script_path = f"scripts/{timestamp}_{title}.py"
-            self._memory_fs.pipe(script_path, code.encode("utf-8"))
-
+            self._memory_fs.pipe(script_path, code.encode())
             # Write metadata file
             metadata = {
                 "title": title,
@@ -356,6 +355,6 @@ class DebugTools(StaticResourceProvider):
                 "error": error_msg,
             }
             metadata_path = f"scripts/{timestamp}_{title}.json"
-            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
+            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode())
         assert result_str
         return result_str
