@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from enum import StrEnum, auto
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import anyenv
 
@@ -20,12 +19,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class GrepBackend(StrEnum):
-    """Available grep backends."""
-
-    RIPGREP = auto()
-    GNU_GREP = auto()
-    PYTHON = auto()
+GrepBackend = Literal["python", "ripgrep", "grep"]
 
 
 # Default patterns to exclude from grep searches
@@ -74,15 +68,15 @@ async def detect_grep_backend(env: ExecutionEnvironment) -> GrepBackend:
     cmd = which_cmd.create_command("rg")
     result = await env.execute_command(cmd)
     if which_cmd.parse_command(result.stdout or "", result.exit_code or 0):
-        return GrepBackend.RIPGREP
+        return "ripgrep"
 
     # Try GNU grep
     cmd = which_cmd.create_command("grep")
     result = await env.execute_command(cmd)
     if which_cmd.parse_command(result.stdout or "", result.exit_code or 0):
-        return GrepBackend.GNU_GREP
+        return "grep"
 
-    return GrepBackend.PYTHON
+    return "fsspec"
 
 
 def _is_path_inside_ignored_dir(path: str) -> bool:
@@ -180,7 +174,7 @@ async def grep_with_subprocess(
     if backend is None:
         backend = await detect_grep_backend(env)
 
-    if backend == GrepBackend.PYTHON:
+    if backend == "fsspec":
         msg = "Subprocess grep requested but no grep/ripgrep found"
         raise ValueError(msg)
 
@@ -192,7 +186,7 @@ async def grep_with_subprocess(
     # (e.g., searching .venv/ when .venv is in .gitignore)
     effective_use_gitignore = use_gitignore and not _is_path_inside_ignored_dir(path)
 
-    if backend == GrepBackend.RIPGREP:
+    if backend == "ripgrep":
         cmd_list = _build_ripgrep_command(
             pattern,
             path,
@@ -226,7 +220,7 @@ async def grep_with_subprocess(
             }
 
         # Use appropriate parser based on backend
-        if backend == GrepBackend.RIPGREP:
+        if backend == "ripgrep":
             return _parse_ripgrep_json_output(result.stdout or "", max_output_bytes)
         return _parse_gnu_grep_output(result.stdout or "", max_output_bytes)
 

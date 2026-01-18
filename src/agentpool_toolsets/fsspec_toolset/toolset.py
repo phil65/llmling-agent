@@ -41,7 +41,6 @@ from agentpool_toolsets.fsspec_toolset.diagnostics import (
     DiagnosticsManager,
     format_diagnostics_table,
 )
-from agentpool_toolsets.fsspec_toolset.grep import GrepBackend
 from agentpool_toolsets.fsspec_toolset.helpers import (
     format_directory_listing,
     get_changed_line_numbers,
@@ -66,6 +65,7 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageHistory
     from agentpool.prompts.conversion_manager import ConversionManager
     from agentpool.tools.base import Tool
+    from agentpool_toolsets.fsspec_toolset.grep import GrepBackend
 
 
 logger = get_logger(__name__)
@@ -884,7 +884,7 @@ class FSSpecTools(ResourceProvider):
                 },
             )
 
-    async def regex_replace_lines(  # noqa: PLR0915
+    async def regex_replace_lines(
         self,
         agent_ctx: AgentContext,
         path: str,
@@ -1119,7 +1119,7 @@ class FSSpecTools(ResourceProvider):
                     if self._grep_backend is None:
                         self._grep_backend = await detect_grep_backend(env)
                     # Only use subprocess if we have a real grep backend
-                    if self._grep_backend != GrepBackend.PYTHON:
+                    if self._grep_backend != "fsspec":
                         result = await grep_with_subprocess(
                             env=env,
                             pattern=pattern,

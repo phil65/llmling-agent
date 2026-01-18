@@ -109,7 +109,6 @@ class GrepTool(Tool[ToolResult]):
         """
         from agentpool_toolsets.fsspec_toolset.grep import (
             DEFAULT_EXCLUDE_PATTERNS,
-            GrepBackend,
             detect_grep_backend,
             grep_with_fsspec,
             grep_with_subprocess,
@@ -132,7 +131,7 @@ class GrepTool(Tool[ToolResult]):
                     if self._grep_backend is None:
                         self._grep_backend = await detect_grep_backend(env)
                     # Only use subprocess if we have a real grep backend
-                    if self._grep_backend != GrepBackend.PYTHON:
+                    if self._grep_backend != "fsspec":
                         result = await grep_with_subprocess(
                             env=env,
                             pattern=pattern,
