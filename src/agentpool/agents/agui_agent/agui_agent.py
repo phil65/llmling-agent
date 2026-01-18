@@ -409,9 +409,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Start with the user's request (same as pydantic-ai's new_messages())
         initial_request = ModelRequest(parts=[UserPromptPart(content=prompts)])
         model_messages.append(initial_request)
-        current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
-        text_chunks: list[str] = []  # For final content string
-
+        response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
         thread_id = self._thread_id or self.conversation_id
         run_started = RunStartedEvent(thread_id=thread_id, run_id=run_id, agent_name=self.name)
@@ -459,21 +457,16 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                             if self._cancelled:
                                 self.log.info("Stream cancelled during event processing")
                                 break
-
                             # Transform chunks to proper START/CONTENT/END sequences
-                            transformed_events = chunk_transformer.transform(raw_event)
-
-                            for event in transformed_events:
+                            for event in chunk_transformer.transform(raw_event):
                                 # Handle events for accumulation and tool calls
                                 match event:
                                     case TextMessageContentEvent(delta=delta):
-                                        text_chunks.append(delta)
-                                        current_response_parts.append(TextPart(content=delta))
+                                        response_parts.append(TextPart(content=delta))
                                     case TextMessageChunkEvent(delta=delta) if delta:
-                                        text_chunks.append(delta)
-                                        current_response_parts.append(TextPart(content=delta))
+                                        response_parts.append(TextPart(content=delta))
                                     case ThinkingTextMessageContentEvent(delta=delta):
-                                        current_response_parts.append(ThinkingPart(content=delta))
+                                        response_parts.append(ThinkingPart(content=delta))
                                     case AGUIToolCallStartEvent(
                                         tool_call_id=tc_id, tool_call_name=name
                                     ) if name:
@@ -484,7 +477,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                         if result := tool_accumulator.complete(tc_id):
                                             tool_name, args = result
                                             tool_calls_pending.append((tc_id, tool_name, args))
-                                            current_response_parts.append(
+                                            response_parts.append(
                                                 ToolCallPart(
                                                     tool_name=tool_name,
                                                     args=args,
@@ -517,15 +510,12 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 except httpx.HTTPError:
                     self.log.exception("HTTP error during AG-UI run")
                     raise
-
                 # If cancelled, break out of the while loop
                 if self._cancelled:
                     break
-
                 # If no tool calls pending, we're done
                 if not tool_calls_pending:
                     break
-
                 # Execute pending tool calls locally and collect results
                 pending_tool_results = await execute_tool_calls(
                     tool_calls_pending,
@@ -539,9 +529,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                     break
 
                 # Flush current response parts to model_messages
-                if current_response_parts:
-                    model_messages.append(ModelResponse(parts=current_response_parts))
-                    current_response_parts = []
+                if response_parts:
+                    model_messages.append(ModelResponse(parts=response_parts))
+                    response_parts = []
 
                 # Create ModelRequest with tool return parts
                 tc_id_to_name = {tc_id: name for tc_id, name, _ in tool_calls_pending}
@@ -554,24 +544,21 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                     for r in pending_tool_results
                 ]
                 model_messages.append(ModelRequest(parts=tool_return_parts))
-
                 # Add tool results to messages for next iteration
                 messages = [*pending_tool_results]
                 self.log.debug("Continuing with tool results", count=len(pending_tool_results))
-
         except asyncio.CancelledError:
             self.log.info("Stream cancelled via task cancellation")
             self._cancelled = True
 
         # Handle cancellation - emit partial message
+        text = "".join([i.content for i in response_parts if isinstance(i, TextPart)])
         if self._cancelled:
             # Flush any remaining response parts
-            if current_response_parts:
-                model_messages.append(ModelResponse(parts=current_response_parts))
-
-            text_content = "".join(text_chunks)
+            if response_parts:
+                model_messages.append(ModelResponse(parts=response_parts))
             final_message = ChatMessage[str](
-                content=text_content,
+                content=text,
                 role="assistant",
                 name=self.name,
                 message_id=message_id or str(uuid4()),
@@ -587,8 +574,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             return
 
         # Flush any remaining response parts
-        if current_response_parts:
-            model_messages.append(ModelResponse(parts=current_response_parts))
+        if response_parts:
+            model_messages.append(ModelResponse(parts=response_parts))
 
         # Final drain of event queue after stream completes
         while not self._event_queue.empty():
@@ -599,17 +586,16 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             except asyncio.QueueEmpty:
                 break
 
-        text_content = "".join(text_chunks)
         # Calculate approximate token usage from what we can observe
         usage, cost_info = await calculate_usage_from_parts(
             input_parts=prompts,
-            response_parts=current_response_parts,
-            text_content=text_content,
+            response_parts=response_parts,
+            text_content=text,
             model_name=self.model_name,
         )
 
         final_message = ChatMessage[str](
-            content=text_content,
+            content=text,
             role="assistant",
             name=self.name,
             message_id=message_id or str(uuid4()),
@@ -654,13 +640,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         ]
 
     async def get_modes(self) -> list[ModeCategory]:
-        """Get available modes for AG-UI agent.
-
-        AG-UI doesn't expose any configurable modes - model is server-controlled.
-
-        Returns:
-            Empty list - no modes supported
-        """
+        """Get available modes for AG-UI agent (not supported)."""
         return []
 
     async def _set_mode(self, mode_id: str, category_id: str) -> None:
@@ -669,26 +649,11 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         raise ValueError(msg)
 
     async def list_sessions(self) -> list[SessionInfo]:
-        """List sessions for AG-UI agent.
-
-        AG-UI agents don't currently support session listing.
-
-        Returns:
-            Empty list (not supported)
-        """
+        """List sessions for AG-UI agent (not supported)."""
         return []
 
     async def load_session(self, session_id: str) -> SessionData | None:
-        """Load a session for AG-UI agent.
-
-        AG-UI agents don't currently support session loading.
-
-        Args:
-            session_id: Unique identifier for the session to load
-
-        Returns:
-            None (not supported)
-        """
+        """Load a session for AG-UI agent. (not supported)."""
         self.log.warning("AG-UI agents do not support session loading", session_id=session_id)
         return None
 
