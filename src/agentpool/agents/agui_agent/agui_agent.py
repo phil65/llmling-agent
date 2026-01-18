@@ -648,7 +648,12 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         msg = "AG-UI agent does not support mode switching - model is controlled by remote server"
         raise ValueError(msg)
 
-    async def list_sessions(self) -> list[SessionInfo]:
+    async def list_sessions(
+        self,
+        *,
+        cwd: str | None = None,
+        limit: int | None = None,
+    ) -> list[SessionInfo]:
         """List sessions for AG-UI agent (not supported)."""
         return []
 

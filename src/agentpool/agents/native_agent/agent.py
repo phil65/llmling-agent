@@ -1026,11 +1026,20 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             msg = f"Unknown category: {category_id}. Available: permissions, model"
             raise ValueError(msg)
 
-    async def list_sessions(self) -> list[SessionInfo]:
+    async def list_sessions(
+        self,
+        *,
+        cwd: str | None = None,
+        limit: int | None = None,
+    ) -> list[SessionInfo]:
         """List sessions from storage.
 
         For native agents, queries the pool's session store for all sessions
         associated with this agent. Fetches conversation titles from storage.
+
+        Args:
+            cwd: Filter sessions by working directory (optional)
+            limit: Maximum number of sessions to return (optional)
 
         Returns:
             List of SessionInfo-compatible SessionData objects
@@ -1048,6 +1057,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             for session_id in session_ids:
                 session_data = await self.agent_pool.sessions.store.load(session_id)
                 if session_data:
+                    # Filter by cwd if specified
+                    if cwd is not None and session_data.cwd != cwd:
+                        continue
                     # Fetch title from conversation storage if not in metadata
                     if not session_data.title and storage:
                         title = await storage.get_conversation_title(session_data.conversation_id)
@@ -1056,6 +1068,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                             session_data = session_data.with_metadata(title=title)
                     # SessionData implements SessionInfo protocol
                     result.append(session_data)  # type: ignore[arg-type]
+                    # Check limit
+                    if limit is not None and len(result) >= limit:
+                        break
 
         except Exception:
             self.log.exception("Failed to list sessions")

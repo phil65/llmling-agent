@@ -758,17 +758,26 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
         await self.state_updated.emit(change)
 
-    async def list_sessions(self) -> list[SessionInfo]:
+    async def list_sessions(
+        self,
+        *,
+        cwd: str | None = None,
+        limit: int | None = None,
+    ) -> list[SessionInfo]:
         """List sessions from the remote ACP server."""
         from acp.schema import ListSessionsRequest
         from agentpool.sessions.models import SessionData
 
         if not self._connection:
             raise RuntimeError("Not connected to ACP server")
-
+        # Pass cwd filter to ACP server request
+        request = ListSessionsRequest(cwd=cwd)
         try:
-            request = ListSessionsRequest()
             response = await self._connection.list_sessions(request)
+        except Exception:
+            self.log.exception("Failed to list sessions from ACP server")
+            return []
+        else:
             # Convert ACP SessionInfo to agentpool SessionData
             result: list[SessionInfo] = []
             for acp_session in response.sessions:
@@ -783,11 +792,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     metadata={"title": acp_session.title} if acp_session.title else {},
                 )
                 result.append(session_data)  # type: ignore[arg-type]
-
-        except Exception:
-            self.log.exception("Failed to list sessions from ACP server")
-            return []
-        else:
+            # Apply limit (ACP doesn't support limit in request yet)
+            if limit is not None:
+                result = result[:limit]
             return result
 
     async def load_session(self, session_id: str) -> SessionData | None:

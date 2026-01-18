@@ -96,6 +96,9 @@ class QueryFilters:
     limit: int | None = None
     """Maximum number of conversations to return"""
 
+    cwd: str | None = None
+    """Filter by working directory (project path)"""
+
 
 @dataclass
 class StatsFilters:

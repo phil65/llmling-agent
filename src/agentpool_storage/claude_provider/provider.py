@@ -813,7 +813,8 @@ class ClaudeStorageProvider(StorageProvider):
         from agentpool_storage.models import ConversationData as ConvData
 
         result: list[tuple[ConvData, Sequence[ChatMessage[str]]]] = []
-        sessions = self._list_sessions()
+        # Use cwd filter at filesystem level for efficiency
+        sessions = self._list_sessions(project_path=filters.cwd)
 
         for session_id, session_path in sessions:
             entries = self._read_session(session_path)

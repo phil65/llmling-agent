@@ -867,11 +867,20 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         ...
 
     @abstractmethod
-    async def list_sessions(self) -> list[SessionInfo]:
+    async def list_sessions(
+        self,
+        *,
+        cwd: str | None = None,
+        limit: int | None = None,
+    ) -> list[SessionInfo]:
         """List available sessions for this agent.
 
         Returns session information including session IDs, working directories,
         titles, and last update timestamps.
+
+        Args:
+            cwd: Filter sessions by working directory (optional)
+            limit: Maximum number of sessions to return (optional)
 
         Returns:
             List of SessionInfo objects (protocol-compatible)

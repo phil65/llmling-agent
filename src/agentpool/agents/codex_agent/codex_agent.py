@@ -711,7 +711,12 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         else:
             raise ValueError(f"Unknown category: {category_id}")
 
-    async def list_sessions(self) -> list[SessionInfo]:
+    async def list_sessions(
+        self,
+        *,
+        cwd: str | None = None,
+        limit: int | None = None,
+    ) -> list[SessionInfo]:
         """List threads from Codex server.
 
         Queries the Codex server for available threads (sessions).
@@ -724,7 +729,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         if not self._client:
             return []
         try:
-            response = await self._client.thread_list()
+            # Pass limit to Codex server request
+            response = await self._client.thread_list(limit=limit)
             result: list[SessionInfo] = []
             for thread_data in response.data:
                 # Convert Codex ThreadData to SessionData
@@ -746,6 +752,9 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self.log.exception("Failed to list Codex threads")
             return []
         else:
+            # Apply cwd filter (Codex doesn't support cwd filter in request)
+            if cwd is not None:
+                result = [s for s in result if s.cwd == cwd]
             return result
 
     async def load_session(self, session_id: str) -> SessionData | None:
