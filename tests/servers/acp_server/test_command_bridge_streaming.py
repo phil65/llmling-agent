@@ -24,12 +24,12 @@ if TYPE_CHECKING:
 
 async def test_session_command_immediate_execution():
     """Test that command execution sends updates immediately."""
+    agent_pool = AgentPool()
 
     def simple_callback(message: str) -> str:
         return f"Response: {message}"
 
-    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
-    agent_pool = AgentPool()
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback, agent_pool=agent_pool)
     agent_pool.register("test_agent", agent)
 
     mock_client = AsyncMock()
@@ -37,8 +37,7 @@ async def test_session_command_immediate_execution():
 
     session = ACPSession(
         session_id="test_session",
-        agent_pool=agent_pool,
-        current_agent_name="test_agent",
+        agent=agent,
         cwd="/tmp",
         client=mock_client,
         acp_agent=mock_acp_agent,
@@ -63,12 +62,12 @@ async def test_session_command_immediate_execution():
 
 async def test_immediate_send_with_slow_command():
     """Test immediate sending works with commands that produce output over time."""
+    agent_pool = AgentPool()
 
     def simple_callback(message: str) -> str:
         return f"Response: {message}"
 
-    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
-    agent_pool = AgentPool()
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback, agent_pool=agent_pool)
     agent_pool.register("test_agent", agent)
 
     mock_client = AsyncMock()
@@ -76,8 +75,7 @@ async def test_immediate_send_with_slow_command():
 
     session = ACPSession(
         session_id="test_session",
-        agent_pool=agent_pool,
-        current_agent_name="test_agent",
+        agent=agent,
         cwd="/tmp",
         client=mock_client,
         acp_agent=mock_acp_agent,
@@ -126,12 +124,12 @@ async def test_immediate_send_with_slow_command():
 async def test_immediate_send_error_handling(caplog: pytest.LogCaptureFixture):
     """Test that errors in commands are properly sent immediately."""
     caplog.set_level("CRITICAL")  # Suppress expected error logs
+    agent_pool = AgentPool()
 
     def simple_callback(message: str) -> str:
         return f"Response: {message}"
 
-    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
-    agent_pool = AgentPool()
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback, agent_pool=agent_pool)
     agent_pool.register("test_agent", agent)
     mock_client = AsyncMock()
 
@@ -148,8 +146,7 @@ async def test_immediate_send_error_handling(caplog: pytest.LogCaptureFixture):
 
     session = ACPSession(
         session_id="test_session",
-        agent_pool=agent_pool,
-        current_agent_name="test_agent",
+        agent=agent,
         cwd="/tmp",
         client=mock_client,
         acp_agent=mock_acp_agent,

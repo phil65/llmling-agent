@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from upathtools import JoinablePathLike
 
     from acp import Transport
+    from agentpool.agents.base_agent import BaseAgent
 
 
 logger = get_logger(__name__)
@@ -134,19 +135,41 @@ class ACPServer(BaseServer):
             server.log.info("ACP session agent", agent=agent)
         return server
 
+    def _resolve_default_agent(self) -> BaseAgent[Any, Any]:
+        """Resolve the default agent from name or get first agent in pool.
+
+        Returns:
+            The resolved agent instance
+
+        Raises:
+            RuntimeError: If no agents are available
+        """
+        agent_names = list(self.pool.all_agents.keys())
+        if not agent_names:
+            msg = "No agents available in pool"
+            raise RuntimeError(msg)
+
+        # Use specified agent name or fall back to first agent
+        agent_name = self.agent if self.agent and self.agent in agent_names else agent_names[0]
+        return self.pool.all_agents[agent_name]
+
     async def _start_async(self) -> None:
         """Start the ACP server (blocking async - runs until stopped)."""
         transport_name = (
             type(self.transport).__name__ if not isinstance(self.transport, str) else self.transport
         )
         self.log.info("Starting ACP server", transport=transport_name)
+
+        # Resolve agent instance from name
+        default_agent = self._resolve_default_agent()
+        self.log.info("Using default agent", agent=default_agent.name)
+
         create_acp_agent = functools.partial(
             AgentPoolACPAgent,
-            agent_pool=self.pool,
+            default_agent=default_agent,
             file_access=self.file_access,
             terminal_access=self.terminal_access,
             debug_commands=self.debug_commands,
-            default_agent=self.agent,
             load_skills=self.load_skills,
             server=self,
         )
@@ -169,7 +192,9 @@ class ACPServer(BaseServer):
         except Exception:
             self.log.exception("ACP server error")
 
-    async def swap_pool(self, config_path: str, agent: str | None = None) -> list[str]:
+    async def swap_pool(
+        self, config_path: str, agent_name: str | None = None
+    ) -> BaseAgent[Any, Any]:
         """Swap the current pool with a new one from config.
 
         This method handles the full lifecycle of swapping pools:
@@ -180,10 +205,10 @@ class ACPServer(BaseServer):
 
         Args:
             config_path: Path to the new agent configuration file
-            agent: Optional specific agent to use as default
+            agent_name: Optional specific agent name to use as default
 
         Returns:
-            List of agent names in the new pool
+            The resolved default agent instance from the new pool
 
         Raises:
             ValueError: If config is invalid or specified agent not found
@@ -198,8 +223,8 @@ class ACPServer(BaseServer):
         if not agent_names:
             msg = "New configuration contains no agents"
             raise ValueError(msg)
-        if agent and agent not in agent_names:
-            msg = f"Agent {agent!r} not found in new config. Available: {agent_names}"
+        if agent_name and agent_name not in agent_names:
+            msg = f"Agent {agent_name!r} not found in new config. Available: {agent_names}"
             raise ValueError(msg)
         # 3. Enter new pool context first (so we can roll back if it fails)
         try:
@@ -216,7 +241,11 @@ class ACPServer(BaseServer):
             self.log.exception("Error closing old pool (continuing with swap)")
         # 5. Update references
         self.pool = new_pool
-        self.agent = agent
+        self.agent = agent_name
         self.config_path = config_path
-        self.log.info("Pool swapped successfully", agent_names=agent_names, default_agent=agent)
-        return agent_names
+        # 6. Resolve and return the default agent instance
+        default_agent = self._resolve_default_agent()
+        self.log.info(
+            "Pool swapped successfully", agent_names=agent_names, default_agent=default_agent.name
+        )
+        return default_agent

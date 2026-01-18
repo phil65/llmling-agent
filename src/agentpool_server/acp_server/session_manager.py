@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from acp import Client
     from acp.schema import Implementation, McpServer
     from agentpool import AgentPool
+    from agentpool.agents.base_agent import BaseAgent
     from agentpool.sessions import SessionManager
     from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
 
@@ -53,7 +54,7 @@ class ACPSessionManager:
 
     async def create_session(
         self,
-        default_agent_name: str,
+        agent: BaseAgent[Any, Any],
         cwd: str,
         client: Client,
         acp_agent: AgentPoolACPAgent,
@@ -65,7 +66,7 @@ class ACPSessionManager:
         """Create a new ACP session.
 
         Args:
-            default_agent_name: Name of the default agent to start with
+            agent: The agent instance to use for this session
             cwd: Working directory for the session
             client: ACP client connection
             acp_agent: ACP agent instance
@@ -90,7 +91,7 @@ class ACPSessionManager:
             # Create and persist session data via pool's SessionManager
             data = SessionData(
                 session_id=session_id,
-                agent_name=default_agent_name,
+                agent_name=agent.name,
                 conversation_id=session_id,
                 cwd=cwd,
                 metadata={"protocol": "acp", "mcp_server_count": len(mcp_servers or [])},
@@ -99,8 +100,7 @@ class ACPSessionManager:
             # Create the ACP-specific runtime session
             session = ACPSession(
                 session_id=session_id,
-                agent_pool=self._pool,
-                current_agent_name=default_agent_name,
+                agent=agent,
                 cwd=cwd,
                 client=client,
                 mcp_servers=mcp_servers,
@@ -115,7 +115,7 @@ class ACPSessionManager:
             # Initialize MCP servers if any are provided
             await session.initialize_mcp_servers()
             self._active[session_id] = session
-            logger.info("Created ACP session", session_id=session_id, agent=default_agent_name)
+            logger.info("Created ACP session", session_id=session_id, agent=agent.name)
             return session_id
 
     def get_session(self, session_id: str) -> ACPSession | None:
@@ -158,11 +158,13 @@ class ACPSessionManager:
                 logger.warning(msg, session_id=session_id, agent=data.agent_name)
                 return None
 
+            # Get the agent from the pool
+            agent = self._pool.all_agents[data.agent_name]
+
             # Reconstruct ACP session
             session = ACPSession(
                 session_id=session_id,
-                agent_pool=self._pool,
-                current_agent_name=data.agent_name,
+                agent=agent,
                 cwd=data.cwd or "",
                 client=client,
                 mcp_servers=None,  # MCP servers would need to be re-provided

@@ -51,12 +51,12 @@ async def test_session_with_mcp_servers(
     client_capabilities: ClientCapabilities,
 ):
     """Test creating an ACP session with MCP servers."""
+    agent_pool = AgentPool()
 
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
-    agent_pool = AgentPool()
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback, agent_pool=agent_pool)
     agent_pool.register("test_agent", agent)
 
     # Sample MCP servers (these won't actually connect in the test)
@@ -77,8 +77,7 @@ async def test_session_with_mcp_servers(
 
     session = ACPSession(  # Create session with MCP servers
         session_id="test_session",
-        agent_pool=agent_pool,
-        current_agent_name="test_agent",
+        agent=agent,
         cwd=tempfile.gettempdir(),
         client=test_client,
         mcp_servers=mcp_servers,
@@ -112,13 +111,13 @@ async def test_session_manager_with_mcp(
     def simple_callback(message: str) -> str:
         return f"Test response for: {message}"
 
-    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback, agent_pool=agent_pool)
     agent_pool.register("test_agent", agent)
     mcp_servers = [StdioMcpServer(name="tools", command="echo", args=["tools"], env=[])]
     async with agent_pool:
         try:
             session_id = await session_manager.create_session(
-                default_agent_name="test_agent",
+                agent=agent,
                 cwd=tempfile.gettempdir(),
                 client=test_client,
                 mcp_servers=mcp_servers,

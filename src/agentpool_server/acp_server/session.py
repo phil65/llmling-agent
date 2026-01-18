@@ -23,7 +23,7 @@ from acp.acp_requests import ACPRequests
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.schema import AvailableCommand, ClientCapabilities, SessionNotification
-from agentpool import Agent, AgentContext  # noqa: TC001
+from agentpool import Agent, AgentContext, AgentPool  # noqa: TC001
 from agentpool.agents import SlashedAgent
 from agentpool.agents.acp_agent import ACPAgent
 from agentpool.agents.modes import ModeInfo
@@ -52,9 +52,7 @@ if TYPE_CHECKING:
         McpServer,
         StopReason,
     )
-    from agentpool import AgentPool
-    from agentpool.agents import AGUIAgent
-    from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+    from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.modes import ConfigOptionChanged
     from agentpool.prompts.manager import PromptManager
     from agentpool.prompts.prompts import MCPClientPrompt
@@ -181,11 +179,12 @@ class ACPSession:
     session_id: str
     """Unique session identifier"""
 
-    agent_pool: AgentPool[Any]
-    """AgentPool containing available agents"""
+    agent: BaseAgent[Any, Any]
+    """Currently active agent instance.
 
-    current_agent_name: str
-    """Name of currently active agent"""
+    The agent carries its own pool reference via agent.agent_pool,
+    which is used for agent switching and pool-level operations.
+    """
 
     cwd: str
     """Working directory for the session"""
@@ -399,18 +398,18 @@ class ACPSession:
             self.log.exception("Failed to discover client-side skills", error=e)
 
     @property
-    def agent(
-        self,
-    ) -> (
-        Agent[ACPSession, str]
-        | ACPAgent[ACPSession]
-        | AGUIAgent[ACPSession]
-        | ClaudeCodeAgent[ACPSession]
-    ):
-        """Get the currently active agent."""
-        if self.current_agent_name in self.agent_pool.agents:
-            return self.agent_pool.get_agent(self.current_agent_name, deps_type=ACPSession)
-        return self.agent_pool.all_agents[self.current_agent_name]  # type: ignore[return-value]
+    def agent_pool(self) -> AgentPool[Any]:
+        """Get the agent pool from the current agent."""
+        pool = self.agent.agent_pool
+        if pool is None:
+            msg = "Agent has no associated pool"
+            raise RuntimeError(msg)
+        return pool
+
+    @property
+    def current_agent_name(self) -> str:
+        """Get the name of the currently active agent."""
+        return self.agent.name
 
     @property
     def slashed_agent(self) -> SlashedAgent[Any, str]:
@@ -430,12 +429,17 @@ class ACPSession:
         Raises:
             ValueError: If agent not found in pool
         """
-        if agent_name not in self.agent_pool.all_agents:
-            available = list(self.agent_pool.all_agents.keys())
+        pool = self.agent_pool
+        if agent_name not in pool.all_agents:
+            available = list(pool.all_agents.keys())
             raise ValueError(f"Agent {agent_name!r} not found. Available: {available}")
 
         old_agent_name = self.current_agent_name
-        self.current_agent_name = agent_name
+        # Get the new agent from the pool
+        if agent_name in pool.agents:
+            self.agent = pool.get_agent(agent_name, deps_type=ACPSession)
+        else:
+            self.agent = pool.all_agents[agent_name]
         self.log.info("Switched agents", from_agent=old_agent_name, to_agent=agent_name)
 
         # Persist the agent switch via session manager

@@ -8,6 +8,8 @@ import pytest
 
 from acp import ClientCapabilities, DefaultACPClient, FileSystemCapability
 from acp.agent.implementations import TestAgent
+from agentpool import Agent
+from agentpool.delegation import AgentPool
 from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
 
 
@@ -30,19 +32,29 @@ def mock_connection():
 
 
 @pytest.fixture
-def mock_agent_pool():
-    """Create a mock agent pool with a test agent."""
-    from agentpool import Agent
-    from agentpool.delegation import AgentPool
+def mock_agent_pool_with_agent() -> tuple[AgentPool, Agent]:
+    """Create a mock agent pool with a test agent, returning both."""
 
     # Create a simple test agent
     def simple_callback(message: str) -> str:
         return f"Test response: {message}"
 
-    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
     pool = AgentPool()
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback, agent_pool=pool)
     pool.register("test_agent", agent)
-    return pool
+    return pool, agent
+
+
+@pytest.fixture
+def mock_agent_pool(mock_agent_pool_with_agent: tuple[AgentPool, Agent]) -> AgentPool:
+    """Create a mock agent pool with a test agent."""
+    return mock_agent_pool_with_agent[0]
+
+
+@pytest.fixture
+def default_test_agent(mock_agent_pool_with_agent: tuple[AgentPool, Agent]) -> Agent:
+    """Get the default test agent from the mock pool."""
+    return mock_agent_pool_with_agent[1]
 
 
 @pytest.fixture
@@ -53,12 +65,14 @@ def client_capabilities():
 
 
 @pytest.fixture
-def mock_acp_agent(mock_connection, mock_agent_pool, client_capabilities) -> AgentPoolACPAgent:
+def mock_acp_agent(
+    mock_connection, default_test_agent: Agent, client_capabilities
+) -> AgentPoolACPAgent:
     """Create a mock ACP agent for testing."""
-    return AgentPoolACPAgent(client=mock_connection, agent_pool=mock_agent_pool)
+    return AgentPoolACPAgent(client=mock_connection, default_agent=default_test_agent)
 
 
 @pytest.fixture
-def acp_agent(mock_connection, mock_agent_pool, client_capabilities) -> AgentPoolACPAgent:
+def acp_agent(mock_connection, default_test_agent: Agent, client_capabilities) -> AgentPoolACPAgent:
     """Alias for mock_acp_agent - used by some tests."""
-    return AgentPoolACPAgent(client=mock_connection, agent_pool=mock_agent_pool)
+    return AgentPoolACPAgent(client=mock_connection, default_agent=default_test_agent)

@@ -19,13 +19,13 @@ from agentpool_server.acp_server.session import ACPSession
 @pytest.fixture
 async def agent_pool():
     """Create a real agent pool from config."""
+    pool = AgentPool()
 
-    # Create a simple test agent
+    # Create a simple test agent with pool reference
     def simple_callback(message: str) -> str:
         return f"Test response: {message}"
 
-    agent = Agent.from_callback(name="test_agent", callback=simple_callback)
-    pool = AgentPool()
+    agent = Agent.from_callback(name="test_agent", callback=simple_callback, agent_pool=pool)
     pool.register("test_agent", agent)
     return pool
 
@@ -39,6 +39,7 @@ async def test_acp_server_creation(agent_pool: AgentPool):
 
 async def test_agent_switching_workflow(agent_pool: AgentPool, mock_acp_agent):
     """Test the complete agent switching workflow."""
+    multi_pool = AgentPool()
 
     def callback1(message: str) -> str:
         return f"Agent1 response: {message}"
@@ -46,10 +47,9 @@ async def test_agent_switching_workflow(agent_pool: AgentPool, mock_acp_agent):
     def callback2(message: str) -> str:
         return f"Agent2 response: {message}"
 
-    agent1 = Agent.from_callback(name="agent1", callback=callback1)
-    agent2 = Agent.from_callback(name="agent2", callback=callback2)
+    agent1 = Agent.from_callback(name="agent1", callback=callback1, agent_pool=multi_pool)
+    agent2 = Agent.from_callback(name="agent2", callback=callback2, agent_pool=multi_pool)
 
-    multi_pool = AgentPool()
     multi_pool.register("agent1", agent1)
     multi_pool.register("agent2", agent2)
     mock_client = AsyncMock()
@@ -57,8 +57,7 @@ async def test_agent_switching_workflow(agent_pool: AgentPool, mock_acp_agent):
 
     session = ACPSession(
         session_id="switching-test",
-        agent_pool=multi_pool,
-        current_agent_name="agent1",
+        agent=agent1,
         cwd=tempfile.gettempdir(),
         client=mock_client,
         acp_agent=mock_acp_agent,

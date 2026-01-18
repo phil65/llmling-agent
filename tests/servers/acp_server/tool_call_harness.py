@@ -141,11 +141,11 @@ class ToolCallTestHarness:
         manifest = AgentsManifest(agents={"harness_test_agent": agent_config})
         # Create pool and session
         async with AgentPool(manifest) as pool:
+            agent = pool.all_agents["harness_test_agent"]
             capabilities = ClientCapabilities(fs=None, terminal=False)
             session = ACPSession(
                 session_id=self.session_id,
-                agent_pool=pool,
-                current_agent_name="harness_test_agent",
+                agent=agent,
                 cwd=tempfile.gettempdir(),
                 client=self.client,
                 acp_agent=self._mock_acp_agent,
@@ -184,21 +184,21 @@ class ToolCallTestHarness:
             tools=tools,
         )
         manifest = AgentsManifest(agents={"harness_test_agent": agent_config})
-        pool = AgentPool(manifest)
-        capabilities = ClientCapabilities(fs=None, terminal=False)
-        session = ACPSession(
-            session_id=self.session_id,
-            agent_pool=pool,
-            current_agent_name="harness_test_agent",
-            cwd=tempfile.gettempdir(),
-            client=self.client,
-            acp_agent=self._mock_acp_agent,
-            client_capabilities=capabilities,
-        )
+        async with AgentPool(manifest) as pool:
+            harness_agent = pool.all_agents["harness_test_agent"]
+            capabilities = ClientCapabilities(fs=None, terminal=False)
+            session = ACPSession(
+                session_id=self.session_id,
+                agent=harness_agent,
+                cwd=tempfile.gettempdir(),
+                client=self.client,
+                acp_agent=self._mock_acp_agent,
+                client_capabilities=capabilities,
+            )
 
-        for agent in pool.agents.values():
-            agent.env = self.mock_env
-        self.client.clear()
-        content_blocks = [TextContentBlock(text=prompt)]
-        await session.process_prompt(content_blocks)
-        return self.client.get_tool_call_messages()
+            for agent in pool.agents.values():
+                agent.env = self.mock_env
+            self.client.clear()
+            content_blocks = [TextContentBlock(text=prompt)]
+            await session.process_prompt(content_blocks)
+            return self.client.get_tool_call_messages()

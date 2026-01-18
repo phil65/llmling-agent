@@ -54,6 +54,7 @@ if TYPE_CHECKING:
         SetSessionModeRequest,
     )
     from agentpool import AgentPool
+    from agentpool.agents.base_agent import BaseAgent
     from agentpool_server.acp_server.server import ACPServer
     from agentpool_server.acp_server.session import ACPSession
 
@@ -222,8 +223,12 @@ class AgentPoolACPAgent(ACPAgent):
     client: Client
     """ACP connection for client communication."""
 
-    agent_pool: AgentPool[Any]
-    """AgentPool containing available agents."""
+    default_agent: BaseAgent[Any, Any]
+    """Default agent instance to use for new sessions.
+
+    The agent carries its own pool reference via agent.agent_pool,
+    which is used for pool-level operations and agent switching.
+    """
 
     _: KW_ONLY
 
@@ -236,9 +241,6 @@ class AgentPoolACPAgent(ACPAgent):
     debug_commands: bool = False
     """Whether to enable debug slash commands for testing."""
 
-    default_agent: str | None = None
-    """Optional specific agent name to use as default."""
-
     load_skills: bool = True
     """Whether to load client-side skills from .claude/skills directory."""
 
@@ -249,14 +251,18 @@ class AgentPoolACPAgent(ACPAgent):
         """Initialize derived attributes and setup after field assignment."""
         self.client_capabilities: ClientCapabilities | None = None
         self.client_info: Implementation | None = None
-        self.session_manager = ACPSessionManager(pool=self.agent_pool)
+        pool = self.agent_pool
+        if pool is None:
+            msg = "Default agent has no associated pool"
+            raise RuntimeError(msg)
+        self.session_manager = ACPSessionManager(pool=pool)
         self.tasks = TaskManager()
         self._initialized = False
 
-        agent_count = len(self.agent_pool.all_agents)
-        logger.info("Created ACP agent implementation", agent_count=agent_count)
-        if self.debug_commands:
-            logger.info("Debug slash commands enabled for ACP testing")
+    @property
+    def agent_pool(self) -> AgentPool[Any] | None:
+        """Get the agent pool from the default agent."""
+        return self.default_agent.agent_pool
 
         # Note: Tool registration happens after initialize() when we know client caps
 
@@ -287,20 +293,11 @@ class AgentPoolACPAgent(ACPAgent):
 
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
-        names = list(self.agent_pool.all_agents.keys())
-        if not names:
-            logger.error("No agents available for session creation")
-            raise RuntimeError("No agents available")
 
-        # Use specified default agent or fall back to first agent
-        if self.default_agent and self.default_agent in names:
-            default_name = self.default_agent
-        else:
-            default_name = names[0]
-        logger.info("Creating new session", agents=names, default_agent=default_name)
+        logger.info("Creating new session", default_agent=self.default_agent.name)
         try:
             session_id = await self.session_manager.create_session(
-                default_agent_name=default_name,
+                agent=self.default_agent,
                 cwd=params.cwd,
                 client=self.client,
                 acp_agent=self,
@@ -438,7 +435,11 @@ class AgentPoolACPAgent(ACPAgent):
             return
 
         # Get storage provider
-        storage = self.agent_pool.storage
+        pool = self.agent_pool
+        if not pool:
+            logger.debug("No pool available, skipping conversation replay")
+            return
+        storage = pool.storage
         if not storage:
             logger.debug("No storage provider, skipping conversation replay")
             return
@@ -484,15 +485,14 @@ class AgentPoolACPAgent(ACPAgent):
 
         try:
             # Get agent from active session or use default
-            agent = None
+            agent: BaseAgent[Any, Any] | None = None
             for session in self.session_manager._active.values():
                 agent = session.agent
                 break
 
             if agent is None:
-                # No active session, get default agent
-                default_name = next(iter(self.agent_pool.manifest.agents.keys()))
-                agent = self.agent_pool.get_agent(default_name)
+                # No active session, use default agent
+                agent = self.default_agent
 
             # Delegate to agent's list_sessions
             logger.info("Listing sessions for agent", agent_name=agent.name)
@@ -528,9 +528,8 @@ class AgentPoolACPAgent(ACPAgent):
 
         logger.info("Forking session", session_id=params.session_id)
         # For now, just create a new session - full fork implementation would copy state
-        default_agent = next(iter(self.agent_pool.manifest.agents.keys()))
         session_id = await self.session_manager.create_session(
-            default_agent_name=default_agent,
+            agent=self.default_agent,
             cwd=params.cwd,
             client=self.client,
             acp_agent=self,
@@ -582,18 +581,6 @@ class AgentPoolACPAgent(ACPAgent):
         if not session:
             logger.info("Session not found, recreating", session_id=params.session_id)
             try:
-                # Get default agent name
-                names = list(self.agent_pool.all_agents.keys())
-                if not names:
-                    logger.error("No agents available for session recreation")
-                    return PromptResponse(stop_reason="end_turn")
-
-                default_name = (
-                    self.default_agent
-                    if self.default_agent and self.default_agent in names
-                    else names[0]
-                )
-
                 # Try to get cwd from stored session data
                 cwd = "."
                 try:
@@ -605,9 +592,9 @@ class AgentPoolACPAgent(ACPAgent):
                 except Exception:  # noqa: BLE001
                     pass  # Use default cwd
 
-                # Recreate session with same ID
+                # Recreate session with same ID using default agent
                 await self.session_manager.create_session(
-                    default_agent_name=default_name,
+                    agent=self.default_agent,
                     cwd=cwd,
                     client=self.client,
                     acp_agent=self,
@@ -764,7 +751,7 @@ class AgentPoolACPAgent(ACPAgent):
             logger.exception("Failed to set session config option", session_id=params.session_id)
             return None
 
-    async def swap_pool(self, config_path: str, agent: str | None = None) -> list[str]:
+    async def swap_pool(self, config_path: str, agent_name: str | None = None) -> list[str]:
         """Swap the agent pool with a new one from configuration.
 
         This coordinates the full pool swap:
@@ -774,7 +761,7 @@ class AgentPoolACPAgent(ACPAgent):
 
         Args:
             config_path: Path to the new agent configuration file
-            agent: Optional specific agent to use as default
+            agent_name: Optional specific agent name to use as default
 
         Returns:
             List of agent names in the new pool
@@ -787,15 +774,19 @@ class AgentPoolACPAgent(ACPAgent):
             msg = "Server reference not set - cannot swap pool"
             raise RuntimeError(msg)
 
-        logger.info("Swapping pool", config_path=config_path, agent=agent)
+        logger.info("Swapping pool", config_path=config_path, agent=agent_name)
         # 1. Close all active sessions
         closed_count = await self.session_manager.close_all_sessions()
         logger.info("Closed sessions before pool swap", count=closed_count)
-        # 2. Delegate to server for pool lifecycle management
-        agent_names = await self.server.swap_pool(config_path, agent)
+        # 2. Delegate to server for pool lifecycle management - returns new agent instance
+        new_agent = await self.server.swap_pool(config_path, agent_name)
         # 3. Update internal references
-        self.agent_pool = self.server.pool
-        self.session_manager._pool = self.server.pool
-        self.default_agent = agent
+        self.default_agent = new_agent
+        pool = new_agent.agent_pool
+        if pool is None:
+            msg = "New agent has no associated pool"
+            raise RuntimeError(msg)
+        self.session_manager._pool = pool
+        agent_names = list(pool.all_agents.keys())
         logger.info("Pool swap complete", agent_names=agent_names)
         return agent_names
