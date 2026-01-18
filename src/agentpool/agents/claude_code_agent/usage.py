@@ -25,6 +25,12 @@ class UsageLimit(BaseModel):
     resets_at: datetime | None = None
     """When this limit resets, or None if not set."""
 
+    def format(self, name: str) -> str:
+        reset_str = ""
+        if self.resets_at:
+            reset_str = f" (resets {self.resets_at.strftime('%Y-%m-%d %H:%M UTC')})"
+        return f"{name}: {self.utilization:.0f}%{reset_str}"
+
 
 class ExtraUsage(BaseModel):
     """Extra usage information for paid plans."""
@@ -59,15 +65,6 @@ class ClaudeCodeUsage(BaseModel):
     def format_table(self) -> str:
         """Format usage as a readable table."""
         lines = ["Claude Code Usage Limits", "=" * 50]
-
-        def format_limit(name: str, limit: UsageLimit | None) -> str | None:
-            if limit is None:
-                return None
-            reset_str = ""
-            if limit.resets_at:
-                reset_str = f" (resets {limit.resets_at.strftime('%Y-%m-%d %H:%M UTC')})"
-            return f"{name}: {limit.utilization:.0f}%{reset_str}"
-
         for name, limit in [
             ("5-hour", self.five_hour),
             ("7-day", self.seven_day),
@@ -75,8 +72,7 @@ class ClaudeCodeUsage(BaseModel):
             ("7-day Sonnet", self.seven_day_sonnet),
             ("7-day OAuth Apps", self.seven_day_oauth_apps),
         ]:
-            formatted = format_limit(name, limit)
-            if formatted:
+            if limit and (formatted := limit.format(name)):
                 lines.append(formatted)
 
         if self.extra_usage and self.extra_usage.is_enabled:
@@ -102,11 +98,9 @@ def _get_credentials_path() -> Path | None:
     linux_path = Path.home() / ".claude" / ".credentials.json"
     if linux_path.exists():
         return linux_path
-
     # macOS: Also check ~/.claude first (newer versions)
     if linux_path.exists():
         return linux_path
-
     return None
 
 
@@ -127,13 +121,9 @@ def _get_access_token_from_keychain() -> str | None:
     if sys.platform != "darwin":
         return None
 
+    cmd = ["security", "find-generic-password", "-s", "Claude Code-credentials", "-w"]
     try:
-        result = subprocess.run(
-            ["security", "find-generic-password", "-s", "Claude Code-credentials", "-w"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         data = anyenv.load_json(result.stdout.strip(), return_type=dict)
         val = data.get("claudeAiOauth", {}).get("accessToken")
     except (subprocess.CalledProcessError, anyenv.JsonLoadError, FileNotFoundError):
@@ -152,13 +142,9 @@ def get_access_token() -> str | None:
         Access token string, or None if not found.
     """
     # Try file-based first (works on Linux and newer macOS)
-    creds_path = _get_credentials_path()
-    if creds_path:
-        token = _get_access_token_from_file(creds_path)
-        if token:
-            return token
-    # Fall back to macOS Keychain
-    return _get_access_token_from_keychain()
+    if (path := _get_credentials_path()) and (token := _get_access_token_from_file(path)):
+        return token
+    return _get_access_token_from_keychain()  # Fall back to macOS Keychain
 
 
 async def get_usage_async(token: str | None = None) -> ClaudeCodeUsage:
@@ -182,16 +168,14 @@ async def get_usage_async(token: str | None = None) -> ClaudeCodeUsage:
             raise ValueError(msg)
 
     async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://api.anthropic.com/api/oauth/usage",
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "User-Agent": "claude-code/2.0.32",
-                "Authorization": f"Bearer {token}",
-                "anthropic-beta": "oauth-2025-04-20",
-            },
-        )
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "claude-code/2.0.32",
+            "Authorization": f"Bearer {token}",
+            "anthropic-beta": "oauth-2025-04-20",
+        }
+        response = await client.get("https://api.anthropic.com/api/oauth/usage", headers=headers)
         response.raise_for_status()
         return ClaudeCodeUsage.model_validate(response.json())
 
@@ -217,16 +201,14 @@ def get_usage(token: str | None = None) -> ClaudeCodeUsage:
             raise ValueError(msg)
 
     with httpx.Client() as client:
-        response = client.get(
-            "https://api.anthropic.com/api/oauth/usage",
-            headers={
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                "User-Agent": "claude-code/2.0.32",
-                "Authorization": f"Bearer {token}",
-                "anthropic-beta": "oauth-2025-04-20",
-            },
-        )
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "claude-code/2.0.32",
+            "Authorization": f"Bearer {token}",
+            "anthropic-beta": "oauth-2025-04-20",
+        }
+        response = client.get("https://api.anthropic.com/api/oauth/usage", headers=headers)
         response.raise_for_status()
         return ClaudeCodeUsage.model_validate(response.json())
 
