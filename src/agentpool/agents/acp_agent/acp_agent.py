@@ -96,6 +96,16 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def get_updated_at(date_str: str | None) -> datetime:
+    from agentpool.utils.now import get_now
+
+    updated_at = get_now()
+    if date_str:
+        with contextlib.suppress(ValueError, AttributeError):
+            updated_at = datetime.fromisoformat(date_str)
+    return updated_at
+
+
 class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     """MessageNode that wraps an external ACP agent subprocess.
 
@@ -752,7 +762,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """List sessions from the remote ACP server."""
         from acp.schema import ListSessionsRequest
         from agentpool.sessions.models import SessionData
-        from agentpool.utils.now import get_now
 
         if not self._connection:
             raise RuntimeError("Not connected to ACP server")
@@ -763,12 +772,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             # Convert ACP SessionInfo to agentpool SessionData
             result: list[SessionInfo] = []
             for acp_session in response.sessions:
-                # Parse timestamp if available
-                updated_at = get_now()
-                if acp_session.updated_at:
-                    with contextlib.suppress(ValueError, AttributeError):
-                        updated_at = datetime.fromisoformat(acp_session.updated_at)
-
+                updated_at = get_updated_at(acp_session.updated_at)
                 session_data = SessionData(
                     session_id=acp_session.session_id,
                     agent_name=self.name,
@@ -824,18 +828,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     self._state.modes = response.modes
 
             self.log.info("Session loaded from ACP server", session_id=session_id)
-            # Try to get full session metadata by listing sessions
-            # This gives us title, updated_at, etc.
-            try:
+            try:  # Try to get full session metadata (title etc) by listing sessions
                 sessions = await self.list_sessions()
                 session_info = next((s for s in sessions if s.session_id == session_id), None)
                 if session_info:
                     # Convert SessionInfo to SessionData
-                    updated_at = get_now()
-                    if session_info.updated_at:
-                        with contextlib.suppress(ValueError, AttributeError):
-                            updated_at = datetime.fromisoformat(session_info.updated_at)
-
+                    updated_at = get_updated_at(session_info.updated_at)
                     return SessionData(
                         session_id=session_id,
                         agent_name=self.name,
