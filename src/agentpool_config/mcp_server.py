@@ -366,3 +366,60 @@ MCPServerConfig = Annotated[
     StdioMCPServerConfig | SSEMCPServerConfig | StreamableHTTPMCPServerConfig,
     Field(discriminator="type"),
 ]
+
+
+def parse_mcp_servers_json(data: dict[str, object]) -> list[MCPServerConfig]:
+    """Parse MCP servers from JSON format used by clients (e.g., Zed).
+
+    Expected format:
+        {
+            "mcpServers": {
+                "server_name": {
+                    "url": "https://...",
+                    "transport": "sse" | "http"  # optional, defaults to http
+                },
+                ...
+            }
+        }
+
+    Args:
+        data: JSON data containing mcpServers key
+
+    Returns:
+        List of parsed MCPServerConfig instances
+
+    Raises:
+        ValueError: If data format is invalid or transport type unsupported
+    """
+    if "mcpServers" not in data:
+        msg = "MCP config must contain 'mcpServers' key"
+        raise ValueError(msg)
+
+    servers: list[MCPServerConfig] = []
+    mcp_servers = data["mcpServers"]
+    if not isinstance(mcp_servers, dict):
+        msg = "'mcpServers' must be an object"
+        raise TypeError(msg)
+
+    for server_name, server_cfg in mcp_servers.items():
+        if not isinstance(server_cfg, dict):
+            msg = f"Server config for '{server_name}' must be an object"
+            raise TypeError(msg)
+
+        url = server_cfg.get("url")
+        if not url:
+            msg = f"Server '{server_name}' must have a 'url' field"
+            raise ValueError(msg)
+
+        match server_cfg.get("transport"):
+            case "sse":
+                server: MCPServerConfig = SSEMCPServerConfig(name=server_name, url=url)
+            case "http" | None:  # Default to HTTP
+                server = StreamableHTTPMCPServerConfig(name=server_name, url=url)
+            case unknown:
+                msg = f"Unsupported transport type for '{server_name}': {unknown}"
+                raise ValueError(msg)
+
+        servers.append(server)
+
+    return servers

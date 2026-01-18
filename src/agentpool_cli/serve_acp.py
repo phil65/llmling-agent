@@ -20,7 +20,6 @@ from agentpool_cli import log, resolve_agent_config
 
 if TYPE_CHECKING:
     from acp import Transport
-    from agentpool_config.mcp_server import MCPServerConfig
 
 
 logger = log.get_logger(__name__)
@@ -131,7 +130,6 @@ def acp_command(  # noqa: PLR0915
     from acp import StdioTransport, WebSocketTransport
     from agentpool import log
     from agentpool.config_resources import ACP_ASSISTANT
-    from agentpool_config.mcp_server import SSEMCPServerConfig, StreamableHTTPMCPServerConfig
     from agentpool_server.acp_server import ACPServer
 
     # Build transport config
@@ -175,36 +173,21 @@ def acp_command(  # noqa: PLR0915
     # TODO: Consider adding to specific agent's MCP manager instead of pool-level
     # for better isolation (currently all agents in pool share these servers)
     if mcp_config:
+        from agentpool_config.mcp_server import parse_mcp_servers_json
+
         try:
             mcp_data = json.loads(mcp_config)
-            if "mcpServers" not in mcp_data:
-                raise t.BadParameter("MCP config must contain 'mcpServers' key")
-
-            for server_name, server_cfg in mcp_data["mcpServers"].items():
-                match server_cfg.get("transport"):
-                    case "sse":
-                        server: MCPServerConfig = SSEMCPServerConfig(
-                            name=server_name,
-                            url=server_cfg["url"],
-                        )
-                    case "http" | None:  # Default to HTTP
-                        server = StreamableHTTPMCPServerConfig(
-                            name=server_name,
-                            url=server_cfg["url"],
-                        )
-                    case unknown:
-                        msg = f"Unsupported transport type: {unknown}"
-                        raise t.BadParameter(msg)
-
-                acp_server.pool.mcp.add_server_config(server)
-                logger.info(
-                    "Added MCP server from --mcp-config",
-                    server_name=server_name,
-                    url=server_cfg.get("url"),
-                )
         except json.JSONDecodeError as e:
-            msg = f"Invalid JSON in --mcp-config: {e}"
-            raise t.BadParameter(msg) from e
+            raise t.BadParameter(f"Invalid JSON in --mcp-config: {e}") from e
+
+        try:
+            servers = parse_mcp_servers_json(mcp_data)
+        except ValueError as e:
+            raise t.BadParameter(str(e)) from e
+
+        for server in servers:
+            acp_server.pool.mcp.add_server_config(server)
+            logger.info("Added MCP server from --mcp-config", server_name=server.name)
 
     if show_messages:
         logger.info("Message activity logging enabled")
