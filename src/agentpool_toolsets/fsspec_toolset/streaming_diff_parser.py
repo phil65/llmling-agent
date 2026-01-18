@@ -210,21 +210,17 @@ class StreamingDiffParser:
     def _finalize_hunk(self) -> list[DiffParserEvent]:
         """Finalize current hunk and emit done events."""
         events: list[DiffParserEvent] = []
-
         if self.current_hunk_old:
             # Emit final old text marker
             events.append(OldTextChunk(chunk="", done=True))
-
         if self.current_hunk_new:
             # Emit final new text marker
             events.append(NewTextChunk(chunk="", done=True))
-
         # Reset for next hunk
         self.current_hunk_old = []
         self.current_hunk_new = []
         self._old_text_done = False
         self._in_hunk = True
-
         return events
 
     def _could_be_end_tag_prefix(self) -> bool:
@@ -245,5 +241,4 @@ class StreamingDiffParser:
 
         # Finalize any open hunk
         events.extend(self._finalize_hunk())
-
         return events

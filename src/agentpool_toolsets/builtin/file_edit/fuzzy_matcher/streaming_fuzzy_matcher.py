@@ -123,17 +123,13 @@ class StreamingFuzzyMatcher:
             # Find last newline position
             last_newline = self.incomplete_line.rfind("\n")
             complete_part = self.incomplete_line[: last_newline + 1]
-
             # Split into lines and add to query_lines
             new_lines = complete_part.splitlines()
             self.query_lines.extend(new_lines)
-
             # Keep remaining incomplete part
             self.incomplete_line = self.incomplete_line[last_newline + 1 :]
-
             # Update matches with new query lines
             self.matches = self._resolve_location_fuzzy()
-
         # Return best match
         best_match = self.select_best_match()
         return best_match or (self.matches[0] if self.matches else None)

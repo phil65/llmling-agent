@@ -6,6 +6,7 @@ import contextlib
 from fnmatch import fnmatch
 import os
 from pathlib import Path
+import re
 import time
 from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import urlparse
@@ -232,13 +233,8 @@ class FSSpecTools(ResourceProvider):
         """Get filesystem tools."""
         if self._tools is not None:
             return self._tools
-
         # Create standalone tools with toolset's configuration
-        list_dir_tool = create_list_directory_tool(
-            env=self.execution_env,
-            cwd=self.cwd,
-        )
-
+        list_dir_tool = create_list_directory_tool(env=self.execution_env, cwd=self.cwd)
         read_tool = create_read_tool(
             env=self.execution_env,
             converter=self.converter,  # Pass converter for automatic markdown conversion
@@ -257,16 +253,8 @@ class FSSpecTools(ResourceProvider):
             use_subprocess_grep=self.use_subprocess_grep,
         )
 
-        delete_tool = create_delete_path_tool(
-            env=self.execution_env,
-            cwd=self.cwd,
-        )
-
-        download_tool = create_download_file_tool(
-            env=self.execution_env,
-            cwd=self.cwd,
-        )
-
+        delete_tool = create_delete_path_tool(env=self.execution_env, cwd=self.cwd)
+        download_tool = create_download_file_tool(env=self.execution_env, cwd=self.cwd)
         self._tools = [
             list_dir_tool,
             read_tool,
@@ -314,6 +302,8 @@ class FSSpecTools(ResourceProvider):
         Returns:
             Markdown-formatted directory listing
         """
+        from agentpool.agents.events import TextContentItem
+
         path = self._resolve_path(path, agent_ctx)
         msg = f"Listing directory: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
@@ -331,10 +321,8 @@ class FSSpecTools(ResourceProvider):
             # Build glob path
             glob_pattern = f"{path.rstrip('/')}/{pattern}"
             paths = await fs._glob(glob_pattern, maxdepth=max_depth, detail=True)
-
             files: list[dict[str, Any]] = []
             dirs: list[dict[str, Any]] = []
-
             # Safety check - prevent returning too many items
             total_found = len(paths)
             if total_found > 500:  # noqa: PLR2004
@@ -351,14 +339,11 @@ class FSSpecTools(ResourceProvider):
 
             for file_path, file_info in paths.items():  # pyright: ignore[reportAttributeAccessIssue]
                 rel_path = os.path.relpath(str(file_path), path)
-
                 # Skip excluded patterns
                 if exclude and any(fnmatch(rel_path, pat) for pat in exclude):
                     continue
-
                 # Use type from glob detail info, falling back to isdir only if needed
                 is_dir = await is_directory(fs, file_path, entry_type=file_info.get("type"))  # pyright: ignore[reportArgumentType]
-
                 item_info = {
                     "name": Path(file_path).name,  # pyright: ignore[reportArgumentType]
                     "path": file_path,
@@ -376,9 +361,6 @@ class FSSpecTools(ResourceProvider):
 
             await agent_ctx.events.file_operation("list", path=path, success=True)
             result = format_directory_listing(path, dirs, files, pattern)
-            # Emit formatted content for UI display
-            from agentpool.agents.events import TextContentItem
-
             await agent_ctx.events.tool_call_progress(
                 title=f"Listed: {path}",
                 items=[TextContentItem(text=result)],
@@ -410,10 +392,12 @@ class FSSpecTools(ResourceProvider):
             Text content for text files, BinaryContent for binary files (with optional
             dimension note as list when image was resized), or dict with error
         """
+        from agentpool.agents.events import FileContentItem, LocationContentItem
+        from agentpool.repomap import truncate_with_notice
+        from agentpool_toolsets.fsspec_toolset.image_utils import resize_image_if_needed
+
         path = self._resolve_path(path, agent_ctx)
         msg = f"Reading file: {path}"
-        from agentpool.agents.events import LocationContentItem
-
         # Emit progress - use 0 for line if negative (can't resolve until we read file)
         # LocationContentItem/ToolCallLocation require line >= 0 per ACP spec
         display_line = line if (line is not None and line > 0) else 0
@@ -430,10 +414,6 @@ class FSSpecTools(ResourceProvider):
                 mime = mime_type or "application/octet-stream"
                 # Resize images if needed
                 if self._max_image_size and mime.startswith("image/"):
-                    from agentpool_toolsets.fsspec_toolset.image_utils import (
-                        resize_image_if_needed,
-                    )
-
                     data, mime, note = resize_image_if_needed(
                         data, mime, self._max_image_size, self._max_image_bytes
                     )
@@ -449,10 +429,6 @@ class FSSpecTools(ResourceProvider):
                 mime = mime_type or "application/octet-stream"
                 # Resize images if needed
                 if self._max_image_size and mime.startswith("image/"):
-                    from agentpool_toolsets.fsspec_toolset.image_utils import (
-                        resize_image_if_needed,
-                    )
-
                     data, mime, note = resize_image_if_needed(
                         data, mime, self._max_image_size, self._max_image_bytes
                     )
@@ -471,8 +447,6 @@ class FSSpecTools(ResourceProvider):
                     content = map_result
                 else:
                     # Fallback: head + tail for unsupported languages
-                    from agentpool.repomap import truncate_with_notice
-
                     content = truncate_with_notice(path, content)
                     await agent_ctx.events.file_operation("read", path=path, success=True)
             else:
@@ -496,7 +470,6 @@ class FSSpecTools(ResourceProvider):
             return f"error: Failed to read file {path}: {e}"
         else:
             # Emit file content for UI display (formatted at ACP layer)
-            from agentpool.agents.events import FileContentItem
 
             # Use non-negative line for display (negative lines are internal Python convention)
             display_start_line = max(1, line) if line and line > 0 else None
@@ -517,8 +490,9 @@ class FSSpecTools(ResourceProvider):
         Returns:
             File content converted to markdown
         """
-        assert self.converter is not None, "Converter required for read_as_markdown"
+        from agentpool.agents.events import TextContentItem
 
+        assert self.converter is not None, "Converter required for read_as_markdown"
         path = self._resolve_path(path, agent_ctx)
         msg = f"Reading file as markdown: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[path])
@@ -526,8 +500,6 @@ class FSSpecTools(ResourceProvider):
             content = await self.converter.convert_file(path)
             await agent_ctx.events.file_operation("read", path=path, success=True)
             # Emit formatted content for UI display
-            from agentpool.agents.events import TextContentItem
-
             await agent_ctx.events.tool_call_progress(
                 title=f"Read as markdown: {path}",
                 items=[TextContentItem(text=content)],
@@ -566,7 +538,6 @@ class FSSpecTools(ResourceProvider):
         await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
 
         content_bytes = len(content.encode("utf-8"))
-
         try:
             if mode not in ("w", "a"):
                 msg = f"Invalid mode '{mode}'. Use 'w' (write) or 'a' (append)"
@@ -607,9 +578,7 @@ class FSSpecTools(ResourceProvider):
             await self._write(agent_ctx, path, content)
             await agent_ctx.events.tool_call_progress(
                 title=f"Wrote: {path}",
-                items=[
-                    DiffContentItem(path=path, old_text="", new_text=content),
-                ],
+                items=[DiffContentItem(path=path, old_text="", new_text=content)],
             )
 
             # Run diagnostics if enabled (include in message for agent)
@@ -619,7 +588,6 @@ class FSSpecTools(ResourceProvider):
 
             action = "Appended to" if mode == "a" and file_exists else "Wrote"
             success_msg = f"{action} {path} ({content_bytes} bytes){diagnostics_msg}"
-
             # TODO: Include diagnostics in metadata for UI display
             # Expected metadata shape:
             # {
@@ -704,12 +672,7 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation("delete", path=path, success=False, error=str(e))
             return {"error": f"Failed to delete {path}: {e}"}
         else:
-            result = {
-                "path": path,
-                "deleted": True,
-                "type": path_type,
-                "recursive": recursive,
-            }
+            result = {"path": path, "deleted": True, "type": path_type, "recursive": recursive}
             await agent_ctx.events.file_operation("delete", path=path, success=True)
             return result
 
@@ -792,6 +755,10 @@ class FSSpecTools(ResourceProvider):
                 ("old_name()", "new_name()"),  # Update call sites
             ]
         """
+        from difflib import unified_diff
+
+        from agentpool.tools.base import ToolResult
+
         path = self._resolve_path(path, agent_ctx)
         msg = f"Editing file: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
@@ -845,11 +812,6 @@ class FSSpecTools(ResourceProvider):
             await agent_ctx.events.file_operation("edit", path=path, success=False, error=error_msg)
             return error_msg
         else:
-            # Generate unified diff for OpenCode UI
-            from difflib import unified_diff
-
-            from agentpool.tools.base import ToolResult
-
             # Ensure content ends with newline for proper diff formatting
             original_for_diff = (
                 original_content if original_content.endswith("\n") else original_content + "\n"
@@ -925,8 +887,6 @@ class FSSpecTools(ResourceProvider):
             # Uncomment a section
             regex_replace_lines(ctx, "file.py", "# START", "# END", r"^# ", "")
         """
-        import re
-
         path = self._resolve_path(path, agent_ctx)
         msg = f"Regex editing file: {path}"
         await agent_ctx.events.tool_call_start(title=msg, kind="edit", locations=[path])
@@ -939,7 +899,6 @@ class FSSpecTools(ResourceProvider):
 
             lines = original_content.splitlines(keepends=True)
             total_lines = len(lines)
-
             # Resolve start position
             if isinstance(start, int):
                 if start < 1:
@@ -965,14 +924,11 @@ class FSSpecTools(ResourceProvider):
             # Convert to 0-based indexing for array access
             start_idx = start_line - 1
             end_idx = end_line  # end_line is inclusive, but list slice is exclusive
-
             # Compile regex pattern
             regex = re.compile(pattern)
-
             # Apply replacements to the specified line range
             modified_count = 0
             replacement_count = 0
-
             for i in range(start_idx, end_idx):
                 original = lines[i]
                 modified, num_subs = regex.subn(replacement, original, count=count)
@@ -983,10 +939,8 @@ class FSSpecTools(ResourceProvider):
 
             # Build new content
             new_content = "".join(lines)
-
             # Write back
             await self._write(agent_ctx, path, new_content)
-
             # Build success message
             success_msg = (
                 f"Successfully applied regex to lines {start_line}-{end_line} in {Path(path).name}"
@@ -1205,13 +1159,10 @@ class FSSpecTools(ResourceProvider):
         import httpx
 
         start_time = time.time()
-
         # Resolve target directory
         target_dir = self._resolve_path(target_dir, agent_ctx)
-
         msg = f"Downloading: {url}"
         await agent_ctx.events.tool_call_start(title=msg, kind="read", locations=[url])
-
         # Extract filename from URL
         filename = Path(urlparse(url).path).name or "downloaded_file"
         full_path = f"{target_dir.rstrip('/')}/{filename}"
@@ -1220,19 +1171,16 @@ class FSSpecTools(ResourceProvider):
             fs = self._get_fs(agent_ctx)
             # Ensure target directory exists
             await fs._makedirs(target_dir, exist_ok=True)
-
             async with (
                 httpx.AsyncClient(verify=False) as client,
                 client.stream("GET", url, timeout=30.0) as response,
             ):
                 response.raise_for_status()
-
                 total = (
                     int(response.headers["Content-Length"])
                     if "Content-Length" in response.headers
                     else None
                 )
-
                 # Collect all data
                 data = bytearray()
                 async for chunk in response.aiter_bytes(chunk_size):
@@ -1678,7 +1626,6 @@ class FSSpecTools(ResourceProvider):
                     | PartDeltaEvent(delta=TextPartDelta(content_delta=chunk))
                 ):
                     streamed_content += chunk
-
                     # Emit periodic progress updates
                     await agent_ctx.events.file_edit_progress(
                         path=path,
