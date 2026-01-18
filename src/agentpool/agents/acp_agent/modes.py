@@ -117,30 +117,31 @@ class ACPModeCategory(ModeCategoryProtocol["ACPAgent"]):
         # Try config_options first
         if config_options:
             for config_opt in config_options:
-                if config_opt.id == "mode":
-                    mode_infos: list[ModeInfo] = []
-                    if isinstance(config_opt.options, list):
-                        for opt_item in config_opt.options:
-                            if isinstance(opt_item, SessionConfigSelectGroup):
-                                mode_infos.extend(
-                                    ModeInfo(
-                                        id=sub_opt.value,
-                                        name=sub_opt.name,
-                                        description=sub_opt.description or "",
-                                        category_id="mode",
-                                    )
-                                    for sub_opt in opt_item.options
+                if config_opt.id != "mode":
+                    continue
+                mode_infos: list[ModeInfo] = []
+                if isinstance(config_opt.options, list):
+                    for opt_item in config_opt.options:
+                        if isinstance(opt_item, SessionConfigSelectGroup):
+                            mode_infos.extend(
+                                ModeInfo(
+                                    id=sub_opt.value,
+                                    name=sub_opt.name,
+                                    description=sub_opt.description or "",
+                                    category_id="mode",
                                 )
-                            else:
-                                mode_infos.append(
-                                    ModeInfo(
-                                        id=opt_item.value,
-                                        name=opt_item.name,
-                                        description=opt_item.description or "",
-                                        category_id="mode",
-                                    )
+                                for sub_opt in opt_item.options
+                            )
+                        else:
+                            mode_infos.append(
+                                ModeInfo(
+                                    id=opt_item.value,
+                                    name=opt_item.name,
+                                    description=opt_item.description or "",
+                                    category_id="mode",
                                 )
-                    return cls(available_modes=mode_infos)
+                            )
+                return cls(available_modes=mode_infos)
 
         # Fall back to legacy modes state
         if modes_state:
@@ -260,30 +261,31 @@ class ACPModelCategory(ModeCategoryProtocol["ACPAgent"]):
         # Try config_options first
         if config_options:
             for config_opt in config_options:
-                if config_opt.id == "model":
-                    mode_infos: list[ModeInfo] = []
-                    if isinstance(config_opt.options, list):
-                        for opt_item in config_opt.options:
-                            if isinstance(opt_item, SessionConfigSelectGroup):
-                                mode_infos.extend(
-                                    ModeInfo(
-                                        id=sub_opt.value,
-                                        name=sub_opt.name,
-                                        description=sub_opt.description or "",
-                                        category_id="model",
-                                    )
-                                    for sub_opt in opt_item.options
+                if config_opt.id != "model":
+                    continue
+                mode_infos: list[ModeInfo] = []
+                if isinstance(config_opt.options, list):
+                    for opt_item in config_opt.options:
+                        if isinstance(opt_item, SessionConfigSelectGroup):
+                            mode_infos.extend(
+                                ModeInfo(
+                                    id=sub_opt.value,
+                                    name=sub_opt.name,
+                                    description=sub_opt.description or "",
+                                    category_id="model",
                                 )
-                            else:
-                                mode_infos.append(
-                                    ModeInfo(
-                                        id=opt_item.value,
-                                        name=opt_item.name,
-                                        description=opt_item.description or "",
-                                        category_id="model",
-                                    )
+                                for sub_opt in opt_item.options
+                            )
+                        else:
+                            mode_infos.append(
+                                ModeInfo(
+                                    id=opt_item.value,
+                                    name=opt_item.name,
+                                    description=opt_item.description or "",
+                                    category_id="model",
                                 )
-                    return cls(available_modes=mode_infos)
+                            )
+                return cls(available_modes=mode_infos)
 
         # Fall back to legacy models state
         if models_state:
@@ -348,7 +350,6 @@ class ACPGenericCategory(ModeCategoryProtocol["ACPAgent"]):
             agent._state.config_options = list(response.config_options)
 
         agent.log.info("Config option changed", config_id=self.id, value=mode_id)
-
         change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
         await agent.state_updated.emit(change)
 

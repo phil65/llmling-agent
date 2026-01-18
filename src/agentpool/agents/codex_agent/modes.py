@@ -63,7 +63,7 @@ SANDBOX_MODES = [
         category_id="sandbox",
     ),
     ModeInfo(
-        id="externalSandbox",
+        id="external-sandbox",
         name="External Sandbox",
         description="Use external sandbox environment",
         category_id="sandbox",
@@ -194,10 +194,8 @@ class CodexSandboxCategory(ModeCategoryProtocol["CodexAgent"]):
         if mode_id not in valid_ids:
             msg = f"Invalid mode '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
             raise ValueError(msg)
-
         agent._current_sandbox = mode_id  # type: ignore[assignment]
         agent.log.info("Sandbox mode changed", sandbox=mode_id)
-
         change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
         await agent.state_updated.emit(change)
 
