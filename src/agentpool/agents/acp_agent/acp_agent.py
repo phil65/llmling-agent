@@ -314,7 +314,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         Returns:
             The started Process instance
         """
-        prompt_manager = self.agent_pool.manifest.prompt_manager if self.agent_pool else None
+        prompt_manager = self.agent_pool.prompt_manager if self.agent_pool else None
         args = await self.config.get_args(prompt_manager)
         cmd = [self.config.get_command(), *args]
         self.log.info("Starting ACP subprocess", command=cmd)

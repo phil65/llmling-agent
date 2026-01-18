@@ -62,5 +62,8 @@ class NodeContext[TDeps = object]:
 
     @property
     def prompt_manager(self) -> PromptManager:
-        """Get prompt manager from manifest."""
-        return self.definition.prompt_manager
+        """Get prompt manager from pool."""
+        if self.pool is None:
+            msg = "Cannot access prompt_manager: no agent pool available"
+            raise RuntimeError(msg)
+        return self.pool.prompt_manager

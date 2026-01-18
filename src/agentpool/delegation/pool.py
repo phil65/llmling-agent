@@ -102,6 +102,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.mcp_server.manager import MCPManager
         from agentpool.models.manifest import AgentsManifest
         from agentpool.observability import registry
+        from agentpool.prompts.manager import PromptManager
         from agentpool.sessions import SessionManager
         from agentpool.skills.manager import SkillsManager
         from agentpool.storage import StorageManager
@@ -135,6 +136,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self.mcp = MCPManager(name="pool_mcp", servers=servers, owner="pool")
         self.skills = SkillsManager(name="pool_skills", owner="pool")
         self._tasks = TaskRegistry()
+        self.prompt_manager = PromptManager(self.manifest.prompts)
+
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
             self._tasks.register(name, task)
@@ -830,7 +833,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                         sys_prompts.append(content)
                     case LibraryPromptConfig(reference=reference):
                         try:  # Load from library
-                            content = self.manifest.prompt_manager.get.sync(reference)
+                            content = self.prompt_manager.get.sync(reference)
                             sys_prompts.append(content)
                         except Exception as e:
                             msg = f"Failed to load library prompt {reference!r} for agent {name}"

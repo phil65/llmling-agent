@@ -4,6 +4,7 @@ import pytest
 import yaml
 
 from agentpool import AgentsManifest
+from agentpool.prompts.manager import PromptManager
 
 
 TEST_CONFIG = """
@@ -29,29 +30,30 @@ async def test_builtin_provider():
     # Load test config
     config = yaml.safe_load(TEST_CONFIG)
     manifest = AgentsManifest.model_validate(config)
+    prompt_manager = PromptManager(manifest.prompts)
 
     # Test simple prompt
-    result = await manifest.prompt_manager.get("simple_prompt")
+    result = await prompt_manager.get("simple_prompt")
     assert result == "This is a simple prompt"
 
     # Test prompt with variables
-    result = await manifest.prompt_manager.get("template_prompt?name=Alice,place=Wonderland")
+    result = await prompt_manager.get("template_prompt?name=Alice,place=Wonderland")
     assert result == "Hello Alice, welcome to Wonderland!"
 
     # Test non-existent prompt
     with pytest.raises(RuntimeError, match="Failed to get prompt"):
-        await manifest.prompt_manager.get("non_existent_prompt")
+        await prompt_manager.get("non_existent_prompt")
 
     # Test invalid variable reference
     with pytest.raises(RuntimeError, match="Failed to get prompt"):
-        await manifest.prompt_manager.get("template_prompt?invalid=value")
+        await prompt_manager.get("template_prompt?invalid=value")
 
     # Test prompt without required variables
     with pytest.raises(RuntimeError, match="Failed to get prompt"):
-        await manifest.prompt_manager.get("template_prompt")
+        await prompt_manager.get("template_prompt")
 
     # Test listing prompts
-    prompts = await manifest.prompt_manager.list_prompts("builtin")
+    prompts = await prompt_manager.list_prompts("builtin")
     assert "builtin" in prompts
     assert set(prompts["builtin"]) == {
         "simple_prompt",
@@ -61,10 +63,10 @@ async def test_builtin_provider():
 
     # Test listing non-existent provider
     with pytest.raises(KeyError):
-        await manifest.prompt_manager.list_prompts("non_existent")
+        await prompt_manager.list_prompts("non_existent")
 
     # Test default provider
-    result = await manifest.prompt_manager.get("simple_prompt")  # no provider prefix
+    result = await prompt_manager.get("simple_prompt")  # no provider prefix
     assert result == "This is a simple prompt"
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from slashed import CommandStore
 
-from agentpool import AgentsManifest
+from agentpool import AgentPool, AgentsManifest
 from agentpool_commands.prompts import ShowPromptCommand
 
 
@@ -21,6 +21,8 @@ prompts:
         Analyzing {{ data }}...
         Please check {{ data }}
       category: methodology
+
+agents: {}  # Required field
 """
 
 
@@ -29,17 +31,33 @@ async def test_prompt_command():
     messages: list[str] = []
     store = CommandStore()
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
-    context = store.create_context(manifest, output_writer=messages.append)
-    prompt_cmd = ShowPromptCommand()
 
-    # Test simple prompt
-    await prompt_cmd.execute(ctx=context, args=["greet?name=World"], kwargs={})
-    assert "Hello World!" in messages[-1]
+    # Create pool to get prompt_manager
+    async with AgentPool(manifest=manifest) as pool:
+        # Create a minimal context with pool's prompt_manager
+        from unittest.mock import MagicMock
 
-    # Test prompt with variables
-    await prompt_cmd.execute(ctx=context, args=["analyze?data=test.txt"], kwargs={})
-    assert "Analyzing test.txt" in messages[-1]
-    assert "Please check test.txt" in messages[-1]
+        from agentpool.messaging.context import NodeContext
+
+        mock_node = MagicMock()
+        mock_node.name = "test"
+        node_context = NodeContext(
+            node=mock_node,
+            pool=pool,
+            config=MagicMock(),
+            definition=manifest,
+        )
+        context = store.create_context(node_context, output_writer=messages.append)
+        prompt_cmd = ShowPromptCommand()
+
+        # Test simple prompt
+        await prompt_cmd.execute(ctx=context, args=["greet?name=World"], kwargs={})
+        assert "Hello World!" in messages[-1]
+
+        # Test prompt with variables
+        await prompt_cmd.execute(ctx=context, args=["analyze?data=test.txt"], kwargs={})
+        assert "Analyzing test.txt" in messages[-1]
+        assert "Please check test.txt" in messages[-1]
 
 
 if __name__ == "__main__":

@@ -291,7 +291,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             all_prompts.extend(system_prompt)
         elif system_prompt:
             all_prompts.append(system_prompt)
-        self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=self._manifest.prompt_manager)
+        prompt_manager = self.agent_pool.prompt_manager if self.agent_pool else None
+        self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=prompt_manager)
         self._formatted_system_prompt: str | None = None  # Set in __aenter__
         self.hooks = hooks
         self._default_usage_limits = usage_limits
@@ -381,8 +382,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                             content = template_content
                         sys_prompts.append(content)
                     case LibraryPromptConfig(reference=reference):
+                        if not agent_pool:
+                            msg = f"Cannot resolve library prompt {reference!r}: no agent pool"
+                            raise ValueError(msg)
                         try:
-                            content = manifest.prompt_manager.get.sync(reference)
+                            content = agent_pool.prompt_manager.get.sync(reference)
                             sys_prompts.append(content)
                         except Exception as e:
                             msg = f"Failed to load library prompt {reference!r} for agent {name}"

@@ -647,7 +647,7 @@ class ACPSession:
 
     async def _register_prompt_hub_commands(self) -> None:
         """Register prompt hub prompts as slash commands."""
-        manager = self.agent_pool.manifest.prompt_manager
+        manager = self.agent_pool.prompt_manager
         cmd_count = 0
         try:
             all_prompts = await manager.list_prompts()

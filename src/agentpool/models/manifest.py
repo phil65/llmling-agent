@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 
     from agentpool.messaging.compaction import CompactionPipeline
     from agentpool.models.acp_agents import BaseACPAgentConfig
-    from agentpool.prompts.manager import PromptManager
     from agentpool.vfs_registry import VFSRegistry
 
 logger = log.get_logger(__name__)
@@ -626,13 +625,6 @@ class AgentsManifest(Schema):
                     config.name = name
                 result[name] = config
         return result
-
-    @cached_property
-    def prompt_manager(self) -> PromptManager:
-        """Get prompt manager for this manifest."""
-        from agentpool.prompts.manager import PromptManager
-
-        return PromptManager(self.prompts)
 
     def get_compaction_pipeline(self) -> CompactionPipeline | None:
         """Get the configured compaction pipeline, if any.

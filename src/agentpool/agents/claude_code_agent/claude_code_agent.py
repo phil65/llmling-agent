@@ -329,7 +329,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 all_prompts.append(prompt_source)
             else:
                 all_prompts.extend(prompt_source)
-        prompt_manager = agent_pool.manifest.prompt_manager if agent_pool else None
+        prompt_manager = agent_pool.prompt_manager if agent_pool else None
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=prompt_manager)
         self._model = model or config.model
         self._max_turns = max_turns or config.max_turns
