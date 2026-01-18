@@ -67,7 +67,7 @@ def vercel_command(  # noqa: PLR0915
         raise t.BadParameter(msg) from e
 
     manifest = AgentsManifest.from_file(config_path)
-    pool = AgentPool(manifest)
+    pool = AgentPool(manifest, main_agent_name=agent_name)
 
     if show_messages:
         for agent in pool.all_agents.values():
@@ -130,7 +130,7 @@ def vercel_command(  # noqa: PLR0915
             return JSONResponse({"error": "No user text found"}, status_code=400)
 
         # Determine which agent to use
-        selected_agent = pool.get_agent(agent_name) if agent_name else pool.default_agent
+        selected_agent = pool.get_agent(agent_name) if agent_name else pool.main_agent
 
         async def generate_stream() -> AsyncIterator[str]:
             """Generate Vercel AI Data Stream Protocol events.

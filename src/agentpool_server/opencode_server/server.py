@@ -123,7 +123,7 @@ def create_app(  # noqa: PLR0915
             raise ValueError(msg)
     else:
         # Use default agent from pool
-        agent = pool.default_agent
+        agent = pool.main_agent
 
     state = ServerState(
         working_dir=working_dir or str(Path.cwd()),

@@ -110,7 +110,7 @@ class ACPServer(BaseServer):
             Configured ACP server instance with agent pool from config
         """
         manifest = AgentsManifest.from_file(config_path)
-        pool = AgentPool(manifest=manifest)
+        pool = AgentPool(manifest=manifest, main_agent_name=agent)
         server = cls(
             pool,
             file_access=file_access,
@@ -151,7 +151,7 @@ class ACPServer(BaseServer):
                 msg = f"Agent '{self.agent}' not found in pool"
                 raise ValueError(msg)
             return self.pool.all_agents[self.agent]
-        return self.pool.default_agent
+        return self.pool.main_agent
 
     async def _start_async(self) -> None:
         """Start the ACP server (blocking async - runs until stopped)."""

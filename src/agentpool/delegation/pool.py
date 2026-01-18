@@ -84,6 +84,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         input_provider: InputProvider | None = None,
         parallel_load: bool = True,
         event_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        main_agent_name: str | None = None,
     ):
         """Initialize agent pool with immediate agent creation.
 
@@ -94,6 +95,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             input_provider: Input provider for tool / step confirmations / HumanAgents
             parallel_load: Whether to load nodes in parallel (async)
             event_handlers: Event handlers to pass through to all agents
+            main_agent_name: Name of the main agent (overrides manifest.default_agent)
 
         Raises:
             ValueError: If manifest contains invalid node configurations
@@ -137,6 +139,8 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self.skills = SkillsManager(name="pool_skills", owner="pool")
         self._tasks = TaskRegistry()
         self.prompt_manager = PromptManager(self.manifest.prompts)
+        # Main agent name: explicit param > manifest.default_agent > None (will use first)
+        self._main_agent_name = main_agent_name or self.manifest.default_agent
 
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
@@ -401,27 +405,27 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         return {i.name: i for i in self._items.values() if isinstance(i, BaseAgent)}
 
     @property
-    def default_agent(self) -> BaseAgent[Any, Any]:
-        """Get the default/main agent.
+    def main_agent(self) -> BaseAgent[Any, Any]:
+        """Get the main agent.
 
-        Returns the agent specified by manifest.default_agent, or falls back
-        to the first agent if not set.
+        Returns the agent specified by main_agent_name constructor param,
+        manifest.default_agent, or falls back to the first agent.
 
         Raises:
             RuntimeError: If no agents are available.
-            ValueError: If the specified default_agent doesn't exist.
+            ValueError: If the specified main agent doesn't exist.
         """
         agents = self.all_agents
         if not agents:
             msg = "No agents available in pool"
             raise RuntimeError(msg)
 
-        if self.manifest.default_agent:
-            name = self.manifest.default_agent
-            if name not in agents:
-                msg = f"Default agent '{name}' not found. Available: {list(agents.keys())}"
+        if self._main_agent_name:
+            if self._main_agent_name not in agents:
+                available = list(agents.keys())
+                msg = f"Main agent '{self._main_agent_name}' not found. Available: {available}"
                 raise ValueError(msg)
-            return agents[name]
+            return agents[self._main_agent_name]
 
         # Fallback to first agent
         return next(iter(agents.values()))

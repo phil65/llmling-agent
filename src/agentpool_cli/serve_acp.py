@@ -66,7 +66,7 @@ def acp_command(  # noqa: PLR0915
         str | None,
         t.Option(
             "--agent",
-            help="Name of specific agent to use (defaults to first agent in config)",
+            help="Name of specific agent to use (defaults to pool's default agent)",
         ),
     ] = None,
     load_skills: Annotated[
@@ -119,8 +119,8 @@ def acp_command(  # noqa: PLR0915
 
     Agent Selection:
     Use --agent to specify which agent to use by name. Without this option,
-    the first agent in your config is used as the default (or "agentpool"
-    if no config provided).
+    the pool's default agent is used (set via 'default_agent' in config,
+    or falls back to the first agent).
 
     Agent Mode Switching:
     If your config defines multiple agents, the IDE will show a mode selector

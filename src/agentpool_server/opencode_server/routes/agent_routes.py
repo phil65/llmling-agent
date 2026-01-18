@@ -54,7 +54,7 @@ async def list_agents(state: StateDep) -> list[Agent]:
 
     pool = state.agent.agent_pool
     agents: list[Agent] = []
-    default_agent_name = pool.default_agent.name
+    default_agent_name = pool.main_agent.name
 
     for name, agent in pool.all_agents.items():
         # Get description from agent

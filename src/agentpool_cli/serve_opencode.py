@@ -31,7 +31,7 @@ def opencode_command(
         str | None,
         t.Option(
             "--agent",
-            help="Name of specific agent to use (defaults to first agent in config)",
+            help="Name of specific agent to use (defaults to pool's default agent)",
         ),
     ] = None,
     working_dir: Annotated[
@@ -54,8 +54,8 @@ def opencode_command(
 
     Agent Selection:
     Use --agent to specify which agent to use by name. Without this option,
-    the first agent in your config is used as the default (or "assistant"
-    if no config provided).
+    the pool's default agent is used (set via 'default_agent' in config,
+    or falls back to the first agent).
 
     Examples:
         # Start with default agent
@@ -90,7 +90,7 @@ def opencode_command(
     logger.info("Starting OpenCode server", config_path=config_path, host=host, port=port)
 
     # Load agent from config
-    pool = AgentPool(config_path)
+    pool = AgentPool(config_path, main_agent_name=agent)
 
     async def run_server() -> None:
         async with pool:
