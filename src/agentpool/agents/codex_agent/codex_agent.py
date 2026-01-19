@@ -150,7 +150,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         self.config = config
         self._client: CodexClient | None = None
-        self._thread_id: str | None = None
+        self._sdk_session_id: str | None = None
         self._approval_policy: ApprovalPolicy = config.approval_policy or "never"
         # Store MCP servers separately - will be passed to CodexClient
         # External MCP servers from config (already processed to MCPServerConfig objects)
@@ -283,7 +283,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Create and connect client with MCP servers
         self._client = CodexClient(mcp_servers=mcp_servers_dict)
         await self._client.__aenter__()
-        # Start a thread
         cwd = str(self.config.cwd or Path.cwd())
         thread = await self._client.thread_start(
             cwd=cwd,
@@ -292,8 +291,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             developer_instructions=self.config.developer_instructions,
             sandbox=self._current_sandbox,
         )
-        self._thread_id = thread.id
-        self.log.info("Codex thread started", thread_id=self._thread_id, cwd=cwd)
+        self._sdk_session_id = thread.id
+        self.log.info("Codex thread started", thread_id=self._sdk_session_id, cwd=cwd)
         return self
 
     async def __aexit__(
@@ -318,7 +317,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             except Exception:
                 self.log.exception("Error closing Codex client")
             self._client = None
-        self._thread_id = None
+        self._sdk_session_id = None
 
     async def _stream_events(  # noqa: PLR0915
         self,
@@ -345,7 +344,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         from agentpool.messaging.messages import TokenCost
         from codex_adapter.models import ThreadTokenUsageUpdatedData
 
-        if not self._client or not self._thread_id:
+        if not self._client or not self._sdk_session_id:
             raise RuntimeError("Codex client not initialized")
 
         input_items = user_content_to_codex(prompts)
@@ -392,7 +391,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         try:
             async with self._tool_bridge.set_run_context(deps, input_provider, prompt=prompts):
                 raw_stream = self._client.turn_stream(
-                    self._thread_id,
+                    self._sdk_session_id,
                     input_items,
                     model=self._current_model,
                     approval_policy=self._approval_policy,
@@ -524,12 +523,12 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
     async def _interrupt(self) -> None:
         """Call Codex turn_interrupt if there's an active turn."""
-        if self._client and self._thread_id and self._current_turn_id:
+        if self._client and self._sdk_session_id and self._current_turn_id:
             try:
-                await self._client.turn_interrupt(self._thread_id, self._current_turn_id)
+                await self._client.turn_interrupt(self._sdk_session_id, self._current_turn_id)
                 self.log.info(
                     "Codex turn interrupted",
-                    thread_id=self._thread_id,
+                    thread_id=self._sdk_session_id,
                     turn_id=self._current_turn_id,
                 )
             except Exception:
@@ -660,7 +659,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             if mode_id not in ["low", "medium", "high", "xhigh"]:
                 raise ValueError(f"Invalid reasoning effort: {mode_id}")
 
-            if not self._client or not self._thread_id:
+            if not self._client or not self._sdk_session_id:
                 # Store for initialization
                 # Type assertion: we've already validated mode_id is one of the valid values
                 self._current_effort = mode_id  # type: ignore[assignment]
@@ -668,7 +667,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 return
 
             # Archive and restart with new effort
-            old_thread_id = self._thread_id
+            old_thread_id = self._sdk_session_id
             await self._client.thread_archive(old_thread_id)
             cwd = str(self.config.cwd or Path.cwd())
             thread = await self._client.thread_start(
@@ -678,13 +677,13 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 developer_instructions=self.config.developer_instructions,
                 sandbox=self._current_sandbox,
             )
-            self._thread_id = thread.id
+            self._sdk_session_id = thread.id
             # Type assertion: we've already validated mode_id is one of the valid values
             self._current_effort = mode_id  # type: ignore[assignment]
             self.log.info(
                 "Reasoning effort changed - new thread started",
                 old_thread=old_thread_id,
-                new_thread=self._thread_id,
+                new_thread=self._sdk_session_id,
                 effort=mode_id,
             )
             # Emit state change signal
@@ -779,7 +778,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             # Resume the thread on Codex server
             thread = await self._client.thread_resume(session_id)
             # Update current thread ID
-            self._thread_id = thread.id
+            self._sdk_session_id = thread.id
             self.log.info("Thread resumed from Codex server", thread_id=thread.id)
             # Build SessionData from the resumed thread
             created_at = datetime.fromtimestamp(thread.created_at, tz=UTC)

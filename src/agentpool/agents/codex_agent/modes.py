@@ -148,13 +148,13 @@ class CodexEffortCategory(ModeCategoryProtocol["CodexAgent"]):
             msg = f"Invalid mode '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
             raise ValueError(msg)
 
-        if not agent._client or not agent._thread_id:
+        if not agent._client or not agent._sdk_session_id:
             # Store for initialization
             agent._current_effort = mode_id  # type: ignore[assignment]
             agent.log.info("Reasoning effort set for initialization", effort=mode_id)
         else:
             # Archive and restart with new effort
-            old_thread_id = agent._thread_id
+            old_thread_id = agent._sdk_session_id
             await agent._client.thread_archive(old_thread_id)
             cwd = str(agent.config.cwd or Path.cwd())
             thread = await agent._client.thread_start(
@@ -163,12 +163,12 @@ class CodexEffortCategory(ModeCategoryProtocol["CodexAgent"]):
                 base_instructions=agent.config.base_instructions,
                 developer_instructions=agent.config.developer_instructions,
             )
-            agent._thread_id = thread.id
+            agent._sdk_session_id = thread.id
             agent._current_effort = mode_id  # type: ignore[assignment]
             agent.log.info(
                 "Reasoning effort changed - new thread started",
                 old_thread=old_thread_id,
-                new_thread=agent._thread_id,
+                new_thread=agent._sdk_session_id,
                 effort=mode_id,
             )
 

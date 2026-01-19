@@ -52,7 +52,7 @@ async def test_agui_agent_initialization():
     # conversation_id is None until first run (lazy initialization)
     assert agent.conversation_id is None
     assert agent._client is None
-    assert agent._thread_id is None
+    assert agent._sdk_session_id is None
 
 
 async def test_agui_agent_context_manager():
@@ -60,11 +60,11 @@ async def test_agui_agent_context_manager():
     async with AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent") as agent:
         assert agent._client is not None
         # _thread_id is None until first run (lazy initialization of conversation_id)
-        assert agent._thread_id is None
+        assert agent._sdk_session_id is None
 
     # After exit, should be cleaned up
     assert agent._client is None
-    assert agent._thread_id is None
+    assert agent._sdk_session_id is None
 
 
 async def test_agui_agent_run_stream(mock_sse_response):
