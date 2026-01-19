@@ -211,11 +211,20 @@ class ClaudeWaitingForTaskData(ClaudeBaseModel):
     task_type: str | None = None
 
 
+class ClaudeAgentProgressData(ClaudeBaseModel):
+    """Progress data for agent/subagent operations."""
+
+    type: Literal["agent_progress"]
+    message: dict[str, Any] | None = None
+    agent_id: str | None = Field(default=None, alias="agentId")
+
+
 ClaudeProgressData = Annotated[
     ClaudeMcpProgressData
     | ClaudeBashProgressData
     | ClaudeHookProgressData
-    | ClaudeWaitingForTaskData,
+    | ClaudeWaitingForTaskData
+    | ClaudeAgentProgressData,
     Field(discriminator="type"),
 ]
 
