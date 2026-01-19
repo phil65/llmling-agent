@@ -204,9 +204,9 @@ async def list_sessions(state: StateDep) -> list[Session]:
     Delegates to agent.list_sessions() which handles fetching sessions
     from the appropriate storage (pool storage, Claude storage, ACP server, etc.).
     """
-    # Get sessions from the agent - it knows where to look
-    # Don't filter by cwd - let the UI show all available sessions
-    session_data_list = await state.agent.list_sessions()
+    # Get sessions from the agent - filter by agent's cwd if available
+    cwd = state.agent.env.cwd if state.agent.env else None
+    session_data_list = await state.agent.list_sessions(cwd=cwd)
 
     # Convert to OpenCode Session format and cache
     sessions: list[Session] = []
