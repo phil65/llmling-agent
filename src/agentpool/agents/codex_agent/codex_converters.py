@@ -15,12 +15,15 @@ from pydantic_ai import (
     BuiltinToolCallPart,
     BuiltinToolReturnPart,
     ImageUrl,
+    ModelRequest,
+    ModelResponse,
     TextPart,
     TextPartDelta,
     ThinkingPart,
     ThinkingPartDelta,
     ToolCallPart,
     ToolReturnPart,
+    UserPromptPart,
 )
 
 from agentpool.messaging import ChatMessage
@@ -40,7 +43,15 @@ if TYPE_CHECKING:
     )
     from codex_adapter.codex_types import HttpMcpServer, McpServerConfig, StdioMcpServer
     from codex_adapter.events import CodexEvent
-    from codex_adapter.models import ThreadItem, Turn, TurnInputItem
+    from codex_adapter.models import (
+        ThreadItem,
+        Turn,
+        TurnInputItem,
+        UserInputImage,
+        UserInputLocalImage,
+        UserInputSkill,
+        UserInputText,
+    )
 
 
 @overload
@@ -486,102 +497,160 @@ def event_to_part(
     return None
 
 
-def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[list[UserContent]]]:
-    """Convert Codex turns to ChatMessage list for session loading.
-
-    Extracts user messages and assistant content from completed turns.
-    Tool calls are simplified to their text representation.
-
-    Args:
-        turns: List of Turn objects from Codex thread
-
-    Returns:
-        List of ChatMessages with proper content types
-    """
+def _user_input_to_content(
+    inp: UserInputText | UserInputImage | UserInputLocalImage | UserInputSkill,
+) -> UserContent:
+    """Convert Codex UserInput to pydantic-ai UserContent."""
     from codex_adapter.models import (
-        ThreadItemAgentMessage,
-        ThreadItemCommandExecution,
-        ThreadItemFileChange,
-        ThreadItemMcpToolCall,
-        ThreadItemUserMessage,
         UserInputImage,
         UserInputLocalImage,
         UserInputSkill,
         UserInputText,
     )
 
-    def user_input_to_content(
-        inp: UserInputText | UserInputImage | UserInputLocalImage | UserInputSkill,
-    ) -> UserContent:
-        """Convert Codex UserInput to pydantic-ai UserContent."""
-        match inp:
-            case UserInputText():
-                return inp.text
-            case UserInputImage():
-                return ImageUrl(url=inp.url)
-            case UserInputLocalImage():
-                # Reference as image URL with file:// scheme
-                return ImageUrl(url=f"file://{inp.path}")
-            case UserInputSkill():
-                return f"[Skill: {inp.name}]"
+    match inp:
+        case UserInputText():
+            return inp.text
+        case UserInputImage():
+            return ImageUrl(url=inp.url)
+        case UserInputLocalImage():
+            return ImageUrl(url=f"file://{inp.path}")
+        case UserInputSkill():
+            return f"[Skill: {inp.name}]"
 
-    messages: list[ChatMessage[list[UserContent]]] = []
+
+def _process_turn_item(
+    item: ThreadItem,
+) -> tuple[
+    list[UserContent],
+    list[str],
+    list[TextPart | ThinkingPart | ToolCallPart | BuiltinToolReturnPart],
+]:
+    """Process a single turn item into user content, display parts, and response parts."""
+    from codex_adapter.models import (
+        ThreadItemAgentMessage,
+        ThreadItemCommandExecution,
+        ThreadItemFileChange,
+        ThreadItemMcpToolCall,
+        ThreadItemReasoning,
+        ThreadItemUserMessage,
+    )
+
+    user_content: list[UserContent] = []
+    display_parts: list[str] = []
+    response_parts: list[TextPart | ThinkingPart | ToolCallPart | BuiltinToolReturnPart] = []
+
+    match item:
+        case ThreadItemUserMessage():
+            user_content.extend(_user_input_to_content(i) for i in item.content)
+
+        case ThreadItemAgentMessage():
+            display_parts.append(item.text)
+            response_parts.append(TextPart(content=item.text))
+
+        case ThreadItemReasoning():
+            # summary is list[str]
+            response_parts.extend(ThinkingPart(content=s) for s in item.summary)
+
+        case ThreadItemCommandExecution():
+            cmd = item.command
+            output = item.aggregated_output or ""
+            display = f"[Executed: {cmd}]" + (f"\n{output[:200]}" if output else "")
+            display_parts.append(display)
+            args: dict[str, str] = {"command": cmd}
+            if item.cwd:
+                args["cwd"] = item.cwd
+            response_parts.append(ToolCallPart(tool_name="bash", args=args, tool_call_id=item.id))
+            response_parts.append(
+                BuiltinToolReturnPart(tool_name="bash", content=output, tool_call_id=item.id)
+            )
+
+        case ThreadItemFileChange():
+            paths = [c.path for c in item.changes]
+            if len(paths) > 3:  # noqa: PLR2004
+                display = f"[Files: {', '.join(paths[:3])} +{len(paths) - 3} more]"
+            else:
+                display = f"[Files: {', '.join(paths)}]"
+            display_parts.append(display)
+            response_parts.append(
+                ToolCallPart(tool_name="edit", args={"files": paths}, tool_call_id=item.id)
+            )
+            diffs = [c.diff for c in item.changes if c.diff]
+            response_parts.append(
+                BuiltinToolReturnPart(
+                    tool_name="edit", content="\n".join(diffs) or "OK", tool_call_id=item.id
+                )
+            )
+
+        case ThreadItemMcpToolCall():
+            result_text = ""
+            if item.result and item.result.content:
+                texts = [str(b.model_dump().get("text", "")) for b in item.result.content]
+                result_text = " ".join(texts)
+            display_parts.append(f"[Tool: {item.tool}] {result_text[:100]}")
+            args = item.arguments if isinstance(item.arguments, dict) else {}
+            response_parts.append(
+                ToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id)
+            )
+            response_parts.append(
+                BuiltinToolReturnPart(
+                    tool_name=item.tool, content=result_text, tool_call_id=item.id
+                )
+            )
+
+    return user_content, display_parts, response_parts
+
+
+def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[list[UserContent]]]:
+    """Convert Codex turns to ChatMessage list for session loading.
+
+    Each turn produces up to two ChatMessages:
+    - User message with content as list[UserContent] (proper types for images etc.)
+    - Assistant message with content as display text, plus messages field containing
+      the full ModelMessage structure (TextPart, ThinkingPart, ToolCallPart, etc.)
+
+    Args:
+        turns: List of Turn objects from Codex thread
+
+    Returns:
+        List of ChatMessages with proper content types and model messages
+    """
+    result: list[ChatMessage[list[UserContent]]] = []
 
     for turn in turns:
-        # Each turn may have user message + assistant response
         user_content: list[UserContent] = []
-        assistant_texts: list[str] = []
-        tool_summaries: list[str] = []
+        assistant_display_parts: list[str] = []
+        response_parts: list[TextPart | ThinkingPart | ToolCallPart | BuiltinToolReturnPart] = []
 
         for item in turn.items:
-            match item:
-                case ThreadItemUserMessage():
-                    user_content.extend(user_input_to_content(i) for i in item.content)
-                case ThreadItemAgentMessage():
-                    assistant_texts.append(item.text)
-                case ThreadItemCommandExecution():
-                    # Include command as tool summary
-                    cmd = item.command
-                    output = (item.aggregated_output or "")[:200]  # Truncate long output
-                    if output:
-                        tool_summaries.append(f"[Executed: {cmd}]\n{output}")
-                    else:
-                        tool_summaries.append(f"[Executed: {cmd}]")
-                case ThreadItemFileChange():
-                    # Summarize file changes
-                    paths = [c.path for c in item.changes[:3]]
-                    if len(item.changes) > 3:  # noqa: PLR2004
-                        summary = f"[Files: {', '.join(paths)} +{len(item.changes) - 3} more]"
-                    else:
-                        summary = f"[Files: {', '.join(paths)}]"
-                    tool_summaries.append(summary)
-                case ThreadItemMcpToolCall():
-                    # Summarize MCP tool call
-                    result_preview = ""
-                    if item.result and item.result.content:
-                        texts = [str(b.model_dump().get("text", "")) for b in item.result.content]
-                        result_preview = " ".join(texts)[:100]
-                    tool_summaries.append(f"[Tool: {item.tool}] {result_preview}")
+            uc, dp, rp = _process_turn_item(item)
+            user_content.extend(uc)
+            assistant_display_parts.extend(dp)
+            response_parts.extend(rp)
 
-        # Create user message if we have user content
+        # Create user message
         if user_content:
-            messages.append(
+            result.append(
                 ChatMessage(
                     content=user_content,
                     role="user",
                     message_id=f"{turn.id}-user",
+                    messages=[ModelRequest(parts=[UserPromptPart(content=user_content)])],
                 )
             )
 
-        # Create assistant message combining text and tool summaries
-        assistant_content_parts = assistant_texts + tool_summaries
-        if assistant_content_parts:
-            messages.append(
+        # Create assistant message
+        if assistant_display_parts or response_parts:
+            display_text = "\n\n".join(assistant_display_parts) if assistant_display_parts else ""
+            # Content is list[UserContent] - str is a UserContent type
+            content: list[UserContent] = [display_text] if display_text else []
+            result.append(
                 ChatMessage(
-                    content=["\n\n".join(assistant_content_parts)],
+                    content=content,
                     role="assistant",
                     message_id=f"{turn.id}-assistant",
+                    messages=[ModelResponse(parts=response_parts)] if response_parts else [],
                 )
             )
 
-    return messages
+    return result
