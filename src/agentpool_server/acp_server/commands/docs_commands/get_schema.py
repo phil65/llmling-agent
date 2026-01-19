@@ -156,10 +156,10 @@ class GetSchemaCommand(NodeCommand):
             staged_part = UserPromptPart(
                 content=f"Generated Python code from {input_path}:\n\n{generated_code}"
             )
-            session.staged_content.add([staged_part])
+            ctx.context.agent.staged_content.add([staged_part])
 
             # Send successful result - wrap in code block for proper display
-            staged_count = len(session.staged_content)
+            staged_count = len(ctx.context.agent.staged_content)
             await session.notifications.tool_call_progress(
                 tool_call_id=tool_call_id,
                 status="completed",

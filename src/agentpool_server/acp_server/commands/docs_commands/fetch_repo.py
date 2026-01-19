@@ -131,9 +131,9 @@ class FetchRepoCommand(NodeCommand):
             # Stage the content for use in agent context
             part_content = f"Repository contents from {display_path}:\n\n{content}"
             staged_part = UserPromptPart(content=part_content)
-            session.staged_content.add([staged_part])
+            ctx.context.agent.staged_content.add([staged_part])
             # Send successful result - wrap in code block for proper display
-            staged_count = len(session.staged_content)
+            staged_count = len(ctx.context.agent.staged_content)
             await session.notifications.tool_call_progress(
                 tool_call_id=tc_id,
                 status="completed",

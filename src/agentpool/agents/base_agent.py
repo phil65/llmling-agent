@@ -222,6 +222,11 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         self._internal_fs: MemoryFileSystem = MemoryFileSystem()
 
+        # Staged content buffer - parts to inject into next run() call
+        from agentpool.agents.staged_content import StagedContent
+
+        self.staged_content = StagedContent()
+
     @overload
     def __and__(  # if other doesnt define deps, we take the agents one
         self, other: ProcessorCallback[Any] | Team[TDeps] | Agent[TDeps, Any]
@@ -491,6 +496,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         # Convert prompts to standard UserContent format
         converted_prompts = await convert_prompts(prompts)
+        # Prepend any staged content
+        if staged := self.staged_content.consume_as_text():
+            converted_prompts = [staged, *converted_prompts]
         # Get message history (either passed or agent's own)
         conversation = message_history if message_history is not None else self.conversation
         # Determine effective parent_id (from param or last message in history)

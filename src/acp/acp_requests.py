@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 import structlog
@@ -25,6 +24,8 @@ from acp.terminal_handle import TerminalHandle
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from acp import (
         Client,
         RequestPermissionResponse,

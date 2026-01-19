@@ -18,7 +18,6 @@ from pydantic_ai import UsageLimitExceeded, UserPromptPart
 from slashed import Command, CommandStore
 from tokonomics.model_discovery.model_info import ModelInfo
 
-from acp import RequestPermissionRequest
 from acp.acp_requests import ACPRequests
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
@@ -35,7 +34,6 @@ from agentpool_server.acp_server.converters import (
 )
 from agentpool_server.acp_server.event_converter import ACPEventConverter
 from agentpool_server.acp_server.input_provider import ACPInputProvider
-from agentpool_server.acp_server.staged_content import StagedContent
 
 
 if TYPE_CHECKING:
@@ -44,7 +42,7 @@ if TYPE_CHECKING:
     from pydantic_ai import UserContent
     from slashed import CommandContext
 
-    from acp import Client, RequestPermissionResponse
+    from acp import Client, RequestPermissionRequest, RequestPermissionResponse
     from acp.schema import (
         AvailableCommandsUpdate,
         ContentBlock,
@@ -195,10 +193,9 @@ class ACPSession:
         self.command_store._initialize_sync()
         self._update_callbacks: list[Callable[[], None]] = []
         self._remote_commands: list[AvailableCommand] = []  # Commands from nested ACP agents
-        self.staged_content = StagedContent()
         # Inject Zed-specific instructions if client is Zed
         if self.client_info and self.client_info.name and "zed" in self.client_info.name.lower():
-            self.staged_content.add_text(ZED_CLIENT_PROMPT)
+            self.agent.staged_content.add_text(ZED_CLIENT_PROMPT)
         self.notifications = ACPNotifications(client=self.client, session_id=self.session_id)
         self.requests = ACPRequests(client=self.client, session_id=self.session_id)
         self.input_provider = ACPInputProvider(self)
@@ -321,7 +318,7 @@ class ACPSession:
         """
         if info := await self.requests.read_agent_rules(self.cwd):
             # Stage as user message to be prepended to first prompt
-            self.staged_content.add_text(f"## Project Information\n\n{info}")
+            self.agent.staged_content.add_text(f"## Project Information\n\n{info}")
 
     async def init_client_skills(self) -> None:
         """Discover and load skills from client-side .claude/skills directory.
@@ -431,22 +428,16 @@ class ACPSession:
                 if not non_command_content:
                     return "end_turn"
 
-            # Consume any staged content and prepend to the prompt
-            staged = self.staged_content.consume_as_text()
-            all_content = [staged, *non_command_content] if staged else list(non_command_content)
-            self.log.debug(
-                "Processing prompt",
-                content_items=len(non_command_content),
-                has_staged=staged is not None,
-            )
+            self.log.debug("Processing prompt", content_items=len(non_command_content))
             event_count = 0
             # Create a new event converter for this prompt
             converter = ACPEventConverter(subagent_display_mode=self.subagent_display_mode)
             self._current_converter = converter  # Track for cancellation
 
             try:  # Use the session's persistent input provider
+                # Staged content is automatically injected by run_stream
                 async for event in self.agent.run_stream(
-                    *all_content,
+                    *non_command_content,
                     input_provider=self.input_provider,
                     deps=self,
                     conversation_id=self.session_id,  # Tie agent conversation to ACP session
@@ -700,9 +691,9 @@ class ACPSession:
             } | kwargs
             try:  # Get prompt components
                 components = await prompt.get_components(result or None)
-                self.staged_content.add(components)
+                self.agent.staged_content.add(components)
                 # Send confirmation
-                staged_count = len(self.staged_content)
+                staged_count = len(self.agent.staged_content)
                 await ctx.print(f"✅ Prompt {prompt.name!r} staged ({staged_count} total parts)")
 
             except Exception as e:
@@ -748,9 +739,9 @@ class ACPSession:
                     reference = f"{reference}?{params}"
                 # Get the rendered prompt
                 result = await manager.get(reference)
-                self.staged_content.add([UserPromptPart(content=result)])
+                self.agent.staged_content.add([UserPromptPart(content=result)])
                 # Send confirmation
-                staged_count = len(self.staged_content)
+                staged_count = len(self.agent.staged_content)
                 await ctx.print(
                     f"✅ Prompt {name!r} from {provider} staged ({staged_count} total parts)"
                 )

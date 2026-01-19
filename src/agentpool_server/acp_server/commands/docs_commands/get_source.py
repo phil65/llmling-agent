@@ -91,9 +91,9 @@ class GetSourceCommand(NodeCommand):
             # Stage the source content for use in agent context
             content = f"Python source code for {dot_path}:\n\n{source_content}"
             staged_part = UserPromptPart(content=content)
-            session.staged_content.add([staged_part])
+            ctx.context.agent.staged_content.add([staged_part])
             # Send successful result - wrap in code block for proper display
-            staged_count = len(session.staged_content)
+            staged_count = len(ctx.context.agent.staged_content)
             await session.notifications.tool_call_progress(
                 tool_call_id=tool_call_id,
                 status="completed",
