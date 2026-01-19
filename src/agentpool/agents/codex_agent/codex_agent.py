@@ -284,14 +284,14 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         self._client = CodexClient(mcp_servers=mcp_servers_dict)
         await self._client.__aenter__()
         cwd = str(self.config.cwd or Path.cwd())
-        thread = await self._client.thread_start(
+        response = await self._client.thread_start(
             cwd=cwd,
             model=self.config.model,
             base_instructions=self.config.base_instructions,
             developer_instructions=self.config.developer_instructions,
             sandbox=self._current_sandbox,
         )
-        self._sdk_session_id = thread.id
+        self._sdk_session_id = response.thread.id
         self.log.info("Codex thread started", thread_id=self._sdk_session_id, cwd=cwd)
         return self
 
@@ -705,24 +705,27 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self.log.error("Cannot load session: Codex client not initialized")
             return None
 
-        try:  # Resume the thread on Codex server
-            thread = await self._client.thread_resume(session_id)
+        try:
+            response = await self._client.thread_resume(session_id)
         except Exception:
             self.log.exception("Failed to resume Codex thread", session_id=session_id)
             return None
-        else:  # Update current thread ID
-            self._sdk_session_id = thread.id
-            self.log.info("Thread resumed from Codex server", thread_id=thread.id)
-            # Build SessionData from the resumed thread
-            created_at = datetime.fromtimestamp(thread.created_at, tz=UTC)
-            # CodexThread doesn't include cwd, use config default
-            cwd = str(self.config.cwd or Path.cwd())
-            return SessionData(
-                session_id=thread.id,
-                agent_name=self.name,
-                conversation_id=thread.id,
-                cwd=cwd,
-                created_at=created_at,
-                last_active=created_at,  # Codex doesn't track separate last_active
-                metadata={"title": thread.preview} if thread.preview else {},
-            )
+
+        # Update current thread ID
+        thread = response.thread
+        self._sdk_session_id = thread.id
+        self.log.info("Thread resumed from Codex server", thread_id=thread.id)
+
+        # Build SessionData from the resumed thread
+        created_at = datetime.fromtimestamp(thread.created_at, tz=UTC)
+        cwd = thread.cwd or str(self.config.cwd or Path.cwd())
+
+        return SessionData(
+            session_id=thread.id,
+            agent_name=self.name,
+            conversation_id=thread.id,
+            cwd=cwd,
+            created_at=created_at,
+            last_active=created_at,  # Codex doesn't track separate last_active
+            metadata={"title": thread.preview} if thread.preview else {},
+        )

@@ -19,14 +19,15 @@ async def simple_chat() -> None:
 
     async with CodexClient() as client:
         # Start a thread
-        thread = await client.thread_start(cwd=".")
-        print(f"Started thread: {thread.id}\n")
+        response = await client.thread_start(cwd=".")
+        thread_id = response.thread.id
+        print(f"Started thread: {thread_id}\n")
 
         # Send a message
         message = "List the Python files in the current directory"
         print(f"> {message}\n")
 
-        async for event in client.turn_stream(thread.id, message):
+        async for event in client.turn_stream(thread_id, message):
             # Print agent messages
             if event.event_type == "item/agentMessage/delta":
                 print(event.get_text_delta(), end="", flush=True)
@@ -56,10 +57,11 @@ async def multi_turn_chat() -> None:
     print("=== Multi-Turn Chat Example ===\n")
 
     async with CodexClient() as client:
-        thread = await client.thread_start(
+        response = await client.thread_start(
             cwd=".",
             model="gpt-5-codex",
         )
+        thread_id = response.thread.id
 
         messages = [
             "What is the main purpose of this codebase?",
@@ -71,7 +73,7 @@ async def multi_turn_chat() -> None:
             print(f"\n--- Turn {i} ---")
             print(f"> {message}\n")
 
-            async for event in client.turn_stream(thread.id, message):
+            async for event in client.turn_stream(thread_id, message):
                 if event.event_type == "item/agentMessage/delta":
                     print(event.get_text_delta(), end="", flush=True)
                 elif event.event_type == "turn/completed":
@@ -84,13 +86,14 @@ async def model_override_example() -> None:
     print("=== Model Override Example ===\n")
 
     async with CodexClient() as client:
-        thread = await client.thread_start(model="gpt-5-codex")
+        response = await client.thread_start(model="gpt-5-codex")
+        thread_id = response.thread.id
 
         # First turn with default model
         print("Turn 1 (default model: gpt-5-codex)")
         print("> Write a hello world function\n")
 
-        async for event in client.turn_stream(thread.id, "Write a hello world function"):
+        async for event in client.turn_stream(thread_id, "Write a hello world function"):
             if event.event_type == "item/agentMessage/delta":
                 print(event.get_text_delta(), end="", flush=True)
             elif event.event_type == "turn/completed":
@@ -102,7 +105,7 @@ async def model_override_example() -> None:
         print("> Now make it more elegant\n")
 
         async for event in client.turn_stream(
-            thread.id,
+            thread_id,
             "Now make it more elegant",
             model="claude-opus-4",
             effort="high",
@@ -119,9 +122,10 @@ async def event_inspection_example() -> None:
     print("=== Event Inspection Example ===\n")
 
     async with CodexClient() as client:
-        thread = await client.thread_start(cwd=".")
+        response = await client.thread_start(cwd=".")
+        thread_id = response.thread.id
 
-        async for event in client.turn_stream(thread.id, "What files are here?"):
+        async for event in client.turn_stream(thread_id, "What files are here?"):
             # Print all event types
             print(f"[{event.event_type}]", end=" ")
 

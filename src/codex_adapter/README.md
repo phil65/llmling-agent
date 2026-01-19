@@ -96,7 +96,7 @@ async with CodexClient(
 
 ### Methods
 
-#### `thread_start(**kwargs) -> CodexThread`
+#### `thread_start(**kwargs) -> ThreadResponse`
 
 Start a new conversation thread.
 
@@ -105,7 +105,7 @@ Start a new conversation thread.
 - `model` (str, optional): Model to use (e.g., "gpt-5-codex")
 - `effort` (str, optional): Reasoning effort ("low", "medium", "high")
 
-**Returns:** `CodexThread` with `id`, `preview`, `model_provider`, `created_at`
+**Returns:** `ThreadResponse` with `thread` containing thread data (access thread ID via `response.thread.id`)
 
 #### `turn_stream(thread_id, user_input, **kwargs) -> AsyncIterator[CodexEvent]`
 

@@ -34,12 +34,13 @@ async with CodexClient(
 Start a new conversation thread.
 
 ```python
-thread = await client.thread_start(
+response = await client.thread_start(
     cwd="/path/to/project",  # Optional: working directory
     model="gpt-5.1-codex",   # Optional: model to use
     effort="high",            # Optional: reasoning effort ("low", "medium", "high", "xhigh")
 )
-# Returns: CodexThread(id, preview, model_provider, created_at)
+# Returns: ThreadResponse with response.thread containing thread data
+thread_id = response.thread.id
 ```
 
 ### thread_resume
@@ -47,8 +48,8 @@ thread = await client.thread_start(
 Resume an existing thread by ID.
 
 ```python
-thread = await client.thread_resume(thread_id="019bab...")
-# Returns: CodexThread
+response = await client.thread_resume(thread_id="019bab...")
+# Returns: ThreadResponse with thread data and conversation history (response.thread.turns)
 ```
 
 ### thread_fork
@@ -56,8 +57,8 @@ thread = await client.thread_resume(thread_id="019bab...")
 Fork an existing thread into a new thread with copied history.
 
 ```python
-new_thread = await client.thread_fork(thread_id="019bab...")
-# Returns: CodexThread (new thread with same history)
+response = await client.thread_fork(thread_id="019bab...")
+# Returns: ThreadResponse containing the new forked thread
 ```
 
 ### thread_list
@@ -278,16 +279,16 @@ event.get_text_delta()    # Extract text from deltas
 ### Data Models
 
 ```python
-from codex_adapter.types import CodexThread, CodexTurn, CodexItem
+from codex_adapter import ThreadResponse, ThreadData
+from codex_adapter.codex_types import CodexTurn, CodexItem
 
-# CodexThread
-thread = CodexThread(
-    id="019bab...",
-    preview="Conversation about...",
-    model_provider="openai",
-    created_at=1768110000,
-    metadata={},
-)
+# ThreadResponse contains ThreadData
+# Access thread data via response.thread after thread_start/resume/fork
+response: ThreadResponse
+thread_data: ThreadData = response.thread
+print(thread_data.id)       # Thread ID
+print(thread_data.preview)  # Conversation preview
+print(thread_data.turns)    # List of Turn objects with conversation history
 
 # CodexTurn
 turn = CodexTurn(

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from pydantic import BaseModel, TypeAdapter
 
-from codex_adapter.codex_types import CodexThread, HttpMcpServer, StdioMcpServer
+from codex_adapter.codex_types import HttpMcpServer, StdioMcpServer
 from codex_adapter.events import CodexEvent
 from codex_adapter.exceptions import CodexProcessError, CodexRequestError
 from codex_adapter.models import (
@@ -151,7 +151,7 @@ class CodexClient:
         self._turn_queues: dict[str, asyncio.Queue[CodexEvent | None]] = {}
         self._reader_task: asyncio.Task[None] | None = None
         self._writer_lock = asyncio.Lock()
-        self._active_threads: dict[str, CodexThread] = {}
+        self._active_threads: set[str] = set()
         self._global_event_handlers: list[Any] = []  # For global events
 
     async def __aenter__(self) -> Self:
@@ -239,7 +239,7 @@ class CodexClient:
         approval_policy: ApprovalPolicy | None = None,
         sandbox: SandboxMode | None = None,
         config: dict[str, Any] | None = None,
-    ) -> CodexThread:
+    ) -> ThreadResponse:
         """Start a new conversation thread.
 
         Args:
@@ -253,7 +253,7 @@ class CodexClient:
             config: Additional configuration overrides
 
         Returns:
-            CodexThread: The created thread
+            ThreadResponse containing thread data and configuration
         """
         params = ThreadStartParams(
             cwd=cwd,
@@ -267,14 +267,8 @@ class CodexClient:
         )
         result = await self._send_request("thread/start", params)
         response = ThreadResponse.model_validate(result)
-        thread = CodexThread(
-            id=response.thread.id,
-            preview=response.thread.preview,
-            model_provider=response.thread.model_provider,
-            created_at=response.thread.created_at,
-        )
-        self._active_threads[thread.id] = thread
-        return thread
+        self._active_threads.add(response.thread.id)
+        return response
 
     async def thread_resume(
         self,
@@ -289,7 +283,7 @@ class CodexClient:
         approval_policy: ApprovalPolicy | None = None,
         sandbox: SandboxMode | None = None,
         config: dict[str, Any] | None = None,
-    ) -> CodexThread:
+    ) -> ThreadResponse:
         """Resume an existing thread by ID.
 
         Args:
@@ -305,7 +299,7 @@ class CodexClient:
             config: Additional configuration overrides
 
         Returns:
-            CodexThread: The resumed thread
+            ThreadResponse containing thread data with conversation history
         """
         params = ThreadResumeParams(
             thread_id=thread_id,
@@ -321,14 +315,8 @@ class CodexClient:
         )
         result = await self._send_request("thread/resume", params)
         response = ThreadResponse.model_validate(result)
-        thread = CodexThread(
-            id=response.thread.id,
-            preview=response.thread.preview,
-            model_provider=response.thread.model_provider,
-            created_at=response.thread.created_at,
-        )
-        self._active_threads[thread.id] = thread
-        return thread
+        self._active_threads.add(response.thread.id)
+        return response
 
     async def thread_fork(
         self,
@@ -343,7 +331,7 @@ class CodexClient:
         approval_policy: ApprovalPolicy | None = None,
         sandbox: SandboxMode | None = None,
         config: dict[str, Any] | None = None,
-    ) -> CodexThread:
+    ) -> ThreadResponse:
         """Fork an existing thread into a new thread with copied history.
 
         Args:
@@ -359,7 +347,7 @@ class CodexClient:
             config: Additional configuration overrides
 
         Returns:
-            CodexThread: The new forked thread
+            ThreadResponse containing the new forked thread data
         """
         params = ThreadForkParams(
             thread_id=thread_id,
@@ -375,14 +363,8 @@ class CodexClient:
         )
         result = await self._send_request("thread/fork", params)
         response = ThreadResponse.model_validate(result)
-        thread = CodexThread(
-            id=response.thread.id,
-            preview=response.thread.preview,
-            model_provider=response.thread.model_provider,
-            created_at=response.thread.created_at,
-        )
-        self._active_threads[thread.id] = thread
-        return thread
+        self._active_threads.add(response.thread.id)
+        return response
 
     async def thread_list(
         self,
@@ -415,8 +397,7 @@ class CodexClient:
         """Archive a thread (move to archived directory)."""
         params = ThreadArchiveParams(thread_id=thread_id)
         await self._send_request("thread/archive", params)
-        if thread_id in self._active_threads:
-            del self._active_threads[thread_id]
+        self._active_threads.discard(thread_id)
 
     async def thread_rollback(self, thread_id: str, turns: int) -> ThreadRollbackResponse:
         """Rollback the last N turns from a thread.
@@ -801,8 +782,8 @@ if __name__ == "__main__":
 
     async def main() -> None:
         async with CodexClient() as client:
-            t = await client.thread_start()
-            async for e in client.turn_stream(t.id, "Show available tools"):
+            response = await client.thread_start()
+            async for e in client.turn_stream(response.thread.id, "Show available tools"):
                 print(e.get_text_delta(), end="")
 
     asyncio.run(main())

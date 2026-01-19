@@ -486,17 +486,17 @@ def event_to_part(
     return None
 
 
-def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[str]]:
+def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[list[UserContent]]]:
     """Convert Codex turns to ChatMessage list for session loading.
 
-    Extracts user messages and assistant text from completed turns.
+    Extracts user messages and assistant content from completed turns.
     Tool calls are simplified to their text representation.
 
     Args:
         turns: List of Turn objects from Codex thread
 
     Returns:
-        List of ChatMessages representing the conversation
+        List of ChatMessages with proper content types
     """
     from codex_adapter.models import (
         ThreadItemAgentMessage,
@@ -504,28 +504,41 @@ def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[str]]:
         ThreadItemFileChange,
         ThreadItemMcpToolCall,
         ThreadItemUserMessage,
+        UserInputImage,
+        UserInputLocalImage,
+        UserInputSkill,
+        UserInputText,
     )
 
-    messages: list[ChatMessage[str]] = []
+    def user_input_to_content(
+        inp: UserInputText | UserInputImage | UserInputLocalImage | UserInputSkill,
+    ) -> UserContent:
+        """Convert Codex UserInput to pydantic-ai UserContent."""
+        match inp:
+            case UserInputText():
+                return inp.text
+            case UserInputImage():
+                return ImageUrl(url=inp.url)
+            case UserInputLocalImage():
+                # Reference as image URL with file:// scheme
+                return ImageUrl(url=f"file://{inp.path}")
+            case UserInputSkill():
+                return f"[Skill: {inp.name}]"
+
+    messages: list[ChatMessage[list[UserContent]]] = []
 
     for turn in turns:
         # Each turn may have user message + assistant response
-        user_texts: list[str] = []
+        user_content: list[UserContent] = []
         assistant_texts: list[str] = []
         tool_summaries: list[str] = []
 
         for item in turn.items:
             match item:
                 case ThreadItemUserMessage():
-                    # Extract text from user input items
-                    for input_item in item.content:
-                        if hasattr(input_item, "text"):
-                            user_texts.append(input_item.text)  # pyright: ignore[reportAttributeAccessIssue]
+                    user_content.extend(user_input_to_content(i) for i in item.content)
                 case ThreadItemAgentMessage():
-                    # Extract text from agent message
-                    for element in item.content:
-                        if hasattr(element, "text"):
-                            assistant_texts.append(element.text)
+                    assistant_texts.append(item.text)
                 case ThreadItemCommandExecution():
                     # Include command as tool summary
                     cmd = item.command
@@ -551,10 +564,10 @@ def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[str]]:
                     tool_summaries.append(f"[Tool: {item.tool}] {result_preview}")
 
         # Create user message if we have user content
-        if user_texts:
+        if user_content:
             messages.append(
                 ChatMessage(
-                    content="\n".join(user_texts),
+                    content=user_content,
                     role="user",
                     message_id=f"{turn.id}-user",
                 )
@@ -565,7 +578,7 @@ def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[str]]:
         if assistant_content_parts:
             messages.append(
                 ChatMessage(
-                    content="\n\n".join(assistant_content_parts),
+                    content=["\n\n".join(assistant_content_parts)],
                     role="assistant",
                     message_id=f"{turn.id}-assistant",
                 )

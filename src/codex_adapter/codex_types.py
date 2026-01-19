@@ -26,17 +26,6 @@ ItemStatus = Literal["pending", "running", "completed", "error"]
 
 
 @dataclass
-class CodexThread:
-    """Represents a Codex conversation thread."""
-
-    id: str
-    preview: str = ""
-    model_provider: ModelProvider = "openai"
-    created_at: int = 0
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
 class CodexTurn:
     """Represents a turn in a Codex conversation."""
 

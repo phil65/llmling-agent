@@ -4,8 +4,8 @@ Provides programmatic control over Codex via the app-server JSON-RPC protocol.
 
 Example:
     async with CodexClient() as client:
-        thread = await client.thread_start(cwd="/path/to/project")
-        async for event in client.turn_stream(thread.id, "Help me refactor"):
+        response = await client.thread_start(cwd="/path/to/project")
+        async for event in client.turn_stream(response.thread.id, "Help me refactor"):
             if event.event_type == "item/agentMessage/delta":
                 print(event.data.text, end="", flush=True)
 """
@@ -13,7 +13,6 @@ Example:
 from codex_adapter.client import CodexClient
 from codex_adapter.codex_types import (
     ApprovalPolicy,
-    CodexThread,
     CodexTurn,
     HttpMcpServer,
     ItemStatus,
@@ -41,6 +40,7 @@ from codex_adapter.models import (
     TextInputItem,
     ThreadData,
     ThreadListResponse,
+    ThreadResponse,
     ThreadRollbackResponse,
     ThreadStartedData,
     TurnCompletedData,
@@ -58,7 +58,6 @@ __all__ = [
     "CodexEvent",
     "CodexProcessError",
     "CodexRequestError",
-    "CodexThread",
     "CodexTurn",
     "CommandExecResponse",
     "CommandExecutionOutputDeltaData",
@@ -81,6 +80,7 @@ __all__ = [
     "TextInputItem",
     "ThreadData",
     "ThreadListResponse",
+    "ThreadResponse",
     "ThreadRollbackResponse",
     "ThreadStartedData",
     "TurnCompletedData",
