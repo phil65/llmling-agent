@@ -185,6 +185,9 @@ def mock_agent(mock_env: Mock, mock_pool: Mock) -> Mock:
     agent._input_provider = None
     agent.run = AsyncMock(return_value=Mock(data="test response"))
     agent.agent_pool = mock_pool  # Agent carries its pool
+    # Session management methods (used by session routes)
+    agent.list_sessions = AsyncMock(return_value=[])
+    agent.load_session = AsyncMock(return_value=None)
     return agent
 
 
