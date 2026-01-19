@@ -425,6 +425,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         tool_accumulator = ToolCallAccumulator()
         pending_tool_results: list[ToolMessage] = []
         file_tracker = FileTracker()
+        tools = await self.tools.get_tools(state="enabled")
         try:  # Loop to handle tool calls - agent may request multiple rounds
             while True:
                 # Check for cancellation at start of each iteration
@@ -437,7 +438,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                     run_id=run_id,
                     state={},
                     messages=messages,
-                    tools=[to_agui_tool(t) for t in await self.tools.get_tools(state="enabled")],
+                    tools=[to_agui_tool(t) for t in tools],
                     context=[],
                     forwarded_props={},
                 )
@@ -515,7 +516,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 # Execute pending tool calls locally and collect results
                 pending_tool_results = await execute_tool_calls(
                     tool_calls_pending,
-                    {t.name: t for t in available_tools},
+                    {t.name: t for t in tools},
                     confirmation_mode=self.tool_confirmation_mode,
                     input_provider=self._input_provider,
                     context=self.get_context(),
@@ -531,7 +532,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
                 # Create ModelRequest with tool return parts
                 tc_id_to_name = {tc_id: name for tc_id, name, _ in tool_calls_pending}
-                tool_return_parts: list[ToolReturnPart] = [
+                tool_return_parts = [
                     ToolReturnPart(
                         tool_name=tc_id_to_name.get(r.tool_call_id, "unknown"),
                         content=r.content,
