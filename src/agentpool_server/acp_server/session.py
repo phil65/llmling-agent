@@ -222,13 +222,9 @@ class ACPSession:
                         tool_call_title=params.tool_call.title,
                         options=[o.option_id for o in (params.options or [])],
                     )
-                    forwarded_request = RequestPermissionRequest(
-                        session_id=self.session_id,  # Use agentpool ↔ Zed session_id
-                        options=params.options,
-                        tool_call=params.tool_call,
-                    )
                     try:
-                        response = await self.requests.client.request_permission(forwarded_request)
+                        forwarded = params.model_copy(update={"session_id": self.session_id})
+                        response = await self.requests.client.request_permission(forwarded)
                         self.log.debug(
                             "Permission response received",
                             outcome_type=type(response.outcome).__name__,
