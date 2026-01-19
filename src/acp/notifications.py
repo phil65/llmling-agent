@@ -681,12 +681,18 @@ class ACPNotifications:
                 case ThinkingPart(content=content):
                     await self.send_agent_thought(content)
 
-                case ToolCallPart(tool_call_id=tool_call_id):
+                case ToolCallPart(tool_call_id=tool_call_id, tool_name=tool_name):
                     # Store tool call inputs for later use with ToolReturnPart
                     tool_input = safe_args_as_dict(part)
                     self._tool_call_inputs[tool_call_id] = tool_input
-                    # Skip sending notification - ACP protocol overrides previous
-                    # tool call state
+                    # Send tool_call_start so UI can track the tool call
+                    title = generate_tool_title(tool_name, tool_input)
+                    await self.tool_call_start(
+                        tool_call_id=tool_call_id,
+                        title=title,
+                        kind=infer_tool_kind(tool_name),
+                        raw_input=tool_input,
+                    )
 
                 case _:
                     typ = type(part).__name__
