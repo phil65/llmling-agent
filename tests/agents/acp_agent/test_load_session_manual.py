@@ -17,12 +17,13 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
+import tempfile
 
 from agentpool.agents.acp_agent import ACPAgent
 
 
 # Configure logging to file for easy inspection
-LOG_FILE = Path("/tmp/load_session_test.log")
+LOG_FILE = Path(tempfile.gettempdir()) / "load_session_test.log"
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
