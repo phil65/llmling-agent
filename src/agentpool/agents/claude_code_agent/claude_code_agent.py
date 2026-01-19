@@ -223,6 +223,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         builtin_subagents: dict[str, AgentDefinition] | None = None,
         commands: Sequence[BaseCommand] | None = None,
         hooks: AgentHooks | None = None,
+        session_id: str | None = None,
     ) -> None:
         """Initialize ClaudeCodeAgent.
 
@@ -261,6 +262,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             builtin_subagents: builtin Subagents configuration
             commands: Slash commands
             hooks: Lifecycle hooks for intercepting agent behavior
+            session_id: Session ID to resume on connect (avoids reconnect overhead)
         """
         from agentpool.agents.sys_prompts import SystemPrompts
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
@@ -347,7 +349,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._client: ClaudeSDKClient | None = None
         self._connection_task: asyncio.Task[None] | None = None
         self._current_model: AnthropicMaxModelName | str | None = self._model
-        self._sdk_session_id: str | None = None  # Session ID from Claude SDK init message
+        self._sdk_session_id: str | None = session_id  # Session ID to resume or from SDK init
         self.deps_type = type(None)
         # ToolBridge state for exposing toolsets via MCP
         self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
@@ -579,6 +581,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             hooks=self._build_hooks(),  # type: ignore[arg-type]
             setting_sources=self._setting_sources,
             extra_args=extra_args,
+            resume=self._sdk_session_id,
         )
 
     async def _can_use_tool(  # noqa: PLR0911
@@ -711,8 +714,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Recreate client with new options
         from clawd_code_sdk import ClaudeSDKClient
 
+        session_to_resume = self._sdk_session_id if resume_session else None
         self.log.info(
-            "Reconnecting Claude Code agent", resume=resume_session, session_id=self._sdk_session_id
+            "Reconnecting Claude Code agent", resume=resume_session, session_id=session_to_resume
         )
 
         # Cancel existing connection if active
@@ -736,25 +740,19 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 self.log.exception("Error disconnecting Claude Code client during reconnect")
             self._client = None
 
-        # Store session ID if we want to resume
-        session_to_resume = self._sdk_session_id if resume_session else None
-
-        # Clear session ID if not resuming
+        # Clear session ID if not resuming (before _build_options which uses it)
         if not resume_session:
             self._sdk_session_id = None
 
         formatted_prompt = await self.sys_prompts.format_system_prompt(self)
+        # _build_options includes resume=self._sdk_session_id automatically
         options = self._build_options(formatted_system_prompt=formatted_prompt)
 
-        # Override resume option if specified
         if session_to_resume:
-            options.resume = session_to_resume
             self.log.info("Attempting to resume session", session=session_to_resume)
 
         self._client = ClaudeSDKClient(options=options)
-
-        # Reconnect in background
-        try:
+        try:  # Reconnect in background
             self._connection_task = asyncio.create_task(self._do_connect())
             await self._connection_task
             mode = "resumed" if session_to_resume else "fresh"
