@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
+    from fsspec.implementations.memory import MemoryFileSystem
     from pydantic_ai import UserContent
     from slashed import BaseCommand, CommandStore
     from tokonomics.model_discovery.model_info import ModelInfo
@@ -215,6 +216,12 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             for command in commands:
                 self._command_store.register_command(command)
 
+        # Internal filesystem for tool/session state
+        # Tools can write logs, history, temp files here via AgentContext
+        from fsspec.implementations.memory import MemoryFileSystem
+
+        self._internal_fs: MemoryFileSystem = MemoryFileSystem()
+
     @overload
     def __and__(  # if other doesnt define deps, we take the agents one
         self, other: ProcessorCallback[Any] | Team[TDeps] | Agent[TDeps, Any]
@@ -271,6 +278,18 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     def command_store(self) -> CommandStore:
         """Get the command store for slash commands."""
         return self._command_store
+
+    @property
+    def internal_fs(self) -> MemoryFileSystem:
+        """Get the internal filesystem for tool/session state.
+
+        Tools can use this to store logs, history, temporary files, etc.
+        Access via AgentContext.fs in tool implementations.
+
+        Returns:
+            In-memory filesystem scoped to this agent
+        """
+        return self._internal_fs
 
     async def reset(self) -> None:
         """Reset agent state (conversation history and tool states)."""

@@ -50,6 +50,7 @@ def reset_current_deps(token: Token[Any]) -> None:
 
 
 if TYPE_CHECKING:
+    from fsspec.implementations.memory import MemoryFileSystem
     from mcp import types
 
     from agentpool import Agent
@@ -153,3 +154,15 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
             return "allow"
         history = self.agent.conversation.get_history() if self.pool else []
         return await provider.get_tool_confirmation(self, tool, args, history)
+
+    @property
+    def internal_fs(self) -> MemoryFileSystem:
+        """Access agent's internal filesystem for tool state.
+
+        Tools can use this to store logs, history, temporary files, etc.
+        The filesystem is scoped to the agent instance.
+
+        Returns:
+            In-memory filesystem for this agent
+        """
+        return self.agent.internal_fs
