@@ -201,7 +201,7 @@ class ACPClientHandler(Client):
         # For now, AgentPlanUpdate falls through to stream data.
 
         # Store raw update - conversion happens lazily during consumption
-        self.state.add_update(update)
+        self.state.add_update(params.update)
         self._update_event.set()
 
     async def request_permission(  # noqa: PLR0911

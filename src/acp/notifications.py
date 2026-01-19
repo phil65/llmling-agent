@@ -49,7 +49,7 @@ if TYPE_CHECKING:
         ToolCallKind,
         ToolCallStatus,
     )
-    from acp.schema import Audience
+    from acp.schema import Audience, SessionConfigOption
 
     ContentType = Sequence[ToolCallContent | str]
 
@@ -736,6 +736,29 @@ class ACPNotifications:
             mode_id: Unique identifier for the session mode
         """
         update = CurrentModeUpdate(current_mode_id=mode_id)
+        notification = SessionNotification(session_id=self.id, update=update)
+        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+
+    async def update_config_option(
+        self,
+        config_id: str,
+        value_id: str,
+        config_options: Sequence[SessionConfigOption],
+    ) -> None:
+        """Send a config option update notification.
+
+        Args:
+            config_id: The ID of the configuration option that changed
+            value_id: The new value ID for this configuration option
+            config_options: The full list of config options with updated values
+        """
+        from acp.schema import ConfigOptionUpdate
+
+        update = ConfigOptionUpdate(
+            config_id=config_id,
+            value_id=value_id,
+            config_options=config_options,
+        )
         notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
