@@ -7,6 +7,7 @@ import asyncio
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass, field
+import re
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, overload
 
 from anyenv import MultiEventHandler, method_spawner
@@ -35,7 +36,12 @@ if TYPE_CHECKING:
 
     from acp.schema import AvailableCommandsUpdate
     from agentpool.agents.context import AgentContext
-    from agentpool.agents.events import RichAgentStreamEvent
+    from agentpool.agents.events import (
+        CommandCompleteEvent,
+        CommandOutputEvent,
+        RichAgentStreamEvent,
+        StreamWithCommandsEvent,
+    )
     from agentpool.agents.modes import ConfigOptionChanged, ModeCategory, ModeCategoryId
     from agentpool.agents.native_agent import Agent
     from agentpool.common_types import (
@@ -586,6 +592,148 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 conversation.add_chat_messages([user_msg, final_message])
             # Route to connected agents (always - they decide what to do with it)
             await self.connections.route_message(final_message, wait=wait_for_connections)
+
+    _SLASH_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
+
+    def _parse_slash_command(self, command_text: str) -> tuple[str, str] | None:
+        """Parse slash command into name and args.
+
+        Args:
+            command_text: Full command text
+
+        Returns:
+            Tuple of (cmd_name, args) or None if invalid
+        """
+        if match := self._SLASH_PATTERN.match(command_text.strip()):
+            cmd_name = match.group(1)
+            args = match.group(2) or ""
+            return cmd_name, args.strip()
+        return None
+
+    def _is_slash_command(self, text: str) -> bool:
+        """Check if text starts with a slash command."""
+        return bool(self._SLASH_PATTERN.match(text.strip()))
+
+    async def _execute_slash_command_streaming(
+        self, command_text: str
+    ) -> AsyncIterator[CommandOutputEvent | CommandCompleteEvent]:
+        """Execute a single slash command and yield events as they happen.
+
+        Args:
+            command_text: Full command text including slash
+
+        Yields:
+            Command output and completion events
+        """
+        from slashed.events import (
+            CommandExecutedEvent,
+            CommandOutputEvent as SlashedCommandOutputEvent,
+        )
+
+        from agentpool.agents.events import CommandCompleteEvent, CommandOutputEvent
+
+        parsed = self._parse_slash_command(command_text)
+        if not parsed:
+            self.log.warning("Invalid slash command", command=command_text)
+            yield CommandCompleteEvent(command="unknown", success=False)
+            return
+
+        cmd_name, args = parsed
+
+        # Set up event queue for this command execution
+        event_queue: asyncio.Queue[Any] = asyncio.Queue()
+
+        async def emit_event(event: Any) -> None:
+            await event_queue.put(event)
+
+        # Temporarily set event handler on command store
+        old_handler = self._command_store._event_handler
+        self._command_store._event_handler = emit_event
+
+        try:
+            cmd_ctx = self._command_store.create_context(data=self.get_context())
+            command_str = f"{cmd_name} {args}".strip()
+            execute_task = asyncio.create_task(
+                self._command_store.execute_command(command_str, cmd_ctx)
+            )
+
+            success = True
+            # Yield events from queue as command runs
+            while not execute_task.done():
+                try:
+                    event = await asyncio.wait_for(event_queue.get(), timeout=0.1)
+                    match event:
+                        case SlashedCommandOutputEvent(output=output):
+                            yield CommandOutputEvent(command=cmd_name, output=output)
+                        case CommandExecutedEvent(success=False, error=error) if error:
+                            yield CommandOutputEvent(
+                                command=cmd_name, output=f"Command error: {error}"
+                            )
+                            success = False
+                except TimeoutError:
+                    continue
+
+            # Ensure command task completes and handle any remaining events
+            try:
+                await execute_task
+            except Exception as e:
+                self.log.exception("Command execution failed", command=cmd_name)
+                success = False
+                yield CommandOutputEvent(command=cmd_name, output=f"Command error: {e}")
+
+            # Drain any remaining events from queue
+            while not event_queue.empty():
+                try:
+                    event = event_queue.get_nowait()
+                    if isinstance(event, SlashedCommandOutputEvent):
+                        yield CommandOutputEvent(command=cmd_name, output=event.output)
+                except asyncio.QueueEmpty:
+                    break
+
+            yield CommandCompleteEvent(command=cmd_name, success=success)
+
+        finally:
+            self._command_store._event_handler = old_handler
+
+    async def run_stream_with_commands(
+        self,
+        *prompts: PromptCompatible,
+        **kwargs: Any,
+    ) -> AsyncIterator[StreamWithCommandsEvent[TResult]]:
+        """Run agent with slash command support.
+
+        Separates slash commands from regular prompts, executes commands first,
+        then processes remaining content through the agent.
+
+        Args:
+            *prompts: Input prompts (may include slash commands)
+            **kwargs: Additional arguments passed to run_stream
+
+        Yields:
+            Command events from slash command execution, then stream events from agent
+        """
+        # Separate slash commands from regular content
+        commands: list[str] = []
+        regular_prompts: list[Any] = []
+
+        for prompt in prompts:
+            if isinstance(prompt, str) and self._is_slash_command(prompt):
+                self.log.debug("Found slash command", command=prompt)
+                commands.append(prompt.strip())
+            else:
+                regular_prompts.append(prompt)
+
+        # Execute all commands first with streaming
+        for command in commands:
+            self.log.info("Processing slash command", command=command)
+            async for cmd_event in self._execute_slash_command_streaming(command):
+                yield cmd_event
+
+        # If we have regular content, process it through the agent
+        if regular_prompts:
+            self.log.debug("Processing prompts through agent", num_prompts=len(regular_prompts))
+            async for event in self.run_stream(*regular_prompts, **kwargs):
+                yield event
 
     @abstractmethod
     def _stream_events(

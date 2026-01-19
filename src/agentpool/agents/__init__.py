@@ -14,7 +14,6 @@ from agentpool.agents.events import (
 )
 from agentpool.agents.context import AgentContext
 from agentpool.agents.interactions import Interactions
-from agentpool.agents.slashed_agent import SlashedAgent
 from agentpool.agents.sys_prompts import SystemPrompts
 
 
@@ -26,7 +25,6 @@ __all__ = [
     "ClaudeCodeAgent",
     "CodexAgent",
     "Interactions",
-    "SlashedAgent",
     "SystemPrompts",
     "detailed_print_handler",
     "resolve_event_handlers",

@@ -657,6 +657,6 @@ type RichAgentStreamEvent[OutputDataT] = (
 )
 
 
-type SlashedAgentStreamEvent[OutputDataT] = (
+type StreamWithCommandsEvent[OutputDataT] = (
     RichAgentStreamEvent[OutputDataT] | CommandOutputEvent | CommandCompleteEvent
 )

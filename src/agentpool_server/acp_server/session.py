@@ -24,7 +24,6 @@ from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.schema import AvailableCommand, ClientCapabilities, SessionNotification
 from agentpool import Agent, AgentContext, AgentPool  # noqa: TC001
-from agentpool.agents import SlashedAgent
 from agentpool.agents.acp_agent import ACPAgent
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
@@ -410,11 +409,6 @@ class ACPSession:
     def current_agent_name(self) -> str:
         """Get the name of the currently active agent."""
         return self.agent.name
-
-    @property
-    def slashed_agent(self) -> SlashedAgent[Any, str]:
-        """Get the wrapped slashed agent."""
-        return SlashedAgent(self.agent, command_store=self.command_store)
 
     def get_cwd_context(self) -> str:
         """Get current working directory context for prompts."""
