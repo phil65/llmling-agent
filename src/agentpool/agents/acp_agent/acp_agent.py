@@ -154,6 +154,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         tool_confirmation_mode: ToolConfirmationMode = "always",
         commands: Sequence[BaseCommand] | None = None,
         hooks: AgentHooks | None = None,
+        session_id: str | None = None,
     ) -> None:
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
 
@@ -200,7 +201,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._client_handler: ACPClientHandler | None = None
         self._agent_info: Implementation | None = None
         self._caps: AgentCapabilities | None = None
-        self._session_id: str | None = None
+        self._session_id: str | None = session_id  # Session ID to load or from new_session
         self._state: ACPSessionState | None = None
         self.deps_type = type(None)
         self._extra_mcp_servers: list[McpServer] = []
@@ -292,7 +293,20 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         try:
             async with monitor_process(process, context="ACP initialization"):
                 await self._initialize()
-                await self._create_session()
+                # Load existing session or create new one
+                if self._session_id:
+                    session_to_load = self._session_id
+                    self._session_id = None  # Clear so load_session can set it
+                    result = await self.load_session(session_to_load)
+                    if result is None:
+                        # Fall back to creating a new session if load fails
+                        self.log.warning(
+                            "Failed to load session, creating new one",
+                            session_id=session_to_load,
+                        )
+                        await self._create_session()
+                else:
+                    await self._create_session()
         except SubprocessError as e:
             raise RuntimeError(str(e)) from e
         await anyio.sleep(0.3)  # Small delay to let subprocess fully initialize
