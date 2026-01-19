@@ -173,7 +173,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._startup_process: Process | None = None
         # Client state
         self._client: httpx.AsyncClient | None = None
-        self._thread_id: str | None = None
+        self._sdk_session_id: str | None = None
         # Override tools with provided tools
         self.tools = ToolManager(tools)
 
@@ -268,7 +268,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Enter async context - initialize client and base resources."""
         await super().__aenter__()
         self._client = get_client(self.headers, self.timeout)
-        self._thread_id = self.conversation_id
+        self._sdk_session_id = self.conversation_id
         if self._startup_command:  # Start server if startup command is provided
             await self._start_server()
         self.log.debug("AG-UI client initialized", endpoint=self.endpoint)
@@ -284,7 +284,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         if self._client:
             await self._client.aclose()
             self._client = None
-        self._thread_id = None
+        self._sdk_session_id = None
         if self._startup_process:  # Stop server if we started it
             await self._stop_server()
         self.log.debug("AG-UI client closed")
@@ -398,8 +398,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             raise RuntimeError("Agent not initialized - use async context manager")
 
         # Set thread_id from conversation_id (needed for AG-UI protocol)
-        if self._thread_id is None:
-            self._thread_id = self.conversation_id
+        if self._sdk_session_id is None:
+            self._sdk_session_id = self.conversation_id
 
         run_id = str(uuid4())  # New run ID for each run
         chunk_transformer = ChunkTransformer()  # Create chunk transformer for this run
@@ -411,7 +411,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         model_messages.append(initial_request)
         response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
-        thread_id = self._thread_id or self.conversation_id
+        thread_id = self._sdk_session_id or self.conversation_id
         run_started = RunStartedEvent(thread_id=thread_id, run_id=run_id, agent_name=self.name)
         await event_handlers(None, run_started)
         yield run_started
@@ -420,16 +420,12 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         final_content = to_agui_input_content(prompts)
         # Combine pending parts with new content
         user_message = UserMessage(id=str(uuid4()), content=final_content)
-        # Convert registered tools to AG-UI format
-        available_tools = await self.tools.get_tools(state="enabled")
         # Build initial messages list
         messages: list[Message] = [user_message]
         tool_accumulator = ToolCallAccumulator()
         pending_tool_results: list[ToolMessage] = []
-        # Track files modified during this run
         file_tracker = FileTracker()
-        # Loop to handle tool calls - agent may request multiple rounds
-        try:
+        try:  # Loop to handle tool calls - agent may request multiple rounds
             while True:
                 # Check for cancellation at start of each iteration
                 if self._cancelled:
@@ -437,11 +433,11 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                     break
 
                 request_data = RunAgentInput(
-                    thread_id=self._thread_id or self.conversation_id,
+                    thread_id=self._sdk_session_id or self.conversation_id,
                     run_id=run_id,
                     state={},
                     messages=messages,
-                    tools=[to_agui_tool(t) for t in available_tools],
+                    tools=[to_agui_tool(t) for t in await self.tools.get_tools(state="enabled")],
                     context=[],
                     forwarded_props={},
                 )
