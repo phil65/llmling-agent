@@ -13,7 +13,6 @@ from agentpool_server.acp_server.session import ACPSession
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from types import TracebackType
 
     from acp import Client
     from acp.schema import Implementation, McpServer
@@ -110,9 +109,7 @@ class ACPSessionManager:
                 manager=self,
             )
             session.register_update_callback(self._on_commands_updated)
-            # Initialize async resources
             await session.initialize()
-            # Initialize MCP servers if any are provided
             await session.initialize_mcp_servers()
             self._active[session_id] = session
             logger.info("Created ACP session", session_id=session_id, agent=agent.name)
@@ -157,10 +154,7 @@ class ACPSessionManager:
                 msg = "Session agent no longer exists"
                 logger.warning(msg, session_id=session_id, agent=data.agent_name)
                 return None
-
-            # Get the agent from the pool
             agent = self._pool.all_agents[data.agent_name]
-
             # Reconstruct ACP session
             session = ACPSession(
                 session_id=session_id,
@@ -174,7 +168,6 @@ class ACPSessionManager:
                 manager=self,
             )
             session.register_update_callback(self._on_commands_updated)
-            # Initialize async resources
             await session.initialize()
             self._active[session_id] = session
             logger.info("Resumed ACP session", session_id=session_id)
@@ -254,23 +247,15 @@ class ACPSessionManager:
         """Async context manager entry."""
         return self
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
+    async def __aexit__(self, *args: object) -> None:
         """Async context manager exit - close all active sessions."""
-        async with self._lock:
-            sessions = list(self._active.values())
-            self._active.clear()
-
+        sessions = list(self._active.values())
+        self._active.clear()
         for session in sessions:
             try:
                 await session.close()
             except Exception:
                 logger.exception("Error closing session", session=session.session_id)
-
         logger.info("Closed all %d ACP sessions", len(sessions))
 
     def _on_commands_updated(self) -> None:
