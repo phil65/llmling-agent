@@ -13,7 +13,7 @@ import structlog
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Iterator, MutableMapping, Sequence
 
     from slashed import OutputWriter
 
@@ -25,8 +25,8 @@ _LOGGING_CONFIGURED = False
 
 
 def _pydantic_processor(
-    logger: Any, method_name: str, event_dict: dict[str, Any]
-) -> dict[str, Any]:
+    logger: Any, method_name: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
     """Convert Pydantic models to dicts for logging."""
     from pydantic import BaseModel
 
