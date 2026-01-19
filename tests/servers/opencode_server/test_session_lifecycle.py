@@ -279,14 +279,31 @@ class TestSessionCRUD:
         server_state,
     ):
         """Listing sessions should return all created sessions."""
+        from datetime import UTC, datetime
+
+        from agentpool.sessions.models import SessionData
+
         # Create multiple sessions
         session_ids = []
         for i in range(3):
             response = await async_client.post("/session", json={"title": f"Session {i}"})
             session_ids.append(response.json()["id"])
 
-        # Mock the session store to return these session IDs
-        server_state.pool.sessions.store.list_sessions.return_value = session_ids
+        # Mock agent.list_sessions to return SessionData objects
+        now = datetime.now(UTC)
+        session_data_list = [
+            SessionData(
+                session_id=sid,
+                agent_name="test-agent",
+                conversation_id=sid,  # Use session_id as conversation_id
+                cwd=server_state.working_dir,
+                created_at=now,
+                last_active=now,
+                metadata={"title": f"Session {i}"},
+            )
+            for i, sid in enumerate(session_ids)
+        ]
+        server_state.agent.list_sessions.return_value = session_data_list
 
         # List sessions
         response = await async_client.get("/session")
