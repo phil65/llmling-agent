@@ -216,21 +216,13 @@ class ACPSession:
                     # Reconstruct request with our session_id (not nested agent's session_id)
                     self.log.debug(
                         "Forwarding permission request",
-                        original_session_id=params.session_id,
+                        request=params,
                         our_session_id=self.session_id,
-                        tool_call_id=params.tool_call.tool_call_id,
-                        tool_call_title=params.tool_call.title,
-                        options=[o.option_id for o in (params.options or [])],
                     )
                     try:
                         forwarded = params.model_copy(update={"session_id": self.session_id})
                         response = await self.requests.client.request_permission(forwarded)
-                        self.log.debug(
-                            "Permission response received",
-                            outcome_type=type(response.outcome).__name__,
-                            outcome=response.outcome.outcome,
-                            option_id=getattr(response.outcome, "option_id", None),
-                        )
+                        self.log.debug("Permission response received", response=response)
                     except Exception as exc:
                         self.log.exception("Permission forwarding failed", error=str(exc))
                         raise

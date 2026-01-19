@@ -24,6 +24,18 @@ LogLevel = int | str
 _LOGGING_CONFIGURED = False
 
 
+def _pydantic_processor(
+    logger: Any, method_name: str, event_dict: dict[str, Any]
+) -> dict[str, Any]:
+    """Convert Pydantic models to dicts for logging."""
+    from pydantic import BaseModel
+
+    for key, value in event_dict.items():
+        if isinstance(value, BaseModel):
+            event_dict[key] = value.model_dump(exclude_defaults=True)
+    return event_dict
+
+
 def configure_logging(
     level: LogLevel = "INFO",
     *,
@@ -82,6 +94,7 @@ def _configure_file_logging(level: LogLevel, log_file: str, max_lines: int = 500
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.PositionalArgumentsFormatter(),
+        _pydantic_processor,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
@@ -123,6 +136,7 @@ def _configure_console_logging(
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
+        _pydantic_processor,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.UnicodeDecoder(),
@@ -168,6 +182,7 @@ def get_logger(name: str, log_level: LogLevel | None = None) -> structlog.stdlib
             processors=[
                 structlog.stdlib.filter_by_level,
                 structlog.stdlib.add_log_level,
+                _pydantic_processor,
                 structlog.processors.StackInfoRenderer(),
                 logfire.StructlogProcessor(),
                 structlog.dev.ConsoleRenderer(colors=False),
