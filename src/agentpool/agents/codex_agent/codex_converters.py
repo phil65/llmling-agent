@@ -519,14 +519,23 @@ def _user_input_to_content(
             return f"[Skill: {inp.name}]"
 
 
-def _process_turn_item(
-    item: ThreadItem,
-) -> tuple[
-    list[UserContent],
-    list[str],
-    list[TextPart | ThinkingPart | ToolCallPart | BuiltinToolReturnPart],
-]:
-    """Process a single turn item into user content, display parts, and response parts."""
+def _turn_to_chat_messages(
+    turn: Turn,
+) -> tuple[ChatMessage[list[UserContent]], ChatMessage[list[UserContent]]]:
+    """Convert one Turn to exactly two ChatMessages (user, assistant).
+
+    Each ThreadItem in the turn becomes one "conversational beat" in the assistant
+    message's messages list (one ModelResponse per item).
+
+    Args:
+        turn: Single Turn from Codex thread
+
+    Returns:
+        Tuple of (user_message, assistant_message)
+
+    Raises:
+        AssertionError: If turn doesn't contain both user and assistant content
+    """
     from codex_adapter.models import (
         ThreadItemAgentMessage,
         ThreadItemCommandExecution,
@@ -537,77 +546,123 @@ def _process_turn_item(
     )
 
     user_content: list[UserContent] = []
-    display_parts: list[str] = []
-    response_parts: list[TextPart | ThinkingPart | ToolCallPart | BuiltinToolReturnPart] = []
+    assistant_responses: list[ModelRequest | ModelResponse] = []  # One per ThreadItem
+    assistant_display_parts: list[str] = []
 
-    match item:
-        case ThreadItemUserMessage():
-            user_content.extend(_user_input_to_content(i) for i in item.content)
+    for item in turn.items:
+        match item:
+            case ThreadItemUserMessage():
+                user_content.extend(_user_input_to_content(i) for i in item.content)
 
-        case ThreadItemAgentMessage():
-            display_parts.append(item.text)
-            response_parts.append(TextPart(content=item.text))
+            case ThreadItemAgentMessage():
+                assistant_responses.append(ModelResponse(parts=[TextPart(content=item.text)]))
+                assistant_display_parts.append(item.text)
 
-        case ThreadItemReasoning():
-            # summary is list[str]
-            response_parts.extend(ThinkingPart(content=s) for s in item.summary)
+            case ThreadItemReasoning():
+                # summary is list[str] - create one ThinkingPart per summary item
+                # But we want one ModelResponse per ThreadItem, so combine them
+                thinking_parts = [ThinkingPart(content=s) for s in item.summary]
+                assistant_responses.append(ModelResponse(parts=thinking_parts))
+                # Don't add to display - reasoning is usually hidden
 
-        case ThreadItemCommandExecution():
-            cmd = item.command
-            output = item.aggregated_output or ""
-            display = f"[Executed: {cmd}]" + (f"\n{output[:200]}" if output else "")
-            display_parts.append(display)
-            args: dict[str, str] = {"command": cmd}
-            if item.cwd:
-                args["cwd"] = item.cwd
-            response_parts.append(ToolCallPart(tool_name="bash", args=args, tool_call_id=item.id))
-            response_parts.append(
-                BuiltinToolReturnPart(tool_name="bash", content=output, tool_call_id=item.id)
-            )
+            case ThreadItemCommandExecution():
+                cmd = item.command
+                output = item.aggregated_output or ""
+                display = f"[Executed: {cmd}]" + (f"\n{output[:200]}" if output else "")
+                assistant_display_parts.append(display)
 
-        case ThreadItemFileChange():
-            paths = [c.path for c in item.changes]
-            if len(paths) > 3:  # noqa: PLR2004
-                display = f"[Files: {', '.join(paths[:3])} +{len(paths) - 3} more]"
-            else:
-                display = f"[Files: {', '.join(paths)}]"
-            display_parts.append(display)
-            response_parts.append(
-                ToolCallPart(tool_name="edit", args={"files": paths}, tool_call_id=item.id)
-            )
-            diffs = [c.diff for c in item.changes if c.diff]
-            response_parts.append(
-                BuiltinToolReturnPart(
-                    tool_name="edit", content="\n".join(diffs) or "OK", tool_call_id=item.id
+                args: dict[str, str] = {"command": cmd}
+                if item.cwd:
+                    args["cwd"] = item.cwd
+
+                # One ModelResponse with both tool call and return
+                assistant_responses.append(
+                    ModelResponse(
+                        parts=[
+                            ToolCallPart(tool_name="bash", args=args, tool_call_id=item.id),
+                            BuiltinToolReturnPart(
+                                tool_name="bash", content=output, tool_call_id=item.id
+                            ),
+                        ]
+                    )
                 )
-            )
 
-        case ThreadItemMcpToolCall():
-            result_text = ""
-            if item.result and item.result.content:
-                texts = [str(b.model_dump().get("text", "")) for b in item.result.content]
-                result_text = " ".join(texts)
-            display_parts.append(f"[Tool: {item.tool}] {result_text[:100]}")
-            args = item.arguments if isinstance(item.arguments, dict) else {}
-            response_parts.append(
-                ToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id)
-            )
-            response_parts.append(
-                BuiltinToolReturnPart(
-                    tool_name=item.tool, content=result_text, tool_call_id=item.id
+            case ThreadItemFileChange():
+                paths = [c.path for c in item.changes]
+                if len(paths) > 3:  # noqa: PLR2004
+                    display = f"[Files: {', '.join(paths[:3])} +{len(paths) - 3} more]"
+                else:
+                    display = f"[Files: {', '.join(paths)}]"
+                assistant_display_parts.append(display)
+
+                diffs = [c.diff for c in item.changes if c.diff]
+                assistant_responses.append(
+                    ModelResponse(
+                        parts=[
+                            ToolCallPart(
+                                tool_name="edit", args={"files": paths}, tool_call_id=item.id
+                            ),
+                            BuiltinToolReturnPart(
+                                tool_name="edit",
+                                content="\n".join(diffs) or "OK",
+                                tool_call_id=item.id,
+                            ),
+                        ]
+                    )
                 )
-            )
 
-    return user_content, display_parts, response_parts
+            case ThreadItemMcpToolCall():
+                result_text = ""
+                if item.result and item.result.content:
+                    texts = [str(b.model_dump().get("text", "")) for b in item.result.content]
+                    result_text = " ".join(texts)
+                assistant_display_parts.append(f"[Tool: {item.tool}] {result_text[:100]}")
+
+                args = item.arguments if isinstance(item.arguments, dict) else {}
+                assistant_responses.append(
+                    ModelResponse(
+                        parts=[
+                            ToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id),
+                            BuiltinToolReturnPart(
+                                tool_name=item.tool, content=result_text, tool_call_id=item.id
+                            ),
+                        ]
+                    )
+                )
+
+    # Validate expectations
+    assert user_content, f"Turn {turn.id} has no user content"
+    assert assistant_responses, f"Turn {turn.id} has no assistant responses"
+
+    # Create user message
+    user_msg = ChatMessage(
+        content=user_content,
+        role="user",
+        message_id=f"{turn.id}-user",
+        messages=[ModelRequest(parts=[UserPromptPart(content=user_content)])],
+    )
+
+    # Create assistant message
+    display_text = "\n\n".join(assistant_display_parts) if assistant_display_parts else ""
+    content: list[UserContent] = [display_text] if display_text else []
+    assistant_msg = ChatMessage(
+        content=content,
+        role="assistant",
+        message_id=f"{turn.id}-assistant",
+        messages=assistant_responses,
+    )
+
+    return user_msg, assistant_msg
 
 
 def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[list[UserContent]]]:
     """Convert Codex turns to ChatMessage list for session loading.
 
-    Each turn produces up to two ChatMessages:
+    Each turn produces exactly two ChatMessages:
     - User message with content as list[UserContent] (proper types for images etc.)
     - Assistant message with content as display text, plus messages field containing
-      the full ModelMessage structure (TextPart, ThinkingPart, ToolCallPart, etc.)
+      the full ModelMessage structure. Each ThreadItem becomes one "conversational beat"
+      (one ModelResponse in the messages list).
 
     Args:
         turns: List of Turn objects from Codex thread
@@ -618,39 +673,7 @@ def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[list[UserConte
     result: list[ChatMessage[list[UserContent]]] = []
 
     for turn in turns:
-        user_content: list[UserContent] = []
-        assistant_display_parts: list[str] = []
-        response_parts: list[TextPart | ThinkingPart | ToolCallPart | BuiltinToolReturnPart] = []
-
-        for item in turn.items:
-            uc, dp, rp = _process_turn_item(item)
-            user_content.extend(uc)
-            assistant_display_parts.extend(dp)
-            response_parts.extend(rp)
-
-        # Create user message
-        if user_content:
-            result.append(
-                ChatMessage(
-                    content=user_content,
-                    role="user",
-                    message_id=f"{turn.id}-user",
-                    messages=[ModelRequest(parts=[UserPromptPart(content=user_content)])],
-                )
-            )
-
-        # Create assistant message
-        if assistant_display_parts or response_parts:
-            display_text = "\n\n".join(assistant_display_parts) if assistant_display_parts else ""
-            # Content is list[UserContent] - str is a UserContent type
-            content: list[UserContent] = [display_text] if display_text else []
-            result.append(
-                ChatMessage(
-                    content=content,
-                    role="assistant",
-                    message_id=f"{turn.id}-assistant",
-                    messages=[ModelResponse(parts=response_parts)] if response_parts else [],
-                )
-            )
+        user_msg, assistant_msg = _turn_to_chat_messages(turn)
+        result.extend([user_msg, assistant_msg])
 
     return result
