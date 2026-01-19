@@ -405,11 +405,15 @@ class AgentPoolACPAgent(ACPAgent):
                 config_opts = await get_session_config_options(session.agent)
             else:
                 models = None
-            # Schedule post-load initialization tasks
+            # Replay conversation history via ACP notifications BEFORE returning.
+            # Per ACP spec: "When all the conversation entries have been streamed
+            # to the Client, the Agent MUST respond to the original session/load request."
+            await self._replay_conversation_history(session)
+
+            # Schedule post-load initialization tasks (these can run in background)
             self.tasks.create_task(session.send_available_commands_update())
             self.tasks.create_task(session.init_project_context())
-            # Replay conversation history via ACP notifications
-            self.tasks.create_task(self._replay_conversation_history(session))
+
             logger.info("Session loaded successfully", agent=session.current_agent_name)
             return LoadSessionResponse(models=models, modes=mode_state, config_options=config_opts)
 
