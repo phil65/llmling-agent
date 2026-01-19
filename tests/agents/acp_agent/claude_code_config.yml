@@ -1,0 +1,4 @@
+agents:
+  claude:
+    type: claude_code
+    name: claude
