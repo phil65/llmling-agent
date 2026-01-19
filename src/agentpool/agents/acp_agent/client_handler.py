@@ -119,33 +119,33 @@ class ACPClientHandler(Client):
         Raw updates are stored as the single source of truth. Conversion to
         native events happens lazily during streaming consumption.
         """
+        from tokonomics.model_discovery.model_info import ModelInfo
+
         from acp.schema import (
             AvailableCommandsUpdate,
             ConfigOptionUpdate,
             CurrentModelUpdate,
             CurrentModeUpdate,
         )
-
-        update = params.update
+        from agentpool.agents.modes import ConfigOptionChanged, ModeInfo
 
         # Handle state updates - these modify session state, not stream data
-        match update:
+        match params.update:
             case CurrentModeUpdate(current_mode_id=mode_id):
                 if self.state.modes:
                     self.state.modes.current_mode_id = mode_id
                     # Find ModeInfo and emit signal
                     for acp_mode in self.state.modes.available_modes:
-                        if acp_mode.id == mode_id:
-                            from agentpool.agents.modes import ModeInfo
-
-                            mode_info = ModeInfo(
-                                id=acp_mode.id,
-                                name=acp_mode.name,
-                                description=acp_mode.description or "",
-                                category_id="remote",
-                            )
-                            await self._agent.state_updated.emit(mode_info)
-                            break
+                        if acp_mode.id != mode_id:
+                            continue
+                        mode_info = ModeInfo(
+                            id=acp_mode.id,
+                            name=acp_mode.name,
+                            description=acp_mode.description or "",
+                            category_id="remote",
+                        )
+                        await self._agent.state_updated.emit(mode_info)
+                        break
                 self.state.current_mode_id = mode_id
                 logger.debug("Mode updated", mode_id=mode_id)
                 self._update_event.set()
@@ -158,11 +158,7 @@ class ACPClientHandler(Client):
                     # Find ModelInfo and emit signal
                     for acp_model in self.state.models.available_models:
                         if acp_model.model_id == model_id:
-                            from tokonomics.model_discovery.model_info import (
-                                ModelInfo as TokoModelInfo,
-                            )
-
-                            model_info = TokoModelInfo(
+                            model_info = ModelInfo(
                                 id=acp_model.model_id,
                                 name=acp_model.name,
                                 description=acp_model.description,
@@ -179,16 +175,13 @@ class ACPClientHandler(Client):
                     if config_opt.id == config_id:
                         config_opt.current_value = value_id
                         break
-                # Convert ACP type to our core type for signal
-                from agentpool.agents.modes import ConfigOptionChanged
-
                 change = ConfigOptionChanged(config_id=config_id, value_id=value_id)
                 await self._agent.state_updated.emit(change)
                 logger.debug("Config option updated", config_id=config_id, value_id=value_id)
                 self._update_event.set()
                 return
 
-            case AvailableCommandsUpdate():
+            case AvailableCommandsUpdate() as update:
                 self.state.available_commands = update
                 # Populate command store with remote commands
                 self._populate_command_store(update.available_commands)
