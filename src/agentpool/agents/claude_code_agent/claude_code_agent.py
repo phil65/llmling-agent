@@ -1030,7 +1030,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         if len(message.content) == 1 and isinstance(message.content[0], TextBlock):
                             text_content = message.content[0].text
                             if "You've hit your limit" in text_content and "resets" in text_content:
-                                raise RuntimeError(
+                                raise RuntimeError(  # noqa: TRY301
                                     f"Claude Code usage limit reached: {text_content}"
                                 )
 
