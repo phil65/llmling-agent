@@ -365,11 +365,7 @@ class OpenCodeStorageProvider(StorageProvider):
                             type="tool",
                             call_id=part.tool_call_id,
                             tool=part.tool_name,
-                            state=ToolStatePending(
-                                status="pending",
-                                input=safe_args_as_dict(part),
-                                raw="",
-                            ),
+                            state=ToolStatePending(status="pending", input=safe_args_as_dict(part)),
                         )
                         part_file = parts_dir / f"{part_id}.json"
                         part_file.write_text(
