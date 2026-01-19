@@ -93,6 +93,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         tool_confirmation_mode: ToolConfirmationMode = "always",
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         hooks: AgentHooks | None = None,
+        session_id: str | None = None,
     ) -> None:
         """Initialize Codex agent.
 
@@ -115,6 +116,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             tool_confirmation_mode: Tool confirmation behavior
             event_handlers: Event handlers for this agent
             hooks: Agent hooks for pre/post tool execution
+            session_id: Session/thread ID to resume on connect (avoids reconnect overhead)
         """
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
         from agentpool.models.codex_agents import CodexAgentConfig
@@ -149,7 +151,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         self.config = config
         self._client: CodexClient | None = None
-        self._sdk_session_id: str | None = None
+        self._sdk_session_id: str | None = session_id  # Session/thread ID to resume or from start
         self._approval_policy: ApprovalPolicy = config.approval_policy or "never"
         # Store MCP servers separately - will be passed to CodexClient
         # External MCP servers from config (already processed to MCPServerConfig objects)
@@ -264,7 +266,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         self._extra_mcp_servers.append(bridge_config)
 
     async def __aenter__(self) -> Self:
-        """Start Codex client and create thread."""
+        """Start Codex client and create or resume thread."""
         from agentpool.agents.codex_agent.codex_converters import mcp_config_to_codex
         from codex_adapter import CodexClient
 
@@ -283,15 +285,37 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         self._client = CodexClient(mcp_servers=mcp_servers_dict)
         await self._client.__aenter__()
         cwd = str(self.config.cwd or Path.cwd())
-        response = await self._client.thread_start(
-            cwd=cwd,
-            model=self.config.model,
-            base_instructions=self.config.base_instructions,
-            developer_instructions=self.config.developer_instructions,
-            sandbox=self._current_sandbox,
-        )
-        self._sdk_session_id = response.thread.id
-        self.log.info("Codex thread started", thread_id=self._sdk_session_id, cwd=cwd)
+
+        # Resume existing session or start new thread
+        if self._sdk_session_id:
+            # Resume the specified thread
+            response = await self._client.thread_resume(self._sdk_session_id)
+            thread = response.thread
+            self._sdk_session_id = thread.id
+            self.log.info("Codex thread resumed", thread_id=self._sdk_session_id, cwd=cwd)
+            # Restore conversation history from resumed thread
+            if thread.turns:
+                from agentpool.agents.codex_agent.codex_converters import turns_to_chat_messages
+
+                chat_messages = turns_to_chat_messages(thread.turns)
+                self.conversation.chat_messages.clear()
+                self.conversation.chat_messages.extend(chat_messages)
+                self.log.info(
+                    "Restored conversation history",
+                    turn_count=len(thread.turns),
+                    message_count=len(chat_messages),
+                )
+        else:
+            # Start a new thread
+            response = await self._client.thread_start(
+                cwd=cwd,
+                model=self.config.model,
+                base_instructions=self.config.base_instructions,
+                developer_instructions=self.config.developer_instructions,
+                sandbox=self._current_sandbox,
+            )
+            self._sdk_session_id = response.thread.id
+            self.log.info("Codex thread started", thread_id=self._sdk_session_id, cwd=cwd)
         return self
 
     async def __aexit__(
