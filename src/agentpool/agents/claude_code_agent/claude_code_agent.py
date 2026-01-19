@@ -1665,7 +1665,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Load and restore a session from Claude storage.
 
         Loads session data from Claude JSONL files and restores the conversation
-        history for this agent.
+        history for this agent. This also reconnects to the Claude SDK with the
+        loaded session ID to properly resume the conversation.
 
         Args:
             session_id: Unique identifier for the session to load
@@ -1691,6 +1692,21 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self.conversation.chat_messages.clear()
             self.conversation.chat_messages.extend(messages)
             self.log.info("Session loaded", session_id=session_id, message_count=len(messages))
+
+            # Set the SDK session ID so reconnect can resume this session
+            self._sdk_session_id = session_id
+
+            # Reconnect to Claude SDK with the loaded session to properly resume
+            try:
+                await self.reconnect(resume_session=True)
+                self.log.info("Reconnected with loaded session", session_id=session_id)
+            except Exception:
+                self.log.exception(
+                    "Failed to reconnect with loaded session, continuing with local history",
+                    session_id=session_id,
+                )
+                # Don't fail the load - we still have the conversation history locally
+
             # Build SessionData from loaded messages
             last_active = messages[-1].timestamp if messages[-1].timestamp else get_now()
             created_at = messages[0].timestamp if messages[0].timestamp else last_active
