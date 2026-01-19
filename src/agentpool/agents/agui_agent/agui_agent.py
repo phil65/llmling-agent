@@ -61,7 +61,7 @@ if TYPE_CHECKING:
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.agui_agents import AGUIAgentConfig
-    from agentpool.sessions import SessionData, SessionInfo
+    from agentpool.sessions import SessionData
     from agentpool.tools import Tool
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
@@ -650,7 +650,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         *,
         cwd: str | None = None,
         limit: int | None = None,
-    ) -> list[SessionInfo]:
+    ) -> list[SessionData]:
         """List sessions for AG-UI agent (not supported)."""
         return []
 

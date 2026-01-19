@@ -89,7 +89,7 @@ if TYPE_CHECKING:
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.acp_agents import BaseACPAgentConfig
-    from agentpool.sessions import SessionData, SessionInfo
+    from agentpool.sessions import SessionData
     from agentpool.ui.base import InputProvider
     from agentpool_config.nodes import ToolConfirmationMode
 
@@ -764,7 +764,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         *,
         cwd: str | None = None,
         limit: int | None = None,
-    ) -> list[SessionInfo]:
+    ) -> list[SessionData]:
         """List sessions from the remote ACP server."""
         from acp.schema import ListSessionsRequest
         from agentpool.sessions.models import SessionData
@@ -780,7 +780,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             return []
         else:
             # Convert ACP SessionInfo to agentpool SessionData
-            result: list[SessionInfo] = []
+            result: list[SessionData] = []
             for acp_session in response.sessions:
                 updated_at = get_updated_at(acp_session.updated_at)
                 session_data = SessionData(
@@ -792,7 +792,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     last_active=updated_at,
                     metadata={"title": acp_session.title} if acp_session.title else {},
                 )
-                result.append(session_data)  # type: ignore[arg-type]
+                result.append(session_data)
             # Apply limit (ACP doesn't support limit in request yet)
             if limit is not None:
                 result = result[:limit]

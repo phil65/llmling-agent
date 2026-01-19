@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     from agentpool.models.manifest import AgentsManifest
     from agentpool.prompts.prompts import PromptType
     from agentpool.resource_providers import ResourceProvider
-    from agentpool.sessions import SessionData, SessionInfo
+    from agentpool.sessions import SessionData
     from agentpool.tools.base import FunctionTool
     from agentpool.ui.base import InputProvider
     from agentpool_config.knowledge import Knowledge
@@ -1032,7 +1032,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         *,
         cwd: str | None = None,
         limit: int | None = None,
-    ) -> list[SessionInfo]:
+    ) -> list[SessionData]:
         """List sessions from storage.
 
         For native agents, queries the pool's session store for all sessions
@@ -1043,7 +1043,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             limit: Maximum number of sessions to return (optional)
 
         Returns:
-            List of SessionInfo-compatible SessionData objects
+            List of SessionData objects
         """
         if not self.agent_pool:
             return []
@@ -1053,7 +1053,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             # Get session IDs from store
             session_ids = await self.agent_pool.sessions.store.list_sessions(agent_name=self.name)
             # Load each session to get full SessionData
-            result: list[SessionInfo] = []
+            result: list[SessionData] = []
             storage = self.agent_pool.storage
             for session_id in session_ids:
                 session_data = await self.agent_pool.sessions.store.load(session_id)
@@ -1067,8 +1067,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                         if title:
                             # Update metadata with title
                             session_data = session_data.with_metadata(title=title)
-                    # SessionData implements SessionInfo protocol
-                    result.append(session_data)  # type: ignore[arg-type]
+                    result.append(session_data)
                     # Check limit
                     if limit is not None and len(result) >= limit:
                         break

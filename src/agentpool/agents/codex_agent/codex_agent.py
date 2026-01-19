@@ -37,7 +37,6 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageHistory
     from agentpool.models.codex_agents import CodexAgentConfig
     from agentpool.sessions import SessionData
-    from agentpool.sessions.protocol import SessionInfo
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
@@ -655,7 +654,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         *,
         cwd: str | None = None,
         limit: int | None = None,
-    ) -> list[SessionInfo]:
+    ) -> list[SessionData]:
         """List threads ("sessions") from Codex server."""
         from agentpool.sessions.models import SessionData
 
@@ -667,7 +666,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self.log.exception("Failed to list Codex threads")
             return []
         else:
-            result: list[SessionInfo] = []
+            result: list[SessionData] = []
             for thread_data in response.data:
                 created_at = datetime.fromtimestamp(thread_data.created_at, tz=UTC)
                 session_data = SessionData(
@@ -680,7 +679,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                     metadata={"title": thread_data.preview} if thread_data.preview else {},
                 )
 
-                result.append(session_data)  # type: ignore[arg-type]
+                result.append(session_data)
 
             # Apply cwd filter (Codex doesn't support cwd filter in request)
             if cwd is not None:

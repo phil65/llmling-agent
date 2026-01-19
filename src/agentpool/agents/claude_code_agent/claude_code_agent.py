@@ -142,7 +142,7 @@ if TYPE_CHECKING:
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.claude_code_agents import SettingSource
-    from agentpool.sessions import SessionData, SessionInfo
+    from agentpool.sessions import SessionData
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
@@ -1599,13 +1599,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         *,
         cwd: str | None = None,
         limit: int | None = None,
-    ) -> list[SessionInfo]:
+    ) -> list[SessionData]:
         """List sessions from Claude storage.
 
         Queries the Claude storage provider (~/.claude/projects/) for available sessions.
 
         Returns:
-            List of SessionInfo objects
+            List of SessionData objects
         """
         from agentpool.sessions.models import SessionData
         from agentpool.utils.now import get_now
@@ -1617,7 +1617,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Pass cwd filter to storage for efficient filesystem-level filtering
             filters = QueryFilters(cwd=cwd)
             conversations = await self._claude_storage.get_conversations(filters=filters)
-            result: list[SessionInfo] = []
+            result: list[SessionData] = []
             for conv_data, messages in conversations:
                 # Build SessionData from conversation
                 last_active = get_now()
@@ -1647,7 +1647,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     last_active=last_active,
                     metadata={"title": conv_data.get("title")} if conv_data.get("title") else {},
                 )
-                result.append(session_data)  # type: ignore[arg-type]
+                result.append(session_data)
 
         except Exception:
             self.log.exception("Failed to list Claude sessions")

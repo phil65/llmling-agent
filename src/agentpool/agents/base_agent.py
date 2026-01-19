@@ -49,8 +49,7 @@ if TYPE_CHECKING:
     from agentpool.delegation import AgentPool, Team, TeamRun
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import ChatMessage
-    from agentpool.sessions.models import SessionData
-    from agentpool.sessions.protocol import SessionInfo
+    from agentpool.sessions import SessionData
     from agentpool.talk.stats import MessageStats
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
@@ -872,7 +871,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         *,
         cwd: str | None = None,
         limit: int | None = None,
-    ) -> list[SessionInfo]:
+    ) -> list[SessionData]:
         """List available sessions for this agent.
 
         Returns session information including session IDs, working directories,
@@ -883,7 +882,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             limit: Maximum number of sessions to return (optional)
 
         Returns:
-            List of SessionInfo objects (protocol-compatible)
+            List of SessionData objects
         """
         ...
 
