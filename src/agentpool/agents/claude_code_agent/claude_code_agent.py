@@ -1025,6 +1025,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         # Update model name from first assistant message
                         if message.model:
                             self._current_model = message.model
+
+                        # Check for usage limit error
+                        if len(message.content) == 1 and isinstance(message.content[0], TextBlock):
+                            text_content = message.content[0].text
+                            if "You've hit your limit" in text_content and "resets" in text_content:
+                                raise RuntimeError(
+                                    f"Claude Code usage limit reached: {text_content}"
+                                )
+
                         for block in message.content:
                             match block:
                                 case TextBlock(text=text):
