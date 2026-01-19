@@ -762,7 +762,7 @@ class ClaudeStorageProvider(StorageProvider):
                 # Group by specified criterion
                 match filters.group_by:
                     case "model":
-                        key = model
+                        key = model or "unknown"
                     case "hour":
                         key = timestamp.strftime("%Y-%m-%d %H:00")
                     case "day":
