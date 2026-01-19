@@ -716,6 +716,20 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         self._sdk_session_id = thread.id
         self.log.info("Thread resumed from Codex server", thread_id=thread.id)
 
+        # Convert turns to ChatMessages and populate conversation
+        if thread.turns:
+            from agentpool.agents.codex_agent.codex_converters import turns_to_chat_messages
+
+            chat_messages = turns_to_chat_messages(thread.turns)
+            self.conversation.chat_messages.clear()
+            self.conversation.chat_messages.extend(chat_messages)
+            self.log.info(
+                "Restored conversation history",
+                session_id=session_id,
+                turn_count=len(thread.turns),
+                message_count=len(chat_messages),
+            )
+
         # Build SessionData from the resumed thread
         created_at = datetime.fromtimestamp(thread.created_at, tz=UTC)
         cwd = thread.cwd or str(self.config.cwd or Path.cwd())
