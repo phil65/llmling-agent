@@ -1,9 +1,10 @@
-"""ACP Agent - MessageNode wrapping an external ACP subprocess."""
+"""ACP Agent - Session state tracking."""
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import dataclass, field as dataclass_field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from agentpool.log import get_logger
 
@@ -14,8 +15,8 @@ if TYPE_CHECKING:
         SessionConfigOption,
         SessionModelState,
         SessionModeState,
+        SessionUpdate,
     )
-    from agentpool.agents.events import RichAgentStreamEvent
 
 logger = get_logger(__name__)
 
@@ -24,13 +25,17 @@ PROTOCOL_VERSION = 1
 
 @dataclass
 class ACPSessionState:
-    """Tracks state of an ACP session."""
+    """Tracks state of an ACP session.
+
+    Raw ACP SessionUpdate objects are stored as the single source of truth.
+    Conversion to native events happens lazily during streaming consumption.
+    """
 
     session_id: str
     """The session ID from the ACP server."""
 
-    events: list[RichAgentStreamEvent[Any]] = dataclass_field(default_factory=list)
-    """Queue of native events converted from ACP updates."""
+    updates: deque[SessionUpdate] = dataclass_field(default_factory=deque)
+    """Raw ACP session updates - single source of truth for stream data."""
 
     current_model_id: str | None = None
     """Current model ID from session state (legacy)."""
@@ -50,6 +55,42 @@ class ACPSessionState:
     available_commands: AvailableCommandsUpdate | None = None
     """Available commands from the agent."""
 
+    is_loading: bool = False
+    """Flag indicating session is being loaded (collecting updates for replay)."""
+
+    _load_updates: list[SessionUpdate] = dataclass_field(default_factory=list)
+    """Separate list for collecting updates during load (not consumed by streaming)."""
+
     def clear(self) -> None:
-        self.events.clear()
+        """Clear stream-related state for a new prompt turn."""
+        self.updates.clear()
         # Note: Don't clear current_model_id, models, config_options - those persist
+
+    def add_update(self, update: SessionUpdate) -> None:
+        """Add a raw ACP update to the queue."""
+        self.updates.append(update)
+        # Also collect for load if we're loading
+        if self.is_loading:
+            self._load_updates.append(update)
+
+    def pop_update(self) -> SessionUpdate | None:
+        """Pop and return the next update, or None if empty."""
+        if self.updates:
+            return self.updates.popleft()
+        return None
+
+    def has_pending_updates(self) -> bool:
+        """Check if there are unconsumed updates."""
+        return len(self.updates) > 0
+
+    def start_load(self) -> None:
+        """Start collecting updates for session load."""
+        self.is_loading = True
+        self._load_updates.clear()
+
+    def finish_load(self) -> list[SessionUpdate]:
+        """Finish loading and return collected updates."""
+        self.is_loading = False
+        updates = list(self._load_updates)
+        self._load_updates.clear()
+        return updates

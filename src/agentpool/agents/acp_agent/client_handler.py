@@ -113,8 +113,11 @@ class ACPClientHandler(Client):
         """Handle session update notifications from the agent.
 
         Some updates are state changes (mode, model, config) that should update
-        session state. Others are stream events (text chunks, tool calls) that
-        should be queued for the run_stream consumer.
+        session state. Others are stream data (text chunks, tool calls) that
+        should be queued for consumption.
+
+        Raw updates are stored as the single source of truth. Conversion to
+        native events happens lazily during streaming consumption.
         """
         from acp.schema import (
             AvailableCommandsUpdate,
@@ -122,11 +125,10 @@ class ACPClientHandler(Client):
             CurrentModelUpdate,
             CurrentModeUpdate,
         )
-        from agentpool.agents.acp_agent.acp_converters import acp_to_native_event
 
         update = params.update
 
-        # Handle state updates - these modify session state, not stream events
+        # Handle state updates - these modify session state, not stream data
         match update:
             case CurrentModeUpdate(current_mode_id=mode_id):
                 if self.state.modes:
@@ -203,11 +205,10 @@ class ACPClientHandler(Client):
         # 1. Update pool.todos - requires merging with existing todos
         # 2. Pass through to UI - but then todos aren't centrally managed
         # 3. Switch to agent-owned todos instead of pool-owned
-        # For now, AgentPlanUpdate falls through to stream events.
+        # For now, AgentPlanUpdate falls through to stream data.
 
-        # All other updates are stream events - convert and queue
-        if native_event := acp_to_native_event(update):
-            self.state.events.append(native_event)
+        # Store raw update - conversion happens lazily during consumption
+        self.state.add_update(update)
         self._update_event.set()
 
     async def request_permission(  # noqa: PLR0911

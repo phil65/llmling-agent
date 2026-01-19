@@ -476,8 +476,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Create async generator that polls ACP events
         async def poll_acp_events() -> AsyncIterator[RichAgentStreamEvent[str]]:
-            """Poll events from ACP state until prompt completes."""
-            last_idx = 0
+            """Poll raw updates from ACP state, convert to events, until prompt completes."""
+            from agentpool.agents.acp_agent.acp_converters import acp_to_native_event
+
             assert self._state
             while not prompt_task.done():
                 if self._client_handler:
@@ -486,14 +487,14 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                         self._client_handler._update_event.clear()
                     except TimeoutError:
                         pass
-                # Yield new events from state
-                while last_idx < len(self._state.events):
-                    yield self._state.events[last_idx]
-                    last_idx += 1
-            # Yield remaining events after prompt completes
-            while last_idx < len(self._state.events):
-                yield self._state.events[last_idx]
-                last_idx += 1
+                # Pop and convert pending raw updates
+                while (update := self._state.pop_update()) is not None:
+                    if native_event := acp_to_native_event(update):
+                        yield native_event
+            # Pop remaining updates after prompt completes
+            while (update := self._state.pop_update()) is not None:
+                if native_event := acp_to_native_event(update):
+                    yield native_event
 
         # Accumulate metadata events by tool_call_id (workaround for MCP stripping _meta)
         tool_metadata: dict[str, dict[str, Any]] = {}
@@ -798,9 +799,20 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             return result
 
     async def load_session(self, session_id: str) -> SessionData | None:
-        """Load and restore a session from the remote ACP server."""
+        """Load and restore a session from the remote ACP server.
+
+        Per ACP protocol spec, the server will:
+        1. Replay the entire conversation history via session/update notifications
+        2. Return the session/load response AFTER all updates have been sent
+
+        This method collects those replayed updates and converts them to ChatMessage
+        objects to populate the agent's conversation history.
+        """
         from acp.schema import LoadSessionRequest
-        from agentpool.agents.acp_agent.acp_converters import mcp_config_to_acp
+        from agentpool.agents.acp_agent.acp_converters import (
+            acp_notifications_to_messages,
+            mcp_config_to_acp,
+        )
         from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities
         from agentpool.sessions.models import SessionData
         from agentpool.utils.now import get_now
@@ -809,7 +821,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             self.log.error("Cannot load session: not connected to ACP server")
             return None
 
-        try:  # Collect all MCP servers (config + extra) for the load request
+        if not self._state:
+            self.log.error("Cannot load session: state not initialized")
+            return None
+
+        try:
+            # Collect all MCP servers (config + extra) for the load request
             all_servers = self._extra_mcp_servers[:]
             if config_servers := self.config.get_mcp_servers():
                 all_servers.extend([mcp_config_to_acp(config) for config in config_servers])
@@ -818,24 +835,56 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             load_request = LoadSessionRequest(
                 session_id=session_id, cwd=cwd, mcp_servers=mcp_servers or None
             )
-            # Load session on the remote server
+
+            # Start collecting raw updates for conversation reconstruction
+            self._state.start_load()
+
+            # Load session on the remote server.
+            # Per ACP spec, the server replays all conversation history via session/update
+            # notifications BEFORE returning this response.
             response = await self._connection.load_session(load_request)
+
+            # Collect the raw updates that were received during load
+            raw_updates = self._state.finish_load()
+
             # Update local session ID and state
             self._session_id = session_id
-            if self._state:
-                self._state.session_id = session_id
-                # Update config_options if available
-                if response.config_options:
-                    self._state.config_options = list(response.config_options)
-                # Legacy: Update models and modes for backward compatibility
-                if response.models:
-                    self._state.models = response.models
-                    self._state.current_model_id = response.models.current_model_id
-                if response.modes:
-                    self._state.modes = response.modes
+            self._state.session_id = session_id
+
+            # Update config_options if available
+            if response.config_options:
+                self._state.config_options = list(response.config_options)
+            # Legacy: Update models and modes for backward compatibility
+            if response.models:
+                self._state.models = response.models
+                self._state.current_model_id = response.models.current_model_id
+            if response.modes:
+                self._state.modes = response.modes
+
+            # Convert replayed ACP updates to ChatMessage objects
+            if raw_updates:
+                chat_messages = acp_notifications_to_messages(
+                    raw_updates,
+                    conversation_id=session_id,
+                    agent_name=self.name,
+                    model_name=self.model_name,
+                )
+                # Populate the agent's conversation with reconstructed history
+                self.conversation.chat_messages.clear()
+                self.conversation.chat_messages.extend(chat_messages)
+                self.log.info(
+                    "Restored conversation history",
+                    session_id=session_id,
+                    message_count=len(chat_messages),
+                    update_count=len(raw_updates),
+                )
+            else:
+                self.log.debug("No conversation history to restore", session_id=session_id)
 
             self.log.info("Session loaded from ACP server", session_id=session_id)
-            try:  # Try to get full session metadata (title etc) by listing sessions
+
+            # Try to get full session metadata (title etc) by listing sessions
+            try:
                 sessions = await self.list_sessions()
                 session_info = next((s for s in sessions if s.session_id == session_id), None)
                 if session_info:
@@ -852,6 +901,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     )
             except Exception:  # noqa: BLE001
                 self.log.debug("Could not fetch session metadata", session_id=session_id)
+
             # Fallback: Return minimal SessionData
             return SessionData(
                 session_id=session_id,
@@ -863,6 +913,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             )
 
         except Exception:
+            # Ensure we clean up load state on error
+            if self._state:
+                self._state.finish_load()
             self.log.exception("Failed to load session from ACP server", session_id=session_id)
             return None
 
