@@ -87,8 +87,10 @@ def _convert_toko_model_to_opencode(model: TokoModelInfo) -> Model:
     if model.created_at:
         release_date = model.created_at.strftime("%Y-%m-%d")
 
+    # Use id_override if available (e.g., "opus" for Claude Code SDK)
+    model_id = model.id_override or model.id
     return Model(
-        id=model.id,
+        id=model_id,
         name=model.name,
         attachment=has_vision,
         cost=cost,
@@ -128,7 +130,9 @@ def _build_providers(models: list[TokoModelInfo]) -> list[Provider]:
         models_dict: dict[str, Model] = {}
         for toko_model in provider_models:
             opencode_model = _convert_toko_model_to_opencode(toko_model)
-            models_dict[toko_model.id] = opencode_model
+            # Use id_override if available (e.g., "opus" for Claude Code SDK)
+            model_key = toko_model.id_override or toko_model.id
+            models_dict[model_key] = opencode_model
 
         provider = Provider(
             id=provider_id,

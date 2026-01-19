@@ -63,6 +63,26 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _normalize_model_name(model: str | None) -> str | None:
+    """Normalize Claude model names to simple IDs.
+
+    Claude storage uses full model names like 'claude-opus-4-5-20251101'
+    but Claude Code agent exposes simple IDs like 'opus', 'sonnet', 'haiku'.
+    This normalizes to simple IDs for consistency with get_available_models().
+    """
+    if model is None:
+        return None
+    model_lower = model.lower()
+    if "opus" in model_lower:
+        return "opus"
+    if "sonnet" in model_lower:
+        return "sonnet"
+    if "haiku" in model_lower:
+        return "haiku"
+    # Return original if not a known Claude model
+    return model
+
+
 class ClaudeStorageProvider(StorageProvider):
     """Storage provider that reads/writes Claude Code's native format.
 
@@ -306,7 +326,7 @@ class ClaudeStorageProvider(StorageProvider):
                     ),
                     total_cost=Decimal(0),  # Claude doesn't store cost directly
                 )
-            model = message.model
+            model = _normalize_model_name(message.model)
             finish_reason = message.stop_reason
 
         return ChatMessage[str](
@@ -423,7 +443,7 @@ class ClaudeStorageProvider(StorageProvider):
         return ModelResponse(
             parts=response_parts,
             usage=usage,
-            model_name=message.model,
+            model_name=_normalize_model_name(message.model),
             timestamp=timestamp,
         )
 
@@ -724,7 +744,7 @@ class ClaudeStorageProvider(StorageProvider):
                     continue
 
                 api_msg = entry.message
-                model = api_msg.model
+                model = _normalize_model_name(api_msg.model)
                 usage = api_msg.usage
                 total_tokens = (
                     usage.input_tokens + usage.output_tokens + usage.cache_read_input_tokens

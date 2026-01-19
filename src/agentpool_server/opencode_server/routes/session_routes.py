@@ -14,7 +14,6 @@ from pydantic_ai import FileUrl
 from agentpool.repomap import RepoMap, find_src_files
 from agentpool.sessions.models import SessionData
 from agentpool.utils import identifiers as identifier
-from agentpool_config.session import SessionQuery
 from agentpool_server.opencode_server.command_validation import validate_command
 from agentpool_server.opencode_server.converters import chat_message_to_opencode
 from agentpool_server.opencode_server.dependencies import StateDep
@@ -56,6 +55,7 @@ from agentpool_server.opencode_server.time_utils import now_ms
 
 
 if TYPE_CHECKING:
+    from agentpool.messaging import ChatMessage
     from agentpool_server.opencode_server.state import ServerState
 
 
@@ -64,15 +64,11 @@ if TYPE_CHECKING:
 # =============================================================================
 
 
-def session_data_to_opencode(
-    data: SessionData,
-    title: str | None = None,
-) -> Session:
+def session_data_to_opencode(data: SessionData) -> Session:
     """Convert SessionData to OpenCode Session model.
 
     Args:
-        data: SessionData to convert
-        title: Optional title (fetched from storage by caller)
+        data: SessionData to convert (title comes from data.title property)
     """
     # Convert datetime to milliseconds timestamp
     created_ms = int(data.created_at.timestamp() * 1000)
@@ -90,7 +86,7 @@ def session_data_to_opencode(
         id=data.session_id,
         project_id=data.project_id or "default",
         directory=data.cwd or "",
-        title=title or "New Session",
+        title=data.title or "New Session",
         version=data.version,
         time=TimeCreatedUpdated(created=created_ms, updated=updated_ms),
         parent_id=data.parent_id,
@@ -130,73 +126,72 @@ def opencode_to_session_data(
     )
 
 
-async def load_messages_from_storage(state: ServerState, session_id: str) -> list[MessageWithParts]:
-    """Load messages from storage and convert to OpenCode format.
+async def get_or_load_session(state: ServerState, session_id: str) -> Session | None:
+    """Get session from cache or load via agent.
+
+    Returns None if session not found.
+    Uses agent.load_session() which handles loading from the appropriate
+    storage (pool storage, Claude storage, ACP server, Codex, etc.).
+    """
+    # Check if session AND messages are already loaded
+    if session_id in state.sessions and session_id in state.messages:
+        return state.sessions[session_id]
+
+    # Load via agent - this populates agent.conversation.chat_messages
+    data = await state.agent.load_session(session_id)
+    if data is None:
+        return None
+
+    # Convert SessionData to OpenCode Session
+    session = session_data_to_opencode(data)
+
+    # Cache the session
+    state.sessions[session_id] = session
+
+    # Initialize runtime state
+    if session_id not in state.session_status:
+        state.session_status[session_id] = SessionStatus(type="idle")
+
+    # Convert agent's conversation history to OpenCode format
+    state.messages[session_id] = _convert_agent_messages_to_opencode(
+        list(state.agent.conversation.chat_messages),
+        session_id=session_id,
+        working_dir=state.working_dir,
+        agent_name=state.agent.name,
+    )
+
+    return session
+
+
+def _convert_agent_messages_to_opencode(
+    chat_messages: list[ChatMessage[Any]],
+    session_id: str,
+    working_dir: str,
+    agent_name: str,
+) -> list[MessageWithParts]:
+    """Convert agent's chat messages to OpenCode format.
 
     Args:
-        state: Server state with pool reference
-        session_id: Session/conversation ID
+        chat_messages: List of ChatMessage from agent.conversation
+        session_id: OpenCode session ID
+        working_dir: Working directory for path context
+        agent_name: Name of the agent
 
     Returns:
         List of OpenCode MessageWithParts
     """
-    if state.pool.storage is None:
-        return []
-
-    try:
-        query = SessionQuery(name=session_id)  # conversation_id = session_id
-        chat_messages = await state.pool.storage.filter_messages(query)
-        # Convert to OpenCode format
-        opencode_messages = []
-        working_dir = state.working_dir
-        agent_name = state.agent.name
-        for chat_msg in chat_messages:
-            opencode_msg = chat_message_to_opencode(
-                chat_msg,
-                session_id=session_id,
-                working_dir=working_dir,
-                agent_name=agent_name,
-                model_id=chat_msg.model_name or "unknown",
-                provider_id=chat_msg.provider_name or "agentpool",
-            )
-            opencode_messages.append(opencode_msg)
-
-    except Exception:  # noqa: BLE001
-        # If storage fails, return empty list
-        return []
-    else:
-        return opencode_messages
-
-
-async def get_or_load_session(state: ServerState, session_id: str) -> Session | None:
-    """Get session from cache or load from storage.
-
-    Returns None if session not found in either location.
-    Also loads messages from storage if not already cached.
-    """
-    # Check in-memory cache first
-    if session_id in state.sessions:
-        return state.sessions[session_id]
-
-    # Try to load from storage
-    data = await state.pool.sessions.store.load(session_id)
-    if data is not None:
-        # Fetch title from conversation storage
-        title = None
-        if state.pool.storage:
-            title = await state.pool.storage.get_conversation_title(data.conversation_id)
-        session = session_data_to_opencode(data, title=title)
-        # Cache it
-        state.sessions[session_id] = session
-        # Initialize runtime state
-        if session_id not in state.session_status:
-            state.session_status[session_id] = SessionStatus(type="idle")
-        # Load messages from storage if not cached
-        if session_id not in state.messages:
-            state.messages[session_id] = await load_messages_from_storage(state, session_id)
-        return session
-
-    return None
+    opencode_messages: list[MessageWithParts] = []
+    for chat_msg in chat_messages:
+        opencode_msg = chat_message_to_opencode(
+            chat_msg,
+            session_id=session_id,
+            working_dir=working_dir,
+            agent_name=agent_name,
+            model_id=chat_msg.model_name or "sonnet",  # Normalized name from Claude storage
+            provider_id=chat_msg.provider_name or "claude-code",
+        )
+        opencode_messages.append(opencode_msg)
+    return opencode_messages
 
 
 router = APIRouter(prefix="/session", tags=["session"])
@@ -204,18 +199,22 @@ router = APIRouter(prefix="/session", tags=["session"])
 
 @router.get("")
 async def list_sessions(state: StateDep) -> list[Session]:
-    """List all sessions from storage.
+    """List all sessions from the agent.
 
-    Returns all persisted sessions, not just active ones.
+    Delegates to agent.list_sessions() which handles fetching sessions
+    from the appropriate storage (pool storage, Claude storage, ACP server, etc.).
     """
+    # Get sessions from the agent - it knows where to look
+    # Don't filter by cwd - let the UI show all available sessions
+    session_data_list = await state.agent.list_sessions()
+
+    # Convert to OpenCode Session format and cache
     sessions: list[Session] = []
-    # Load all session IDs from storage
-    session_ids = await state.pool.sessions.store.list_sessions()
-    for session_id in session_ids:
-        # Use get_or_load to populate cache and get Session model
-        session = await get_or_load_session(state, session_id)
-        if session is not None:
-            sessions.append(session)
+    for data in session_data_list:
+        session = session_data_to_opencode(data)
+        # Cache in state for later use
+        state.sessions[data.session_id] = session
+        sessions.append(session)
 
     return sessions
 

@@ -41,7 +41,6 @@ from agentpool_server.opencode_server.models import (
     UserMessage,
 )
 from agentpool_server.opencode_server.models.common import TimeCreated
-from agentpool_server.opencode_server.models.message import UserMessageModel
 from agentpool_server.opencode_server.models.parts import (
     APIErrorInfo,
     RetryPart,
@@ -505,13 +504,13 @@ def chat_message_to_opencode(  # noqa: PLR0915
     tool_calls: dict[str, ToolPart] = {}
 
     if msg.role == "user":
-        # User message
+        # User message - don't set model (users don't use models)
         info: UserMessage | AssistantMessage = UserMessage(
             id=message_id,
             session_id=session_id,
             time=TimeCreated(created=created_ms),
             agent=agent_name,
-            model=UserMessageModel(provider_id=provider_id, model_id=model_id),
+            # model=UserMessageModel(provider_id=provider_id, model_id=model_id),
         )
 
         # Extract text from user message
