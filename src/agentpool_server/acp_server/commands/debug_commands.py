@@ -363,6 +363,105 @@ class DebugSendRawCommand(NodeCommand):
             await ctx.print(f"❌ **Failed to send raw notification:** {e}")
 
 
+class DebugSetPoolCommand(NodeCommand):
+    """Switch to a different agent pool configuration (debug/development).
+
+    NOTE: This is a debug command. It changes server state but cannot
+    clear the client UI, so there will be a mismatch between what the
+    client displays and the actual server state.
+
+    The configuration can be specified as:
+    - A stored config name (from `agentpool add`)
+    - A direct path to a configuration file
+
+    Options:
+      --agent <name>   Specify which agent to use as default
+
+    Examples:
+      /debug-set-pool prod
+      /debug-set-pool /path/to/agents.yml
+      /debug-set-pool dev --agent=coder
+    """
+
+    name = "debug-set-pool"
+    category = "debug"
+
+    async def execute_command(
+        self,
+        ctx: CommandContext[NodeContext[ACPSession]],
+        config: str,
+        *,
+        agent: str | None = None,
+    ) -> None:
+        """Switch to a different agent pool.
+
+        Args:
+            ctx: Command context with ACP session
+            config: Config name (from store) or path to config file
+            agent: Optional specific agent to use as default
+        """
+        from pathlib import Path as FilePath
+
+        from agentpool_cli import agent_store
+
+        session = ctx.context.data
+        if not session:
+            raise RuntimeError("Session not available in command context")
+
+        if not session.acp_agent.server:
+            await ctx.output.print("❌ **Server reference not available - cannot switch pools**")
+            return
+
+        try:
+            # Resolve config path
+            config_path: str | None = None
+            config_name: str | None = None
+
+            # First try as stored config name
+            try:
+                config_path = agent_store.get_config(config)
+                config_name = config
+            except KeyError:
+                # Not a stored config, try as direct path
+                path = FilePath(config)
+                if path.exists() and path.is_file():
+                    config_path = str(path.resolve())
+                else:
+                    await ctx.output.print(f"❌ **Config not found:** `{config}`")
+                    await ctx.output.print("Provide a stored config name or a valid file path.")
+                    return
+
+            # Show what we're doing
+            if config_name:
+                await ctx.output.print(f"🔄 **Switching pool to `{config_name}`...**")
+            else:
+                await ctx.output.print(f"🔄 **Switching pool to `{config_path}`...**")
+
+            # Perform the swap
+            agent_names = await session.acp_agent.swap_pool(config_path, agent)
+
+            # Report success
+            await ctx.output.print("✅ **Pool switched successfully**")
+            await ctx.output.print(f"**Agents:** {', '.join(f'`{n}`' for n in agent_names)}")
+            if agent:
+                await ctx.output.print(f"**Default agent:** `{agent}`")
+            else:
+                await ctx.output.print(f"**Default agent:** `{agent_names[0]}`")
+
+            await ctx.output.print("")
+            await ctx.output.print(
+                "⚠️ *Warning: Client UI still shows old conversation. "
+                "Start a new session for clean state.*"
+            )
+
+        except FileNotFoundError as e:
+            await ctx.output.print(f"❌ **Config file not found:** {e}")
+        except ValueError as e:
+            await ctx.output.print(f"❌ **Invalid configuration:** {e}")
+        except Exception as e:  # noqa: BLE001
+            await ctx.output.print(f"❌ **Error switching pool:** {e}")
+
+
 def get_debug_commands() -> list[type[NodeCommand]]:
     """Get all ACP debug commands."""
     return [
@@ -373,4 +472,5 @@ def get_debug_commands() -> list[type[NodeCommand]]:
         DebugSessionInfoCommand,
         DebugCreateTemplateCommand,
         DebugSendRawCommand,
+        DebugSetPoolCommand,
     ]
