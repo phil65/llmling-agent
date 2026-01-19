@@ -233,7 +233,7 @@ class ACPSession:
 
             # Subscribe to state change signal for all agents
             agent.state_updated.connect(self._on_state_updated)
-        self.log.info("Created ACP session", current_agent=self.current_agent_name)
+        self.log.info("Created ACP session", current_agent=self.agent.name)
 
     async def _on_state_updated(
         self, state: ModeInfo | ModelInfo | AvailableCommandsUpdate | ConfigOptionChanged
@@ -247,6 +247,7 @@ class ACPSession:
             SessionNotification,
         )
         from agentpool.agents.modes import ConfigOptionChanged as CoreConfigOptionChanged
+        from agentpool_server.acp_server.acp_agent import get_session_config_options
 
         update: CurrentModeUpdate | CurrentModelUpdate | ACPConfigOptionUpdate
         match state:
@@ -264,8 +265,6 @@ class ACPSession:
                 return
             case CoreConfigOptionChanged(config_id=config_id, value_id=value_id):
                 # Get full config_options from agent (required by ACP protocol)
-                from agentpool_server.acp_server.acp_agent import get_session_config_options
-
                 config_options = await get_session_config_options(self.agent)
                 # Update the changed option's current_value
                 for opt in config_options:
@@ -302,7 +301,7 @@ class ACPSession:
             try:
                 await self.agent.mcp.setup_server(cfg)
                 self.log.info(
-                    "Added MCP server to agent", server_name=cfg.name, agent=self.current_agent_name
+                    "Added MCP server to agent", server_name=cfg.name, agent=self.agent.name
                 )
             except Exception:
                 self.log.exception("Failed to setup MCP server", server_name=cfg.name)
@@ -349,11 +348,6 @@ class ACPSession:
             raise RuntimeError(msg)
         return pool
 
-    @property
-    def current_agent_name(self) -> str:
-        """Get the name of the currently active agent."""
-        return self.agent.name
-
     def get_cwd_context(self) -> str:
         """Get current working directory context for prompts."""
         return f"Working directory: {self.cwd}" if self.cwd else ""
@@ -372,7 +366,7 @@ class ACPSession:
             available = list(pool.all_agents.keys())
             raise ValueError(f"Agent {agent_name!r} not found. Available: {available}")
 
-        old_agent_name = self.current_agent_name
+        old_agent_name = self.agent.name
         # Get the new agent from the pool
         if agent_name in pool.agents:
             self.agent = pool.get_agent(agent_name, deps_type=ACPSession)
