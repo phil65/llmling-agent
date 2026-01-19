@@ -140,20 +140,19 @@ class ReadTool(Tool[ToolResult]):
             Text content for text files, BinaryContent for binary files (with optional
             dimension note as list when image was resized), or error string
         """
+        from agentpool.agents.events import FileContentItem, LocationContentItem
+        from agentpool.repomap import truncate_with_notice
+        from agentpool_toolsets.fsspec_toolset.helpers import truncate_lines
+        from agentpool_toolsets.fsspec_toolset.image_utils import resize_image_if_needed
+
         path = self._resolve_path(path, ctx)
         msg = f"Reading file: {path}"
-        from agentpool.agents.events import LocationContentItem
-
         # Emit progress - use 0 for line if negative (can't resolve until we read file)
         # LocationContentItem/ToolCallLocation require line >= 0 per ACP spec
         display_line = line if (line is not None and line > 0) else 0
-        await ctx.events.tool_call_progress(
-            title=msg,
-            items=[LocationContentItem(path=path, line=display_line)],
-        )
-
+        location = LocationContentItem(path=path, line=display_line)
+        await ctx.events.tool_call_progress(title=msg, items=[location])
         max_file_size = self.max_file_size_kb * 1024
-
         try:
             mime_type = guess_type(path)
             # Fast path: known binary MIME types (images, audio, video, etc.)
@@ -170,10 +169,8 @@ class ReadTool(Tool[ToolResult]):
                         # Converter returned markdown
                         lines = content.splitlines()
                         preview = "\n".join(lines[:20])
-                        return ToolResult(
-                            content=content,
-                            metadata={"preview": preview, "truncated": False},
-                        )
+                        meta = {"preview": preview, "truncated": False}
+                        return ToolResult(content=content, metadata=meta)
 
                 # Fall back to native binary handling
                 data = await self._get_fs(ctx)._cat_file(path)
@@ -181,26 +178,17 @@ class ReadTool(Tool[ToolResult]):
                 mime = mime_type or "application/octet-stream"
                 # Resize images if needed
                 if self.max_image_size and mime.startswith("image/"):
-                    from agentpool_toolsets.fsspec_toolset.image_utils import (
-                        resize_image_if_needed,
-                    )
-
                     data, mime, note = resize_image_if_needed(
                         data, mime, self.max_image_size, self.max_image_bytes
                     )
                     if note:
                         # Return resized image with dimension note for coordinate mapping
-                        return ToolResult(
-                            content=[
-                                note,
-                                BinaryContent(data=data, media_type=mime, identifier=path),
-                            ],
-                            metadata={"preview": "Image read successfully", "truncated": False},
-                        )
-                return ToolResult(
-                    content=[BinaryContent(data=data, media_type=mime, identifier=path)],
-                    metadata={"preview": "Binary file read successfully", "truncated": False},
-                )
+                        binary = BinaryContent(data=data, media_type=mime, identifier=path)
+                        meta = {"preview": "Image read successfully", "truncated": False}
+                        return ToolResult(content=[note, binary], metadata=meta)
+                binary = BinaryContent(data=data, media_type=mime, identifier=path)
+                meta = {"preview": "Binary file read successfully", "truncated": False}
+                return ToolResult(content=[binary], metadata=meta)
 
             # Read content and probe for binary (git-style null byte detection)
             data = await self._get_fs(ctx)._cat_file(path)
@@ -217,38 +205,27 @@ class ReadTool(Tool[ToolResult]):
                         # Converter returned markdown
                         lines = content.splitlines()
                         preview = "\n".join(lines[:20])
-                        return ToolResult(
-                            content=content,
-                            metadata={"preview": preview, "truncated": False},
-                        )
+                        meta = {"preview": preview, "truncated": False}
+                        return ToolResult(content=content, metadata=meta)
 
                 # Fall back to native binary handling
                 await ctx.events.file_operation("read", path=path, success=True)
                 mime = mime_type or "application/octet-stream"
                 # Resize images if needed
                 if self.max_image_size and mime.startswith("image/"):
-                    from agentpool_toolsets.fsspec_toolset.image_utils import (
-                        resize_image_if_needed,
-                    )
-
                     data, mime, note = resize_image_if_needed(
                         data, mime, self.max_image_size, self.max_image_bytes
                     )
                     if note:
-                        return ToolResult(
-                            content=[
-                                note,
-                                BinaryContent(data=data, media_type=mime, identifier=path),
-                            ],
-                            metadata={"preview": "Image read successfully", "truncated": False},
-                        )
+                        binary = BinaryContent(data=data, media_type=mime, identifier=path)
+                        meta = {"preview": "Image read successfully", "truncated": False}
+                        return ToolResult(content=[note, binary], metadata=meta)
                 return ToolResult(
                     content=[BinaryContent(data=data, media_type=mime, identifier=path)],
                     metadata={"preview": "Binary file read successfully", "truncated": False},
                 )
 
             content = data.decode(encoding)
-
             # Check if file is too large and no targeted read requested
             tokens_approx = len(content) // 4
             if line is None and limit is None and tokens_approx > self.large_file_tokens:
@@ -259,14 +236,10 @@ class ReadTool(Tool[ToolResult]):
                     content = map_result
                 else:
                     # Fallback: head + tail for unsupported languages
-                    from agentpool.repomap import truncate_with_notice
-
                     content = truncate_with_notice(path, content)
                     await ctx.events.file_operation("read", path=path, success=True)
             else:
                 # Normal read with optional offset/limit
-                from agentpool_toolsets.fsspec_toolset.helpers import truncate_lines
-
                 lines = content.splitlines()
                 offset = (line - 1) if line else 0
                 result_lines, was_truncated = truncate_lines(lines, offset, limit, max_file_size)
@@ -280,14 +253,10 @@ class ReadTool(Tool[ToolResult]):
         except Exception as e:  # noqa: BLE001
             await ctx.events.file_operation("read", path=path, success=False, error=str(e))
             error_msg = f"error: Failed to read file {path}: {e}"
-            return ToolResult(
-                content=error_msg,
-                metadata={"preview": "", "truncated": False},
-            )
+            meta = {"preview": "", "truncated": False}
+            return ToolResult(content=error_msg, metadata=meta)
         else:
             # Emit file content for UI display (formatted at ACP layer)
-            from agentpool.agents.events import FileContentItem
-
             # Use non-negative line for display (negative lines are internal Python convention)
             display_start_line = max(1, line) if line and line > 0 else None
             await ctx.events.tool_call_progress(
@@ -295,15 +264,11 @@ class ReadTool(Tool[ToolResult]):
                 items=[FileContentItem(content=content, path=path, start_line=display_start_line)],
                 replace_content=True,
             )
-
             # Prepare metadata for OpenCode UI
             lines = content.splitlines()
             preview = "\n".join(lines[:20])
             # Check if content was truncated
             was_truncated = "[Content truncated" in content
-
             # Return result with metadata
-            return ToolResult(
-                content=content,
-                metadata={"preview": preview, "truncated": was_truncated},
-            )
+            meta = {"preview": preview, "truncated": was_truncated}
+            return ToolResult(content=content, metadata=meta)
