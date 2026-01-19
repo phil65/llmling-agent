@@ -664,6 +664,10 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             return []
         try:
             response = await self._client.thread_list(limit=limit)
+        except Exception:
+            self.log.exception("Failed to list Codex threads")
+            return []
+        else:
             result: list[SessionInfo] = []
             for thread_data in response.data:
                 created_at = datetime.fromtimestamp(thread_data.created_at, tz=UTC)
@@ -679,10 +683,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
                 result.append(session_data)  # type: ignore[arg-type]
 
-        except Exception:
-            self.log.exception("Failed to list Codex threads")
-            return []
-        else:
             # Apply cwd filter (Codex doesn't support cwd filter in request)
             if cwd is not None:
                 result = [s for s in result if s.cwd == cwd]
@@ -706,10 +706,12 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self.log.error("Cannot load session: Codex client not initialized")
             return None
 
-        try:
-            # Resume the thread on Codex server
+        try:  # Resume the thread on Codex server
             thread = await self._client.thread_resume(session_id)
-            # Update current thread ID
+        except Exception:
+            self.log.exception("Failed to resume Codex thread", session_id=session_id)
+            return None
+        else:  # Update current thread ID
             self._sdk_session_id = thread.id
             self.log.info("Thread resumed from Codex server", thread_id=thread.id)
             # Build SessionData from the resumed thread
@@ -725,7 +727,3 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 last_active=created_at,  # Codex doesn't track separate last_active
                 metadata={"title": thread.preview} if thread.preview else {},
             )
-
-        except Exception:
-            self.log.exception("Failed to resume Codex thread", session_id=session_id)
-            return None
