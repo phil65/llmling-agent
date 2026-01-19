@@ -142,7 +142,7 @@ class ACPClientHandler(Client):
                             id=acp_mode.id,
                             name=acp_mode.name,
                             description=acp_mode.description or "",
-                            category_id="remote",
+                            category_id="mode",  # Old modes API is for operational modes
                         )
                         await self._agent.state_updated.emit(mode_info)
                         break
