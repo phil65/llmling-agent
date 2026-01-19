@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 import structlog
@@ -200,7 +201,7 @@ class ACPRequests:
         *,
         title: str | None = None,
         raw_input: Any | None = None,
-        options: list[PermissionOption] | None = None,
+        options: Sequence[PermissionOption] | None = None,
     ) -> RequestPermissionResponse:
         """Request permission from user before executing a tool call.
 
