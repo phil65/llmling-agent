@@ -177,14 +177,14 @@ def mock_env() -> Mock:
 
 
 @pytest.fixture
-def mock_agent(mock_env: Mock) -> Mock:
+def mock_agent(mock_env: Mock, mock_pool: Mock) -> Mock:
     """Create a mock agent for testing."""
     agent = Mock()
     agent.name = "test-agent"
     agent.env = mock_env
     agent._input_provider = None
     agent.run = AsyncMock(return_value=Mock(data="test response"))
-    agent.agent_pool = None
+    agent.agent_pool = mock_pool  # Agent carries its pool
     return agent
 
 
@@ -196,13 +196,11 @@ def mock_agent(mock_env: Mock) -> Mock:
 @pytest.fixture
 def server_state(
     tmp_project_dir: Path,
-    mock_pool: Mock,
     mock_agent: Mock,
 ) -> ServerState:
     """Create a server state for testing."""
     return ServerState(
         working_dir=str(tmp_project_dir),
-        pool=mock_pool,
         agent=mock_agent,
     )
 

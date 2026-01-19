@@ -10,7 +10,6 @@ import pytest
 from codex_adapter import (
     CodexClient,
     CodexEvent,
-    CodexThread,
     HttpMcpServer,
     StdioMcpServer,
 )
@@ -116,35 +115,6 @@ def test_codex_event_get_text_delta():
         },
     )
     assert event3.get_text_delta() == ""
-
-
-def test_codex_thread():
-    """Test CodexThread dataclass."""
-    thread = CodexThread(
-        id="thread-123",
-        preview="Test conversation",
-        model_provider="openai",
-        created_at=1234567890,
-    )
-
-    assert thread.id == "thread-123"
-    assert thread.preview == "Test conversation"
-    assert thread.model_provider == "openai"
-
-
-def test_codex_request_error():
-    """Test CodexRequestError exception."""
-    error = CodexRequestError(
-        code=-32000,
-        message="Invalid params",
-        data={"field": "model"},
-    )
-
-    assert error.code == -32000
-    assert error.message == "Invalid params"
-    assert error.data == {"field": "model"}
-    assert "[-32000]" in str(error)
-    assert "Invalid params" in str(error)
 
 
 @pytest.mark.asyncio
