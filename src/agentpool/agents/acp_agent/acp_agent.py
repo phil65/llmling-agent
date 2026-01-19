@@ -205,6 +205,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._state: ACPSessionState | None = None
         self.deps_type = type(None)
         self._extra_mcp_servers: list[McpServer] = []
+        self._sessions_cache: list[SessionData] | None = None  # Cache for list_sessions results
         # Create bridge (not started yet) - will be started in _setup_toolsets if needed
         self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
         # Client execution environment (for subprocess requests) - falls back to env
@@ -797,16 +798,28 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             result: list[SessionData] = []
             for acp_session in response.sessions:
                 updated_at = get_updated_at(acp_session.updated_at)
+                meta = acp_session.field_meta or {}
+                # Extract created_at from _meta if available, otherwise use updated_at
+                created_at = updated_at
+                if meta_created := meta.get("created_at"):
+                    created_at = get_updated_at(meta_created)
                 session_data = SessionData(
                     session_id=acp_session.session_id,
                     agent_name=self.name,
                     conversation_id=acp_session.session_id,
                     cwd=acp_session.cwd,
-                    created_at=updated_at,
+                    created_at=created_at,
                     last_active=updated_at,
+                    # Extract optional fields from _meta
+                    pool_id=meta.get("pool_id"),
+                    project_id=meta.get("project_id"),
+                    parent_id=meta.get("parent_id"),
+                    version=meta.get("version", "1"),
                     metadata={"title": acp_session.title} if acp_session.title else {},
                 )
                 result.append(session_data)
+            # Update cache with full results (before applying limit)
+            self._sessions_cache = result
             # Apply limit (ACP doesn't support limit in request yet)
             if limit is not None:
                 result = result[:limit]
@@ -897,22 +910,21 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
             self.log.info("Session loaded from ACP server", session_id=session_id)
 
-            # Try to get full session metadata (title etc) by listing sessions
+            # Try to get session metadata from cache first
+            def find_in_cache(sid: str) -> SessionData | None:
+                if self._sessions_cache is None:
+                    return None
+                return next((s for s in self._sessions_cache if s.session_id == sid), None)
+
+            # Check cache first
+            if session_info := find_in_cache(session_id):
+                return session_info
+
+            # Not in cache, refresh and try again
             try:
-                sessions = await self.list_sessions()
-                session_info = next((s for s in sessions if s.session_id == session_id), None)
-                if session_info:
-                    # Convert SessionInfo to SessionData
-                    updated_at = get_updated_at(session_info.updated_at)
-                    return SessionData(
-                        session_id=session_id,
-                        agent_name=self.name,
-                        conversation_id=session_id,
-                        cwd=session_info.cwd,
-                        last_active=updated_at,
-                        created_at=updated_at,
-                        metadata={"title": session_info.title} if session_info.title else {},
-                    )
+                await self.list_sessions()  # This populates cache
+                if session_info := find_in_cache(session_id):
+                    return session_info
             except Exception:  # noqa: BLE001
                 self.log.debug("Could not fetch session metadata", session_id=session_id)
 
