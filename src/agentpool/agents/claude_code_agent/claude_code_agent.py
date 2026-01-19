@@ -156,13 +156,9 @@ _MCP_TOOL_PATTERN = re.compile(r"^mcp__agentpool-(.+)-tools__(.+)$")
 
 # Thinking modes for extended thinking budget allocation
 ThinkingMode = Literal["off", "on"]
-
 # Map thinking mode to prompt instruction
 # "ultrathink" triggers ~32k token thinking budget in Claude Code
-THINKING_MODE_PROMPTS: dict[ThinkingMode, str] = {
-    "off": "",
-    "on": "ultrathink",
-}
+THINKING_MODE_PROMPTS: dict[ThinkingMode, str] = {"off": "", "on": "ultrathink"}
 
 
 def _strip_mcp_prefix(tool_name: str) -> str:
@@ -1713,23 +1709,12 @@ if __name__ == "__main__":
 
     os.environ["ANTHROPIC_API_KEY"] = ""
 
-    # async def main() -> None:
-    #     """Demo: Basic call to Claude Code."""
-    #     async with ClaudeCodeAgent(name="demo", event_handlers=["detailed"]) as agent:
-    #         print("Response (streaming): ", end="", flush=True)
-    #         async for _ in agent.run_stream("What files are in the current directory?"):
-    #             pass
-
     async def main() -> None:
         """Demo: Basic call to Claude Code."""
-        from clawd_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
-
-        options = ClaudeAgentOptions(include_partial_messages=True)
-        client = ClaudeSDKClient(options=options)
-        await client.connect()
-        prompt = "Do one tool call. list the cwd"
-        await client.query(prompt)
-        async for message in client.receive_response():
-            print(message)
+        async with ClaudeCodeAgent(name="demo", event_handlers=["detailed"]) as agent:
+            # print("Response (streaming): ", end="", flush=True)
+            # async for _ in agent.run_stream("What files are in the current directory?"):
+            #     pass
+            await agent.list_sessions()
 
     anyio.run(main)

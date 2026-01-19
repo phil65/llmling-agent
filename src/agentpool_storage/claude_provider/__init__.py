@@ -9,7 +9,7 @@ design decisions.
 
 from __future__ import annotations
 
-from agentpool_storage.claude_provider.provider import (
+from agentpool_storage.claude_provider.models import (
     ClaudeApiMessage,
     ClaudeAssistantEntry,
     ClaudeBaseModel,
@@ -19,13 +19,13 @@ from agentpool_storage.claude_provider.provider import (
     ClaudeProgressData,
     ClaudeProgressEntry,
     ClaudeQueueOperationEntry,
-    ClaudeStorageProvider,
     ClaudeSummaryEntry,
     ClaudeSystemEntry,
     ClaudeUsage,
     ClaudeUserEntry,
     ClaudeUserMessage,
 )
+from agentpool_storage.claude_provider.provider import ClaudeStorageProvider
 
 __all__ = [
     "ClaudeApiMessage",

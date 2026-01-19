@@ -18,10 +18,9 @@ from datetime import datetime
 from decimal import Decimal
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
-from pydantic.alias_generators import to_camel
+from pydantic import TypeAdapter
 from pydantic_ai import RunUsage
 from pydantic_ai.messages import (
     ModelRequest,
@@ -39,6 +38,15 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.utils.now import get_now
 from agentpool_storage.base import StorageProvider
+from agentpool_storage.claude_provider.models import (
+    ClaudeApiMessage,
+    ClaudeAssistantEntry,
+    ClaudeJSONLEntry,
+    ClaudeMessageContent,
+    ClaudeUsage,
+    ClaudeUserEntry,
+    ClaudeUserMessage,
+)
 from agentpool_storage.models import TokenUsage
 
 
@@ -51,218 +59,8 @@ if TYPE_CHECKING:
     from agentpool_config.storage import ClaudeStorageConfig
     from agentpool_storage.models import ConversationData, MessageData, QueryFilters, StatsFilters
 
+
 logger = get_logger(__name__)
-
-
-# Claude JSONL message types
-
-StopReason = Literal["end_turn", "max_tokens", "stop_sequence", "tool_use"] | None
-ContentType = Literal["text", "tool_use", "tool_result", "thinking"]
-MessageType = Literal[
-    "user", "assistant", "queue-operation", "system", "summary", "file-history-snapshot"
-]
-UserType = Literal["external", "internal"]
-
-
-class ClaudeBaseModel(BaseModel):
-    """Base class for Claude history models."""
-
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-
-class ClaudeUsage(BaseModel):
-    """Token usage from Claude API response."""
-
-    input_tokens: int = 0
-    output_tokens: int = 0
-    cache_creation_input_tokens: int = 0
-    cache_read_input_tokens: int = 0
-
-
-class ClaudeMessageContent(BaseModel):
-    """Content block in Claude message.
-
-    Supports: text, tool_use, tool_result, thinking blocks.
-    """
-
-    type: ContentType
-    # For text blocks
-    text: str | None = None
-    # For tool_use blocks
-    id: str | None = None
-    name: str | None = None
-    input: dict[str, Any] | None = None
-    # For tool_result blocks
-    tool_use_id: str | None = None
-    content: list[dict[str, Any]] | str | None = None  # Can be array or string
-    is_error: bool | None = None
-    # For thinking blocks
-    thinking: str | None = None
-    signature: str | None = None
-
-
-class ClaudeApiMessage(BaseModel):
-    """Claude API message structure."""
-
-    model: str
-    id: str
-    type: Literal["message"] = "message"
-    role: Literal["assistant"]
-    content: str | list[ClaudeMessageContent]
-    stop_reason: StopReason = None
-    usage: ClaudeUsage = Field(default_factory=ClaudeUsage)
-
-
-class ClaudeUserMessage(BaseModel):
-    """User message content."""
-
-    role: Literal["user"]
-    content: str | list[ClaudeMessageContent]
-
-
-class ClaudeMessageEntryBase(ClaudeBaseModel):
-    """Base for user/assistant message entries."""
-
-    uuid: str
-    parent_uuid: str | None = None
-    session_id: str = Field(alias="sessionId")
-    timestamp: str
-    message: ClaudeApiMessage | ClaudeUserMessage
-
-    # Context (NOT USED directly)
-    cwd: str = ""
-    git_branch: str = ""
-    version: str = ""
-
-    # Metadata (NOT USED)
-    user_type: UserType = "external"
-    is_sidechain: bool = False
-    request_id: str | None = None
-    agent_id: str | None = None
-    # toolUseResult can be list, dict, or string (error message)
-    tool_use_result: list[dict[str, Any]] | dict[str, Any] | str | None = None
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class ClaudeUserEntry(ClaudeMessageEntryBase):
-    """User message entry."""
-
-    type: Literal["user"]
-
-
-class ClaudeAssistantEntry(ClaudeMessageEntryBase):
-    """Assistant message entry."""
-
-    type: Literal["assistant"]
-
-
-class ClaudeQueueOperationEntry(ClaudeBaseModel):
-    """Queue operation entry (not a message)."""
-
-    type: Literal["queue-operation"]
-    session_id: str
-    timestamp: str
-    operation: str
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class ClaudeSystemEntry(ClaudeBaseModel):
-    """System message entry (context, prompts, etc.)."""
-
-    type: Literal["system"]
-    uuid: str
-    parent_uuid: str | None = None
-    session_id: str
-    timestamp: str
-    content: str | None = None  # Optional for subtypes like turn_duration
-    subtype: str | None = None
-    duration_ms: int | None = None  # For turn_duration subtype
-    slug: str | None = None
-    level: int | str | None = None
-    is_meta: bool = False
-    logical_parent_uuid: str | None = None
-    compact_metadata: dict[str, Any] | None = None
-    # Common fields
-    cwd: str = ""
-    git_branch: str = ""
-    version: str = ""
-    user_type: UserType = "external"
-    is_sidechain: bool = False
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class ClaudeSummaryEntry(ClaudeBaseModel):
-    """Summary entry (conversation summary)."""
-
-    type: Literal["summary"]
-    leaf_uuid: str
-    summary: str
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class ClaudeFileHistoryEntry(ClaudeBaseModel):
-    """File history snapshot entry."""
-
-    type: Literal["file-history-snapshot"]
-    message_id: str
-    snapshot: dict[str, Any]
-    is_snapshot_update: bool = False
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class ClaudeProgressData(ClaudeBaseModel):
-    """Progress data for MCP tool operations."""
-
-    type: Literal["bash_progress", "mcp_progress"] | str  # e.g., "mcp_progress"  # noqa: PYI051
-    status: str | None = None  # e.g., "started", "completed"
-    server_name: str | None = None
-    tool_name: str | None = None
-    elapsed_time_ms: int | None = None
-    output: str | None = None  # for bash_progress
-    full_output: str | None = None  # for bash_progress
-    elapsed_time_seconds: int | None = None  # for bash_progress
-    total_lines: int | None = None  # for bash_progress
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class ClaudeProgressEntry(ClaudeBaseModel):
-    """Progress entry for tracking tool execution status."""
-
-    type: Literal["progress"]
-    uuid: str
-    parent_uuid: str | None = None
-    session_id: str
-    timestamp: str
-    data: ClaudeProgressData
-    tool_use_id: str | None = None
-    parent_tool_use_id: str | None = None
-    # Common fields
-    cwd: str = ""
-    git_branch: str = ""
-    version: str = ""
-    user_type: UserType = "external"
-    is_sidechain: bool = False
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
-# Discriminated union for all entry types
-ClaudeJSONLEntry = Annotated[
-    ClaudeUserEntry
-    | ClaudeAssistantEntry
-    | ClaudeQueueOperationEntry
-    | ClaudeSystemEntry
-    | ClaudeSummaryEntry
-    | ClaudeFileHistoryEntry
-    | ClaudeProgressEntry,
-    Field(discriminator="type"),
-]
 
 
 class ClaudeStorageProvider(StorageProvider):
@@ -421,7 +219,10 @@ class ClaudeStorageProvider(StorageProvider):
                     entries.append(entry)
                 except (json.JSONDecodeError, ValueError) as e:
                     logger.warning(
-                        "Failed to parse JSONL line", path=str(session_path), error=str(e)
+                        "Failed to parse JSONL line",
+                        path=str(session_path),
+                        error=str(e),
+                        raw_line=raw_line,
                     )
         return entries
 
@@ -999,13 +800,13 @@ class ClaudeStorageProvider(StorageProvider):
 
         for _session_id, session_path in sessions:
             entries = self._read_session(session_path)
-            message_entries = [
+            msg_entries = [
                 e for e in entries if isinstance(e, (ClaudeUserEntry, ClaudeAssistantEntry))
             ]
 
-            if message_entries:
+            if msg_entries:
                 conv_count += 1
-                msg_count += len(message_entries)
+                msg_count += len(msg_entries)
 
         return conv_count, msg_count
 
@@ -1165,11 +966,11 @@ class ClaudeStorageProvider(StorageProvider):
                 raise ValueError(err)
         else:
             # Find last message
-            message_entries = [
+            msg_entries = [
                 e for e in entries if isinstance(e, (ClaudeUserEntry, ClaudeAssistantEntry))
             ]
-            if message_entries:
-                fork_point_id = message_entries[-1].uuid
+            if msg_entries:
+                fork_point_id = msg_entries[-1].uuid
 
         # Create new session file (empty for now - will be populated when messages added)
         # Determine project from source path structure
@@ -1179,3 +980,11 @@ class ClaudeStorageProvider(StorageProvider):
         new_path.touch()
 
         return fork_point_id
+
+
+if __name__ == "__main__":
+    from agentpool_config.storage import ClaudeStorageConfig
+
+    cfg = ClaudeStorageConfig()
+    provider = ClaudeStorageProvider(cfg)
+    print(provider._list_sessions())
