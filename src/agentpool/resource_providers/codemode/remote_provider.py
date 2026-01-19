@@ -91,7 +91,7 @@ class RemoteCodeModeResourceProvider(CodeModeResourceProvider):
         full_code = f"{PROGRESS_HELPER}\n\n{python_code}"
         logger.info("Complete code", code=full_code)
         try:
-            result = await code_provider.execute_code(full_code, title)
+            result = await code_provider.execute_code(full_code, title, internal_fs=ctx.internal_fs)
         except Exception as e:  # noqa: BLE001
             return f"Error in secure execution: {e!s}"
         else:

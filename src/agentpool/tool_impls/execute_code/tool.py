@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from exxec import ExecutionEnvironment
-    from fsspec.asyn import AsyncFileSystem
 
 
 logger = get_logger(__name__)
@@ -43,14 +42,6 @@ class ExecuteCodeTool(Tool[str]):
     env: ExecutionEnvironment | None = None
     """Execution environment to use. Falls back to agent.env if not set."""
 
-    def __post_init__(self) -> None:
-        """Initialize filesystem for script history after dataclass init."""
-        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
-        from fsspec.implementations.memory import MemoryFileSystem
-
-        self._memory_fs = MemoryFileSystem()
-        self._fs = AsyncFileSystemWrapper(self._memory_fs)
-
     def get_callable(self) -> Callable[..., Awaitable[str]]:
         """Return the execute method as the callable."""
         return self._execute
@@ -60,16 +51,6 @@ class ExecuteCodeTool(Tool[str]):
         if self.env is not None:
             return self.env
         return ctx.agent.env
-
-    def get_fs(self) -> AsyncFileSystem:
-        """Get filesystem view of script history.
-
-        Returns:
-            AsyncFileSystem containing:
-            - scripts/{timestamp}_{title}.py - Executed scripts
-            - scripts/{timestamp}_{title}.json - Execution metadata
-        """
-        return self._fs
 
     async def _execute(
         self,
@@ -141,13 +122,13 @@ class ExecuteCodeTool(Tool[str]):
             error_msg = str(e)
             result_str = f"Error executing code: {e}"
         finally:
-            # Save to filesystem
+            # Save to agent's internal filesystem
             end_time = datetime.now(UTC)
             timestamp = end_time.strftime("%Y%m%d_%H%M%S")
 
             # Write script file
-            script_path = f"scripts/{timestamp}_{title}.py"
-            self._memory_fs.pipe(script_path, code.encode("utf-8"))
+            script_path = f"execute_code/scripts/{timestamp}_{title}.py"
+            ctx.internal_fs.pipe(script_path, code.encode("utf-8"))
 
             # Write metadata file
             metadata = {
@@ -157,7 +138,7 @@ class ExecuteCodeTool(Tool[str]):
                 "result": result_str,
                 "error": error_msg,
             }
-            metadata_path = f"scripts/{timestamp}_{title}.json"
-            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
+            metadata_path = f"execute_code/scripts/{timestamp}_{title}.json"
+            ctx.internal_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
 
         return result_str

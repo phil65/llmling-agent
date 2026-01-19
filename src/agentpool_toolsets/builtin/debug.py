@@ -7,18 +7,12 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 import json
 import logging
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
-from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
-from fsspec.implementations.memory import MemoryFileSystem
 from pydantic_ai import RunContext  # noqa: TC002
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.resource_providers import StaticResourceProvider
-
-
-if TYPE_CHECKING:
-    from fsspec.asyn import AsyncFileSystem
 
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -253,9 +247,6 @@ class DebugTools(StaticResourceProvider):
         """
         super().__init__(name=name)
         self._namespace_storage: dict[str, Any] = {}  # Stateful storage for introspection
-        # Wrap MemoryFileSystem for async support
-        self._memory_fs = MemoryFileSystem()
-        self._fs = AsyncFileSystemWrapper(self._memory_fs)
 
         desc = (self.execute_introspection.__doc__ or "") + "\n\n" + INTROSPECTION_USAGE
         self._tools = [
@@ -264,16 +255,6 @@ class DebugTools(StaticResourceProvider):
             ),
             self.create_tool(get_platform_paths, category="other", read_only=True, idempotent=True),
         ]
-
-    def get_fs(self) -> AsyncFileSystem:
-        """Get filesystem view of script history and state.
-
-        Returns:
-            AsyncFileSystem containing:
-            - scripts/{timestamp}_{title}.py - Executed scripts
-            - scripts/{timestamp}_{title}.json - Execution metadata
-        """
-        return self._fs
 
     async def execute_introspection(  # noqa: D417
         self, ctx: AgentContext, run_ctx: RunContext[Any], code: str, title: str
@@ -337,14 +318,14 @@ class DebugTools(StaticResourceProvider):
             error_msg = f"{type(e).__name__}: {e}"
             result_str = error_msg
         finally:
-            # Save to filesystem
+            # Save to agent's internal filesystem
             end_time = datetime.now(UTC)
             duration = (end_time - start_time).total_seconds()
             timestamp = start_time.strftime("%Y%m%d_%H%M%S")
 
             # Write script file
-            script_path = f"scripts/{timestamp}_{title}.py"
-            self._memory_fs.pipe(script_path, code.encode())
+            script_path = f"debug/scripts/{timestamp}_{title}.py"
+            ctx.internal_fs.pipe(script_path, code.encode())
             # Write metadata file
             metadata = {
                 "title": title,
@@ -354,7 +335,7 @@ class DebugTools(StaticResourceProvider):
                 "result": result_str,
                 "error": error_msg,
             }
-            metadata_path = f"scripts/{timestamp}_{title}.json"
-            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode())
+            metadata_path = f"debug/scripts/{timestamp}_{title}.json"
+            ctx.internal_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode())
         assert result_str
         return result_str

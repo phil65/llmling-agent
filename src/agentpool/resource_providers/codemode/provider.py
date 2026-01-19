@@ -21,7 +21,6 @@ from agentpool_toolsets.fsspec_toolset.toolset import FSSpecTools
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from fsspec.asyn import AsyncFileSystem
     from schemez import ToolsetCodeGenerator
 
     from agentpool.resource_providers import ResourceProvider
@@ -50,13 +49,6 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         self.include_docstrings = include_docstrings
         self._cached_tool: Tool | None = None
         self.usage_notes = usage_notes
-
-        # Filesystem for script history
-        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
-        from fsspec.implementations.memory import MemoryFileSystem
-
-        self._memory_fs = MemoryFileSystem()
-        self._fs = AsyncFileSystemWrapper(self._memory_fs)
 
     async def get_tools(self) -> Sequence[Tool]:
         """Return single meta-tool for Python execution with available tools."""
@@ -125,14 +117,14 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
             error_msg = f"{e!s}"
             result_value = f"Error executing code: {error_msg}"
         finally:
-            # Save to filesystem
+            # Save to agent's internal filesystem
             end_time = datetime.now(UTC)
             duration = (end_time - start_time).total_seconds()
             timestamp = start_time.strftime("%Y%m%d_%H%M%S")
 
             # Write script file
-            script_path = f"scripts/{timestamp}_{title}.py"
-            self._memory_fs.pipe(script_path, python_code.encode("utf-8"))
+            script_path = f"codemode/scripts/{timestamp}_{title}.py"
+            ctx.internal_fs.pipe(script_path, python_code.encode("utf-8"))
 
             # Write metadata file
             metadata = {
@@ -143,8 +135,8 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
                 "result": str(result_value),
                 "error": error_msg,
             }
-            metadata_path = f"scripts/{timestamp}_{title}.json"
-            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
+            metadata_path = f"codemode/scripts/{timestamp}_{title}.json"
+            ctx.internal_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
 
         return result_value
 
@@ -157,16 +149,6 @@ class CodeModeResourceProvider(AggregatingResourceProvider):
         """Get fresh toolset generator with current tools."""
         tools = await super().get_tools()
         return tools_to_codegen(tools=tools, include_docstrings=self.include_docstrings)
-
-    def get_fs(self) -> AsyncFileSystem:
-        """Get filesystem view of script history.
-
-        Returns:
-            AsyncFileSystem containing:
-            - scripts/{timestamp}_{title}.py - Executed scripts
-            - scripts/{timestamp}_{title}.json - Execution metadata
-        """
-        return self._fs
 
 
 if __name__ == "__main__":

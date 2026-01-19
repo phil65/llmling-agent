@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from exxec.models import ServerInfo
     from exxec_config import ExecutionEnvironmentConfig
     from fastapi import FastAPI
-    from fsspec.asyn import AsyncFileSystem
+    from fsspec.implementations.memory import MemoryFileSystem
     from schemez import ToolsetCodeGenerator
     import uvicorn
 
@@ -51,11 +51,10 @@ class RemoteCodeExecutor:
 
     def __post_init__(self) -> None:
         """Initialize filesystem for script history after dataclass init."""
-        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+        # Fallback filesystem if none provided to execute_code
         from fsspec.implementations.memory import MemoryFileSystem
 
-        self._memory_fs = MemoryFileSystem()
-        self._fs = AsyncFileSystemWrapper(self._memory_fs)
+        self._fallback_fs = MemoryFileSystem()
 
     @classmethod
     def from_tools(
@@ -89,26 +88,23 @@ class RemoteCodeExecutor:
         """Get comprehensive description of available tools."""
         return self.toolset_generator.generate_tool_description()
 
-    def get_fs(self) -> AsyncFileSystem:
-        """Get filesystem view of script history.
-
-        Returns:
-            AsyncFileSystem containing:
-            - scripts/{timestamp}_{title}.py - Executed scripts
-            - scripts/{timestamp}_{title}.json - Execution metadata
-        """
-        return self._fs
-
-    async def execute_code(self, code: str, title: str) -> Any:
+    async def execute_code(
+        self,
+        code: str,
+        title: str,
+        internal_fs: MemoryFileSystem | None = None,
+    ) -> Any:
         """Execute code with tools available via HTTP API.
 
         Args:
             code: Python code to execute
             title: Short descriptive title for this script (3-4 words)
+            internal_fs: Filesystem to write script history to (uses fallback if None)
 
         Returns:
             Execution result from the environment
         """
+        fs = internal_fs or self._fallback_fs
         start_time = datetime.now(UTC)
         exit_code = 0
         error_msg: str | None = None
@@ -131,14 +127,14 @@ class RemoteCodeExecutor:
             error_msg = str(e)
             result_str = f"Error executing code: {error_msg}"
         finally:
-            # Save to filesystem
+            # Save to filesystem (agent's internal_fs or fallback)
             end_time = datetime.now(UTC)
             duration = (end_time - start_time).total_seconds()
             timestamp = start_time.strftime("%Y%m%d_%H%M%S")
 
             # Write script file
-            script_path = f"scripts/{timestamp}_{title}.py"
-            self._memory_fs.pipe(script_path, code.encode("utf-8"))
+            script_path = f"remote_code/scripts/{timestamp}_{title}.py"
+            fs.pipe(script_path, code.encode("utf-8"))
 
             # Write metadata file
             metadata = {
@@ -149,8 +145,8 @@ class RemoteCodeExecutor:
                 "result": result_str,
                 "error": error_msg,
             }
-            metadata_path = f"scripts/{timestamp}_{title}.json"
-            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
+            metadata_path = f"remote_code/scripts/{timestamp}_{title}.json"
+            fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
 
         return exec_result
 
