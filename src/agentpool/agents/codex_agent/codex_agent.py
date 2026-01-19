@@ -506,19 +506,11 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         return self  # type: ignore[return-value]
 
     async def set_model(self, model: str) -> None:
-        """Set the model for this agent.
-
-        Args:
-            model: Model identifier
-        """
+        """Set the model for this agent."""
         await self._set_mode(model, "model")
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
-        """Set tool confirmation mode.
-
-        Args:
-            mode: Tool confirmation mode
-        """
+        """Set tool confirmation mode."""
         self.tool_confirmation_mode = mode
         self.log.info("Tool confirmation mode updated", mode=mode)
 
@@ -572,13 +564,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             return models
 
     async def get_modes(self) -> list[ModeCategory]:
-        """Get available mode categories for Codex agent.
-
-        Codex exposes approval policy, reasoning effort levels, and model selection.
-
-        Returns:
-            List of ModeCategory for approval policy, reasoning effort, and models
-        """
+        """Get available mode categories for Codex agent (approval poliy, effort, model)."""
         from agentpool.agents.codex_agent.static_info import (
             EFFORT_MODES,
             POLICY_MODES,
@@ -644,44 +630,26 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         """Handle approval_policy, reasoning_effort, and model mode switching."""
         from agentpool.agents.modes import ConfigOptionChanged
 
-        # Handle based on category
         if category_id == "mode":
             if mode_id not in ["never", "on-request", "on-failure", "untrusted"]:
                 raise ValueError(f"Invalid approval policy: {mode_id}")
-
-            # Update instance attribute (doesn't require thread restart)
-            # Type assertion: we've already validated mode_id is one of the valid values
             self._approval_policy = mode_id  # type: ignore[assignment]
-            change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
-            await self.state_updated.emit(change)
-            self.log.info("Approval policy changed", policy=mode_id)
-
         elif category_id == "thought_level":
             if mode_id not in ["low", "medium", "high", "xhigh"]:
                 raise ValueError(f"Invalid reasoning effort: {mode_id}")
-
-            # Just store it - effort is passed per-turn, no restart needed
             self._current_effort = mode_id  # type: ignore[assignment]
-            self.log.info("Reasoning effort changed", effort=mode_id)
-            change = ConfigOptionChanged(config_id="thought_level", value_id=mode_id)
-            await self.state_updated.emit(change)
         elif category_id == "model":
-            # Set model directly
             self._current_model = mode_id
-            self.log.info("Model changed", model=mode_id)
-            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
-
         elif category_id == "sandbox":
             valid = ["read-only", "workspace-write", "danger-full-access", "external-sandbox"]
             if mode_id not in valid:
                 raise ValueError(f"Invalid sandbox mode: {mode_id}. Valid: {valid}")
             self._current_sandbox = mode_id  # type: ignore[assignment]
-            self.log.info("Sandbox mode changed", sandbox=mode_id)
-            change = ConfigOptionChanged(config_id="sandbox", value_id=mode_id)
-            await self.state_updated.emit(change)
-
         else:
             raise ValueError(f"Unknown category: {category_id}")
+        self.log.info("Config option changed", category=category_id, value=mode_id)
+        change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
+        await self.state_updated.emit(change)
 
     async def list_sessions(
         self,
@@ -689,24 +657,15 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         cwd: str | None = None,
         limit: int | None = None,
     ) -> list[SessionInfo]:
-        """List threads from Codex server.
-
-        Queries the Codex server for available threads (sessions).
-
-        Returns:
-            List of SessionInfo objects converted from Codex ThreadData
-        """
+        """List threads ("sessions") from Codex server."""
         from agentpool.sessions.models import SessionData
 
         if not self._client:
             return []
         try:
-            # Pass limit to Codex server request
             response = await self._client.thread_list(limit=limit)
             result: list[SessionInfo] = []
             for thread_data in response.data:
-                # Convert Codex ThreadData to SessionData
-                # created_at is Unix timestamp (seconds)
                 created_at = datetime.fromtimestamp(thread_data.created_at, tz=UTC)
                 session_data = SessionData(
                     session_id=thread_data.id,
