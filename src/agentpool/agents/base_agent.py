@@ -666,8 +666,8 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             await event_queue.put(event)
 
         # Temporarily set event handler on command store
-        old_handler = self._command_store._event_handler
-        self._command_store._event_handler = emit_event
+        old_handler = self._command_store.event_handler
+        self._command_store.event_handler = emit_event
 
         try:
             cmd_ctx = self._command_store.create_context(data=self.get_context())
@@ -712,7 +712,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             yield CommandCompleteEvent(command=cmd_name, success=success)
 
         finally:
-            self._command_store._event_handler = old_handler
+            self._command_store.event_handler = old_handler
 
     async def run_stream_with_commands(
         self,

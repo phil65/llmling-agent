@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from types import TracebackType
 
-    from fsspec.asyn import AsyncFileSystem
     from pydantic_ai import ModelRequestPart
     from schemez import OpenAIFunctionDefinition
 
@@ -134,15 +133,6 @@ class ResourceProvider:
     async def get_skills(self) -> list[Skill]:
         """Get available skills. Override to provide skills."""
         return []
-
-    def get_fs(self) -> AsyncFileSystem | None:
-        """Get filesystem view of provider state/history.
-
-        Returns:
-            AsyncFileSystem or None if not supported.
-            Override to expose provider state through filesystem interface.
-        """
-        return None
 
     async def get_skill_instructions(self, skill_name: str) -> str:
         """Get full instructions for a specific skill.
