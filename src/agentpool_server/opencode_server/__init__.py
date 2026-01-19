@@ -5,15 +5,17 @@ allowing OpenCode SDK clients to interact with AgentPool agents.
 
 Example usage:
 
+    from agentpool import AgentPool
     from agentpool_server.opencode_server import OpenCodeServer
 
-    server = OpenCodeServer(port=4096)
-    server.run()
+    async with AgentPool("config.yml") as pool:
+        server = OpenCodeServer(pool.main_agent, port=4096)
+        await server.run_async()
 
 Or programmatically:
 
     from agentpool_server.opencode_server import create_app
 
-    app = create_app(working_dir="/path/to/project")
+    app = create_app(agent=my_agent, working_dir="/path/to/project")
     # Use with uvicorn or other ASGI server
 """

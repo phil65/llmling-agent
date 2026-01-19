@@ -95,11 +95,10 @@ def opencode_command(
     async def run_server() -> None:
         async with pool:
             server = OpenCodeServer(
-                pool,
+                pool.main_agent,
                 host=host,
                 port=port,
                 working_dir=working_dir,
-                agent_name=agent,
             )
             logger.info("Server starting", url=f"http://{host}:{port}")
             await server.run_async()

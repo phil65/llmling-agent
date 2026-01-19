@@ -15,7 +15,6 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 
-from agentpool import AgentPool
 from agentpool_server.opencode_server.routes import (
     agent_router,
     app_router,
@@ -45,6 +44,7 @@ class OpenCodeJSONResponse(JSONResponse):
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Set as AbstractSet
 
+    from agentpool.agents.base_agent import BaseAgent
     from agentpool.storage.manager import TitleGeneratedEvent
 
 
@@ -95,39 +95,29 @@ def compare_versions(current: str, latest: str) -> bool:
 
 def create_app(  # noqa: PLR0915
     *,
-    pool: AgentPool[Any],
-    agent_name: str | None = None,
+    agent: BaseAgent[Any, Any],
     working_dir: str | None = None,
 ) -> FastAPI:
     """Create the FastAPI application.
 
     Args:
-        pool: AgentPool for session persistence and agent access.
-        agent_name: Name of the agent to use for handling messages.
-                   If None, uses the pool's default agent.
+        agent: The agent to use for handling messages. Must have agent_pool set.
         working_dir: Working directory for file operations. Defaults to cwd.
 
     Returns:
         Configured FastAPI application.
 
     Raises:
-        ValueError: If specified agent_name not found or pool has no agents.
+        ValueError: If agent has no agent_pool set.
     """
-    # Resolve the agent from the pool
     import logfire
 
-    if agent_name:
-        agent = pool.all_agents.get(agent_name)
-        if agent is None:
-            msg = f"Agent '{agent_name}' not found in pool"
-            raise ValueError(msg)
-    else:
-        # Use default agent from pool
-        agent = pool.main_agent
+    if agent.agent_pool is None:
+        msg = "Agent must have agent_pool set"
+        raise ValueError(msg)
 
     state = ServerState(
         working_dir=working_dir or str(Path.cwd()),
-        pool=pool,
         agent=agent,
     )
 
@@ -146,7 +136,7 @@ def create_app(  # noqa: PLR0915
             event = TodoUpdatedEvent.create(session_id=session_id, todos=todos)
             await state.broadcast_event(event)
 
-    pool.todos.on_change = on_todo_change
+    state.pool.todos.on_change = on_todo_change
 
     # Set up title generation callback to update OpenCode sessions
 
@@ -181,8 +171,8 @@ def create_app(  # noqa: PLR0915
             log.warning("Session %s not found in state.sessions", session_id)
 
     # Connect to storage manager's title_generated signal
-    if pool.storage:
-        pool.storage.title_generated.connect(on_title_generated)
+    if state.pool.storage:
+        state.pool.storage.title_generated.connect(on_title_generated)
 
     # Watchers for VCS and file events
     git_branch_watcher: Any = None
@@ -283,12 +273,11 @@ def create_app(  # noqa: PLR0915
         # Register callback to run when first SSE client connects
         state.on_first_subscriber = check_for_updates
 
-        # Enter pool context to initialize session store and other components
-        async with pool:
-            yield
+        # Pool context is managed externally (by the caller)
+        yield
 
         # Shutdown - clean up
-        pool.todos.on_change = None
+        state.pool.todos.on_change = None
         if git_branch_watcher:
             await git_branch_watcher.stop()
         if project_file_watcher:
@@ -406,26 +395,23 @@ class OpenCodeServer:
 
     def __init__(
         self,
-        pool: AgentPool[Any],
+        agent: BaseAgent[Any, Any],
         *,
         host: str = "127.0.0.1",
         port: int = 4096,
-        agent_name: str | None = None,
         working_dir: str | None = None,
     ) -> None:
         """Initialize the server.
 
         Args:
-            pool: AgentPool for session persistence and agent access.
+            agent: The agent to use for handling messages. Must have agent_pool set.
             host: Host to bind to.
             port: Port to listen on.
-            agent_name: Name of the agent to use for handling messages.
             working_dir: Working directory for file operations.
         """
         self.host = host
         self.port = port
-        self.pool = pool
-        self.agent_name = agent_name
+        self.agent = agent
         self.working_dir = working_dir
         self._app: FastAPI | None = None
 
@@ -434,8 +420,7 @@ class OpenCodeServer:
         """Get or create the FastAPI application."""
         if self._app is None:
             self._app = create_app(
-                pool=self.pool,
-                agent_name=self.agent_name,
+                agent=self.agent,
                 working_dir=self.working_dir,
             )
         return self._app
@@ -456,34 +441,37 @@ class OpenCodeServer:
 
 
 def run_server(
-    pool: AgentPool[Any],
+    agent: BaseAgent[Any, Any],
     *,
     host: str = "127.0.0.1",
     port: int = 4096,
-    agent_name: str | None = None,
     working_dir: str | None = None,
 ) -> None:
     """Run the OpenCode-compatible server.
 
     Args:
-        pool: AgentPool for session persistence and agent access.
+        agent: The agent to use for handling messages. Must have agent_pool set.
         host: Host to bind to.
         port: Port to listen on.
-        agent_name: Name of the agent to use for handling messages.
         working_dir: Working directory for file operations.
     """
     server = OpenCodeServer(
-        pool,
+        agent,
         host=host,
         port=port,
-        agent_name=agent_name,
         working_dir=working_dir,
     )
     server.run()
 
 
 if __name__ == "__main__":
-    from agentpool import config_resources
+    import asyncio
 
-    pool = AgentPool(config_resources.CLAUDE_CODE_ASSISTANT)
-    run_server(pool)
+    from agentpool import AgentPool, config_resources
+
+    async def main() -> None:
+        pool = AgentPool(config_resources.CLAUDE_CODE_ASSISTANT)
+        async with pool:
+            run_server(pool.main_agent)
+
+    asyncio.run(main())

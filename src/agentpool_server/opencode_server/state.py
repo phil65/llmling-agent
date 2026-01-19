@@ -50,12 +50,11 @@ class PendingQuestion:
 class ServerState:
     """Shared state for the OpenCode server.
 
-    Uses AgentPool for session persistence and storage.
+    Uses agent.agent_pool for session persistence and storage.
     In-memory state tracks active sessions and runtime data.
     """
 
     working_dir: str
-    pool: AgentPool[Any]
     agent: BaseAgent[Any, Any]
     start_time: float = field(default_factory=time.time)
 
@@ -98,6 +97,14 @@ class ServerState:
 
     # LSP manager for language server integration (initialized lazily)
     lsp_manager: LSPManager | None = None
+
+    @property
+    def pool(self) -> AgentPool[Any]:
+        """Get the agent pool from the agent."""
+        if self.agent.agent_pool is None:
+            msg = "Agent has no agent_pool set"
+            raise RuntimeError(msg)
+        return self.agent.agent_pool
 
     def create_background_task(self, coro: Any, *, name: str | None = None) -> asyncio.Task[Any]:
         """Create and track a background task."""
