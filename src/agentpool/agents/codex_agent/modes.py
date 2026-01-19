@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 from agentpool.agents.modes import ConfigOptionChanged, ModeCategoryProtocol, ModeInfo
@@ -124,7 +123,6 @@ class CodexApprovalCategory(ModeCategoryProtocol["CodexAgent"]):
 
         agent._approval_policy = mode_id  # type: ignore[assignment]
         agent.log.info("Approval policy changed", policy=mode_id)
-
         change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
         await agent.state_updated.emit(change)
 
@@ -143,35 +141,12 @@ class CodexEffortCategory(ModeCategoryProtocol["CodexAgent"]):
 
     async def apply(self, agent: CodexAgent, mode_id: str) -> None:
         """Apply reasoning effort mode."""
-        valid_ids = {m.id for m in self.available_modes}
-        if mode_id not in valid_ids:
-            msg = f"Invalid mode '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
+        if mode_id not in (valid_ids := {m.id for m in self.available_modes}):
+            msg = f"Invalid mode {mode_id!r} for category {self.id!r}. Valid: {valid_ids}"
             raise ValueError(msg)
-
-        if not agent._client or not agent._sdk_session_id:
-            # Store for initialization
-            agent._current_effort = mode_id  # type: ignore[assignment]
-            agent.log.info("Reasoning effort set for initialization", effort=mode_id)
-        else:
-            # Archive and restart with new effort
-            old_thread_id = agent._sdk_session_id
-            await agent._client.thread_archive(old_thread_id)
-            cwd = str(agent.config.cwd or Path.cwd())
-            thread = await agent._client.thread_start(
-                cwd=cwd,
-                model=agent._current_model or agent.config.model,
-                base_instructions=agent.config.base_instructions,
-                developer_instructions=agent.config.developer_instructions,
-            )
-            agent._sdk_session_id = thread.id
-            agent._current_effort = mode_id  # type: ignore[assignment]
-            agent.log.info(
-                "Reasoning effort changed - new thread started",
-                old_thread=old_thread_id,
-                new_thread=agent._sdk_session_id,
-                effort=mode_id,
-            )
-
+        # Just store it - effort is passed per-turn, no restart needed
+        agent._current_effort = mode_id  # type: ignore[assignment]
+        agent.log.info("Reasoning effort changed", effort=mode_id)
         change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
         await agent.state_updated.emit(change)
 
@@ -217,6 +192,5 @@ class CodexModelCategory(ModeCategoryProtocol["CodexAgent"]):
         # Model validation is optional since models are dynamic
         agent._current_model = mode_id
         agent.log.info("Model changed", model=mode_id)
-
         change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
         await agent.state_updated.emit(change)

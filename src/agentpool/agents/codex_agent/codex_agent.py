@@ -394,6 +394,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                     self._sdk_session_id,
                     input_items,
                     model=self._current_model,
+                    effort=self._current_effort,
                     approval_policy=self._approval_policy,
                     sandbox_policy=self._current_sandbox,
                     output_schema=output_schema,
@@ -659,43 +660,15 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             if mode_id not in ["low", "medium", "high", "xhigh"]:
                 raise ValueError(f"Invalid reasoning effort: {mode_id}")
 
-            if not self._client or not self._sdk_session_id:
-                # Store for initialization
-                # Type assertion: we've already validated mode_id is one of the valid values
-                self._current_effort = mode_id  # type: ignore[assignment]
-                self.log.info("Reasoning effort set for initialization", effort=mode_id)
-                return
-
-            # Archive and restart with new effort
-            old_thread_id = self._sdk_session_id
-            await self._client.thread_archive(old_thread_id)
-            cwd = str(self.config.cwd or Path.cwd())
-            thread = await self._client.thread_start(
-                cwd=cwd,
-                model=self._current_model or self.config.model,
-                base_instructions=self.config.base_instructions,
-                developer_instructions=self.config.developer_instructions,
-                sandbox=self._current_sandbox,
-            )
-            self._sdk_session_id = thread.id
-            # Type assertion: we've already validated mode_id is one of the valid values
+            # Just store it - effort is passed per-turn, no restart needed
             self._current_effort = mode_id  # type: ignore[assignment]
-            self.log.info(
-                "Reasoning effort changed - new thread started",
-                old_thread=old_thread_id,
-                new_thread=self._sdk_session_id,
-                effort=mode_id,
-            )
-            # Emit state change signal
+            self.log.info("Reasoning effort changed", effort=mode_id)
             change = ConfigOptionChanged(config_id="thought_level", value_id=mode_id)
             await self.state_updated.emit(change)
         elif category_id == "model":
             # Set model directly
             self._current_model = mode_id
             self.log.info("Model changed", model=mode_id)
-            # Emit state change signal
-            from agentpool.agents.modes import ConfigOptionChanged
-
             await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
 
         elif category_id == "sandbox":
