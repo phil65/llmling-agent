@@ -23,6 +23,8 @@ from pydantic_ai import (
     ToolReturnPart,
 )
 
+from agentpool.messaging import ChatMessage
+
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -38,7 +40,7 @@ if TYPE_CHECKING:
     )
     from codex_adapter.codex_types import HttpMcpServer, McpServerConfig, StdioMcpServer
     from codex_adapter.events import CodexEvent
-    from codex_adapter.models import ThreadItem, TurnInputItem
+    from codex_adapter.models import ThreadItem, Turn, TurnInputItem
 
 
 @overload
@@ -482,3 +484,91 @@ def event_to_part(
         case "item/completed" if isinstance(event.data, ItemCompletedData):
             return _thread_item_to_tool_return_part(event.data.item)
     return None
+
+
+def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[str]]:
+    """Convert Codex turns to ChatMessage list for session loading.
+
+    Extracts user messages and assistant text from completed turns.
+    Tool calls are simplified to their text representation.
+
+    Args:
+        turns: List of Turn objects from Codex thread
+
+    Returns:
+        List of ChatMessages representing the conversation
+    """
+    from codex_adapter.models import (
+        ThreadItemAgentMessage,
+        ThreadItemCommandExecution,
+        ThreadItemFileChange,
+        ThreadItemMcpToolCall,
+        ThreadItemUserMessage,
+    )
+
+    messages: list[ChatMessage[str]] = []
+
+    for turn in turns:
+        # Each turn may have user message + assistant response
+        user_texts: list[str] = []
+        assistant_texts: list[str] = []
+        tool_summaries: list[str] = []
+
+        for item in turn.items:
+            match item:
+                case ThreadItemUserMessage():
+                    # Extract text from user input items
+                    for input_item in item.content:
+                        if hasattr(input_item, "text"):
+                            user_texts.append(input_item.text)  # pyright: ignore[reportAttributeAccessIssue]
+                case ThreadItemAgentMessage():
+                    # Extract text from agent message
+                    for element in item.content:
+                        if hasattr(element, "text"):
+                            assistant_texts.append(element.text)
+                case ThreadItemCommandExecution():
+                    # Include command as tool summary
+                    cmd = item.command
+                    output = (item.aggregated_output or "")[:200]  # Truncate long output
+                    if output:
+                        tool_summaries.append(f"[Executed: {cmd}]\n{output}")
+                    else:
+                        tool_summaries.append(f"[Executed: {cmd}]")
+                case ThreadItemFileChange():
+                    # Summarize file changes
+                    paths = [c.path for c in item.changes[:3]]
+                    if len(item.changes) > 3:  # noqa: PLR2004
+                        summary = f"[Files: {', '.join(paths)} +{len(item.changes) - 3} more]"
+                    else:
+                        summary = f"[Files: {', '.join(paths)}]"
+                    tool_summaries.append(summary)
+                case ThreadItemMcpToolCall():
+                    # Summarize MCP tool call
+                    result_preview = ""
+                    if item.result and item.result.content:
+                        texts = [str(b.model_dump().get("text", "")) for b in item.result.content]
+                        result_preview = " ".join(texts)[:100]
+                    tool_summaries.append(f"[Tool: {item.tool}] {result_preview}")
+
+        # Create user message if we have user content
+        if user_texts:
+            messages.append(
+                ChatMessage(
+                    content="\n".join(user_texts),
+                    role="user",
+                    message_id=f"{turn.id}-user",
+                )
+            )
+
+        # Create assistant message combining text and tool summaries
+        assistant_content_parts = assistant_texts + tool_summaries
+        if assistant_content_parts:
+            messages.append(
+                ChatMessage(
+                    content="\n\n".join(assistant_content_parts),
+                    role="assistant",
+                    message_id=f"{turn.id}-assistant",
+                )
+            )
+
+    return messages
