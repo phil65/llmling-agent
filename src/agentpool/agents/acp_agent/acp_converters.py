@@ -455,8 +455,3 @@ def mcp_config_to_acp(config: MCPServerConfig) -> McpServer:
 
         case _ as unreachable:
             assert_never(unreachable)
-
-
-def mcp_configs_to_acp(configs: Sequence[MCPServerConfig]) -> list[McpServer]:
-    """Convert a sequence of MCPServerConfig to ACP McpServer list."""
-    return [mcp_config_to_acp(config) for config in configs]

@@ -353,7 +353,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     async def _create_session(self) -> None:
         """Create a new ACP session with configured MCP servers."""
         from acp.schema import NewSessionRequest
-        from agentpool.agents.acp_agent.acp_converters import mcp_configs_to_acp
+        from agentpool.agents.acp_agent.acp_converters import mcp_config_to_acp
         from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities
 
         if not self._connection:
@@ -363,7 +363,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         all_servers = self._extra_mcp_servers[:]
         # Add servers from config (converted to ACP format)
         if config_servers := self.config.get_mcp_servers():
-            all_servers.extend(mcp_configs_to_acp(config_servers))
+            all_servers.extend([mcp_config_to_acp(config) for config in config_servers])
         mcp_servers = filter_servers_by_capabilities(all_servers, self._caps, logger=self.log)
         cwd = self.config.cwd or str(Path.cwd())
         session_request = NewSessionRequest(cwd=cwd, mcp_servers=mcp_servers)
@@ -800,7 +800,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     async def load_session(self, session_id: str) -> SessionData | None:
         """Load and restore a session from the remote ACP server."""
         from acp.schema import LoadSessionRequest
-        from agentpool.agents.acp_agent.acp_converters import mcp_configs_to_acp
+        from agentpool.agents.acp_agent.acp_converters import mcp_config_to_acp
         from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities
         from agentpool.sessions.models import SessionData
         from agentpool.utils.now import get_now
@@ -812,7 +812,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         try:  # Collect all MCP servers (config + extra) for the load request
             all_servers = self._extra_mcp_servers[:]
             if config_servers := self.config.get_mcp_servers():
-                all_servers.extend(mcp_configs_to_acp(config_servers))
+                all_servers.extend([mcp_config_to_acp(config) for config in config_servers])
             mcp_servers = filter_servers_by_capabilities(all_servers, self._caps, logger=self.log)
             cwd = self.config.cwd or str(Path.cwd())
             load_request = LoadSessionRequest(
