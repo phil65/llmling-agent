@@ -56,7 +56,6 @@ if TYPE_CHECKING:
     from agentpool import AgentPool
     from agentpool.agents.base_agent import BaseAgent
     from agentpool_server.acp_server.server import ACPServer
-    from agentpool_server.acp_server.session import ACPSession
 
 logger = get_logger(__name__)
 
@@ -347,136 +346,71 @@ class AgentPoolACPAgent(ACPAgent):
     async def load_session(self, params: LoadSessionRequest) -> LoadSessionResponse:
         """Load an existing session from storage.
 
-        This tries to:
-        1. Check if session is already active
-        2. If not, try to resume from persistent storage
-        3. Initialize MCP servers and other session resources
-        4. Replay conversation history via ACP notifications
-        5. Return session state (modes, models)
+        Delegates to the agent's load_session method, which populates agent.conversation.
+        Then replays the conversation to the client via ACP notifications.
         """
-        from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
-
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
 
         try:
-            # First check if session is already active
+            # Get or create an active session wrapper
             session = self.session_manager.get_session(params.session_id)
             if not session:
-                # Try to resume from storage
-                msg = "Attempting to resume session from storage"
-                logger.info(msg, session_id=params.session_id)
-                session = await self.session_manager.resume_session(
-                    session_id=params.session_id,
+                session_id = await self.session_manager.create_session(
+                    agent=self.default_agent,
+                    cwd=params.cwd or "",
                     client=self.client,
                     acp_agent=self,
+                    mcp_servers=params.mcp_servers,
                     client_capabilities=self.client_capabilities,
                     client_info=self.client_info,
+                    session_id=params.session_id,
                 )
+                session = self.session_manager.get_session(session_id)
 
             if not session:
-                logger.warning("Session not found in storage", session_id=params.session_id)
+                logger.error("Failed to create session")
                 return LoadSessionResponse()
 
-            # Update session with new request parameters if provided
-            if params.cwd and params.cwd != session.cwd:
-                session.cwd = params.cwd
-                logger.info("Updated session cwd", session_id=params.session_id, cwd=params.cwd)
+            # Load session via agent - this populates agent.conversation
+            result = await self.default_agent.load_session(params.session_id)
+            if not result:
+                logger.warning("Agent failed to load session", session_id=params.session_id)
+                return LoadSessionResponse()
 
-            # Initialize MCP servers if provided in load request
-            if params.mcp_servers:
-                session.mcp_servers = params.mcp_servers
-                await session.initialize_mcp_servers()
+            # Replay loaded conversation to client via ACP notifications
+            if self.default_agent.conversation.chat_messages:
+                model_messages: list[ModelRequest | ModelResponse] = []
+                for chat_msg in self.default_agent.conversation.chat_messages:
+                    if chat_msg.messages:
+                        model_messages.extend(chat_msg.messages)
 
+                if model_messages:
+                    await session.notifications.replay(model_messages)
+                    logger.info(
+                        "Conversation replayed",
+                        session_id=params.session_id,
+                        message_count=len(model_messages),
+                    )
+
+            # Build response with agent state
             mode_state: SessionModeState | None = None
             models: SessionModelState | None = None
-            config_opts: list[SessionConfigOption] = []
+            if hasattr(self.default_agent, "_state") and self.default_agent._state:
+                mode_state = self.default_agent._state.modes
+                models = self.default_agent._state.models
+            config_opts = await get_session_config_options(self.default_agent)
 
-            if isinstance(session.agent, ACPAgentClient):
-                # Nested ACP agent - pass through its state directly
-                if session.agent._state:
-                    mode_state = session.agent._state.modes
-                    models = session.agent._state.models
-                config_opts = await get_session_config_options(session.agent)
-            elif session.agent:
-                # Use unified helpers for all other agents
-                mode_state = await get_session_mode_state(session.agent)
-                models = await get_session_model_state(session.agent, session.agent.model_name)
-                config_opts = await get_session_config_options(session.agent)
-            else:
-                models = None
-            # Replay conversation history via ACP notifications BEFORE returning.
-            # Per ACP spec: "When all the conversation entries have been streamed
-            # to the Client, the Agent MUST respond to the original session/load request."
-            await self._replay_conversation_history(session)
-
-            # Schedule post-load initialization tasks (these can run in background)
+            # Schedule post-load tasks
             self.tasks.create_task(session.send_available_commands_update())
             self.tasks.create_task(session.init_project_context())
 
-            logger.info("Session loaded successfully", agent=session.current_agent_name)
+            logger.info("Session loaded", session_id=params.session_id)
             return LoadSessionResponse(models=models, modes=mode_state, config_options=config_opts)
 
         except Exception:
             logger.exception("Failed to load session", session_id=params.session_id)
             return LoadSessionResponse()
-
-    async def _replay_conversation_history(self, session: ACPSession) -> None:
-        """Replay conversation history for a loaded session via ACP notifications.
-
-        Per ACP spec, when loading a session the agent MUST replay the entire
-        conversation to the client via session/update notifications.
-
-        Args:
-            session: The ACP session to replay history for
-        """
-        from agentpool_config.session import SessionQuery
-
-        # Get session data to find conversation_id
-        session_data = await self.session_manager.session_manager.store.load(session.session_id)
-        if not session_data:
-            logger.warning("No session data found for replay", session_id=session.session_id)
-            return
-
-        # Get storage provider
-        pool = self.agent_pool
-        if not pool:
-            logger.debug("No pool available, skipping conversation replay")
-            return
-        storage = pool.storage
-        if not storage:
-            logger.debug("No storage provider, skipping conversation replay")
-            return
-
-        # Query messages by conversation_id
-        query = SessionQuery(name=session_data.conversation_id)
-        try:
-            chat_messages = await storage.filter_messages(query)
-        except NotImplementedError:
-            logger.debug("Storage provider doesn't support history loading")
-            return
-
-        if not chat_messages:
-            logger.debug("No messages to replay", session_id=session.session_id)
-            return
-
-        logger.info("Replaying conversation history", message_count=len(chat_messages))
-        # Extract ModelRequest/ModelResponse from ChatMessage.messages field
-        model_messages: list[ModelRequest | ModelResponse] = []
-        for chat_msg in chat_messages:
-            if chat_msg.messages:
-                model_messages.extend(chat_msg.messages)
-
-        if not model_messages:
-            logger.debug("No model messages to replay", session_id=session.session_id)
-            return
-
-        # Use ACPNotifications.replay() which handles all content types properly
-        try:
-            await session.notifications.replay(model_messages)
-            logger.info("Conversation replay complete", replayed_count=len(model_messages))
-        except Exception as e:  # noqa: BLE001
-            logger.warning("Failed to replay conversation history", error=str(e))
 
     async def list_sessions(self, params: ListSessionsRequest) -> ListSessionsResponse:
         """List available sessions.
