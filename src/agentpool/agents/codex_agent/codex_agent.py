@@ -540,9 +540,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             return None
 
         try:
-            models_data = await self._client.model_list()
             models = []
-            for model_data in models_data:
+            for model_data in await self._client.model_list():
                 # Infer provider from model name
                 model_id = model_data.model or model_data.id
                 # Use display_name and description from API if available
