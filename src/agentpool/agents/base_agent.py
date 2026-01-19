@@ -901,3 +901,29 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             SessionData if session was found and loaded, None otherwise
         """
         ...
+
+    async def resume_session(self, session_id: str) -> SessionData | None:
+        """Resume a session by ID without loading conversation history.
+
+        Unlike load_session, this does NOT populate conversation.chat_messages.
+        It restores the agent's internal state so the conversation can continue,
+        but assumes the client already has the history (or doesn't need it).
+
+        This is useful for:
+        - Reconnecting after a disconnect
+        - Automated workflows that don't need UI history
+        - Faster session switching when history display isn't needed
+
+        Default implementation calls load_session (subclasses may optimize).
+
+        UNSTABLE: This feature is not part of the ACP spec yet.
+
+        Args:
+            session_id: Unique identifier for the session to resume
+
+        Returns:
+            SessionData if session was found and resumed, None otherwise
+        """
+        # Default: just delegate to load_session
+        # Subclasses can override to skip history loading for efficiency
+        return await self.load_session(session_id)

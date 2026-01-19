@@ -212,6 +212,7 @@ class InitializeResponse(Response):
         embedded_context_prompts: bool = False,
         image_prompts: bool = False,
         list_sessions: bool = False,
+        resume_session: bool = False,
         auth_methods: Sequence[AuthMethod] | None = None,
     ) -> Self:
         """Create an instance of AgentCapabilities.
@@ -228,6 +229,7 @@ class InitializeResponse(Response):
             embedded_context_prompts: Whether the agent supports embedded context prompts.
             image_prompts: Whether the agent supports image prompts.
             list_sessions: Whether the agent supports `session/list` (unstable).
+            resume_session: Whether the agent supports `session/resume` (unstable).
             auth_methods: The authentication methods supported by the agent.
         """
         caps = AgentCapabilities.create(
@@ -238,6 +240,7 @@ class InitializeResponse(Response):
             embedded_context_prompts=embedded_context_prompts,
             image_prompts=image_prompts,
             list_sessions=list_sessions,
+            resume_session=resume_session,
         )
         return cls(
             agent_info=Implementation(name=name, title=title, version=version),

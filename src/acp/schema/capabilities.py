@@ -203,6 +203,7 @@ class AgentCapabilities(AnnotatedObject):
         embedded_context_prompts: bool = False,
         image_prompts: bool = False,
         list_sessions: bool = False,
+        resume_session: bool = False,
     ) -> Self:
         """Create an instance of AgentCapabilities.
 
@@ -214,9 +215,11 @@ class AgentCapabilities(AnnotatedObject):
             embedded_context_prompts: Whether the agent supports embedded context prompts.
             image_prompts: Whether the agent supports image prompts.
             list_sessions: Whether the agent supports `session/list` (unstable).
+            resume_session: Whether the agent supports `session/resume` (unstable).
         """
         session_caps = SessionCapabilities(
             list=SessionListCapabilities() if list_sessions else None,
+            resume=SessionResumeCapabilities() if resume_session else None,
         )
         return cls(
             load_session=load_session,

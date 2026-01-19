@@ -279,6 +279,7 @@ class AgentPoolACPAgent(ACPAgent):
             version=_version("agentpool"),
             load_session=True,
             list_sessions=True,
+            resume_session=True,
             http_mcp_servers=True,
             sse_mcp_servers=True,
             audio_prompts=True,
@@ -478,27 +479,51 @@ class AgentPoolACPAgent(ACPAgent):
         return ForkSessionResponse(session_id=session_id)
 
     async def resume_session(self, params: ResumeSessionRequest) -> ResumeSessionResponse:
-        """Resume an existing session.
+        """Resume an existing session without replaying history.
 
-        Like load_session but doesn't return previous messages.
+        Like load_session but doesn't send session/update notifications with
+        previous messages. The agent restores its internal state so the
+        conversation can continue.
+
         UNSTABLE: This feature is not part of the spec yet.
         """
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
 
-        logger.info("Resuming session", session_id=params.session_id)
-        # Similar to load_session but without replaying history
         try:
-            session = await self.session_manager.resume_session(
-                session_id=params.session_id,
-                client=self.client,
-                acp_agent=self,
-                client_capabilities=self.client_capabilities,
-                client_info=self.client_info,
-            )
+            # Get or create session wrapper
+            session = self.session_manager.get_session(params.session_id)
             if not session:
-                logger.warning("Session not found", session_id=params.session_id)
+                session_id = await self.session_manager.create_session(
+                    agent=self.default_agent,
+                    cwd=params.cwd or "",
+                    client=self.client,
+                    acp_agent=self,
+                    mcp_servers=params.mcp_servers,
+                    client_capabilities=self.client_capabilities,
+                    client_info=self.client_info,
+                    session_id=params.session_id,
+                )
+                session = self.session_manager.get_session(session_id)
+
+            if not session:
+                logger.error("Failed to create session for resume")
+                return ResumeSessionResponse()
+
+            # Load session state in the agent (populates conversation) but don't replay to client
+            # This restores the agent's internal state so it can continue the conversation
+            result = await self.default_agent.load_session(params.session_id)
+            if not result:
+                logger.warning("Agent failed to load session state", session_id=params.session_id)
+                # Continue anyway - session wrapper is created, agent may still work
+
+            # Schedule post-resume tasks
+            self.tasks.create_task(session.send_available_commands_update())
+            self.tasks.create_task(session.init_project_context())
+
+            logger.info("Session resumed", session_id=params.session_id)
             return ResumeSessionResponse()
+
         except Exception:
             logger.exception("Failed to resume session", session_id=params.session_id)
             return ResumeSessionResponse()
