@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from agentpool.agents.events import (
     CustomEvent,
+    DiffContentItem,
     LocationContentItem,
     PlanUpdateEvent,
     TextContentItem,
@@ -94,8 +95,6 @@ class StreamEventEmitter:
         """
         # Record file changes from DiffContentItem for diff/revert support
         if self._context.pool and self._context.pool.file_ops and items:
-            from agentpool.agents.events import DiffContentItem
-
             for item in items:
                 if isinstance(item, DiffContentItem):
                     self._context.pool.file_ops.record_change(
