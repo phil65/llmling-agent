@@ -237,7 +237,7 @@ class DebugSessionInfoCommand(NodeCommand):
         try:
             info = {
                 "session_id": session.session_id,
-                "current_agent": session.current_agent_name,
+                "current_agent": session.agent.name,
                 "available_agents": list(session.agent_pool.all_agents.keys()),
                 "cwd": session.cwd,
                 "client_capabilities": (
