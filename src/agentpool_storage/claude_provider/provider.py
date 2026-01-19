@@ -218,11 +218,15 @@ class ClaudeFileHistoryEntry(ClaudeBaseModel):
 class ClaudeProgressData(ClaudeBaseModel):
     """Progress data for MCP tool operations."""
 
-    type: str  # e.g., "mcp_progress"
-    status: str  # e.g., "started", "completed"
+    type: Literal["bash_progress", "mcp_progress"] | str  # e.g., "mcp_progress"  # noqa: PYI051
+    status: str | None = None  # e.g., "started", "completed"
     server_name: str | None = None
     tool_name: str | None = None
     elapsed_time_ms: int | None = None
+    output: str | None = None  # for bash_progress
+    full_output: str | None = None  # for bash_progress
+    elapsed_time_seconds: int | None = None  # for bash_progress
+    total_lines: int | None = None  # for bash_progress
 
     model_config = ConfigDict(populate_by_name=True)
 
