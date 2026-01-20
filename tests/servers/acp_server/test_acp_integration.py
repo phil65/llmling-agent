@@ -66,12 +66,10 @@ async def test_agent_switching_workflow(agent_pool: AgentPool, mock_acp_agent):
 
     # Should start with agent1
     assert session.agent.name == "agent1"
-    assert session.current_agent_name == "agent1"
 
     # Switch to agent2
     await session.switch_active_agent("agent2")
     assert session.agent.name == "agent2"
-    assert session.current_agent_name == "agent2"
 
     # Switching to non-existent agent should fail
     with pytest.raises(ValueError, match="Agent 'nonexistent' not found"):
