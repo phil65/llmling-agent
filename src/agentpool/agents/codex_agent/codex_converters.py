@@ -605,10 +605,7 @@ def _turn_to_chat_messages(turn: Turn) -> list[ChatMessage[list[UserContent]]]: 
     # Validate user content exists
     if not user_content:
         return []  # Skip turns with no user content
-
     result: list[ChatMessage[list[UserContent]]] = []
-
-    # Create user message
     user_msg: ChatMessage[list[UserContent]] = ChatMessage(
         content=user_content,
         role="user",
@@ -649,7 +646,4 @@ def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[list[UserConte
     Returns:
         List of ChatMessages with proper content types and model messages
     """
-    result: list[ChatMessage[list[UserContent]]] = []
-    for turn in turns:
-        result.extend(_turn_to_chat_messages(turn))
-    return result
+    return [msg for turn in turns for msg in _turn_to_chat_messages(turn)]
