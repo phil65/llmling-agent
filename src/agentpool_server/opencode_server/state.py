@@ -13,6 +13,7 @@ from agentpool.diagnostics.lsp_manager import LSPManager
 
 if TYPE_CHECKING:
     from agentpool.agents.base_agent import BaseAgent
+    from agentpool.delegation import AgentPool
     from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
     from agentpool_server.opencode_server.models import (
         Config,

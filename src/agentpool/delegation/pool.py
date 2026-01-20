@@ -75,7 +75,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     - teams: Only Team instances
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0915
         self,
         manifest: JoinablePathLike | AgentsManifest | None = None,
         *,
