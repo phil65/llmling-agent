@@ -11,7 +11,8 @@ import anyio
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Awaitable, Callable
+    from collections.abc import AsyncIterator, Callable, Coroutine
+    from typing import Any
 
     from anyio.abc import ByteReceiveStream, Process
 
@@ -122,7 +123,7 @@ async def monitor_process(
 
 async def run_with_process_monitor[T](
     process: Process,
-    coro: Callable[[], Awaitable[T]],
+    coro: Callable[[], Coroutine[Any, Any, T]],
     *,
     context: str = "operation",
 ) -> T:
@@ -151,8 +152,8 @@ async def run_with_process_monitor[T](
         )
         ```
     """
-    process_wait_task = asyncio.create_task(process.wait())
-    operation_task = asyncio.create_task(coro())
+    process_wait_task: asyncio.Task[int | None] = asyncio.create_task(process.wait())
+    operation_task: asyncio.Task[T] = asyncio.create_task(coro())
 
     done, pending = await asyncio.wait(
         [process_wait_task, operation_task],

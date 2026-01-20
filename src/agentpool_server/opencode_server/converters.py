@@ -22,6 +22,7 @@ from pydantic_ai import (
     VideoUrl,
 )
 
+from agentpool.sessions.models import SessionData
 from agentpool_server.opencode_server.models import (
     AssistantMessage,
     MessagePath,
@@ -51,7 +52,6 @@ from agentpool_server.opencode_server.models.parts import (
     TokenCache,
 )
 from agentpool_server.opencode_server.time_utils import now_ms
-from agentpool_storage.models import SessionData
 
 
 if TYPE_CHECKING:
