@@ -24,7 +24,6 @@ from acp.schema import (
     ResourceContentBlock,
     SessionNotification,
     # CurrentModelUpdate,
-    SessionUpdate,
     TerminalToolCallContent,
     TextContentBlock,
     TextResourceContents,
@@ -50,7 +49,7 @@ if TYPE_CHECKING:
         ToolCallKind,
         ToolCallStatus,
     )
-    from acp.schema import Audience, SessionConfigOption
+    from acp.schema import Audience, SessionConfigOption, SessionUpdate
 
     ContentType = Sequence[ToolCallContent | str]
 
@@ -230,7 +229,7 @@ class ACPNotifications:
             ],
             raw_input=raw_input,
         )
-        await self.update(start)
+        await self.send_update(start)
 
     async def send_update(self, update: SessionUpdate) -> None:
         notification = SessionNotification(session_id=self.id, update=update)
@@ -269,7 +268,7 @@ class ACPNotifications:
                 ContentToolCallContent.text(i) if isinstance(i, str) else i for i in content or []
             ],
         )
-        await self.update(progress)
+        await self.send_update(progress)
 
     async def tool_call_update(
         self,
@@ -311,7 +310,7 @@ class ACPNotifications:
             if content
             else None,
         )
-        await self.update(update)
+        await self.send_update(update)
 
     async def file_edit_progress(
         self,
@@ -385,7 +384,7 @@ class ACPNotifications:
             entries: List of plan entries to send
         """
         plan = AgentPlanUpdate(entries=entries)
-        await self.update(plan)
+        await self.send_update(plan)
 
     async def update_commands(self, commands: list[AvailableCommand]) -> None:
         """Send a command update notification.
@@ -394,7 +393,7 @@ class ACPNotifications:
             commands: List of available commands to send
         """
         update = AvailableCommandsUpdate(available_commands=commands)
-        await self.update(update)
+        await self.send_update(update)
 
     async def send_agent_text(
         self,
@@ -418,7 +417,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        await self.update(update)
+        await self.send_update(update)
 
     async def send_agent_thought(
         self,
@@ -442,7 +441,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        await self.update(update)
+        await self.send_update(update)
 
     async def send_user_message(
         self,
@@ -466,7 +465,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        await self.update(update)
+        await self.send_update(update)
 
     async def send_user_image(
         self,
@@ -496,7 +495,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        await self.update(update)
+        await self.send_update(update)
 
     async def send_user_audio(
         self,
@@ -524,7 +523,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        await self.update(update)
+        await self.send_update(update)
 
     async def send_user_resource(
         self,
@@ -563,7 +562,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        await self.update(update)
+        await self.send_update(update)
 
     async def replay(self, messages: Sequence[ModelRequest | ModelResponse]) -> None:
         """Replay a sequence of model messages as notifications.
@@ -720,7 +719,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        await self.update(update)
+        await self.send_update(update)
 
     async def update_session_mode(self, mode_id: str) -> None:
         """Send a session mode update notification.
@@ -729,7 +728,7 @@ class ACPNotifications:
             mode_id: Unique identifier for the session mode
         """
         update = CurrentModeUpdate(current_mode_id=mode_id)
-        await self.update(update)
+        await self.send_update(update)
 
     async def update_config_option(
         self,
@@ -751,7 +750,7 @@ class ACPNotifications:
             value_id=value_id,
             config_options=config_options,
         )
-        await self.update(update)
+        await self.send_update(update)
 
     async def send_agent_audio(
         self,
@@ -778,7 +777,7 @@ class ACPNotifications:
             priority=priority,
             audience=audience,
         )
-        await self.update(update)
+        await self.send_update(update)
 
     async def send_agent_resource(
         self,
@@ -817,4 +816,4 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        await self.update(update)
+        await self.send_update(update)

@@ -71,9 +71,7 @@ class DebugSendTextCommand(NodeCommand):
             else:
                 await ctx.print(f"❌ **Invalid chunk type:** `{chunk_type}`")
                 return
-
-            notification = SessionNotification(session_id=session.session_id, update=update)
-            await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+            await session.notifications.send_update(update)
             await ctx.print(f"✅ **Sent {chunk_type} text chunk:** {text[:50]}...")
 
         except Exception as e:
@@ -204,8 +202,7 @@ class DebugReplaySequenceCommand(NodeCommand):
                 try:
                     # Auto-construct the correct SessionUpdate type via discriminator
                     update = SessionUpdateAdapter.validate_python(notification_data)
-                    notification = SessionNotification(session_id=session.session_id, update=update)
-                    await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+                    await session.notifications.send_update(update)  # pyright: ignore[reportArgumentType]
                     count += 1
                     if delay_ms:
                         await anyio.sleep(delay_ms / 1000)
