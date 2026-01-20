@@ -214,28 +214,15 @@ def _thread_item_to_tool_return_part(  # noqa: PLR0911
         return None
 
     result = _format_tool_result(item)
-
     match item:
         case ThreadItemCommandExecution():
             return BuiltinToolReturnPart(tool_name="bash", content=result, tool_call_id=item.id)
         case ThreadItemFileChange():
-            return BuiltinToolReturnPart(
-                tool_name="file_change",
-                content=result,
-                tool_call_id=item.id,
-            )
+            return BuiltinToolReturnPart("file_change", content=result, tool_call_id=item.id)
         case ThreadItemWebSearch():
-            return BuiltinToolReturnPart(
-                tool_name="web_search",
-                content=result,
-                tool_call_id=item.id,
-            )
+            return BuiltinToolReturnPart("web_search", content=result, tool_call_id=item.id)
         case ThreadItemImageView():
-            return BuiltinToolReturnPart(
-                tool_name="image_view",
-                content=result,
-                tool_call_id=item.id,
-            )
+            return BuiltinToolReturnPart("image_view", content=result, tool_call_id=item.id)
         case ThreadItemMcpToolCall():
             # TODO: Distinguish between local (ToolBridge) and remote MCP tools
             # See matching TODO in _thread_item_to_tool_call_part
