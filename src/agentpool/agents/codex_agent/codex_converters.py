@@ -565,12 +565,10 @@ def _turn_to_chat_messages(turn: Turn) -> list[ChatMessage[list[UserContent]]]: 
                 args: dict[str, str] = {"command": cmd}
                 if item.cwd:
                     args["cwd"] = item.cwd
-                # One ModelResponse with both tool call and return
-                parts = [
-                    BuiltinToolCallPart(tool_name="bash", args=args, tool_call_id=item.id),
-                    BuiltinToolReturnPart(tool_name="bash", content=output, tool_call_id=item.id),
-                ]
-                assistant_responses.append(ModelResponse(parts=parts))
+                call = BuiltinToolCallPart(tool_name="bash", args=args, tool_call_id=item.id)
+                ret = ToolReturnPart(tool_name="bash", content=output, tool_call_id=item.id)
+                assistant_responses.append(ModelResponse(parts=[call]))
+                assistant_responses.append(ModelRequest(parts=[ret]))
 
             case ThreadItemFileChange():
                 paths = [c.path for c in item.changes]
@@ -581,11 +579,10 @@ def _turn_to_chat_messages(turn: Turn) -> list[ChatMessage[list[UserContent]]]: 
                 assistant_display_parts.append(display)
                 diffs = [c.diff for c in item.changes if c.diff]
                 text = "\n".join(diffs) or "OK"
-                parts = [
-                    ToolCallPart(tool_name="edit", args={"files": paths}, tool_call_id=item.id),
-                    BuiltinToolReturnPart(tool_name="edit", content=text, tool_call_id=item.id),
-                ]
-                assistant_responses.append(ModelResponse(parts=parts))
+                call = ToolCallPart(tool_name="edit", args={"files": paths}, tool_call_id=item.id)
+                ret = ToolReturnPart(tool_name="edit", content=text, tool_call_id=item.id)
+                assistant_responses.append(ModelResponse(parts=[call]))
+                assistant_responses.append(ModelRequest(parts=[ret]))
 
             case ThreadItemMcpToolCall():
                 result_text = ""
@@ -594,13 +591,10 @@ def _turn_to_chat_messages(turn: Turn) -> list[ChatMessage[list[UserContent]]]: 
                     result_text = " ".join(texts)
                 assistant_display_parts.append(f"[Tool: {item.tool}] {result_text[:100]}")
                 args = item.arguments if isinstance(item.arguments, dict) else {}
-                parts = [
-                    BuiltinToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id),
-                    BuiltinToolReturnPart(
-                        tool_name=item.tool, content=result_text, tool_call_id=item.id
-                    ),
-                ]
-                assistant_responses.append(ModelResponse(parts=parts))
+                call = BuiltinToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id)
+                ret = ToolReturnPart(tool_name=item.tool, content=result_text, tool_call_id=item.id)
+                assistant_responses.append(ModelResponse(parts=[call]))
+                assistant_responses.append(ModelRequest(parts=[ret]))
 
     # Validate user content exists
     if not user_content:
