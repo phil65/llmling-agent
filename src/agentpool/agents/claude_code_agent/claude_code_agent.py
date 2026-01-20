@@ -1118,10 +1118,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                     # Process user messages - may contain tool results
                     elif isinstance(message, UserMessage):
+                        from agentpool.agents.claude_code_agent.converters import (
+                            convert_tool_result_to_opencode_metadata,
+                        )
+
                         user_content = message.content
                         user_blocks = (
                             [user_content] if isinstance(user_content, str) else user_content
                         )
+                        # Extract tool_use_result from UserMessage for metadata conversion
+                        sdk_tool_result = message.tool_use_result
+
                         for user_block in user_blocks:
                             if isinstance(user_block, ToolResultBlock):
                                 tc_id = user_block.tool_use_id
@@ -1149,6 +1156,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 func_result_event = FunctionToolResultEvent(result=tool_return_part)
                                 await event_handlers(None, func_result_event)
                                 yield func_result_event
+
+                                # Build metadata: prefer existing tool_metadata,
+                                # then convert SDK result
+                                metadata = tool_metadata.get(tc_id)
+                                if not metadata and sdk_tool_result is not None:
+                                    # Convert Claude Code SDK's tool_use_result to OpenCode format
+                                    metadata = convert_tool_result_to_opencode_metadata(
+                                        tool_name, sdk_tool_result, tool_input
+                                    )
+
                                 # Also emit ToolCallCompleteEvent for consumers that expect it
                                 tool_complete_event = ToolCallCompleteEvent(
                                     tool_name=tool_name,
@@ -1157,7 +1174,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     tool_result=result_content,
                                     agent_name=self.name,
                                     message_id="",
-                                    metadata=tool_metadata.get(tc_id),
+                                    metadata=metadata,
                                 )
                                 await event_handlers(None, tool_complete_event)
                                 yield tool_complete_event
@@ -1736,8 +1753,8 @@ if __name__ == "__main__":
         """Demo: Basic call to Claude Code."""
         async with ClaudeCodeAgent(name="demo", event_handlers=["detailed"]) as agent:
             # print("Response (streaming): ", end="", flush=True)
-            # async for _ in agent.run_stream("What files are in the current directory?"):
-            #     pass
-            await agent.list_sessions()
+            async for _ in agent.run_stream("What files are in the current directory?"):
+                pass
+            # await agent.list_sessions()
 
     anyio.run(main)

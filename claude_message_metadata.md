@@ -2,6 +2,10 @@
 
 This document describes the structure of messages and metadata returned by the Claude Code SDK (`clawd_code_sdk`).
 
+> **Note**: The `convert_tool_result_to_opencode_metadata()` function in
+> `src/agentpool/agents/claude_code_agent/converters.py` converts these shapes
+> to the OpenCode TUI metadata format for rich display of file operations.
+
 ## Message Types
 
 The SDK streams these message types via `query()`:
@@ -185,6 +189,15 @@ Example with output:
 }
 ```
 
+**Converted to OpenCode format:**
+```typescript
+interface BashMetadata {
+  output: string;        // Combined stdout + stderr
+  exit: number | null;   // Exit code (0 for success, null if interrupted)
+  description: string;   // Command description from tool input
+}
+```
+
 #### Bash Tool Input
 
 The input sent to the Bash tool:
@@ -202,6 +215,58 @@ Example:
   "description": "List files in /tmp directory"
 }
 ```
+
+#### TodoWrite Tool Result
+
+```typescript
+interface TodoWriteToolResult {
+  oldTodos: TodoItem[];             // Previous todo list
+  newTodos: TodoItem[];             // Updated todo list
+}
+
+interface TodoItem {
+  content: string;                  // Task description
+  status: string;                   // "pending" | "in_progress" | "completed"
+  activeForm?: string;              // Present tense description (optional)
+}
+```
+
+Example:
+```json
+{
+  "oldTodos": [],
+  "newTodos": [
+    {
+      "content": "Fix critical bug in auth system",
+      "status": "pending",
+      "activeForm": "Fixing critical bug in auth system"
+    },
+    {
+      "content": "Review pull requests",
+      "status": "in_progress",
+      "activeForm": "Reviewing pull requests"
+    }
+  ]
+}
+```
+
+**Converted to OpenCode format:**
+```typescript
+interface TodoWriteMetadata {
+  todos: Array<{
+    id: string;          // Generated UUID
+    content: string;     // Task description
+    status: string;      // Same as SDK
+    priority: string;    // Inferred: "high" | "medium" | "low"
+  }>;
+}
+```
+
+Priority is inferred from:
+1. Keywords in content ("critical", "urgent" → high; "later", "nice to have" → low)
+2. Position in list (first third → high, last third → low)
+
+---
 
 #### Error Results
 
