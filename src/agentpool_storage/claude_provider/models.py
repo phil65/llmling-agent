@@ -200,9 +200,19 @@ class ClaudeRemoveOperation(ClaudeBaseModel):
     timestamp: str
 
 
+class ClaudePopAllOperation(ClaudeBaseModel):
+    """PopAll operation - clears all queued content."""
+
+    type: Literal["queue-operation"]
+    operation: Literal["popAll"]
+    content: str
+    session_id: str
+    timestamp: str
+
+
 # Union of queue operation types
 ClaudeQueueOperationEntry = Annotated[
-    ClaudeEnqueueOperation | ClaudeDequeueOperation | ClaudeRemoveOperation,
+    ClaudeEnqueueOperation | ClaudeDequeueOperation | ClaudeRemoveOperation | ClaudePopAllOperation,
     Field(discriminator="operation"),
 ]
 
