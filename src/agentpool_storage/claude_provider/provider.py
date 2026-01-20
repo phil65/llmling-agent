@@ -14,6 +14,7 @@ See ARCHITECTURE.md for detailed documentation of the storage format.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
 import json
@@ -61,6 +62,25 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+def _extract_text_content(message: ClaudeApiMessage | ClaudeUserMessage) -> str:
+    """Extract text content from a Claude message for display.
+
+    Only extracts text and thinking blocks, not tool calls/results.
+    """
+    msg_content = message.content
+    if isinstance(msg_content, str):
+        return msg_content
+
+    text_parts: list[str] = []
+    for part in msg_content:
+        if part.type == "text" and part.text:
+            text_parts.append(part.text)
+        elif part.type == "thinking" and part.thinking:
+            # Include thinking in display content
+            text_parts.append(f"<thinking>\n{part.thinking}\n</thinking>")
+    return "\n".join(text_parts)
 
 
 def _normalize_model_name(model: str | None) -> str | None:
@@ -169,11 +189,7 @@ class ClaudeStorageProvider(StorageProvider):
                         sessions.append((session_id, f))
         return sessions
 
-    def _extract_title(
-        self,
-        session_path: Path,
-        max_chars: int = 60,
-    ) -> str | None:
+    def _extract_title(self, session_path: Path, max_chars: int = 60) -> str | None:
         """Extract title from session file efficiently.
 
         Looks for a summary entry first, then falls back to the first line
@@ -290,21 +306,16 @@ class ClaudeStorageProvider(StorageProvider):
             return None
 
         message = entry.message
-
-        # Parse timestamp
         try:
             timestamp = datetime.fromisoformat(entry.timestamp.replace("Z", "+00:00"))
         except (ValueError, AttributeError):
             timestamp = get_now()
-
         # Extract display content (text only for UI)
-        content = self._extract_text_content(message)
-
+        content = _extract_text_content(message)
         # Build pydantic-ai message
         pydantic_message = self._build_pydantic_message(
             entry, message, timestamp, tool_id_mapping or {}
         )
-
         # Extract token usage and cost
         cost_info = None
         model = None
@@ -317,13 +328,9 @@ class ClaudeStorageProvider(StorageProvider):
                 + usage.cache_creation_input_tokens
             )
             output_tokens = usage.output_tokens
-
             if input_tokens or output_tokens:
                 cost_info = TokenCost(
-                    token_usage=RunUsage(
-                        input_tokens=input_tokens,
-                        output_tokens=output_tokens,
-                    ),
+                    token_usage=RunUsage(input_tokens=input_tokens, output_tokens=output_tokens),
                     total_cost=Decimal(0),  # Claude doesn't store cost directly
                 )
             model = _normalize_model_name(message.model)
@@ -342,24 +349,6 @@ class ClaudeStorageProvider(StorageProvider):
             messages=[pydantic_message] if pydantic_message else [],
             provider_details={"finish_reason": finish_reason} if finish_reason else {},
         )
-
-    def _extract_text_content(self, message: ClaudeApiMessage | ClaudeUserMessage) -> str:
-        """Extract text content from a Claude message for display.
-
-        Only extracts text and thinking blocks, not tool calls/results.
-        """
-        msg_content = message.content
-        if isinstance(msg_content, str):
-            return msg_content
-
-        text_parts: list[str] = []
-        for part in msg_content:
-            if part.type == "text" and part.text:
-                text_parts.append(part.text)
-            elif part.type == "thinking" and part.thinking:
-                # Include thinking in display content
-                text_parts.append(f"<thinking>\n{part.thinking}\n</thinking>")
-        return "\n".join(text_parts)
 
     def _build_pydantic_message(
         self,
@@ -407,7 +396,7 @@ class ClaudeStorageProvider(StorageProvider):
         if not isinstance(message, ClaudeApiMessage):
             return None
 
-        response_parts: list[TextPart | ToolCallPart | ThinkingPart] = []
+        resp_parts: list[TextPart | ToolCallPart | ThinkingPart] = []
         usage = RequestUsage(
             input_tokens=message.usage.input_tokens,
             output_tokens=message.usage.output_tokens,
@@ -416,36 +405,25 @@ class ClaudeStorageProvider(StorageProvider):
         )
 
         if isinstance(msg_content, str):
-            response_parts.append(TextPart(content=msg_content))
+            resp_parts.append(TextPart(content=msg_content))
         else:
             for block in msg_content:
                 if block.type == "text" and block.text:
-                    response_parts.append(TextPart(content=block.text))
+                    resp_parts.append(TextPart(content=block.text))
                 elif block.type == "thinking" and block.thinking:
-                    response_parts.append(
-                        ThinkingPart(
-                            content=block.thinking,
-                            signature=block.signature,
-                        )
+                    resp_parts.append(
+                        ThinkingPart(content=block.thinking, signature=block.signature)
                     )
                 elif block.type == "tool_use" and block.id and block.name:
-                    response_parts.append(
-                        ToolCallPart(
-                            tool_name=block.name,
-                            args=block.input or {},
-                            tool_call_id=block.id,
-                        )
+                    args = block.input or {}
+                    resp_parts.append(
+                        ToolCallPart(tool_name=block.name, args=args, tool_call_id=block.id)
                     )
 
-        if not response_parts:
+        if not resp_parts:
             return None
-
-        return ModelResponse(
-            parts=response_parts,
-            usage=usage,
-            model_name=_normalize_model_name(message.model),
-            timestamp=timestamp,
-        )
+        model = _normalize_model_name(message.model)
+        return ModelResponse(parts=resp_parts, usage=usage, model_name=model, timestamp=timestamp)
 
     def _extract_tool_result_content(self, block: ClaudeMessageContent) -> str:
         """Extract content from a tool_result block."""
@@ -481,7 +459,7 @@ class ClaudeStorageProvider(StorageProvider):
                 type="user",
                 uuid=msg_uuid,
                 parent_uuid=parent_uuid,
-                sessionId=session_id,
+                session_id=session_id,
                 timestamp=timestamp,
                 message=user_msg,
                 cwd=cwd or "",
@@ -509,7 +487,7 @@ class ClaudeStorageProvider(StorageProvider):
             type="assistant",
             uuid=msg_uuid,
             parent_uuid=parent_uuid,
-            sessionId=session_id,
+            session_id=session_id,
             timestamp=timestamp,
             message=assistant_msg,
             cwd=cwd or "",
@@ -521,10 +499,8 @@ class ClaudeStorageProvider(StorageProvider):
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages based on query."""
         messages: list[ChatMessage[str]] = []
-
         # Determine which sessions to search
         sessions = self._list_sessions()
-
         for session_id, session_path in sessions:
             # Filter by conversation/session name if specified
             if query.name and session_id != query.name:
@@ -635,9 +611,9 @@ class ClaudeStorageProvider(StorageProvider):
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
         """Get filtered conversations with their messages."""
-        from agentpool_storage.models import ConversationData as ConvData
+        from agentpool_storage.models import ConversationData
 
-        result: list[tuple[ConvData, Sequence[ChatMessage[str]]]] = []
+        result: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
         # Use cwd filter at filesystem level for efficiency
         sessions = self._list_sessions(project_path=filters.cwd)
 
@@ -704,7 +680,7 @@ class ClaudeStorageProvider(StorageProvider):
             token_usage_data: TokenUsage | None = (
                 {"total": total_tokens, "prompt": 0, "completion": 0} if total_tokens else None
             )
-            conv_data = ConvData(
+            conv_data = ConversationData(
                 id=session_id,
                 agent=messages[0].name or "claude",
                 title=self._extract_title(session_path),
@@ -714,7 +690,6 @@ class ClaudeStorageProvider(StorageProvider):
             )
 
             result.append((conv_data, messages))
-
             if filters.limit and len(result) >= filters.limit:
                 break
 
@@ -725,15 +700,10 @@ class ClaudeStorageProvider(StorageProvider):
         filters: StatsFilters,
     ) -> dict[str, dict[str, Any]]:
         """Get conversation statistics."""
-        from collections import defaultdict
-
         stats: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"total_tokens": 0, "messages": 0, "models": set()}
         )
-
-        sessions = self._list_sessions()
-
-        for _session_id, session_path in sessions:
+        for _session_id, session_path in self._list_sessions():
             entries = self._read_session(session_path)
 
             for entry in entries:
@@ -749,16 +719,12 @@ class ClaudeStorageProvider(StorageProvider):
                 total_tokens = (
                     usage.input_tokens + usage.output_tokens + usage.cache_read_input_tokens
                 )
-
                 try:
                     timestamp = datetime.fromisoformat(entry.timestamp.replace("Z", "+00:00"))
                 except (ValueError, AttributeError):
                     timestamp = get_now()
-
-                # Apply time filter
-                if timestamp < filters.cutoff:
+                if timestamp < filters.cutoff:  # Apply time filter
                     continue
-
                 # Group by specified criterion
                 match filters.group_by:
                     case "model":
@@ -792,10 +758,7 @@ class ClaudeStorageProvider(StorageProvider):
         """
         conv_count = 0
         msg_count = 0
-
-        sessions = self._list_sessions()
-
-        for _session_id, session_path in sessions:
+        for _session_id, session_path in self._list_sessions():
             entries = self._read_session(session_path)
             msg_count += len([
                 e for e in entries if isinstance(e, (ClaudeUserEntry, ClaudeAssistantEntry))
@@ -815,10 +778,7 @@ class ClaudeStorageProvider(StorageProvider):
         """Get counts of conversations and messages."""
         conv_count = 0
         msg_count = 0
-
-        sessions = self._list_sessions()
-
-        for _session_id, session_path in sessions:
+        for _session_id, session_path in self._list_sessions():
             entries = self._read_session(session_path)
             msg_entries = [
                 e for e in entries if isinstance(e, (ClaudeUserEntry, ClaudeAssistantEntry))
@@ -847,9 +807,8 @@ class ClaudeStorageProvider(StorageProvider):
             List of messages ordered by timestamp
         """
         # Find the session file
-        sessions = self._list_sessions()
         session_path = None
-        for sid, spath in sessions:
+        for sid, spath in self._list_sessions():
             if sid == conversation_id:
                 session_path = spath
                 break
@@ -860,19 +819,15 @@ class ClaudeStorageProvider(StorageProvider):
         # Read entries and convert to messages
         entries = self._read_session(session_path)
         tool_mapping = self._build_tool_id_mapping(entries)
-
         messages: list[ChatMessage[str]] = []
         for entry in entries:
             msg = self._entry_to_chat_message(entry, conversation_id, tool_mapping)
             if msg:
                 messages.append(msg)
-
         # Sort by timestamp
         messages.sort(key=lambda m: m.timestamp or get_now())
-
         if not include_ancestors or not messages:
             return messages
-
         # Get ancestor chain if first message has parent_id
         first_msg = messages[0]
         if first_msg.parent_id:
@@ -891,12 +846,9 @@ class ClaudeStorageProvider(StorageProvider):
             The message if found, None otherwise
         """
         # Search all sessions for the message
-        sessions = self._list_sessions()
-
-        for session_id, session_path in sessions:
+        for session_id, session_path in self._list_sessions():
             entries = self._read_session(session_path)
             tool_mapping = self._build_tool_id_mapping(entries)
-
             for entry in entries:
                 if (
                     isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry))

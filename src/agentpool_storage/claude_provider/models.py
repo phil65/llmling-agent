@@ -94,7 +94,7 @@ class ClaudeMessageEntryBase(ClaudeBaseModel):
 
     uuid: str
     parent_uuid: str | None = None
-    session_id: str = Field(alias="sessionId")
+    session_id: str
     timestamp: str
     message: ClaudeApiMessage | ClaudeUserMessage
 
