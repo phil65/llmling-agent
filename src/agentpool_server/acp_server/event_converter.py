@@ -47,6 +47,7 @@ from agentpool.agents.events import (
     FileContentItem,
     LocationContentItem,
     PlanUpdateEvent,
+    RunErrorEvent,
     StreamCompleteEvent,
     SubAgentEvent,
     TerminalContentItem,
@@ -494,6 +495,12 @@ class ACPEventConverter:
                         source_name, source_type, inner_event, depth
                     ):
                         yield update
+
+            case RunErrorEvent(message=message, agent_name=agent_name):
+                # Display error as agent text with formatting
+                agent_prefix = f"[{agent_name}] " if agent_name else ""
+                error_text = f"\n\n❌ **Error**: {agent_prefix}{message}\n\n"
+                yield AgentMessageChunk.text(text=error_text)
 
             case _:
                 logger.debug("Unhandled event", event_type=type(event).__name__)
