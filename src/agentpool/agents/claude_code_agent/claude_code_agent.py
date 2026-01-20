@@ -820,7 +820,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 continue
 
             command = self._create_claude_code_command(cmd_info)
-            self._command_store.register_command(command)
+            self._command_store.register_command(command, replace=True)
         command_count = len(self._command_store.list_commands())
         self.log.info("Populated command store", command_count=command_count)
 
