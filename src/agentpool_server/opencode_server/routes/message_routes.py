@@ -19,6 +19,7 @@ from agentpool.agents.events import (
     CompactionEvent,
     FileContentItem,
     LocationContentItem,
+    RunErrorEvent,
     StreamCompleteEvent,
     SubAgentEvent,
     TextContentItem,
@@ -611,6 +612,17 @@ async def _process_message(  # noqa: PLR0915
                         await state.broadcast_event(
                             SessionCompactedEvent.create(session_id=compact_session_id)
                         )
+
+                # Run error event - emit session error
+                case RunErrorEvent(message=error_message, agent_name=agent_name):
+                    error_prefix = f"[{agent_name}] " if agent_name else ""
+                    await state.broadcast_event(
+                        SessionErrorEvent.create(
+                            session_id=session_id,
+                            error_name="AgentError",
+                            error_message=f"{error_prefix}{error_message}",
+                        )
+                    )
 
     except Exception as e:  # noqa: BLE001
         response_text = f"Error calling agent: {e}"
