@@ -7,13 +7,14 @@ from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeVar, assert_never
 import uuid
-from uuid import uuid4
 
 from genai_prices import calc_price
 from pydantic import BaseModel
 from pydantic_ai import (
     BaseToolReturnPart,
     BinaryContent,
+    BuiltinToolCallPart,
+    BuiltinToolReturnPart,
     FilePart,
     FileUrl,
     ModelRequest,
@@ -21,6 +22,7 @@ from pydantic_ai import (
     RequestUsage,
     TextPart,
     ToolCallPart,
+    ToolReturnPart,
     UserContent,
     UserPromptPart,
 )
@@ -188,7 +190,7 @@ class ChatMessage[TContent]:
     cost_info: TokenCost | None = None
     """Token usage and costs for this specific message if available."""
 
-    message_id: str = field(default_factory=lambda: str(uuid4()))
+    message_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     """Unique identifier for this message."""
 
     conversation_id: str | None = None
@@ -311,7 +313,7 @@ class ChatMessage[TContent]:
         """
         part = UserPromptPart(content=message)
         request = ModelRequest(parts=[part], instructions=instructions)
-        id_ = conversation_id or str(uuid4())
+        id_ = conversation_id or str(uuid.uuid4())
         return ChatMessage(
             messages=[request],
             role="user",
@@ -422,7 +424,7 @@ class ChatMessage[TContent]:
             provider_response_id=result.response.provider_response_id,
             usage=usage,
             provider_name=result.response.provider_name,
-            message_id=message_id or str(uuid4()),
+            message_id=message_id or str(uuid.uuid4()),
             conversation_id=conversation_id,
             parent_id=parent_id,
             cost_info=cost_info,
@@ -508,10 +510,6 @@ class ChatMessage[TContent]:
             tools: Original Tool set to enrich ToolCallInfos with additional info
             agent_name: Name of the caller
         """
-        from uuid import uuid4
-
-        from pydantic_ai import ToolReturnPart
-
         from agentpool.tools import ToolCallInfo
 
         tools = tools or {}
@@ -519,19 +517,22 @@ class ChatMessage[TContent]:
         call_parts = {
             part.tool_call_id: part
             for part in parts
-            if isinstance(part, ToolCallPart) and part.tool_call_id
+            if isinstance(part, ToolCallPart | BuiltinToolCallPart) and part.tool_call_id
         }
 
         tool_calls = []
         for part in parts:
-            if isinstance(part, ToolReturnPart) and part.tool_call_id in call_parts:
+            if (
+                isinstance(part, ToolReturnPart | BuiltinToolReturnPart)
+                and part.tool_call_id in call_parts
+            ):
                 call_part = call_parts[part.tool_call_id]
                 tool_info = ToolCallInfo(
                     tool_name=call_part.tool_name,
                     args=safe_args_as_dict(call_part),
                     agent_name=agent_name or "UNSET",
                     result=part.content,
-                    tool_call_id=call_part.tool_call_id or str(uuid4()),
+                    tool_call_id=call_part.tool_call_id or str(uuid.uuid4()),
                     timestamp=part.timestamp,
                     agent_tool_name=(t.agent_name if (t := tools.get(part.tool_name)) else None),
                 )
