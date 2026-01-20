@@ -21,7 +21,7 @@ from tokonomics.model_discovery.model_info import ModelInfo
 from acp.acp_requests import ACPRequests
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
-from acp.schema import AvailableCommand, ClientCapabilities, SessionNotification
+from acp.schema import AvailableCommand, ClientCapabilities
 from agentpool import Agent, AgentContext, AgentPool  # noqa: TC001
 from agentpool.agents.acp_agent import ACPAgent
 from agentpool.agents.modes import ModeInfo
@@ -237,7 +237,6 @@ class ACPSession:
             ConfigOptionUpdate,
             CurrentModelUpdate,
             CurrentModeUpdate,
-            SessionNotification,
         )
         from agentpool.agents.modes import ConfigOptionChanged as CoreConfigOptionChanged
         from agentpool_server.acp_server.acp_agent import get_session_config_options
@@ -275,9 +274,7 @@ class ACPSession:
                 if config_id == "permissions":
                     await self.notifications.update_session_mode(value_id)
                     self.log.debug("Also sent legacy mode update", mode_id=value_id)
-
-        notification = SessionNotification(session_id=self.session_id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+        await self.notifications.send_update(update)
 
     async def initialize(self) -> None:
         """Initialize async resources. Must be called after construction."""
@@ -380,9 +377,7 @@ class ACPSession:
         """
         self._cancelled = True
         self.log.info("Session cancelled, interrupting agent")
-
-        # Actively interrupt the agent's stream
-        try:
+        try:  # Actively interrupt the agent's stream
             await self.agent.interrupt()
         except Exception:
             self.log.exception("Failed to interrupt agent")
@@ -437,10 +432,7 @@ class ACPSession:
                         # Send cancellation notifications for any pending tool calls
                         # This happens in the same async context as the converter
                         async for cancel_update in converter.cancel_pending_tools():
-                            notification = SessionNotification(
-                                session_id=self.session_id, update=cancel_update
-                            )
-                            await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+                            await self.notifications.send_update(cancel_update)
                         # CRITICAL: Allow time for client to process tool completion notifications
                         # before sending PromptResponse. Without this delay, the client may receive
                         # and process the PromptResponse before the tool notifications, causing UI
@@ -453,10 +445,7 @@ class ACPSession:
 
                     event_count += 1
                     async for update in converter.convert(event):
-                        notification = SessionNotification(
-                            session_id=self.session_id, update=update
-                        )
-                        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+                        await self.notifications.send_update(update)
                     # Yield control to allow notifications to be sent immediately
                     await anyio.sleep(0.01)
                 self.log.info("Streaming finished", events_processed=event_count)
@@ -468,10 +457,7 @@ class ACPSession:
                 self.log.info("Stream cancelled via CancelledError, cleaning up tool calls")
                 # Send cancellation notifications for any pending tool calls
                 async for cancel_update in converter.cancel_pending_tools():
-                    notification = SessionNotification(
-                        session_id=self.session_id, update=cancel_update
-                    )
-                    await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]
+                    await self.notifications.send_update(cancel_update)
                 # CRITICAL: Allow time for client to process tool completion notifications
                 # before sending PromptResponse. See comment in cancellation branch above.
                 await anyio.sleep(0.05)

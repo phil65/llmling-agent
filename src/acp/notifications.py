@@ -17,13 +17,14 @@ from acp.schema import (
     AvailableCommandsUpdate,
     BlobResourceContents,
     ContentToolCallContent,
-    # CurrentModelUpdate,
     CurrentModeUpdate,
     EmbeddedResourceContentBlock,
     FileEditToolCallContent,
     ImageContentBlock,
     ResourceContentBlock,
     SessionNotification,
+    # CurrentModelUpdate,
+    SessionUpdate,
     TerminalToolCallContent,
     TextContentBlock,
     TextResourceContents,
@@ -229,7 +230,10 @@ class ACPNotifications:
             ],
             raw_input=raw_input,
         )
-        notification = SessionNotification(session_id=self.id, update=start)
+        await self.update(start)
+
+    async def send_update(self, update: SessionUpdate) -> None:
+        notification = SessionNotification(session_id=self.id, update=update)
         await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
     async def tool_call_progress(
@@ -265,8 +269,7 @@ class ACPNotifications:
                 ContentToolCallContent.text(i) if isinstance(i, str) else i for i in content or []
             ],
         )
-        notification = SessionNotification(session_id=self.id, update=progress)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(progress)
 
     async def tool_call_update(
         self,
@@ -308,8 +311,7 @@ class ACPNotifications:
             if content
             else None,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def file_edit_progress(
         self,
@@ -383,8 +385,7 @@ class ACPNotifications:
             entries: List of plan entries to send
         """
         plan = AgentPlanUpdate(entries=entries)
-        notification = SessionNotification(session_id=self.id, update=plan)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(plan)
 
     async def update_commands(self, commands: list[AvailableCommand]) -> None:
         """Send a command update notification.
@@ -393,8 +394,7 @@ class ACPNotifications:
             commands: List of available commands to send
         """
         update = AvailableCommandsUpdate(available_commands=commands)
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def send_agent_text(
         self,
@@ -418,8 +418,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def send_agent_thought(
         self,
@@ -443,8 +442,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def send_user_message(
         self,
@@ -468,8 +466,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def send_user_image(
         self,
@@ -499,8 +496,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def send_user_audio(
         self,
@@ -528,8 +524,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def send_user_resource(
         self,
@@ -568,8 +563,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def replay(self, messages: Sequence[ModelRequest | ModelResponse]) -> None:
         """Replay a sequence of model messages as notifications.
@@ -726,8 +720,7 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def update_session_mode(self, mode_id: str) -> None:
         """Send a session mode update notification.
@@ -736,8 +729,7 @@ class ACPNotifications:
             mode_id: Unique identifier for the session mode
         """
         update = CurrentModeUpdate(current_mode_id=mode_id)
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def update_config_option(
         self,
@@ -759,8 +751,7 @@ class ACPNotifications:
             value_id=value_id,
             config_options=config_options,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def send_agent_audio(
         self,
@@ -787,8 +778,7 @@ class ACPNotifications:
             priority=priority,
             audience=audience,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
 
     async def send_agent_resource(
         self,
@@ -827,5 +817,4 @@ class ACPNotifications:
             last_modified=last_modified,
             priority=priority,
         )
-        notification = SessionNotification(session_id=self.id, update=update)
-        await self.client.session_update(notification)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
+        await self.update(update)
