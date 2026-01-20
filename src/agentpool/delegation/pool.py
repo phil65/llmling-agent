@@ -126,6 +126,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         registry.configure_observability(self.manifest.observability)
         self._memory_log_handler = install_memory_handler()
         self.shared_deps_type = shared_deps_type
+        self.connect_nodes = connect_nodes
         self._input_provider = input_provider
         self.exit_stack = AsyncExitStack()
         self.parallel_load = parallel_load
@@ -719,11 +720,15 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         Returns:
             The ChatMessage if found, None otherwise
         """
-        for agent in self.agents.values():
-            for msg in agent.conversation.chat_messages:
-                if msg.message_id == message_id:
-                    return msg
-        return None
+        return next(
+            (
+                msg
+                for agent in self.agents.values()
+                for msg in agent.conversation.chat_messages
+                if msg.message_id == message_id
+            ),
+            None,
+        )
 
     def _create_agent_from_config[TAgentDeps](
         self,
