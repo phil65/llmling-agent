@@ -534,11 +534,16 @@ def _turn_to_chat_messages(turn: Turn) -> list[ChatMessage[list[UserContent]]]: 
     """
     from codex_adapter.models import (
         ThreadItemAgentMessage,
+        ThreadItemCollabAgentToolCall,
         ThreadItemCommandExecution,
+        ThreadItemEnteredReviewMode,
+        ThreadItemExitedReviewMode,
         ThreadItemFileChange,
+        ThreadItemImageView,
         ThreadItemMcpToolCall,
         ThreadItemReasoning,
         ThreadItemUserMessage,
+        ThreadItemWebSearch,
     )
 
     user_content: list[UserContent] = []
@@ -594,13 +599,70 @@ def _turn_to_chat_messages(turn: Turn) -> list[ChatMessage[list[UserContent]]]: 
                     texts = [str(b.model_dump().get("text", "")) for b in item.result.content]
                     result_text = " ".join(texts)
                 assistant_display_parts.append(f"[Tool: {item.tool}] {result_text[:100]}")
-                args = item.arguments if isinstance(item.arguments, dict) else {}
-                mcp_call = BuiltinToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id)
+                mcp_args = item.arguments if isinstance(item.arguments, dict) else {}
+                mcp_call = BuiltinToolCallPart(
+                    tool_name=item.tool, args=mcp_args, tool_call_id=item.id
+                )
                 mcp_ret = ToolReturnPart(
                     tool_name=item.tool, content=result_text, tool_call_id=item.id
                 )
                 assistant_responses.append(ModelResponse(parts=[mcp_call]))
                 assistant_responses.append(ModelRequest(parts=[mcp_ret]))
+
+            case ThreadItemWebSearch():
+                assistant_display_parts.append(f"[Web Search: {item.query}]")
+                search_call = BuiltinToolCallPart(
+                    tool_name="web_search", args={"query": item.query}, tool_call_id=item.id
+                )
+                search_ret = ToolReturnPart(
+                    tool_name="web_search", content="Search completed", tool_call_id=item.id
+                )
+                assistant_responses.append(ModelResponse(parts=[search_call]))
+                assistant_responses.append(ModelRequest(parts=[search_ret]))
+
+            case ThreadItemImageView():
+                assistant_display_parts.append(f"[Viewed Image: {item.path}]")
+                view_call = BuiltinToolCallPart(
+                    tool_name="view_image", args={"path": item.path}, tool_call_id=item.id
+                )
+                view_ret = ToolReturnPart(
+                    tool_name="view_image", content="Image viewed", tool_call_id=item.id
+                )
+                assistant_responses.append(ModelResponse(parts=[view_call]))
+                assistant_responses.append(ModelRequest(parts=[view_ret]))
+
+            case ThreadItemEnteredReviewMode():
+                assistant_display_parts.append(f"[Entered Review Mode: {item.review}]")
+                assistant_responses.append(
+                    ModelResponse(parts=[TextPart(content=f"Entered review mode: {item.review}")])
+                )
+
+            case ThreadItemExitedReviewMode():
+                assistant_display_parts.append(f"[Exited Review Mode: {item.review}]")
+                assistant_responses.append(
+                    ModelResponse(parts=[TextPart(content=f"Exited review mode: {item.review}")])
+                )
+
+            case ThreadItemCollabAgentToolCall():
+                status = item.agent_state.status if item.agent_state else "unknown"
+                display = f"[Collab Agent: {item.tool}] {item.receiver_thread_id or ''} ({status})"
+                assistant_display_parts.append(display)
+                collab_args: dict[str, Any] = {
+                    "tool": item.tool,
+                    "sender_thread_id": item.sender_thread_id,
+                }
+                if item.receiver_thread_id:
+                    collab_args["receiver_thread_id"] = item.receiver_thread_id
+                if item.prompt:
+                    collab_args["prompt"] = item.prompt
+                collab_call = BuiltinToolCallPart(
+                    tool_name="collab_agent", args=collab_args, tool_call_id=item.id
+                )
+                collab_ret = ToolReturnPart(
+                    tool_name="collab_agent", content=f"Status: {status}", tool_call_id=item.id
+                )
+                assistant_responses.append(ModelResponse(parts=[collab_call]))
+                assistant_responses.append(ModelRequest(parts=[collab_ret]))
 
     # Validate user content exists
     if not user_content:
