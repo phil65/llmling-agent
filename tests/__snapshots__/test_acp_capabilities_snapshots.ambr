@@ -9,7 +9,7 @@
   Agent Info:
     name: agentpool
     title: AgentPool
-    version: 2.6.1
+    version: 2.6.5
   
   Protocol Version: 1
   
@@ -29,7 +29,7 @@
     "session": {
       "fork": false,
       "list": true,
-      "resume": false
+      "resume": true
     }
   }
   '''
@@ -232,7 +232,7 @@
   Agent Info:
     name: fast-agent-acp
     title: None
-    version: 0.4.31
+    version: 0.4.35
   
   Protocol Version: 1
   
@@ -400,7 +400,7 @@
   Agent Info:
     name: OpenCode
     title: None
-    version: 1.1.23
+    version: 1.1.25
   
   Protocol Version: 1
   

@@ -23,8 +23,8 @@
                                                                                   
    Agent Selection:                                                               
    Use --agent to specify which agent to use by name. Without this option,        
-   the first agent in your config is used as the default (or "agentpool"          
-   if no config provided).                                                        
+   the pool's default agent is used (set via 'default_agent' in config,           
+   or falls back to the first agent).                                             
                                                                                   
    Agent Mode Switching:                                                          
    If your config defines multiple agents, the IDE will show a mode selector      
@@ -63,8 +63,8 @@
   │ --agent                                   TEXT              Name of specific │
   │                                                             agent to use     │
   │                                                             (defaults to     │
-  │                                                             first agent in   │
-  │                                                             config)          │
+  │                                                             pool's default   │
+  │                                                             agent)           │
   │ --skills               --no-skills                          Load client-side │
   │                                                             skills from      │
   │                                                             .claude/skills   │
