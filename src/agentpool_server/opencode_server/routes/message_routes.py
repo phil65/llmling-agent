@@ -351,7 +351,6 @@ async def _process_message(  # noqa: PLR0915
                             tool=existing.tool,
                             call_id=existing.call_id,
                             state=ToolStateRunning(
-                                status="running",
                                 time=TimeStart(start=now_ms()),
                                 input=tool_inputs[tool_call_id],
                                 title=title,
@@ -368,7 +367,6 @@ async def _process_message(  # noqa: PLR0915
                         tool_inputs[tool_call_id] = ui_input
                         tool_outputs[tool_call_id] = ""
                         tool_state = ToolStateRunning(
-                            status="running",
                             time=TimeStart(start=now_ms()),
                             input=ui_input,
                             title=title,
@@ -400,12 +398,8 @@ async def _process_message(  # noqa: PLR0915
                     tool_outputs[tool_call_id] = ""
                     # Derive initial title; toolset events may update it later
                     rich_info = derive_rich_tool_info(tool_name, raw_input)
-                    tool_state = ToolStateRunning(
-                        status="running",
-                        time=TimeStart(start=now_ms()),
-                        input=ui_input,
-                        title=rich_info.title,
-                    )
+                    ts = TimeStart(start=now_ms())
+                    tool_state = ToolStateRunning(time=ts, input=ui_input, title=rich_info.title)
                     tool_part = ToolPart(
                         id=identifier.ascending("part"),
                         message_id=assistant_msg_id,
@@ -455,7 +449,6 @@ async def _process_message(  # noqa: PLR0915
                         tool_input = tool_inputs.get(tool_call_id, {})
                         accumulated_output = tool_outputs.get(tool_call_id, "")
                         tool_state = ToolStateRunning(
-                            status="running",
                             time=TimeStart(start=now_ms()),
                             title=title or existing_title,
                             input=tool_input,
@@ -483,7 +476,6 @@ async def _process_message(  # noqa: PLR0915
                         tool_inputs[tool_call_id] = ui_input
                         accumulated_output = tool_outputs.get(tool_call_id, "")
                         tool_state = ToolStateRunning(
-                            status="running",
                             time=TimeStart(start=now_ms()),
                             input=ui_input,
                             title=title or tool_name or "Running...",
@@ -514,14 +506,12 @@ async def _process_message(  # noqa: PLR0915
 
                     if is_error:
                         new_state: ToolStateCompleted | ToolStateError = ToolStateError(
-                            status="error",
                             error=str(result.get("error", "Unknown error")),
                             input=tool_input,
                             time=TimeStartEnd(start=now, end=now_ms()),
                         )
                     else:
                         new_state = ToolStateCompleted(
-                            status="completed",
                             title=f"Completed {existing.tool}",
                             input=tool_input,
                             output=result_str,
@@ -605,13 +595,11 @@ async def _process_message(  # noqa: PLR0915
                             preview = (
                                 result_str[:60] + "..." if len(result_str) > 60 else result_str  # noqa: PLR2004
                             )
-                            summary = f"{indent}  ├─ {tool_name}: {preview}"
-
                             summary_part = TextPart(
                                 id=identifier.ascending("part"),
                                 message_id=assistant_msg_id,
                                 session_id=session_id,
-                                text=summary,
+                                text=f"{indent}  ├─ {tool_name}: {preview}",
                                 time=TimeStartEndOptional(start=now_ms()),
                             )
                             assistant_msg_with_parts.parts.append(summary_part)
@@ -679,9 +667,7 @@ async def _process_message(  # noqa: PLR0915
     )
     assistant_msg_with_parts.parts.append(step_finish)
     await state.broadcast_event(PartUpdatedEvent.create(step_finish))
-
     print(f"Response text: {response_text[:100] if response_text else 'EMPTY'}...")
-
     # Update assistant message with final timing and tokens
     updated_assistant = assistant_message.model_copy(
         update={
@@ -690,13 +676,11 @@ async def _process_message(  # noqa: PLR0915
                 cache=TokensCache(read=0, write=0),
                 input=input_tokens,
                 output=output_tokens,
-                reasoning=0,
             ),
             "cost": total_cost,
         }
     )
     assistant_msg_with_parts.info = updated_assistant
-
     # Broadcast final message update
     await state.broadcast_event(MessageUpdatedEvent.create(updated_assistant))
     # Persist assistant message to storage
@@ -705,7 +689,6 @@ async def _process_message(  # noqa: PLR0915
     state.session_status[session_id] = SessionStatus(type="idle")
     await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="idle")))
     await state.broadcast_event(SessionIdleEvent.create(session_id))
-
     # Update session timestamp
     session = state.sessions[session_id]
     state.sessions[session_id] = session.model_copy(
@@ -731,11 +714,7 @@ async def send_message(
 
 
 @router.post("/prompt_async", status_code=status.HTTP_204_NO_CONTENT)
-async def send_message_async(
-    session_id: str,
-    request: MessageRequest,
-    state: StateDep,
-) -> None:
+async def send_message_async(session_id: str, request: MessageRequest, state: StateDep) -> None:
     """Send a message asynchronously without waiting for response.
 
     Starts the agent processing in the background and returns immediately.
