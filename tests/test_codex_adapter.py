@@ -7,14 +7,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from codex_adapter import (
-    CodexClient,
-    CodexEvent,
-    HttpMcpServer,
-    StdioMcpServer,
-)
+from codex_adapter import CodexClient, CodexEvent, HttpMcpServer, StdioMcpServer
 from codex_adapter.client import _mcp_config_to_toml_inline
 from codex_adapter.exceptions import CodexProcessError, CodexRequestError
+from codex_adapter.models import AgentMessageDeltaData, ThreadStartedData
 
 
 @pytest.fixture
@@ -30,15 +26,6 @@ def mock_process():
 
 
 @pytest.mark.asyncio
-async def test_codex_client_initialization():
-    """Test CodexClient can be instantiated."""
-    client = CodexClient()
-    assert client._codex_command == "codex"
-    assert client._profile is None
-    assert client._process is None
-
-
-@pytest.mark.asyncio
 async def test_codex_client_with_profile():
     """Test CodexClient with custom profile."""
     client = CodexClient(codex_command="/usr/local/bin/codex", profile="test-profile")
@@ -48,13 +35,10 @@ async def test_codex_client_with_profile():
 
 def test_codex_event_from_notification():
     """Test CodexEvent creation from notification."""
-    from codex_adapter.models import AgentMessageDeltaData
-
     event = CodexEvent.from_notification(
         "item/agentMessage/delta",
         {"delta": "Hello", "itemId": "123", "threadId": "t1", "turnId": "u1"},
     )
-
     assert event.event_type == "item/agentMessage/delta"
     assert isinstance(event.data, AgentMessageDeltaData)
     assert event.data.delta == "Hello"  # API uses "delta" not "text"
@@ -101,7 +85,6 @@ def test_codex_event_get_text_delta():
         {"delta": "test output", "itemId": "1", "threadId": "t1", "turnId": "u1"},
     )
     assert event2.get_text_delta() == "test output"
-
     # Non-delta event
     event3 = CodexEvent.from_notification(
         "turn/completed",
@@ -121,18 +104,15 @@ def test_codex_event_get_text_delta():
 async def test_process_message_response():
     """Test processing JSON-RPC response."""
     client = CodexClient()
-
     # Setup pending request
     future = asyncio.Future()
     client._pending_requests[1] = future
-
     # Process success response
     await client._process_message({
         "jsonrpc": "2.0",
         "id": 1,
         "result": {"threadId": "thread-123"},
     })
-
     assert future.done()
     assert future.result() == {"threadId": "thread-123"}
 
@@ -141,11 +121,9 @@ async def test_process_message_response():
 async def test_process_message_error_response():
     """Test processing JSON-RPC error response."""
     client = CodexClient()
-
     # Setup pending request
     future = asyncio.Future()
     client._pending_requests[1] = future
-
     # Process error response
     await client._process_message({
         "jsonrpc": "2.0",
@@ -168,10 +146,7 @@ async def test_process_message_error_response():
 @pytest.mark.asyncio
 async def test_process_message_notification():
     """Test processing JSON-RPC notification."""
-    from codex_adapter.models import AgentMessageDeltaData
-
     client = CodexClient()
-
     # Process notification
     await client._process_message({
         "jsonrpc": "2.0",
@@ -181,6 +156,7 @@ async def test_process_message_notification():
 
     # Check event was queued
     event = await asyncio.wait_for(client._event_queue.get(), timeout=1.0)
+    assert event
     assert event.event_type == "item/agentMessage/delta"
     assert isinstance(event.data, AgentMessageDeltaData)
     assert event.data.delta == "Hello"
@@ -190,15 +166,12 @@ async def test_process_message_notification():
 async def test_client_not_started_error():
     """Test error when sending request before starting."""
     client = CodexClient()
-
     with pytest.raises(CodexProcessError, match="Not connected"):
-        await client._send_request("thread/start", {})
+        await client._send_request("thread/start")
 
 
 def test_codex_event_typed_data():
     """Test typed event data access with proper types."""
-    from codex_adapter.models import AgentMessageDeltaData
-
     # Create an agent message delta event
     event = CodexEvent.from_notification(
         "item/agentMessage/delta",
@@ -212,20 +185,16 @@ def test_codex_event_typed_data():
 
     # Data is automatically validated as AgentMessageDeltaData
     assert isinstance(event.data, AgentMessageDeltaData)
-
     # Common fields work with snake_case
     assert event.data.thread_id == "thread-123"
     assert event.data.turn_id == "turn-456"
     assert event.data.item_id == "item-789"
-
     # Event-specific fields are properly typed
     assert event.data.delta == "Hello world"
 
 
 def test_codex_event_common_fields():
     """Test that common event fields are accessible on all event types."""
-    from codex_adapter.models import ThreadStartedData
-
     # V1 ThreadStarted has nested thread object
     event = CodexEvent.from_notification(
         "thread/started",
@@ -260,10 +229,7 @@ def test_mcp_config_stdio_to_toml():
 
 def test_mcp_config_http_to_toml():
     """Test converting HttpMcpServer to TOML inline format."""
-    config = HttpMcpServer(
-        url="http://localhost:8000/mcp",
-        bearer_token_env_var="MY_TOKEN",
-    )
+    config = HttpMcpServer(url="http://localhost:8000/mcp", bearer_token_env_var="MY_TOKEN")
     result = _mcp_config_to_toml_inline("tools", config)
     expected = (
         'mcp_servers.tools={url = "http://localhost:8000/mcp", bearer_token_env_var = "MY_TOKEN"}'

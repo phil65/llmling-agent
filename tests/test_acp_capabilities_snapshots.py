@@ -79,14 +79,9 @@ async def get_agent_capabilities(agent_class: type[BaseACPAgentConfig]) -> dict[
     Returns:
         Dict containing agent info and capabilities, or error info.
     """
-    result: dict[str, Any] = {
-        "agent_class": agent_class.__name__,
-        "status": "unknown",
-    }
-
+    result: dict[str, Any] = {"agent_class": agent_class.__name__, "status": "unknown"}
     # Get test defaults for this agent class if any
     defaults = AGENT_TEST_DEFAULTS.get(agent_class.__name__, {})
-
     try:
         instance = agent_class(**defaults)
     except Exception as e:  # noqa: BLE001
@@ -102,10 +97,8 @@ async def get_agent_capabilities(agent_class: type[BaseACPAgentConfig]) -> dict[
 
     result["command"] = command
     result["args"] = args
-
     # Pass through environment variables (needed for API keys, etc.)
     env = dict(os.environ)
-
     try:
         async with asyncio.timeout(15):
             async with spawn_agent_process(
@@ -124,10 +117,7 @@ async def get_agent_capabilities(agent_class: type[BaseACPAgentConfig]) -> dict[
                     ),
                     client_capabilities=ClientCapabilities(
                         terminal=True,
-                        fs=FileSystemCapability(
-                            read_text_file=True,
-                            write_text_file=True,
-                        ),
+                        fs=FileSystemCapability(read_text_file=True, write_text_file=True),
                     ),
                 )
 

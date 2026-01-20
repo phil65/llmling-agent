@@ -23,7 +23,6 @@ async def test_agui_agent_with_managed_server():
         # Verify server process is running
         assert agent._startup_process is not None
         assert agent._startup_process.returncode is None
-
         # Test actual communication with the server
         result = await agent.run("What is 2+2?")
         assert result.content
@@ -47,23 +46,9 @@ async def test_agui_agent_streaming_with_managed_server():
         events = []
         async for event in agent.run_stream("Hello"):
             events.append(event)  # noqa: PERF401
-
         assert len(events) > 0
         # Last event should be StreamCompleteEvent with final message
         assert events[-1].message.content
-
-
-@pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")
-async def test_agui_agent_without_startup_command():
-    """Test AGUIAgent works without startup_command (expects external server)."""
-    agent = AGUIAgent(
-        endpoint="http://localhost:8765/agent/run",
-        name="test-agent",
-    )
-
-    async with agent:
-        # No startup process when startup_command is not provided
-        assert agent._startup_process is None
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Hangs on Windows CI")

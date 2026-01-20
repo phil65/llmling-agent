@@ -104,37 +104,36 @@ def acp_fs(mock_session):
     return ACPFileSystem(mock_session.client, mock_session.session_id)
 
 
-async def test_cat_file(acp_fs):
+async def test_cat_file(acp_fs: ACPFileSystem):
     """Test reading file content."""
     content = await acp_fs._cat_file("test.txt")
     assert content == b"test content"
 
 
-async def test_cat_file_not_found(acp_fs):
+async def test_cat_file_not_found(acp_fs: ACPFileSystem):
     """Test reading non-existent file."""
     with pytest.raises(FileNotFoundError):
         await acp_fs._cat_file("nonexistent.txt")
 
 
-async def test_put_file(acp_fs):
+async def test_put_file(acp_fs: ACPFileSystem):
     """Test writing file content."""
     await acp_fs._put_file("new.txt", "new content")
     # Verify it was written to mock
-    assert acp_fs.client.files["new.txt"] == "new content"
+    assert acp_fs.client.files["new.txt"] == "new content"  # pyright: ignore[reportAttributeAccessIssue]
 
 
-async def test_put_file_bytes(acp_fs):
+async def test_put_file_bytes(acp_fs: ACPFileSystem):
     """Test writing bytes content."""
     await acp_fs._put_file("new.txt", b"new content")
-    assert acp_fs.client.files["new.txt"] == "new content"
+    assert acp_fs.client.files["new.txt"] == "new content"  # pyright: ignore[reportAttributeAccessIssue]
 
 
-async def test_ls_detail(acp_fs):
+async def test_ls_detail(acp_fs: ACPFileSystem):
     """Test directory listing with details."""
     files = await acp_fs._ls(".", detail=True)
     assert isinstance(files, list)
     assert len(files) >= 1  # At least test.txt
-
     # Check that we have file entries with expected structure
     for file_info in files:
         assert "name" in file_info
@@ -142,32 +141,32 @@ async def test_ls_detail(acp_fs):
         assert "size" in file_info
 
 
-async def test_ls_simple(acp_fs):
+async def test_ls_simple(acp_fs: ACPFileSystem):
     """Test simple directory listing."""
     files = await acp_fs._ls(".", detail=False)
     assert isinstance(files, list)
     # Note: mock returns the same detailed output, so this tests the parsing
 
 
-async def test_exists(acp_fs):
+async def test_exists(acp_fs: ACPFileSystem):
     """Test file existence check."""
     assert await acp_fs._exists("test.txt") is True
     assert await acp_fs._exists("nonexistent.txt") is False
 
 
-async def test_isfile(acp_fs):
+async def test_isfile(acp_fs: ACPFileSystem):
     """Test file type check."""
     assert await acp_fs._isfile("test.txt") is True
     assert await acp_fs._isfile("subdir") is False
 
 
-async def test_isdir(acp_fs):
+async def test_isdir(acp_fs: ACPFileSystem):
     """Test directory type check."""
     assert await acp_fs._isdir("subdir") is True
     assert await acp_fs._isdir("test.txt") is False
 
 
-async def test_info(acp_fs):
+async def test_info(acp_fs: ACPFileSystem):
     """Test file info retrieval."""
     info = await acp_fs._info("test.txt")
     assert info["name"] == "test.txt"
@@ -175,13 +174,13 @@ async def test_info(acp_fs):
     assert info["size"] == 12
 
 
-async def test_byte_range_not_supported(acp_fs):
+async def test_byte_range_not_supported(acp_fs: ACPFileSystem):
     """Test that byte range reads are not supported."""
     with pytest.raises(NotImplementedError, match="byte range reads"):
         await acp_fs._cat_file("test.txt", start=0, end=10)
 
 
-def test_open(acp_fs):
+def test_open(acp_fs: ACPFileSystem):
     """Test file opening."""
     file_obj = acp_fs.open("test.txt", "r")
     assert file_obj.path == "test.txt"
