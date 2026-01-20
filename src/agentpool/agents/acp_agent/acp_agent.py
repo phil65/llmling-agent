@@ -58,7 +58,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.models.acp_agents import ACPAgentConfig
 from agentpool.utils.streams import merge_queue_into_iterator
-from agentpool.utils.subprocess_utils import SubprocessError, monitor_process
+from agentpool.utils.subprocess_utils import SubprocessError, run_with_process_monitor
 from agentpool.utils.token_breakdown import calculate_usage_from_parts
 
 
@@ -292,22 +292,29 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         await self._setup_toolsets()  # Setup toolsets before session creation
         process = await self._start_process()
         try:
-            async with monitor_process(process, context="ACP initialization"):
-                await self._initialize()
-                # Load existing session or create new one
-                if self._session_id:
-                    session_to_load = self._session_id
-                    self._session_id = None  # Clear so load_session can set it
-                    result = await self.load_session(session_to_load)
-                    if result is None:
-                        # Fall back to creating a new session if load fails
-                        self.log.warning(
-                            "Failed to load session, creating new one",
-                            session_id=session_to_load,
-                        )
-                        await self._create_session()
-                else:
-                    await self._create_session()
+            await run_with_process_monitor(process, self._initialize, context="ACP initialization")
+            # Load existing session or create new one
+            if self._session_id:
+                session_to_load = self._session_id
+                self._session_id = None  # Clear so load_session can set it
+                result = await run_with_process_monitor(
+                    process,
+                    lambda: self.load_session(session_to_load),
+                    context="ACP session load",
+                )
+                if result is None:
+                    # Fall back to creating a new session if load fails
+                    self.log.warning(
+                        "Failed to load session, creating new one",
+                        session_id=session_to_load,
+                    )
+                    await run_with_process_monitor(
+                        process, self._create_session, context="ACP session creation"
+                    )
+            else:
+                await run_with_process_monitor(
+                    process, self._create_session, context="ACP session creation"
+                )
         except SubprocessError as e:
             raise RuntimeError(str(e)) from e
         await anyio.sleep(0.3)  # Small delay to let subprocess fully initialize

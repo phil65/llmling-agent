@@ -151,5 +151,28 @@ async def run_with_process_monitor[T](
         )
         ```
     """
-    async with monitor_process(process, context=context):
-        return await coro()
+    process_wait_task = asyncio.create_task(process.wait())
+    operation_task = asyncio.create_task(coro())
+
+    done, pending = await asyncio.wait(
+        [process_wait_task, operation_task],
+        return_when=asyncio.FIRST_COMPLETED,
+    )
+
+    # Cancel pending tasks
+    for task in pending:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
+    # Check which completed first
+    if process_wait_task in done:
+        # Process exited before operation completed
+        stderr_output = await read_stream(process.stderr)
+        raise SubprocessError(
+            returncode=process.returncode,
+            stderr=stderr_output,
+        )
+
+    # Operation completed successfully
+    return operation_task.result()
