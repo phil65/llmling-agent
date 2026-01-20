@@ -28,5 +28,5 @@ agents:
 ## Configuration Reference
 
 /// mknodes
-{{ "llmling_models.configs.AnyModelConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
+{{ "llmling_models_config.AnyModelConfig" | union_to_markdown(display_mode="yaml", header_style="pymdownx") }}
 ///
