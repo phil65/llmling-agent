@@ -579,7 +579,7 @@ def _turn_to_chat_messages(
                 assistant_responses.append(
                     ModelResponse(
                         parts=[
-                            ToolCallPart(tool_name="bash", args=args, tool_call_id=item.id),
+                            BuiltinToolCallPart(tool_name="bash", args=args, tool_call_id=item.id),
                             BuiltinToolReturnPart(
                                 tool_name="bash", content=output, tool_call_id=item.id
                             ),

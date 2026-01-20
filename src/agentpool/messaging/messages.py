@@ -150,11 +150,7 @@ class TokenCost:
                 model_ref = parts[0]
 
             try:
-                price_data = calc_price(
-                    usage,
-                    model_ref=model_ref,
-                    provider_id=provider_id,
-                )
+                price_data = calc_price(usage, model_ref=model_ref, provider_id=provider_id)
                 price = price_data.total_price
             except Exception:  # noqa: BLE001
                 cost = await tokonomics.calculate_token_cost(
