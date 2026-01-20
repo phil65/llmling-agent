@@ -51,6 +51,7 @@ from agentpool_server.opencode_server.models.parts import (
     TokenCache,
 )
 from agentpool_server.opencode_server.time_utils import now_ms
+from agentpool_storage.models import SessionData
 
 
 if TYPE_CHECKING:
@@ -64,7 +65,7 @@ if TYPE_CHECKING:
         ToolCallStartEvent,
     )
     from agentpool.messaging.messages import ChatMessage
-    from agentpool_server.opencode_server.models import Part
+    from agentpool_server.opencode_server.models import Part, Session
 
 
 logger = logging.getLogger(__name__)
@@ -972,3 +973,110 @@ def opencode_to_chat_messages(
         List of ChatMessages
     """
     return [opencode_to_chat_message(msg, conversation_id=conversation_id) for msg in messages]
+
+
+# =============================================================================
+# Session Converters
+# =============================================================================
+
+
+def session_data_to_opencode(data: SessionData) -> Session:
+    """Convert SessionData to OpenCode Session model.
+
+    Args:
+        data: SessionData to convert (title comes from data.title property)
+    """
+    from agentpool_server.opencode_server.models import (
+        Session,
+        SessionRevert,
+        SessionShare,
+        TimeCreatedUpdated,
+    )
+
+    # Convert datetime to milliseconds timestamp
+    created_ms = int(data.created_at.timestamp() * 1000)
+    updated_ms = int(data.last_active.timestamp() * 1000)
+
+    # Extract revert/share from metadata if present
+    revert = None
+    share = None
+    if "revert" in data.metadata:
+        revert = SessionRevert(**data.metadata["revert"])
+    if "share" in data.metadata:
+        share = SessionShare(**data.metadata["share"])
+
+    return Session(
+        id=data.session_id,
+        project_id=data.project_id or "default",
+        directory=data.cwd or "",
+        title=data.title or "New Session",
+        version=data.version,
+        time=TimeCreatedUpdated(created=created_ms, updated=updated_ms),
+        parent_id=data.parent_id,
+        revert=revert,
+        share=share,
+    )
+
+
+def opencode_to_session_data(
+    session: Session,
+    *,
+    agent_name: str = "default",
+    pool_id: str | None = None,
+) -> SessionData:
+    """Convert OpenCode Session to SessionData for persistence."""
+    from datetime import UTC, datetime
+
+    # Convert milliseconds timestamp to datetime
+    created_at = datetime.fromtimestamp(session.time.created / 1000, tz=UTC)
+    last_active = datetime.fromtimestamp(session.time.updated / 1000, tz=UTC)
+    # Store revert/share in metadata
+    metadata: dict[str, Any] = {}
+    if session.revert:
+        metadata["revert"] = session.revert.model_dump()
+    if session.share:
+        metadata["share"] = session.share.model_dump()
+    return SessionData(
+        session_id=session.id,
+        agent_name=agent_name,
+        conversation_id=session.id,  # Use session_id as conversation_id
+        pool_id=pool_id,
+        project_id=session.project_id,
+        parent_id=session.parent_id,
+        version=session.version,
+        cwd=session.directory,
+        created_at=created_at,
+        last_active=last_active,
+        metadata=metadata,
+    )
+
+
+def agent_messages_to_opencode(
+    chat_messages: list[ChatMessage[Any]],
+    session_id: str,
+    working_dir: str,
+    agent_name: str,
+) -> list[MessageWithParts]:
+    """Convert agent's chat messages to OpenCode format.
+
+    Args:
+        chat_messages: List of ChatMessage from agent.conversation
+        session_id: OpenCode session ID
+        working_dir: Working directory for path context
+        agent_name: Name of the agent
+
+    Returns:
+        List of OpenCode MessageWithParts
+    """
+    opencode_messages: list[MessageWithParts] = []
+    for chat_msg in chat_messages:
+        opencode_msg = chat_message_to_opencode(
+            chat_msg,
+            session_id=session_id,
+            working_dir=working_dir,
+            agent_name=agent_name,
+            model_id=chat_msg.model_name or "sonnet",  # Normalized name from Claude storage
+            provider_id=chat_msg.provider_name or "claude-code",
+        )
+        opencode_messages.append(opencode_msg)
+    return opencode_messages
