@@ -1186,30 +1186,30 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         event_data = message.event
                         event_type = event_data.get("type")
                         index = event_data.get("index", 0)
+                        content_block = event_data.get("content_block", {})
+                        block_type = content_block.get("type")
+                        delta = event_data.get("delta", {})
+                        delta_type = delta.get("type")
 
-                        # Handle content_block_start events
-                        if event_type == "content_block_start":
-                            content_block = event_data.get("content_block", {})
-                            block_type = content_block.get("type")
-
-                            if block_type == "text":
+                        match event_type, block_type or delta_type:
+                            # content_block_start events
+                            case "content_block_start", "text":
                                 start_event = PartStartEvent.text(index=index, content="")
                                 await event_handlers(None, start_event)
                                 yield start_event
 
-                            elif block_type == "thinking":
+                            case "content_block_start", "thinking":
                                 start_event = PartStartEvent.thinking(index=index, content="")
                                 await event_handlers(None, start_event)
                                 yield start_event
 
-                            elif block_type == "tool_use":
+                            case "content_block_start", "tool_use":
                                 # Emit ToolCallStartEvent early (args still streaming)
                                 tc_id = content_block.get("id", "")
                                 raw_tool_name = content_block.get("name", "")
                                 tool_name = _strip_mcp_prefix(raw_tool_name)
                                 tool_accumulator.start(tc_id, tool_name)
-                                # Track for permission matching - permission callback will use this
-                                # Use raw name since SDK uses raw names for permissions
+                                # Track for permission matching - callback uses raw name
                                 self._pending_tool_call_ids[raw_tool_name] = tc_id
                                 # Derive rich info with empty args for now
                                 rich_info = derive_rich_tool_info(raw_tool_name, {})
@@ -1226,12 +1226,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 await event_handlers(None, tool_start_event)
                                 yield tool_start_event
 
-                        # Handle content_block_delta events (text streaming)
-                        elif event_type == "content_block_delta":
-                            delta = event_data.get("delta", {})
-                            delta_type = delta.get("type")
-
-                            if delta_type == "text_delta":
+                            # content_block_delta events
+                            case "content_block_delta", "text_delta":
                                 text_delta = delta.get("text", "")
                                 if text_delta:
                                     text_part = TextPartDelta(content_delta=text_delta)
@@ -1239,7 +1235,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     await event_handlers(None, delta_event)
                                     yield delta_event
 
-                            elif delta_type == "thinking_delta":
+                            case "content_block_delta", "thinking_delta":
                                 thinking_delta = delta.get("thinking", "")
                                 if thinking_delta:
                                     thinking_part_delta = ThinkingPartDelta(
@@ -1251,12 +1247,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     await event_handlers(None, delta_event)
                                     yield delta_event
 
-                            elif delta_type == "input_json_delta":
+                            case "content_block_delta", "input_json_delta":
                                 # Accumulate tool argument JSON fragments
                                 partial_json = delta.get("partial_json", "")
                                 if partial_json:
                                     # Find which tool call this belongs to by index
-                                    # The index corresponds to the content block index
                                     for tc_id in tool_accumulator._calls:
                                         tool_accumulator.add_args(tc_id, partial_json)
                                         # Emit PartDeltaEvent with ToolCallPartDelta
@@ -1270,13 +1265,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         yield delta_event
                                         break  # Only one tool call streams at a time
 
-                        # Handle content_block_stop events
-                        elif event_type == "content_block_stop":
-                            # We don't have the full part content here, emit with empty part
-                            # The actual content was accumulated via deltas
-                            end_event = PartEndEvent(index=index, part=TextPart(content=""))
-                            await event_handlers(None, end_event)
-                            yield end_event
+                            # content_block_stop events
+                            case "content_block_stop", _:
+                                # Emit with empty part - content was accumulated via deltas
+                                end_event = PartEndEvent(index=index, part=TextPart(content=""))
+                                await event_handlers(None, end_event)
+                                yield end_event
+
+                            case _:
+                                pass  # Ignore other event types (message_start, etc.)
 
                         # Skip further processing for StreamEvent - don't duplicate
                         continue
