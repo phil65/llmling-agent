@@ -521,8 +521,8 @@ def _user_input_to_content(
 
 def _turn_to_chat_messages(
     turn: Turn,
-) -> tuple[ChatMessage[list[UserContent]], ChatMessage[list[UserContent]]]:
-    """Convert one Turn to exactly two ChatMessages (user, assistant).
+) -> list[ChatMessage[list[UserContent]]]:
+    """Convert one Turn to ChatMessages (user and optionally assistant).
 
     Each ThreadItem in the turn becomes one "conversational beat" in the assistant
     message's messages list (one ModelResponse per item).
@@ -531,10 +531,8 @@ def _turn_to_chat_messages(
         turn: Single Turn from Codex thread
 
     Returns:
-        Tuple of (user_message, assistant_message)
-
-    Raises:
-        AssertionError: If turn doesn't contain both user and assistant content
+        List of ChatMessages - always includes user message, assistant message
+        only if there are assistant responses (handles interrupted/incomplete turns)
     """
     from codex_adapter.models import (
         ThreadItemAgentMessage,
@@ -553,18 +551,14 @@ def _turn_to_chat_messages(
         match item:
             case ThreadItemUserMessage():
                 user_content.extend(_user_input_to_content(i) for i in item.content)
-
             case ThreadItemAgentMessage():
                 assistant_responses.append(ModelResponse(parts=[TextPart(content=item.text)]))
                 assistant_display_parts.append(item.text)
-
             case ThreadItemReasoning():
                 # summary is list[str] - create one ThinkingPart per summary item
                 # But we want one ModelResponse per ThreadItem, so combine them
                 thinking_parts = [ThinkingPart(content=s) for s in item.summary]
                 assistant_responses.append(ModelResponse(parts=thinking_parts))
-                # Don't add to display - reasoning is usually hidden
-
             case ThreadItemCommandExecution():
                 cmd = item.command
                 output = item.aggregated_output or ""
@@ -610,36 +604,46 @@ def _turn_to_chat_messages(
                 ]
                 assistant_responses.append(ModelResponse(parts=parts))
 
-    # Validate expectations
-    assert user_content, f"Turn {turn.id} has no user content"
-    assert assistant_responses, f"Turn {turn.id} has no assistant responses"
+    # Validate user content exists
+    if not user_content:
+        return []  # Skip turns with no user content
+
+    result: list[ChatMessage[list[UserContent]]] = []
+
     # Create user message
-    user_msg = ChatMessage(
+    user_msg: ChatMessage[list[UserContent]] = ChatMessage(
         content=user_content,
         role="user",
         message_id=f"{turn.id}-user",
         messages=[ModelRequest(parts=[UserPromptPart(content=user_content)])],
     )
-    # Create assistant message
-    display_text = "\n\n".join(assistant_display_parts) if assistant_display_parts else ""
-    content: list[UserContent] = [display_text] if display_text else []
-    assistant_msg = ChatMessage(
-        content=content,
-        role="assistant",
-        message_id=f"{turn.id}-assistant",
-        messages=assistant_responses,
-    )
-    return user_msg, assistant_msg
+    result.append(user_msg)
+
+    # Create assistant message only if there are assistant responses
+    if assistant_responses:
+        display_text = "\n\n".join(assistant_display_parts) if assistant_display_parts else ""
+        content: list[UserContent] = [display_text] if display_text else []
+        assistant_msg: ChatMessage[list[UserContent]] = ChatMessage(
+            content=content,
+            role="assistant",
+            message_id=f"{turn.id}-assistant",
+            messages=assistant_responses,
+        )
+        result.append(assistant_msg)
+
+    return result
 
 
 def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[list[UserContent]]]:
     """Convert Codex turns to ChatMessage list for session loading.
 
-    Each turn produces exactly two ChatMessages:
+    Each turn produces one or two ChatMessages:
     - User message with content as list[UserContent] (proper types for images etc.)
-    - Assistant message with content as display text, plus messages field containing
-      the full ModelMessage structure. Each ThreadItem becomes one "conversational beat"
-      (one ModelResponse in the messages list).
+    - Assistant message (if present) with content as display text, plus messages field
+      containing the full ModelMessage structure. Each ThreadItem becomes one
+      "conversational beat" (one ModelResponse in the messages list).
+
+    Handles incomplete/interrupted turns that may only have user content.
 
     Args:
         turns: List of Turn objects from Codex thread
@@ -649,6 +653,5 @@ def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[list[UserConte
     """
     result: list[ChatMessage[list[UserContent]]] = []
     for turn in turns:
-        user_msg, assistant_msg = _turn_to_chat_messages(turn)
-        result.extend([user_msg, assistant_msg])
+        result.extend(_turn_to_chat_messages(turn))
     return result
