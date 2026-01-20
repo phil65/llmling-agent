@@ -519,9 +519,7 @@ def _user_input_to_content(
             return f"[Skill: {inp.name}]"
 
 
-def _turn_to_chat_messages(
-    turn: Turn,
-) -> list[ChatMessage[list[UserContent]]]:
+def _turn_to_chat_messages(turn: Turn) -> list[ChatMessage[list[UserContent]]]:  # noqa: PLR0915
     """Convert one Turn to ChatMessages (user and optionally assistant).
 
     Each ThreadItem in the turn becomes one "conversational beat" in the assistant
