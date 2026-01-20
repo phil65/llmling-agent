@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, get_args
 
 import pytest
 
-from acp.client.protocol import Client
+from acp.client.implementations import NoOpClient
 from acp.schema import InitializeRequest
 from acp.schema.capabilities import ClientCapabilities, FileSystemCapability
 from acp.schema.common import Implementation
@@ -26,34 +26,6 @@ from agentpool.models.acp_agents.non_mcp import RegularACPAgentConfigTypes
 
 if TYPE_CHECKING:
     from agentpool.models.acp_agents.base import BaseACPAgentConfig
-
-
-class MinimalClient(Client):
-    """Minimal client implementation for capability probing."""
-
-    async def read_text_file(self, params: Any) -> Any:
-        raise NotImplementedError
-
-    async def write_text_file(self, params: Any) -> Any:
-        raise NotImplementedError
-
-    async def create_terminal(self, params: Any) -> Any:
-        raise NotImplementedError
-
-    async def terminal_output(self, params: Any) -> Any:
-        raise NotImplementedError
-
-    async def wait_for_terminal_exit(self, params: Any) -> Any:
-        raise NotImplementedError
-
-    async def kill_terminal_command(self, params: Any) -> Any:
-        raise NotImplementedError
-
-    async def release_terminal(self, params: Any) -> Any:
-        raise NotImplementedError
-
-    async def request_permission(self, params: Any) -> Any:
-        raise NotImplementedError
 
 
 def get_concrete_agent_classes() -> list[type[BaseACPAgentConfig]]:
@@ -102,7 +74,7 @@ async def get_agent_capabilities(agent_class: type[BaseACPAgentConfig]) -> dict[
     try:
         async with asyncio.timeout(15):
             async with spawn_agent_process(
-                lambda _: MinimalClient(),
+                lambda _: NoOpClient(),
                 command,
                 *args,
                 env=env,
@@ -135,24 +107,20 @@ async def get_agent_capabilities(agent_class: type[BaseACPAgentConfig]) -> dict[
 
                 if response.agent_capabilities:
                     caps = response.agent_capabilities
-                    result["capabilities"] = {
-                        "load_session": caps.load_session,
-                    }
-
+                    caps_dct: dict[str, Any] = {"load_session": caps.load_session}
+                    result["capabilities"] = caps_dct
                     if caps.mcp_capabilities:
                         result["capabilities"]["mcp"] = {
                             "stdio": True,  # Always true per spec
                             "http": caps.mcp_capabilities.http,
                             "sse": caps.mcp_capabilities.sse,
                         }
-
                     if caps.prompt_capabilities:
                         result["capabilities"]["prompt"] = {
                             "audio": caps.prompt_capabilities.audio,
                             "image": caps.prompt_capabilities.image,
                             "embedded_context": caps.prompt_capabilities.embedded_context,
                         }
-
                     if caps.session_capabilities:
                         session_caps = caps.session_capabilities
                         result["capabilities"]["session"] = {

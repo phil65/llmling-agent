@@ -12,9 +12,8 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 import sys
-from typing import Any
 
-from acp.client.protocol import Client
+from acp.client.implementations import NoOpClient
 from acp.schema import InitializeRequest
 from acp.schema.capabilities import ClientCapabilities, FileSystemCapability
 from acp.schema.common import Implementation
@@ -32,84 +31,20 @@ class AgentTestConfig:
 
 # Agents to test - these are the MCP-capable ones
 AGENTS_TO_TEST = [
-    AgentTestConfig(
-        name="Claude Code",
-        command="claude-code-acp",
-        args=[],
-    ),
-    AgentTestConfig(
-        name="Gemini CLI",
-        command="gemini",
-        args=["--experimental-acp"],
-    ),
+    AgentTestConfig(name="Claude Code", command="claude-code-acp", args=[]),
+    AgentTestConfig(name="Gemini CLI", command="gemini", args=["--experimental-acp"]),
     AgentTestConfig(
         name="FastAgent",
         command="fast-agent-acp",
         args=["--model", "anthropic.claude-3-5-haiku-latest"],
     ),
-    AgentTestConfig(
-        name="Auggie",
-        command="auggie",
-        args=["--acp"],
-    ),
-    AgentTestConfig(
-        name="Kimi",
-        command="kimi",
-        args=["--acp"],
-    ),
+    AgentTestConfig(name="Auggie", command="auggie", args=["--acp"]),
+    AgentTestConfig(name="Kimi", command="kimi", args=["--acp"]),
     # Non-MCP-capable agents for comparison
-    AgentTestConfig(
-        name="Codex",
-        command="npx",
-        args=["@zed-industries/codex-acp"],
-    ),
-    AgentTestConfig(
-        name="OpenCode",
-        command="opencode",
-        args=["acp"],
-    ),
-    AgentTestConfig(
-        name="Goose",
-        command="goose",
-        args=["acp"],
-    ),
+    AgentTestConfig(name="Codex", command="npx", args=["@zed-industries/codex-acp"]),
+    AgentTestConfig(name="OpenCode", command="opencode", args=["acp"]),
+    AgentTestConfig(name="Goose", command="goose", args=["acp"]),
 ]
-
-
-class MinimalClient(Client):
-    """Minimal client implementation for capability testing."""
-
-    async def read_text_file(self, params: Any) -> Any:
-        """Not implemented - just for testing."""
-        raise NotImplementedError
-
-    async def write_text_file(self, params: Any) -> Any:
-        """Not implemented - just for testing."""
-        raise NotImplementedError
-
-    async def create_terminal(self, params: Any) -> Any:
-        """Not implemented - just for testing."""
-        raise NotImplementedError
-
-    async def terminal_output(self, params: Any) -> Any:
-        """Not implemented - just for testing."""
-        raise NotImplementedError
-
-    async def wait_for_terminal_exit(self, params: Any) -> Any:
-        """Not implemented - just for testing."""
-        raise NotImplementedError
-
-    async def kill_terminal_command(self, params: Any) -> Any:
-        """Not implemented - just for testing."""
-        raise NotImplementedError
-
-    async def release_terminal(self, params: Any) -> Any:
-        """Not implemented - just for testing."""
-        raise NotImplementedError
-
-    async def request_permission(self, params: Any) -> Any:
-        """Not implemented - just for testing."""
-        raise NotImplementedError
 
 
 async def test_agent_capabilities(config: AgentTestConfig) -> dict:
@@ -130,34 +65,25 @@ async def test_agent_capabilities(config: AgentTestConfig) -> dict:
     try:
         async with asyncio.timeout(15):  # 15 second timeout
             async with spawn_agent_process(
-                lambda _: MinimalClient(),
+                lambda _: NoOpClient(),
                 config.command,
                 *config.args,
             ) as (conn, _process):
                 # Send initialize request
                 init_request = InitializeRequest(
                     protocol_version=1,
-                    client_info=Implementation(
-                        title="MCP Capability Tester",
-                        name="mcp-cap-test",
-                        version="0.1.0",
-                    ),
+                    client_info=Implementation(title="Tester", name="cap-test", version="0.1.0"),
                     client_capabilities=ClientCapabilities(
                         terminal=True,
-                        fs=FileSystemCapability(
-                            read_text_file=True,
-                            write_text_file=True,
-                        ),
+                        fs=FileSystemCapability(read_text_file=True, write_text_file=True),
                     ),
                 )
 
                 response = await conn.initialize(init_request)
-
                 # Parse capabilities
                 if response and response.agent_capabilities:
                     caps = response.agent_capabilities
                     mcp_caps = caps.mcp_capabilities
-
                     result["status"] = "ok"
                     result["mcp_capabilities"] = {
                         "stdio": True,  # Always true per spec
