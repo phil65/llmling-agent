@@ -566,7 +566,6 @@ async def _process_message(  # noqa: PLR0915
                                 else ""
                             )
                             indicator = f"{indent}{icon} {source_name}{type_label}"
-
                             indicator_part = TextPart(
                                 id=identifier.ascending("part"),
                                 message_id=assistant_msg_id,
@@ -576,7 +575,6 @@ async def _process_message(  # noqa: PLR0915
                             )
                             assistant_msg_with_parts.parts.append(indicator_part)
                             await state.broadcast_event(PartUpdatedEvent.create(indicator_part))
-
                             # Show complete message content
                             content = str(msg.content) if msg.content else "(no output)"
                             content_part = TextPart(
@@ -607,22 +605,18 @@ async def _process_message(  # noqa: PLR0915
                             await state.broadcast_event(PartUpdatedEvent.create(summary_part))
 
                 # Compaction event - emit session.compacted SSE event
-                case CompactionEvent(session_id=compact_session_id, phase=phase):
-                    if phase == "completed":
-                        await state.broadcast_event(
-                            SessionCompactedEvent.create(session_id=compact_session_id)
-                        )
-
+                case CompactionEvent(session_id=compact_session_id, phase="completed"):
+                    compact_event = SessionCompactedEvent.create(session_id=compact_session_id)
+                    await state.broadcast_event(compact_event)
                 # Run error event - emit session error
                 case RunErrorEvent(message=error_message, agent_name=agent_name):
                     error_prefix = f"[{agent_name}] " if agent_name else ""
-                    await state.broadcast_event(
-                        SessionErrorEvent.create(
-                            session_id=session_id,
-                            error_name="AgentError",
-                            error_message=f"{error_prefix}{error_message}",
-                        )
+                    error_event = SessionErrorEvent.create(
+                        session_id=session_id,
+                        error_name="AgentError",
+                        error_message=f"{error_prefix}{error_message}",
                     )
+                    await state.broadcast_event(error_event)
 
     except Exception as e:  # noqa: BLE001
         response_text = f"Error calling agent: {e}"
