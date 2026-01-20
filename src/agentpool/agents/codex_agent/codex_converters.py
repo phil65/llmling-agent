@@ -562,13 +562,15 @@ def _turn_to_chat_messages(turn: Turn) -> list[ChatMessage[list[UserContent]]]: 
                 output = item.aggregated_output or ""
                 display = f"[Executed: {cmd}]" + (f"\n{output[:200]}" if output else "")
                 assistant_display_parts.append(display)
-                args: dict[str, str] = {"command": cmd}
+                cmd_args: dict[str, str] = {"command": cmd}
                 if item.cwd:
-                    args["cwd"] = item.cwd
-                call = BuiltinToolCallPart(tool_name="bash", args=args, tool_call_id=item.id)
-                ret = ToolReturnPart(tool_name="bash", content=output, tool_call_id=item.id)
-                assistant_responses.append(ModelResponse(parts=[call]))
-                assistant_responses.append(ModelRequest(parts=[ret]))
+                    cmd_args["cwd"] = item.cwd
+                bash_call = BuiltinToolCallPart(
+                    tool_name="bash", args=cmd_args, tool_call_id=item.id
+                )
+                bash_ret = ToolReturnPart(tool_name="bash", content=output, tool_call_id=item.id)
+                assistant_responses.append(ModelResponse(parts=[bash_call]))
+                assistant_responses.append(ModelRequest(parts=[bash_ret]))
 
             case ThreadItemFileChange():
                 paths = [c.path for c in item.changes]
@@ -579,10 +581,12 @@ def _turn_to_chat_messages(turn: Turn) -> list[ChatMessage[list[UserContent]]]: 
                 assistant_display_parts.append(display)
                 diffs = [c.diff for c in item.changes if c.diff]
                 text = "\n".join(diffs) or "OK"
-                call = ToolCallPart(tool_name="edit", args={"files": paths}, tool_call_id=item.id)
-                ret = ToolReturnPart(tool_name="edit", content=text, tool_call_id=item.id)
-                assistant_responses.append(ModelResponse(parts=[call]))
-                assistant_responses.append(ModelRequest(parts=[ret]))
+                edit_call = ToolCallPart(
+                    tool_name="edit", args={"files": paths}, tool_call_id=item.id
+                )
+                edit_ret = ToolReturnPart(tool_name="edit", content=text, tool_call_id=item.id)
+                assistant_responses.append(ModelResponse(parts=[edit_call]))
+                assistant_responses.append(ModelRequest(parts=[edit_ret]))
 
             case ThreadItemMcpToolCall():
                 result_text = ""
@@ -591,10 +595,12 @@ def _turn_to_chat_messages(turn: Turn) -> list[ChatMessage[list[UserContent]]]: 
                     result_text = " ".join(texts)
                 assistant_display_parts.append(f"[Tool: {item.tool}] {result_text[:100]}")
                 args = item.arguments if isinstance(item.arguments, dict) else {}
-                call = BuiltinToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id)
-                ret = ToolReturnPart(tool_name=item.tool, content=result_text, tool_call_id=item.id)
-                assistant_responses.append(ModelResponse(parts=[call]))
-                assistant_responses.append(ModelRequest(parts=[ret]))
+                mcp_call = BuiltinToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id)
+                mcp_ret = ToolReturnPart(
+                    tool_name=item.tool, content=result_text, tool_call_id=item.id
+                )
+                assistant_responses.append(ModelResponse(parts=[mcp_call]))
+                assistant_responses.append(ModelRequest(parts=[mcp_ret]))
 
     # Validate user content exists
     if not user_content:
