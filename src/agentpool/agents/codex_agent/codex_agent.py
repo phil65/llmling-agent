@@ -48,27 +48,7 @@ logger = get_logger(__name__)
 
 
 class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
-    """MessageNode that wraps a Codex app-server instance.
-
-    This allows integrating Codex into the agentpool ecosystem, enabling
-    composition with native agents via connections, teams, etc.
-
-    The agent manages:
-    - CodexClient lifecycle (connect on enter, disconnect on exit)
-    - Thread/turn management
-    - Event conversion from Codex to agentpool events
-    - Streaming responses
-
-    Example:
-        ```python
-        # From config
-        config = CodexAgentConfig(cwd="/project")
-        agent = CodexAgent(config=config, agent_pool=pool)
-
-        # From kwargs
-        agent = CodexAgent(name="codex", cwd="/project")
-        ```
-    """
+    """MessageNode that wraps a Codex app-server instance."""
 
     AGENT_TYPE: ClassVar = "codex"
 
@@ -267,7 +247,10 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
     async def __aenter__(self) -> Self:
         """Start Codex client and create or resume thread."""
-        from agentpool.agents.codex_agent.codex_converters import mcp_config_to_codex
+        from agentpool.agents.codex_agent.codex_converters import (
+            mcp_config_to_codex,
+            turns_to_chat_messages,
+        )
         from codex_adapter import CodexClient
 
         await super().__aenter__()
@@ -295,16 +278,10 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self.log.info("Codex thread resumed", thread_id=self._sdk_session_id, cwd=cwd)
             # Restore conversation history from resumed thread
             if thread.turns:
-                from agentpool.agents.codex_agent.codex_converters import turns_to_chat_messages
-
                 chat_messages = turns_to_chat_messages(thread.turns)
                 self.conversation.chat_messages.clear()
                 self.conversation.chat_messages.extend(chat_messages)
-                self.log.info(
-                    "Restored conversation history",
-                    turn_count=len(thread.turns),
-                    message_count=len(chat_messages),
-                )
+                self.log.info("Restored conversation history", turn_count=len(thread.turns))
         else:
             # Start a new thread
             response = await self._client.thread_start(

@@ -245,10 +245,7 @@ class ChatMessage[TContent]:
         """Return the last message from the message history."""
         # The response may not be the very last item if it contained an output tool call.
         # See `CallToolsNode._handle_final_result`.
-        for message in reversed(self.messages):
-            if isinstance(message, ModelRequest | ModelResponse):
-                return message
-        return None
+        return self.messages[-1] if self.messages else None
 
     @property
     def parts(self) -> Sequence[ModelRequestPart] | Sequence[ModelResponsePart]:
@@ -574,12 +571,7 @@ class ChatMessage[TContent]:
             case _:
                 raise ValueError(f"Invalid style: {style}")
         template_obj = env.from_string(template_str)
-        vars_ = {
-            **(self.__dict__),
-            "show_metadata": show_metadata,
-            "show_costs": show_costs,
-        }
-
+        vars_ = {**(self.__dict__), "show_metadata": show_metadata, "show_costs": show_costs}
         if variables:
             vars_.update(variables)
 

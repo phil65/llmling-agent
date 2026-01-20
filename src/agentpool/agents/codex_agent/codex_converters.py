@@ -570,22 +570,15 @@ def _turn_to_chat_messages(
                 output = item.aggregated_output or ""
                 display = f"[Executed: {cmd}]" + (f"\n{output[:200]}" if output else "")
                 assistant_display_parts.append(display)
-
                 args: dict[str, str] = {"command": cmd}
                 if item.cwd:
                     args["cwd"] = item.cwd
-
                 # One ModelResponse with both tool call and return
-                assistant_responses.append(
-                    ModelResponse(
-                        parts=[
-                            BuiltinToolCallPart(tool_name="bash", args=args, tool_call_id=item.id),
-                            BuiltinToolReturnPart(
-                                tool_name="bash", content=output, tool_call_id=item.id
-                            ),
-                        ]
-                    )
-                )
+                parts = [
+                    BuiltinToolCallPart(tool_name="bash", args=args, tool_call_id=item.id),
+                    BuiltinToolReturnPart(tool_name="bash", content=output, tool_call_id=item.id),
+                ]
+                assistant_responses.append(ModelResponse(parts=parts))
 
             case ThreadItemFileChange():
                 paths = [c.path for c in item.changes]
@@ -594,22 +587,13 @@ def _turn_to_chat_messages(
                 else:
                     display = f"[Files: {', '.join(paths)}]"
                 assistant_display_parts.append(display)
-
                 diffs = [c.diff for c in item.changes if c.diff]
-                assistant_responses.append(
-                    ModelResponse(
-                        parts=[
-                            ToolCallPart(
-                                tool_name="edit", args={"files": paths}, tool_call_id=item.id
-                            ),
-                            BuiltinToolReturnPart(
-                                tool_name="edit",
-                                content="\n".join(diffs) or "OK",
-                                tool_call_id=item.id,
-                            ),
-                        ]
-                    )
-                )
+                text = "\n".join(diffs) or "OK"
+                parts = [
+                    ToolCallPart(tool_name="edit", args={"files": paths}, tool_call_id=item.id),
+                    BuiltinToolReturnPart(tool_name="edit", content=text, tool_call_id=item.id),
+                ]
+                assistant_responses.append(ModelResponse(parts=parts))
 
             case ThreadItemMcpToolCall():
                 result_text = ""
@@ -617,23 +601,18 @@ def _turn_to_chat_messages(
                     texts = [str(b.model_dump().get("text", "")) for b in item.result.content]
                     result_text = " ".join(texts)
                 assistant_display_parts.append(f"[Tool: {item.tool}] {result_text[:100]}")
-
                 args = item.arguments if isinstance(item.arguments, dict) else {}
-                assistant_responses.append(
-                    ModelResponse(
-                        parts=[
-                            ToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id),
-                            BuiltinToolReturnPart(
-                                tool_name=item.tool, content=result_text, tool_call_id=item.id
-                            ),
-                        ]
-                    )
-                )
+                parts = [
+                    BuiltinToolCallPart(tool_name=item.tool, args=args, tool_call_id=item.id),
+                    BuiltinToolReturnPart(
+                        tool_name=item.tool, content=result_text, tool_call_id=item.id
+                    ),
+                ]
+                assistant_responses.append(ModelResponse(parts=parts))
 
     # Validate expectations
     assert user_content, f"Turn {turn.id} has no user content"
     assert assistant_responses, f"Turn {turn.id} has no assistant responses"
-
     # Create user message
     user_msg = ChatMessage(
         content=user_content,
@@ -641,7 +620,6 @@ def _turn_to_chat_messages(
         message_id=f"{turn.id}-user",
         messages=[ModelRequest(parts=[UserPromptPart(content=user_content)])],
     )
-
     # Create assistant message
     display_text = "\n\n".join(assistant_display_parts) if assistant_display_parts else ""
     content: list[UserContent] = [display_text] if display_text else []
@@ -651,7 +629,6 @@ def _turn_to_chat_messages(
         message_id=f"{turn.id}-assistant",
         messages=assistant_responses,
     )
-
     return user_msg, assistant_msg
 
 
@@ -671,9 +648,7 @@ def turns_to_chat_messages(turns: list[Turn]) -> list[ChatMessage[list[UserConte
         List of ChatMessages with proper content types and model messages
     """
     result: list[ChatMessage[list[UserContent]]] = []
-
     for turn in turns:
         user_msg, assistant_msg = _turn_to_chat_messages(turn)
         result.extend([user_msg, assistant_msg])
-
     return result
