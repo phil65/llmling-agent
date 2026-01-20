@@ -150,8 +150,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
         # Handle conversion of callables first
         if callable(other):
-            other = Agent.from_callback(other)
-            other.agent_pool = self.agent_pool
+            other = Agent.from_callback(other, agent_pool=self.agent_pool)
 
         # If we're already a TeamRun, extend it
         if isinstance(self, TeamRun):
@@ -184,8 +183,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         from agentpool.delegation.team import Team
 
         if callable(other):
-            other = Agent.from_callback(other)
-            other.agent_pool = self.agent_pool
+            other = Agent.from_callback(other, agent_pool=self.agent_pool)
 
         match other:
             case Team():

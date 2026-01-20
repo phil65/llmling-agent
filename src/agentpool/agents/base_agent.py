@@ -236,8 +236,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             case Team():
                 return Team([self, *other.nodes])
             case Callable():
-                agent_2 = Agent.from_callback(other)
-                agent_2.agent_pool = self.agent_pool
+                agent_2 = Agent.from_callback(other, agent_pool=self.agent_pool)
                 return Team([self, agent_2])
             case MessageNode():
                 return Team([self, other])
@@ -259,8 +258,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         from agentpool.agents.native_agent import Agent
 
         if callable(other):
-            other = Agent.from_callback(other)
-            other.agent_pool = self.agent_pool
+            other = Agent.from_callback(other, agent_pool=self.agent_pool)
 
         return TeamRun([self, other])
 
