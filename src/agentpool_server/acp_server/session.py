@@ -354,22 +354,17 @@ class ACPSession:
         Raises:
             ValueError: If agent not found in pool
         """
-        pool = self.agent_pool
-        if agent_name not in pool.all_agents:
-            available = list(pool.all_agents.keys())
+        agents = self.agent_pool.all_agents
+        if agent_name not in agents:
+            available = list(agents.keys())
             raise ValueError(f"Agent {agent_name!r} not found. Available: {available}")
-
         old_agent_name = self.agent.name
-        # Get the new agent from the pool
-        if agent_name in pool.agents:
-            self.agent = pool.get_agent(agent_name, deps_type=ACPSession)
-        else:
-            self.agent = pool.all_agents[agent_name]
+        # self.agent = pool.get_agent(agent_name, deps_type=ACPSession)
+        self.agent = agents[agent_name]
         self.log.info("Switched agents", from_agent=old_agent_name, to_agent=agent_name)
         # Persist the agent switch via session manager
         if self.manager:
             await self.manager.update_session_agent(self.session_id, agent_name)
-
         await self.send_available_commands_update()
 
     async def cancel(self) -> None:
