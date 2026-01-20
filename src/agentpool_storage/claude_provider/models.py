@@ -279,7 +279,7 @@ class ClaudeGenericSystemEntry(ClaudeSystemEntryBase):
     subtype: str | None = None
     duration_ms: int | None = None
     slug: str | None = None
-    level: Literal["info", "suggestion"] | str | None = None
+    level: Literal["info", "suggestion"] | str | None = None  # noqa: PYI051
     logical_parent_uuid: str | None = None
     compact_metadata: dict[str, Any] | None = None
     tool_use_id: str | None = Field(default=None, alias="toolUseID")
