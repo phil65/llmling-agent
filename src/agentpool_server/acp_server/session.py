@@ -211,11 +211,7 @@ class ACPSession:
                     params: RequestPermissionRequest,
                 ) -> RequestPermissionResponse:
                     # Reconstruct request with our session_id (not nested agent's session_id)
-                    self.log.debug(
-                        "Forwarding permission request",
-                        request=params,
-                        our_session_id=self.session_id,
-                    )
+                    self.log.debug("Forwarding permission request", request=params)
                     try:
                         forwarded = params.model_copy(update={"session_id": self.session_id})
                         response = await self.requests.client.request_permission(forwarded)
@@ -237,8 +233,8 @@ class ACPSession:
     ) -> None:
         """Handle state update signal from agent - forward to ACP client."""
         from acp.schema import (
-            AvailableCommandsUpdate as ACPAvailableCommandsUpdate,
-            ConfigOptionUpdate as ACPConfigOptionUpdate,
+            AvailableCommandsUpdate,
+            ConfigOptionUpdate,
             CurrentModelUpdate,
             CurrentModeUpdate,
             SessionNotification,
@@ -246,7 +242,7 @@ class ACPSession:
         from agentpool.agents.modes import ConfigOptionChanged as CoreConfigOptionChanged
         from agentpool_server.acp_server.acp_agent import get_session_config_options
 
-        update: CurrentModeUpdate | CurrentModelUpdate | ACPConfigOptionUpdate
+        update: CurrentModeUpdate | CurrentModelUpdate | ConfigOptionUpdate
         match state:
             case ModeInfo(id=mode_id):
                 update = CurrentModeUpdate(current_mode_id=mode_id)
@@ -254,7 +250,7 @@ class ACPSession:
             case ModelInfo(id=model_id):
                 update = CurrentModelUpdate(current_model_id=model_id)
                 self.log.debug("Forwarding model change to client", model_id=model_id)
-            case ACPAvailableCommandsUpdate(available_commands=cmds):
+            case AvailableCommandsUpdate(available_commands=cmds):
                 # Store remote commands and send merged list
                 self._remote_commands = list(cmds)
                 await self.send_available_commands_update()
@@ -269,7 +265,7 @@ class ACPSession:
                         opt.current_value = value_id
                         break
                 # Convert our core type to ACP type with full config_options
-                update = ACPConfigOptionUpdate(
+                update = ConfigOptionUpdate(
                     config_id=config_id,
                     value_id=value_id,
                     config_options=config_options,
@@ -370,7 +366,6 @@ class ACPSession:
         else:
             self.agent = pool.all_agents[agent_name]
         self.log.info("Switched agents", from_agent=old_agent_name, to_agent=agent_name)
-
         # Persist the agent switch via session manager
         if self.manager:
             await self.manager.update_session_agent(self.session_id, agent_name)
@@ -525,10 +520,6 @@ class ACPSession:
         """Close the session and cleanup resources."""
         try:
             await self.acp_env.__aexit__(None, None, None)
-        except Exception:
-            self.log.exception("Error closing acp_env")
-
-        try:
             # Remove cwd context callable from all agents
             for agent in self.agent_pool.agents.values():
                 if self.get_cwd_context in agent.sys_prompts.prompts:
@@ -555,8 +546,6 @@ class ACPSession:
 
     async def _register_mcp_prompts_as_commands(self) -> None:
         """Register MCP prompts as slash commands."""
-        if not isinstance(self.agent, Agent):
-            return
         try:  # Get all prompts from the agent's ToolManager
             if all_prompts := await self.agent.tools.list_prompts():
                 for prompt in all_prompts:
@@ -605,13 +594,12 @@ class ACPSession:
         Returns:
             List of ACP AvailableCommand objects compatible with current node
         """
-        current_node = self.agent
         # Filter commands by node compatibility
         compatible_commands = []
         for cmd in self.command_store.list_commands():
             cmd_cls = cmd if isinstance(cmd, type) else type(cmd)
             # Check if command supports current node type
-            if issubclass(cmd_cls, NodeCommand) and not cmd_cls.supports_node(current_node):  # type: ignore[union-attr]
+            if issubclass(cmd_cls, NodeCommand) and not cmd_cls.supports_node(self.agent):  # type: ignore[union-attr]
                 continue
             compatible_commands.append(cmd)
 
@@ -732,7 +720,6 @@ class ACPSession:
             try:
                 # Build reference string
                 reference = f"{provider}:{name}" if provider != "builtin" else name
-
                 # Add variables as query parameters if provided
                 if kwargs:
                     params = "&".join(f"{k}={v}" for k, v in kwargs.items())
@@ -742,20 +729,16 @@ class ACPSession:
                 self.agent.staged_content.add([UserPromptPart(content=result)])
                 # Send confirmation
                 staged_count = len(self.agent.staged_content)
-                await ctx.print(
-                    f"✅ Prompt {name!r} from {provider} staged ({staged_count} total parts)"
-                )
+                msg = f"✅ Prompt {name!r} from {provider} staged ({staged_count} total parts)"
+                await ctx.print(msg)
 
             except Exception as e:
                 logger.exception("Prompt hub execution failed", prompt=name, provider=provider)
                 await ctx.print(f"❌ Prompt error: {e}")
 
-        # Create command name - prefix with provider if not builtin
-        command_name = f"{provider}_{name}" if provider != "builtin" else name
-
         return Command.from_raw(
             execute_prompt,
-            name=command_name,
+            name=f"{provider}_{name}" if provider != "builtin" else name,
             description=f"Prompt hub: {provider}:{name}",
             category="prompts",
             usage="[key=value ...]",  # Generic since we don't have parameter schemas
