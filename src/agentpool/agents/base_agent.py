@@ -166,8 +166,10 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             hooks: Agent hooks for intercepting agent behavior at run and tool events
         """
         from exxec import LocalExecutionEnvironment
+        from fsspec.implementations.memory import MemoryFileSystem
         from slashed import CommandStore
 
+        from agentpool.agents.staged_content import StagedContent
         from agentpool_commands import get_commands
 
         super().__init__(
@@ -181,7 +183,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         )
         self._infinite = False
         self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
-
         # Shared infrastructure - previously duplicated in all 4 agents
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
         # Use storage from agent_pool if available, otherwise memory-only
@@ -204,27 +205,11 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self._connect_pending: bool = False
         # State change signal - emitted when mode/model/commands change
         # Uses union type for different state update kinds
-        self._command_store: CommandStore = CommandStore()
+        self._command_store = CommandStore(commands=[*get_commands(), *(commands or [])])
         # Initialize store (registers builtin help/exit commands)
         self._command_store._initialize_sync()
-        # Register default agent commands
-        for command in get_commands():
-            self._command_store.register_command(command)
-
-        # Register additional provided commands
-        if commands:
-            for command in commands:
-                self._command_store.register_command(command)
-
-        # Internal filesystem for tool/session state
-        # Tools can write logs, history, temp files here via AgentContext
-        from fsspec.implementations.memory import MemoryFileSystem
-
+        # Internal filesystem for tool/session state (can get written to via AgentContext)
         self._internal_fs: MemoryFileSystem = MemoryFileSystem()
-
-        # Staged content buffer - parts to inject into next run() call
-        from agentpool.agents.staged_content import StagedContent
-
         self.staged_content = StagedContent()
 
     @overload
@@ -666,24 +651,17 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             return
 
         cmd_name, args = parsed
-
         # Set up event queue for this command execution
         event_queue: asyncio.Queue[Any] = asyncio.Queue()
-
-        async def emit_event(event: Any) -> None:
-            await event_queue.put(event)
-
         # Temporarily set event handler on command store
         old_handler = self._command_store.event_handler
-        self._command_store.event_handler = emit_event
-
+        self._command_store.event_handler = event_queue.put
+        cmd_ctx = self._command_store.create_context(data=self.get_context())
+        command_str = f"{cmd_name} {args}".strip()
         try:
-            cmd_ctx = self._command_store.create_context(data=self.get_context())
-            command_str = f"{cmd_name} {args}".strip()
             execute_task = asyncio.create_task(
                 self._command_store.execute_command(command_str, cmd_ctx)
             )
-
             success = True
             # Yield events from queue as command runs
             while not execute_task.done():
