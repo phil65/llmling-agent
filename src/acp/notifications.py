@@ -582,9 +582,9 @@ class ACPNotifications:
                 case ToolReturnPart(
                     content=content, tool_name=tool_name, tool_call_id=tool_call_id
                 ):
-                    converted_content = to_acp_content_blocks(content)
+                    converted = to_acp_content_blocks(content)
                     tool_input = self._tool_call_inputs.get(tool_call_id, {})
-                    content = [ContentToolCallContent(content=block) for block in converted_content]
+                    acp_content = [ContentToolCallContent(content=block) for block in converted]
                     locations = [
                         ToolCallLocation(path=value)
                         for key, value in tool_input.items()
@@ -596,8 +596,8 @@ class ACPNotifications:
                         title=title,
                         status="completed",
                         locations=locations or None,
-                        content=content or None,
-                        raw_output=converted_content,
+                        content=acp_content or None,
+                        raw_output=converted,
                     )
                     self._tool_call_inputs.pop(tool_call_id, None)
                 case _:
