@@ -131,72 +131,6 @@ class ACPNotifications:
             await reporter.start()
         return reporter
 
-    async def tool_call(
-        self,
-        tool_name: str,
-        tool_call_id: str,
-        *,
-        tool_input: dict[str, Any],
-        tool_output: Any,
-        status: ToolCallStatus = "completed",
-    ) -> None:
-        """Send tool execution as ACP tool call update.
-
-        Args:
-            tool_name: Name of the tool that was executed
-            tool_input: Input parameters passed to the tool
-            tool_output: Output returned by the tool
-            status: Execution status
-            tool_call_id: Tool call identifier
-
-        Returns:
-            SessionNotification with tool call update
-        """
-        # Create tool call content from output
-        content: list[ContentToolCallContent] = []
-        if tool_output is not None:
-            # Handle pre-converted raw content blocks
-            if isinstance(tool_output, list) and all(
-                isinstance(item, (TextContentBlock, ImageContentBlock, AudioContentBlock))
-                for item in tool_output
-            ):
-                # Wrap raw blocks in ContentToolCallContent
-                content = [ContentToolCallContent(content=block) for block in tool_output]
-            else:
-                # Fallback to string conversion
-                output_text = str(tool_output)
-                content.append(ContentToolCallContent.text(text=output_text))
-
-        # Extract file locations if present
-        locations = [
-            ToolCallLocation(path=value)
-            for key, value in tool_input.items()
-            if key in {"path", "file_path", "filepath"} and isinstance(value, str)
-        ]
-
-        # Generate a descriptive title from tool name and inputs
-        title = generate_tool_title(tool_name, tool_input)
-        # Use appropriate notification type based on status
-        if status == "pending":
-            await self.tool_call_start(
-                tool_call_id=tool_call_id,
-                title=title,
-                kind=infer_tool_kind(tool_name),
-                locations=locations or None,
-                content=content or None,
-                raw_input=tool_input,
-            )
-        else:
-            # For in_progress, completed, and failed statuses
-            await self.tool_call_progress(
-                tool_call_id=tool_call_id,
-                title=title,
-                status=status,
-                locations=locations or None,
-                content=content or None,
-                raw_output=tool_output,
-            )
-
     async def tool_call_start(
         self,
         tool_call_id: str,
@@ -650,12 +584,20 @@ class ACPNotifications:
                 ):
                     converted_content = to_acp_content_blocks(content)
                     tool_input = self._tool_call_inputs.get(tool_call_id, {})
-                    await self.tool_call(
-                        tool_name=tool_name,
+                    content = [ContentToolCallContent(content=block) for block in converted_content]
+                    locations = [
+                        ToolCallLocation(path=value)
+                        for key, value in tool_input.items()
+                        if key in {"path", "file_path", "filepath"} and isinstance(value, str)
+                    ]
+                    title = generate_tool_title(tool_name, tool_input)
+                    await self.tool_call_progress(
                         tool_call_id=tool_call_id,
-                        tool_input=tool_input,
-                        tool_output=converted_content,
+                        title=title,
                         status="completed",
+                        locations=locations or None,
+                        content=content or None,
+                        raw_output=converted_content,
                     )
                     self._tool_call_inputs.pop(tool_call_id, None)
                 case _:
