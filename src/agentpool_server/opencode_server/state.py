@@ -2,18 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 import time
 from typing import TYPE_CHECKING, Any
 
+from agentpool.diagnostics.lsp_manager import LSPManager
+
 
 if TYPE_CHECKING:
-    import asyncio
-
-    from agentpool import AgentPool
     from agentpool.agents.base_agent import BaseAgent
-    from agentpool.diagnostics.lsp_manager import LSPManager
     from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
     from agentpool_server.opencode_server.models import (
         Config,
@@ -57,44 +56,33 @@ class ServerState:
     working_dir: str
     agent: BaseAgent[Any, Any]
     start_time: float = field(default_factory=time.time)
-
     # Configuration (mutable runtime config)
     # Initialized after state creation
     config: Config | None = None
-
     # Active sessions cache (session_id -> OpenCode Session model)
     # This is a cache of sessions loaded from pool.sessions
     sessions: dict[str, Session] = field(default_factory=dict)
     session_status: dict[str, SessionStatus] = field(default_factory=dict)
-
     # Message storage (session_id -> messages)
     # Runtime cache - messages are also persisted via pool.storage
     messages: dict[str, list[MessageWithParts]] = field(default_factory=dict)
-
     # Reverted messages storage (session_id -> removed messages)
     # Stores messages removed during revert for unrevert operation
     reverted_messages: dict[str, list[MessageWithParts]] = field(default_factory=dict)
-
     # Todo storage (session_id -> todos)
     # Uses pool.todos for persistence
     todos: dict[str, list[Todo]] = field(default_factory=dict)
-
     # Input providers for permission handling (session_id -> provider)
     input_providers: dict[str, OpenCodeInputProvider] = field(default_factory=dict)
-
     # Question storage (question_id -> pending question info)
     pending_questions: dict[str, PendingQuestion] = field(default_factory=dict)
-
     # SSE event subscribers
     event_subscribers: list[asyncio.Queue[Event]] = field(default_factory=list)
-
     # Callback for first subscriber connection (e.g., for update check)
     on_first_subscriber: OnFirstSubscriberCallback | None = None
     _first_subscriber_triggered: bool = field(default=False, repr=False)
-
     # Background tasks (for cleanup on shutdown)
     background_tasks: set[asyncio.Task[Any]] = field(default_factory=set)
-
     # LSP manager for language server integration (initialized lazily)
     lsp_manager: LSPManager | None = None
 
@@ -108,8 +96,6 @@ class ServerState:
 
     def create_background_task(self, coro: Any, *, name: str | None = None) -> asyncio.Task[Any]:
         """Create and track a background task."""
-        import asyncio
-
         task = asyncio.create_task(coro, name=name)
         self.background_tasks.add(task)
         task.add_done_callback(self.background_tasks.discard)
@@ -144,9 +130,6 @@ class ServerState:
         """
         if self.lsp_manager is not None:
             return self.lsp_manager
-
-        from agentpool.diagnostics.lsp_manager import LSPManager
-
         # Get the execution environment from the agent
         env = getattr(self.agent, "env", None)
         if env is None:
