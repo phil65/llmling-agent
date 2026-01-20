@@ -98,14 +98,16 @@ class ClaudeMessageEntryBase(ClaudeBaseModel):
     timestamp: str
     message: ClaudeApiMessage | ClaudeUserMessage
 
-    # Context (NOT USED directly)
+    # Context
     cwd: str = ""
-    git_branch: str = ""
+    git_branch: str | None = None
     version: str = ""
 
-    # Metadata (NOT USED)
+    # Metadata
     user_type: UserType = "external"
     is_sidechain: bool = False
+    is_meta: bool | None = None
+    is_compact_summary: bool | None = None
     request_id: str | None = None
     agent_id: str | None = None
     # toolUseResult can be list, dict, or string (error message)
@@ -122,39 +124,170 @@ class ClaudeAssistantEntry(ClaudeMessageEntryBase):
     """Assistant message entry."""
 
     type: Literal["assistant"]
+    is_api_error_message: bool | None = None
 
 
-class ClaudeQueueOperationEntry(ClaudeBaseModel):
-    """Queue operation entry (not a message)."""
+# Queue operation content types
+class ClaudeTextContent(ClaudeBaseModel):
+    """Text content block."""
+
+    type: Literal["text"]
+    text: str
+
+
+class ClaudeImageSource(ClaudeBaseModel):
+    """Image source with base64 data."""
+
+    type: Literal["base64"]
+    data: str
+    media_type: str
+
+
+class ClaudeImageContent(ClaudeBaseModel):
+    """Image content block."""
+
+    type: Literal["image"]
+    source: ClaudeImageSource
+
+
+class ClaudeDocumentContent(ClaudeBaseModel):
+    """Document content block."""
+
+    type: Literal["document"]
+    source: ClaudeImageSource  # Same structure as image
+
+
+class ClaudeToolResultContent(ClaudeBaseModel):
+    """Tool result content block."""
+
+    type: Literal["tool_result"]
+    tool_use_id: str
+    content: str | list[dict[str, Any]] | None = None
+    is_error: bool | None = None
+
+
+# Union of queue operation content types
+ClaudeQueueContent = (
+    str | ClaudeTextContent | ClaudeImageContent | ClaudeDocumentContent | ClaudeToolResultContent
+)
+
+
+class ClaudeEnqueueOperation(ClaudeBaseModel):
+    """Enqueue operation with content."""
 
     type: Literal["queue-operation"]
+    operation: Literal["enqueue"]
+    content: str | list[str | ClaudeQueueContent]
     session_id: str
     timestamp: str
-    operation: str
 
 
-class ClaudeSystemEntry(ClaudeBaseModel):
-    """System message entry (context, prompts, etc.)."""
+class ClaudeDequeueOperation(ClaudeBaseModel):
+    """Dequeue operation."""
+
+    type: Literal["queue-operation"]
+    operation: Literal["dequeue"]
+    session_id: str
+    timestamp: str
+
+
+class ClaudeRemoveOperation(ClaudeBaseModel):
+    """Remove operation."""
+
+    type: Literal["queue-operation"]
+    operation: Literal["remove"]
+    session_id: str
+    timestamp: str
+
+
+# Union of queue operation types
+ClaudeQueueOperationEntry = Annotated[
+    ClaudeEnqueueOperation | ClaudeDequeueOperation | ClaudeRemoveOperation,
+    Field(discriminator="operation"),
+]
+
+
+# Hook info for stop_hook_summary
+class ClaudeHookInfo(ClaudeBaseModel):
+    """Hook info in stop_hook_summary."""
+
+    command: str
+
+
+class ClaudeSystemEntryBase(ClaudeBaseModel):
+    """Base fields for system entries."""
 
     type: Literal["system"]
     uuid: str
     parent_uuid: str | None = None
     session_id: str
     timestamp: str
-    content: str | None = None  # Optional for subtypes like turn_duration
-    subtype: str | None = None
-    duration_ms: int | None = None  # For turn_duration subtype
-    slug: str | None = None
-    level: int | str | None = None
-    is_meta: bool = False
-    logical_parent_uuid: str | None = None
-    compact_metadata: dict[str, Any] | None = None
     # Common fields
     cwd: str = ""
-    git_branch: str = ""
+    git_branch: str | None = None
     version: str = ""
     user_type: UserType = "external"
     is_sidechain: bool = False
+    is_meta: bool | None = None
+    is_compact_summary: bool | None = None
+    tool_use_result: list[dict[str, Any]] | dict[str, Any] | str | None = None
+
+
+class ClaudeSystemEntryWithContent(ClaudeSystemEntryBase):
+    """System entry with content (original format)."""
+
+    content: str
+    tool_use_id: str | None = Field(default=None, alias="toolUseID")
+    level: Literal["info"] | None = None
+    subtype: None = None
+
+
+class ClaudeStopHookSummaryEntry(ClaudeSystemEntryBase):
+    """Stop hook summary entry (Claude Code v2.0.76+)."""
+
+    subtype: Literal["stop_hook_summary"]
+    tool_use_id: str | None = Field(default=None, alias="toolUseID")
+    level: Literal["info", "suggestion"] | None = None
+    slug: str | None = None
+    hook_count: int | None = None
+    hook_infos: list[ClaudeHookInfo] | None = None
+    hook_errors: list[Any] | None = None
+    prevented_continuation: bool | None = None
+    stop_reason: str | None = None
+    has_output: bool | None = None
+
+
+class ClaudeLocalCommandEntry(ClaudeSystemEntryBase):
+    """Local command entry (e.g., /mcp, /help commands)."""
+
+    subtype: Literal["local_command"]
+    content: str
+    level: Literal["info"] | None = None
+
+
+class ClaudeTurnDurationEntry(ClaudeSystemEntryBase):
+    """Turn duration entry."""
+
+    subtype: Literal["turn_duration"]
+    duration_ms: int | None = None
+
+
+class ClaudeGenericSystemEntry(ClaudeSystemEntryBase):
+    """Generic system entry for other subtypes."""
+
+    content: str | None = None
+    subtype: str | None = None
+    duration_ms: int | None = None
+    slug: str | None = None
+    level: Literal["info", "suggestion"] | str | None = None
+    logical_parent_uuid: str | None = None
+    compact_metadata: dict[str, Any] | None = None
+    tool_use_id: str | None = Field(default=None, alias="toolUseID")
+
+
+# Note: We use the generic entry for parsing since Claude Code's system entries
+# have many variations. For strict validation, use the specific entry types.
+ClaudeSystemEntry = ClaudeGenericSystemEntry
 
 
 class ClaudeSummaryEntry(ClaudeBaseModel):
@@ -165,12 +298,20 @@ class ClaudeSummaryEntry(ClaudeBaseModel):
     summary: str
 
 
+class ClaudeFileHistorySnapshot(ClaudeBaseModel):
+    """Snapshot data in file history entry."""
+
+    message_id: str
+    tracked_file_backups: dict[str, Any]
+    timestamp: str
+
+
 class ClaudeFileHistoryEntry(ClaudeBaseModel):
     """File history snapshot entry."""
 
     type: Literal["file-history-snapshot"]
     message_id: str
-    snapshot: dict[str, Any]
+    snapshot: ClaudeFileHistorySnapshot | dict[str, Any]  # Allow dict for flexibility
     is_snapshot_update: bool = False
 
 
@@ -185,7 +326,7 @@ class ClaudeMcpProgressData(ClaudeBaseModel):
 
 
 class ClaudeBashProgressData(ClaudeBaseModel):
-    """Progress data for MCP tool operations."""
+    """Progress data for bash tool operations."""
 
     type: Literal["bash_progress"]
     output: str | None = None
@@ -201,6 +342,9 @@ class ClaudeHookProgressData(ClaudeBaseModel):
     hook_event: str | None = None
     hook_name: str | None = None
     command: str | None = None
+    # Added in v2.1.12+
+    prompt_text: str | None = None
+    status_message: str | None = None
 
 
 class ClaudeWaitingForTaskData(ClaudeBaseModel):
@@ -215,8 +359,54 @@ class ClaudeAgentProgressData(ClaudeBaseModel):
     """Progress data for agent/subagent operations."""
 
     type: Literal["agent_progress"]
-    message: dict[str, Any] | None = None
+    prompt: str | None = None
     agent_id: str | None = Field(default=None, alias="agentId")
+    message: dict[str, Any] | None = None
+    normalized_messages: list[dict[str, Any]] | None = None
+    resume: dict[str, Any] | None = None
+
+
+class ClaudeQueryUpdateData(ClaudeBaseModel):
+    """Progress data for search query updates."""
+
+    type: Literal["query_update"]
+    query: str
+
+
+class ClaudeSearchResultsReceivedData(ClaudeBaseModel):
+    """Progress data for search results received."""
+
+    type: Literal["search_results_received"]
+    result_count: int
+    query: str
+
+
+class ClaudeSkillProgressData(ClaudeBaseModel):
+    """Progress data for skill operations."""
+
+    type: Literal["skill_progress"]
+    prompt: str | None = None
+    agent_id: str | None = Field(default=None, alias="agentId")
+
+
+class ClaudeTaskProgressData(ClaudeBaseModel):
+    """Progress data for task tracking."""
+
+    type: Literal["task_progress"]
+    task_id: str | None = None
+    task_type: str | None = None
+    message: str | None = None
+
+
+class ClaudeToolProgressData(ClaudeBaseModel):
+    """Progress data for tool execution (SDK format)."""
+
+    type: Literal["tool_progress"]
+    tool_use_id: str | None = None
+    tool_name: str | None = None
+    parent_tool_use_id: str | None = None
+    elapsed_time_seconds: float | None = None
+    session_id: str | None = None
 
 
 ClaudeProgressData = Annotated[
@@ -224,7 +414,12 @@ ClaudeProgressData = Annotated[
     | ClaudeBashProgressData
     | ClaudeHookProgressData
     | ClaudeWaitingForTaskData
-    | ClaudeAgentProgressData,
+    | ClaudeAgentProgressData
+    | ClaudeQueryUpdateData
+    | ClaudeSearchResultsReceivedData
+    | ClaudeSkillProgressData
+    | ClaudeTaskProgressData
+    | ClaudeToolProgressData,
     Field(discriminator="type"),
 ]
 
@@ -241,6 +436,7 @@ class ClaudeProgressEntry(ClaudeBaseModel):
     data: ClaudeProgressData
     tool_use_id: str | None = None
     parent_tool_use_id: str | None = None
+    agent_id: str | None = Field(default=None, alias="agentId")
     # Common fields
     cwd: str = ""
     git_branch: str = ""
@@ -250,6 +446,7 @@ class ClaudeProgressEntry(ClaudeBaseModel):
 
 
 # Discriminated union for all entry types
+# Uses nested discriminator: first by "type", then queue-operation by "operation"
 ClaudeJSONLEntry = Annotated[
     ClaudeUserEntry
     | ClaudeAssistantEntry
