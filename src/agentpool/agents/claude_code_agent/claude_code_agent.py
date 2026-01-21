@@ -920,6 +920,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
         from clawd_code_sdk.types import StreamEvent
 
+        from agentpool.agents.claude_code_agent.converters import (
+            convert_tool_result_to_opencode_metadata,
+        )
         from agentpool.agents.events import ToolResultMetadataEvent
         from agentpool.agents.events.infer_info import derive_rich_tool_info
         from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
@@ -1118,10 +1121,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                     # Process user messages - may contain tool results
                     elif isinstance(message, UserMessage):
-                        from agentpool.agents.claude_code_agent.converters import (
-                            convert_tool_result_to_opencode_metadata,
-                        )
-
                         user_content = message.content
                         user_blocks = (
                             [user_content] if isinstance(user_content, str) else user_content

@@ -7,8 +7,12 @@ event types as native agents.
 
 from __future__ import annotations
 
+from difflib import unified_diff
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
+import uuid
 
+from pydantic import TypeAdapter
 from pydantic_ai import PartDeltaEvent, TextPartDelta, ThinkingPartDelta
 
 from agentpool.agents.events import ToolCallCompleteEvent, ToolCallStartEvent
@@ -73,7 +77,6 @@ def claude_message_to_events(
     from clawd_code_sdk import AssistantMessage, ToolResultBlock, ToolUseBlock
 
     events: list[RichAgentStreamEvent[Any]] = []
-
     match message:
         case AssistantMessage(content=content):
             for idx, block in enumerate(content):
@@ -115,6 +118,8 @@ def convert_mcp_servers_to_sdk_format(
     Returns:
         Dict mapping server names to SDK-compatible config dicts
     """
+    from urllib.parse import urlparse
+
     from clawd_code_sdk import McpServerConfig
 
     from agentpool_config.mcp_server import (
@@ -134,8 +139,6 @@ def convert_mcp_servers_to_sdk_format(
         elif isinstance(server, StdioMCPServerConfig):
             name = server.command
         elif isinstance(server, SSEMCPServerConfig | StreamableHTTPMCPServerConfig):
-            from urllib.parse import urlparse
-
             name = urlparse(str(server.url)).hostname or f"server_{idx}"
         else:
             name = f"server_{idx}"
@@ -163,8 +166,6 @@ def convert_mcp_servers_to_sdk_format(
 
 def to_output_format(output_type: type) -> dict[str, Any] | None:
     """Convert to SDK output format dict."""
-    from pydantic import TypeAdapter
-
     # Build structured output format if needed
     output_format: dict[str, Any] | None = None
     if output_type is not str:
@@ -179,105 +180,7 @@ def convert_tool_result_to_opencode_metadata(  # noqa: PLR0911
     tool_use_result: dict[str, Any] | str | None,
     tool_input: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
-    """Convert Claude Code SDK tool_use_result to OpenCode metadata format.
-
-    The Claude Code SDK returns structured `tool_use_result` data for tools like
-    Write, Edit, Read, and Bash. This function converts that data to the metadata
-    format expected by OpenCode TUI for rich display.
-
-    Args:
-        tool_name: Name of the tool (Write, Edit, Read, Bash, etc.)
-        tool_use_result: The structured result from Claude Code SDK's UserMessage
-        tool_input: The input that was passed to the tool (needed for Bash description)
-
-    Returns:
-        OpenCode-compatible metadata dict, or None if no conversion needed
-
-    Claude Code SDK tool_use_result shapes:
-
-    Write (create):
-        {
-            "type": "create",
-            "filePath": str,
-            "content": str,
-            "structuredPatch": [],
-            "originalFile": null
-        }
-
-    Edit:
-        {
-            "filePath": str,
-            "oldString": str,
-            "newString": str,
-            "originalFile": str,
-            "structuredPatch": [{"oldStart": int, "oldLines": int,
-                                 "newStart": int, "newLines": int,
-                                 "lines": [str, ...]}],
-            "userModified": bool,
-            "replaceAll": bool
-        }
-
-    Read:
-        {
-            "type": "text",
-            "file": {
-                "filePath": str,
-                "content": str,
-                "numLines": int,
-                "startLine": int,
-                "totalLines": int
-            }
-        }
-
-    Bash (success):
-        {
-            "stdout": str,
-            "stderr": str,
-            "interrupted": bool,
-            "isImage": bool
-        }
-
-    Bash (error): Just a string like "Error: Exit code 1..."
-
-    OpenCode expected metadata shapes:
-
-    Write:
-        {
-            "filePath": str,
-            "content": str
-        }
-
-    Edit:
-        {
-            "diff": str,  # Unified diff format
-            "filediff": {
-                "file": str,
-                "before": str,
-                "after": str,
-                "additions": int,
-                "deletions": int
-            }
-        }
-
-    Bash:
-        {
-            "output": str,      # Combined stdout+stderr
-            "exit": int | None, # Exit code (None if not available)
-            "description": str  # Command description from tool input
-        }
-
-    TodoWrite:
-        {
-            "todos": [
-                {
-                    "id": str,
-                    "content": str,
-                    "status": str,
-                    "priority": str
-                }
-            ]
-        }
-    """
+    """Convert Claude Code SDK tool_use_result to OpenCode metadata format."""
     # Handle None or string results (bash errors come as plain strings)
     if tool_use_result is None or isinstance(tool_use_result, str):
         return None
@@ -302,14 +205,9 @@ def _convert_write_result(result: dict[str, Any]) -> dict[str, Any] | None:
     """Convert Write tool result to OpenCode metadata."""
     file_path = result.get("filePath")
     content = result.get("content")
-
     if not file_path or content is None:
         return None
-
-    return {
-        "filePath": file_path,
-        "content": content,
-    }
+    return {"filePath": file_path, "content": content}
 
 
 def _convert_edit_result(result: dict[str, Any]) -> dict[str, Any] | None:
@@ -330,10 +228,8 @@ def _convert_edit_result(result: dict[str, Any]) -> dict[str, Any] | None:
 
     # Build unified diff from structuredPatch or compute it
     diff = _build_unified_diff(file_path, original_file, after_content, structured_patch)
-
     # Count additions and deletions
     additions, deletions = _count_diff_changes(structured_patch)
-
     return {
         "diff": diff,
         "filediff": {
@@ -366,31 +262,13 @@ def _convert_bash_result(
     result: dict[str, Any],
     tool_input: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
-    """Convert Bash tool result to OpenCode metadata.
-
-    Claude Code SDK returns:
-        {
-            "stdout": str,
-            "stderr": str,
-            "interrupted": bool,
-            "isImage": bool
-        }
-
-    OpenCode expects:
-        {
-            "output": str,       # Combined stdout+stderr
-            "exit": int | None,  # Exit code
-            "description": str   # Command description
-        }
-    """
+    """Convert Bash tool result to OpenCode metadata."""
     stdout = result.get("stdout", "")
     stderr = result.get("stderr", "")
-
     # Combine stdout and stderr
     output = stdout
     if stderr:
         output = f"{stdout}\n{stderr}" if stdout else stderr
-
     # Get description from tool input (Claude Code uses "description" field)
     description = ""
     if tool_input:
@@ -404,43 +282,11 @@ def _convert_bash_result(
     exit_code: int | None = 0
     if result.get("interrupted"):
         exit_code = None  # Interrupted commands don't have a clean exit code
-
-    return {
-        "output": output,
-        "exit": exit_code,
-        "description": description,
-    }
+    return {"output": output, "exit": exit_code, "description": description}
 
 
 def _convert_todowrite_result(result: dict[str, Any]) -> dict[str, Any] | None:
-    """Convert TodoWrite tool result to OpenCode metadata.
-
-    Claude Code SDK returns:
-        {
-            "oldTodos": [...],
-            "newTodos": [
-                {
-                    "content": str,
-                    "status": str,  # "pending", "in_progress", "completed"
-                    "activeForm": str  # Present tense description (optional)
-                }
-            ]
-        }
-
-    OpenCode expects:
-        {
-            "todos": [
-                {
-                    "id": str,
-                    "content": str,
-                    "status": str,
-                    "priority": str
-                }
-            ]
-        }
-    """
-    import uuid
-
+    """Convert TodoWrite tool result to OpenCode metadata."""
     new_todos = result.get("newTodos", [])
     if not new_todos:
         return None
@@ -502,9 +348,6 @@ def _build_unified_diff(
     structured_patch: list[dict[str, Any]],
 ) -> str:
     """Build unified diff string from structured patch or content."""
-    from difflib import unified_diff
-    from pathlib import Path
-
     # If we have both before and after, compute proper diff
     if before is not None and after is not None:
         before_lines = before.splitlines(keepends=True)
