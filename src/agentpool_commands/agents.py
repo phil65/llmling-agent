@@ -116,8 +116,13 @@ class ShowAgentCommand(NodeCommand):
         """
         import yamling
 
-        node_ctx = ctx.context.node.get_context()
-        config = node_ctx.config
+        if not ctx.context.pool:
+            raise ValueError("No pool found")
+        manifest = ctx.context.pool.manifest
+        config = manifest.agents.get(ctx.context.node_name)
+        if not config:
+            await ctx.print(f"No agent named {ctx.context.node_name} found in manifest")
+            return
         config_dict = config.model_dump(exclude_none=True)  # Get base config as dict
         # Format as annotated YAML
         yaml_config = yamling.dump_yaml(
