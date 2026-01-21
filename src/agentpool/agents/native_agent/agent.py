@@ -202,6 +202,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from agentpool.agents.interactions import Interactions
         from agentpool.agents.sys_prompts import SystemPrompts
         from agentpool.models.agents import NativeAgentConfig
+        from agentpool.models.manifest import AgentsManifest
         from agentpool.prompts.conversion_manager import ConversionManager
         from agentpool_commands.pool import CompactCommand
         from agentpool_config.session import MemoryConfig
@@ -267,10 +268,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         resources = list(resources)
         if knowledge:
             resources.extend(knowledge.get_resources())
-        storage = agent_pool.storage if agent_pool else StorageManager(self._manifest.storage)
+        manifest = agent_pool.manifest if agent_pool else AgentsManifest()
+        storage = agent_pool.storage if agent_pool else StorageManager(manifest.storage)
         self.conversation = MessageHistory(
             storage=storage,
-            converter=ConversionManager(config=self._manifest.conversion),
+            converter=ConversionManager(config=manifest.conversion),
             session_config=memory_cfg,
             resources=resources,
         )
