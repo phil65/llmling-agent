@@ -245,12 +245,12 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         if isinstance(model, Model):
             config_model = StringModelConfig(
                 identifier=model.model_name,
-                **({"model_settings": model._settings} if model._settings else {}),
+                **({"model_settings": model._settings} if model._settings else {}),  # pyright: ignore[reportArgumentType]
             )
         elif isinstance(model, str):
             config_model = StringModelConfig(
                 identifier=model,
-                **({"model_settings": model_settings} if model_settings else {}),
+                **({"model_settings": model_settings} if model_settings else {}),  # pyright: ignore[reportArgumentType]
             )
         else:
             config_model = model
