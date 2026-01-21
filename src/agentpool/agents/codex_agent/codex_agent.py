@@ -6,14 +6,14 @@ from datetime import UTC, datetime
 from decimal import Decimal
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, Unpack
 from uuid import uuid4
 
 from pydantic import TypeAdapter
 from pydantic_ai import TextPartDelta
 from pydantic_ai.usage import RequestUsage, RunUsage
 
-from agentpool.agents.base_agent import BaseAgent
+from agentpool.agents.base_agent import BaseAgent, BaseAgentKwargs  # noqa: TC001
 from agentpool.agents.events import PartDeltaEvent, RunStartedEvent, StreamCompleteEvent
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from anyenv import MultiEventHandler
-    from exxec import ExecutionEnvironment
     from pydantic_ai import UserContent
     from tokonomics.model_discovery.model_info import ModelInfo
 
@@ -33,7 +32,6 @@ if TYPE_CHECKING:
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation import AgentPool
-    from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.codex_agents import CodexAgentConfig
     from agentpool.sessions import SessionData
@@ -55,52 +53,39 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
     def __init__(
         self,
         *,
+        # Codex-specific parameters
         config: CodexAgentConfig | None = None,
-        name: str | None = None,
-        description: str | None = None,
-        display_name: str | None = None,
         cwd: str | Path | None = None,
         model: str | None = None,
         reasoning_effort: ReasoningEffort | None = None,
         base_instructions: str | None = None,
         developer_instructions: str | None = None,
-        agent_pool: AgentPool[Any] | None = None,
-        enable_logging: bool = True,
-        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
-        env: ExecutionEnvironment | None = None,
-        input_provider: InputProvider | None = None,
-        output_type: type[OutputDataT] = str,  # type: ignore[assignment]
-        tool_confirmation_mode: ToolConfirmationMode = "always",
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
-        hooks: AgentHooks | None = None,
         session_id: str | None = None,
+        output_type: type[OutputDataT] = str,  # type: ignore[assignment]
+        # BaseAgent parameters (see BaseAgentKwargs)
+        **base_kwargs: Unpack[BaseAgentKwargs],
     ) -> None:
         """Initialize Codex agent.
 
         Args:
             config: Codex agent configuration
-            name: Agent name
-            description: Agent description
-            display_name: Human-readable display name
             cwd: Working directory for Codex
             model: Model to use (e.g., "claude-3-5-sonnet-20241022")
             reasoning_effort: Reasoning effort level ("low", "medium", "high")
             base_instructions: Base system instructions for the session
             developer_instructions: Developer-provided instructions
-            agent_pool: Agent pool for coordination
-            enable_logging: Whether to enable database logging
-            mcp_servers: MCP server configurations
-            env: Execution environment
-            input_provider: Provider for user input
-            output_type: Output type for structured responses (default: str)
-            tool_confirmation_mode: Tool confirmation behavior
-            event_handlers: Event handlers for this agent
-            hooks: Agent hooks for pre/post tool execution
-            session_id: Session/thread ID to resume on connect (avoids reconnect overhead)
+            session_id: Session/thread ID to resume on connect
+            output_type: Type for structured output (default: str)
+            **base_kwargs: BaseAgent parameters (see BaseAgentKwargs)
         """
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
         from agentpool.models.codex_agents import CodexAgentConfig
         from agentpool_config.mcp_server import BaseMCPServerConfig
+
+        # Extract values needed for config building
+        name = base_kwargs.get("name")
+        description = base_kwargs.get("description")
+        display_name = base_kwargs.get("display_name")
 
         # Build config from kwargs if not provided
         if config is None:
@@ -111,23 +96,17 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 base_instructions=base_instructions,
                 developer_instructions=developer_instructions,
             )
-        # Use provided name or config name, fallback to "codex"
-        agent_name = name or config.name or "codex"
-        super().__init__(
-            name=agent_name,
-            description=description or config.description,
-            display_name=display_name or config.display_name,
-            # Don't pass mcp_servers to BaseAgent - we manage them ourselves
-            # CodexClient will handle MCP server lifecycle
-            agent_pool=agent_pool,
-            enable_logging=enable_logging,
-            env=env,
-            input_provider=input_provider,
-            output_type=output_type,
-            tool_confirmation_mode=tool_confirmation_mode,
-            event_handlers=event_handlers,
-            hooks=hooks,
-        )
+
+        # Build super().__init__ kwargs, merging base_kwargs with config-derived values
+        # Don't pass mcp_servers to BaseAgent - CodexClient handles MCP server lifecycle
+        init_kwargs = {
+            **base_kwargs,
+            "name": name or config.name or "codex",
+            "description": description or config.description,
+            "display_name": display_name or config.display_name,
+            "output_type": output_type,
+        }
+        super().__init__(**init_kwargs)  # type: ignore[arg-type]
 
         self.config = config
         self._client: CodexClient | None = None
@@ -135,7 +114,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         self._approval_policy: ApprovalPolicy = config.approval_policy or "never"
         # Store MCP servers separately - will be passed to CodexClient
         # External MCP servers from config (already processed to MCPServerConfig objects)
-        # If mcp_servers param provided, we need to process it similarly
+        mcp_servers = base_kwargs.get("mcp_servers")
         if mcp_servers:
             # Convert any strings to MCPServerConfig objects
             processed: list[MCPServerConfig] = []

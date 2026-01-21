@@ -11,7 +11,7 @@ locally and results sent back.
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, Unpack
 from uuid import uuid4
 
 from anyenv.processes import hard_kill
@@ -28,7 +28,7 @@ from pydantic_ai import (
 )
 
 from agentpool.agents.agui_agent.helpers import execute_tool_calls, parse_sse_stream
-from agentpool.agents.base_agent import BaseAgent
+from agentpool.agents.base_agent import BaseAgent, BaseAgentKwargs  # noqa: TC001
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.agents.events.processors import FileTracker
 from agentpool.log import get_logger
@@ -44,9 +44,7 @@ if TYPE_CHECKING:
 
     from ag_ui.core import Message, ToolMessage
     from anyenv import MultiEventHandler
-    from evented_config import EventConfig
     from pydantic_ai import UserContent
-    from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from agentpool.agents.context import AgentContext
@@ -58,13 +56,11 @@ if TYPE_CHECKING:
         ToolType,
     )
     from agentpool.delegation import AgentPool
-    from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.agui_agents import AGUIAgentConfig
     from agentpool.sessions import SessionData
     from agentpool.tools import Tool
     from agentpool.ui.base import InputProvider
-    from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
 
 
@@ -106,62 +102,27 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self,
         endpoint: str,
         *,
-        name: str = "agui-agent",
-        description: str | None = None,
-        display_name: str | None = None,
+        # AGUI-specific parameters
         timeout: float = 60.0,
         headers: dict[str, str] | None = None,
         startup_command: str | None = None,
         startup_delay: float = 2.0,
         tools: Sequence[ToolType] | None = None,
-        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
-        agent_pool: AgentPool[Any] | None = None,
-        enable_logging: bool = True,
-        event_configs: Sequence[EventConfig] | None = None,
-        input_provider: InputProvider | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
-        tool_confirmation_mode: ToolConfirmationMode = "per_tool",
-        commands: Sequence[BaseCommand] | None = None,
-        hooks: AgentHooks | None = None,
+        # BaseAgent parameters (see BaseAgentKwargs)
+        **base_kwargs: Unpack[BaseAgentKwargs],
     ) -> None:
         """Initialize AG-UI agent client.
 
         Args:
             endpoint: HTTP endpoint for the AG-UI agent
-            name: Agent name for identification
-            description: Agent description
-            display_name: Human-readable display name
             timeout: Request timeout in seconds
             headers: Additional HTTP headers
-            startup_command: Optional shell command to start server automatically.
-                           Useful for testing - server lifecycle is managed by the agent.
-                           Example: "ag ui agent config.yml"
-            startup_delay: Seconds to wait after starting server before connecting (default: 2.0)
+            startup_command: Optional shell command to start server automatically
+            startup_delay: Seconds to wait after starting server before connecting
             tools: Tools to expose to the remote agent (executed locally when called)
-            mcp_servers: MCP servers to connect
-            agent_pool: Agent pool for multi-agent coordination
-            enable_logging: Whether to enable database logging
-            input_provider: Provider for user input/confirmations
-            event_configs: Event trigger configurations
-            event_handlers: Sequence of event handlers to register
-            tool_confirmation_mode: Tool confirmation mode
-            commands: Slash commands
-            hooks: Agent hooks for pre/post tool execution
+            **base_kwargs: BaseAgent parameters (see BaseAgentKwargs)
         """
-        super().__init__(
-            name=name,
-            description=description,
-            display_name=display_name,
-            mcp_servers=mcp_servers,
-            agent_pool=agent_pool,
-            enable_logging=enable_logging,
-            event_configs=event_configs,
-            tool_confirmation_mode=tool_confirmation_mode,
-            event_handlers=event_handlers,
-            input_provider=input_provider,
-            commands=commands,
-            hooks=hooks,
-        )
+        super().__init__(**base_kwargs)
 
         # AG-UI specific configuration
         self.endpoint = endpoint

@@ -81,28 +81,23 @@ TResult = TypeVar("TResult")
 
 
 class AgentKwargs(TypedDict, total=False):
-    """Keyword arguments for configuring an Agent instance."""
+    """Agent-specific keyword arguments (beyond BaseAgentKwargs)."""
 
-    description: str | None
     model: ModelType
     system_prompt: str | Sequence[str]
     tools: Sequence[ToolType] | None
     toolsets: Sequence[ResourceProvider] | None
-    mcp_servers: Sequence[str | MCPServerConfig] | None
     skills_paths: Sequence[JoinablePathLike] | None
     retries: int
     output_retries: int | None
     end_strategy: EndStrategy
-    # context: AgentContext[Any] | None  # x
     session: SessionIdType | SessionQuery | MemoryConfig | bool | int
-    input_provider: InputProvider | None
-    event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None
-    env: ExecutionEnvironment | None
-
-    hooks: AgentHooks | None
     model_settings: ModelSettings | None
     usage_limits: UsageLimits | None
     providers: Sequence[ProviderType] | None
+    # Also include some BaseAgentKwargs that are commonly used
+    event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None
+    description: str | None
 
 
 class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
@@ -322,7 +317,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         deps_type: type[TDeps] | None = None,
-    ) -> Self:
+    ) -> Agent[TDeps, Any]:
         """Create a native Agent from a config object.
 
         This is the preferred way to instantiate an Agent from configuration.

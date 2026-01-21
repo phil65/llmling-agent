@@ -33,7 +33,7 @@ from dataclasses import replace
 from datetime import datetime
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self, Unpack
 import uuid
 
 import anyio
@@ -46,7 +46,7 @@ from pydantic_ai import (
 
 from agentpool.agents.acp_agent.acp_converters import event_to_part
 from agentpool.agents.acp_agent.session_state import ACPSessionState
-from agentpool.agents.base_agent import BaseAgent
+from agentpool.agents.base_agent import BaseAgent, BaseAgentKwargs  # noqa: TC001
 from agentpool.agents.events import (
     RunStartedEvent,
     StreamCompleteEvent,
@@ -68,10 +68,8 @@ if TYPE_CHECKING:
 
     from anyenv import MultiEventHandler
     from anyio.abc import Process
-    from evented_config import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import ThinkingPart, ToolCallPart, UserContent
-    from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
     from acp.agent.protocol import Agent as ACPAgentProtocol
@@ -86,7 +84,6 @@ if TYPE_CHECKING:
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation import AgentPool
-    from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.acp_agents import BaseACPAgentConfig
     from agentpool.sessions import SessionData
@@ -136,28 +133,26 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     def __init__(
         self,
         *,
+        # ACP-specific parameters
         deps_type: type[TDeps] | None = None,
         config: BaseACPAgentConfig | None = None,
         command: str | None = None,
-        name: str | None = None,
-        description: str | None = None,
-        display_name: str | None = None,
         args: list[str] | None = None,
         cwd: str | None = None,
         env_vars: dict[str, str] | None = None,
         allow_file_operations: bool = True,
         allow_terminal: bool = True,
-        input_provider: InputProvider | None = None,
-        agent_pool: AgentPool[Any] | None = None,
-        enable_logging: bool = True,
-        event_configs: Sequence[EventConfig] | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
-        tool_confirmation_mode: ToolConfirmationMode = "always",
-        commands: Sequence[BaseCommand] | None = None,
-        hooks: AgentHooks | None = None,
         session_id: str | None = None,
+        # BaseAgent parameters (see BaseAgentKwargs)
+        **base_kwargs: Unpack[BaseAgentKwargs],
     ) -> None:
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
+
+        # Extract values needed for config building
+        name = base_kwargs.get("name")
+        description = base_kwargs.get("description")
+        display_name = base_kwargs.get("display_name")
+        tool_confirmation_mode = base_kwargs.get("tool_confirmation_mode", "always")
 
         # Build config from kwargs if not provided
         if config is None:
@@ -176,21 +171,17 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 requires_tool_confirmation=tool_confirmation_mode,
             )
 
-        super().__init__(
-            name=name or config.name or config.get_command(),
-            description=description or config.description,
-            display_name=display_name or config.display_name,
-            mcp_servers=config.mcp_servers,
-            agent_pool=agent_pool,
-            enable_logging=enable_logging,
-            event_configs=event_configs or list(config.triggers),
-            env=config.get_execution_environment(),
-            input_provider=input_provider,
-            tool_confirmation_mode=tool_confirmation_mode,
-            event_handlers=event_handlers,
-            commands=commands,
-            hooks=hooks,
-        )
+        # Build super().__init__ kwargs, merging base_kwargs with config-derived values
+        init_kwargs = {
+            **base_kwargs,
+            "name": name or config.name or config.get_command(),
+            "description": description or config.description,
+            "display_name": display_name or config.display_name,
+            "mcp_servers": base_kwargs.get("mcp_servers") or config.mcp_servers,
+            "event_configs": base_kwargs.get("event_configs") or list(config.triggers),
+            "env": config.get_execution_environment(),
+        }
+        super().__init__(**init_kwargs)  # type: ignore[arg-type]
 
         # ACP-specific state
         self.acp_permission_callback: (

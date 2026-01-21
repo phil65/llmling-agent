@@ -7,11 +7,14 @@ from typing import TYPE_CHECKING, Any, Unpack, overload
 from anyenv import run_sync
 from pydantic_ai import ImageUrl
 
-from agentpool import Agent
+from agentpool.agents.base_agent import (  # noqa: TC001
+    AgentTypeLiteral,
+    get_agent_class,
+)
 
 
 if TYPE_CHECKING:
-    from agentpool.agents.native_agent import AgentKwargs
+    from agentpool.agents.base_agent import BaseAgentKwargs
     from agentpool.common_types import PromptCompatible
 
 
@@ -20,8 +23,9 @@ async def run_agent[TResult](
     prompt: PromptCompatible,
     image_url: str | None = None,
     *,
+    agent_type: AgentTypeLiteral = ...,
     output_type: type[TResult],
-    **kwargs: Unpack[AgentKwargs],
+    **kwargs: Any,
 ) -> TResult: ...
 
 
@@ -29,21 +33,41 @@ async def run_agent[TResult](
 async def run_agent(
     prompt: PromptCompatible,
     image_url: str | None = None,
-    **kwargs: Unpack[AgentKwargs],
+    *,
+    agent_type: AgentTypeLiteral = ...,
+    output_type: None = None,
+    **kwargs: Any,
 ) -> str: ...
 
 
-async def run_agent(
+async def run_agent(  # type: ignore[misc]
     prompt: PromptCompatible,
     image_url: str | None = None,
     *,
+    agent_type: AgentTypeLiteral = "native",
     output_type: type[Any] | None = None,
-    **kwargs: Unpack[AgentKwargs],
+    **kwargs: Unpack[BaseAgentKwargs],
 ) -> Any:
-    """Run prompt through agent and return result."""
-    async with Agent[Any, str](**kwargs) as agent:
-        # Convert to structured output agent if output_type specified
-        final = agent.to_structured(output_type) if output_type is not None else agent
+    """Run prompt through any agent type and return result.
+
+    Args:
+        prompt: The prompt to run
+        image_url: Optional image URL to include with the prompt
+        agent_type: Type of agent to use ("native", "acp", "agui", "claude", "codex")
+        output_type: Optional structured output type
+        **kwargs: Agent configuration (see BaseAgentKwargs)
+
+    Returns:
+        The agent's response content
+    """
+    agent_cls = get_agent_class(agent_type)
+
+    async with agent_cls(**kwargs) as agent:
+        # Convert to structured output agent if output_type specified and supported
+        if output_type is not None and hasattr(agent, "to_structured"):
+            final = agent.to_structured(output_type)
+        else:
+            final = agent
 
         if image_url:
             image = ImageUrl(url=image_url)
@@ -58,8 +82,9 @@ def run_agent_sync[TResult](
     prompt: PromptCompatible,
     image_url: str | None = None,
     *,
+    agent_type: AgentTypeLiteral = ...,
     output_type: type[TResult],
-    **kwargs: Unpack[AgentKwargs],
+    **kwargs: Any,
 ) -> TResult: ...
 
 
@@ -67,20 +92,41 @@ def run_agent_sync[TResult](
 def run_agent_sync(
     prompt: PromptCompatible,
     image_url: str | None = None,
-    **kwargs: Unpack[AgentKwargs],
+    *,
+    agent_type: AgentTypeLiteral = ...,
+    output_type: None = None,
+    **kwargs: Any,
 ) -> str: ...
 
 
-def run_agent_sync(
+def run_agent_sync(  # type: ignore[misc]
     prompt: PromptCompatible,
     image_url: str | None = None,
     *,
+    agent_type: AgentTypeLiteral = "native",
     output_type: type[Any] | None = None,
-    **kwargs: Unpack[AgentKwargs],
+    **kwargs: Unpack[BaseAgentKwargs],
 ) -> Any:
-    """Sync wrapper for run_agent."""
+    """Sync wrapper for run_agent.
+
+    Args:
+        prompt: The prompt to run
+        image_url: Optional image URL to include with the prompt
+        agent_type: Type of agent to use ("native", "acp", "agui", "claude", "codex")
+        output_type: Optional structured output type
+        **kwargs: Agent configuration (see BaseAgentKwargs)
+
+    Returns:
+        The agent's response content
+    """
 
     async def _run() -> Any:
-        return await run_agent(prompt, image_url, output_type=output_type, **kwargs)  # type: ignore
+        return await run_agent(  # type: ignore[misc]
+            prompt,
+            image_url,
+            agent_type=agent_type,
+            output_type=output_type,  # type: ignore[arg-type]
+            **kwargs,
+        )
 
     return run_sync(_run())
