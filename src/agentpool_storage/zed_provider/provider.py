@@ -309,7 +309,7 @@ class ZedStorageProvider(StorageProvider):
             msg_count += len(thread.messages)
         return conv_count, msg_count
 
-    async def get_conversation_title(self, conversation_id: str) -> str | None:
+    async def get_session_title(self, conversation_id: str) -> str | None:
         """Get the title of a conversation."""
         thread = self._load_thread(conversation_id)
         if thread is None:

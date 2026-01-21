@@ -118,7 +118,7 @@ class StorageProvider:
     ) -> None:
         """Log a conversation (if supported)."""
 
-    async def update_conversation_title(
+    async def update_session_title(
         self,
         conversation_id: str,
         title: str,
@@ -130,7 +130,7 @@ class StorageProvider:
             title: New title for the conversation
         """
 
-    async def get_conversation_title(
+    async def get_session_title(
         self,
         conversation_id: str,
     ) -> str | None:

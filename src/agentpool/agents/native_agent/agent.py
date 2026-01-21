@@ -1064,7 +1064,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                         continue
                     # Fetch title from conversation storage if not in metadata
                     if not session_data.title and storage:
-                        title = await storage.get_conversation_title(session_data.session_id)
+                        title = await storage.get_session_title(session_data.session_id)
                         if title:
                             # Update metadata with title
                             session_data = session_data.with_metadata(title=title)

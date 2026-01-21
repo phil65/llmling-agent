@@ -325,7 +325,7 @@ class StorageManager:
                 conversation_id=conversation_id,
                 title=initial_prompt,
             )
-            await self.update_conversation_title(conversation_id, initial_prompt)
+            await self.update_session_title(conversation_id, initial_prompt)
         # For longer prompts, generate semantic title if model configured
         elif self.config.title_generation_model:
             logger.info(
@@ -435,7 +435,7 @@ class StorageManager:
             current_session_only=current_session_only,
         )
 
-    async def update_conversation_title(
+    async def update_session_title(
         self,
         conversation_id: str,
         title: str,
@@ -447,9 +447,9 @@ class StorageManager:
             title: New title for the conversation
         """
         for provider in self.providers:
-            await provider.update_conversation_title(conversation_id, title)
+            await provider.update_session_title(conversation_id, title)
 
-    async def get_conversation_title(
+    async def get_session_title(
         self,
         conversation_id: str,
     ) -> str | None:
@@ -462,9 +462,9 @@ class StorageManager:
             The conversation title, or None if not set.
         """
         provider = self.get_history_provider()
-        return await provider.get_conversation_title(conversation_id)
+        return await provider.get_session_title(conversation_id)
 
-    async def get_conversation_titles(
+    async def get_session_titles(
         self,
         conversation_ids: list[str],
     ) -> dict[str, str | None]:
@@ -483,7 +483,7 @@ class StorageManager:
         titles: dict[str, str | None] = {}
         for conv_id in conversation_ids:
             try:
-                titles[conv_id] = await provider.get_conversation_title(conv_id)
+                titles[conv_id] = await provider.get_session_title(conv_id)
             except Exception:  # noqa: BLE001
                 titles[conv_id] = None
         return titles
@@ -711,7 +711,7 @@ class StorageManager:
             metadata = result.output
 
             # Store the title
-            await self.update_conversation_title(conversation_id, metadata.title)
+            await self.update_session_title(conversation_id, metadata.title)
             logger.debug(
                 "Generated conversation metadata",
                 conversation_id=conversation_id,
@@ -758,7 +758,7 @@ class StorageManager:
             The generated title, or None if generation fails/disabled.
         """
         # Check if title already exists
-        existing = await self.get_conversation_title(conversation_id)
+        existing = await self.get_session_title(conversation_id)
         if existing:
             if on_title_generated:
                 on_title_generated(existing)
@@ -795,7 +795,7 @@ class StorageManager:
             The generated title, or None if title generation is disabled.
         """
         # Check if title already exists
-        existing = await self.get_conversation_title(conversation_id)
+        existing = await self.get_session_title(conversation_id)
         if existing:
             return existing
 

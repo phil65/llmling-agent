@@ -254,7 +254,7 @@ class FileProvider(StorageProvider):
         self._data["conversations"].append(conversation)
         self._save()
 
-    async def update_conversation_title(
+    async def update_session_title(
         self,
         conversation_id: str,
         title: str,
@@ -266,7 +266,7 @@ class FileProvider(StorageProvider):
                 self._save()
                 return
 
-    async def get_conversation_title(
+    async def get_session_title(
         self,
         conversation_id: str,
     ) -> str | None:

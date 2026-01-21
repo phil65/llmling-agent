@@ -78,7 +78,7 @@ class TestStorageManagerTitleGeneration:
             assert title is not None
             assert len(title) > 0
             # Title should be stored
-            stored_title = await manager.get_conversation_title(conv_id)
+            stored_title = await manager.get_session_title(conv_id)
             assert stored_title == title
 
     async def test_generate_title_disabled(self) -> None:
@@ -101,7 +101,7 @@ class TestStorageManagerTitleGeneration:
             await manager.log_session(conversation_id=conv_id, node_name="test_agent")
             # Set existing title
             existing_title = "Existing Title"
-            await manager.update_conversation_title(conv_id, existing_title)
+            await manager.update_session_title(conv_id, existing_title)
             # Direct call should return existing title without calling model
             title = await manager._generate_title_from_prompt(conv_id, "New message", None)
             assert title == existing_title
@@ -113,12 +113,12 @@ class TestStorageManagerTitleGeneration:
             conv_id = "test_conv_update"
             await manager.log_session(conversation_id=conv_id, node_name="test_agent")
             # Initially no title
-            title = await manager.get_conversation_title(conv_id)
+            title = await manager.get_session_title(conv_id)
             assert title is None
             # Update title
-            await manager.update_conversation_title(conv_id, "My Title")
+            await manager.update_session_title(conv_id, "My Title")
             # Verify title was stored
-            title = await manager.get_conversation_title(conv_id)
+            title = await manager.get_session_title(conv_id)
             assert title == "My Title"
 
     async def test_generate_conversation_title_from_messages(self) -> None:
@@ -136,7 +136,7 @@ class TestStorageManagerTitleGeneration:
             title = await manager.generate_conversation_title(conv_id, messages)
             assert title is not None
             # Verify it was stored
-            stored = await manager.get_conversation_title(conv_id)
+            stored = await manager.get_session_title(conv_id)
             assert stored == title
 
     async def test_log_session_triggers_title_gen_without_pytest_env(self) -> None:
@@ -164,7 +164,7 @@ class TestStorageManagerTitleGeneration:
                 await anyio.sleep(0.3)
 
             # Title should have been generated
-            stored_title = await manager.get_conversation_title(conv_id)
+            stored_title = await manager.get_session_title(conv_id)
             assert stored_title is not None
 
 
@@ -178,19 +178,19 @@ class TestMemoryProviderTitleSupport:
         conv_id = "mem_conv_123"
         await provider.log_session(conversation_id=conv_id, node_name="test_agent")
         # Initially no title
-        title = await provider.get_conversation_title(conv_id)
+        title = await provider.get_session_title(conv_id)
         assert title is None
         # Update title
-        await provider.update_conversation_title(conv_id, "Memory Title")
+        await provider.update_session_title(conv_id, "Memory Title")
         # Get title
-        title = await provider.get_conversation_title(conv_id)
+        title = await provider.get_session_title(conv_id)
         assert title == "Memory Title"
 
     async def test_memory_provider_title_nonexistent_conv(self) -> None:
         """Test getting title for non-existent conversation."""
         config = MemoryStorageConfig()
         provider = MemoryStorageProvider(config)
-        title = await provider.get_conversation_title("nonexistent")
+        title = await provider.get_session_title("nonexistent")
         assert title is None
 
 
@@ -209,18 +209,18 @@ class TestSQLProviderTitleSupport:
             conv_id = "sql_conv_123"
             await provider.log_session(conversation_id=conv_id, node_name="test_agent")
             # Initially no title
-            title = await provider.get_conversation_title(conv_id)
+            title = await provider.get_session_title(conv_id)
             assert title is None
             # Update title
-            await provider.update_conversation_title(conv_id, "SQL Title")
+            await provider.update_session_title(conv_id, "SQL Title")
             # Get title
-            title = await provider.get_conversation_title(conv_id)
+            title = await provider.get_session_title(conv_id)
             assert title == "SQL Title"
 
     async def test_sql_provider_title_nonexistent_conv(self, sql_config) -> None:
         """Test getting title for non-existent conversation."""
         async with SQLModelProvider(sql_config) as provider:
-            title = await provider.get_conversation_title("nonexistent")
+            title = await provider.get_session_title("nonexistent")
             assert title is None
 
     async def test_sql_provider_title_update_overwrites(self, sql_config) -> None:
@@ -228,9 +228,9 @@ class TestSQLProviderTitleSupport:
         async with SQLModelProvider(sql_config) as provider:
             conv_id = "sql_conv_overwrite"
             await provider.log_session(conversation_id=conv_id, node_name="test_agent")
-            await provider.update_conversation_title(conv_id, "First Title")
-            await provider.update_conversation_title(conv_id, "Second Title")
-            title = await provider.get_conversation_title(conv_id)
+            await provider.update_session_title(conv_id, "First Title")
+            await provider.update_session_title(conv_id, "Second Title")
+            title = await provider.get_session_title(conv_id)
             assert title == "Second Title"
 
 
@@ -245,12 +245,12 @@ class TestFileProviderTitleSupport:
         conv_id = "file_conv_123"
         await provider.log_session(conversation_id=conv_id, node_name="test_agent")
         # Initially no title
-        title = await provider.get_conversation_title(conv_id)
+        title = await provider.get_session_title(conv_id)
         assert title is None
         # Update title
-        await provider.update_conversation_title(conv_id, "File Title")
+        await provider.update_session_title(conv_id, "File Title")
         # Get title
-        title = await provider.get_conversation_title(conv_id)
+        title = await provider.get_session_title(conv_id)
         assert title == "File Title"
         # Verify file was written
         assert storage_file.exists()

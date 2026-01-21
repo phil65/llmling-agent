@@ -181,7 +181,7 @@ class SQLModelProvider(StorageProvider):
             session.add(convo)
             await session.commit()
 
-    async def update_conversation_title(
+    async def update_session_title(
         self,
         conversation_id: str,
         title: str,
@@ -197,7 +197,7 @@ class SQLModelProvider(StorageProvider):
                 session.add(conversation)
                 await session.commit()
 
-    async def get_conversation_title(
+    async def get_session_title(
         self,
         conversation_id: str,
     ) -> str | None:
