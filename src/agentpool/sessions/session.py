@@ -83,11 +83,6 @@ class ClientSession:
         return self._agent
 
     @property
-    def conversation_id(self) -> str:
-        """Get conversation ID for message storage (same as session_id)."""
-        return self._data.session_id
-
-    @property
     def title(self) -> str | None:
         """Get conversation title (delegated to agent)."""
         return self._agent.conversation_title if self._agent is not None else None
@@ -135,7 +130,7 @@ class ClientSession:
         return await self.agent.run(
             prompt,
             message_history=self._history,
-            conversation_id=self.conversation_id,
+            conversation_id=self.session_id,
             **kwargs,
         )
 

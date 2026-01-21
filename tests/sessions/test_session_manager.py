@@ -223,7 +223,7 @@ class TestClientSession:
 
         assert session.session_id == "test_session"
         assert session.agent.name == "test_agent"
-        assert session.conversation_id == "test_session"  # Now uses session_id
+        assert session.session_id == "test_session"
         assert not session.is_closed
 
     async def test_session_close(self, agent_pool: AgentPool) -> None:

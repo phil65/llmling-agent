@@ -91,7 +91,6 @@ class ACPSessionManager:
             data = SessionData(
                 session_id=session_id,
                 agent_name=agent.name,
-                conversation_id=session_id,
                 cwd=cwd,
                 metadata={"protocol": "acp", "mcp_server_count": len(mcp_servers or [])},
             )

@@ -1039,7 +1039,6 @@ def opencode_to_session_data(
     return SessionData(
         session_id=session.id,
         agent_name=agent_name,
-        conversation_id=session.id,  # Use session_id as conversation_id
         pool_id=pool_id,
         project_id=session.project_id,
         parent_id=session.parent_id,
