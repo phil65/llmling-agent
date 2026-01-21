@@ -182,7 +182,7 @@ def convert_tool_result_to_opencode_metadata(  # noqa: PLR0911
 ) -> dict[str, Any] | None:
     """Convert Claude Code SDK tool_use_result to OpenCode metadata format."""
     # Handle None or string results (bash errors come as plain strings)
-    if tool_use_result is None or isinstance(tool_use_result, str):
+    if tool_use_result is None or not isinstance(tool_use_result, dict):
         return None
 
     # Dispatch to appropriate converter based on tool name
