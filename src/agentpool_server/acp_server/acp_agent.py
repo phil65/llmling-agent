@@ -61,7 +61,7 @@ logger = get_logger(__name__)
 
 
 async def get_session_model_state(
-    agent: Any, current_model: str | None = None
+    agent: BaseAgent, current_model: str | None = None
 ) -> SessionModelState | None:
     """Get SessionModelState from an agent using its get_available_models() method.
 
@@ -112,7 +112,7 @@ async def get_session_model_state(
     return SessionModelState(available_models=acp_models, current_model_id=current_model_id)
 
 
-async def get_session_mode_state(agent: Any) -> SessionModeState | None:
+async def get_session_mode_state(agent: BaseAgent) -> SessionModeState | None:
     """Get SessionModeState from an agent using its get_modes() method.
 
     Converts agentpool ModeCategory to ACP SessionModeState format.
@@ -159,7 +159,7 @@ async def get_session_mode_state(agent: Any) -> SessionModeState | None:
     )
 
 
-async def get_session_config_options(agent: Any) -> list[SessionConfigOption]:
+async def get_session_config_options(agent: BaseAgent) -> list[SessionConfigOption]:
     """Get SessionConfigOptions from an agent using its get_modes() method.
 
     Converts all agentpool ModeCategories to ACP SessionConfigOption format.
