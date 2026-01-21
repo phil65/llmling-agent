@@ -1,4 +1,4 @@
-"""drop conversation_id from session table
+"""drop conversation_id from session table.
 
 Revision ID: 0a066f5efb21
 Revises: cd08c98e04c6

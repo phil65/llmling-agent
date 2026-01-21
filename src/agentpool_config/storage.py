@@ -45,11 +45,11 @@ _engine_cache: dict[str, AsyncEngine] = {}
 
 def get_shared_engine(url: str, pool_size: int = 5) -> AsyncEngine:
     """Get or create a shared engine for the given database URL.
-    
+
     This ensures all storage instances using the same database share
     a single engine and connection pool, avoiding lock contention.
     """
-    from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+    from sqlalchemy.ext.asyncio import create_async_engine
 
     if url in _engine_cache:
         return _engine_cache[url]

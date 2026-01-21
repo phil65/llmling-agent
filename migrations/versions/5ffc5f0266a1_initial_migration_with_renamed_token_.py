@@ -111,7 +111,9 @@ def upgrade() -> None:
         )
         op.create_index(op.f("ix_message_cost"), "message", ["cost"], unique=False)
         op.create_index(op.f("ix_message_model_name"), "message", ["model_name"], unique=False)
-        op.create_index(op.f("ix_message_model_provider"), "message", ["model_provider"], unique=False)
+        op.create_index(
+            op.f("ix_message_model_provider"), "message", ["model_provider"], unique=False
+        )
         op.create_index(op.f("ix_message_name"), "message", ["name"], unique=False)
         op.create_index(op.f("ix_message_total_tokens"), "message", ["total_tokens"], unique=False)
 
