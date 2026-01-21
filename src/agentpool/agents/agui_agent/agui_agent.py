@@ -144,7 +144,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             input_provider: Provider for user input/confirmations
             event_configs: Event trigger configurations
             event_handlers: Sequence of event handlers to register
-            tool_confirmation_mode: Tool confirmation mode
+            tool_confirmation_mode: Tool confirmation mode for local tool execution
             commands: Slash commands
             hooks: Agent hooks for pre/post tool execution
         """
@@ -156,12 +156,14 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             agent_pool=agent_pool,
             enable_logging=enable_logging,
             event_configs=event_configs,
-            tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
             input_provider=input_provider,
             commands=commands,
             hooks=hooks,
         )
+
+        # Tool confirmation mode for local tool execution
+        self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
 
         # AG-UI specific configuration
         self.endpoint = endpoint
@@ -218,8 +220,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             startup_delay=config.startup_delay,
             tools=[tool_config.get_tool() for tool_config in config.tools],
             mcp_servers=config.mcp_servers,
-            tool_confirmation_mode=config.requires_tool_confirmation,
             agent_pool=agent_pool,
+            tool_confirmation_mode=config.requires_tool_confirmation,
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
         )
 
@@ -286,7 +288,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         return self.tools.register_tool(tool)
 
     async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
-        """Set the tool confirmation mode for this agent.
+        """Set the tool confirmation mode for local tool execution.
 
         Args:
             mode: Tool confirmation mode:

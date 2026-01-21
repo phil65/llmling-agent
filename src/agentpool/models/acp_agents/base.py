@@ -112,10 +112,8 @@ class BaseACPAgentConfig(BaseAgentConfig):
     allow_terminal: bool = Field(default=True, title="Allow Terminal")
     """Whether to allow terminal operations."""
 
-    requires_tool_confirmation: Literal["never", "always"] = Field(
-        default="always", title="Tool confirmation mode"
-    )
-    """Whether to automatically grant all permission requests."""
+    auto_approve: bool = Field(default=False, title="Auto-approve permissions")
+    """If True, automatically approve all permission requests from the remote agent."""
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""

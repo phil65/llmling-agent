@@ -135,7 +135,9 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
             Confirmation result indicating how to proceed
         """
         provider = self.get_input_provider()
-        mode = self.agent.tool_confirmation_mode
+        # Get tool_confirmation_mode if available (NativeAgent only)
+        # Other agents handle permission checks in their own way
+        mode = getattr(self.agent, "tool_confirmation_mode", "per_tool")
         if (mode == "per_tool" and not tool.requires_confirmation) or mode == "never":
             return "allow"
         history = self.agent.conversation.get_history() if self.pool else []

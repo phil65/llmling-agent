@@ -44,7 +44,6 @@ if TYPE_CHECKING:
     from agentpool.agents.acp_agent import ACPAgent
     from agentpool.agents.acp_agent.session_state import ACPSessionState
     from agentpool.ui.base import InputProvider
-    from agentpool_config.nodes import ToolConfirmationMode
 
 logger = get_logger(__name__)
 
@@ -89,8 +88,8 @@ class ACPClientHandler(Client):
         self._update_event = TimeoutableEvent()
         # Map ACP terminal IDs to process manager IDs (for local execution only)
         self._terminal_to_process: dict[str, str] = {}
-        # Copy tool confirmation mode from agent (can be updated via set_tool_confirmation_mode)
-        self.tool_confirmation_mode: ToolConfirmationMode = agent.tool_confirmation_mode
+        # Copy auto_approve from agent (can be updated via set_auto_approve)
+        self.auto_approve: bool = agent.auto_approve
 
     @property
     def env(self) -> ExecutionEnvironment:
@@ -213,11 +212,11 @@ class ACPClientHandler(Client):
         name = params.tool_call.title or "operation"
         logger.info("Permission requested", tool_name=name)
 
-        # Check tool_confirmation_mode FIRST, before any forwarding
+        # Check auto_approve FIRST, before any forwarding
         # This ensures "bypass permissions" mode works even for nested ACP agents
-        if self.tool_confirmation_mode == "never" and params.options:
+        if self.auto_approve and params.options:
             option_id = params.options[0].option_id
-            logger.debug("Auto-granting permission (tool_confirmation_mode=never)", tool_name=name)
+            logger.debug("Auto-granting permission (auto_approve=True)", tool_name=name)
             return RequestPermissionResponse.allowed(option_id)
         # Try callback second (forwards to parent session for nested ACP agents)
         if self._agent.acp_permission_callback:

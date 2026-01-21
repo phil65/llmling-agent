@@ -60,7 +60,6 @@ if TYPE_CHECKING:
     from agentpool.talk.stats import MessageStats
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
-    from agentpool_config.nodes import ToolConfirmationMode
 
     # Union type for state updates emitted via state_updated signal
     type StateUpdate = ModeInfo | ModelInfo | AvailableCommandsUpdate | ConfigOptionChanged
@@ -80,7 +79,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     - conversation: MessageHistory for conversation state
     - event_handler: MultiEventHandler for event distribution
     - _event_queue: Queue for streaming events
-    - tool_confirmation_mode: Tool confirmation behavior
     - _input_provider: Provider for user input/confirmations
     - env: ExecutionEnvironment for running code/commands
     - context property: Returns NodeContext for the agent
@@ -142,7 +140,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         env: ExecutionEnvironment | None = None,
         input_provider: InputProvider | None = None,
         output_type: type[TResult] = str,  # type: ignore[assignment]
-        tool_confirmation_mode: ToolConfirmationMode = "per_tool",
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         commands: Sequence[BaseCommand] | None = None,
         hooks: AgentHooks | None = None,
@@ -160,7 +157,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             env: Execution environment for running code/commands
             input_provider: Provider for user input and confirmations
             output_type: Output type for this agent
-            tool_confirmation_mode: How tool execution confirmation is handled
             event_handlers: Event handlers for this agent
             commands: Slash commands to register with this agent
             hooks: Agent hooks for intercepting agent behavior at run and tool events
@@ -191,7 +187,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self.env = env or LocalExecutionEnvironment()
         self._input_provider = input_provider
         self._output_type: type[TResult] = output_type
-        self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
         self.tools = ToolManager()
         resolved_handlers = resolve_event_handlers(event_handlers)
         self.event_handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
@@ -779,13 +774,23 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """
         ...
 
-    async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
-        """Set tool confirmation mode.
+    async def set_tool_confirmation_mode(self, mode: str) -> None:
+        """Set tool confirmation mode (agent-specific implementation).
+
+        Each agent type handles permission modes differently:
+        - NativeAgent: tool_confirmation_mode ("always", "never", "per_tool")
+        - ClaudeCodeAgent: permission_mode ("default", "acceptEdits", "plan", "bypassPermissions")
+        - CodexAgent: approval_policy ("never", "on-request", "on-failure", "untrusted")
+        - ACPAgent: auto_approve (bool)
+        - AGUIAgent: Not supported
+
+        Subclasses should override this method if they support permission modes.
+        The default implementation delegates to _set_mode(mode, "mode").
 
         Args:
-            mode: Confirmation mode - "always", "never", or "per_tool"
+            mode: Mode value in the agent's native format
         """
-        self.tool_confirmation_mode = mode
+        await self._set_mode(mode, "mode")
 
     def is_initializing(self) -> bool:
         """Check if agent is still initializing.

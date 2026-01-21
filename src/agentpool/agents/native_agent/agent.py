@@ -232,11 +232,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             env=env,
             input_provider=input_provider,
             output_type=to_type(output_type),  # type: ignore[arg-type]
-            tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
             commands=all_commands,
             hooks=hooks,
         )
+        self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
 
         # Store config for context creation
         # Convert model to proper config type for NativeAgentConfig
@@ -1004,7 +1004,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             if mode_id not in mode_map:
                 msg = f"Unknown permission mode: {mode_id}. Available: {list(mode_map.keys())}"
                 raise ValueError(msg)
-            await self.set_tool_confirmation_mode(mode_map[mode_id])
+            self.tool_confirmation_mode = mode_map[mode_id]
+            self.log.info("Tool confirmation mode changed", mode=mode_map[mode_id])
             change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
             await self.state_updated.emit(change)
 

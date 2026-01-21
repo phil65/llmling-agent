@@ -97,7 +97,7 @@ async def test_tool_call_event_ordering():
 
     async with ClaudeCodeAgent(
         name="test-agent",
-        tool_confirmation_mode="always",
+        
         permission_mode="default",
     ) as agent:
         prompt = (
@@ -165,7 +165,7 @@ async def test_no_duplicate_acp_tool_call_notifications():
 
     async with ClaudeCodeAgent(
         name="test-agent",
-        tool_confirmation_mode="always",
+        
         permission_mode="default",
     ) as agent:
         prompt = (

@@ -94,7 +94,6 @@ if TYPE_CHECKING:
     from agentpool.sessions import SessionData
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
-    from agentpool_config.nodes import ToolConfirmationMode
 
 logger = get_logger(__name__)
 
@@ -164,7 +163,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
-        tool_confirmation_mode: ToolConfirmationMode = "always",
+        auto_approve: bool = False,
         commands: Sequence[BaseCommand] | None = None,
         hooks: AgentHooks | None = None,
         session_id: str | None = None,
@@ -181,11 +180,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             event_configs=event_configs,
             env=execution_env,
             input_provider=input_provider,
-            tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
             commands=commands,
             hooks=hooks,
         )
+
+        # Permission handling
+        self.auto_approve = auto_approve
 
         # Command
         self._command = command
@@ -297,7 +298,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             input_provider=input_provider,
             agent_pool=agent_pool,
             deps_type=deps_type,
-            tool_confirmation_mode=config.requires_tool_confirmation,
+            auto_approve=config.auto_approve,
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
         )
 
@@ -666,26 +667,17 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Update the model for the current session via ACP protocol."""
         await self._set_mode(model, "model")
 
-    async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
-        """Set the tool confirmation mode for this agent."""
-        from acp.schema import SetSessionModeRequest
-        from agentpool_server.acp_server.converters import confirmation_mode_to_mode_id
+    async def set_auto_approve(self, auto_approve: bool) -> None:
+        """Set auto-approve mode for permission requests.
 
-        self.tool_confirmation_mode = mode
+        Args:
+            auto_approve: If True, automatically approve all permission requests.
+                         If False, forward to callback/input_provider.
+        """
+        self.auto_approve = auto_approve
         if self._client_handler:
-            self._client_handler.tool_confirmation_mode = mode
-
-        if self._connection and self._sdk_session_id:
-            mode_id = confirmation_mode_to_mode_id(mode)
-            request = SetSessionModeRequest(session_id=self._sdk_session_id, mode_id=mode_id)
-            try:
-                await self._connection.set_session_mode(request)
-                msg = "Forwarded mode change to remote ACP server"
-                self.log.info(msg, mode=mode, mode_id=mode_id)
-            except Exception:
-                self.log.exception("Failed to forward mode change to remote ACP server")
-        else:
-            self.log.info("Tool confirmation mode changed (local only)", mode=mode)
+            self._client_handler.auto_approve = auto_approve
+        self.log.info("Auto-approve mode changed", auto_approve=auto_approve)
 
     async def _interrupt(self) -> None:
         """Send CancelNotification to remote ACP server and cancel local tasks."""

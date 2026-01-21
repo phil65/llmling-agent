@@ -40,7 +40,6 @@ if TYPE_CHECKING:
     from agentpool.sessions import SessionData
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
-    from agentpool_config.nodes import ToolConfirmationMode
     from codex_adapter import ApprovalPolicy, CodexClient, ReasoningEffort, SandboxMode
     from codex_adapter.events import CodexEvent
 
@@ -70,7 +69,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         env: ExecutionEnvironment | None = None,
         input_provider: InputProvider | None = None,
         output_type: type[OutputDataT] = str,  # type: ignore[assignment]
-        tool_confirmation_mode: ToolConfirmationMode = "always",
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         hooks: AgentHooks | None = None,
         session_id: str | None = None,
@@ -95,7 +93,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             env: Execution environment
             input_provider: Provider for user input
             output_type: Output type for structured responses (default: str)
-            tool_confirmation_mode: Tool confirmation behavior
             event_handlers: Event handlers for this agent
             hooks: Agent hooks for pre/post tool execution
             session_id: Session/thread ID to resume on connect (avoids reconnect overhead)
@@ -115,7 +112,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             env=env,
             input_provider=input_provider,
             output_type=output_type,
-            tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
             hooks=hooks,
         )
@@ -517,10 +513,14 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         """Set the model for this agent."""
         await self._set_mode(model, "model")
 
-    async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
-        """Set tool confirmation mode."""
-        self.tool_confirmation_mode = mode
-        self.log.info("Tool confirmation mode updated", mode=mode)
+    async def set_approval_policy(self, policy: ApprovalPolicy) -> None:
+        """Set the approval policy for tool execution.
+
+        Args:
+            policy: Approval policy - "never", "on-request", "on-failure", or "untrusted"
+        """
+        self._approval_policy = policy
+        self.log.info("Approval policy updated", policy=policy)
 
     async def _interrupt(self) -> None:
         """Call Codex turn_interrupt if there's an active turn."""

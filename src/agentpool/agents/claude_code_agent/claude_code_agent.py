@@ -145,7 +145,6 @@ if TYPE_CHECKING:
     from agentpool.sessions import SessionData
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
-    from agentpool_config.nodes import ToolConfirmationMode
 
 
 logger = get_logger(__name__)
@@ -217,7 +216,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
-        tool_confirmation_mode: ToolConfirmationMode = "always",
         output_type: type[TResult] | None = None,
         builtin_subagents: dict[str, AgentDefinition] | None = None,
         commands: Sequence[BaseCommand] | None = None,
@@ -256,7 +254,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             enable_logging: Whether to enable logging
             event_configs: Event configuration
             event_handlers: Event handlers for streaming events
-            tool_confirmation_mode: Tool confirmation behavior
             output_type: Type for structured output (uses JSON schema)
             builtin_subagents: builtin Subagents configuration
             commands: Slash commands
@@ -279,7 +276,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             env=env,
             input_provider=input_provider,
             output_type=output_type or str,  # type: ignore[arg-type]
-            tool_confirmation_mode=tool_confirmation_mode,
             event_handlers=event_handlers,
             commands=commands,
             hooks=hooks,
@@ -389,7 +385,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             event_handlers=merged_handlers or None,
             input_provider=input_provider,
             agent_pool=agent_pool,
-            tool_confirmation_mode=config.requires_tool_confirmation,
             output_type=output_type,
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
         )
@@ -542,7 +537,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Determine can_use_tool callback
         bypass = permission_mode == "bypassPermissions" or self._dangerously_skip_permissions
         can_use_tool = (
-            self._can_use_tool if self.tool_confirmation_mode != "never" and not bypass else None
+            self._can_use_tool
+            if self._permission_mode != "bypassPermissions" and not bypass
+            else None
         )
         # Check builtin_tools for special tools that need extra handling
         builtin_tools = self._builtin_tools or []
@@ -615,8 +612,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if tool_name == "AskUserQuestion":
             agent_ctx = self.get_context()
             return await handle_clarifying_questions(agent_ctx, input_data, context)
-        # Auto-grant if confirmation mode is "never" (bypassPermissions)
-        if self.tool_confirmation_mode == "never":
+        # Auto-grant if bypassPermissions mode is active
+        if self._permission_mode == "bypassPermissions":
             return PermissionResultAllow()
         # Plan mode: auto-deny all tool executions (planning only, no execution)
         if self._permission_mode == "plan":
@@ -1416,21 +1413,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Set the model for future requests."""
         await self._set_mode(model, "model")
 
-    async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
-        """Set tool confirmation mode.
+    async def set_permission_mode(self, mode: PermissionMode) -> None:
+        """Set permission mode.
 
         Args:
-            mode: Confirmation mode - "always", "never", or "per_tool"
+            mode: Permission mode - "default", "acceptEdits", "plan", or "bypassPermissions"
         """
-        self.tool_confirmation_mode = mode
-        # Map confirmation mode to permission mode
-        if mode == "never":
-            self._permission_mode = "bypassPermissions"
-        elif mode in {"always", "per_tool"}:
-            self._permission_mode = "default"
+        self._permission_mode = mode
         # Update permission mode on client if connected
-        if self._client and self._permission_mode:
-            await self._client.set_permission_mode(self._permission_mode)
+        if self._client:
+            await self._client.set_permission_mode(mode)
 
     async def get_available_models(self) -> list[ModelInfo] | None:
         """Get available models for Claude Code agent.
@@ -1480,8 +1472,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         categories: list[ModeCategory] = []
         # Permission modes
         current_id = self._permission_mode or "default"
-        if self.tool_confirmation_mode == "never":
-            current_id = "bypassPermissions"
 
         categories.append(
             ModeCategory(
@@ -1562,11 +1552,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
             permission_mode: PermissionMode = mode_id  # type: ignore[assignment]
             self._permission_mode = permission_mode
-            # Update tool confirmation mode based on permission mode
-            if mode_id == "bypassPermissions":
-                self.tool_confirmation_mode = "never"
-            elif mode_id in ("default", "plan"):
-                self.tool_confirmation_mode = "always"
             # Update SDK client if initialized
             if self._client:
                 await self.ensure_initialized()
