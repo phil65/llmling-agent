@@ -51,7 +51,7 @@ class BaseStorageProviderConfig(Schema):
     agents: set[str] | None = Field(default=None, title="Agent filter")
     """Optional set of agent names to include. If None, logs all agents."""
 
-    log_conversations: bool = Field(default=True, title="Log conversations")
+    log_sessions: bool = Field(default=True, title="Log conversations")
     """Whether to log conversations"""
 
     log_commands: bool = Field(default=True, title="Log commands")
@@ -263,7 +263,7 @@ class StorageConfig(Schema):
     log_messages: bool = Field(default=True, title="Log messages")
     """Whether to log messages."""
 
-    log_conversations: bool = Field(default=True, title="Log conversations")
+    log_sessions: bool = Field(default=True, title="Log conversations")
     """Whether to log conversations."""
 
     log_commands: bool = Field(default=True, title="Log commands")

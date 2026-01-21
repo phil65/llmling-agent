@@ -164,7 +164,7 @@ class MemoryStorageProvider(StorageProvider):
             "timestamp": get_now(),
         })
 
-    async def log_conversation(
+    async def log_session(
         self,
         *,
         conversation_id: str,

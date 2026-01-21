@@ -701,7 +701,7 @@ async def _process_message(  # noqa: PLR0915
         update={"time": TimeCreatedUpdated(created=session.time.created, updated=response_time)}
     )
     # Title generation now handled by StorageManager signal (on_title_generated in server.py)
-    # Agent calls log_conversation() → _generate_title_from_prompt() → emits title_generated signal
+    # Agent calls log_session() → _generate_title_from_prompt() → emits title_generated signal
     return assistant_msg_with_parts
 
 

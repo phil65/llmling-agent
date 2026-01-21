@@ -41,11 +41,11 @@ async def sample_data(provider: SQLModelProvider):
     """Create sample conversation data."""
     # Create two conversations using provider methods
     start = BASE_TIME - timedelta(hours=1)  # 11:00
-    await provider.log_conversation(
+    await provider.log_session(
         conversation_id="conv1", node_name="test_agent", start_time=start
     )
     start = BASE_TIME - timedelta(hours=2)  # 10:00
-    await provider.log_conversation(
+    await provider.log_session(
         conversation_id="conv2", node_name="other_agent", start_time=start
     )
 

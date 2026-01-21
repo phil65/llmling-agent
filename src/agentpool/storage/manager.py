@@ -155,7 +155,7 @@ class StorageManager:
         provider_config = config.model_copy(
             update={
                 "log_messages": config.log_messages and self.config.log_messages,
-                "log_conversations": config.log_conversations and self.config.log_conversations,
+                "log_sessions": config.log_sessions and self.config.log_sessions,
                 "log_commands": config.log_commands and self.config.log_commands,
                 "log_context": config.log_context and self.config.log_context,
                 "agents": logged_agents,
@@ -269,7 +269,7 @@ class StorageManager:
                 )
 
     @method_spawner
-    async def log_conversation(
+    async def log_session(
         self,
         *,
         conversation_id: str,
@@ -290,7 +290,7 @@ class StorageManager:
             initial_prompt: Optional initial prompt to trigger title generation
             on_title_generated: Optional callback invoked when title is generated
         """
-        if not self.config.log_conversations:
+        if not self.config.log_sessions:
             return
 
         # Check if already logged (idempotent behavior)
@@ -300,7 +300,7 @@ class StorageManager:
 
             # Log to all providers
             for provider in self.providers:
-                await provider.log_conversation(
+                await provider.log_session(
                     conversation_id=conversation_id,
                     node_name=node_name,
                     start_time=start_time,
@@ -312,7 +312,7 @@ class StorageManager:
             return
         prompt_length = len(initial_prompt)
         logger.info(
-            "log_conversation title decision",
+            "log_session title decision",
             conversation_id=conversation_id,
             prompt_length=prompt_length,
             has_model=bool(self.config.title_generation_model),
@@ -747,7 +747,7 @@ class StorageManager:
     ) -> str | None:
         """Generate title from initial prompt (internal, fire-and-forget).
 
-        Called automatically by log_conversation when initial_prompt is provided.
+        Called automatically by log_session when initial_prompt is provided.
 
         Args:
             conversation_id: ID of the conversation to title

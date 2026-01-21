@@ -10350,7 +10350,7 @@
           "description": "Optional set of agent names to include. If None, logs all agents.",
           "title": "Agent filter"
         },
-        "log_conversations": {
+        "log_sessions": {
           "default": true,
           "description": "Whether to log conversations",
           "title": "Log conversations",
@@ -21424,7 +21424,7 @@
           "description": "Optional set of agent names to include. If None, logs all agents.",
           "title": "Agent filter"
         },
-        "log_conversations": {
+        "log_sessions": {
           "default": true,
           "description": "Whether to log conversations",
           "title": "Log conversations",
@@ -29294,7 +29294,7 @@
           "description": "Optional set of agent names to include. If None, logs all agents.",
           "title": "Agent filter"
         },
-        "log_conversations": {
+        "log_sessions": {
           "default": true,
           "description": "Whether to log conversations",
           "title": "Log conversations",
@@ -34979,7 +34979,7 @@
           "description": "Optional set of agent names to include. If None, logs all agents.",
           "title": "Agent filter"
         },
-        "log_conversations": {
+        "log_sessions": {
           "default": true,
           "description": "Whether to log conversations",
           "title": "Log conversations",
@@ -38888,7 +38888,7 @@
           "description": "Optional set of agent names to include. If None, logs all agents.",
           "title": "Agent filter"
         },
-        "log_conversations": {
+        "log_sessions": {
           "default": true,
           "description": "Whether to log conversations",
           "title": "Log conversations",
@@ -42088,7 +42088,7 @@
           "title": "Log messages",
           "type": "boolean"
         },
-        "log_conversations": {
+        "log_sessions": {
           "default": true,
           "description": "Whether to log conversations.",
           "title": "Log conversations",
@@ -48786,7 +48786,7 @@
           "description": "Optional set of agent names to include. If None, logs all agents.",
           "title": "Agent filter"
         },
-        "log_conversations": {
+        "log_sessions": {
           "default": true,
           "description": "Whether to log conversations",
           "title": "Log conversations",

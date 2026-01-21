@@ -89,7 +89,7 @@ class MessageNode[TDeps, TResult](ABC):
         self.conversation_id: str | None = None
         self.conversation_title: str | None = None
 
-    async def log_conversation(self, initial_prompt: str | None = None) -> None:
+    async def log_session(self, initial_prompt: str | None = None) -> None:
         """Log conversation to storage if enabled.
 
         Should be called at the start of run_stream() after conversation_id is set.
@@ -105,7 +105,7 @@ class MessageNode[TDeps, TResult](ABC):
             self.conversation_title = title
 
         if self.enable_db_logging and self.storage and self.conversation_id:
-            await self.storage.log_conversation(
+            await self.storage.log_session(
                 conversation_id=self.conversation_id,
                 node_name=self.name,
                 initial_prompt=initial_prompt,

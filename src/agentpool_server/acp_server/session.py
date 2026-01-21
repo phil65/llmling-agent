@@ -484,7 +484,7 @@ class ACPSession:
                 )
                 return "end_turn"
             else:
-                # Title generation is now handled automatically by log_conversation
+                # Title generation is now handled automatically by log_session
                 self._current_converter = None  # Clear converter reference
                 return "end_turn"
 

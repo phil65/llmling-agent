@@ -68,7 +68,7 @@ class TestStorageManagerTitleGeneration:
         async with StorageManager(config) as manager:
             conv_id = "test_conv_123"
             # First create the conversation
-            await manager.log_conversation(conversation_id=conv_id, node_name="test_agent")
+            await manager.log_session(conversation_id=conv_id, node_name="test_agent")
             # Directly call the title generation method (bypasses PYTEST check)
             title = await manager._generate_title_from_prompt(
                 conv_id, "What is the weather today?", None
@@ -87,7 +87,7 @@ class TestStorageManagerTitleGeneration:
         async with StorageManager(config) as manager:
             conv_id = "test_conv_456"
             # Create conversation
-            await manager.log_conversation(conversation_id=conv_id, node_name="test_agent")
+            await manager.log_session(conversation_id=conv_id, node_name="test_agent")
             # Direct call should return None when model is not configured
             title = await manager._generate_title_from_prompt(conv_id, "Hello", None)
             assert title is None
@@ -98,7 +98,7 @@ class TestStorageManagerTitleGeneration:
         async with StorageManager(config) as manager:
             conv_id = "test_conv_789"
             # Create conversation
-            await manager.log_conversation(conversation_id=conv_id, node_name="test_agent")
+            await manager.log_session(conversation_id=conv_id, node_name="test_agent")
             # Set existing title
             existing_title = "Existing Title"
             await manager.update_conversation_title(conv_id, existing_title)
@@ -111,7 +111,7 @@ class TestStorageManagerTitleGeneration:
         config = StorageConfig(providers=[MemoryStorageConfig()])
         async with StorageManager(config) as manager:
             conv_id = "test_conv_update"
-            await manager.log_conversation(conversation_id=conv_id, node_name="test_agent")
+            await manager.log_session(conversation_id=conv_id, node_name="test_agent")
             # Initially no title
             title = await manager.get_conversation_title(conv_id)
             assert title is None
@@ -126,7 +126,7 @@ class TestStorageManagerTitleGeneration:
         config = StorageConfig(providers=[MemoryStorageConfig()], title_generation_model="test")
         async with StorageManager(config) as manager:
             conv_id = "msg_title_test"
-            await manager.log_conversation(conversation_id=conv_id, node_name="test_agent")
+            await manager.log_session(conversation_id=conv_id, node_name="test_agent")
             # Create test messages
             messages = [
                 ChatMessage.user_prompt("What is Python?"),
@@ -139,8 +139,8 @@ class TestStorageManagerTitleGeneration:
             stored = await manager.get_conversation_title(conv_id)
             assert stored == title
 
-    async def test_log_conversation_triggers_title_gen_without_pytest_env(self) -> None:
-        """Test that log_conversation triggers title gen when not in pytest."""
+    async def test_log_session_triggers_title_gen_without_pytest_env(self) -> None:
+        """Test that log_session triggers title gen when not in pytest."""
         config = StorageConfig(providers=[MemoryStorageConfig()], title_generation_model="test")
         async with StorageManager(config) as manager:
             conv_id = "test_trigger_123"
@@ -155,7 +155,7 @@ class TestStorageManagerTitleGeneration:
                 # Remove the pytest marker if it exists
                 os.environ.pop("PYTEST_CURRENT_TEST", None)
 
-                await manager.log_conversation(
+                await manager.log_session(
                     conversation_id=conv_id,
                     node_name="test_agent",
                     initial_prompt="What is the weather?",
@@ -176,7 +176,7 @@ class TestMemoryProviderTitleSupport:
         config = MemoryStorageConfig()
         provider = MemoryStorageProvider(config)
         conv_id = "mem_conv_123"
-        await provider.log_conversation(conversation_id=conv_id, node_name="test_agent")
+        await provider.log_session(conversation_id=conv_id, node_name="test_agent")
         # Initially no title
         title = await provider.get_conversation_title(conv_id)
         assert title is None
@@ -207,7 +207,7 @@ class TestSQLProviderTitleSupport:
         """Test title update and get on SQL provider."""
         async with SQLModelProvider(sql_config) as provider:
             conv_id = "sql_conv_123"
-            await provider.log_conversation(conversation_id=conv_id, node_name="test_agent")
+            await provider.log_session(conversation_id=conv_id, node_name="test_agent")
             # Initially no title
             title = await provider.get_conversation_title(conv_id)
             assert title is None
@@ -227,7 +227,7 @@ class TestSQLProviderTitleSupport:
         """Test that updating title overwrites previous value."""
         async with SQLModelProvider(sql_config) as provider:
             conv_id = "sql_conv_overwrite"
-            await provider.log_conversation(conversation_id=conv_id, node_name="test_agent")
+            await provider.log_session(conversation_id=conv_id, node_name="test_agent")
             await provider.update_conversation_title(conv_id, "First Title")
             await provider.update_conversation_title(conv_id, "Second Title")
             title = await provider.get_conversation_title(conv_id)
@@ -243,7 +243,7 @@ class TestFileProviderTitleSupport:
         config = FileStorageConfig(path=str(storage_file))
         provider = FileProvider(config)
         conv_id = "file_conv_123"
-        await provider.log_conversation(conversation_id=conv_id, node_name="test_agent")
+        await provider.log_session(conversation_id=conv_id, node_name="test_agent")
         # Initially no title
         title = await provider.get_conversation_title(conv_id)
         assert title is None

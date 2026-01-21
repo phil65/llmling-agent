@@ -102,7 +102,7 @@ storage:
   # Global filters
   agents: [agent1, agent2]     # Only log these agents
   log_messages: true           # Enable message logging
-  log_conversations: true      # Enable conversation tracking
+  log_sessions: true      # Enable conversation tracking
 
   log_commands: true          # Enable command logging
   log_context: true           # Enable context logging

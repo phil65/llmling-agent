@@ -593,7 +593,7 @@ class ClaudeStorageProvider(StorageProvider):
         session_path = self._get_project_dir(project_path) / f"{session_id}.jsonl"
         self._write_entry(session_path, entry)
 
-    async def log_conversation(
+    async def log_session(
         self,
         *,
         conversation_id: str,

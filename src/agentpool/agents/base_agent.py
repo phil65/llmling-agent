@@ -554,7 +554,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 str(p) for p in prompts if isinstance(p, str)
             ]  # Filter to text prompts only
             initial_prompt = user_prompts[-1] if user_prompts else None
-            await self.log_conversation(initial_prompt)
+            await self.log_session(initial_prompt)
         elif conversation_id and self.conversation_id != conversation_id:
             # Adopt passed conversation_id (for routing chains)
             self.conversation_id = conversation_id

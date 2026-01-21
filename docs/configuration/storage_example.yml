@@ -4,7 +4,7 @@ storage:
   agents: ["planner", "executor"]
   filter_mode: "and"
   log_messages: true
-  log_conversations: true
+  log_sessions: true
   default_provider: "sql"
 
   providers:

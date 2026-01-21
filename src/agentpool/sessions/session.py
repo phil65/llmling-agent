@@ -122,7 +122,7 @@ class ClientSession:
         the agent stateless from the session's perspective. Messages
         are automatically added to the session's history.
 
-        Title generation is handled automatically by the agent's log_conversation
+        Title generation is handled automatically by the agent's log_session
         call when the conversation is first created.
 
         Args:

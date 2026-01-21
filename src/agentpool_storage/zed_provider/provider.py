@@ -170,7 +170,7 @@ class ZedStorageProvider(StorageProvider):
         """Log a message - NOT SUPPORTED (read-only provider)."""
         logger.warning("ZedStorageProvider is read-only, cannot log messages")
 
-    async def log_conversation(
+    async def log_session(
         self,
         *,
         conversation_id: str,

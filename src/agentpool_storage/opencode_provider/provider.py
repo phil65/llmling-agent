@@ -460,7 +460,7 @@ class OpenCodeStorageProvider(StorageProvider):
         except Exception as e:
             logger.exception("Failed to write OpenCode message", error=str(e))
 
-    async def log_conversation(
+    async def log_session(
         self,
         *,
         conversation_id: str,

@@ -61,7 +61,7 @@ class StorageProvider:
         self.config = config
         self.task_manager = TaskManager()
         self.log_messages = config.log_messages
-        self.log_conversations = config.log_conversations
+        self.log_sessions = config.log_sessions
         self.log_commands = config.log_commands
         self.log_context = config.log_context
 
@@ -109,7 +109,7 @@ class StorageProvider:
     ) -> None:
         """Log a message (if supported)."""
 
-    async def log_conversation(
+    async def log_session(
         self,
         *,
         conversation_id: str,

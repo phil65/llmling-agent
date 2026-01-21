@@ -165,7 +165,7 @@ class SQLModelProvider(StorageProvider):
             session.add(msg)
             await session.commit()
 
-    async def log_conversation(
+    async def log_session(
         self,
         *,
         conversation_id: str,
