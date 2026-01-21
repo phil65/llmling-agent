@@ -8,7 +8,7 @@ from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass, field
 import re
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, overload
 
 from anyenv import MultiEventHandler, method_spawner
 from anyenv.signals import Signal
@@ -70,58 +70,6 @@ logger = get_logger(__name__)
 
 # Literal type for all agent types
 type AgentTypeLiteral = Literal["native", "acp", "agui", "claude", "codex"]
-
-
-def get_agent_class(agent_type: AgentTypeLiteral) -> type[BaseAgent[Any, Any]]:
-    """Get agent class by type literal.
-
-    Args:
-        agent_type: The type of agent to get
-
-    Returns:
-        The agent class corresponding to the type
-
-    Raises:
-        ValueError: If agent_type is not recognized
-    """
-    from agentpool.agents import ACPAgent, Agent, AGUIAgent, ClaudeCodeAgent, CodexAgent
-
-    match agent_type:
-        case "native":
-            return Agent
-        case "acp":
-            return ACPAgent
-        case "agui":
-            return AGUIAgent
-        case "claude":
-            return ClaudeCodeAgent
-        case "codex":
-            return CodexAgent
-        case _:
-            msg = f"Unknown agent type: {agent_type}"
-            raise ValueError(msg)
-
-
-class BaseAgentKwargs(TypedDict, total=False):
-    """Keyword arguments shared by all agent types.
-
-    Note: output_type and deps_type are intentionally excluded as they are
-    generic type parameters that need special handling for overloads.
-    """
-
-    name: str
-    description: str | None
-    display_name: str | None
-    mcp_servers: Sequence[str | MCPServerConfig] | None
-    agent_pool: AgentPool[Any] | None
-    enable_logging: bool
-    event_configs: Sequence[EventConfig] | None
-    env: ExecutionEnvironment | None
-    input_provider: InputProvider | None
-    tool_confirmation_mode: ToolConfirmationMode
-    event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None
-    commands: Sequence[BaseCommand] | None
-    hooks: AgentHooks | None
 
 
 class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):

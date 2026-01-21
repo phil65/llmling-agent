@@ -61,7 +61,7 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self, Unpack
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self
 import uuid
 
 import anyio
@@ -83,7 +83,7 @@ from pydantic_ai import (
 )
 from pydantic_ai.usage import RequestUsage
 
-from agentpool.agents.base_agent import BaseAgent, BaseAgentKwargs  # noqa: TC001
+from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.claude_code_agent.converters import claude_message_to_events
 from agentpool.agents.events import (
     PartStartEvent,
@@ -118,8 +118,10 @@ if TYPE_CHECKING:
         ToolUseBlock,
     )
     from clawd_code_sdk.types import HookContext, HookInput, SyncHookJSONOutput
+    from evented_config import EventConfig
+    from exxec import ExecutionEnvironment
     from pydantic_ai import UserContent
-    from slashed import Command, CommandContext
+    from slashed import BaseCommand, Command, CommandContext
     from tokonomics.model_discovery.model_info import ModelInfo
     from tokonomics.model_names import AnthropicMaxModelName
     from toprompt import AnyPromptType
@@ -137,6 +139,7 @@ if TYPE_CHECKING:
         MCPServerStatus,
     )
     from agentpool.delegation import AgentPool
+    from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.claude_code_agents import SettingSource
     from agentpool.sessions import SessionData
@@ -184,11 +187,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
     AGENT_TYPE: ClassVar = "claude"
 
-    def __init__(  # noqa: PLR0915
+    def __init__(
         self,
         *,
-        # ClaudeCode-specific parameters
         config: ClaudeCodeAgentConfig | None = None,
+        name: str | None = None,
+        description: str | None = None,
+        display_name: str | None = None,
         cwd: str | None = None,
         allowed_tools: list[str] | None = None,
         disallowed_tools: list[str] | None = None,
@@ -199,6 +204,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         max_budget_usd: float | None = None,
         max_thinking_tokens: int | None = None,
         permission_mode: PermissionMode | None = None,
+        mcp_servers: Sequence[MCPServerConfig] | None = None,
         environment: dict[str, str] | None = None,
         add_dir: list[str] | None = None,
         builtin_tools: list[str] | None = None,
@@ -206,16 +212,26 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         dangerously_skip_permissions: bool = False,
         setting_sources: list[SettingSource] | None = None,
         use_subscription: bool = False,
-        builtin_subagents: dict[str, AgentDefinition] | None = None,
-        session_id: str | None = None,
+        env: ExecutionEnvironment | None = None,
+        input_provider: InputProvider | None = None,
+        agent_pool: AgentPool[Any] | None = None,
+        enable_logging: bool = True,
+        event_configs: Sequence[EventConfig] | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        tool_confirmation_mode: ToolConfirmationMode = "always",
         output_type: type[TResult] | None = None,
-        # BaseAgent parameters (see BaseAgentKwargs)
-        **base_kwargs: Unpack[BaseAgentKwargs],
+        builtin_subagents: dict[str, AgentDefinition] | None = None,
+        commands: Sequence[BaseCommand] | None = None,
+        hooks: AgentHooks | None = None,
+        session_id: str | None = None,
     ) -> None:
         """Initialize ClaudeCodeAgent.
 
         Args:
             config: Configuration object (alternative to individual kwargs)
+            name: Agent name
+            description: Agent description
+            display_name: Display name for UI
             cwd: Working directory for Claude Code
             allowed_tools: List of allowed tool names
             disallowed_tools: List of disallowed tool names
@@ -229,15 +245,24 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             mcp_servers: External MCP servers to connect to (internal format, converted at runtime)
             environment: Environment variables for the agent process
             add_dir: Additional directories to allow tool access to
-            builtin_tools: Available tools from built-in set
+            builtin_tools: Available tools from built-in set. Special: "LSP" for code intelligence,
+                           "Chrome" for browser control
             fallback_model: Fallback model when default is overloaded
             dangerously_skip_permissions: Bypass all permission checks (sandboxed only)
             setting_sources: Setting sources to load ("user", "project", "local")
             use_subscription: Force Claude subscription usage instead of API key
-            builtin_subagents: builtin Subagents configuration
-            session_id: Session ID to resume on connect
+            env: Execution environment
+            input_provider: Provider for user input/confirmations
+            agent_pool: Agent pool for multi-agent coordination
+            enable_logging: Whether to enable logging
+            event_configs: Event configuration
+            event_handlers: Event handlers for streaming events
+            tool_confirmation_mode: Tool confirmation behavior
             output_type: Type for structured output (uses JSON schema)
-            **base_kwargs: BaseAgent parameters (see BaseAgentKwargs)
+            builtin_subagents: builtin Subagents configuration
+            commands: Slash commands
+            hooks: Lifecycle hooks for intercepting agent behavior
+            session_id: Session ID to resume on connect (avoids reconnect overhead)
         """
         from agentpool.agents.sys_prompts import SystemPrompts
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
@@ -245,12 +270,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from agentpool_storage.claude_provider import ClaudeStorageProvider
 
         # Build config from kwargs if not provided
-        # Extract values needed for config building
-        name = base_kwargs.get("name")
-        description = base_kwargs.get("description")
-        display_name = base_kwargs.get("display_name")
-        mcp_servers = base_kwargs.get("mcp_servers")
-
         if config is None:
             config = ClaudeCodeAgentConfig(
                 name=name or "claude_code",
@@ -275,16 +294,21 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 use_subscription=use_subscription,
             )
 
-        # Build super().__init__ kwargs, merging base_kwargs with config-derived values
-        init_kwargs = {
-            **base_kwargs,
-            "name": name or config.name or "claude_code",
-            "description": description or config.description,
-            "display_name": display_name or config.display_name,
-            "event_configs": base_kwargs.get("event_configs") or list(config.triggers),
-            "output_type": output_type or str,
-        }
-        super().__init__(**init_kwargs)  # type: ignore[arg-type]
+        super().__init__(
+            name=name or config.name or "claude_code",
+            description=description or config.description,
+            display_name=display_name or config.display_name,
+            agent_pool=agent_pool,
+            enable_logging=enable_logging,
+            event_configs=event_configs or list(config.triggers),
+            env=env,
+            input_provider=input_provider,
+            output_type=output_type or str,  # type: ignore[arg-type]
+            tool_confirmation_mode=tool_confirmation_mode,
+            event_handlers=event_handlers,
+            commands=commands,
+            hooks=hooks,
+        )
         self._subagents = builtin_subagents
         self._config = config
         self._cwd = cwd or config.cwd
@@ -295,6 +319,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
 
         # Initialize SystemPrompts manager
+        # Normalize system_prompt to a list
         all_prompts: list[AnyPromptType] = []
         prompt_source = system_prompt if system_prompt is not None else config.system_prompt
         if prompt_source is not None:
@@ -302,7 +327,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 all_prompts.append(prompt_source)
             else:
                 all_prompts.extend(prompt_source)
-        agent_pool = base_kwargs.get("agent_pool")
         prompt_manager = agent_pool.prompt_manager if agent_pool else None
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=prompt_manager)
         self._model = model or config.model
@@ -311,19 +335,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._max_thinking_tokens = max_thinking_tokens or config.max_thinking_tokens
         self._permission_mode: PermissionMode | None = permission_mode or config.permission_mode
         self._thinking_mode: ThinkingMode = "off"
-        # Convert string MCP server specs to MCPServerConfig objects
-        if mcp_servers:
-            from agentpool_config.mcp_server import BaseMCPServerConfig
-
-            processed: list[MCPServerConfig] = []
-            for server in mcp_servers:
-                if isinstance(server, str):
-                    processed.append(BaseMCPServerConfig.from_string(server))
-                else:
-                    processed.append(server)
-            self._external_mcp_servers = processed
-        else:
-            self._external_mcp_servers = config.get_mcp_servers()
+        self._external_mcp_servers = list(mcp_servers) if mcp_servers else config.get_mcp_servers()
         self._environment = environment or config.env
         self._add_dir = add_dir or config.add_dir
         self._builtin_tools = builtin_tools if builtin_tools is not None else config.builtin_tools

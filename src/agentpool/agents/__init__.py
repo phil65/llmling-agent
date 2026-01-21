@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from agentpool.agents.base_agent import BaseAgentKwargs, get_agent_class
 from agentpool.agents.native_agent import Agent
 from agentpool.agents.agui_agent import AGUIAgent
 from agentpool.agents.acp_agent import ACPAgent
@@ -23,13 +22,11 @@ __all__ = [
     "AGUIAgent",
     "Agent",
     "AgentContext",
-    "BaseAgentKwargs",
     "ClaudeCodeAgent",
     "CodexAgent",
     "Interactions",
     "SystemPrompts",
     "detailed_print_handler",
-    "get_agent_class",
     "resolve_event_handlers",
     "simple_print_handler",
 ]
