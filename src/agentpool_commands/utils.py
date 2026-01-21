@@ -95,14 +95,15 @@ class EditAgentFileCommand(NodeCommand):
     async def execute_command(self, ctx: CommandContext[NodeContext]) -> None:
         """Open agent's configuration file."""
         agent = ctx.context.agent
-        agent_ctx = agent.get_context()
-        config = agent_ctx.config
-        if not config.config_file_path:
+        if not agent.agent_pool:
+            raise RuntimeError("Agent is not part of an agent pool")
+        config_file_path = agent.agent_pool.manifest.config_file_path
+        if not config_file_path:
             raise CommandError("No configuration file path available")
 
         try:
-            webbrowser.open(config.config_file_path)
-            msg = f"🌐 **Opening agent configuration:** `{config.config_file_path}`"
+            webbrowser.open(config_file_path)
+            msg = f"🌐 **Opening agent configuration:** `{config_file_path}`"
             await ctx.print(msg)
         except Exception as e:
             raise CommandError(f"Failed to open configuration file: {e}") from e
