@@ -136,6 +136,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     def __init__(
         self,
         *,
+        deps_type: type[TDeps] | None = None,
         config: BaseACPAgentConfig | None = None,
         command: str | None = None,
         name: str | None = None,
@@ -195,6 +196,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.acp_permission_callback: (
             Callable[[RequestPermissionRequest], Awaitable[RequestPermissionResponse]] | None
         ) = None
+        self.deps_type = deps_type or type(None)
         self.config = config
         self._process: Process | None = None
         self._connection: ClientSideConnection | None = None
@@ -203,7 +205,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._caps: AgentCapabilities | None = None
         self._session_id: str | None = session_id  # Session ID to load or from new_session
         self._state: ACPSessionState | None = None
-        self.deps_type = type(None)
         self._extra_mcp_servers: list[McpServer] = []
         self._sessions_cache: list[SessionData] | None = None  # Cache for list_sessions results
         # Create bridge (not started yet) - will be started in _setup_toolsets if needed
@@ -220,6 +221,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         *,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
+        deps_type: type[TDeps] | None = None,
         agent_pool: AgentPool[Any] | None = None,
     ) -> Self:
         """Create an ACPAgent from a config object."""
@@ -234,6 +236,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             event_handlers=merged_handlers or None,
             input_provider=input_provider,
             agent_pool=agent_pool,
+            deps_type=deps_type,
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
         )
 

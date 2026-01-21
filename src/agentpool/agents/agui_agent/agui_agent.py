@@ -519,7 +519,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                     {t.name: t for t in tools},
                     confirmation_mode=self.tool_confirmation_mode,
                     input_provider=self._input_provider,
-                    context=self.get_context(),
+                    context=self.get_context(data=deps),
                 )
                 # If no results (all tools were server-side), we're done
                 if not pending_tool_results:
