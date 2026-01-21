@@ -481,12 +481,14 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         empty_teams: dict[str, BaseTeam[Any, Any]] = {}
         for name, config in self.manifest.teams.items():
+            mcp_servers = config.get_mcp_servers()
             if config.mode == "parallel":
                 empty_teams[name] = Team(
                     [],
                     name=name,
                     display_name=config.display_name,
                     shared_prompt=config.shared_prompt,
+                    mcp_servers=mcp_servers,
                 )
             else:
                 empty_teams[name] = TeamRun(
@@ -494,6 +496,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     name=name,
                     display_name=config.display_name,
                     shared_prompt=config.shared_prompt,
+                    mcp_servers=mcp_servers,
                 )
 
         # Phase 2: Resolve members
