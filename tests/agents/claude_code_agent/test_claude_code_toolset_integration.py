@@ -103,7 +103,7 @@ async def test_claude_code_multiple_toolsets():
     )
 
     async with AgentPool() as pool:
-        agent = ClaudeCodeAgent(config=config, agent_pool=pool)
+        agent = ClaudeCodeAgent.from_config(config, agent_pool=pool)
         agent = await pool.exit_stack.enter_async_context(agent)
         # All toolsets should be exposed via single bridge
         tools = await agent.tools.get_tools()
@@ -128,7 +128,7 @@ async def test_claude_code_mcp_servers_config():
     )
 
     async with AgentPool() as pool:
-        agent = ClaudeCodeAgent(config=config, agent_pool=pool)
+        agent = ClaudeCodeAgent.from_config(config, agent_pool=pool)
         agent = await pool.exit_stack.enter_async_context(agent)
         # Should have both external and bridge MCP servers
         assert len(agent._mcp_servers) >= 2

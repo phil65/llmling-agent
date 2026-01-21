@@ -227,7 +227,7 @@ async def test_acp_agent_event_sequence(acp_agent_config_with_tool: tuple[Any, P
     config, _ = acp_agent_config_with_tool
     collector = EventCollector()
 
-    async with ACPAgent(config=config) as agent:
+    async with ACPAgent.from_config(config) as agent:
         with anyio.fail_after(45.0):
             async for event in agent.run_stream(
                 TOOL_CALL_PROMPT, event_handlers=[collector.handle_event]
@@ -370,7 +370,7 @@ async def test_event_sequence_consistency_across_agents(
     acp_collector = EventCollector()
     config, _ = acp_agent_config_with_tool
     try:
-        async with ACPAgent(config=config) as agent:
+        async with ACPAgent.from_config(config) as agent:
             with anyio.fail_after(45.0):
                 async for event in agent.run_stream(
                     TOOL_CALL_PROMPT, event_handlers=[acp_collector.handle_event]

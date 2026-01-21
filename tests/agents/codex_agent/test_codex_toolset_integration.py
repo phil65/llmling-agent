@@ -116,7 +116,7 @@ async def test_codex_multiple_toolsets():
     )
 
     async with AgentPool() as pool:
-        agent = CodexAgent(config=config, agent_pool=pool)
+        agent = CodexAgent.from_config(config, agent_pool=pool)
         agent = await pool.exit_stack.enter_async_context(agent)
         # All toolsets should be exposed via single bridge
         tools = await agent.tools.get_tools()
@@ -150,7 +150,7 @@ async def test_codex_mcp_servers_config():
     )
 
     async with AgentPool() as pool:
-        agent = CodexAgent(config=config, agent_pool=pool)
+        agent = CodexAgent.from_config(config, agent_pool=pool)
         agent = await pool.exit_stack.enter_async_context(agent)
         # Should have added toolset via tool bridge (extra MCP server)
         # The bridge is stored in agent._extra_mcp_servers

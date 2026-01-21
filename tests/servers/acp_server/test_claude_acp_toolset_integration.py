@@ -89,7 +89,7 @@ async def test_claude_acp_tool_bridge_mcp_config(claude_config_with_subagent: Cl
     """Test that tool bridge MCP config is properly passed to session."""
     async with AgentPool() as pool:
         # Manually create and configure agent
-        agent = ACPAgent(config=claude_config_with_subagent, agent_pool=pool)
+        agent = ACPAgent.from_config(claude_config_with_subagent, agent_pool=pool)
         async with agent:
             # Verify extra MCP servers include our bridge
             assert len(agent._extra_mcp_servers) > 0
@@ -108,7 +108,7 @@ async def test_claude_acp_multiple_toolsets():
     tools = [SubagentToolsetConfig(), DebugToolsetConfig()]
     config = ClaudeACPAgentConfig(name="claude_multi", cwd=str(Path.cwd()), tools=tools)
     async with AgentPool() as pool:
-        agent = ACPAgent(config=config, agent_pool=pool)
+        agent = ACPAgent.from_config(config, agent_pool=pool)
         async with agent:
             # All toolsets should be exposed via single bridge
             assert agent._tool_bridge is not None

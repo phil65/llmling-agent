@@ -114,7 +114,7 @@ async def test_acp_agent_toolsets_adds_providers():
     async with AgentPool() as pool:
         toolsets = [SubagentToolsetConfig(), SkillsToolsetConfig()]
         config = ClaudeACPAgentConfig(name="test_acp", tools=toolsets)
-        agent = ACPAgent(config=config, agent_pool=pool)
+        agent = ACPAgent.from_config(config, agent_pool=pool)
         await agent._setup_toolsets()
         # Check that providers were added
         # The tools should now include tools from both toolsets
