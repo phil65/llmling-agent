@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from pydantic import ConfigDict, Field
 
 from agentpool.models.acp_agents.base import BaseACPAgentConfig
-
-
-if TYPE_CHECKING:
-    from agentpool.prompts.manager import PromptManager
 
 
 class ClaudeACPAgentConfig(BaseACPAgentConfig):
@@ -90,7 +86,7 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
         """Returns 'claude-code-acp' binary (no CLI args supported)."""
         return "claude-code-acp"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Returns empty list (claude-code-acp uses pure stdin/stdout, no CLI args)."""
         return []
 
@@ -149,14 +145,13 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "npx"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args: list[str] = ["@zed-industries/codex-acp"]
 
         if self.model:
             args.extend(["-c", f'model="{self.model}"'])
         if self.sandbox_permissions:
-            # Format as TOML array
             perms = ", ".join(f'"{p}"' for p in self.sandbox_permissions)
             args.extend(["-c", f"sandbox_permissions=[{perms}]"])
         if self.shell_environment_policy_inherit:
@@ -195,7 +190,7 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "opencode"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args: list[str] = ["acp"]
 
@@ -228,7 +223,7 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "goose"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         return ["acp"]
 
@@ -255,7 +250,7 @@ class MistralACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "vibe-acp"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         return []
 
@@ -284,7 +279,7 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "openhands"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         return ["acp"]
 
@@ -329,7 +324,7 @@ class AmpACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP bridge server."""
         return "npx"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments for amp-acp bridge."""
         return ["-y", "amp-acp"]
 
@@ -405,7 +400,7 @@ class CagentACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "cagent"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args = ["acp"]
 
@@ -526,14 +521,9 @@ class StakpakACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "stakpak"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args = ["acp"]
-
-        # Handle system prompt from base class - Stakpak uses file
-        prompt_file = await self.write_system_prompt_file(prompt_manager)
-        if prompt_file:
-            args.extend(["--system-prompt-file", prompt_file])
 
         if self.workdir:
             args.extend(["--workdir", self.workdir])
@@ -680,7 +670,7 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "vtcode"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args = ["acp"]
 
@@ -798,7 +788,7 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "cursor-agent-acp"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args: list[str] = []
 
@@ -916,7 +906,7 @@ class GeminiACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "gemini"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args: list[str] = ["--experimental-acp"]
 

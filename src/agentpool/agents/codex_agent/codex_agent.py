@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.codex_agents import CodexAgentConfig
+    from agentpool.resource_providers import ResourceProvider
     from agentpool.sessions import SessionData
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
@@ -55,7 +56,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
     def __init__(
         self,
         *,
-        config: CodexAgentConfig | None = None,
         name: str | None = None,
         description: str | None = None,
         display_name: str | None = None,
@@ -74,11 +74,13 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         hooks: AgentHooks | None = None,
         session_id: str | None = None,
+        toolsets: list[ResourceProvider] | None = None,
+        approval_policy: ApprovalPolicy | None = None,
+        sandbox: SandboxMode | None = None,
     ) -> None:
         """Initialize Codex agent.
 
         Args:
-            config: Codex agent configuration
             name: Agent name
             description: Agent description
             display_name: Human-readable display name
@@ -97,28 +99,17 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             event_handlers: Event handlers for this agent
             hooks: Agent hooks for pre/post tool execution
             session_id: Session/thread ID to resume on connect (avoids reconnect overhead)
+            toolsets: Resource providers for tools to expose via MCP bridge
+            approval_policy: Approval policy for tool execution
+            sandbox: Sandbox mode for execution
         """
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
-        from agentpool.models.codex_agents import CodexAgentConfig
         from agentpool_config.mcp_server import BaseMCPServerConfig
 
-        # Build config from kwargs if not provided
-        if config is None:
-            config = CodexAgentConfig(
-                cwd=cwd,
-                model=model,
-                reasoning_effort=reasoning_effort,
-                base_instructions=base_instructions,
-                developer_instructions=developer_instructions,
-            )
-        # Use provided name or config name, fallback to "codex"
-        agent_name = name or config.name or "codex"
         super().__init__(
-            name=agent_name,
-            description=description or config.description,
-            display_name=display_name or config.display_name,
-            # Don't pass mcp_servers to BaseAgent - we manage them ourselves
-            # CodexClient will handle MCP server lifecycle
+            name=name or "codex",
+            description=description,
+            display_name=display_name,
             agent_pool=agent_pool,
             enable_logging=enable_logging,
             env=env,
@@ -129,15 +120,22 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             hooks=hooks,
         )
 
-        self.config = config
+        # Codex settings
+        self._cwd = cwd
+        self._model = model
+        self._reasoning_effort = reasoning_effort
+        self._base_instructions = base_instructions
+        self._developer_instructions = developer_instructions
+        self._approval_policy: ApprovalPolicy = approval_policy or "never"
+        self._sandbox = sandbox
+        self._toolsets = toolsets or []
+
+        # Client state
         self._client: CodexClient | None = None
-        self._sdk_session_id: str | None = session_id  # Session/thread ID to resume or from start
-        self._approval_policy: ApprovalPolicy = config.approval_policy or "never"
-        # Store MCP servers separately - will be passed to CodexClient
-        # External MCP servers from config (already processed to MCPServerConfig objects)
-        # If mcp_servers param provided, we need to process it similarly
+        self._sdk_session_id: str | None = session_id
+
+        # Process MCP servers
         if mcp_servers:
-            # Convert any strings to MCPServerConfig objects
             processed: list[MCPServerConfig] = []
             for server in mcp_servers:
                 if isinstance(server, str):
@@ -146,14 +144,17 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                     processed.append(server)
             self._external_mcp_servers = processed
         else:
-            self._external_mcp_servers = config.get_mcp_servers()
+            self._external_mcp_servers = []
+
         # Extra MCP servers in Codex format (e.g., tool bridge)
         self._extra_mcp_servers: list[tuple[str, Any]] = []
+
         # Track current settings (for when they change mid-session)
-        self._current_model: str | None = config.model
-        self._current_effort: ReasoningEffort | None = config.reasoning_effort
-        self._current_sandbox: SandboxMode | None = config.sandbox
-        self._current_turn_id: str | None = None  # Track current turn for interrupt
+        self._current_model: str | None = model
+        self._current_effort: ReasoningEffort | None = reasoning_effort
+        self._current_sandbox: SandboxMode | None = sandbox
+        self._current_turn_id: str | None = None
+
         self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
 
     @classmethod
@@ -167,14 +168,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
     ) -> Self:
         """Create agent from configuration.
 
-        Args:
-            config: Agent configuration
-            event_handlers: Event handlers (merged with config handlers)
-            input_provider: Provider for user input
-            agent_pool: Agent pool for coordination
-
-        Returns:
-            Configured agent instance
+        All config values are extracted here and passed to the constructor.
         """
         from agentpool.models.manifest import AgentsManifest
         from agentpool.utils.result_utils import to_type
@@ -183,7 +177,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         manifest = agent_pool.manifest if agent_pool else AgentsManifest()
         agent_output_type = config.output_type or str
         if isinstance(agent_output_type, str) and agent_output_type != "str":
-            # Try to resolve from manifest responses
             resolved_output_type = to_type(agent_output_type, manifest.responses)
         else:
             resolved_output_type = to_type(agent_output_type)
@@ -194,8 +187,27 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             *config_handlers,
             *(event_handlers or []),
         ]
+
+        # Extract toolsets from config
+        toolsets = config.get_tool_providers() if config.tools else []
+
         return cls(
-            config=config,
+            # Identity
+            name=config.name,
+            description=config.description,
+            display_name=config.display_name,
+            # Codex settings
+            cwd=config.cwd,
+            model=config.model,
+            reasoning_effort=config.reasoning_effort,
+            base_instructions=config.base_instructions,
+            developer_instructions=config.developer_instructions,
+            approval_policy=config.approval_policy,
+            sandbox=config.sandbox,
+            # MCP and toolsets
+            mcp_servers=config.get_mcp_servers(),
+            toolsets=toolsets,
+            # Runtime
             event_handlers=merged_handlers or None,
             input_provider=input_provider,
             agent_pool=agent_pool,
@@ -228,11 +240,11 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
     async def _setup_toolsets(self) -> None:
         """Setup toolsets and start the tool bridge."""
-        if not self.config.tools:
+        if not self._toolsets:
             return
 
-        # Create providers from tool configs and add to tool manager
-        for provider in self.config.get_tool_providers():
+        # Add toolset providers to tool manager
+        for provider in self._toolsets:
             self.tools.add_provider(provider)
         # Start bridge to expose tools via MCP
         await self._tool_bridge.start()
@@ -263,7 +275,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Create and connect client with MCP servers
         self._client = CodexClient(mcp_servers=mcp_servers_dict)
         await self._client.__aenter__()
-        cwd = str(self.config.cwd or Path.cwd())
+        cwd = str(self._cwd or Path.cwd())
 
         # Resume existing session or start new thread
         if self._sdk_session_id:
@@ -282,9 +294,9 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             # Start a new thread
             response = await self._client.thread_start(
                 cwd=cwd,
-                model=self.config.model,
-                base_instructions=self.config.base_instructions,
-                developer_instructions=self.config.developer_instructions,
+                model=self._model,
+                base_instructions=self._base_instructions,
+                developer_instructions=self._developer_instructions,
                 sandbox=self._current_sandbox,
             )
             self._sdk_session_id = response.thread.id
@@ -477,7 +489,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
     @property
     def model_name(self) -> str:
         """Get current model name."""
-        return self.config.model or "unknown"
+        return self._model or "unknown"
 
     def to_structured[NewOutputDataT](
         self,
@@ -600,7 +612,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Model selection
         models = await self.get_available_models()
         if models:
-            current_model = self._current_model or self.config.model or ""
+            current_model = self._current_model or self._model or ""
             model_modes = [
                 ModeInfo(
                     id=m.id,
@@ -669,7 +681,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 session_data = SessionData(
                     session_id=thread_data.id,
                     agent_name=self.name,
-                    cwd=thread_data.cwd or str(self.config.cwd or Path.cwd()),
+                    cwd=thread_data.cwd or str(self._cwd or Path.cwd()),
                     created_at=created_at,
                     last_active=created_at,  # Codex doesn't track separate last_active
                     metadata={"title": thread_data.preview} if thread_data.preview else {},
@@ -727,7 +739,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         # Build SessionData from the resumed thread
         created_at = datetime.fromtimestamp(thread.created_at, tz=UTC)
-        cwd = thread.cwd or str(self.config.cwd or Path.cwd())
+        cwd = thread.cwd or str(self._cwd or Path.cwd())
 
         return SessionData(
             session_id=thread.id,

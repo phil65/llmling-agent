@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from pydantic import ConfigDict, Field
 
 from agentpool.models.acp_agents.base import BaseACPAgentConfig
-
-
-if TYPE_CHECKING:
-    from agentpool.prompts.manager import PromptManager
 
 
 class FastAgentACPAgentConfig(BaseACPAgentConfig):
@@ -82,7 +78,7 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "fast-agent-acp"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args: list[str] = []
         if self.model:
@@ -91,7 +87,6 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
             args.append("-x")
         if self.skills_dir:
             args.extend(["--skills-dir", self.skills_dir])
-        # Collect URLs from toolsets bridge + user-specified URL
         if self.url:
             args.extend(["--url", self.url])
         if self.auth:
@@ -214,14 +209,9 @@ class AuggieACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "auggie"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args = ["--acp"]
-
-        # Handle system prompt from base class - Auggie uses instruction-file
-        prompt_file = await self.write_system_prompt_file(prompt_manager)
-        if prompt_file:
-            args.extend(["--instruction-file", prompt_file])
 
         if self.model:
             args.extend(["--model", self.model])
@@ -316,7 +306,7 @@ class KimiACPAgentConfig(BaseACPAgentConfig):
         """Get the command to spawn the ACP server."""
         return "kimi"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments from settings."""
         args = ["--acp"]
 
@@ -382,15 +372,12 @@ class AgentpoolACPAgentConfig(BaseACPAgentConfig):
         """Get the command to run agentpool serve-acp."""
         return "agentpool"
 
-    async def get_args(self, prompt_manager: PromptManager | None = None) -> list[str]:
+    def get_args(self) -> list[str]:
         """Build command arguments for agentpool serve-acp."""
         args = ["serve-acp"]
 
-        # Add config path if specified
         if self.config_path:
             args.append(self.config_path)
-
-        # Add agent selection
         if self.agent:
             args.extend(["--agent", self.agent])
         if not self.file_access:
