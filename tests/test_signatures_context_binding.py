@@ -7,9 +7,7 @@ import pytest
 
 from agentpool import Agent
 from agentpool.agents.context import AgentContext
-from agentpool.models.agents import NativeAgentConfig
 from agentpool.utils.signatures import create_bound_callable
-from agentpool_config.nodes import NodeConfig
 
 
 # Mock RunContext for testing
@@ -70,11 +68,7 @@ class TestContextBoundCallable:
     def mock_agent_context(self):
         """Create a mock AgentContext for testing."""
         # Create minimal config objects
-        config = NativeAgentConfig(name="test_agent", model="test")
-        return AgentContext(
-            node=Agent(name="test_agent", model="test"),
-            config=config,
-        )
+        return AgentContext(node=Agent(name="test_agent", model="test"))
 
     @pytest.fixture
     def mock_run_context(self):
@@ -174,10 +168,8 @@ class TestCodeModeIntegration:
     def mock_agent_context(self):
         """Create a mock AgentContext for testing."""
         # Create minimal config objects
-        config = NativeAgentConfig(name="test_agent", model="test")
-        NodeConfig()
         agent = Agent(name="test_agent", model="test")
-        return AgentContext(node=agent, config=config)
+        return AgentContext(node=agent)
 
     async def test_fsspec_like_tool_binding(self, mock_agent_context):
         """Test binding context for FSSpec-like tools."""

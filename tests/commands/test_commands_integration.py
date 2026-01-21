@@ -39,7 +39,7 @@ async def test_prompt_command():
         # Create a minimal context with pool's prompt_manager
         mock_node = MagicMock()
         mock_node.name = "test"
-        node_context = NodeContext(node=mock_node, pool=pool, config=MagicMock())
+        node_context = NodeContext(node=mock_node, pool=pool)
         context = store.create_context(node_context, output_writer=messages.append)
         prompt_cmd = ShowPromptCommand()
         # Test simple prompt
