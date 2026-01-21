@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any, Self
 
 from agentpool.log import get_logger
 from agentpool.sessions.models import SessionData
-from agentpool.sessions.session import ClientSession
 from agentpool.sessions.store import MemorySessionStore
 
 
@@ -22,14 +20,15 @@ logger = get_logger(__name__)
 
 
 class SessionManager:
-    """Manages session lifecycle at the pool level.
+    """Manages session data persistence at the pool level.
 
     Handles:
-    - Session creation and initialization
-    - Active session tracking (in-memory)
-    - Session persistence via SessionStore
-    - Session resumption from storage
+    - Session data creation and persistence
+    - Session listing and retrieval from storage
     - Cleanup of expired sessions
+
+    Note: Runtime session state is managed by agents directly.
+    This manager handles only the persistence layer for SessionData.
     """
 
     def __init__(
@@ -51,8 +50,6 @@ class SessionManager:
         self._store = store or MemorySessionStore()
         self._pool_id = pool_id
         self._storage = storage
-        self._active: dict[str, ClientSession] = {}
-        self._lock = asyncio.Lock()
         logger.debug("Initialized session manager", pool_id=pool_id)
 
     @property
@@ -65,11 +62,6 @@ class SessionManager:
         """Get the session store."""
         return self._store
 
-    @property
-    def active_sessions(self) -> dict[str, ClientSession]:
-        """Get currently active sessions (read-only view)."""
-        return dict(self._active)
-
     async def __aenter__(self) -> Self:
         """Enter context and initialize store."""
         await self._store.__aenter__()
@@ -81,20 +73,9 @@ class SessionManager:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Exit context and clean up all sessions."""
-        # Close all active sessions
-        async with self._lock:
-            sessions = list(self._active.values())
-            self._active.clear()
-
-        for session in sessions:
-            try:
-                await session.close()
-            except Exception:
-                logger.exception("Error closing session", session_id=session.session_id)
-
+        """Exit context and clean up."""
         await self._store.__aexit__(exc_type, exc_val, exc_tb)
-        logger.debug("Session manager closed", session_count=len(sessions))
+        logger.debug("Session manager closed")
 
     def generate_session_id(self) -> str:
         """Generate a unique, chronologically sortable session ID.
@@ -113,21 +94,17 @@ class SessionManager:
         session_id: str | None = None,
         cwd: str | None = None,
         metadata: dict[str, Any] | None = None,
-        session_class: type[ClientSession] = ClientSession,
-        **session_kwargs: Any,
-    ) -> ClientSession:
-        """Create a new session.
+    ) -> SessionData:
+        """Create and persist a new session.
 
         Args:
             agent_name: Name of the initial agent
             session_id: Optional specific session ID (generated if None)
             cwd: Working directory for the session
             metadata: Optional session metadata
-            session_class: Session class to instantiate (for protocol-specific sessions)
-            **session_kwargs: Additional kwargs passed to session constructor
 
         Returns:
-            Created session instance
+            Created session data
 
         Raises:
             ValueError: If session_id already exists
@@ -137,145 +114,63 @@ class SessionManager:
         if agent_name not in self._pool.all_agents:
             raise KeyError(f"Agent '{agent_name}' not found in pool")
 
-        async with self._lock:
-            # Generate or validate session ID
-            if session_id is None:
-                session_id = self.generate_session_id()
-            elif session_id in self._active:
+        # Generate session ID if not provided
+        if session_id is None:
+            session_id = self.generate_session_id()
+        else:
+            # Check if session already exists
+            existing = await self._store.load(session_id)
+            if existing is not None:
                 raise ValueError(f"Session '{session_id}' already exists")
 
-            # Get or create project if cwd provided and storage available
-            project_id: str | None = None
-            if cwd and self._storage:
-                try:
-                    from agentpool_storage.project_store import ProjectStore
+        # Get or create project if cwd provided and storage available
+        project_id: str | None = None
+        if cwd and self._storage:
+            try:
+                from agentpool_storage.project_store import ProjectStore
 
-                    project_store = ProjectStore(self._storage)
-                    project = await project_store.get_or_create(cwd)
-                    project_id = project.project_id
-                    logger.debug(
-                        "Associated session with project",
-                        session_id=session_id,
-                        project_id=project_id,
-                        worktree=project.worktree,
-                    )
-                except Exception:
-                    logger.exception("Failed to create/get project for session")
-
-            # Create session data
-            data = SessionData(
-                session_id=session_id,
-                agent_name=agent_name,
-                pool_id=self._pool_id,
-                project_id=project_id,
-                cwd=cwd,
-                metadata=metadata or {},
-            )
-
-            # Persist to store
-            await self._store.save(data)
-
-            # Create runtime session
-            session = session_class(
-                data=data,
-                pool=self._pool,
-                manager=self,
-                **session_kwargs,
-            )
-
-            self._active[session_id] = session
-            logger.info(
-                "Created session",
-                session_id=session_id,
-                agent=agent_name,
-            )
-            return session
-
-    async def get(self, session_id: str) -> ClientSession | None:
-        """Get an active session by ID.
-
-        Args:
-            session_id: Session identifier
-
-        Returns:
-            Active session if found, None otherwise
-        """
-        return self._active.get(session_id)
-
-    async def resume(
-        self,
-        session_id: str,
-        session_class: type[ClientSession] = ClientSession,
-        **session_kwargs: Any,
-    ) -> ClientSession | None:
-        """Resume a session from storage.
-
-        Loads session data from store and creates a runtime session.
-
-        Args:
-            session_id: Session identifier
-            session_class: Session class to instantiate
-            **session_kwargs: Additional kwargs passed to session constructor
-
-        Returns:
-            Resumed session if found in store, None otherwise
-        """
-        async with self._lock:
-            # Check if already active
-            if session_id in self._active:
-                return self._active[session_id]
-
-            # Try to load from store
-            data = await self._store.load(session_id)
-            if data is None:
-                return None
-
-            # Validate agent still exists
-            if data.agent_name not in self._pool.all_agents:
-                logger.warning(
-                    "Session agent no longer exists",
+                project_store = ProjectStore(self._storage)
+                project = await project_store.get_or_create(cwd)
+                project_id = project.project_id
+                logger.debug(
+                    "Associated session with project",
                     session_id=session_id,
-                    agent=data.agent_name,
+                    project_id=project_id,
+                    worktree=project.worktree,
                 )
-                return None
+            except Exception:
+                logger.exception("Failed to create/get project for session")
 
-            # Create runtime session
-            session = session_class(
-                data=data,
-                pool=self._pool,
-                manager=self,
-                **session_kwargs,
-            )
+        # Create session data
+        data = SessionData(
+            session_id=session_id,
+            agent_name=agent_name,
+            pool_id=self._pool_id,
+            project_id=project_id,
+            cwd=cwd,
+            metadata=metadata or {},
+        )
 
-            self._active[session_id] = session
-            logger.info("Resumed session", session_id=session_id)
-            return session
+        # Persist to store
+        await self._store.save(data)
 
-    async def close(self, session_id: str, *, delete: bool = False) -> bool:
-        """Close and optionally delete a session.
+        logger.info(
+            "Created session",
+            session_id=session_id,
+            agent=agent_name,
+        )
+        return data
+
+    async def get(self, session_id: str) -> SessionData | None:
+        """Get session data by ID.
 
         Args:
             session_id: Session identifier
-            delete: Whether to also delete from store
 
         Returns:
-            True if session was closed, False if not found
+            Session data if found, None otherwise
         """
-        async with self._lock:
-            session = self._active.pop(session_id, None)
-
-        if session:
-            await session.close()
-            if delete:
-                await self._store.delete(session_id)
-            logger.info("Closed session", session_id=session_id, deleted=delete)
-            return True
-
-        # Session not active, but maybe in store
-        if delete:
-            return await self._store.delete(session_id)
-
-        return False
+        return await self._store.load(session_id)
 
     async def save(self, data: SessionData) -> None:
         """Save session data to store.
@@ -285,27 +180,30 @@ class SessionManager:
         """
         await self._store.save(data)
 
+    async def delete(self, session_id: str) -> bool:
+        """Delete a session from store.
+
+        Args:
+            session_id: Session identifier
+
+        Returns:
+            True if session was deleted, False if not found
+        """
+        return await self._store.delete(session_id)
+
     async def list_sessions(
         self,
         *,
-        active_only: bool = False,
         agent_name: str | None = None,
     ) -> list[str]:
         """List session IDs.
 
         Args:
-            active_only: Only return currently active sessions
             agent_name: Filter by agent name
 
         Returns:
             List of session IDs
         """
-        if active_only:
-            sessions = list(self._active.keys())
-            if agent_name:
-                sessions = [sid for sid, s in self._active.items() if s.agent.name == agent_name]
-            return sessions
-
         return await self._store.list_sessions(
             pool_id=self._pool_id,
             agent_name=agent_name,
@@ -313,8 +211,6 @@ class SessionManager:
 
     async def cleanup_expired(self, max_age_hours: int = 24) -> int:
         """Remove expired sessions from store.
-
-        Does not affect currently active sessions.
 
         Args:
             max_age_hours: Maximum session age in hours

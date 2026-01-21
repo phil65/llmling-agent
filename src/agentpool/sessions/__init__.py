@@ -3,12 +3,5 @@
 from agentpool.sessions.models import ProjectData, SessionData
 from agentpool.sessions.store import SessionStore
 from agentpool.sessions.manager import SessionManager
-from agentpool.sessions.session import ClientSession
 
-__all__ = [
-    "ClientSession",
-    "ProjectData",
-    "SessionData",
-    "SessionManager",
-    "SessionStore",
-]
+__all__ = ["ProjectData", "SessionData", "SessionManager", "SessionStore"]

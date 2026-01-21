@@ -9,7 +9,7 @@ import pytest
 from agentpool.delegation.pool import AgentPool
 from agentpool.models.agents import NativeAgentConfig
 from agentpool.models.manifest import AgentsManifest
-from agentpool.sessions import ClientSession, SessionData, SessionManager
+from agentpool.sessions import SessionData, SessionManager
 from agentpool.sessions.store import MemorySessionStore
 from agentpool_config.storage import SQLStorageConfig
 from agentpool_storage.session_store import SQLSessionStore
@@ -208,68 +208,6 @@ class TestMemorySessionStore:
         assert loaded.agent_name == "agent2"
 
 
-class TestClientSession:
-    """Tests for ClientSession base class."""
-
-    async def test_session_properties(self, agent_pool: AgentPool) -> None:
-        """Test basic session properties."""
-        data = SessionData(
-            session_id="test_session",
-            agent_name="test_agent",
-            cwd="/tmp/test",
-        )
-
-        session = ClientSession(data=data, pool=agent_pool)
-
-        assert session.session_id == "test_session"
-        assert session.agent.name == "test_agent"
-        assert session.session_id == "test_session"
-        assert not session.is_closed
-
-    async def test_session_close(self, agent_pool: AgentPool) -> None:
-        """Test closing a session."""
-        data = SessionData(
-            session_id="test_session",
-            agent_name="test_agent",
-        )
-
-        session = ClientSession(data=data, pool=agent_pool)
-        assert not session.is_closed
-
-        await session.close()
-        assert session.is_closed
-
-        # Closing again should be idempotent
-        await session.close()
-        assert session.is_closed
-
-    async def test_session_context_manager(self, agent_pool: AgentPool) -> None:
-        """Test session as async context manager."""
-        data = SessionData(
-            session_id="test_session",
-            agent_name="test_agent",
-        )
-
-        async with ClientSession(data=data, pool=agent_pool) as session:
-            assert not session.is_closed
-
-        assert session.is_closed
-
-    async def test_update_metadata(self, agent_pool: AgentPool) -> None:
-        """Test updating session metadata."""
-        data = SessionData(
-            session_id="test_session",
-            agent_name="test_agent",
-            metadata={"key1": "value1"},
-        )
-
-        session = ClientSession(data=data, pool=agent_pool)
-        session.update_metadata(key2="value2")
-
-        assert session.data.metadata["key1"] == "value1"
-        assert session.data.metadata["key2"] == "value2"
-
-
 class TestSQLSessionStore:
     """Tests for SQLSessionStore."""
 
@@ -399,23 +337,22 @@ class TestSessionManager:
         manager = SessionManager(pool=agent_pool)
 
         async with manager:
-            session = await manager.create(agent_name="test_agent")
+            data = await manager.create(agent_name="test_agent")
 
-            assert session.agent.name == "test_agent"
-            assert session.session_id.startswith("ses_")  # OpenCode-compatible format
-            assert not session.is_closed
+            assert data.agent_name == "test_agent"
+            assert data.session_id.startswith("ses_")  # OpenCode-compatible format
 
     async def test_create_session_with_custom_id(self, agent_pool: AgentPool) -> None:
         """Test creating a session with a specific ID."""
         manager = SessionManager(pool=agent_pool)
 
         async with manager:
-            session = await manager.create(
+            data = await manager.create(
                 agent_name="test_agent",
                 session_id="custom_id_123",
             )
 
-            assert session.session_id == "custom_id_123"
+            assert data.session_id == "custom_id_123"
 
     async def test_create_duplicate_session_raises(self, agent_pool: AgentPool) -> None:
         """Test that creating a session with existing ID raises."""
@@ -436,7 +373,7 @@ class TestSessionManager:
                 await manager.create(agent_name="unknown_agent")
 
     async def test_get_session(self, agent_pool: AgentPool) -> None:
-        """Test getting an active session."""
+        """Test getting a session from storage."""
         manager = SessionManager(pool=agent_pool)
 
         async with manager:
@@ -455,34 +392,34 @@ class TestSessionManager:
 
         assert retrieved is None
 
-    async def test_close_session(self, agent_pool: AgentPool) -> None:
-        """Test closing a session."""
+    async def test_delete_session(self, agent_pool: AgentPool) -> None:
+        """Test deleting a session."""
         manager = SessionManager(pool=agent_pool)
 
         async with manager:
-            session = await manager.create(agent_name="test_agent")
-            session_id = session.session_id
+            data = await manager.create(agent_name="test_agent")
+            session_id = data.session_id
 
-            closed = await manager.close(session_id)
-            assert closed is True
+            deleted = await manager.delete(session_id)
+            assert deleted is True
 
-            # Session should no longer be active
+            # Session should no longer exist
             retrieved = await manager.get(session_id)
             assert retrieved is None
 
-    async def test_list_active_sessions(self, agent_pool: AgentPool) -> None:
-        """Test listing active sessions."""
+    async def test_list_sessions(self, agent_pool: AgentPool) -> None:
+        """Test listing sessions."""
         manager = SessionManager(pool=agent_pool)
 
         async with manager:
             await manager.create(agent_name="test_agent", session_id="list_test_1")
             await manager.create(agent_name="other_agent", session_id="list_test_2")
 
-            active = await manager.list_sessions(active_only=True)
-            expected_active = 2
-            assert len(active) == expected_active
-            assert "list_test_1" in active
-            assert "list_test_2" in active
+            sessions = await manager.list_sessions()
+            expected_count = 2
+            assert len(sessions) == expected_count
+            assert "list_test_1" in sessions
+            assert "list_test_2" in sessions
 
     async def test_list_sessions_by_agent(self, agent_pool: AgentPool) -> None:
         """Test listing sessions filtered by agent name."""
@@ -493,40 +430,8 @@ class TestSessionManager:
             await manager.create(agent_name="other_agent", session_id="agent_filter_2")
             await manager.create(agent_name="test_agent", session_id="agent_filter_3")
 
-            test_agent_sessions = await manager.list_sessions(
-                active_only=True, agent_name="test_agent"
-            )
+            test_agent_sessions = await manager.list_sessions(agent_name="test_agent")
             expected_test_agent = 2
             assert len(test_agent_sessions) == expected_test_agent
             assert "agent_filter_1" in test_agent_sessions
             assert "agent_filter_3" in test_agent_sessions
-
-    async def test_resume_session(self, agent_pool: AgentPool) -> None:
-        """Test resuming a session from storage."""
-        manager = SessionManager(pool=agent_pool)
-
-        async with manager:
-            # Create and close a session
-            await manager.create(agent_name="test_agent", session_id="resume_test")
-            await manager.close("resume_test")
-
-            # Session should not be active
-            assert await manager.get("resume_test") is None
-
-            # Resume it
-            resumed = await manager.resume("resume_test")
-
-            assert resumed is not None
-            assert resumed.session_id == "resume_test"
-            assert resumed.agent.name == "test_agent"
-
-    async def test_context_manager_cleanup(self, agent_pool: AgentPool) -> None:
-        """Test that context manager closes all sessions."""
-        manager = SessionManager(pool=agent_pool)
-
-        async with manager:
-            await manager.create(agent_name="test_agent", session_id="cleanup_1")
-            await manager.create(agent_name="other_agent", session_id="cleanup_2")
-
-        # After exiting context, sessions should be cleaned up
-        # This is verified by the manager closing properly without errors
