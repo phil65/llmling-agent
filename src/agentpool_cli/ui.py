@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import os
+from pathlib import Path
+import platform
 import signal
 import socket
 import subprocess
@@ -20,7 +24,7 @@ ui_app = t.Typer(help="Launch interactive user interfaces")
 
 
 @ui_app.command("opencode")
-def opencode_ui_command(  # noqa: PLR0915
+def opencode_ui_command(
     config: Annotated[
         str | None,
         t.Argument(help="Path to agent configuration (optional, not used with --attach)"),
@@ -69,44 +73,23 @@ def opencode_ui_command(  # noqa: PLR0915
         agentpool ui opencode --attach --port 8080
     """
     url = f"http://{host}:{port}"
-
     # Attach-only mode: just launch TUI
     if attach:
         logger.info("Attaching to existing OpenCode server", url=url)
-
-        # Clear screen for clean TUI
-        import os
-
         os.system("clear" if os.name != "nt" else "cls")
-
         result = subprocess.run(["opencode", "attach", url], check=False)
         if result.returncode not in {0, 130}:  # 130 = Ctrl+C
             logger.warning("OpenCode TUI exited with non-zero status", code=result.returncode)
         return
-
     # Build server command
-    server_cmd = [
-        "agentpool",
-        "serve-opencode",
-        "--host",
-        host,
-        "--port",
-        str(port),
-    ]
+    server_cmd = ["agentpool", "serve-opencode", "--host", host, "--port", str(port)]
     if config:
         server_cmd.append(config)
     if agent:
         server_cmd.extend(["--agent", agent])
-
     logger.info("Starting OpenCode server", url=url)
-
     # Start server in background with suppressed output
-    server = subprocess.Popen(
-        server_cmd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
+    server = subprocess.Popen(server_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         # Wait for server to be ready with retry
         max_retries = 30
@@ -126,12 +109,7 @@ def opencode_ui_command(  # noqa: PLR0915
 
         # Give HTTP layer a moment to be fully ready
         time.sleep(0.5)
-
-        # Clear screen before launching TUI
-        import os
-
         os.system("clear" if os.name != "nt" else "cls")
-
         # Attach TUI
         result = subprocess.run(["opencode", "attach", url], check=False)
         if result.returncode != 0:
@@ -198,18 +176,12 @@ def _run_toad_stdio(config: str | None) -> None:
     agentpool_cmd = "agentpool serve-acp"
     if config:
         agentpool_cmd += f" {config}"
-
-    # Clear screen for clean TUI
-    import os
-
     os.system("clear" if os.name != "nt" else "cls")
-
     # Run toad with agentpool as subprocess
     result = subprocess.run(
         ["uvx", "--from", "batrachian-toad@latest", "toad", "acp", agentpool_cmd],
         check=False,
     )
-
     if result.returncode not in {0, 130}:  # 130 = Ctrl+C
         logger.warning("Toad TUI exited with non-zero status", code=result.returncode)
 
@@ -231,23 +203,12 @@ def _run_toad_websocket(config: str | None, port: int) -> None:
         server_cmd.append(config)
 
     logger.info("Starting ACP WebSocket server", url=url)
-
     # Start server in background
-    server = subprocess.Popen(
-        server_cmd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
+    server = subprocess.Popen(server_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         # Wait for server startup
         time.sleep(1.5)
-
-        # Clear screen for clean TUI
-        import os
-
         os.system("clear" if os.name != "nt" else "cls")
-
         # Run toad with mcp-ws client
         result = subprocess.run(
             ["uvx", "--from", "batrachian-toad@latest", "toad", "acp", f"uvx mcp-ws {url}"],
@@ -328,15 +289,10 @@ def opencode_desktop_command(  # noqa: PLR0915
         # After using --attach, reset to default (spawn local server)
         agentpool ui desktop --attach --port 0  # port 0 clears the setting
     """
-    import json
-    from pathlib import Path
-
     url = f"http://{host}:{port}"
-
     # Determine config path based on platform
     config_dir = Path.home() / ".config" / "opencode"
     config_file = config_dir / "config.json"
-
     # Handle attach mode - configure desktop app to use external server
     if attach:
         if port == 0:
@@ -357,9 +313,7 @@ def opencode_desktop_command(  # noqa: PLR0915
         else:
             # Configure desktop app to use specified server
             logger.info("Configuring desktop app to attach to server", url=url)
-
             config_dir.mkdir(parents=True, exist_ok=True)
-
             # Read existing config or create new
             existing_config = {}
             if config_file.exists():
@@ -390,7 +344,6 @@ def opencode_desktop_command(  # noqa: PLR0915
             # On macOS: open -a OpenCode
             # On Linux: OpenCode (capital O) is the desktop app
             # On Windows: start opencode
-            import platform
 
             system = platform.system()
             if system == "Darwin":
@@ -435,28 +388,15 @@ def opencode_desktop_command(  # noqa: PLR0915
 
     # Default mode: Start server + launch desktop app
     # Build server command
-    server_cmd = [
-        "agentpool",
-        "serve-opencode",
-        "--host",
-        host,
-        "--port",
-        str(port),
-    ]
+    server_cmd = ["agentpool", "serve-opencode", "--host", host, "--port", str(port)]
     if config:
         server_cmd.append(config)
     if agent:
         server_cmd.extend(["--agent", agent])
 
     logger.info("Starting OpenCode server for desktop app", url=url)
-
     # Start server in background
-    server = subprocess.Popen(
-        server_cmd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
+    server = subprocess.Popen(server_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         # Wait for server to be ready
         max_retries = 30
@@ -475,10 +415,8 @@ def opencode_desktop_command(  # noqa: PLR0915
 
         # Give HTTP layer a moment to be fully ready
         time.sleep(0.5)
-
         # Configure desktop app to use this server
         config_dir.mkdir(parents=True, exist_ok=True)
-
         existing_config = {}
         if config_file.exists():
             try:
@@ -487,10 +425,7 @@ def opencode_desktop_command(  # noqa: PLR0915
             except Exception as e:  # noqa: BLE001
                 logger.warning("Failed to read existing config", error=str(e))
 
-        existing_config["server"] = {
-            "hostname": host,
-            "port": port,
-        }
+        existing_config["server"] = {"hostname": host, "port": port}
 
         try:
             with config_file.open("w") as f:
@@ -501,8 +436,6 @@ def opencode_desktop_command(  # noqa: PLR0915
 
         # Launch desktop app
         logger.info("Launching OpenCode desktop app")
-        import platform
-
         system = platform.system()
         try:
             if system == "Darwin":
