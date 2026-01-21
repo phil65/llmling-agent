@@ -68,27 +68,69 @@ class SQLModelProvider(StorageProvider):
         self.session: AsyncSession | None = None
 
     async def _init_database(self, auto_migrate: bool = True) -> None:
-        """Initialize database tables and optionally migrate columns.
+        """Initialize database tables and run migrations.
 
         Args:
-            auto_migrate: Whether to automatically add missing columns
+            auto_migrate: Whether to automatically run Alembic migrations
         """
         from sqlmodel import SQLModel
 
-        from agentpool_storage.sql_provider.utils import auto_migrate_columns
+        if auto_migrate:
+            # Run migrations first (handles schema changes for existing DBs)
+            await self._run_migrations()
 
-        # Create tables if they don't exist
+        # Always ensure all tables exist (creates new tables, no-op for existing)
         async with self.engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
 
-        # Optionally add missing columns
-        if auto_migrate:
+    async def _run_migrations(self) -> None:
+        """Run Alembic migrations programmatically."""
+        from pathlib import Path
+
+        from alembic.config import Config
+        from alembic.runtime.environment import EnvironmentContext
+        from alembic.script import ScriptDirectory
+
+        # Find the migrations directory relative to this package
+        migrations_dir = Path(__file__).parents[3] / "migrations"
+        if not migrations_dir.exists():
+            # Fallback for installed package - just create tables
+            logger.warning("Migrations directory not found, using create_all fallback")
+            from sqlmodel import SQLModel
+
             async with self.engine.begin() as conn:
+                await conn.run_sync(SQLModel.metadata.create_all)
+            return
 
-                def sync_migrate(sync_conn: Connection) -> None:
-                    auto_migrate_columns(sync_conn, self.engine.dialect)
+        alembic_cfg = Config()
+        alembic_cfg.set_main_option("script_location", str(migrations_dir))
 
-                await conn.run_sync(sync_migrate)
+        def run_upgrade(connection: Connection) -> None:
+            from sqlmodel import SQLModel
+
+            alembic_cfg.attributes["connection"] = connection
+            script = ScriptDirectory.from_config(alembic_cfg)
+
+            def upgrade_fn(rev: str, context: EnvironmentContext) -> list:  # type: ignore[type-arg]
+                return script._upgrade_revs("head", rev)
+
+            with EnvironmentContext(
+                alembic_cfg,
+                script,
+                fn=upgrade_fn,
+                as_sql=False,
+                starting_rev=None,
+                destination_rev="head",
+            ) as env_context:
+                env_context.configure(
+                    connection=connection,
+                    target_metadata=SQLModel.metadata,
+                )
+                with env_context.begin_transaction():
+                    env_context.run_migrations()
+
+        async with self.engine.begin() as conn:
+            await conn.run_sync(run_upgrade)
 
     async def __aenter__(self) -> Self:
         """Initialize async database resources."""
