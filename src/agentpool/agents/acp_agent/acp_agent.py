@@ -284,7 +284,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             execution_env=config.get_execution_environment(),
             client_execution_env=config.get_client_execution_environment(),
             # ACP initialization
-            init_request=config.create_initialize_request(),
+            init_request=cls._create_default_init_request(
+                allow_terminal=config.allow_terminal,
+                allow_file_operations=config.allow_file_operations,
+            ),
             # Tools
             tool_providers=tool_providers,
             mcp_servers=config.mcp_servers,

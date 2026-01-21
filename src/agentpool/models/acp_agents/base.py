@@ -11,7 +11,6 @@ from exxec_config import (
 )
 from pydantic import ConfigDict, Field
 
-from acp import InitializeRequest
 from agentpool_config import AnyToolConfig, BaseToolConfig  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.toolsets import BaseToolsetConfig
@@ -117,20 +116,6 @@ class BaseACPAgentConfig(BaseAgentConfig):
         default="always", title="Tool confirmation mode"
     )
     """Whether to automatically grant all permission requests."""
-
-    def create_initialize_request(self) -> InitializeRequest:
-        from importlib.metadata import metadata
-
-        pkg_meta = metadata("agentpool")
-        return InitializeRequest.create(
-            title=pkg_meta["Name"],
-            version=pkg_meta["Version"],
-            name="agentpool",
-            protocol_version=1,
-            terminal=self.allow_terminal,
-            read_text_file=self.allow_file_operations,
-            write_text_file=self.allow_file_operations,
-        )
 
     def get_command(self) -> str:
         """Get the command to spawn the ACP server."""
