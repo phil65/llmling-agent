@@ -157,11 +157,10 @@ class ListAgentsCommand(NodeCommand):
         # Iterate over all nodes in the pool
         for name, node in ctx.context.pool.all_agents.items():
             # Only include agents (nodes with AGENT_TYPE attribute)
-            lifecycle = "dynamic" if name not in ctx.context.definition.agents else "static"
             rows.append({
                 "Name": name,
                 "Model": str(node.model_name or "") or "",
-                "Type": f"{node.AGENT_TYPE} ({lifecycle})",
+                "Type": f"{node.AGENT_TYPE}",
                 "Description": node.description or "",
             })
 
