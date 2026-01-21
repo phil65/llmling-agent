@@ -39,6 +39,40 @@ def get_database_path() -> str:
     return f"sqlite:///{db_path}"
 
 
+# Shared engine cache - ensures one engine per database URL
+_engine_cache: dict[str, AsyncEngine] = {}
+
+
+def get_shared_engine(url: str, pool_size: int = 5) -> AsyncEngine:
+    """Get or create a shared engine for the given database URL.
+    
+    This ensures all storage instances using the same database share
+    a single engine and connection pool, avoiding lock contention.
+    """
+    from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+
+    if url in _engine_cache:
+        return _engine_cache[url]
+
+    # Convert URL to async format
+    url_str = str(url)
+    if url_str.startswith("sqlite://"):
+        url_str = url_str.replace("sqlite://", "sqlite+aiosqlite://", 1)
+    elif url_str.startswith("postgresql://"):
+        url_str = url_str.replace("postgresql://", "postgresql+asyncpg://", 1)
+    elif url_str.startswith("mysql://"):
+        url_str = url_str.replace("mysql://", "mysql+aiomysql://", 1)
+
+    # SQLite doesn't support pool_size parameter
+    if url_str.startswith("sqlite+aiosqlite://"):
+        engine = create_async_engine(url_str)
+    else:
+        engine = create_async_engine(url_str, pool_size=pool_size)
+
+    _engine_cache[url] = engine
+    return engine
+
+
 class BaseStorageProviderConfig(Schema):
     """Base storage provider configuration."""
 
@@ -88,21 +122,7 @@ class SQLStorageConfig(BaseStorageProviderConfig):
     """Whether to automatically add missing columns"""
 
     def get_engine(self) -> AsyncEngine:
-        from sqlalchemy.ext.asyncio import create_async_engine
-
-        # Convert URL to async format
-        url_str = str(self.url)
-        if url_str.startswith("sqlite://"):
-            url_str = url_str.replace("sqlite://", "sqlite+aiosqlite://", 1)
-        elif url_str.startswith("postgresql://"):
-            url_str = url_str.replace("postgresql://", "postgresql+asyncpg://", 1)
-        elif url_str.startswith("mysql://"):
-            url_str = url_str.replace("mysql://", "mysql+aiomysql://", 1)
-
-        # SQLite doesn't support pool_size parameter
-        if url_str.startswith("sqlite+aiosqlite://"):
-            return create_async_engine(url_str)
-        return create_async_engine(url_str, pool_size=self.pool_size)
+        return get_shared_engine(self.url, self.pool_size)
 
 
 class FileStorageConfig(BaseStorageProviderConfig):
