@@ -871,7 +871,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             # Direct Model instance assignment (no signal emission)
             self._model = model
 
-    async def set_tool_confirmation_mode(self, mode: ToolConfirmationMode) -> None:
+    async def set_tool_confirmation_mode(self, mode: str) -> None:
         """Set the tool confirmation mode for this agent.
 
         Args:
@@ -879,8 +879,15 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 - "always": Always require confirmation for all tools
                 - "never": Never require confirmation
                 - "per_tool": Use individual tool settings
+
+        Raises:
+            ValueError: If mode is not a valid ToolConfirmationMode
         """
-        self.tool_confirmation_mode = mode
+        valid_modes: set[str] = {"always", "never", "per_tool"}
+        if mode not in valid_modes:
+            msg = f"Invalid tool confirmation mode: {mode!r}. Must be one of {valid_modes}"
+            raise ValueError(msg)
+        self.tool_confirmation_mode = mode  # type: ignore[assignment]
         self.log.info("Tool confirmation mode changed", mode=mode)
 
     async def _interrupt(self) -> None:
