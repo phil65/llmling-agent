@@ -295,7 +295,6 @@ class TestSessionCRUD:
             SessionData(
                 session_id=sid,
                 agent_name="test-agent",
-                conversation_id=sid,  # Use session_id as conversation_id
                 cwd=server_state.working_dir,
                 created_at=now,
                 last_active=now,
