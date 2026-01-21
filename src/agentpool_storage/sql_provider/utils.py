@@ -26,6 +26,10 @@ if TYPE_CHECKING:
     from agentpool_storage.sql_provider.models import Message
 
 
+# Track migrated databases to skip redundant migration attempts
+_migrated_databases: set[str] = set()
+
+
 def aggregate_token_usage(
     messages: Sequence[Message | ChatMessage[str]],
 ) -> TokenUsage:
@@ -77,6 +81,9 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
 def run_alembic_migrations(connection: Any) -> None:
     """Run Alembic migrations using an existing database connection.
 
+    This function is idempotent. It tracks which databases have been migrated
+    in the current process to avoid redundant migration attempts.
+
     Args:
         connection: SQLAlchemy connection (sync)
     """
@@ -91,10 +98,19 @@ def run_alembic_migrations(connection: Any) -> None:
 
     logger = get_logger(__name__)
 
+    # Get database URL for tracking
+    db_url = str(connection.engine.url)
+
+    # Check if already migrated in this process (fast path)
+    if db_url in _migrated_databases:
+        logger.debug("Skipping migrations, already completed for this database")
+        return
+
     # Find the migrations directory relative to this package
     migrations_dir = Path(__file__).parents[3] / "migrations"
     if not migrations_dir.exists():
         logger.warning("Migrations directory not found, skipping Alembic migrations")
+        _migrated_databases.add(db_url)
         return
 
     alembic_cfg = Config()
@@ -120,6 +136,10 @@ def run_alembic_migrations(connection: Any) -> None:
         )
         with env_context.begin_transaction():
             env_context.run_migrations()
+
+    # Mark this database as migrated
+    _migrated_databases.add(db_url)
+    logger.debug("Migrations completed for database", db_url=db_url)
 
 
 def parse_model_info(model: str | None) -> tuple[str | None, str | None]:

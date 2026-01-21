@@ -182,13 +182,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 teams = list(self.teams.values())
                 for agent in agents:
                     agent.tools.add_provider(aggregating_provider)
-                # Collect remaining components to initialize (MCP already initialized)
-                comps: list[AbstractAsyncContextManager[Any]] = [
-                    self.storage,
-                    self.sessions,
-                    *agents,
-                    *teams,
-                ]
+                # Initialize storage and sessions sequentially (they share the same DB)
+                await self.exit_stack.enter_async_context(self.storage)
+                await self.exit_stack.enter_async_context(self.sessions)
+
+                # Initialize agents and teams (can be parallel)
+                comps: list[AbstractAsyncContextManager[Any]] = [*agents, *teams]
                 node_inits = [self.exit_stack.enter_async_context(c) for c in comps]
                 if self.parallel_load:
                     await asyncio.gather(*node_inits)
