@@ -711,10 +711,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 await self._connection_task
         self._connection_task = None
 
-        # Clean up tool bridge
-        if self._tool_bridge._mcp is not None:
-            await self._tool_bridge.stop()
-        self._mcp_servers.clear()
+        # # Clean up tool bridge
+        # if self._tool_bridge._mcp is not None:
+        #     await self._tool_bridge.stop()
+        # self._mcp_servers.clear()
 
         # Disconnect existing client
         if self._client:
