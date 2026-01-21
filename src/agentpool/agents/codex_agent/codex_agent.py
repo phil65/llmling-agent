@@ -222,7 +222,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         return AgentContext(
             node=self,
             pool=self.agent_pool,
-            config=self.config,
             input_provider=input_provider or self._input_provider,
             model_name=self.model_name,
         )

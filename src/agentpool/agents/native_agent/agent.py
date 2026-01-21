@@ -553,7 +553,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         return AgentContext(
             node=self,
-            config=self._agent_config,
             input_provider=input_provider or self._input_provider,
             pool=self.agent_pool,
             data=data,

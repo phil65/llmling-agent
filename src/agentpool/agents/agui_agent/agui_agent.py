@@ -238,24 +238,11 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             A new AgentContext instance
         """
         from agentpool.agents.context import AgentContext
-        from agentpool.models.agui_agents import AGUIAgentConfig
 
         effective_provider = input_provider or self._input_provider
-        cfg = AGUIAgentConfig(  # type: ignore[call-arg]
-            name=self.name,
-            description=self.description,
-            display_name=self.display_name,
-            endpoint=self.endpoint,
-            timeout=self.timeout,
-            headers=self.headers,
-            input_provider=effective_provider,
-            startup_command=self._startup_command,
-            startup_delay=self._startup_delay,
-        )
         return AgentContext(
             node=self,
             pool=self.agent_pool,
-            config=cfg,
             input_provider=effective_provider,
             data=data,
             model_name=self.model_name,

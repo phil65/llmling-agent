@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageNode
     from agentpool.prompts.manager import PromptManager
     from agentpool.ui.base import InputProvider
-    from agentpool_config.nodes import NodeConfig
 
 
 @dataclass(kw_only=True)
@@ -24,9 +23,6 @@ class NodeContext[TDeps = object]:
 
     pool: AgentPool[Any] | None = None
     """The agent pool the node is part of."""
-
-    config: NodeConfig
-    """Node configuration."""
 
     input_provider: InputProvider | None = None
     """Provider for human-input-handling."""

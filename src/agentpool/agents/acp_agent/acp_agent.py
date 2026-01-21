@@ -269,7 +269,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         return AgentContext(
             node=self,
             pool=self.agent_pool,
-            config=self.config,
             input_provider=input_provider or self._input_provider,
             data=data,
             model_name=self.model_name,

@@ -15,7 +15,6 @@ from agentpool.log import get_logger
 from agentpool.messaging import MessageNode
 from agentpool.messaging.context import NodeContext
 from agentpool.talk.stats import AggregatedMessageStats
-from agentpool_config.teams import TeamConfig
 
 
 if TYPE_CHECKING:
@@ -46,9 +45,6 @@ logger = get_logger(__name__)
 class TeamContext[TDeps = object](NodeContext[TDeps]):
     """Context for team nodes."""
 
-    config: TeamConfig
-    """Current team's specific configuration."""
-
     pool: AgentPool | None = None
     """Pool the team is part of."""
 
@@ -64,7 +60,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         description: str | None = None,
         display_name: str | None = None,
         shared_prompt: str | None = None,
-        mcp_servers: list[str | MCPServerConfig] | None = None,
+        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         event_configs: Sequence[EventConfig] | None = None,
         agent_pool: AgentPool | None = None,
     ) -> None:
@@ -334,11 +330,8 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         Raises:
             ValueError: If team members belong to different pools
         """
-        from agentpool.delegation.team import Team
-
         pool_ids: set[int] = set()
         shared_pool: AgentPool | None = None
-        team_config: TeamConfig | None = None
 
         for agent in self.iter_agents():
             pool = agent.agent_pool
@@ -347,17 +340,12 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 if pool_id not in pool_ids:
                     pool_ids.add(pool_id)
                     shared_pool = pool
-                    if shared_pool.manifest.teams:
-                        team_config = shared_pool.manifest.teams.get(self.name)
-        if not team_config:
-            mode = "parallel" if isinstance(self, Team) else "sequential"
-            team_config = TeamConfig(name=self.name, mode=mode, members=[])  # type: ignore[call-arg]
+
         if not pool_ids:
             logger.debug("No pool found for team.", team=self.name)
             return TeamContext(
                 node=self,
                 pool=shared_pool,
-                config=team_config,
                 input_provider=input_provider,
                 data=data,
             )
@@ -367,7 +355,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         return TeamContext(
             node=self,
             pool=shared_pool,
-            config=team_config,
             input_provider=input_provider,
             data=data,
         )

@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.common_types import PromptCompatible
     from agentpool.delegation import AgentPool
+    from agentpool_config.mcp_server import MCPServerConfig
 
 
 logger = get_logger(__name__)
@@ -62,6 +63,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         description: str | None = None,
         display_name: str | None = None,
         shared_prompt: str | None = None,
+        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         validator: MessageNode[Any, TResult],
         agent_pool: AgentPool | None = None,
     ) -> None: ...
@@ -75,6 +77,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         description: str | None = None,
         display_name: str | None = None,
         shared_prompt: str | None = None,
+        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         validator: None = None,
         agent_pool: AgentPool | None = None,
     ) -> None: ...
@@ -88,6 +91,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         description: str | None = None,
         display_name: str | None = None,
         shared_prompt: str | None = None,
+        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         validator: MessageNode[Any, TResult] | None = None,
         agent_pool: AgentPool | None = None,
     ) -> None: ...
@@ -100,9 +104,9 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
         description: str | None = None,
         display_name: str | None = None,
         shared_prompt: str | None = None,
+        mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         validator: MessageNode[Any, TResult] | None = None,
         agent_pool: AgentPool | None = None,
-        # result_mode: ResultMode = "last",
     ) -> None:
         super().__init__(
             agents,
@@ -110,6 +114,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             description=description,
             display_name=display_name,
             shared_prompt=shared_prompt,
+            mcp_servers=mcp_servers,
             agent_pool=agent_pool,
         )
         self.validator = validator

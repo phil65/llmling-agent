@@ -407,7 +407,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         return AgentContext(
             node=self,
             pool=self.agent_pool,
-            config=self._config,
             input_provider=input_provider or self._input_provider,
             data=data,
             model_name=self.model_name,
