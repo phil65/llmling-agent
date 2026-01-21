@@ -32,29 +32,23 @@ class ListPoolsCommand(NodeCommand):
         """
         from agentpool_cli import agent_store
 
+        pool = ctx.context.pool
+        if not pool:
+            raise RuntimeError("No pool configured")
         try:
             output_lines = ["## 🏊 Agent Pool Configurations\n"]
-
-            # Show current pool info
             output_lines.append("### 📍 Current Pool")
-
             # Get config path from context config (works for all agent types)
-            current_config = ctx.context.config.config_file_path if ctx.context.config else None
-            if current_config:
-                output_lines.append(f"**Config:** `{current_config}`")
+            current_cfg = pool.manifest.config_file_path
+            if current_cfg:
+                output_lines.append(f"**Config:** `{current_cfg}`")
             else:
                 output_lines.append("**Config:** *(default/built-in)*")
-
             # Show agents in current pool
-            pool = ctx.context.pool
-            if pool:
-                agent_names = list(pool.all_agents.keys())
-                output_lines.append(f"**Agents:** {', '.join(f'`{n}`' for n in agent_names)}")
-                output_lines.append(f"**Active agent:** `{ctx.context.node.name}`")
-            else:
-                output_lines.append("**No pool available**")
+            agent_names = list(pool.all_agents.keys())
+            output_lines.append(f"**Agents:** {', '.join(f'`{n}`' for n in agent_names)}")
+            output_lines.append(f"**Active agent:** `{ctx.context.node.name}`")
             output_lines.append("")
-
             # Show stored configurations
             output_lines.append("### 💾 Stored Configurations")
             stored_configs = agent_store.list_configs()
@@ -70,7 +64,7 @@ class ListPoolsCommand(NodeCommand):
                 output_lines.append("|------|------|")
                 for name, path in stored_configs:
                     is_active = active_config and active_config.name == name
-                    is_current = current_config and path == current_config
+                    is_current = current_cfg and path == current_cfg
                     markers = []
                     if is_active:
                         markers.append("default")
