@@ -110,10 +110,7 @@ async def monitor_process(
     # Check if process died during operation
     if process_wait_task.done():
         stderr_output = await read_stream(process.stderr)
-        raise SubprocessError(
-            returncode=process.returncode,
-            stderr=stderr_output,
-        )
+        raise SubprocessError(returncode=process.returncode, stderr=stderr_output)
 
     # Operation completed successfully, cancel the wait task
     process_wait_task.cancel()
@@ -170,10 +167,6 @@ async def run_with_process_monitor[T](
     if process_wait_task in done:
         # Process exited before operation completed
         stderr_output = await read_stream(process.stderr)
-        raise SubprocessError(
-            returncode=process.returncode,
-            stderr=stderr_output,
-        )
-
+        raise SubprocessError(returncode=process.returncode, stderr=stderr_output)
     # Operation completed successfully
     return operation_task.result()
