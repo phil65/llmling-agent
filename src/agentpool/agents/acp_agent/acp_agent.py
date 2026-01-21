@@ -813,7 +813,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 session_data = SessionData(
                     session_id=acp_session.session_id,
                     agent_name=self.name,
-                    conversation_id=acp_session.session_id,
                     cwd=acp_session.cwd,
                     created_at=created_at,
                     last_active=updated_at,
@@ -939,7 +938,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             return SessionData(
                 session_id=session_id,
                 agent_name=self.name,
-                conversation_id=session_id,
                 cwd=cwd,
                 last_active=get_now(),
                 created_at=get_now(),

@@ -91,7 +91,6 @@ class SQLSessionStore:
         return Session(
             session_id=data.session_id,
             agent_name=data.agent_name,
-            conversation_id=data.conversation_id,
             pool_id=data.pool_id,
             project_id=data.project_id,
             parent_id=data.parent_id,
@@ -107,7 +106,6 @@ class SQLSessionStore:
         return SessionData(
             session_id=row.session_id,
             agent_name=row.agent_name,
-            conversation_id=row.conversation_id,
             pool_id=row.pool_id,
             project_id=row.project_id,
             parent_id=row.parent_id,

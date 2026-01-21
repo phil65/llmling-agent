@@ -1064,7 +1064,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                         continue
                     # Fetch title from conversation storage if not in metadata
                     if not session_data.title and storage:
-                        title = await storage.get_conversation_title(session_data.conversation_id)
+                        title = await storage.get_conversation_title(session_data.session_id)
                         if title:
                             # Update metadata with title
                             session_data = session_data.with_metadata(title=title)
@@ -1104,7 +1104,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 provider = self.agent_pool.storage.providers[0]
                 if provider.can_load_history:
                     messages = await provider.get_conversation_messages(
-                        conversation_id=session_data.conversation_id,
+                        conversation_id=session_data.session_id,
                     )
                     # Restore to conversation history
                     self.conversation.chat_messages.clear()

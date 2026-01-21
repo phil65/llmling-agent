@@ -84,8 +84,8 @@ class ClientSession:
 
     @property
     def conversation_id(self) -> str:
-        """Get conversation ID for message storage."""
-        return self._data.conversation_id
+        """Get conversation ID for message storage (same as session_id)."""
+        return self._data.session_id
 
     @property
     def title(self) -> str | None:

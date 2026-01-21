@@ -55,11 +55,9 @@ class TestSessionData:
         data = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="test_session",
         )
         assert data.session_id == "test_session"
         assert data.agent_name == "test_agent"
-        assert data.conversation_id == "test_session"
         assert data.pool_id is None
         assert data.cwd is None
         assert data.metadata == {}
@@ -69,7 +67,6 @@ class TestSessionData:
         data = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="test_session",
             metadata={"protocol": "acp", "version": "1.0"},
         )
         assert data.metadata["protocol"] == "acp"
@@ -80,13 +77,11 @@ class TestSessionData:
         original = SessionData(
             session_id="test_session",
             agent_name="agent1",
-            conversation_id="test_session",
         )
         updated = original.with_agent("agent2")
 
         assert updated.agent_name == "agent2"
         assert updated.session_id == original.session_id
-        assert updated.conversation_id == original.conversation_id
         # Original should be unchanged
         assert original.agent_name == "agent1"
 
@@ -95,7 +90,6 @@ class TestSessionData:
         original = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="test_session",
             metadata={"key1": "value1"},
         )
         updated = original.with_metadata(key2="value2")
@@ -114,7 +108,6 @@ class TestMemorySessionStore:
         data = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="test_session",
         )
 
         async with memory_store:
@@ -137,7 +130,6 @@ class TestMemorySessionStore:
         data = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="test_session",
         )
 
         async with memory_store:
@@ -160,19 +152,16 @@ class TestMemorySessionStore:
         data1 = SessionData(
             session_id="session1",
             agent_name="agent1",
-            conversation_id="session_1",
             pool_id="pool1",
         )
         data2 = SessionData(
             session_id="session2",
             agent_name="agent2",
-            conversation_id="session_2",
             pool_id="pool1",
         )
         data3 = SessionData(
             session_id="session3",
             agent_name="agent1",
-            conversation_id="session_3",
             pool_id="pool2",
         )
 
@@ -205,7 +194,6 @@ class TestMemorySessionStore:
         original = SessionData(
             session_id="test_session",
             agent_name="agent1",
-            conversation_id="test_session",
         )
 
         async with memory_store:
@@ -228,7 +216,6 @@ class TestClientSession:
         data = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="test_session",
             cwd="/tmp/test",
         )
 
@@ -236,7 +223,7 @@ class TestClientSession:
 
         assert session.session_id == "test_session"
         assert session.agent.name == "test_agent"
-        assert session.conversation_id == "test_session"
+        assert session.conversation_id == "test_session"  # Now uses session_id
         assert not session.is_closed
 
     async def test_session_close(self, agent_pool: AgentPool) -> None:
@@ -244,7 +231,6 @@ class TestClientSession:
         data = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="test_session",
         )
 
         session = ClientSession(data=data, pool=agent_pool)
@@ -262,7 +248,6 @@ class TestClientSession:
         data = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="test_session",
         )
 
         async with ClientSession(data=data, pool=agent_pool) as session:
@@ -275,7 +260,6 @@ class TestClientSession:
         data = SessionData(
             session_id="test_session",
             agent_name="test_agent",
-            conversation_id="test_session",
             metadata={"key1": "value1"},
         )
 
@@ -301,7 +285,6 @@ class TestSQLSessionStore:
         data = SessionData(
             session_id="sql_test_session",
             agent_name="test_agent",
-            conversation_id="test_session",
             cwd="/tmp/test",
             metadata={"protocol": "acp"},
         )
@@ -328,7 +311,6 @@ class TestSQLSessionStore:
         data = SessionData(
             session_id="delete_test",
             agent_name="test_agent",
-            conversation_id="test_session",
         )
 
         async with sql_store:
@@ -344,7 +326,6 @@ class TestSQLSessionStore:
         original = SessionData(
             session_id="update_test",
             agent_name="agent1",
-            conversation_id="test_session",
         )
 
         async with sql_store:
@@ -363,13 +344,11 @@ class TestSQLSessionStore:
         data1 = SessionData(
             session_id="sql_session1",
             agent_name="agent1",
-            conversation_id="session_1",
             pool_id="pool1",
         )
         data2 = SessionData(
             session_id="sql_session2",
             agent_name="agent2",
-            conversation_id="session_2",
             pool_id="pool1",
         )
 
@@ -393,12 +372,10 @@ class TestSQLSessionStore:
         data1 = SessionData(
             session_id="all_test_1",
             agent_name="agent1",
-            conversation_id="session_1",
         )
         data2 = SessionData(
             session_id="all_test_2",
             agent_name="agent2",
-            conversation_id="session_2",
         )
 
         async with sql_store:

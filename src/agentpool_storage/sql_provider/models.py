@@ -193,13 +193,10 @@ class Session(AsyncAttrs, SQLModel, table=True):
     """Database model for session persistence."""
 
     session_id: str = Field(primary_key=True)
-    """Unique session identifier."""
+    """Unique session identifier. Also used as conversation_id for message storage."""
 
     agent_name: str = Field(index=True)
     """Name of the currently active agent."""
-
-    conversation_id: str = Field(index=True)
-    """Links to conversation in message storage."""
 
     pool_id: str | None = Field(default=None, index=True)
     """Optional pool/manifest identifier for multi-pool setups."""

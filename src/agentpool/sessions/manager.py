@@ -112,7 +112,6 @@ class SessionManager:
         *,
         session_id: str | None = None,
         cwd: str | None = None,
-        conversation_id: str | None = None,
         metadata: dict[str, Any] | None = None,
         session_class: type[ClientSession] = ClientSession,
         **session_kwargs: Any,
@@ -123,7 +122,6 @@ class SessionManager:
             agent_name: Name of the initial agent
             session_id: Optional specific session ID (generated if None)
             cwd: Working directory for the session
-            conversation_id: Optional conversation ID (generated if None)
             metadata: Optional session metadata
             session_class: Session class to instantiate (for protocol-specific sessions)
             **session_kwargs: Additional kwargs passed to session constructor
@@ -168,7 +166,6 @@ class SessionManager:
             data = SessionData(
                 session_id=session_id,
                 agent_name=agent_name,
-                conversation_id=conversation_id or session_id,
                 pool_id=self._pool_id,
                 project_id=project_id,
                 cwd=cwd,

@@ -60,13 +60,10 @@ class SessionData(Schema):
     """
 
     session_id: str
-    """Unique session identifier."""
+    """Unique session identifier. Also used as conversation_id for message storage."""
 
     agent_name: str
     """Name of the currently active agent."""
-
-    conversation_id: str
-    """Links to conversation in StorageManager."""
 
     pool_id: str | None = None
     """Optional pool/manifest identifier for multi-pool setups."""

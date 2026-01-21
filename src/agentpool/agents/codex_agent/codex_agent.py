@@ -670,7 +670,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 session_data = SessionData(
                     session_id=thread_data.id,
                     agent_name=self.name,
-                    conversation_id=thread_data.id,
                     cwd=thread_data.cwd or str(self.config.cwd or Path.cwd()),
                     created_at=created_at,
                     last_active=created_at,  # Codex doesn't track separate last_active
@@ -734,7 +733,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         return SessionData(
             session_id=thread.id,
             agent_name=self.name,
-            conversation_id=thread.id,
             cwd=cwd,
             created_at=created_at,
             last_active=created_at,  # Codex doesn't track separate last_active

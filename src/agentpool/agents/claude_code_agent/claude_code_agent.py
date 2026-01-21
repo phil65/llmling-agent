@@ -1647,7 +1647,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 session_data = SessionData(
                     session_id=conv_data["id"],
                     agent_name=self.name,
-                    conversation_id=conv_data["id"],
                     cwd=session_cwd or str(self._cwd or Path.cwd()),
                     created_at=created_at,
                     last_active=last_active,
@@ -1728,7 +1727,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             return SessionData(
                 session_id=session_id,
                 agent_name=self.name,
-                conversation_id=session_id,
                 cwd=cwd,
                 created_at=created_at,
                 last_active=last_active,
