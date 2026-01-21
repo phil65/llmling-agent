@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
@@ -75,54 +74,52 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
     )
 
 
-def get_column_default(column: Any) -> str:
-    """Get SQL DEFAULT clause for column."""
-    if column.default is None:
-        return ""
-    if hasattr(column.default, "arg"):
-        # Simple default value
-        return f" DEFAULT {column.default.arg}"
-    if hasattr(column.default, "sqltext"):
-        # Computed default
-        return f" DEFAULT {column.default.sqltext}"
-    return ""
-
-
-def auto_migrate_columns(sync_conn: Any, dialect: Any) -> None:
-    """Automatically add missing columns to existing tables.
+def run_alembic_migrations(connection: Any) -> None:
+    """Run Alembic migrations using an existing database connection.
 
     Args:
-        sync_conn: Synchronous database connection
-        dialect: SQLAlchemy dialect for SQL type compilation
+        connection: SQLAlchemy connection (sync)
     """
-    from sqlalchemy import inspect
-    from sqlalchemy.sql import text
+    from pathlib import Path
+
+    from alembic.config import Config
+    from alembic.runtime.environment import EnvironmentContext
+    from alembic.script import ScriptDirectory
     from sqlmodel import SQLModel
 
-    inspector = inspect(sync_conn)
-    existing_tables = set(inspector.get_table_names())
+    from agentpool.log import get_logger
 
-    # For each table in our models
-    for table_name, table in SQLModel.metadata.tables.items():
-        # Skip tables that don't exist yet (they'll be created fresh)
-        if table_name not in existing_tables:
-            continue
+    logger = get_logger(__name__)
 
-        existing = {col["name"] for col in inspector.get_columns(table_name)}
+    # Find the migrations directory relative to this package
+    migrations_dir = Path(__file__).parents[3] / "migrations"
+    if not migrations_dir.exists():
+        logger.warning("Migrations directory not found, skipping Alembic migrations")
+        return
 
-        # For each column in model that doesn't exist in DB
-        for col in table.columns:
-            if col.name not in existing:
-                # Create ALTER TABLE statement based on column type
-                type_sql = col.type.compile(dialect)
-                nullable = "" if col.nullable else " NOT NULL"
-                default = get_column_default(col)
-                sql = (
-                    f"ALTER TABLE {table_name} ADD COLUMN {col.name} {type_sql}{nullable}{default}"
-                )
-                # Column may already exist (race condition or stale inspector cache)
-                with contextlib.suppress(Exception):
-                    sync_conn.execute(text(sql))
+    alembic_cfg = Config()
+    alembic_cfg.set_main_option("script_location", str(migrations_dir))
+    alembic_cfg.attributes["connection"] = connection
+
+    script = ScriptDirectory.from_config(alembic_cfg)
+
+    def upgrade_fn(rev: str, context: EnvironmentContext) -> list:  # type: ignore[type-arg]
+        return script._upgrade_revs("head", rev)
+
+    with EnvironmentContext(
+        alembic_cfg,
+        script,
+        fn=upgrade_fn,
+        as_sql=False,
+        starting_rev=None,
+        destination_rev="head",
+    ) as env_context:
+        env_context.configure(
+            connection=connection,
+            target_metadata=SQLModel.metadata,
+        )
+        with env_context.begin_transaction():
+            env_context.run_migrations()
 
 
 def parse_model_info(model: str | None) -> tuple[str | None, str | None]:

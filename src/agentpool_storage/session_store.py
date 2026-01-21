@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Self
 
 from agentpool.log import get_logger
 from agentpool.sessions.models import SessionData
@@ -43,30 +43,20 @@ class SQLSessionStore:
         """Initialize database connection and create tables."""
         from sqlmodel import SQLModel
 
+        from agentpool_storage.sql_provider.utils import run_alembic_migrations
+
         self._engine = self._config.get_engine()
 
+        # Run migrations first (handles schema changes for existing DBs)
+        async with self._engine.begin() as conn:
+            await conn.run_sync(run_alembic_migrations)
+
+        # Ensure all tables exist (creates new tables, no-op for existing)
         async with self._engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
 
-        # Auto-migrate missing columns
-        await self._migrate_columns()
-
         logger.debug("SQL session store initialized", url=self._config.url)
         return self
-
-    async def _migrate_columns(self) -> None:
-        """Add missing columns to existing tables."""
-        from agentpool_storage.sql_provider.utils import auto_migrate_columns
-
-        if self._engine is None:
-            return
-
-        async with self._engine.begin() as conn:
-
-            def sync_migrate(sync_conn: Any) -> None:
-                auto_migrate_columns(sync_conn, self._engine.dialect)  # type: ignore[union-attr]
-
-            await conn.run_sync(sync_migrate)
 
     async def __aexit__(
         self,

@@ -34,8 +34,6 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
-    from sqlalchemy import Connection
-
     from agentpool.common_types import JsonValue
     from agentpool.messaging import ChatMessage
     from agentpool.sessions.models import ProjectData
@@ -75,62 +73,16 @@ class SQLModelProvider(StorageProvider):
         """
         from sqlmodel import SQLModel
 
+        from agentpool_storage.sql_provider.utils import run_alembic_migrations
+
         if auto_migrate:
             # Run migrations first (handles schema changes for existing DBs)
-            await self._run_migrations()
+            async with self.engine.begin() as conn:
+                await conn.run_sync(run_alembic_migrations)
 
         # Always ensure all tables exist (creates new tables, no-op for existing)
         async with self.engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
-
-    async def _run_migrations(self) -> None:
-        """Run Alembic migrations programmatically."""
-        from pathlib import Path
-
-        from alembic.config import Config
-        from alembic.runtime.environment import EnvironmentContext
-        from alembic.script import ScriptDirectory
-
-        # Find the migrations directory relative to this package
-        migrations_dir = Path(__file__).parents[3] / "migrations"
-        if not migrations_dir.exists():
-            # Fallback for installed package - just create tables
-            logger.warning("Migrations directory not found, using create_all fallback")
-            from sqlmodel import SQLModel
-
-            async with self.engine.begin() as conn:
-                await conn.run_sync(SQLModel.metadata.create_all)
-            return
-
-        alembic_cfg = Config()
-        alembic_cfg.set_main_option("script_location", str(migrations_dir))
-
-        def run_upgrade(connection: Connection) -> None:
-            from sqlmodel import SQLModel
-
-            alembic_cfg.attributes["connection"] = connection
-            script = ScriptDirectory.from_config(alembic_cfg)
-
-            def upgrade_fn(rev: str, context: EnvironmentContext) -> list:  # type: ignore[type-arg]
-                return script._upgrade_revs("head", rev)
-
-            with EnvironmentContext(
-                alembic_cfg,
-                script,
-                fn=upgrade_fn,
-                as_sql=False,
-                starting_rev=None,
-                destination_rev="head",
-            ) as env_context:
-                env_context.configure(
-                    connection=connection,
-                    target_metadata=SQLModel.metadata,
-                )
-                with env_context.begin_transaction():
-                    env_context.run_migrations()
-
-        async with self.engine.begin() as conn:
-            await conn.run_sync(run_upgrade)
 
     async def __aenter__(self) -> Self:
         """Initialize async database resources."""
