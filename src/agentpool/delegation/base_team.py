@@ -14,7 +14,6 @@ from psygnal.containers import EventedList
 from agentpool.log import get_logger
 from agentpool.messaging import MessageNode
 from agentpool.messaging.context import NodeContext
-from agentpool.models.manifest import AgentsManifest
 from agentpool.talk.stats import AggregatedMessageStats
 from agentpool_config.teams import TeamConfig
 
@@ -363,7 +362,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
                 node=self,
                 pool=shared_pool,
                 config=team_config,
-                definition=shared_pool.manifest if shared_pool else AgentsManifest(),
                 input_provider=input_provider,
                 data=data,
             )
@@ -374,7 +372,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             node=self,
             pool=shared_pool,
             config=team_config,
-            definition=shared_pool.manifest if shared_pool else AgentsManifest(),
             input_provider=input_provider,
             data=data,
         )

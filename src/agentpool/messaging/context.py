@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from agentpool import AgentPool
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.messaging import MessageNode
-    from agentpool.models.manifest import AgentsManifest
     from agentpool.prompts.manager import PromptManager
     from agentpool.ui.base import InputProvider
     from agentpool_config.nodes import NodeConfig
@@ -28,9 +27,6 @@ class NodeContext[TDeps = object]:
 
     config: NodeConfig
     """Node configuration."""
-
-    definition: AgentsManifest
-    """Complete agent definition with all configurations."""
 
     input_provider: InputProvider | None = None
     """Provider for human-input-handling."""

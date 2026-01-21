@@ -197,14 +197,11 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             Agent context with configuration
         """
         from agentpool.agents.context import AgentContext
-        from agentpool.models.manifest import AgentsManifest
 
-        defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
         return AgentContext(
             node=self,
             pool=self.agent_pool,
             config=self.config,
-            definition=defn,
             input_provider=input_provider or self._input_provider,
             model_name=self.model_name,
         )

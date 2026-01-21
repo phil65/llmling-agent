@@ -55,7 +55,8 @@ class ListPromptsCommand(NodeCommand):
         Args:
             ctx: Command context
         """
-        prompts = await ctx.context.prompt_manager.list_prompts()
+        prompt_manager = ctx.context.prompt_manager
+        prompts = await prompt_manager.list_prompts()
         output_lines = ["\n## 📝 Available Prompts\n"]
 
         for provider, provider_prompts in prompts.items():
@@ -67,9 +68,10 @@ class ListPromptsCommand(NodeCommand):
 
             # For builtin prompts we can show their description
             if provider == "builtin":
+                builtin_configs = prompt_manager.get_builtin_prompts()
                 for prompt_name in sorted_prompts:
-                    prompt = ctx.context.definition.prompts.system_prompts[prompt_name]
-                    desc = f" - *{prompt.category}*" if prompt.category else ""
+                    prompt = builtin_configs.get(prompt_name)
+                    desc = f" - *{prompt.category}*" if prompt and prompt.category else ""
                     output_lines.append(f"- **{prompt_name}**{desc}")
             else:
                 # For other providers, just show names

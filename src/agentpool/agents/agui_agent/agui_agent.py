@@ -200,7 +200,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         """
         from agentpool.agents.context import AgentContext
         from agentpool.models.agui_agents import AGUIAgentConfig
-        from agentpool.models.manifest import AgentsManifest
 
         effective_provider = input_provider or self._input_provider
         cfg = AGUIAgentConfig(  # type: ignore[call-arg]
@@ -214,12 +213,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             startup_command=self._startup_command,
             startup_delay=self._startup_delay,
         )
-        defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
         return AgentContext(
             node=self,
             pool=self.agent_pool,
             config=cfg,
-            definition=defn,
             input_provider=effective_provider,
             data=data,
             model_name=self.model_name,

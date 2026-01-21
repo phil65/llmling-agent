@@ -20,7 +20,7 @@ from agentpool_config.prompt_hubs import (
 
 if TYPE_CHECKING:
     from agentpool.prompts.base import BasePromptProvider
-    from agentpool_config.system_prompts import PromptLibraryConfig
+    from agentpool_config.system_prompts import PromptLibraryConfig, StaticPromptConfig
 
 logger = get_logger(__name__)
 
@@ -200,3 +200,14 @@ class PromptManager:
         Returns configured default or "builtin"
         """
         return "builtin"
+
+    def get_builtin_prompts(self) -> dict[str, StaticPromptConfig]:
+        """Get builtin prompt configurations.
+
+        Returns:
+            Dict mapping prompt names to their StaticPromptConfig objects
+        """
+        builtin = self.providers.get("builtin")
+        if isinstance(builtin, BuiltinPromptProvider):
+            return builtin.prompts
+        return {}

@@ -64,19 +64,26 @@ class PromptCompleter(CompletionProvider):
     ) -> AsyncIterator[CompletionItem]:
         """Complete prompt references."""
         current = ctx.current_word
-        manifest = ctx.command_context.context.definition
+        pool = ctx.command_context.context.pool
+        if not pool:
+            return
+
+        prompt_manager = pool.prompt_manager
+        builtin_prompts = prompt_manager.get_builtin_prompts()
 
         # If no : yet, suggest providers
         if ":" not in current:
             # Always suggest builtin prompts without prefix
-            for name in manifest.prompts.system_prompts:
+            for name in builtin_prompts:
                 if not name.startswith(current):
                     continue
                 yield CompletionItem(name, metadata="Builtin prompt", kind="choice")
 
             # Suggest provider prefixes
-            for provider in manifest.prompts.providers or []:
-                prefix = f"{provider.type}:"
+            for provider_name in prompt_manager.providers:
+                if provider_name == "builtin":
+                    continue
+                prefix = f"{provider_name}:"
                 if not prefix.startswith(current):
                     continue
                 yield CompletionItem(prefix, metadata="Prompt provider", kind="choice")
@@ -86,7 +93,7 @@ class PromptCompleter(CompletionProvider):
         provider_, partial = current.split(":", 1)
         if provider_ == "builtin" or not provider_:
             # Complete from system prompts
-            for name in manifest.prompts.system_prompts:
+            for name in builtin_prompts:
                 if not name.startswith(partial):
                     continue
                 text = f"{provider_}:{name}" if provider_ else name

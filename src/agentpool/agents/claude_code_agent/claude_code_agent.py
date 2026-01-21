@@ -391,14 +391,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             A new AgentContext instance
         """
         from agentpool.agents import AgentContext
-        from agentpool.models import AgentsManifest
 
-        defn = self.agent_pool.manifest if self.agent_pool else AgentsManifest()
         return AgentContext(
             node=self,
             pool=self.agent_pool,
             config=self._config,
-            definition=defn,
             input_provider=input_provider or self._input_provider,
             data=data,
             model_name=self.model_name,
