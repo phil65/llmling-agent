@@ -5,6 +5,7 @@ import pytest
 from upathtools.filesystems import UnionFileSystem
 import yamling
 
+from agentpool import AgentPool
 from agentpool.models import AgentsManifest
 
 
@@ -33,7 +34,8 @@ async def test_vfs_registry():
     """Test VFS registry and unified filesystem access."""
     # Setup
     manifest = AgentsManifest.model_validate(yamling.load_yaml(MANIFEST_CONFIG))
-    fs = manifest.vfs_registry.get_fs()
+    pool = AgentPool(manifest)
+    fs = pool.vfs_registry.get_fs()
 
     # Test root listing shows protocols
     root_listing = await fs._ls("/", detail=False)
@@ -59,10 +61,11 @@ async def test_vfs_registry():
 async def test_resource_path():
     """Test UPath-based resource access."""
     manifest = AgentsManifest.model_validate(yamling.load_yaml(MANIFEST_CONFIG))
-    path = manifest.vfs_registry.get_upath("docs")
+    pool = AgentPool(manifest)
+    path = pool.vfs_registry.get_upath("docs")
     print(list(path.iterdir()))
     assert str(path) == "union://docs"  # UPath str includes protocol prefix
-    assert path.fs == manifest.vfs_registry.get_fs()
+    assert path.fs == pool.vfs_registry.get_fs()
 
 
 # async def test_github_path():

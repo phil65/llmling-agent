@@ -43,8 +43,11 @@ class ListResourcesCommand(NodeCommand):
         Args:
             ctx: Command context
         """
+        if not ctx.context.pool:
+            raise ValueError("AgentPool instance not found")
+
         try:
-            fs = ctx.context.definition.vfs_registry.get_fs()
+            fs = ctx.context.pool.vfs_registry.get_fs()
             root = await fs._ls("/", detail=True)
 
             rows = []
@@ -104,8 +107,10 @@ class ShowResourceCommand(NodeCommand):
             name: Resource name to show
             **kwargs: Additional parameters for the resource
         """
+        if not ctx.context.pool:
+            raise ValueError("No pool available")
         try:
-            fs = ctx.context.definition.vfs_registry.get_fs()
+            fs = ctx.context.pool.vfs_registry.get_fs()
 
             # Get resource info
             try:
@@ -167,13 +172,15 @@ class AddResourceCommand(AgentCommand):
             pattern: Pattern for filtering files
             **kwargs: Additional parameters for the resource
         """
+        if not ctx.context.pool:
+            raise ValueError("No pool available")
         try:
             # Parse resource name and path
             parts = resource_path.split("/", 1)
             resource_name = parts[0]
             path = parts[1] if len(parts) > 1 else ""
 
-            registry = ctx.context.definition.vfs_registry
+            registry = ctx.context.pool.vfs_registry
 
             if path:
                 if "*" in path:

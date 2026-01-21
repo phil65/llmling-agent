@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 
     from agentpool.messaging.compaction import CompactionPipeline
     from agentpool.models.acp_agents import BaseACPAgentConfig
-    from agentpool.vfs_registry import VFSRegistry
 
 logger = log.get_logger(__name__)
 
@@ -478,16 +477,6 @@ class AgentsManifest(Schema):
                     agents[agent_name] = agent_dict
 
         return data
-
-    @cached_property
-    def vfs_registry(self) -> VFSRegistry:
-        """Get registry with all configured VFS resources."""
-        from agentpool.vfs_registry import VFSRegistry
-
-        registry = VFSRegistry()
-        for name, config in self.resources.items():
-            registry.register_from_config(name, config)
-        return registry
 
     def resolve_model(self, model: AnyModelConfig | str) -> AnyModelConfig:
         """Resolve a model specification to a model config.

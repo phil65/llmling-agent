@@ -29,8 +29,9 @@ async def vfs_list(  # noqa: D417
     Returns:
         Formatted list of matching files and directories
     """
-    registry = ctx.definition.vfs_registry
-
+    if not ctx.pool:
+        raise RuntimeError("No pool available")
+    registry = ctx.pool.vfs_registry
     # If no path given, list all resources
     if not path:
         resources = list(registry)
@@ -71,8 +72,9 @@ async def vfs_read(  # noqa: D417
     Returns:
         File content or concatenated directory contents
     """
-    registry = ctx.definition.vfs_registry
-
+    if not ctx.pool:
+        raise RuntimeError("No pool available")
+    registry = ctx.pool.vfs_registry
     try:
         return await registry.get_content(
             path,
@@ -91,8 +93,9 @@ async def vfs_info(ctx: AgentContext) -> str:
     Returns:
         Formatted information about available resources
     """
-    registry = ctx.definition.vfs_registry
-
+    if not ctx.pool:
+        raise RuntimeError("No pool available")
+    registry = ctx.pool.vfs_registry
     if registry.is_empty:
         return "No resources configured"
 

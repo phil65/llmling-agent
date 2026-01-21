@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, get_args
+from typing import TYPE_CHECKING, Any, Literal
 
 from slashed import CompletionItem, CompletionProvider
 
@@ -46,32 +46,14 @@ def get_available_nodes(ctx: CompletionContext[NodeContext[Any]]) -> list[str]:
     return list(ctx.command_context.context.pool.nodes.keys())
 
 
-def get_model_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
+async def get_model_names(ctx: CompletionContext[AgentContext[Any]]) -> list[str]:
     """Get available model names from pydantic-ai and current configuration.
 
     Returns:
     - All models from KnownModelName literal type
     - Plus any additional models from current configuration
     """
-    # Get models directly from the Literal type
-    from llmling_models import AllModels
-    from tokonomics.model_names import ModelId
-
-    known_models = list(get_args(ModelId)) + list(get_args(AllModels))
-
-    agent = ctx.command_context.context.agent
-    agent_ctx = agent.get_context()
-    if not agent_ctx.definition:
-        return known_models
-
-    # Add any additional models from the current configuration (only native agents have model)
-    agents = agent_ctx.definition.native_agents
-    config_models = {str(a.model) for a in agents.values() if a.model is not None}
-
-    # Combine both sources, keeping order (known models first)
-    all_models = known_models[:]
-    all_models.extend(model for model in config_models if model not in all_models)
-    return all_models
+    return [m.id for m in await ctx.command_context.context.agent.get_available_models() or []]
 
 
 class PromptCompleter(CompletionProvider):
