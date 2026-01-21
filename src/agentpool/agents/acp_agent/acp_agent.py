@@ -194,7 +194,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._client_handler: ACPClientHandler | None = None
         self._agent_info: Implementation | None = None
         self._caps: AgentCapabilities | None = None
-        self._session_id: str | None = session_id  # Session ID to load or from new_session
+        self._sdk_session_id: str | None = session_id  # Session ID to load or from new_session
         self._state: ACPSessionState | None = None
         self._extra_mcp_servers: list[McpServer] = []
         self._sessions_cache: list[SessionData] | None = None  # Cache for list_sessions results
@@ -285,9 +285,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         try:
             await run_with_process_monitor(process, self._initialize, context="ACP initialization")
             # Load existing session or create new one
-            if self._session_id:
-                session_to_load = self._session_id
-                self._session_id = None  # Clear so load_session can set it
+            if self._sdk_session_id:
+                session_to_load = self._sdk_session_id
+                self._sdk_session_id = None  # Clear so load_session can set it
                 result = await run_with_process_monitor(
                     process,
                     lambda: self.load_session(session_to_load),
@@ -381,9 +381,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         cwd = self.config.cwd or str(Path.cwd())
         session_request = NewSessionRequest(cwd=cwd, mcp_servers=mcp_servers)
         response = await self._connection.new_session(session_request)
-        self._session_id = response.session_id
+        self._sdk_session_id = response.session_id
         if self._state:
-            self._state.session_id = self._session_id
+            self._state.session_id = self._sdk_session_id
             # Store config_options if available (newer ACP protocol)
             if response.config_options:
                 self._state.config_options = list(response.config_options)
@@ -393,7 +393,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 self._state.current_model_id = response.models.current_model_id
             self._state.modes = response.modes
         model = self._state.current_model_id if self._state else None
-        self.log.info("ACP session created", session_id=self._session_id, model=model)
+        self.log.info("ACP session created", session_id=self._sdk_session_id, model=model)
 
     async def _cleanup(self) -> None:
         """Clean up resources."""
@@ -448,7 +448,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Update input provider if provided
         if input_provider is not None and self._client_handler:
             self._client_handler._input_provider = input_provider
-        if not self._connection or not self._session_id or not self._state:
+        if not self._connection or not self._sdk_session_id or not self._state:
             raise RuntimeError("Agent not initialized - use async context manager")
 
         run_id = str(uuid.uuid4())
@@ -472,15 +472,15 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         yield run_started
         final_blocks = convert_to_acp_content(prompts)
         # Handle ephemeral execution (fork session if store_history=False)
-        session_id = self._session_id
-        if not store_history and self._session_id:
+        session_id = self._sdk_session_id
+        if not store_history and self._sdk_session_id:
             # Fork the current session to execute without affecting main history
             cwd = self.config.cwd or str(Path.cwd())
-            fork_request = ForkSessionRequest(session_id=self._session_id, cwd=cwd)
+            fork_request = ForkSessionRequest(session_id=self._sdk_session_id, cwd=cwd)
             fork_response = await self._connection.fork_session(fork_request)
             # Use the forked session ID for this prompt
             session_id = fork_response.session_id
-            self.log.debug("Forked session", parent=self._session_id, fork=session_id)
+            self.log.debug("Forked session", parent=self._sdk_session_id, fork=session_id)
         prompt_request = PromptRequest(session_id=session_id, prompt=final_blocks)
         self.log.debug("Starting streaming prompt", num_blocks=len(final_blocks))
         # Run prompt in background
@@ -646,9 +646,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._client_handler.tool_confirmation_mode = mode
 
         # Forward mode change to remote ACP server if connected
-        if self._connection and self._session_id:
+        if self._connection and self._sdk_session_id:
             mode_id = confirmation_mode_to_mode_id(mode)
-            request = SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id)
+            request = SetSessionModeRequest(session_id=self._sdk_session_id, mode_id=mode_id)
             try:
                 await self._connection.set_session_mode(request)
                 msg = "Forwarded mode change to remote ACP server"
@@ -663,9 +663,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         from acp.schema import CancelNotification
 
         # Send cancel notification to the remote ACP server
-        if self._connection and self._session_id:
+        if self._connection and self._sdk_session_id:
             try:
-                cancel_notification = CancelNotification(session_id=self._session_id)
+                cancel_notification = CancelNotification(session_id=self._sdk_session_id)
                 await self._connection.cancel(cancel_notification)
                 self.log.info("Sent cancel notification to ACP server")
             except Exception:
@@ -727,7 +727,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
         from agentpool.agents.modes import ConfigOptionChanged
 
-        if not self._connection or not self._session_id or not self._state:
+        if not self._connection or not self._sdk_session_id or not self._state:
             raise RuntimeError("Not connected to ACP server")
         # Validate mode is available
         available_modes = await self.get_modes()
@@ -743,7 +743,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if self._state.config_options:
             assert category_id
             config_request = SetSessionConfigOptionRequest(
-                session_id=self._session_id,
+                session_id=self._sdk_session_id,
                 config_id=category_id,
                 value=mode_id,
             )
@@ -753,14 +753,14 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 self._state.config_options = list(response.config_options)
         # Legacy: Use old set_session_mode/set_session_model APIs
         elif category_id == "mode":
-            mode_request = SetSessionModeRequest(session_id=self._session_id, mode_id=mode_id)
+            mode_request = SetSessionModeRequest(session_id=self._sdk_session_id, mode_id=mode_id)
             await self._connection.set_session_mode(mode_request)
             # Update local state
             if self._state.modes:
                 self._state.modes.current_mode_id = mode_id
         elif category_id == "model":
             # Legacy: Use set_session_model API
-            request = SetSessionModelRequest(session_id=self._session_id, model_id=mode_id)
+            request = SetSessionModelRequest(session_id=self._sdk_session_id, model_id=mode_id)
             if await self._connection.set_session_model(request):
                 self._state.current_model_id = mode_id
                 self.log.info("Model changed via legacy set_session_model")
@@ -873,7 +873,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             raw_updates = self._state.finish_load()
 
             # Update local session ID and state
-            self._session_id = session_id
+            self._sdk_session_id = session_id
             self._state.session_id = session_id
 
             # Update config_options if available

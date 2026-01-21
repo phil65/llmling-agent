@@ -49,7 +49,7 @@ async def main() -> None:
         name="test_client",
         cwd="/home/phil65/dev/oss/agentpool",
     ) as agent:
-        print(f"Connected to ACP server, session_id: {agent._session_id}")
+        print(f"Connected to ACP server, session_id: {agent._sdk_session_id}")
 
         # List available sessions
         print("\nListing sessions...")
@@ -115,7 +115,7 @@ async def main() -> None:
         else:
             print("\nNo messages were loaded - debugging info:")
             print(f"  - Session ID used: {target_session.session_id}")
-            print(f"  - Agent session ID after load: {agent._session_id}")
+            print(f"  - Agent session ID after load: {agent._sdk_session_id}")
 
 
 if __name__ == "__main__":

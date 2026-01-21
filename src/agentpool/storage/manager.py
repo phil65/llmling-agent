@@ -100,7 +100,7 @@ class StorageManager:
         self.config = config
         self.task_manager = TaskManager()
         self.providers = [self._create_provider(cfg) for cfg in self.config.effective_providers]
-        self._conversation_logged: set[str] = set()  # Track logged conversations for idempotency
+        self._session_logged: set[str] = set()  # Track logged conversations for idempotency
 
     async def __aenter__(self) -> Self:
         """Initialize all providers."""
@@ -294,9 +294,9 @@ class StorageManager:
             return
 
         # Check if already logged (idempotent behavior)
-        if conversation_id not in self._conversation_logged:
+        if conversation_id not in self._session_logged:
             # Mark as logged before calling providers
-            self._conversation_logged.add(conversation_id)
+            self._session_logged.add(conversation_id)
 
             # Log to all providers
             for provider in self.providers:

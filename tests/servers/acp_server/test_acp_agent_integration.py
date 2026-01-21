@@ -120,7 +120,7 @@ async def test_acp_agent_session_info(acp_agent_config: ACPAgentConfig):
     """Test that session info is properly initialized."""
     try:
         async with ACPAgent(config=acp_agent_config) as agent:
-            assert agent._session_id is not None
+            assert agent._sdk_session_id is not None
             assert agent._agent_info is not None
             assert agent._state is not None
     except TimeoutError:

@@ -51,7 +51,7 @@ class ACPModeCategory(ModeCategoryProtocol["ACPAgent"]):
             msg = f"Invalid mode '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
             raise ValueError(msg)
 
-        if not agent._connection or not agent._session_id or not agent._state:
+        if not agent._connection or not agent._sdk_session_id or not agent._state:
             raise RuntimeError("Not connected to ACP server")
 
         # Try config_options API first
@@ -71,7 +71,7 @@ class ACPModeCategory(ModeCategoryProtocol["ACPAgent"]):
         assert agent._state is not None
 
         config_request = SetSessionConfigOptionRequest(
-            session_id=agent._session_id,
+            session_id=agent._sdk_session_id,
             config_id="mode",
             value=mode_id,
         )
@@ -89,7 +89,7 @@ class ACPModeCategory(ModeCategoryProtocol["ACPAgent"]):
         assert agent._connection is not None
         assert agent._state is not None
 
-        mode_request = SetSessionModeRequest(session_id=agent._session_id, mode_id=mode_id)
+        mode_request = SetSessionModeRequest(session_id=agent._sdk_session_id, mode_id=mode_id)
         await agent._connection.set_session_mode(mode_request)
 
         if agent._state.modes:
@@ -192,7 +192,7 @@ class ACPModelCategory(ModeCategoryProtocol["ACPAgent"]):
             msg = f"Invalid model '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
             raise ValueError(msg)
 
-        if not agent._connection or not agent._session_id or not agent._state:
+        if not agent._connection or not agent._sdk_session_id or not agent._state:
             raise RuntimeError("Not connected to ACP server")
 
         # Try config_options API first
@@ -212,7 +212,7 @@ class ACPModelCategory(ModeCategoryProtocol["ACPAgent"]):
         assert agent._state is not None
 
         config_request = SetSessionConfigOptionRequest(
-            session_id=agent._session_id,
+            session_id=agent._sdk_session_id,
             config_id="model",
             value=mode_id,
         )
@@ -230,7 +230,7 @@ class ACPModelCategory(ModeCategoryProtocol["ACPAgent"]):
         assert agent._connection is not None
         assert agent._state is not None
 
-        request = SetSessionModelRequest(session_id=agent._session_id, model_id=mode_id)
+        request = SetSessionModelRequest(session_id=agent._sdk_session_id, model_id=mode_id)
         if await agent._connection.set_session_model(request):
             agent._state.current_model_id = mode_id
             agent.log.info("Model changed via legacy API", model_id=mode_id)
@@ -333,14 +333,14 @@ class ACPGenericCategory(ModeCategoryProtocol["ACPAgent"]):
             msg = f"Invalid value '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
             raise ValueError(msg)
 
-        if not agent._connection or not agent._session_id or not agent._state:
+        if not agent._connection or not agent._sdk_session_id or not agent._state:
             raise RuntimeError("Not connected to ACP server")
 
         if not agent._state.config_options:
             raise RuntimeError(f"Server does not support config_options, cannot set {self.id!r}")
 
         config_request = SetSessionConfigOptionRequest(
-            session_id=agent._session_id,
+            session_id=agent._sdk_session_id,
             config_id=self.id,
             value=mode_id,
         )
