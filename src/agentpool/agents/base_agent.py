@@ -481,7 +481,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         converted_prompts = await convert_prompts(prompts)
         # Prepend any staged content
         if staged := self.staged_content.consume_as_text():
-            converted_prompts = [staged, *converted_prompts]
+            converted_prompts = [*converted_prompts, staged]
         # Get message history (either passed or agent's own)
         conversation = message_history if message_history is not None else self.conversation
         # Determine effective parent_id (from param or last message in history)

@@ -51,7 +51,8 @@ class StagedContent:
             return None
         texts = [part.content for part in self._parts if isinstance(part.content, str)]
         self._parts.clear()
-        return "\n\n".join(texts) if texts else None
+        content = "\n\n".join(texts) if texts else None
+        return f"\n<context>\n{content}\n</context>\n" if content else None
 
     def __len__(self) -> int:
         """Return count of staged parts."""
