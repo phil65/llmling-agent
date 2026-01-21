@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import pytest
 from slashed import CommandStore
 
 from agentpool import AgentPool, AgentsManifest
+from agentpool.messaging.context import NodeContext
 from agentpool_commands.prompts import ShowPromptCommand
 
 
@@ -31,29 +34,17 @@ async def test_prompt_command():
     messages: list[str] = []
     store = CommandStore()
     manifest = AgentsManifest.from_yaml(TEST_CONFIG)
-
     # Create pool to get prompt_manager
     async with AgentPool(manifest=manifest) as pool:
         # Create a minimal context with pool's prompt_manager
-        from unittest.mock import MagicMock
-
-        from agentpool.messaging.context import NodeContext
-
         mock_node = MagicMock()
         mock_node.name = "test"
-        node_context = NodeContext(
-            node=mock_node,
-            pool=pool,
-            config=MagicMock(),
-            definition=manifest,
-        )
+        node_context = NodeContext(node=mock_node, pool=pool, config=MagicMock())
         context = store.create_context(node_context, output_writer=messages.append)
         prompt_cmd = ShowPromptCommand()
-
         # Test simple prompt
         await prompt_cmd.execute(ctx=context, args=["greet?name=World"], kwargs={})
         assert "Hello World!" in messages[-1]
-
         # Test prompt with variables
         await prompt_cmd.execute(ctx=context, args=["analyze?data=test.txt"], kwargs={})
         assert "Analyzing test.txt" in messages[-1]

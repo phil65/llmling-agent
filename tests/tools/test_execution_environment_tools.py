@@ -13,7 +13,6 @@ import pytest
 
 from agentpool import Agent, AgentContext, NativeAgentConfig
 from agentpool.agents.events import ToolCallProgressEvent
-from agentpool.models.manifest import AgentsManifest
 from agentpool.tool_impls.bash import BashTool
 from agentpool.tool_impls.execute_code import ExecuteCodeTool
 from agentpool_toolsets.builtin.execution_environment import ProcessManagementTools
@@ -61,7 +60,6 @@ def agent_ctx(test_agent: Agent[None]) -> AgentContext:
     return AgentContext(
         node=test_agent,
         config=NativeAgentConfig(name="test_agent", model="test"),
-        definition=AgentsManifest(),
         tool_call_id="test_call_123",
         tool_name="test_tool",
         tool_input={"command": "echo", "args": ["hello"]},

@@ -5,7 +5,7 @@ from __future__ import annotations
 from exxec import MockExecutionEnvironment
 import pytest
 
-from agentpool import Agent, AgentContext, AgentsManifest, NativeAgentConfig
+from agentpool import Agent, AgentContext, NativeAgentConfig
 from agentpool.tools.base import ToolResult
 from agentpool_toolsets.fsspec_toolset import FSSpecTools
 
@@ -14,9 +14,7 @@ from agentpool_toolsets.fsspec_toolset import FSSpecTools
 def agent_ctx() -> AgentContext:
     """Create a fresh mock context for each test."""
     agent = Agent(name="test_agent", model="test")
-    return AgentContext(
-        node=agent, config=NativeAgentConfig(model="test"), definition=AgentsManifest()
-    )
+    return AgentContext(node=agent, config=NativeAgentConfig(model="test"))
 
 
 @pytest.fixture

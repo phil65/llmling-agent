@@ -1,13 +1,15 @@
 """Test context binding functionality in signatures utils."""
 
 import inspect
-from typing import TypeVar
+from unittest.mock import Mock, patch
 
 import pytest
 
 from agentpool import Agent
 from agentpool.agents.context import AgentContext
+from agentpool.models.agents import NativeAgentConfig
 from agentpool.utils.signatures import create_bound_callable
+from agentpool_config.nodes import NodeConfig
 
 
 # Mock RunContext for testing
@@ -16,10 +18,6 @@ class MockRunContext:
 
     def __init__(self, data: str = "run_context_data"):
         self.data = data
-
-
-# Generic types for testing
-T = TypeVar("T")
 
 
 class GenericRunContext[T]:
@@ -71,14 +69,11 @@ class TestContextBoundCallable:
     @pytest.fixture
     def mock_agent_context(self):
         """Create a mock AgentContext for testing."""
-        from agentpool.models.agents import NativeAgentConfig
-        from agentpool.models.manifest import AgentsManifest
-
         # Create minimal config objects
         config = NativeAgentConfig(name="test_agent", model="test")
-        manifest = AgentsManifest()
         return AgentContext(
-            node=Agent(name="test_agent", model="test"), config=config, definition=manifest
+            node=Agent(name="test_agent", model="test"),
+            config=config,
         )
 
     @pytest.fixture
@@ -91,11 +86,9 @@ class TestContextBoundCallable:
         bound_func = create_bound_callable(
             sync_func_with_agent_ctx, by_type={AgentContext: mock_agent_context}
         )
-
         # Call without providing context
         result = await bound_func("test_value")
         assert result == "sync: test_value (ctx: AgentContext)"
-
         # Check signature was updated
         sig = inspect.signature(bound_func)
         param_names = list(sig.parameters.keys())
@@ -107,11 +100,9 @@ class TestContextBoundCallable:
         bound_func = create_bound_callable(
             async_func_with_agent_ctx, by_type={AgentContext: mock_agent_context}
         )
-
         # Call without providing context
         result = await bound_func("test_value")
         assert result == "async: test_value (ctx: AgentContext)"
-
         # Check signature was updated
         sig = inspect.signature(bound_func)
         param_names = list(sig.parameters.keys())
@@ -120,10 +111,8 @@ class TestContextBoundCallable:
     async def test_no_context_needed(self):
         """Test function that doesn't need context binding."""
         bound_func = create_bound_callable(func_with_no_context, by_type={})
-
         # Should return a wrapper function (not the original)
         assert bound_func is not func_with_no_context  # type: ignore[comparison-overlap]
-
         # Should work normally
         result = await bound_func("test")
         assert result == "no_ctx: test"
@@ -142,12 +131,10 @@ class TestContextBoundCallable:
         bound_func = create_bound_callable(
             sync_func_with_agent_ctx, by_type={AgentContext: mock_agent_context}
         )
-
         # Check attributes are preserved
         assert bound_func.__name__ == "sync_func_with_agent_ctx"
         assert "Sync function that requires AgentContext" in (bound_func.__doc__ or "")
         assert hasattr(bound_func, "__signature__")
-
         # Check annotations are updated correctly
         annotations = getattr(bound_func, "__annotations__", {})
         assert "agent_ctx" not in annotations
@@ -159,7 +146,6 @@ class TestContextBoundCallable:
         bound_func = create_bound_callable(
             sync_func_with_agent_ctx, by_type={AgentContext: mock_agent_context}
         )
-
         # Call with positional arg
         result = await bound_func("positional")
         assert result == "sync: positional (ctx: AgentContext)"
@@ -177,7 +163,6 @@ class TestContextBoundCallable:
     def test_missing_context_when_needed(self):
         """Test behavior when context is needed but not provided."""
         bound_func = create_bound_callable(sync_func_with_agent_ctx, by_type={})
-
         # Should return a wrapper function (not the original)
         assert bound_func is not sync_func_with_agent_ctx  # type: ignore[comparison-overlap]
 
@@ -188,16 +173,11 @@ class TestCodeModeIntegration:
     @pytest.fixture
     def mock_agent_context(self):
         """Create a mock AgentContext for testing."""
-        from agentpool.models.agents import NativeAgentConfig
-        from agentpool.models.manifest import AgentsManifest
-        from agentpool_config.nodes import NodeConfig
-
         # Create minimal config objects
         config = NativeAgentConfig(name="test_agent", model="test")
         NodeConfig()
-        manifest = AgentsManifest()
         agent = Agent(name="test_agent", model="test")
-        return AgentContext(node=agent, config=config, definition=manifest)
+        return AgentContext(node=agent, config=config)
 
     async def test_fsspec_like_tool_binding(self, mock_agent_context):
         """Test binding context for FSSpec-like tools."""
@@ -213,14 +193,11 @@ class TestCodeModeIntegration:
         bound_method = create_bound_callable(
             tool._read_file, by_type={AgentContext: mock_agent_context}
         )
-
         # Call the bound method
         result = await bound_method("/test/path.txt", encoding="utf-8")
-
         assert result["path"] == "/test/path.txt"
         assert result["encoding"] == "utf-8"
         assert result["agent"] == "AgentContext"
-
         # Check signature is correct
         sig = inspect.signature(bound_method)
         param_names = list(sig.parameters.keys())
@@ -244,10 +221,8 @@ class TestCodeModeIntegration:
         bound_method = create_bound_callable(
             tool.process, by_type={AgentContext: mock_agent_context}
         )
-
         result = await bound_method("test_data")
         assert result == "test_tool: test_data (ctx: AgentContext)"
-
         # Check signature excludes agent_ctx but includes data
         sig = inspect.signature(bound_method)
         param_names = list(sig.parameters.keys())
@@ -259,11 +234,9 @@ class TestCodeModeIntegration:
         bound_func = create_bound_callable(
             sync_func_with_agent_ctx, by_type={AgentContext: mock_agent_context}
         )
-
         # This should work - bound parameter in kwargs gets filtered out
         result = await bound_func("test_value", agent_ctx="should_be_ignored")
         assert result == "sync: test_value (ctx: AgentContext)"
-
         # Regular kwargs should still work
         result = await bound_func(value="test_value")
         assert result == "sync: test_value (ctx: AgentContext)"
@@ -281,7 +254,6 @@ class TestCodeModeIntegration:
             by_name={"ctx": mock_run_context},  # Different type but same name
             by_type={AgentContext: mock_agent_context},
         )
-
         result = await bound_func("test")
         assert "MockRunContext" in result  # Should use by_name value
 
@@ -296,7 +268,6 @@ class TestCodeModeIntegration:
 
         result = await bound_func("test_value")
         assert result == "both: test_value (agent: AgentContext, run: test_data)"
-
         # Check signature excludes both bound parameters
         sig = inspect.signature(bound_func)
         param_names = list(sig.parameters.keys())
@@ -311,7 +282,6 @@ class TestCodeModeIntegration:
         # Should work normally
         result = await bound_func("test")
         assert result == "no_ctx: test"
-
         # Signature should be unchanged
         sig = inspect.signature(bound_func)
         original_sig = inspect.signature(func_with_no_context)
@@ -319,15 +289,9 @@ class TestCodeModeIntegration:
 
     def test_invalid_callable_signature(self):
         """Test error handling for callables with uninspectable signatures."""
-        from unittest.mock import Mock
-
         # Create a mock callable that raises on signature inspection
         bad_callable = Mock()
         bad_callable.__name__ = "bad_callable"
-
-        # Mock inspect.signature to raise ValueError
-        from unittest.mock import patch
-
         with (
             patch(
                 "agentpool.utils.signatures.inspect.signature",
@@ -353,7 +317,6 @@ class TestCodeModeIntegration:
         param_names = list(sig.parameters.keys())
         assert "agent_ctx" in param_names
         assert "a" in param_names
-
         # Should still require the agent_ctx to be passed as kwarg
         result = await bound_func("test", agent_ctx=mock_agent_context)
         assert result == "a: test, ctx: AgentContext"
@@ -368,18 +331,15 @@ class TestCodeModeIntegration:
         bound_func = create_bound_callable(
             func_with_kwonly, by_type={AgentContext: mock_agent_context}, bind_kwargs=True
         )
-
         # Signature should exclude bound keyword-only parameter but keep unbound ones
         sig = inspect.signature(bound_func)
         param_names = list(sig.parameters.keys())
         assert "agent_ctx" not in param_names  # Should be bound and removed
         assert "a" in param_names  # Regular param should remain
         assert "other" in param_names  # Unbound kwarg should remain
-
         # Should work without passing agent_ctx
         result = await bound_func("test")
         assert result == "a: test, ctx: AgentContext, other: default"
-
         # Should work with other kwargs
         result = await bound_func("test", other="custom")
         assert result == "a: test, ctx: AgentContext, other: custom"
@@ -414,14 +374,12 @@ class TestCodeModeIntegration:
             by_type={AgentContext: mock_agent_context, MockRunContext: mock_run_context},
             bind_kwargs=True,
         )
-
         # Check signature excludes both bound parameters
         sig = inspect.signature(bound_func)
         param_names = list(sig.parameters.keys())
         assert param_names == ["value"]
         assert "agent_ctx" not in param_names
         assert "run_ctx" not in param_names
-
         result = await bound_func("test_value")
         assert result == "agent: AgentContext, value: test_value, run: test_data"
 
@@ -438,11 +396,9 @@ class TestCodeModeIntegration:
         # Call with exact args needed
         result = await bound_func(1, "test", 2.5)
         assert result == "ctx: AgentContext, a: 1, b: test, c: 2.5"
-
         # Call with fewer args (using default)
         result = await bound_func(1, "test")
         assert result == "ctx: AgentContext, a: 1, b: test, c: 1.0"
-
         # Test that extra args still get passed through to original function
         # (even though it will likely cause an error in the original function)
         with pytest.raises(TypeError):  # Too many positional args
@@ -458,13 +414,11 @@ class TestCodeModeIntegration:
         bound_func = create_bound_callable(
             func_with_kwonly, by_type={AgentContext: mock_agent_context}
         )
-
         # Signature should still include the keyword-only parameter
         sig = inspect.signature(bound_func)
         param_names = list(sig.parameters.keys())
         assert "agent_ctx" in param_names
         assert "a" in param_names
-
         # Should still require the agent_ctx to be passed as kwarg
         result = await bound_func("test", agent_ctx=mock_agent_context)
         assert result == "a: test, ctx: AgentContext"
@@ -481,10 +435,8 @@ class TestCodeModeIntegration:
         bound_func = create_bound_callable(
             func_with_generic, by_type={GenericRunContext[MockDeps]: generic_context}
         )
-
         result = await bound_func("test")
         assert result == "value: test, deps: test_deps, name: generic_context"
-
         # Check signature excludes the bound generic parameter
         sig = inspect.signature(bound_func)
         param_names = list(sig.parameters.keys())
@@ -515,7 +467,6 @@ class TestCodeModeIntegration:
         """Test that different generic parameters don't match each other."""
         deps1 = MockDeps("deps1")
         deps2 = "string_deps"
-
         generic_context_mock = GenericRunContext(deps1)
         GenericRunContext(deps2)
 
@@ -526,7 +477,6 @@ class TestCodeModeIntegration:
         bound_func = create_bound_callable(
             func_expecting_str_context, by_type={GenericRunContext[MockDeps]: generic_context_mock}
         )
-
         # Should not bind - different type parameters
         sig = inspect.signature(bound_func)
         param_names = list(sig.parameters.keys())
@@ -541,7 +491,6 @@ class TestCodeModeIntegration:
         # Get original signature
         original_sig = inspect.signature(func_with_generic)
         ctx_param = original_sig.parameters["ctx"]
-
         # The annotation should be the generic type
         assert ctx_param.annotation == GenericRunContext[MockDeps]
 
@@ -561,7 +510,6 @@ class TestCodeModeIntegration:
 
         result = await bound_func("test")
         assert result == "value: test, deps: test_deps, name: generic_context"
-
         # Check signature excludes the bound parameter
         sig = inspect.signature(bound_func)
         param_names = list(sig.parameters.keys())
@@ -611,7 +559,6 @@ class TestCodeModeIntegration:
 
         result = await bound_func("test")
         assert result == "agent: AgentContext, generic: generic_context, value: test"
-
         # Check signature excludes both bound parameters
         sig = inspect.signature(bound_func)
         param_names = list(sig.parameters.keys())
@@ -649,12 +596,10 @@ class TestCodeModeIntegration:
                 GenericRunContext: run_context,  # Origin type matches any GenericRunContext[T]
             },
         )
-
         # Should work with just the query parameter
         result = await bound_tool("SELECT * FROM users")
         expected = "Agent: test_agent, Debug: True, Query result: Result for: SELECT * FROM users"
         assert result == expected
-
         # Signature should only contain the query parameter
         sig = inspect.signature(bound_tool)
         assert list(sig.parameters.keys()) == ["query"]
