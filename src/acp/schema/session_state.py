@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -111,6 +111,9 @@ class SessionInfo(AnnotatedObject):
 
     updated_at: str | None = None
     """ISO 8601 timestamp of last activity."""
+
+    meta: dict[str, Any] | None = None
+    """Arbitrary session metadata."""
 
 
 class SessionConfigSelectOption(AnnotatedObject):

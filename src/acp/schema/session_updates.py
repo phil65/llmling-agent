@@ -406,6 +406,32 @@ class ToolCallStart(AnnotatedObject):
     """Unique identifier for this tool call within the session."""
 
 
+class SessionInfoUpdate(AnnotatedObject):
+    """Incremental update to session metadata.
+
+    Used to notify clients of changes to session info (title, timestamps)
+    without requiring a full session list refresh.
+
+    Fields that are None are not changed. To update a field, set it to a value.
+    """
+
+    session_update: Literal["session_info_update"] = Field(
+        default="session_info_update", init=False
+    )
+
+    session_id: str
+    """The session being updated."""
+
+    title: str | None = None
+    """New title for the session, or None to leave unchanged."""
+
+    updated_at: str | None = None
+    """New ISO 8601 timestamp, or None to leave unchanged."""
+
+    meta: dict[str, Any] | None = None
+    """Additional metadata to merge, or None to leave unchanged."""
+
+
 SessionUpdate = Annotated[
     (
         UserMessageChunk
@@ -418,6 +444,7 @@ SessionUpdate = Annotated[
         | CurrentModeUpdate
         | CurrentModelUpdate
         | ConfigOptionUpdate
+        | SessionInfoUpdate
     ),
     Field(discriminator="session_update"),
 ]
