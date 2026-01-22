@@ -397,17 +397,6 @@ class MessageHistory:
         """Get messages from the last run converted to our format."""
         return self._last_messages
 
-    def add_context_part(
-        self,
-        content: UserContent,
-    ) -> None:
-        """Add a content part to be included in the next request.
-
-        Args:
-            content: UserContent part (str, ImageUrl, BinaryContent, etc.)
-        """
-        self._pending_parts.append(content)
-
     def add_context_message(
         self,
         content: str,
