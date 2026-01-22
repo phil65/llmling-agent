@@ -2,7 +2,7 @@
 
 Centralizes all hook-related logic:
 - AgentHooks integration (pre/post run, pre/post tool)
-- Pending injection management
+- Injection consumption from PromptInjectionManager
 - Combined hook result handling
 """
 
@@ -15,6 +15,7 @@ from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:
+    from agentpool.agents.prompt_injection import PromptInjectionManager
     from agentpool.hooks import AgentHooks
 
 logger = get_logger(__name__)
@@ -25,19 +26,18 @@ class NativeAgentHookManager:
 
     Responsibilities:
     - Wraps AgentHooks and delegates to it
-    - Manages pending injection state
+    - Consumes injections from PromptInjectionManager
     - Combines injection with post-tool hook results
 
     Example:
         hook_manager = NativeAgentHookManager(
             agent_name="my-agent",
             agent_hooks=hooks,
+            injection_manager=agent._injection_manager,
         )
 
-        # Queue injection for next tool completion
-        hook_manager.inject("Please also check the tests")
-
-        # Run post-tool hooks (injection is automatically included)
+        # Injections are queued via agent.inject_prompt()
+        # Hook manager consumes them in post-tool hooks
         result = await hook_manager.run_post_tool_hooks(...)
         # result["additional_context"] contains the injection
     """
@@ -47,46 +47,22 @@ class NativeAgentHookManager:
         *,
         agent_name: str,
         agent_hooks: AgentHooks | None = None,
+        injection_manager: PromptInjectionManager | None = None,
     ) -> None:
         """Initialize hook manager.
 
         Args:
             agent_name: Name of the agent (for logging)
             agent_hooks: Optional AgentHooks for pre/post hooks
+            injection_manager: Shared injection manager from BaseAgent
         """
         self.agent_name = agent_name
         self.agent_hooks = agent_hooks
-        self._pending_injection: str | None = None
-
-    def inject(self, message: str) -> None:
-        """Queue a message to be injected on next tool completion.
-
-        The message will be added as `additional_context` in the post-tool
-        hook result, which gets appended to the tool return value.
-
-        Args:
-            message: Message to inject into the conversation
-
-        Note:
-            Only one injection can be pending at a time. Calling inject()
-            again before the previous injection is consumed will overwrite it.
-        """
-        self._pending_injection = message
-        logger.debug("Queued injection", agent=self.agent_name, message_len=len(message))
-
-    def has_pending_injection(self) -> bool:
-        """Check if there's a pending injection."""
-        return self._pending_injection is not None
-
-    def clear_injection(self) -> None:
-        """Clear pending injection without consuming it."""
-        self._pending_injection = None
+        self._injection_manager = injection_manager
 
     def has_hooks(self) -> bool:
         """Check if any hooks are configured."""
-        if self.agent_hooks and self.agent_hooks.has_hooks():
-            return True
-        return False
+        return bool(self.agent_hooks and self.agent_hooks.has_hooks())
 
     async def run_pre_run_hooks(
         self,
@@ -184,9 +160,9 @@ class NativeAgentHookManager:
 
         This method combines:
         - Results from AgentHooks.run_post_tool_hooks()
-        - Pending injection (if any)
+        - Pending injection from PromptInjectionManager (if any)
 
-        The injection is consumed (cleared) after being included in the result.
+        The injection is consumed after being included in the result.
 
         Args:
             agent_name: Name of the agent.
@@ -213,23 +189,22 @@ class NativeAgentHookManager:
         else:
             result = HookResult(decision="allow")
 
-        # Consume pending injection
-        if self._pending_injection:
-            injection = self._pending_injection
-            self._pending_injection = None
+        # Consume pending injection from shared manager
+        if self._injection_manager:
+            injection = self._injection_manager.consume()
+            if injection:
+                logger.debug(
+                    "Consuming injection after tool use",
+                    agent=self.agent_name,
+                    tool=tool_name,
+                    injection_len=len(injection),
+                )
 
-            logger.debug(
-                "Consuming injection after tool use",
-                agent=self.agent_name,
-                tool=tool_name,
-                injection_len=len(injection),
-            )
-
-            # Combine with existing additional_context
-            existing_context = result.get("additional_context")
-            if existing_context:
-                result["additional_context"] = f"{existing_context}\n\n{injection}"
-            else:
-                result["additional_context"] = injection
+                # Combine with existing additional_context
+                existing_context = result.get("additional_context")
+                if existing_context:
+                    result["additional_context"] = f"{existing_context}\n\n{injection}"
+                else:
+                    result["additional_context"] = injection
 
         return result

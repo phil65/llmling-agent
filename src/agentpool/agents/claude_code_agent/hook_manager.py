@@ -3,12 +3,11 @@
 Centralizes all hook-related logic:
 - Built-in hooks (PreCompact, injection)
 - AgentHooks integration
-- Pending injection management
+- Injection consumption from PromptInjectionManager
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal
 
 from agentpool.log import get_logger
@@ -16,6 +15,7 @@ from agentpool.log import get_logger
 
 if TYPE_CHECKING:
     import asyncio
+    from collections.abc import Callable
 
     from clawd_code_sdk.types import (
         HookContext,
@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         SyncHookJSONOutput,
     )
 
+    from agentpool.agents.prompt_injection import PromptInjectionManager
     from agentpool.hooks import AgentHooks
 
 logger = get_logger(__name__)
@@ -34,7 +35,7 @@ class ClaudeCodeHookManager:
 
     Responsibilities:
     - Builds SDK hooks configuration from multiple sources
-    - Manages pending injection state
+    - Consumes injections from PromptInjectionManager
     - Provides clean API for hook-related operations
 
     Example:
@@ -43,10 +44,11 @@ class ClaudeCodeHookManager:
             agent_hooks=hooks,
             event_queue=queue,
             get_session_id=lambda: agent.session_id,
+            injection_manager=agent._injection_manager,
         )
 
-        # Queue injection for next tool completion
-        hook_manager.inject("Please also check the tests")
+        # Injections are queued via agent.inject_prompt()
+        # Hook manager consumes them in PostToolUse hooks
 
         # Get SDK hooks for ClaudeCode options
         sdk_hooks = hook_manager.build_hooks()
@@ -59,6 +61,7 @@ class ClaudeCodeHookManager:
         agent_hooks: AgentHooks | None = None,
         event_queue: asyncio.Queue[Any] | None = None,
         get_session_id: Callable[[], str | None] | None = None,
+        injection_manager: PromptInjectionManager | None = None,
     ) -> None:
         """Initialize hook manager.
 
@@ -67,36 +70,13 @@ class ClaudeCodeHookManager:
             agent_hooks: Optional AgentHooks for pre/post tool hooks
             event_queue: Queue for emitting events (CompactionEvent, etc.)
             get_session_id: Callable to get current session ID
+            injection_manager: Shared injection manager from BaseAgent
         """
         self.agent_name = agent_name
         self.agent_hooks = agent_hooks
         self._event_queue = event_queue
         self._get_session_id = get_session_id or (lambda: None)
-        self._pending_injection: str | None = None
-
-    def inject(self, message: str) -> None:
-        """Queue a message to be injected on next tool completion.
-
-        The message will be added as `additionalContext` in the PostToolUse
-        hook response, making it visible to the model after the tool executes.
-
-        Args:
-            message: Message to inject into the conversation
-
-        Note:
-            Only one injection can be pending at a time. Calling inject()
-            again before the previous injection is consumed will overwrite it.
-        """
-        self._pending_injection = message
-        logger.debug("Queued injection", agent=self.agent_name, message_len=len(message))
-
-    def has_pending_injection(self) -> bool:
-        """Check if there's a pending injection."""
-        return self._pending_injection is not None
-
-    def clear_injection(self) -> None:
-        """Clear pending injection without consuming it."""
-        self._pending_injection = None
+        self._injection_manager = injection_manager
 
     def build_hooks(self) -> dict[str, list[HookMatcher]]:
         """Build complete SDK hooks configuration.
@@ -129,7 +109,7 @@ class ClaudeCodeHookManager:
                 else:
                     result[event_name] = matchers
 
-        return result  # type: ignore[return-value]
+        return result
 
     async def _on_pre_compact(
         self,
@@ -163,27 +143,26 @@ class ClaudeCodeHookManager:
     ) -> SyncHookJSONOutput:
         """Handle PostToolUse hook for injection and observation.
 
-        If there's a pending injection, it's consumed and added as
-        additionalContext in the response.
+        Consumes pending injection from the shared PromptInjectionManager
+        and adds it as additionalContext in the response.
         """
         result: SyncHookJSONOutput = {"continue_": True}
 
-        # Check for pending injection
-        if self._pending_injection:
-            injection = self._pending_injection
-            self._pending_injection = None
+        # Consume pending injection from shared manager
+        if self._injection_manager:
+            injection = self._injection_manager.consume()
+            if injection:
+                tool_name = input_data.get("tool_name", "unknown")
+                logger.debug(
+                    "Injecting context after tool use",
+                    agent=self.agent_name,
+                    tool=tool_name,
+                    injection_len=len(injection),
+                )
 
-            tool_name = input_data.get("tool_name", "unknown")
-            logger.debug(
-                "Injecting context after tool use",
-                agent=self.agent_name,
-                tool=tool_name,
-                injection_len=len(injection),
-            )
-
-            result["hookSpecificOutput"] = {
-                "hookEventName": "PostToolUse",
-                "additionalContext": injection,
-            }
+                result["hookSpecificOutput"] = {
+                    "hookEventName": "PostToolUse",
+                    "additionalContext": injection,
+                }
 
         return result

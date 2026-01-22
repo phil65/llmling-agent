@@ -345,6 +345,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             agent_hooks=hooks,
             event_queue=self._event_queue,
             get_session_id=lambda: self.session_id,
+            injection_manager=self._injection_manager,
         )
 
     @classmethod
@@ -464,22 +465,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             result[name] = MCPServerStatus(name=name, status="connected", server_type=server_type)
         return result
 
-    def inject_prompt(self, message: str) -> None:
-        """Inject a message into the conversation after the next tool completes.
-
-        The message will be added as additional context visible to the model
-        after the current tool execution finishes. This allows injecting
-        guidance or corrections mid-run.
-
-        Args:
-            message: Message to inject
-
-        Note:
-            Only works when tools are executing. If no tool runs before the
-            agent completes, the injection is lost.
-        """
-        self._hook_manager.inject(message)
-
     def _build_hooks(self) -> dict[str, list[Any]]:
         """Build SDK hooks configuration.
 
@@ -490,7 +475,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             Dictionary mapping hook event names to HookMatcher lists
         """
-        return self._hook_manager.build_hooks()  # type: ignore[return-value]
+        return self._hook_manager.build_hooks()
 
     def _build_options(self, *, formatted_system_prompt: str | None = None) -> ClaudeAgentOptions:
         """Build ClaudeAgentOptions from runtime state.

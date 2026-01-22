@@ -196,8 +196,10 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self.hooks = hooks
         self._cancelled = False
         self._current_stream_task: asyncio.Task[Any] | None = None
-        # Queue for prompts to be processed after current run completes
-        self._queued_prompts: list[tuple[PromptCompatible, ...]] = []
+        # Prompt injection and queuing manager
+        from agentpool.agents.prompt_injection import PromptInjectionManager
+
+        self._injection_manager = PromptInjectionManager()
         # Deferred initialization support - subclasses set True in __aenter__,
         # override ensure_initialized() to do actual connection
         self._connect_pending: bool = False
@@ -458,15 +460,38 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 ctx.agent.queue_prompt("Now analyze the results")
                 return "Initial work done"
         """
-        self._queued_prompts.append(prompts)
+        self._injection_manager.queue(*prompts)
+
+    def inject_prompt(self, message: str) -> None:
+        """Inject a message into the conversation mid-run.
+
+        The message will be injected after the next tool completes (if the
+        agent supports tool hooks). If no tool executes before the run
+        iteration completes, the message is automatically queued for the
+        next iteration.
+
+        Args:
+            message: Message to inject
+
+        Example:
+            # In a tool implementation:
+            async def my_tool(ctx: AgentContext) -> str:
+                ctx.agent.inject_prompt("Also check the test coverage")
+                return "Changes made"
+        """
+        self._injection_manager.inject(message)
 
     def has_queued_prompts(self) -> bool:
         """Check if there are queued prompts waiting to be processed."""
-        return bool(self._queued_prompts)
+        return self._injection_manager.has_queued()
+
+    def has_pending_injections(self) -> bool:
+        """Check if there are pending injections."""
+        return self._injection_manager.has_pending()
 
     def clear_queued_prompts(self) -> None:
-        """Clear all queued prompts without processing them."""
-        self._queued_prompts.clear()
+        """Clear all queued prompts and pending injections."""
+        self._injection_manager.clear()
 
     @method_spawner
     async def run_stream(
@@ -522,12 +547,14 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self._current_stream_task = asyncio.current_task()
 
         # Queue the initial prompts
-        self._queued_prompts.insert(0, prompts)
+        self._injection_manager.insert_queued(prompts)
 
         try:
             # Process queued prompts until queue is empty
-            while self._queued_prompts and not self._cancelled:
-                current_prompts = self._queued_prompts.pop(0)
+            while self._injection_manager.has_queued() and not self._cancelled:
+                current_prompts = self._injection_manager.pop_queued()
+                if current_prompts is None:
+                    break
                 async for event in self._run_stream_once(
                     *current_prompts,
                     store_history=store_history,
@@ -541,9 +568,12 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                     event_handlers=event_handlers,
                 ):
                     yield event
+
+                # After each iteration, flush unconsumed injections to queue
+                self._injection_manager.flush_pending_to_queue()
         finally:
             self._current_stream_task = None
-            self._queued_prompts.clear()  # Clean slate for next run
+            self._injection_manager.clear()  # Clean slate for next run
 
     async def _run_stream_once(
         self,

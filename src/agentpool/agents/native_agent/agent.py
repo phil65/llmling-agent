@@ -301,6 +301,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._hook_manager = NativeAgentHookManager(
             agent_name=self.name,
             agent_hooks=hooks,
+            injection_manager=self._injection_manager,
         )
         # Keep self.hooks for backward compatibility
         self.hooks = hooks
@@ -838,22 +839,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             pass_message_history=pass_message_history,
             parent=self if pass_message_history else None,
         )
-
-    def inject_prompt(self, message: str) -> None:
-        """Inject a message into the conversation after the next tool completes.
-
-        The message will be added as additional context visible to the model
-        after the current tool execution finishes. This allows injecting
-        guidance or corrections mid-run.
-
-        Args:
-            message: Message to inject
-
-        Note:
-            Only works when tools are executing. If no tool runs before the
-            agent completes, the injection is lost.
-        """
-        self._hook_manager.inject(message)
 
     async def set_model(self, model: Model | str) -> None:
         """Set the model for this agent.

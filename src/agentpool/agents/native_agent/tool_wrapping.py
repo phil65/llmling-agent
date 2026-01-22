@@ -45,13 +45,11 @@ def _inject_additional_context(
         # Append to existing content
         existing = result.content
         if existing is None:
-            new_content = additional
-        elif isinstance(existing, str):
-            new_content = f"{existing}\n\n[Additional Context]\n{additional}"
-        else:
-            # Sequence of UserContent - append as string
-            new_content = [*existing, f"\n\n[Additional Context]\n{additional}"]
-        return replace(result, content=new_content)
+            return replace(result, content=additional)
+        if isinstance(existing, str):
+            return replace(result, content=f"{existing}\n\n[Additional Context]\n{additional}")
+        # Sequence of UserContent - append as string
+        return replace(result, content=[*existing, f"\n\n[Additional Context]\n{additional}"])
     # Wrap in ToolReturn to add content
     return ToolReturn(
         return_value=result,
