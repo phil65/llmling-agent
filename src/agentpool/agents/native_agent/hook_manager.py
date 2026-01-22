@@ -191,7 +191,7 @@ class NativeAgentHookManager:
 
         # Consume pending injection from shared manager
         if self._injection_manager:
-            injection = self._injection_manager.consume()
+            injection = await self._injection_manager.consume()
             if injection:
                 logger.debug(
                     "Consuming injection after tool use",

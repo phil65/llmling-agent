@@ -150,7 +150,7 @@ class ClaudeCodeHookManager:
 
         # Consume pending injection from shared manager
         if self._injection_manager:
-            injection = self._injection_manager.consume()
+            injection = await self._injection_manager.consume()
             if injection:
                 tool_name = input_data.get("tool_name", "unknown")
                 logger.debug(

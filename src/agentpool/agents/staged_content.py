@@ -35,13 +35,13 @@ class StagedContent:
         """Add text content to the staging area as a UserPromptPart."""
         self._parts.append(UserPromptPart(content=content))
 
-    def consume(self) -> list[SystemPromptPart | UserPromptPart]:
+    async def consume(self) -> list[SystemPromptPart | UserPromptPart]:
         """Return all staged parts and clear the buffer."""
         parts = self._parts.copy()
         self._parts.clear()
         return parts
 
-    def consume_as_text(self) -> str | None:
+    async def consume_as_text(self) -> str | None:
         """Return all staged content as a single string and clear the buffer.
 
         Returns:

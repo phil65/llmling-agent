@@ -549,7 +549,7 @@ class ToolManagerBridge:
 
                 # Consume pending injection and append to result
                 if self._bridge.injection_manager and (
-                    injection := self._bridge.injection_manager.consume()
+                    injection := await self._bridge.injection_manager.consume()
                 ):
                     result = _append_injection_to_result(result, injection)
 

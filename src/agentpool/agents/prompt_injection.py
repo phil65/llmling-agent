@@ -38,7 +38,7 @@ class PromptInjectionManager:
         manager.inject("Also check the test coverage")
 
         # If a tool hook fires, it calls consume()
-        if msg := manager.consume():
+        if msg := await manager.consume():
             # Inject into tool result
 
         # At end of run iteration, flush unconsumed to queue
@@ -77,7 +77,7 @@ class PromptInjectionManager:
         self._queued_prompts.append(prompts)
         logger.debug("Queued prompt", num_parts=len(prompts))
 
-    def consume(self) -> str | None:
+    async def consume(self) -> str | None:
         """Consume the next pending injection.
 
         Called by agent-specific hooks (e.g., post-tool hooks) to get
@@ -93,7 +93,7 @@ class PromptInjectionManager:
             return f"<injected-context>\n{msg}\n</injected-context>"
         return None
 
-    def consume_all(self) -> list[str]:
+    async def consume_all(self) -> list[str]:
         """Consume all pending injections.
 
         Returns:
