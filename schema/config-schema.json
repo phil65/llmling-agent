@@ -244,11 +244,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -729,61 +735,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "custom",
@@ -1768,11 +1724,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -2253,61 +2215,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "agentpool",
@@ -2333,18 +2245,6 @@
             "string",
             "null"
           ]
-        },
-        "file_access": {
-          "default": true,
-          "description": "Enable file system access for the agent.",
-          "title": "File Access",
-          "type": "boolean"
-        },
-        "terminal_access": {
-          "default": true,
-          "description": "Enable terminal access for the agent.",
-          "title": "Terminal Access",
-          "type": "boolean"
         },
         "load_skills": {
           "default": true,
@@ -2837,11 +2737,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -3322,61 +3228,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "amp",
@@ -4352,11 +4208,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -4837,61 +4699,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "auggie",
@@ -5156,7 +4968,6 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6",
                 "cerebras:zai-glm-4.7"
               ],
               "type": "string"
@@ -5196,6 +5007,7 @@
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
                 "copilot:gpt-5.2",
+                "copilot:gpt-5.2-codex",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -5222,7 +5034,6 @@
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
-                "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
                 "gemini:gemini-2.5-flash-native-audio-latest",
@@ -5329,6 +5140,7 @@
                 "github:gpt-5.1-codex",
                 "github:gpt-5.1-codex-max",
                 "github:gpt-5.1-codex-mini",
+                "github:gpt-5.2-codex",
                 "github:gpt-image-1",
                 "github:gpt-image-1-mini",
                 "github:gpt-image-1.5",
@@ -5449,6 +5261,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-codex",
                 "openai:gpt-5.2-pro"
               ],
               "type": "string"
@@ -5474,9 +5287,7 @@
                 "openrouter:arcee-ai/trinity-mini:free",
                 "openrouter:baidu/ernie-4.5-21b-a3b",
                 "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                "openrouter:baidu/ernie-4.5-300b-a47b",
                 "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                "openrouter:baidu/ernie-4.5-vl-424b-a47b",
                 "openrouter:bytedance-seed/seed-1.6",
                 "openrouter:bytedance-seed/seed-1.6-flash",
                 "openrouter:bytedance/ui-tars-1.5-7b",
@@ -5493,7 +5304,6 @@
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
                 "openrouter:google/gemini-2.5-flash-image",
-                "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
@@ -5502,7 +5312,6 @@
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
-                "openrouter:inception/mercury",
                 "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
@@ -5554,6 +5363,7 @@
                 "openrouter:openai/gpt-5.1-codex-mini",
                 "openrouter:openai/gpt-5.2",
                 "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-codex",
                 "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
@@ -5581,6 +5391,7 @@
                 "openrouter:qwen/qwen3-coder:free",
                 "openrouter:qwen/qwen3-max",
                 "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
                 "openrouter:qwen/qwen3-next-80b-a3b-thinking",
                 "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
                 "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
@@ -5595,7 +5406,6 @@
                 "openrouter:switchpoint/router",
                 "openrouter:tencent/hunyuan-a13b-instruct",
                 "openrouter:thedrummer/cydonia-24b-v4.1",
-                "openrouter:thudm/glm-4.1v-9b-thinking",
                 "openrouter:tngtech/deepseek-r1t2-chimera",
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
@@ -5604,6 +5414,7 @@
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
                 "openrouter:x-ai/grok-code-fast-1",
+                "openrouter:xiaomi/mimo-v2-flash",
                 "openrouter:xiaomi/mimo-v2-flash:free",
                 "openrouter:z-ai/glm-4-32b",
                 "openrouter:z-ai/glm-4.5",
@@ -5744,6 +5555,7 @@
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
                 "vercel-gateway:bytedance/seed-1.6",
+                "vercel-gateway:bytedance/seed-1.8",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -5831,6 +5643,7 @@
                 "vercel-gateway:openai/gpt-5.1-thinking",
                 "vercel-gateway:openai/gpt-5.2",
                 "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-codex",
                 "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
@@ -5846,6 +5659,8 @@
                 "vercel-gateway:perplexity/sonar-reasoning",
                 "vercel-gateway:perplexity/sonar-reasoning-pro",
                 "vercel-gateway:prime-intellect/intellect-3",
+                "vercel-gateway:recraft/recraft-v2",
+                "vercel-gateway:recraft/recraft-v3",
                 "vercel-gateway:stealth/sonoma-dusk-alpha",
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
@@ -7220,11 +7035,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -7705,61 +7526,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "cagent",
@@ -8605,11 +8376,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -9090,61 +8867,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "claude",
@@ -11006,11 +10733,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -11491,61 +11224,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "Automatically accept all actions (YOLO mode).",
+          "title": "Auto Approve",
+          "type": "boolean"
         },
         "provider": {
           "const": "codex",
@@ -11566,12 +11249,6 @@
             "string",
             "null"
           ]
-        },
-        "auto_approve": {
-          "default": false,
-          "description": "Automatically accept all actions (YOLO mode).",
-          "title": "Auto Approve",
-          "type": "boolean"
         },
         "sandbox_permissions": {
           "anyOf": [
@@ -13016,11 +12693,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -13501,61 +13184,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "cursor",
@@ -14383,7 +14016,6 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6",
                 "cerebras:zai-glm-4.7"
               ],
               "type": "string"
@@ -14423,6 +14055,7 @@
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
                 "copilot:gpt-5.2",
+                "copilot:gpt-5.2-codex",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -14449,7 +14082,6 @@
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
-                "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
                 "gemini:gemini-2.5-flash-native-audio-latest",
@@ -14556,6 +14188,7 @@
                 "github:gpt-5.1-codex",
                 "github:gpt-5.1-codex-max",
                 "github:gpt-5.1-codex-mini",
+                "github:gpt-5.2-codex",
                 "github:gpt-image-1",
                 "github:gpt-image-1-mini",
                 "github:gpt-image-1.5",
@@ -14676,6 +14309,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-codex",
                 "openai:gpt-5.2-pro"
               ],
               "type": "string"
@@ -14701,9 +14335,7 @@
                 "openrouter:arcee-ai/trinity-mini:free",
                 "openrouter:baidu/ernie-4.5-21b-a3b",
                 "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                "openrouter:baidu/ernie-4.5-300b-a47b",
                 "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                "openrouter:baidu/ernie-4.5-vl-424b-a47b",
                 "openrouter:bytedance-seed/seed-1.6",
                 "openrouter:bytedance-seed/seed-1.6-flash",
                 "openrouter:bytedance/ui-tars-1.5-7b",
@@ -14720,7 +14352,6 @@
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
                 "openrouter:google/gemini-2.5-flash-image",
-                "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
@@ -14729,7 +14360,6 @@
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
-                "openrouter:inception/mercury",
                 "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
@@ -14781,6 +14411,7 @@
                 "openrouter:openai/gpt-5.1-codex-mini",
                 "openrouter:openai/gpt-5.2",
                 "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-codex",
                 "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
@@ -14808,6 +14439,7 @@
                 "openrouter:qwen/qwen3-coder:free",
                 "openrouter:qwen/qwen3-max",
                 "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
                 "openrouter:qwen/qwen3-next-80b-a3b-thinking",
                 "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
                 "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
@@ -14822,7 +14454,6 @@
                 "openrouter:switchpoint/router",
                 "openrouter:tencent/hunyuan-a13b-instruct",
                 "openrouter:thedrummer/cydonia-24b-v4.1",
-                "openrouter:thudm/glm-4.1v-9b-thinking",
                 "openrouter:tngtech/deepseek-r1t2-chimera",
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
@@ -14831,6 +14462,7 @@
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
                 "openrouter:x-ai/grok-code-fast-1",
+                "openrouter:xiaomi/mimo-v2-flash",
                 "openrouter:xiaomi/mimo-v2-flash:free",
                 "openrouter:z-ai/glm-4-32b",
                 "openrouter:z-ai/glm-4.5",
@@ -14971,6 +14603,7 @@
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
                 "vercel-gateway:bytedance/seed-1.6",
+                "vercel-gateway:bytedance/seed-1.8",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -15058,6 +14691,7 @@
                 "vercel-gateway:openai/gpt-5.1-thinking",
                 "vercel-gateway:openai/gpt-5.2",
                 "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-codex",
                 "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
@@ -15073,6 +14707,8 @@
                 "vercel-gateway:perplexity/sonar-reasoning",
                 "vercel-gateway:perplexity/sonar-reasoning-pro",
                 "vercel-gateway:prime-intellect/intellect-3",
+                "vercel-gateway:recraft/recraft-v2",
+                "vercel-gateway:recraft/recraft-v3",
                 "vercel-gateway:stealth/sonoma-dusk-alpha",
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
@@ -15175,7 +14811,6 @@
                 "enum": [
                   "cerebras:gpt-oss-120b",
                   "cerebras:qwen-3-235b-a22b-instruct-2507",
-                  "cerebras:zai-glm-4.6",
                   "cerebras:zai-glm-4.7"
                 ],
                 "type": "string"
@@ -15215,6 +14850,7 @@
                   "copilot:gpt-5.1-codex-max",
                   "copilot:gpt-5.1-codex-mini",
                   "copilot:gpt-5.2",
+                  "copilot:gpt-5.2-codex",
                   "copilot:grok-code-fast-1",
                   "copilot:oswe-vscode-prime"
                 ],
@@ -15241,7 +14877,6 @@
                   "gemini:gemini-2.5-computer-use-preview-10-2025",
                   "gemini:gemini-2.5-flash",
                   "gemini:gemini-2.5-flash-image",
-                  "gemini:gemini-2.5-flash-image-preview",
                   "gemini:gemini-2.5-flash-lite",
                   "gemini:gemini-2.5-flash-lite-preview-09-2025",
                   "gemini:gemini-2.5-flash-native-audio-latest",
@@ -15348,6 +14983,7 @@
                   "github:gpt-5.1-codex",
                   "github:gpt-5.1-codex-max",
                   "github:gpt-5.1-codex-mini",
+                  "github:gpt-5.2-codex",
                   "github:gpt-image-1",
                   "github:gpt-image-1-mini",
                   "github:gpt-image-1.5",
@@ -15468,6 +15104,7 @@
                   "openai:gpt-5.1-codex-mini",
                   "openai:gpt-5.2",
                   "openai:gpt-5.2-chat-latest",
+                  "openai:gpt-5.2-codex",
                   "openai:gpt-5.2-pro"
                 ],
                 "type": "string"
@@ -15493,9 +15130,7 @@
                   "openrouter:arcee-ai/trinity-mini:free",
                   "openrouter:baidu/ernie-4.5-21b-a3b",
                   "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                  "openrouter:baidu/ernie-4.5-300b-a47b",
                   "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                  "openrouter:baidu/ernie-4.5-vl-424b-a47b",
                   "openrouter:bytedance-seed/seed-1.6",
                   "openrouter:bytedance-seed/seed-1.6-flash",
                   "openrouter:bytedance/ui-tars-1.5-7b",
@@ -15512,7 +15147,6 @@
                   "openrouter:deepseek/deepseek-v3.2-speciale",
                   "openrouter:essentialai/rnj-1-instruct",
                   "openrouter:google/gemini-2.5-flash-image",
-                  "openrouter:google/gemini-2.5-flash-image-preview",
                   "openrouter:google/gemini-2.5-flash-lite",
                   "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                   "openrouter:google/gemini-2.5-flash-preview-09-2025",
@@ -15521,7 +15155,6 @@
                   "openrouter:google/gemini-3-pro-preview",
                   "openrouter:google/gemma-3n-e2b-it:free",
                   "openrouter:ibm-granite/granite-4.0-h-micro",
-                  "openrouter:inception/mercury",
                   "openrouter:kwaipilot/kat-coder-pro",
                   "openrouter:liquid/lfm-2.2-6b",
                   "openrouter:liquid/lfm2-8b-a1b",
@@ -15573,6 +15206,7 @@
                   "openrouter:openai/gpt-5.1-codex-mini",
                   "openrouter:openai/gpt-5.2",
                   "openrouter:openai/gpt-5.2-chat",
+                  "openrouter:openai/gpt-5.2-codex",
                   "openrouter:openai/gpt-5.2-pro",
                   "openrouter:openai/gpt-oss-120b",
                   "openrouter:openai/gpt-oss-120b:exacto",
@@ -15600,6 +15234,7 @@
                   "openrouter:qwen/qwen3-coder:free",
                   "openrouter:qwen/qwen3-max",
                   "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                  "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
                   "openrouter:qwen/qwen3-next-80b-a3b-thinking",
                   "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
                   "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
@@ -15614,7 +15249,6 @@
                   "openrouter:switchpoint/router",
                   "openrouter:tencent/hunyuan-a13b-instruct",
                   "openrouter:thedrummer/cydonia-24b-v4.1",
-                  "openrouter:thudm/glm-4.1v-9b-thinking",
                   "openrouter:tngtech/deepseek-r1t2-chimera",
                   "openrouter:tngtech/deepseek-r1t2-chimera:free",
                   "openrouter:tngtech/tng-r1t-chimera",
@@ -15623,6 +15257,7 @@
                   "openrouter:x-ai/grok-4-fast",
                   "openrouter:x-ai/grok-4.1-fast",
                   "openrouter:x-ai/grok-code-fast-1",
+                  "openrouter:xiaomi/mimo-v2-flash",
                   "openrouter:xiaomi/mimo-v2-flash:free",
                   "openrouter:z-ai/glm-4-32b",
                   "openrouter:z-ai/glm-4.5",
@@ -15763,6 +15398,7 @@
                   "vercel-gateway:bfl/flux-pro-1.1",
                   "vercel-gateway:bfl/flux-pro-1.1-ultra",
                   "vercel-gateway:bytedance/seed-1.6",
+                  "vercel-gateway:bytedance/seed-1.8",
                   "vercel-gateway:cohere/command-a",
                   "vercel-gateway:deepseek/deepseek-r1",
                   "vercel-gateway:deepseek/deepseek-v3",
@@ -15850,6 +15486,7 @@
                   "vercel-gateway:openai/gpt-5.1-thinking",
                   "vercel-gateway:openai/gpt-5.2",
                   "vercel-gateway:openai/gpt-5.2-chat",
+                  "vercel-gateway:openai/gpt-5.2-codex",
                   "vercel-gateway:openai/gpt-5.2-pro",
                   "vercel-gateway:openai/gpt-oss-120b",
                   "vercel-gateway:openai/gpt-oss-20b",
@@ -15865,6 +15502,8 @@
                   "vercel-gateway:perplexity/sonar-reasoning",
                   "vercel-gateway:perplexity/sonar-reasoning-pro",
                   "vercel-gateway:prime-intellect/intellect-3",
+                  "vercel-gateway:recraft/recraft-v2",
+                  "vercel-gateway:recraft/recraft-v3",
                   "vercel-gateway:stealth/sonoma-dusk-alpha",
                   "vercel-gateway:stealth/sonoma-sky-alpha",
                   "vercel-gateway:vercel/v0-1.0-md",
@@ -18057,7 +17696,6 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6",
                 "cerebras:zai-glm-4.7"
               ],
               "type": "string"
@@ -18097,6 +17735,7 @@
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
                 "copilot:gpt-5.2",
+                "copilot:gpt-5.2-codex",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -18123,7 +17762,6 @@
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
-                "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
                 "gemini:gemini-2.5-flash-native-audio-latest",
@@ -18230,6 +17868,7 @@
                 "github:gpt-5.1-codex",
                 "github:gpt-5.1-codex-max",
                 "github:gpt-5.1-codex-mini",
+                "github:gpt-5.2-codex",
                 "github:gpt-image-1",
                 "github:gpt-image-1-mini",
                 "github:gpt-image-1.5",
@@ -18350,6 +17989,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-codex",
                 "openai:gpt-5.2-pro"
               ],
               "type": "string"
@@ -18375,9 +18015,7 @@
                 "openrouter:arcee-ai/trinity-mini:free",
                 "openrouter:baidu/ernie-4.5-21b-a3b",
                 "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                "openrouter:baidu/ernie-4.5-300b-a47b",
                 "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                "openrouter:baidu/ernie-4.5-vl-424b-a47b",
                 "openrouter:bytedance-seed/seed-1.6",
                 "openrouter:bytedance-seed/seed-1.6-flash",
                 "openrouter:bytedance/ui-tars-1.5-7b",
@@ -18394,7 +18032,6 @@
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
                 "openrouter:google/gemini-2.5-flash-image",
-                "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
@@ -18403,7 +18040,6 @@
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
-                "openrouter:inception/mercury",
                 "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
@@ -18455,6 +18091,7 @@
                 "openrouter:openai/gpt-5.1-codex-mini",
                 "openrouter:openai/gpt-5.2",
                 "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-codex",
                 "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
@@ -18482,6 +18119,7 @@
                 "openrouter:qwen/qwen3-coder:free",
                 "openrouter:qwen/qwen3-max",
                 "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
                 "openrouter:qwen/qwen3-next-80b-a3b-thinking",
                 "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
                 "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
@@ -18496,7 +18134,6 @@
                 "openrouter:switchpoint/router",
                 "openrouter:tencent/hunyuan-a13b-instruct",
                 "openrouter:thedrummer/cydonia-24b-v4.1",
-                "openrouter:thudm/glm-4.1v-9b-thinking",
                 "openrouter:tngtech/deepseek-r1t2-chimera",
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
@@ -18505,6 +18142,7 @@
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
                 "openrouter:x-ai/grok-code-fast-1",
+                "openrouter:xiaomi/mimo-v2-flash",
                 "openrouter:xiaomi/mimo-v2-flash:free",
                 "openrouter:z-ai/glm-4-32b",
                 "openrouter:z-ai/glm-4.5",
@@ -18645,6 +18283,7 @@
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
                 "vercel-gateway:bytedance/seed-1.6",
+                "vercel-gateway:bytedance/seed-1.8",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -18732,6 +18371,7 @@
                 "vercel-gateway:openai/gpt-5.1-thinking",
                 "vercel-gateway:openai/gpt-5.2",
                 "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-codex",
                 "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
@@ -18747,6 +18387,8 @@
                 "vercel-gateway:perplexity/sonar-reasoning",
                 "vercel-gateway:perplexity/sonar-reasoning-pro",
                 "vercel-gateway:prime-intellect/intellect-3",
+                "vercel-gateway:recraft/recraft-v2",
+                "vercel-gateway:recraft/recraft-v3",
                 "vercel-gateway:stealth/sonoma-dusk-alpha",
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
@@ -19234,7 +18876,6 @@
                 "enum": [
                   "cerebras:gpt-oss-120b",
                   "cerebras:qwen-3-235b-a22b-instruct-2507",
-                  "cerebras:zai-glm-4.6",
                   "cerebras:zai-glm-4.7"
                 ],
                 "type": "string"
@@ -19274,6 +18915,7 @@
                   "copilot:gpt-5.1-codex-max",
                   "copilot:gpt-5.1-codex-mini",
                   "copilot:gpt-5.2",
+                  "copilot:gpt-5.2-codex",
                   "copilot:grok-code-fast-1",
                   "copilot:oswe-vscode-prime"
                 ],
@@ -19300,7 +18942,6 @@
                   "gemini:gemini-2.5-computer-use-preview-10-2025",
                   "gemini:gemini-2.5-flash",
                   "gemini:gemini-2.5-flash-image",
-                  "gemini:gemini-2.5-flash-image-preview",
                   "gemini:gemini-2.5-flash-lite",
                   "gemini:gemini-2.5-flash-lite-preview-09-2025",
                   "gemini:gemini-2.5-flash-native-audio-latest",
@@ -19407,6 +19048,7 @@
                   "github:gpt-5.1-codex",
                   "github:gpt-5.1-codex-max",
                   "github:gpt-5.1-codex-mini",
+                  "github:gpt-5.2-codex",
                   "github:gpt-image-1",
                   "github:gpt-image-1-mini",
                   "github:gpt-image-1.5",
@@ -19527,6 +19169,7 @@
                   "openai:gpt-5.1-codex-mini",
                   "openai:gpt-5.2",
                   "openai:gpt-5.2-chat-latest",
+                  "openai:gpt-5.2-codex",
                   "openai:gpt-5.2-pro"
                 ],
                 "type": "string"
@@ -19552,9 +19195,7 @@
                   "openrouter:arcee-ai/trinity-mini:free",
                   "openrouter:baidu/ernie-4.5-21b-a3b",
                   "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                  "openrouter:baidu/ernie-4.5-300b-a47b",
                   "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                  "openrouter:baidu/ernie-4.5-vl-424b-a47b",
                   "openrouter:bytedance-seed/seed-1.6",
                   "openrouter:bytedance-seed/seed-1.6-flash",
                   "openrouter:bytedance/ui-tars-1.5-7b",
@@ -19571,7 +19212,6 @@
                   "openrouter:deepseek/deepseek-v3.2-speciale",
                   "openrouter:essentialai/rnj-1-instruct",
                   "openrouter:google/gemini-2.5-flash-image",
-                  "openrouter:google/gemini-2.5-flash-image-preview",
                   "openrouter:google/gemini-2.5-flash-lite",
                   "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                   "openrouter:google/gemini-2.5-flash-preview-09-2025",
@@ -19580,7 +19220,6 @@
                   "openrouter:google/gemini-3-pro-preview",
                   "openrouter:google/gemma-3n-e2b-it:free",
                   "openrouter:ibm-granite/granite-4.0-h-micro",
-                  "openrouter:inception/mercury",
                   "openrouter:kwaipilot/kat-coder-pro",
                   "openrouter:liquid/lfm-2.2-6b",
                   "openrouter:liquid/lfm2-8b-a1b",
@@ -19632,6 +19271,7 @@
                   "openrouter:openai/gpt-5.1-codex-mini",
                   "openrouter:openai/gpt-5.2",
                   "openrouter:openai/gpt-5.2-chat",
+                  "openrouter:openai/gpt-5.2-codex",
                   "openrouter:openai/gpt-5.2-pro",
                   "openrouter:openai/gpt-oss-120b",
                   "openrouter:openai/gpt-oss-120b:exacto",
@@ -19659,6 +19299,7 @@
                   "openrouter:qwen/qwen3-coder:free",
                   "openrouter:qwen/qwen3-max",
                   "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                  "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
                   "openrouter:qwen/qwen3-next-80b-a3b-thinking",
                   "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
                   "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
@@ -19673,7 +19314,6 @@
                   "openrouter:switchpoint/router",
                   "openrouter:tencent/hunyuan-a13b-instruct",
                   "openrouter:thedrummer/cydonia-24b-v4.1",
-                  "openrouter:thudm/glm-4.1v-9b-thinking",
                   "openrouter:tngtech/deepseek-r1t2-chimera",
                   "openrouter:tngtech/deepseek-r1t2-chimera:free",
                   "openrouter:tngtech/tng-r1t-chimera",
@@ -19682,6 +19322,7 @@
                   "openrouter:x-ai/grok-4-fast",
                   "openrouter:x-ai/grok-4.1-fast",
                   "openrouter:x-ai/grok-code-fast-1",
+                  "openrouter:xiaomi/mimo-v2-flash",
                   "openrouter:xiaomi/mimo-v2-flash:free",
                   "openrouter:z-ai/glm-4-32b",
                   "openrouter:z-ai/glm-4.5",
@@ -19822,6 +19463,7 @@
                   "vercel-gateway:bfl/flux-pro-1.1",
                   "vercel-gateway:bfl/flux-pro-1.1-ultra",
                   "vercel-gateway:bytedance/seed-1.6",
+                  "vercel-gateway:bytedance/seed-1.8",
                   "vercel-gateway:cohere/command-a",
                   "vercel-gateway:deepseek/deepseek-r1",
                   "vercel-gateway:deepseek/deepseek-v3",
@@ -19909,6 +19551,7 @@
                   "vercel-gateway:openai/gpt-5.1-thinking",
                   "vercel-gateway:openai/gpt-5.2",
                   "vercel-gateway:openai/gpt-5.2-chat",
+                  "vercel-gateway:openai/gpt-5.2-codex",
                   "vercel-gateway:openai/gpt-5.2-pro",
                   "vercel-gateway:openai/gpt-oss-120b",
                   "vercel-gateway:openai/gpt-oss-20b",
@@ -19924,6 +19567,8 @@
                   "vercel-gateway:perplexity/sonar-reasoning",
                   "vercel-gateway:perplexity/sonar-reasoning-pro",
                   "vercel-gateway:prime-intellect/intellect-3",
+                  "vercel-gateway:recraft/recraft-v2",
+                  "vercel-gateway:recraft/recraft-v3",
                   "vercel-gateway:stealth/sonoma-dusk-alpha",
                   "vercel-gateway:stealth/sonoma-sky-alpha",
                   "vercel-gateway:vercel/v0-1.0-md",
@@ -20237,11 +19882,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -20722,61 +20373,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "fast-agent",
@@ -22306,11 +21907,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -22791,61 +22398,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "Automatically accept all actions.",
+          "title": "Auto Approve",
+          "type": "boolean"
         },
         "provider": {
           "const": "gemini",
@@ -22893,12 +22450,6 @@
           "default": false,
           "description": "Run in sandbox mode.",
           "title": "Sandbox",
-          "type": "boolean"
-        },
-        "auto_approve": {
-          "default": false,
-          "description": "Automatically accept all actions.",
-          "title": "Auto Approve",
           "type": "boolean"
         },
         "allowed_tools": {
@@ -23055,7 +22606,6 @@
             "gemini-2.5-computer-use-preview-10-2025",
             "gemini-2.5-flash",
             "gemini-2.5-flash-image",
-            "gemini-2.5-flash-image-preview",
             "gemini-2.5-flash-lite",
             "gemini-2.5-flash-lite-preview-09-2025",
             "gemini-2.5-flash-native-audio-latest",
@@ -24088,11 +23638,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -24573,61 +24129,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "goose",
@@ -26654,11 +26160,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -27139,61 +26651,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "Automatically approve all actions.",
+          "title": "Auto Approve",
+          "type": "boolean"
         },
         "provider": {
           "const": "kimi",
@@ -27252,12 +26714,6 @@
             "string",
             "null"
           ]
-        },
-        "auto_approve": {
-          "default": false,
-          "description": "Automatically approve all actions.",
-          "title": "Auto Approve",
-          "type": "boolean"
         },
         "thinking": {
           "default": null,
@@ -30049,11 +29505,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -30534,61 +29996,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "mistral",
@@ -31559,7 +30971,6 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6",
                 "cerebras:zai-glm-4.7"
               ],
               "type": "string"
@@ -31599,6 +31010,7 @@
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
                 "copilot:gpt-5.2",
+                "copilot:gpt-5.2-codex",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -31625,7 +31037,6 @@
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
-                "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
                 "gemini:gemini-2.5-flash-native-audio-latest",
@@ -31732,6 +31143,7 @@
                 "github:gpt-5.1-codex",
                 "github:gpt-5.1-codex-max",
                 "github:gpt-5.1-codex-mini",
+                "github:gpt-5.2-codex",
                 "github:gpt-image-1",
                 "github:gpt-image-1-mini",
                 "github:gpt-image-1.5",
@@ -31852,6 +31264,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-codex",
                 "openai:gpt-5.2-pro"
               ],
               "type": "string"
@@ -31877,9 +31290,7 @@
                 "openrouter:arcee-ai/trinity-mini:free",
                 "openrouter:baidu/ernie-4.5-21b-a3b",
                 "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                "openrouter:baidu/ernie-4.5-300b-a47b",
                 "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                "openrouter:baidu/ernie-4.5-vl-424b-a47b",
                 "openrouter:bytedance-seed/seed-1.6",
                 "openrouter:bytedance-seed/seed-1.6-flash",
                 "openrouter:bytedance/ui-tars-1.5-7b",
@@ -31896,7 +31307,6 @@
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
                 "openrouter:google/gemini-2.5-flash-image",
-                "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
@@ -31905,7 +31315,6 @@
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
-                "openrouter:inception/mercury",
                 "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
@@ -31957,6 +31366,7 @@
                 "openrouter:openai/gpt-5.1-codex-mini",
                 "openrouter:openai/gpt-5.2",
                 "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-codex",
                 "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
@@ -31984,6 +31394,7 @@
                 "openrouter:qwen/qwen3-coder:free",
                 "openrouter:qwen/qwen3-max",
                 "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
                 "openrouter:qwen/qwen3-next-80b-a3b-thinking",
                 "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
                 "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
@@ -31998,7 +31409,6 @@
                 "openrouter:switchpoint/router",
                 "openrouter:tencent/hunyuan-a13b-instruct",
                 "openrouter:thedrummer/cydonia-24b-v4.1",
-                "openrouter:thudm/glm-4.1v-9b-thinking",
                 "openrouter:tngtech/deepseek-r1t2-chimera",
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
@@ -32007,6 +31417,7 @@
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
                 "openrouter:x-ai/grok-code-fast-1",
+                "openrouter:xiaomi/mimo-v2-flash",
                 "openrouter:xiaomi/mimo-v2-flash:free",
                 "openrouter:z-ai/glm-4-32b",
                 "openrouter:z-ai/glm-4.5",
@@ -32147,6 +31558,7 @@
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
                 "vercel-gateway:bytedance/seed-1.6",
+                "vercel-gateway:bytedance/seed-1.8",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -32234,6 +31646,7 @@
                 "vercel-gateway:openai/gpt-5.1-thinking",
                 "vercel-gateway:openai/gpt-5.2",
                 "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-codex",
                 "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
@@ -32249,6 +31662,8 @@
                 "vercel-gateway:perplexity/sonar-reasoning",
                 "vercel-gateway:perplexity/sonar-reasoning-pro",
                 "vercel-gateway:prime-intellect/intellect-3",
+                "vercel-gateway:recraft/recraft-v2",
+                "vercel-gateway:recraft/recraft-v3",
                 "vercel-gateway:stealth/sonoma-dusk-alpha",
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
@@ -33432,6 +32847,7 @@
             "gpt-5.1-codex-mini",
             "gpt-5.2",
             "gpt-5.2-chat-latest",
+            "gpt-5.2-codex",
             "gpt-5.2-pro"
           ],
           "examples": [
@@ -34367,11 +33783,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -34852,61 +34274,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "opencode",
@@ -35255,11 +34627,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -35740,61 +35118,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "openhands",
@@ -35840,9 +35168,7 @@
             "arcee-ai/trinity-mini:free",
             "baidu/ernie-4.5-21b-a3b",
             "baidu/ernie-4.5-21b-a3b-thinking",
-            "baidu/ernie-4.5-300b-a47b",
             "baidu/ernie-4.5-vl-28b-a3b",
-            "baidu/ernie-4.5-vl-424b-a47b",
             "bytedance-seed/seed-1.6",
             "bytedance-seed/seed-1.6-flash",
             "bytedance/ui-tars-1.5-7b",
@@ -35859,7 +35185,6 @@
             "deepseek/deepseek-v3.2-speciale",
             "essentialai/rnj-1-instruct",
             "google/gemini-2.5-flash-image",
-            "google/gemini-2.5-flash-image-preview",
             "google/gemini-2.5-flash-lite",
             "google/gemini-2.5-flash-lite-preview-09-2025",
             "google/gemini-2.5-flash-preview-09-2025",
@@ -35868,7 +35193,6 @@
             "google/gemini-3-pro-preview",
             "google/gemma-3n-e2b-it:free",
             "ibm-granite/granite-4.0-h-micro",
-            "inception/mercury",
             "kwaipilot/kat-coder-pro",
             "liquid/lfm-2.2-6b",
             "liquid/lfm2-8b-a1b",
@@ -35920,6 +35244,7 @@
             "openai/gpt-5.1-codex-mini",
             "openai/gpt-5.2",
             "openai/gpt-5.2-chat",
+            "openai/gpt-5.2-codex",
             "openai/gpt-5.2-pro",
             "openai/gpt-oss-120b",
             "openai/gpt-oss-120b:exacto",
@@ -35947,6 +35272,7 @@
             "qwen/qwen3-coder:free",
             "qwen/qwen3-max",
             "qwen/qwen3-next-80b-a3b-instruct",
+            "qwen/qwen3-next-80b-a3b-instruct:free",
             "qwen/qwen3-next-80b-a3b-thinking",
             "qwen/qwen3-vl-235b-a22b-instruct",
             "qwen/qwen3-vl-235b-a22b-thinking",
@@ -35961,7 +35287,6 @@
             "switchpoint/router",
             "tencent/hunyuan-a13b-instruct",
             "thedrummer/cydonia-24b-v4.1",
-            "thudm/glm-4.1v-9b-thinking",
             "tngtech/deepseek-r1t2-chimera",
             "tngtech/deepseek-r1t2-chimera:free",
             "tngtech/tng-r1t-chimera",
@@ -35970,6 +35295,7 @@
             "x-ai/grok-4-fast",
             "x-ai/grok-4.1-fast",
             "x-ai/grok-code-fast-1",
+            "xiaomi/mimo-v2-flash",
             "xiaomi/mimo-v2-flash:free",
             "z-ai/glm-4-32b",
             "z-ai/glm-4.5",
@@ -36541,7 +35867,6 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6",
                 "cerebras:zai-glm-4.7"
               ],
               "type": "string"
@@ -36581,6 +35906,7 @@
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
                 "copilot:gpt-5.2",
+                "copilot:gpt-5.2-codex",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -36607,7 +35933,6 @@
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
-                "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
                 "gemini:gemini-2.5-flash-native-audio-latest",
@@ -36714,6 +36039,7 @@
                 "github:gpt-5.1-codex",
                 "github:gpt-5.1-codex-max",
                 "github:gpt-5.1-codex-mini",
+                "github:gpt-5.2-codex",
                 "github:gpt-image-1",
                 "github:gpt-image-1-mini",
                 "github:gpt-image-1.5",
@@ -36834,6 +36160,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-codex",
                 "openai:gpt-5.2-pro"
               ],
               "type": "string"
@@ -36859,9 +36186,7 @@
                 "openrouter:arcee-ai/trinity-mini:free",
                 "openrouter:baidu/ernie-4.5-21b-a3b",
                 "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                "openrouter:baidu/ernie-4.5-300b-a47b",
                 "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                "openrouter:baidu/ernie-4.5-vl-424b-a47b",
                 "openrouter:bytedance-seed/seed-1.6",
                 "openrouter:bytedance-seed/seed-1.6-flash",
                 "openrouter:bytedance/ui-tars-1.5-7b",
@@ -36878,7 +36203,6 @@
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
                 "openrouter:google/gemini-2.5-flash-image",
-                "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
@@ -36887,7 +36211,6 @@
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
-                "openrouter:inception/mercury",
                 "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
@@ -36939,6 +36262,7 @@
                 "openrouter:openai/gpt-5.1-codex-mini",
                 "openrouter:openai/gpt-5.2",
                 "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-codex",
                 "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
@@ -36966,6 +36290,7 @@
                 "openrouter:qwen/qwen3-coder:free",
                 "openrouter:qwen/qwen3-max",
                 "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
                 "openrouter:qwen/qwen3-next-80b-a3b-thinking",
                 "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
                 "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
@@ -36980,7 +36305,6 @@
                 "openrouter:switchpoint/router",
                 "openrouter:tencent/hunyuan-a13b-instruct",
                 "openrouter:thedrummer/cydonia-24b-v4.1",
-                "openrouter:thudm/glm-4.1v-9b-thinking",
                 "openrouter:tngtech/deepseek-r1t2-chimera",
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
@@ -36989,6 +36313,7 @@
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
                 "openrouter:x-ai/grok-code-fast-1",
+                "openrouter:xiaomi/mimo-v2-flash",
                 "openrouter:xiaomi/mimo-v2-flash:free",
                 "openrouter:z-ai/glm-4-32b",
                 "openrouter:z-ai/glm-4.5",
@@ -37129,6 +36454,7 @@
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
                 "vercel-gateway:bytedance/seed-1.6",
+                "vercel-gateway:bytedance/seed-1.8",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -37216,6 +36542,7 @@
                 "vercel-gateway:openai/gpt-5.1-thinking",
                 "vercel-gateway:openai/gpt-5.2",
                 "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-codex",
                 "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
@@ -37231,6 +36558,8 @@
                 "vercel-gateway:perplexity/sonar-reasoning",
                 "vercel-gateway:perplexity/sonar-reasoning-pro",
                 "vercel-gateway:prime-intellect/intellect-3",
+                "vercel-gateway:recraft/recraft-v2",
+                "vercel-gateway:recraft/recraft-v3",
                 "vercel-gateway:stealth/sonoma-dusk-alpha",
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
@@ -40908,11 +40237,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -41393,61 +40728,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "If True, automatically approve all permission requests from the remote agent.",
+          "title": "Auto-approve permissions",
+          "type": "boolean"
         },
         "provider": {
           "const": "stakpak",
@@ -42138,7 +41423,6 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6",
                 "cerebras:zai-glm-4.7"
               ],
               "type": "string"
@@ -42178,6 +41462,7 @@
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
                 "copilot:gpt-5.2",
+                "copilot:gpt-5.2-codex",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -42204,7 +41489,6 @@
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
-                "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
                 "gemini:gemini-2.5-flash-native-audio-latest",
@@ -42311,6 +41595,7 @@
                 "github:gpt-5.1-codex",
                 "github:gpt-5.1-codex-max",
                 "github:gpt-5.1-codex-mini",
+                "github:gpt-5.2-codex",
                 "github:gpt-image-1",
                 "github:gpt-image-1-mini",
                 "github:gpt-image-1.5",
@@ -42431,6 +41716,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-codex",
                 "openai:gpt-5.2-pro"
               ],
               "type": "string"
@@ -42456,9 +41742,7 @@
                 "openrouter:arcee-ai/trinity-mini:free",
                 "openrouter:baidu/ernie-4.5-21b-a3b",
                 "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                "openrouter:baidu/ernie-4.5-300b-a47b",
                 "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                "openrouter:baidu/ernie-4.5-vl-424b-a47b",
                 "openrouter:bytedance-seed/seed-1.6",
                 "openrouter:bytedance-seed/seed-1.6-flash",
                 "openrouter:bytedance/ui-tars-1.5-7b",
@@ -42475,7 +41759,6 @@
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
                 "openrouter:google/gemini-2.5-flash-image",
-                "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
@@ -42484,7 +41767,6 @@
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
-                "openrouter:inception/mercury",
                 "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
@@ -42536,6 +41818,7 @@
                 "openrouter:openai/gpt-5.1-codex-mini",
                 "openrouter:openai/gpt-5.2",
                 "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-codex",
                 "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
@@ -42563,6 +41846,7 @@
                 "openrouter:qwen/qwen3-coder:free",
                 "openrouter:qwen/qwen3-max",
                 "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
                 "openrouter:qwen/qwen3-next-80b-a3b-thinking",
                 "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
                 "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
@@ -42577,7 +41861,6 @@
                 "openrouter:switchpoint/router",
                 "openrouter:tencent/hunyuan-a13b-instruct",
                 "openrouter:thedrummer/cydonia-24b-v4.1",
-                "openrouter:thudm/glm-4.1v-9b-thinking",
                 "openrouter:tngtech/deepseek-r1t2-chimera",
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
@@ -42586,6 +41869,7 @@
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
                 "openrouter:x-ai/grok-code-fast-1",
+                "openrouter:xiaomi/mimo-v2-flash",
                 "openrouter:xiaomi/mimo-v2-flash:free",
                 "openrouter:z-ai/glm-4-32b",
                 "openrouter:z-ai/glm-4.5",
@@ -42726,6 +42010,7 @@
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
                 "vercel-gateway:bytedance/seed-1.6",
+                "vercel-gateway:bytedance/seed-1.8",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -42813,6 +42098,7 @@
                 "vercel-gateway:openai/gpt-5.1-thinking",
                 "vercel-gateway:openai/gpt-5.2",
                 "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-codex",
                 "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
@@ -42828,6 +42114,8 @@
                 "vercel-gateway:perplexity/sonar-reasoning",
                 "vercel-gateway:perplexity/sonar-reasoning-pro",
                 "vercel-gateway:prime-intellect/intellect-3",
+                "vercel-gateway:recraft/recraft-v2",
+                "vercel-gateway:recraft/recraft-v3",
                 "vercel-gateway:stealth/sonoma-dusk-alpha",
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
@@ -43101,7 +42389,6 @@
               "enum": [
                 "cerebras:gpt-oss-120b",
                 "cerebras:qwen-3-235b-a22b-instruct-2507",
-                "cerebras:zai-glm-4.6",
                 "cerebras:zai-glm-4.7"
               ],
               "type": "string"
@@ -43141,6 +42428,7 @@
                 "copilot:gpt-5.1-codex-max",
                 "copilot:gpt-5.1-codex-mini",
                 "copilot:gpt-5.2",
+                "copilot:gpt-5.2-codex",
                 "copilot:grok-code-fast-1",
                 "copilot:oswe-vscode-prime"
               ],
@@ -43167,7 +42455,6 @@
                 "gemini:gemini-2.5-computer-use-preview-10-2025",
                 "gemini:gemini-2.5-flash",
                 "gemini:gemini-2.5-flash-image",
-                "gemini:gemini-2.5-flash-image-preview",
                 "gemini:gemini-2.5-flash-lite",
                 "gemini:gemini-2.5-flash-lite-preview-09-2025",
                 "gemini:gemini-2.5-flash-native-audio-latest",
@@ -43274,6 +42561,7 @@
                 "github:gpt-5.1-codex",
                 "github:gpt-5.1-codex-max",
                 "github:gpt-5.1-codex-mini",
+                "github:gpt-5.2-codex",
                 "github:gpt-image-1",
                 "github:gpt-image-1-mini",
                 "github:gpt-image-1.5",
@@ -43394,6 +42682,7 @@
                 "openai:gpt-5.1-codex-mini",
                 "openai:gpt-5.2",
                 "openai:gpt-5.2-chat-latest",
+                "openai:gpt-5.2-codex",
                 "openai:gpt-5.2-pro"
               ],
               "type": "string"
@@ -43419,9 +42708,7 @@
                 "openrouter:arcee-ai/trinity-mini:free",
                 "openrouter:baidu/ernie-4.5-21b-a3b",
                 "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                "openrouter:baidu/ernie-4.5-300b-a47b",
                 "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                "openrouter:baidu/ernie-4.5-vl-424b-a47b",
                 "openrouter:bytedance-seed/seed-1.6",
                 "openrouter:bytedance-seed/seed-1.6-flash",
                 "openrouter:bytedance/ui-tars-1.5-7b",
@@ -43438,7 +42725,6 @@
                 "openrouter:deepseek/deepseek-v3.2-speciale",
                 "openrouter:essentialai/rnj-1-instruct",
                 "openrouter:google/gemini-2.5-flash-image",
-                "openrouter:google/gemini-2.5-flash-image-preview",
                 "openrouter:google/gemini-2.5-flash-lite",
                 "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                 "openrouter:google/gemini-2.5-flash-preview-09-2025",
@@ -43447,7 +42733,6 @@
                 "openrouter:google/gemini-3-pro-preview",
                 "openrouter:google/gemma-3n-e2b-it:free",
                 "openrouter:ibm-granite/granite-4.0-h-micro",
-                "openrouter:inception/mercury",
                 "openrouter:kwaipilot/kat-coder-pro",
                 "openrouter:liquid/lfm-2.2-6b",
                 "openrouter:liquid/lfm2-8b-a1b",
@@ -43499,6 +42784,7 @@
                 "openrouter:openai/gpt-5.1-codex-mini",
                 "openrouter:openai/gpt-5.2",
                 "openrouter:openai/gpt-5.2-chat",
+                "openrouter:openai/gpt-5.2-codex",
                 "openrouter:openai/gpt-5.2-pro",
                 "openrouter:openai/gpt-oss-120b",
                 "openrouter:openai/gpt-oss-120b:exacto",
@@ -43526,6 +42812,7 @@
                 "openrouter:qwen/qwen3-coder:free",
                 "openrouter:qwen/qwen3-max",
                 "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
                 "openrouter:qwen/qwen3-next-80b-a3b-thinking",
                 "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
                 "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
@@ -43540,7 +42827,6 @@
                 "openrouter:switchpoint/router",
                 "openrouter:tencent/hunyuan-a13b-instruct",
                 "openrouter:thedrummer/cydonia-24b-v4.1",
-                "openrouter:thudm/glm-4.1v-9b-thinking",
                 "openrouter:tngtech/deepseek-r1t2-chimera",
                 "openrouter:tngtech/deepseek-r1t2-chimera:free",
                 "openrouter:tngtech/tng-r1t-chimera",
@@ -43549,6 +42835,7 @@
                 "openrouter:x-ai/grok-4-fast",
                 "openrouter:x-ai/grok-4.1-fast",
                 "openrouter:x-ai/grok-code-fast-1",
+                "openrouter:xiaomi/mimo-v2-flash",
                 "openrouter:xiaomi/mimo-v2-flash:free",
                 "openrouter:z-ai/glm-4-32b",
                 "openrouter:z-ai/glm-4.5",
@@ -43689,6 +42976,7 @@
                 "vercel-gateway:bfl/flux-pro-1.1",
                 "vercel-gateway:bfl/flux-pro-1.1-ultra",
                 "vercel-gateway:bytedance/seed-1.6",
+                "vercel-gateway:bytedance/seed-1.8",
                 "vercel-gateway:cohere/command-a",
                 "vercel-gateway:deepseek/deepseek-r1",
                 "vercel-gateway:deepseek/deepseek-v3",
@@ -43776,6 +43064,7 @@
                 "vercel-gateway:openai/gpt-5.1-thinking",
                 "vercel-gateway:openai/gpt-5.2",
                 "vercel-gateway:openai/gpt-5.2-chat",
+                "vercel-gateway:openai/gpt-5.2-codex",
                 "vercel-gateway:openai/gpt-5.2-pro",
                 "vercel-gateway:openai/gpt-oss-120b",
                 "vercel-gateway:openai/gpt-oss-20b",
@@ -43791,6 +43080,8 @@
                 "vercel-gateway:perplexity/sonar-reasoning",
                 "vercel-gateway:perplexity/sonar-reasoning-pro",
                 "vercel-gateway:prime-intellect/intellect-3",
+                "vercel-gateway:recraft/recraft-v2",
+                "vercel-gateway:recraft/recraft-v3",
                 "vercel-gateway:stealth/sonoma-dusk-alpha",
                 "vercel-gateway:stealth/sonoma-sky-alpha",
                 "vercel-gateway:vercel/v0-1.0-md",
@@ -45684,7 +44975,6 @@
                 "enum": [
                   "cerebras:gpt-oss-120b",
                   "cerebras:qwen-3-235b-a22b-instruct-2507",
-                  "cerebras:zai-glm-4.6",
                   "cerebras:zai-glm-4.7"
                 ],
                 "type": "string"
@@ -45724,6 +45014,7 @@
                   "copilot:gpt-5.1-codex-max",
                   "copilot:gpt-5.1-codex-mini",
                   "copilot:gpt-5.2",
+                  "copilot:gpt-5.2-codex",
                   "copilot:grok-code-fast-1",
                   "copilot:oswe-vscode-prime"
                 ],
@@ -45750,7 +45041,6 @@
                   "gemini:gemini-2.5-computer-use-preview-10-2025",
                   "gemini:gemini-2.5-flash",
                   "gemini:gemini-2.5-flash-image",
-                  "gemini:gemini-2.5-flash-image-preview",
                   "gemini:gemini-2.5-flash-lite",
                   "gemini:gemini-2.5-flash-lite-preview-09-2025",
                   "gemini:gemini-2.5-flash-native-audio-latest",
@@ -45857,6 +45147,7 @@
                   "github:gpt-5.1-codex",
                   "github:gpt-5.1-codex-max",
                   "github:gpt-5.1-codex-mini",
+                  "github:gpt-5.2-codex",
                   "github:gpt-image-1",
                   "github:gpt-image-1-mini",
                   "github:gpt-image-1.5",
@@ -45977,6 +45268,7 @@
                   "openai:gpt-5.1-codex-mini",
                   "openai:gpt-5.2",
                   "openai:gpt-5.2-chat-latest",
+                  "openai:gpt-5.2-codex",
                   "openai:gpt-5.2-pro"
                 ],
                 "type": "string"
@@ -46002,9 +45294,7 @@
                   "openrouter:arcee-ai/trinity-mini:free",
                   "openrouter:baidu/ernie-4.5-21b-a3b",
                   "openrouter:baidu/ernie-4.5-21b-a3b-thinking",
-                  "openrouter:baidu/ernie-4.5-300b-a47b",
                   "openrouter:baidu/ernie-4.5-vl-28b-a3b",
-                  "openrouter:baidu/ernie-4.5-vl-424b-a47b",
                   "openrouter:bytedance-seed/seed-1.6",
                   "openrouter:bytedance-seed/seed-1.6-flash",
                   "openrouter:bytedance/ui-tars-1.5-7b",
@@ -46021,7 +45311,6 @@
                   "openrouter:deepseek/deepseek-v3.2-speciale",
                   "openrouter:essentialai/rnj-1-instruct",
                   "openrouter:google/gemini-2.5-flash-image",
-                  "openrouter:google/gemini-2.5-flash-image-preview",
                   "openrouter:google/gemini-2.5-flash-lite",
                   "openrouter:google/gemini-2.5-flash-lite-preview-09-2025",
                   "openrouter:google/gemini-2.5-flash-preview-09-2025",
@@ -46030,7 +45319,6 @@
                   "openrouter:google/gemini-3-pro-preview",
                   "openrouter:google/gemma-3n-e2b-it:free",
                   "openrouter:ibm-granite/granite-4.0-h-micro",
-                  "openrouter:inception/mercury",
                   "openrouter:kwaipilot/kat-coder-pro",
                   "openrouter:liquid/lfm-2.2-6b",
                   "openrouter:liquid/lfm2-8b-a1b",
@@ -46082,6 +45370,7 @@
                   "openrouter:openai/gpt-5.1-codex-mini",
                   "openrouter:openai/gpt-5.2",
                   "openrouter:openai/gpt-5.2-chat",
+                  "openrouter:openai/gpt-5.2-codex",
                   "openrouter:openai/gpt-5.2-pro",
                   "openrouter:openai/gpt-oss-120b",
                   "openrouter:openai/gpt-oss-120b:exacto",
@@ -46109,6 +45398,7 @@
                   "openrouter:qwen/qwen3-coder:free",
                   "openrouter:qwen/qwen3-max",
                   "openrouter:qwen/qwen3-next-80b-a3b-instruct",
+                  "openrouter:qwen/qwen3-next-80b-a3b-instruct:free",
                   "openrouter:qwen/qwen3-next-80b-a3b-thinking",
                   "openrouter:qwen/qwen3-vl-235b-a22b-instruct",
                   "openrouter:qwen/qwen3-vl-235b-a22b-thinking",
@@ -46123,7 +45413,6 @@
                   "openrouter:switchpoint/router",
                   "openrouter:tencent/hunyuan-a13b-instruct",
                   "openrouter:thedrummer/cydonia-24b-v4.1",
-                  "openrouter:thudm/glm-4.1v-9b-thinking",
                   "openrouter:tngtech/deepseek-r1t2-chimera",
                   "openrouter:tngtech/deepseek-r1t2-chimera:free",
                   "openrouter:tngtech/tng-r1t-chimera",
@@ -46132,6 +45421,7 @@
                   "openrouter:x-ai/grok-4-fast",
                   "openrouter:x-ai/grok-4.1-fast",
                   "openrouter:x-ai/grok-code-fast-1",
+                  "openrouter:xiaomi/mimo-v2-flash",
                   "openrouter:xiaomi/mimo-v2-flash:free",
                   "openrouter:z-ai/glm-4-32b",
                   "openrouter:z-ai/glm-4.5",
@@ -46272,6 +45562,7 @@
                   "vercel-gateway:bfl/flux-pro-1.1",
                   "vercel-gateway:bfl/flux-pro-1.1-ultra",
                   "vercel-gateway:bytedance/seed-1.6",
+                  "vercel-gateway:bytedance/seed-1.8",
                   "vercel-gateway:cohere/command-a",
                   "vercel-gateway:deepseek/deepseek-r1",
                   "vercel-gateway:deepseek/deepseek-v3",
@@ -46359,6 +45650,7 @@
                   "vercel-gateway:openai/gpt-5.1-thinking",
                   "vercel-gateway:openai/gpt-5.2",
                   "vercel-gateway:openai/gpt-5.2-chat",
+                  "vercel-gateway:openai/gpt-5.2-codex",
                   "vercel-gateway:openai/gpt-5.2-pro",
                   "vercel-gateway:openai/gpt-oss-120b",
                   "vercel-gateway:openai/gpt-oss-20b",
@@ -46374,6 +45666,8 @@
                   "vercel-gateway:perplexity/sonar-reasoning",
                   "vercel-gateway:perplexity/sonar-reasoning-pro",
                   "vercel-gateway:prime-intellect/intellect-3",
+                  "vercel-gateway:recraft/recraft-v2",
+                  "vercel-gateway:recraft/recraft-v3",
                   "vercel-gateway:stealth/sonoma-dusk-alpha",
                   "vercel-gateway:stealth/sonoma-sky-alpha",
                   "vercel-gateway:vercel/v0-1.0-md",
@@ -46749,11 +46043,17 @@
           "type": "array"
         },
         "requires_tool_confirmation": {
-          "default": "always",
-          "description": "Whether to automatically grant all permission requests.",
+          "default": "per_tool",
+          "description": "How to handle tool confirmation:\n- \"always\": Always require confirmation for all tools\n- \"never\": Never require confirmation (ignore tool settings)\n- \"per_tool\": Use individual tool settings",
           "enum": [
+            "always",
             "never",
-            "always"
+            "per_tool"
+          ],
+          "examples": [
+            "always",
+            "never",
+            "per_tool"
           ],
           "title": "Tool confirmation mode",
           "type": "string"
@@ -47234,61 +46534,11 @@
           "title": "Allow Terminal",
           "type": "boolean"
         },
-        "system_prompt": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "discriminator": {
-                      "mapping": {
-                        "file": "#/$defs/FilePromptConfig",
-                        "function": "#/$defs/FunctionPromptConfig",
-                        "library": "#/$defs/LibraryPromptConfig",
-                        "static": "#/$defs/StaticPromptConfig"
-                      },
-                      "propertyName": "type"
-                    },
-                    "oneOf": [
-                      {
-                        "$ref": "#/$defs/StaticPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FilePromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/LibraryPromptConfig"
-                      },
-                      {
-                        "$ref": "#/$defs/FunctionPromptConfig"
-                      }
-                    ]
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nSupport varies by agent:\n- Claude: passed via --system-prompt\n- Auggie: passed via --instruction-file\n- Stakpak: passed via --system-prompt-file\n- Others: may not support system prompts\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
-          "examples": [
-            "You are a helpful coding assistant.",
-            [
-              "Always write tests.",
-              "Focus on Python."
-            ]
-          ],
-          "title": "System Prompt"
+        "auto_approve": {
+          "default": false,
+          "description": "Skip safety confirmations.",
+          "title": "Auto Approve",
+          "type": "boolean"
         },
         "provider": {
           "const": "vtcode",
@@ -47459,12 +46709,6 @@
             "string",
             "null"
           ]
-        },
-        "auto_approve": {
-          "default": false,
-          "description": "Skip safety confirmations.",
-          "title": "Auto Approve",
-          "type": "boolean"
         },
         "full_auto": {
           "default": false,
