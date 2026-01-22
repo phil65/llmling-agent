@@ -270,7 +270,7 @@ class AgentPoolACPAgent(ACPAgent):
         update = SessionInfoUpdate(session_id=event.session_id, title=event.title)
         notification = SessionNotification(session_id=event.session_id, update=update)
         try:
-            await session.client.session_update(notification)
+            await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
             logger.info(
                 "Sent session info update",
                 session_id=event.session_id,
@@ -416,17 +416,17 @@ class AgentPoolACPAgent(ACPAgent):
                     )
 
             # Build response with agent state
+            from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
+
             mode_state: SessionModeState | None = None
             models: SessionModelState | None = None
-            if hasattr(self.default_agent, "_state") and self.default_agent._state:
+            if isinstance(self.default_agent, ACPAgentClient) and self.default_agent._state:
                 mode_state = self.default_agent._state.modes
                 models = self.default_agent._state.models
             config_opts = await get_session_config_options(self.default_agent)
-
             # Schedule post-load tasks
             self.tasks.create_task(session.send_available_commands_update())
             self.tasks.create_task(session.agent.load_rules(session.cwd))
-
             logger.info("Session loaded", session_id=params.session_id)
             return LoadSessionResponse(models=models, modes=mode_state, config_options=config_opts)
 
@@ -449,16 +449,12 @@ class AgentPoolACPAgent(ACPAgent):
             for session in self.session_manager._active.values():
                 agent = session.agent
                 break
-
-            if agent is None:
-                # No active session, use default agent
-                agent = self.default_agent
-
+            # No active session, use default agent
+            agent = agent or self.default_agent
             # Delegate to agent's list_sessions
             logger.info("Listing sessions for agent", agent_name=agent.name)
             agent_sessions = await agent.list_sessions()
             logger.info("Agent returned sessions", count=len(agent_sessions))
-
             # Convert to ACP SessionInfo
             # TODO: Re-enable cwd filter once session storage is unified
             sessions = [
