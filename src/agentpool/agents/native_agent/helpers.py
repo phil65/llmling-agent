@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import (
     BaseToolCallPart,
+    BaseToolReturnPart,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
     ModelResponse,
     PartStartEvent,
     TextPart,
-    ToolReturnPart,
 )
 
 from agentpool.agents.events import ToolCallCompleteEvent
@@ -43,20 +43,26 @@ def process_tool_event(
     Returns:
         ToolCallCompleteEvent if a tool call completed, None otherwise
     """
+    # Note: BuiltinToolCallEvent/BuiltinToolResultEvent are deprecated.
+    # Both function and builtin tools use PartStartEvent with BaseToolCallPart/BaseToolReturnPart.
     match event:
-        case PartStartEvent(part=BaseToolCallPart() as tool_part):
+        case (
+            PartStartEvent(part=BaseToolCallPart() as tool_part)
+            | FunctionToolCallEvent(part=tool_part)
+        ):
             pending_tool_calls[tool_part.tool_call_id] = tool_part
-        case FunctionToolCallEvent(part=tool_part):
-            pending_tool_calls[tool_part.tool_call_id] = tool_part
-        case FunctionToolResultEvent(tool_call_id=call_id) as result_event:
+        case (
+            PartStartEvent(part=BaseToolReturnPart(tool_call_id=call_id, content=content))
+            | FunctionToolResultEvent(
+                result=BaseToolReturnPart(tool_call_id=call_id, content=content)
+            )
+        ):
             if call_info := pending_tool_calls.pop(call_id, None):
                 return ToolCallCompleteEvent(
                     tool_name=call_info.tool_name,
                     tool_call_id=call_id,
                     tool_input=safe_args_as_dict(call_info),
-                    tool_result=result_event.result.content
-                    if isinstance(result_event.result, ToolReturnPart)
-                    else result_event.result,
+                    tool_result=content,
                     agent_name=agent_name,
                     message_id=message_id,
                 )
