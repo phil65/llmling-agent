@@ -997,7 +997,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         tool_metadata: dict[str, dict[str, Any]] = {}
         # Handle ephemeral execution (fork session if store_history=False)
         fork_client = None
-        active_client = self._client
+        client = self._client
 
         if not store_history and self._sdk_session_id:
             # Create fork client that shares parent's context but has separate session ID
@@ -1010,19 +1010,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
             fork_client = ClaudeSDKClient(options=fork_options)
             await fork_client.connect()
-            active_client = fork_client
+            client = fork_client
 
         # Set deps/input_provider on tool bridge (ContextVar doesn't work - separate task)
         try:
-            await active_client.query(prompt_text)
+            await client.query(prompt_text)
             # Merge SDK messages with event queue for real-time tool event streaming
             async with (
                 self._tool_bridge.set_run_context(deps, input_provider, prompt=prompts),
-                merge_queue_into_iterator(
-                    active_client.receive_response(), self._event_queue
-                ) as merged_events,
+                merge_queue_into_iterator(client.receive_response(), self._event_queue) as events,
             ):
-                async for event_or_message in merged_events:
+                async for event_or_message in events:
                     # Check if it's a queued event (from tools via EventEmitter)
                     if not isinstance(event_or_message, Message):
                         # Capture metadata events for correlation with tool results
@@ -1276,12 +1274,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     # Convert to events and yield
                     # (skip AssistantMessage - already streamed via StreamEvent)
                     if not isinstance(message, AssistantMessage):
-                        events = claude_message_to_events(
+                        for event in claude_message_to_events(
                             message,
                             agent_name=self.name,
                             pending_tool_calls={},  # Already handled above
-                        )
-                        for event in events:
+                        ):
                             await event_handlers(None, event)
                             yield event
 
