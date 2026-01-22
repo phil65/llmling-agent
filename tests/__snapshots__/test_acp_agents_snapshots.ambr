@@ -16,84 +16,66 @@
    streams, enabling your agents to work with desktop applications that support   
    the Agent Client Protocol.                                                     
                                                                                   
-   Configuration:                                                                 
-   Config file is optional. Without a config file, creates a general-purpose      
-   agent with default settings. This is useful for clients/installers that        
-   start agents directly without configuration support.                           
+   Configuration Layers (merged in order, later overrides earlier):               
+                                                                                  
+   1. Global config - ~/.config/agentpool/agentpool.yml for user preferences      
+   2. Custom config - AGENTPOOL_CONFIG env var for CI/deployment overrides        
+   3. Project config - agentpool.yml in project/git root for project-specific     
+   settings                                                                       
+   4. Explicit config - CLI argument (highest precedence)                         
+   5. Built-in fallback - Only used if no agents defined in any layer             
                                                                                   
    Agent Selection:                                                               
    Use --agent to specify which agent to use by name. Without this option,        
    the pool's default agent is used (set via 'default_agent' in config,           
    or falls back to the first agent).                                             
                                                                                   
-   Agent Mode Switching:                                                          
-   If your config defines multiple agents, the IDE will show a mode selector      
-   allowing users to switch between agents mid-conversation. Each agent appears   
-   as a different "mode" with its own name and capabilities.                      
-                                                                                  
   ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
   │   config      [CONFIG]  Path to agent configuration (optional)               │
   ╰──────────────────────────────────────────────────────────────────────────────╯
   ╭─ Options ────────────────────────────────────────────────────────────────────╮
-  │ --file-access          --no-file-acce…                      Enable file      │
-  │                                                             system access    │
-  │                                                             for agents       │
-  │                                                             [default:        │
-  │                                                             file-access]     │
-  │ --terminal-access      --no-terminal-…                      Enable terminal  │
-  │                                                             access for       │
-  │                                                             agents           │
-  │                                                             [default:        │
-  │                                                             terminal-access] │
-  │ --show-messages                                             Show message     │
-  │                                                             activity in logs │
-  │ --debug-messages                                            Save raw         │
-  │                                                             JSON-RPC         │
-  │                                                             messages to      │
-  │                                                             debug file       │
-  │ --debug-file                              TEXT              File to save     │
-  │                                                             JSON-RPC debug   │
-  │                                                             messages         │
-  │                                                             (default:        │
-  │                                                             acp-debug.jsonl) │
-  │ --debug-commands                                            Enable debug     │
-  │                                                             slash commands   │
-  │                                                             for testing ACP  │
-  │                                                             notifications    │
-  │ --agent                                   TEXT              Name of specific │
-  │                                                             agent to use     │
-  │                                                             (defaults to     │
-  │                                                             pool's default   │
-  │                                                             agent)           │
-  │ --skills               --no-skills                          Load client-side │
-  │                                                             skills from      │
-  │                                                             .claude/skills   │
-  │                                                             directory        │
-  │                                                             [default:        │
-  │                                                             skills]          │
-  │ --transport        -t                     [stdio|websocket  Transport type:  │
-  │                                           ]                 stdio (default)  │
-  │                                                             or websocket     │
-  │                                                             [default: stdio] │
-  │ --ws-host                                 TEXT              WebSocket host   │
-  │                                                             (only used with  │
-  │                                                             --transport      │
-  │                                                             websocket)       │
-  │                                                             [default:        │
-  │                                                             localhost]       │
-  │ --ws-port                                 INTEGER           WebSocket port   │
-  │                                                             (only used with  │
-  │                                                             --transport      │
-  │                                                             websocket)       │
-  │                                                             [default: 8765]  │
-  │ --mcp-config                              TEXT              MCP servers      │
-  │                                                             configuration as │
-  │                                                             JSON (format:    │
-  │                                                             {"mcpServers":   │
-  │                                                             {...}})          │
-  │ --help                                                      Show this        │
-  │                                                             message and      │
-  │                                                             exit.            │
+  │ --show-messages                                         Show message         │
+  │                                                         activity in logs     │
+  │ --debug-messages                                        Save raw JSON-RPC    │
+  │                                                         messages to debug    │
+  │                                                         file                 │
+  │ --debug-file                         TEXT               File to save         │
+  │                                                         JSON-RPC debug       │
+  │                                                         messages (default:   │
+  │                                                         acp-debug.jsonl)     │
+  │ --debug-commands                                        Enable debug slash   │
+  │                                                         commands for testing │
+  │                                                         ACP notifications    │
+  │ --agent                              TEXT               Name of specific     │
+  │                                                         agent to use         │
+  │                                                         (defaults to pool's  │
+  │                                                         default agent)       │
+  │ --skills              --no-skills                       Load client-side     │
+  │                                                         skills from          │
+  │                                                         .claude/skills       │
+  │                                                         directory            │
+  │                                                         [default: skills]    │
+  │ --transport       -t                 [stdio|websocket]  Transport type:      │
+  │                                                         stdio (default) or   │
+  │                                                         websocket            │
+  │                                                         [default: stdio]     │
+  │ --ws-host                            TEXT               WebSocket host (only │
+  │                                                         used with            │
+  │                                                         --transport          │
+  │                                                         websocket)           │
+  │                                                         [default: localhost] │
+  │ --ws-port                            INTEGER            WebSocket port (only │
+  │                                                         used with            │
+  │                                                         --transport          │
+  │                                                         websocket)           │
+  │                                                         [default: 8765]      │
+  │ --mcp-config                         TEXT               MCP servers          │
+  │                                                         configuration as     │
+  │                                                         JSON (format:        │
+  │                                                         {"mcpServers":       │
+  │                                                         {...}})              │
+  │ --help                                                  Show this message    │
+  │                                                         and exit.            │
   ╰──────────────────────────────────────────────────────────────────────────────╯
   '''
 # ---
@@ -333,6 +315,7 @@
     gemini [query..]             Launch Gemini CLI  [default]
     gemini mcp                   Manage MCP servers
     gemini extensions <command>  Manage Gemini CLI extensions.  [aliases: extension]
+    gemini hooks <command>       Manage Gemini CLI hooks.  [aliases: hook]
   
   Positionals:
     query  Positional prompt. Defaults to one-shot; use -i/--prompt-interactive for interactive.
