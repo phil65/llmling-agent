@@ -22,6 +22,14 @@ Most commands will use the currently active agent file by default, but can be ov
 
 ## Available Commands
 
+### Configuration
+
+| Command | Description |
+|---------|-------------|
+| `config show` | Show configuration resolution status and merged result |
+| `config paths` | Show standard configuration file locations |
+| `config init` | Create a starter configuration file |
+
 ### Agent Management
 
 | Command | Description |
@@ -57,6 +65,22 @@ Most commands will use the currently active agent file by default, but can be ov
 | `history reset` | Reset (clear) conversation history |
 
 ## Quick Start
+
+### Option 1: Automatic Config Discovery
+
+AgentPool automatically discovers config files. Just create `agentpool.yml` in your project:
+
+```bash
+# Create a starter config
+agentpool config init
+
+# Edit the config, then run
+agentpool run myagent "Hello"
+```
+
+### Option 2: Named Configurations
+
+For managing multiple config files:
 
 1. Add and activate an agent configuration:
 
