@@ -148,12 +148,12 @@ class ACPViaACPHarness:
         # Extract mock environment from first tool (all should have same env)
         mock_env = None
         for tool in tools:
-            if hasattr(tool, "environment") and tool.environment:
-                mock_env = tool.environment
+            if hasattr(tool, "environment") and (env := tool.environment):  # pyright: ignore[reportAttributeAccessIssue]
+                mock_env = env
                 break
         if not mock_env:
             # Default mock env with deterministic IDs
-            from exxec.mock_provider import MockExecutionEnvironmentConfig
+            from exxec_config import MockExecutionEnvironmentConfig
 
             mock_env = MockExecutionEnvironmentConfig(deterministic_ids=True)
 
