@@ -67,7 +67,7 @@ class CreateAgentCommand(NodeCommand):
             tools: Optional pipe-separated list of tools (by import path)
         """
         try:
-            if not ctx.context.pool:
+            if ctx.context.pool is None:
                 raise CommandError("No agent pool available")
 
             # Get model from args or current agent
@@ -116,7 +116,7 @@ class ShowAgentCommand(NodeCommand):
         """
         import yamling
 
-        if not ctx.context.pool:
+        if ctx.context.pool is None:
             raise ValueError("No pool found")
         manifest = ctx.context.pool.manifest
         config = manifest.agents.get(ctx.context.node_name)
@@ -155,7 +155,7 @@ class ListAgentsCommand(NodeCommand):
         Args:
             ctx: Command context
         """
-        if not ctx.context.pool:
+        if ctx.context.pool is None:
             raise CommandError("No agent pool available")
 
         rows = []
@@ -234,7 +234,7 @@ class CreateTeamCommand(NodeCommand):
             nodes: Names of agents/teams to include
             mode: How the team operates (sequential or parallel)
         """
-        if not ctx.context.pool:
+        if ctx.context.pool is None:
             raise CommandError("No agent pool available")
 
         if len(nodes) < 2:  # noqa: PLR2004

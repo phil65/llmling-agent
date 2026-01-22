@@ -28,20 +28,19 @@ def get_available_agents(
         ctx: Completion context
         agent_type: Filter by agent type ("native", "acp", "agui", "claude", or "all")
     """
-    if not ctx.command_context.context.pool:
-        return []
     pool = ctx.command_context.context.pool
+    if pool is None:
+        return []
 
     if agent_type == "all":
         return list(pool.all_agents.keys())
-
     # Filter by AGENT_TYPE attribute
     return [name for name, agent in pool.all_agents.items() if agent_type == agent.AGENT_TYPE]
 
 
 def get_available_nodes(ctx: CompletionContext[NodeContext[Any]]) -> list[str]:
     """Get available node names."""
-    if not ctx.command_context.context.pool:
+    if ctx.command_context.context.pool is None:
         return []
     return list(ctx.command_context.context.pool.nodes.keys())
 

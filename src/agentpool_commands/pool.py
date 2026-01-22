@@ -153,7 +153,7 @@ class CompactCommand(NodeCommand):
                         return
 
             # Fall back to pool's configured pipeline
-            if pipeline is None and ctx.context.pool:
+            if pipeline is None and ctx.context.pool is not None:
                 pipeline = ctx.context.pool.compaction_pipeline
 
             # Fall back to default summarizing pipeline

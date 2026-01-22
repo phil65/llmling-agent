@@ -42,7 +42,7 @@ class SearchHistoryCommand(NodeCommand):
             hours: Look back period in hours
             limit: Maximum results to return
         """
-        if not ctx.context.pool:
+        if ctx.context.pool is None:
             raise CommandError("No agent pool available for history search")
 
         try:

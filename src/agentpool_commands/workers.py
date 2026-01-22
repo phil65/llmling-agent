@@ -51,7 +51,7 @@ class AddWorkerCommand(AgentCommand):
             share_history: Pass current agent's message history
         """
         try:
-            if not ctx.context.pool:
+            if ctx.context.pool is None:
                 raise CommandError("No agent pool available")  # noqa: TRY301
 
             # Get worker agent from pool

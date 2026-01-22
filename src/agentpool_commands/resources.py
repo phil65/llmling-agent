@@ -43,7 +43,7 @@ class ListResourcesCommand(NodeCommand):
         Args:
             ctx: Command context
         """
-        if not ctx.context.pool:
+        if ctx.context.pool is None:
             raise ValueError("AgentPool instance not found")
 
         try:
@@ -107,7 +107,7 @@ class ShowResourceCommand(NodeCommand):
             name: Resource name to show
             **kwargs: Additional parameters for the resource
         """
-        if not ctx.context.pool:
+        if ctx.context.pool is None:
             raise ValueError("No pool available")
         try:
             fs = ctx.context.pool.vfs_registry.get_fs()
@@ -172,7 +172,7 @@ class AddResourceCommand(AgentCommand):
             pattern: Pattern for filtering files
             **kwargs: Additional parameters for the resource
         """
-        if not ctx.context.pool:
+        if ctx.context.pool is None:
             raise ValueError("No pool available")
         try:
             # Parse resource name and path
