@@ -92,7 +92,7 @@ def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None: 
             return RunErrorEvent(message=message, code=code)
 
         # === Text Message Events ===
-        case TextMessageContentEvent(delta=delta) | TextMessageChunkEvent(delta=delta) if delta:
+        case TextMessageContentEvent(delta=delta) | TextMessageChunkEvent(delta=str() as delta):
             return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=delta))
 
         case TextMessageStartEvent() | TextMessageEndEvent():
@@ -103,11 +103,13 @@ def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None: 
         case ThinkingTextMessageContentEvent(delta=delta):
             return PartDeltaEvent(index=0, delta=ThinkingPartDelta(content_delta=delta))
 
-        case ThinkingStartEvent() | ThinkingEndEvent():
+        case (
+            ThinkingStartEvent()
+            | ThinkingEndEvent()
+            | ThinkingTextMessageStartEvent()
+            | ThinkingTextMessageEndEvent()
+        ):
             # These mark thinking blocks but don't carry content
-            return None
-
-        case ThinkingTextMessageStartEvent() | ThinkingTextMessageEndEvent():
             return None
 
         # === Tool Call Events ===
@@ -118,20 +120,18 @@ def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None: 
         case ToolCallChunkEvent(tool_call_id=str() as tc_id, tool_call_name=str() as name):
             return NativeToolCallStartEvent(tool_call_id=tc_id, tool_name=name, title=name)
 
-        case ToolCallArgsEvent(tool_call_id=tool_call_id, delta=_):
-            return ToolCallProgressEvent(tool_call_id=tool_call_id, status="in_progress")
+        case ToolCallArgsEvent(tool_call_id=tc_id, delta=_):
+            return ToolCallProgressEvent(tool_call_id=tc_id, status="in_progress")
 
         case ToolCallResultEvent(tool_call_id=tc_id, content=content, message_id=_):
             return ToolCallProgressEvent(tool_call_id=tc_id, status="completed", message=content)
 
-        case ToolCallEndEvent(tool_call_id=tool_call_id):
-            return ToolCallProgressEvent(tool_call_id=tool_call_id, status="completed")
+        case ToolCallEndEvent(tool_call_id=tc_id):
+            return ToolCallProgressEvent(tool_call_id=tc_id, status="completed")
 
         # === Activity Events -> PlanUpdateEvent ===
 
-        case ActivitySnapshotEvent(
-            message_id=_, activity_type=activity_type, content=content, replace=_
-        ):
+        case ActivitySnapshotEvent(activity_type=activity_type, content=content):
             # Map activity content to plan entries if it looks like a plan
             if activity_type.upper() == "PLAN" and isinstance(content, list):
                 entries = _content_to_plan_entries(content)
@@ -144,7 +144,7 @@ def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None: 
                 source="ag-ui",
             )
 
-        case ActivityDeltaEvent(message_id=_, activity_type=activity_type, patch=patch):
+        case ActivityDeltaEvent(activity_type=activity_type, patch=patch):
             return CustomEvent(
                 event_data={"activity_type": activity_type, "patch": patch},
                 event_type=f"activity_delta_{activity_type.lower()}",
@@ -233,27 +233,22 @@ def to_agui_input_content(
             case str() as text:
                 result.append(TextInputContent(text=text))
 
-            case ImageUrl(url=url, media_type=media_type):
-                result.append(BinaryInputContent(url=str(url), mime_type=media_type))
-
-            case AudioUrl(url=url, media_type=media_type):
-                result.append(BinaryInputContent(url=str(url), mime_type=media_type))
-
-            case DocumentUrl(url=url, media_type=media_type):
-                result.append(BinaryInputContent(url=str(url), mime_type=media_type))
-
-            case VideoUrl(url=url, media_type=media_type):
+            case (
+                ImageUrl(url=url, media_type=media_type)
+                | AudioUrl(url=url, media_type=media_type)
+                | DocumentUrl(url=url, media_type=media_type)
+                | VideoUrl(url=url, media_type=media_type)
+            ):
                 result.append(BinaryInputContent(url=str(url), mime_type=media_type))
 
             case FileUrl(url=url, media_type=media_type):
                 # Generic FileUrl fallback
                 result.append(BinaryInputContent(url=str(url), mime_type=media_type))
 
-            case BinaryImage(data=data, media_type=media_type):
-                encoded = base64.b64encode(data).decode("utf-8")
-                result.append(BinaryInputContent(data=encoded, mime_type=media_type))
-
-            case BinaryContent(data=data, media_type=media_type):
+            case (
+                BinaryImage(data=data, media_type=media_type)
+                | BinaryContent(data=data, media_type=media_type)
+            ):
                 encoded = base64.b64encode(data).decode("utf-8")
                 result.append(BinaryInputContent(data=encoded, mime_type=media_type))
 
