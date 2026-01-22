@@ -352,6 +352,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         from agentpool.agents.agui_agent.agui_converters import (
             agui_to_native_event,
+            model_messages_to_agui,
             to_agui_input_content,
             to_agui_tool,
         )
@@ -382,13 +383,20 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         run_started = RunStartedEvent(thread_id=thread_id, run_id=run_id, agent_name=self.name)
         await event_handlers(None, run_started)
         yield run_started
-        # Get pending parts from conversation and convert them
-        # Convert user message content to AGUI format using processed prompts
+        # Convert existing conversation history to AG-UI format
+        # AG-UI protocol expects full history with each request (stateless server)
+        # Extract ModelMessages from ChatMessages
+        model_msgs: list[ModelResponse | ModelRequest] = []
+        for chat_msg in message_history.get_history():
+            model_msgs.extend(chat_msg.messages)
+        history_messages = model_messages_to_agui(model_msgs)
+
+        # Convert new user message content to AG-UI format
         final_content = to_agui_input_content(prompts)
-        # Combine pending parts with new content
         user_message = UserMessage(id=str(uuid4()), content=final_content)
-        # Build initial messages list
-        messages: list[Message] = [user_message]
+
+        # Build messages list: history + new user message
+        messages: list[Message] = [*history_messages, user_message]
         tool_accumulator = ToolCallAccumulator()
         pending_tool_results: list[ToolMessage] = []
         file_tracker = FileTracker()

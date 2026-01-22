@@ -34,8 +34,8 @@ from agentpool.resource_providers.plan_provider import PlanEntry
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from ag_ui.core import BaseEvent, InputContent, Tool as AGUITool
-    from pydantic_ai import UserContent
+    from ag_ui.core import BaseEvent, InputContent, Message, Tool as AGUITool
+    from pydantic_ai import ModelMessage, UserContent
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.tools.base import Tool
@@ -231,3 +231,130 @@ def to_agui_tool(tool: Tool) -> AGUITool:
         description=func_schema.get("description", ""),
         parameters=func_schema.get("parameters", {"type": "object", "properties": {}}),
     )
+
+
+def model_messages_to_agui(messages: Sequence[ModelMessage]) -> list[Message]:
+    """Convert pydantic-ai ModelMessage sequence to AG-UI Message format.
+
+    This converts the conversation history from pydantic-ai's internal format
+    to AG-UI protocol format for sending to remote AG-UI servers.
+
+    Args:
+        messages: Sequence of pydantic-ai ModelRequest/ModelResponse
+
+    Returns:
+        List of AG-UI Message objects (UserMessage, AssistantMessage, etc.)
+    """
+    from uuid import uuid4
+
+    from ag_ui.core import (
+        AssistantMessage,
+        FunctionCall,
+        SystemMessage,
+        ToolCall,
+        ToolMessage,
+        UserMessage,
+    )
+    from pydantic_ai import (
+        ModelRequest,
+        ModelResponse,
+        SystemPromptPart,
+        TextPart,
+        ThinkingPart,
+        ToolCallPart,
+        ToolReturnPart,
+        UserPromptPart,
+    )
+
+    result: list[Message] = []
+
+    for msg in messages:
+        match msg:
+            case ModelRequest(parts=request_parts):
+                # ModelRequest can contain user prompts, system prompts, or tool returns
+                for req_part in request_parts:
+                    match req_part:
+                        case UserPromptPart(content=content):
+                            # Convert content to string
+                            if isinstance(content, str):
+                                text = content
+                            elif isinstance(content, list):
+                                # Join text parts
+                                text = " ".join(
+                                    p if isinstance(p, str) else str(p) for p in content
+                                )
+                            else:
+                                text = str(content)
+                            result.append(UserMessage(id=str(uuid4()), content=text))
+
+                        case SystemPromptPart(content=content):
+                            result.append(SystemMessage(id=str(uuid4()), content=content))
+
+                        case ToolReturnPart(tool_call_id=tool_call_id, content=content):
+                            # Convert content to string
+                            if isinstance(content, str):
+                                content_str = content
+                            else:
+                                import json
+
+                                content_str = json.dumps(content)
+                            result.append(
+                                ToolMessage(
+                                    id=str(uuid4()),
+                                    tool_call_id=tool_call_id,
+                                    content=content_str,
+                                )
+                            )
+
+            case ModelResponse(parts=response_parts):
+                # ModelResponse contains assistant content and/or tool calls
+                text_parts: list[str] = []
+                tool_calls: list[ToolCall] = []
+
+                for resp_part in response_parts:
+                    match resp_part:
+                        case TextPart(content=content):
+                            text_parts.append(content)
+
+                        case ThinkingPart(content=content):
+                            # Include thinking in content (some UIs show it)
+                            if content:
+                                text_parts.append(f"[thinking] {content}")
+
+                        case ToolCallPart(
+                            tool_call_id=tool_call_id,
+                            tool_name=tool_name,
+                            args=args,
+                        ):
+                            # Convert args to JSON string
+                            if isinstance(args, str):
+                                args_str = args
+                            elif isinstance(args, dict):
+                                import json
+
+                                args_str = json.dumps(args)
+                            else:
+                                args_str = str(args)
+
+                            tool_calls.append(
+                                ToolCall(
+                                    id=tool_call_id,
+                                    type="function",
+                                    function=FunctionCall(
+                                        name=tool_name,
+                                        arguments=args_str,
+                                    ),
+                                )
+                            )
+
+                # Create AssistantMessage with content and/or tool_calls
+                content = " ".join(text_parts) if text_parts else None
+                result.append(
+                    AssistantMessage(
+                        id=str(uuid4()),
+                        content=content,
+                        tool_calls=tool_calls if tool_calls else None,
+                    )
+                )
+
+    return result
