@@ -13,16 +13,10 @@ import base64
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import (
-    AudioUrl,
     BinaryContent,
-    BinaryImage,
-    CachePoint,
-    DocumentUrl,
     FileUrl,
-    ImageUrl,
     TextPartDelta,
     ThinkingPartDelta,
-    VideoUrl,
 )
 
 from agentpool.agents.events import (
@@ -133,10 +127,12 @@ def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None: 
 
         case ActivitySnapshotEvent(activity_type=activity_type, content=content):
             # Map activity content to plan entries if it looks like a plan
-            if activity_type.upper() == "PLAN" and isinstance(content, list):
-                entries = _content_to_plan_entries(content)
-                if entries:
-                    return PlanUpdateEvent(entries=entries)
+            if (
+                activity_type.upper() == "PLAN"
+                and isinstance(content, list)
+                and (entries := _content_to_plan_entries(content))
+            ):
+                return PlanUpdateEvent(entries=entries)
             # For other activity types, wrap as custom event
             return CustomEvent(
                 event_data={"activity_type": activity_type, "content": content},
@@ -206,76 +202,30 @@ def _content_to_plan_entries(content: list[Any]) -> list[PlanEntry]:
     return entries
 
 
-def to_agui_input_content(
-    parts: UserContent | Sequence[UserContent] | None,
-) -> list[InputContent]:
-    """Convert pydantic-ai UserContent parts to AG-UI InputContent format.
-
-    Args:
-        parts: UserContent part(s) to convert (str, ImageUrl, BinaryContent, etc.)
-
-    Returns:
-        List of AG-UI InputContent items
-    """
+def to_agui_input_content(parts: Sequence[UserContent]) -> list[InputContent]:
+    """Convert pydantic-ai UserContent parts to AG-UI InputContent format."""
     from ag_ui.core import BinaryInputContent, TextInputContent
 
-    if parts is None:
-        return []
-
-    # Normalize to list
-    part_list = (
-        [parts] if isinstance(parts, str | FileUrl | BinaryContent | CachePoint) else list(parts)
-    )
-
     result: list[InputContent] = []
-    for part in part_list:
+    for part in parts:
         match part:
             case str() as text:
                 result.append(TextInputContent(text=text))
 
-            case (
-                ImageUrl(url=url, media_type=media_type)
-                | AudioUrl(url=url, media_type=media_type)
-                | DocumentUrl(url=url, media_type=media_type)
-                | VideoUrl(url=url, media_type=media_type)
-            ):
-                result.append(BinaryInputContent(url=str(url), mime_type=media_type))
-
             case FileUrl(url=url, media_type=media_type):
-                # Generic FileUrl fallback
                 result.append(BinaryInputContent(url=str(url), mime_type=media_type))
 
-            case (
-                BinaryImage(data=data, media_type=media_type)
-                | BinaryContent(data=data, media_type=media_type)
-            ):
+            case BinaryContent(data=data, media_type=media_type):
                 encoded = base64.b64encode(data).decode("utf-8")
                 result.append(BinaryInputContent(data=encoded, mime_type=media_type))
-
-            case CachePoint():
-                # Cache points are markers, not actual content - skip
-                pass
-
-            case _:
-                # Fallback: convert to string
-                result.append(TextInputContent(text=str(part)))
-
     return result
 
 
 def to_agui_tool(tool: Tool) -> AGUITool:
-    """Convert native Tool to AG-UI Tool format.
-
-    Args:
-        tool: native Tool instance
-
-    Returns:
-        AG-UI Tool with JSON Schema parameters
-    """
+    """Convert native Tool to AG-UI Tool format."""
     from ag_ui.core import Tool as AGUITool
 
-    schema = tool.schema
-    func_schema = schema["function"]
+    func_schema = tool.schema["function"]
     return AGUITool(
         name=func_schema["name"],
         description=func_schema.get("description", ""),
