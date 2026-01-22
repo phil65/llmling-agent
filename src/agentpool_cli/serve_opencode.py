@@ -113,7 +113,7 @@ def opencode_command(
     async def run_server() -> None:
         async with pool:
             # Load agent rules from global and project locations
-            await pool.main_agent.load_rules()
+            await pool.main_agent.load_rules(working_dir)
 
             server = OpenCodeServer(
                 pool.main_agent,

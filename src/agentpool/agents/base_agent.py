@@ -7,6 +7,7 @@ import asyncio
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass, field
+from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, overload
 
@@ -1083,25 +1084,25 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Subclasses can override to skip history loading for efficiency
         return await self.load_session(session_id)
 
-    async def load_rules(self) -> None:
+    async def load_rules(self, project_dir: str | None = None) -> None:
         """Load agent rules from global and project locations.
 
         Searches for AGENTS.md/CLAUDE.md files in:
         1. Global: ~/.config/agentpool/AGENTS.md (user-wide rules)
-        2. Project: {env.cwd}/AGENTS.md (project-specific rules)
+        2. Project: {project_dir}/AGENTS.md (project-specific rules)
 
         Both are merged and staged for injection into the first prompt.
         Uses the agent's execution environment for filesystem access,
         making this work across local and remote (ACP) environments.
 
-        This method should be called after the agent's env is properly configured.
-        For ACP sessions, call after ACPExecutionEnvironment is assigned.
+        Args:
+            project_dir: Project directory to search for rules. Falls back to
+                env.cwd if not provided.
         """
         from agentpool_config.resolution import get_global_config_dir
 
         rules_file_names = ("AGENTS.md", "CLAUDE.md")
         rules_parts: list[str] = []
-
         # 1. Global rules from config directory
         global_dir = get_global_config_dir()
         for name in rules_file_names:
@@ -1115,20 +1116,32 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                     logger.exception("Failed to read global rules", path=str(path))
                 break
 
-        # 2. Project rules from env.cwd
-        project_dir = self.env.cwd if self.env else None
-        if project_dir:
-            fs = self.env.get_fs()
+        # 2. Project rules - use provided dir, env.cwd, or current directory
+        effective_project_dir = project_dir or (self.env.cwd if self.env else None)
+        if effective_project_dir is None:
+            effective_project_dir = str(Path.cwd())
+
+        if effective_project_dir:
+            fs = self.env.get_fs() if self.env else None
             for name in rules_file_names:
-                rules_path = f"{project_dir}/{name}"
+                rules_path = f"{effective_project_dir}/{name}"
                 try:
-                    # Use filesystem abstraction (works for local and ACP)
-                    if await fs._exists(rules_path):
-                        content_bytes = await fs._cat_file(rules_path)
-                        content = content_bytes.decode("utf-8")
-                        rules_parts.append(f"## Project Rules\n\n{content}")
-                        logger.debug("Loaded project rules", path=rules_path)
-                        break
+                    if fs:
+                        # Use filesystem abstraction (works for local and ACP)
+                        if await fs._exists(rules_path):
+                            content_bytes = await fs._cat_file(rules_path)
+                            content = content_bytes.decode("utf-8")
+                            rules_parts.append(f"## Project Rules\n\n{content}")
+                            logger.debug("Loaded project rules", path=rules_path)
+                            break
+                    else:
+                        # Fallback to direct file access
+                        local_path = Path(rules_path)
+                        if local_path.is_file():
+                            content = local_path.read_text(encoding="utf-8")
+                            rules_parts.append(f"## Project Rules\n\n{content}")
+                            logger.debug("Loaded project rules", path=rules_path)
+                            break
                 except (OSError, UnicodeDecodeError):
                     logger.debug("No project rules found", path=rules_path)
 
