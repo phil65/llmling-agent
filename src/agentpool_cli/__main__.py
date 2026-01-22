@@ -9,6 +9,7 @@ import typer as t
 from agentpool_cli import log
 from agentpool_cli.agent import add_agent_file, list_agents, list_configs, set_active_file
 from agentpool_cli.cli_types import LogLevel  # noqa: TC001
+from agentpool_cli.config_info import config_cli
 from agentpool_cli.history import history_cli
 from agentpool_cli.run import run_command
 from agentpool_cli.serve_acp import acp_command
@@ -82,6 +83,7 @@ cli.command(name="serve-opencode")(opencode_command)
 cli.command(name="serve-vercel")(vercel_command)
 cli.command(name="task")(task_command)
 
+cli.add_typer(config_cli, name="config")
 cli.add_typer(history_cli, name="history")
 cli.add_typer(ui_app, name="ui")
 

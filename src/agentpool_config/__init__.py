@@ -36,6 +36,16 @@ from agentpool_config.hooks import (
     PromptHookConfig,
 )
 from agentpool_config.toolsets import ToolsetConfig
+from agentpool_config.resolution import (
+    ConfigLayer,
+    ConfigSource,
+    ResolvedConfig,
+    find_project_config,
+    get_global_config_dir,
+    get_global_config_path,
+    resolve_config,
+    resolve_config_for_server,
+)
 
 
 ToolConfig = Annotated[
@@ -62,6 +72,8 @@ __all__ = [
     "CallableHookConfig",
     "CallbackEventHandlerConfig",
     "CommandHookConfig",
+    "ConfigLayer",
+    "ConfigSource",
     "EventHandlerConfig",
     "ForwardingTarget",
     "HookConfig",
@@ -69,6 +81,7 @@ __all__ = [
     "MCPServerConfig",
     "NativeAgentToolConfig",
     "PromptHookConfig",
+    "ResolvedConfig",
     "SSEMCPServerConfig",
     "SessionQuery",
     "StdioMCPServerConfig",
@@ -77,5 +90,10 @@ __all__ = [
     "TeamConfig",
     "ToolConfig",
     "ToolsetConfig",
+    "find_project_config",
+    "get_global_config_dir",
+    "get_global_config_path",
+    "resolve_config",
+    "resolve_config_for_server",
     "resolve_handler_configs",
 ]

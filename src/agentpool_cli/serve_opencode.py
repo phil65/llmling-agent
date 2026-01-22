@@ -2,6 +2,13 @@
 
 This creates an HTTP server that implements the OpenCode API protocol,
 allowing OpenCode TUI and SDK clients to interact with AgentPool agents.
+
+Configuration is resolved from multiple layers (in precedence order):
+1. Global config (~/.config/agentpool/agentpool.yml)
+2. Custom config (AGENTPOOL_CONFIG env var)
+3. Project config (agentpool.yml in project/git root)
+4. Explicit CLI argument (highest precedence)
+5. Built-in fallback (only if no agents defined elsewhere)
 """
 
 from __future__ import annotations
@@ -12,7 +19,7 @@ from typing import Annotated
 from platformdirs import user_log_path
 import typer as t
 
-from agentpool_cli import log, resolve_agent_config
+from agentpool_cli import log
 
 
 logger = log.get_logger(__name__)
@@ -49,27 +56,23 @@ def opencode_command(
     This creates an HTTP server implementing the OpenCode API protocol,
     enabling your AgentPool agents to work with OpenCode TUI and SDK clients.
 
-    Configuration:
-    Config file is optional. Without a config file, creates a general-purpose
-    agent with default settings similar to the ACP server.
+    Configuration Layers (merged in order, later overrides earlier):
+
+    1. Global config - ~/.config/agentpool/agentpool.yml for user preferences
+    2. Custom config - AGENTPOOL_CONFIG env var for CI/deployment overrides
+    3. Project config - agentpool.yml in project/git root for project-specific settings
+    4. Explicit config - CLI argument (highest precedence)
+    5. Built-in fallback - Only used if no agents defined in any layer
 
     Agent Selection:
     Use --agent to specify which agent to use by name. Without this option,
     the pool's default agent is used (set via 'default_agent' in config,
     or falls back to the first agent).
-
-    Examples:
-        # Start with default agent
-        agentpool serve-opencode
-
-        # Start with specific config
-        agentpool serve-opencode agents.yml
-
-        # Start on custom port with specific agent
-        agentpool serve-opencode --port 8080 --agent myagent agents.yml
     """
     from agentpool import AgentPool, log as ap_log
     from agentpool.config_resources import CLAUDE_CODE_ASSISTANT
+    from agentpool.models.manifest import AgentsManifest
+    from agentpool_config.resolution import resolve_config
     from agentpool_server.opencode_server.server import OpenCodeServer
 
     # Always log to file with rollover
@@ -79,18 +82,33 @@ def opencode_command(
     ap_log.configure_logging(force=True, log_file=str(log_file))
     logger.info("Configured file logging with rollover", log_file=str(log_file))
 
-    # Resolve config path (use default if not provided)
-    if config:
-        try:
-            config_path = resolve_agent_config(config)
-        except ValueError as e:
-            raise t.BadParameter(str(e)) from e
-    else:
-        config_path = CLAUDE_CODE_ASSISTANT
+    # Resolve configuration from all layers
+    # fallback_config is only used if no agents are defined in any layer
+    try:
+        resolved = resolve_config(
+            explicit_path=config,
+            fallback_config=CLAUDE_CODE_ASSISTANT,
+        )
+    except ValueError as e:
+        raise t.BadParameter(str(e)) from e
 
-    logger.info("Starting OpenCode server", config_path=config_path, host=host, port=port)
-    # Load agent from config
-    pool = AgentPool(config_path, main_agent_name=agent)
+    # Log which config layers were used
+    if resolved.layers:
+        sources = [f"{layer.source.value}:{layer.path}" for layer in resolved.layers if layer.path]
+        logger.info("Config layers loaded", sources=sources, host=host, port=port)
+    else:
+        logger.info("Starting OpenCode server with built-in defaults only", host=host, port=port)
+
+    # Load manifest from merged config data
+    try:
+        manifest = AgentsManifest.model_validate(resolved.data)
+        if resolved.primary_path:
+            manifest = manifest.model_copy(update={"config_file_path": resolved.primary_path})
+    except Exception as e:
+        raise t.BadParameter(f"Invalid merged configuration: {e}") from e
+
+    # Load agent from merged manifest
+    pool = AgentPool(manifest, main_agent_name=agent)
 
     async def run_server() -> None:
         async with pool:

@@ -693,6 +693,73 @@ class AgentsManifest(Schema):
         except Exception as exc:
             raise ValueError(f"Failed to load agent config from {path}") from exc
 
+    @classmethod
+    def from_resolved(
+        cls,
+        explicit_path: JoinablePathLike | None = None,
+        *,
+        fallback_config: JoinablePathLike | None = None,
+        project_dir: JoinablePathLike | None = None,
+        include_global: bool = True,
+        include_project: bool = True,
+    ) -> Self:
+        """Load agent configuration with layered inheritance.
+
+        Resolves configuration from multiple sources in precedence order:
+        1. Global config (~/.config/agentpool/agentpool.yml)
+        2. Custom config (AGENTPOOL_CONFIG env var)
+        3. Project config (agentpool.yml in project/git root)
+        4. Explicit config (highest precedence)
+
+        The fallback_config is only used if NO other config defines any agents.
+
+        Args:
+            explicit_path: Explicit config path (highest precedence)
+            fallback_config: Fallback config used ONLY if no agents defined elsewhere
+            project_dir: Directory to search for project config (defaults to cwd)
+            include_global: Whether to include global user config
+            include_project: Whether to include project config
+
+        Returns:
+            Loaded and merged agent definition
+
+        Raises:
+            ValueError: If explicit_path is provided but cannot be loaded,
+                       or if merged config is invalid
+        """
+        from agentpool_config.resolution import resolve_config
+
+        resolved = resolve_config(
+            explicit_path=explicit_path,
+            fallback_config=fallback_config,
+            project_dir=project_dir,
+            include_global=include_global,
+            include_project=include_project,
+        )
+
+        try:
+            agent_def = cls.model_validate(resolved.data)
+            path_str = resolved.primary_path
+
+            def update_with_path(nodes: dict[str, Any]) -> dict[str, Any]:
+                if path_str is None:
+                    return dict(nodes)
+                return {
+                    name: config.model_copy(update={"config_file_path": path_str})
+                    for name, config in nodes.items()
+                }
+
+            return agent_def.model_copy(
+                update={
+                    "config_file_path": path_str,
+                    "agents": update_with_path(agent_def.agents),
+                    "teams": update_with_path(agent_def.teams),
+                }
+            )
+        except Exception as exc:
+            sources = ", ".join(resolved.source_paths) or "no sources"
+            raise ValueError(f"Failed to load merged config from {sources}") from exc
+
     def get_output_type(self, agent_name: str) -> type[Any] | None:
         """Get the resolved result type for an agent.
 

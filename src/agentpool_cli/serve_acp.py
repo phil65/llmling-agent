@@ -3,6 +3,13 @@
 This creates an ACP-compatible JSON-RPC 2.0 server that exposes your agents
 for bidirectional communication over stdio streams, enabling desktop application
 integration with file system access, permission handling, and terminal support.
+
+Configuration is resolved from multiple layers (in precedence order):
+1. Global config (~/.config/agentpool/agentpool.yml)
+2. Custom config (AGENTPOOL_CONFIG env var)
+3. Project config (agentpool.yml in project/git root)
+4. Explicit CLI argument (highest precedence)
+5. Built-in fallback (only if no agents defined elsewhere)
 """
 
 from __future__ import annotations
@@ -15,7 +22,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 from platformdirs import user_log_path
 import typer as t
 
-from agentpool_cli import log, resolve_agent_config
+from agentpool_cli import log
 
 
 if TYPE_CHECKING:
@@ -112,24 +119,24 @@ def acp_command(  # noqa: PLR0915
     streams, enabling your agents to work with desktop applications that support
     the Agent Client Protocol.
 
-    Configuration:
-    Config file is optional. Without a config file, creates a general-purpose
-    agent with default settings. This is useful for clients/installers that
-    start agents directly without configuration support.
+    Configuration Layers (merged in order, later overrides earlier):
+
+    1. Global config - ~/.config/agentpool/agentpool.yml for user preferences
+    2. Custom config - AGENTPOOL_CONFIG env var for CI/deployment overrides
+    3. Project config - agentpool.yml in project/git root for project-specific settings
+    4. Explicit config - CLI argument (highest precedence)
+    5. Built-in fallback - Only used if no agents defined in any layer
 
     Agent Selection:
     Use --agent to specify which agent to use by name. Without this option,
     the pool's default agent is used (set via 'default_agent' in config,
     or falls back to the first agent).
-
-    Agent Mode Switching:
-    If your config defines multiple agents, the IDE will show a mode selector
-    allowing users to switch between agents mid-conversation. Each agent appears
-    as a different "mode" with its own name and capabilities.
     """
     from acp import StdioTransport, WebSocketTransport
     from agentpool import log
     from agentpool.config_resources import ACP_ASSISTANT
+    from agentpool.models.manifest import AgentsManifest
+    from agentpool_config.resolution import resolve_config
     from agentpool_server.acp_server import ACPServer
 
     # Build transport config
@@ -147,18 +154,33 @@ def acp_command(  # noqa: PLR0915
     log.configure_logging(force=True, log_file=str(log_file))
     logger.info("Configured file logging with rollover", log_file=str(log_file))
 
-    if config:
-        try:
-            config_path = resolve_agent_config(config)
-        except ValueError as e:
-            raise t.BadParameter(str(e)) from e
-        logger.info("Starting ACP server", config_path=config_path, transport=transport)
+    # Resolve configuration from all layers
+    # fallback_config is only used if no agents are defined in any layer
+    try:
+        resolved = resolve_config(
+            explicit_path=config,
+            fallback_config=ACP_ASSISTANT,
+        )
+    except ValueError as e:
+        raise t.BadParameter(str(e)) from e
+
+    # Log which config layers were used
+    if resolved.layers:
+        sources = [f"{layer.source.value}:{layer.path}" for layer in resolved.layers if layer.path]
+        logger.info("Config layers loaded", sources=sources, transport=transport)
     else:
-        config_path = ACP_ASSISTANT
-        logger.info("Starting ACP server with default configuration", transport=transport)
+        logger.info("Starting ACP server with built-in defaults only", transport=transport)
+
+    # Load manifest from merged config data
+    try:
+        manifest = AgentsManifest.model_validate(resolved.data)
+        if resolved.primary_path:
+            manifest = manifest.model_copy(update={"config_file_path": resolved.primary_path})
+    except Exception as e:
+        raise t.BadParameter(f"Invalid merged configuration: {e}") from e
 
     acp_server = ACPServer.from_config(
-        config_path,
+        manifest,
         file_access=file_access,
         terminal_access=terminal_access,
         debug_messages=debug_messages,

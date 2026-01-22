@@ -82,7 +82,7 @@ class ACPServer(BaseServer):
     @classmethod
     def from_config(
         cls,
-        config_path: JoinablePathLike,
+        config: JoinablePathLike | AgentsManifest,
         *,
         file_access: bool = True,
         terminal_access: bool = True,
@@ -93,10 +93,10 @@ class ACPServer(BaseServer):
         load_skills: bool = True,
         transport: Transport = "stdio",
     ) -> Self:
-        """Create ACP server from existing agentpool configuration.
+        """Create ACP server from configuration path or manifest.
 
         Args:
-            config_path: Path to agentpool YAML config file
+            config: Path to YAML config file or pre-loaded AgentsManifest
             file_access: Enable file system access
             terminal_access: Enable terminal access
             debug_messages: Enable saving JSON messages to file
@@ -107,10 +107,14 @@ class ACPServer(BaseServer):
             transport: Transport configuration ("stdio", "websocket", or transport object)
 
         Returns:
-            Configured ACP server instance with agent pool from config
+            Configured ACP server instance with agent pool
         """
-        manifest = AgentsManifest.from_file(config_path)
-        pool = AgentPool(manifest=manifest, main_agent_name=agent)
+        # AgentPool handles both path and manifest
+        pool = AgentPool(manifest=config, main_agent_name=agent)
+
+        # Determine config_path for tracking
+        config_path = config.config_file_path if isinstance(config, AgentsManifest) else str(config)
+
         server = cls(
             pool,
             file_access=file_access,
@@ -120,7 +124,7 @@ class ACPServer(BaseServer):
             debug_commands=debug_commands,
             agent=agent,
             load_skills=load_skills,
-            config_path=str(config_path),
+            config_path=config_path,
             transport=transport,
         )
         agent_names = list(server.pool.all_agents.keys())
@@ -130,7 +134,7 @@ class ACPServer(BaseServer):
             msg = f"Specified agent {agent!r} not found in config. Available agents: {agent_names}"
             raise ValueError(msg)
 
-        server.log.info("Created ACP server with agent pool", agent_names=agent_names)
+        server.log.info("Created ACP server", agent_names=agent_names, config_path=config_path)
         if agent:
             server.log.info("ACP session agent", agent=agent)
         return server
