@@ -17,10 +17,9 @@ non-conflicting settings from all configs are preserved.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import platformdirs
 import yamling
@@ -30,14 +29,7 @@ if TYPE_CHECKING:
     from upathtools import JoinablePathLike
 
 
-class ConfigSource(Enum):
-    """Configuration source types in precedence order."""
-
-    BUILTIN = "builtin"
-    GLOBAL = "global"
-    CUSTOM = "custom"
-    PROJECT = "project"
-    EXPLICIT = "explicit"
+type ConfigSource = Literal["builtin", "global", "custom", "project", "explicit"]
 
 
 @dataclass
@@ -46,10 +38,7 @@ class ConfigLayer:
 
     source: ConfigSource
     path: str | None
-    data: dict[str, Any]
-
-    def __repr__(self) -> str:
-        return f"ConfigLayer({self.source.value}, path={self.path!r})"
+    data: dict[str, Any] = field(repr=False)
 
 
 @dataclass
@@ -258,7 +247,7 @@ def resolve_config(  # noqa: PLR0915
         if global_path is not None:
             try:
                 data = _load_yaml_data(global_path)
-                layer = ConfigLayer(ConfigSource.GLOBAL, str(global_path), data)
+                layer = ConfigLayer("global", str(global_path), data)
                 layers.append(layer)
                 merged_data = _deep_merge(merged_data, data)
             except ValueError:
@@ -269,7 +258,7 @@ def resolve_config(  # noqa: PLR0915
     if custom_path:
         try:
             data = _load_yaml_data(custom_path)
-            layer = ConfigLayer(ConfigSource.CUSTOM, custom_path, data)
+            layer = ConfigLayer("custom", custom_path, data)
             layers.append(layer)
             merged_data = _deep_merge(merged_data, data)
             primary_path = custom_path  # Custom config can be primary
@@ -284,7 +273,7 @@ def resolve_config(  # noqa: PLR0915
 
             data = yaml.safe_load(inline_content)
             if isinstance(data, dict):
-                layer = ConfigLayer(ConfigSource.CUSTOM, None, data)
+                layer = ConfigLayer("custom", None, data)
                 layers.append(layer)
                 merged_data = _deep_merge(merged_data, data)
         except (yaml.YAMLError, TypeError, ValueError):
@@ -296,7 +285,7 @@ def resolve_config(  # noqa: PLR0915
         if project_path is not None:
             try:
                 data = _load_yaml_data(project_path)
-                layer = ConfigLayer(ConfigSource.PROJECT, str(project_path), data)
+                layer = ConfigLayer("project", str(project_path), data)
                 layers.append(layer)
                 merged_data = _deep_merge(merged_data, data)
                 primary_path = str(project_path)
@@ -307,7 +296,7 @@ def resolve_config(  # noqa: PLR0915
     if explicit_path is not None:
         # Explicit config MUST load successfully
         data = _load_yaml_data(explicit_path)
-        layer = ConfigLayer(ConfigSource.EXPLICIT, str(explicit_path), data)
+        layer = ConfigLayer("explicit", str(explicit_path), data)
         layers.append(layer)
         merged_data = _deep_merge(merged_data, data)
         primary_path = str(explicit_path)
@@ -318,7 +307,7 @@ def resolve_config(  # noqa: PLR0915
     if not has_agents and fallback_config is not None:
         try:
             data = _load_yaml_data(fallback_config)
-            layer = ConfigLayer(ConfigSource.BUILTIN, str(fallback_config), data)
+            layer = ConfigLayer("builtin", str(fallback_config), data)
             # Prepend to layers (lowest precedence conceptually)
             layers.insert(0, layer)
             # Merge fallback as base, then re-apply user data on top

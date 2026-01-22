@@ -166,7 +166,7 @@ def acp_command(  # noqa: PLR0915
 
     # Log which config layers were used
     if resolved.layers:
-        sources = [f"{layer.source.value}:{layer.path}" for layer in resolved.layers if layer.path]
+        sources = [f"{layer.source}:{layer.path}" for layer in resolved.layers if layer.path]
         logger.info("Config layers loaded", sources=sources, transport=transport)
     else:
         logger.info("Starting ACP server with built-in defaults only", transport=transport)

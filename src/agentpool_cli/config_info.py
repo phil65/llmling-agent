@@ -52,7 +52,7 @@ def show_config(
         else:
             for layer in resolved.layers:
                 path_info = layer.path or "(inline)"
-                t.echo(f"  [{layer.source.value}] {path_info}")
+                t.echo(f"  [{layer.source}] {path_info}")
 
         t.echo()
         t.echo(f"Primary path: {resolved.primary_path or '(none)'}")
@@ -66,7 +66,7 @@ def show_config(
         result = {
             "search_paths": {name: str(path) if path else None for name, path in search_paths},
             "layers": [
-                {"source": layer.source.value, "path": layer.path}
+                {"source": layer.source, "path": layer.path}
                 for layer in resolve_config(explicit_path=explicit_path).layers
             ],
         }

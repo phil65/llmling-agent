@@ -94,7 +94,7 @@ def opencode_command(
 
     # Log which config layers were used
     if resolved.layers:
-        sources = [f"{layer.source.value}:{layer.path}" for layer in resolved.layers if layer.path]
+        sources = [f"{layer.source}:{layer.path}" for layer in resolved.layers if layer.path]
         logger.info("Config layers loaded", sources=sources, host=host, port=port)
     else:
         logger.info("Starting OpenCode server with built-in defaults only", host=host, port=port)
