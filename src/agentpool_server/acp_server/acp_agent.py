@@ -357,7 +357,7 @@ class AgentPoolACPAgent(ACPAgent):
             if session := self.session_manager.get_session(session_id):
                 # Schedule task to run after response is sent
                 self.tasks.create_task(session.send_available_commands_update())
-                self.tasks.create_task(session.init_project_context())
+                self.tasks.create_task(session.agent.load_rules(session.cwd))
                 self.tasks.create_task(session._register_prompt_hub_commands())
                 if self.load_skills:
                     coro_4 = session.init_client_skills()
@@ -431,7 +431,7 @@ class AgentPoolACPAgent(ACPAgent):
 
             # Schedule post-load tasks
             self.tasks.create_task(session.send_available_commands_update())
-            self.tasks.create_task(session.init_project_context())
+            self.tasks.create_task(session.agent.load_rules(session.cwd))
 
             logger.info("Session loaded", session_id=params.session_id)
             return LoadSessionResponse(models=models, modes=mode_state, config_options=config_opts)
@@ -546,7 +546,7 @@ class AgentPoolACPAgent(ACPAgent):
 
             # Schedule post-resume tasks
             self.tasks.create_task(session.send_available_commands_update())
-            self.tasks.create_task(session.init_project_context())
+            self.tasks.create_task(session.agent.load_rules(session.cwd))
 
             logger.info("Session resumed", session_id=params.session_id)
             return ResumeSessionResponse()
@@ -596,7 +596,7 @@ class AgentPoolACPAgent(ACPAgent):
                 if session:
                     # Initialize session extras
                     self.tasks.create_task(session.send_available_commands_update())
-                    self.tasks.create_task(session.init_project_context())
+                    self.tasks.create_task(session.agent.load_rules(session.cwd))
             except Exception:
                 logger.exception("Failed to recreate session", session_id=params.session_id)
                 return PromptResponse(stop_reason="end_turn")

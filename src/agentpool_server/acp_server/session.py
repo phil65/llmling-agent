@@ -302,17 +302,6 @@ class ACPSession:
         except Exception:
             self.log.exception("Failed to register MCP prompts as commands")
 
-    async def init_project_context(self) -> None:
-        """Load agent rules from global and project locations.
-
-        Delegates to agent.load_rules() which handles:
-        - Global rules from ~/.config/agentpool/AGENTS.md
-        - Project rules from {cwd}/AGENTS.md or CLAUDE.md
-
-        Both are merged and staged for the first prompt.
-        """
-        await self.agent.load_rules()
-
     async def init_client_skills(self) -> None:
         """Discover and load skills from client-side .claude/skills directory.
 
