@@ -878,29 +878,30 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             full_command = f"/{name} {args_str}".strip()
 
             # Execute via agent run - slash commands go through as prompts
-            if self._client:
-                await self._client.query(full_command)
-                async for msg in self._client.receive_response():
-                    if isinstance(msg, AssistantMessage):
-                        for block in msg.content:
-                            if isinstance(block, TextBlock):
-                                await ctx.print(block.text)
-                    elif isinstance(msg, UserMessage):
-                        # Handle local command output wrapped in XML tags
-                        content = msg.content if isinstance(msg.content, str) else ""
-                        # Extract content from <local-command-stdout> or <local-command-stderr>
-                        match = re.search(
-                            r"<local-command-(?:stdout|stderr)>(.*?)</local-command-(?:stdout|stderr)>",
-                            content,
-                            re.DOTALL,
-                        )
-                        if match:
-                            await ctx.print(match.group(1))
-                    elif isinstance(msg, ResultMessage):
-                        if msg.result:
-                            await ctx.print(msg.result)
-                        if msg.is_error:
-                            await ctx.print(f"Error: {msg.subtype}")
+            if not self._client:
+                return
+            await self._client.query(full_command)
+            async for msg in self._client.receive_response():
+                if isinstance(msg, AssistantMessage):
+                    for block in msg.content:
+                        if isinstance(block, TextBlock):
+                            await ctx.print(block.text)
+                elif isinstance(msg, UserMessage):
+                    # Handle local command output wrapped in XML tags
+                    content = msg.content if isinstance(msg.content, str) else ""
+                    # Extract content from <local-command-stdout> or <local-command-stderr>
+                    match = re.search(
+                        r"<local-command-(?:stdout|stderr)>(.*?)</local-command-(?:stdout|stderr)>",
+                        content,
+                        re.DOTALL,
+                    )
+                    if match:
+                        await ctx.print(match.group(1))
+                elif isinstance(msg, ResultMessage):
+                    if msg.result:
+                        await ctx.print(msg.result)
+                    if msg.is_error:
+                        await ctx.print(f"Error: {msg.subtype}")
 
         return Command.from_raw(
             execute_command,
