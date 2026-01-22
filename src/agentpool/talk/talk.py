@@ -324,10 +324,14 @@ class Talk[TTransmittedData = Any]:
                 async def add_context() -> None:
                     match target:
                         case BaseTeam():
-                            # Use distribute for teams
-                            await target.distribute(str(message.content), metadata=meta)
-                        case Agent():  # Agent case
-                            # Use existing context message approach
+                            # Add context to all team members
+                            for agent in target.iter_agents():
+                                agent.conversation.add_context_message(
+                                    str(message.content),
+                                    source=message.name,
+                                    metadata=meta,
+                                )
+                        case Agent():
                             target.conversation.add_context_message(
                                 str(message.content),
                                 source=message.name,

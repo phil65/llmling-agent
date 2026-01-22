@@ -112,15 +112,6 @@ agent.connect_to(
 
 ## Team Distribution and Knowledge Sharing
 
-Share content and capabilities across team members:
-
-```python
-await team.distribute(
-    content="Shared context information",
-    tools=["tool1", "tool2"],         # Tool names to enable
-)
-```
-
 ## Team Response Handling
 
 Teams provide rich response objects:
@@ -285,7 +276,7 @@ Both team types support:
 
 1. **Team Size**: Keep teams focused and reasonably sized
 2. **Error Handling**: Use `require_all` appropriately for chains
-3. **Resources**: Share common resources through `distribute()`
+3. **Resources**: Share common resources across team members
 4. **Monitoring**: Use response objects for execution monitoring
 5. **Composition**: Use team composition for complex workflows
 

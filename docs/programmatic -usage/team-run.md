@@ -128,19 +128,6 @@ if run.is_running:
     print("Still processing...")
 ```
 
-### Content Distribution
-
-The `distribute()` method allows sharing content and capabilities across all team members:
-
-```python
-# Share knowledge with all agents
-await run.distribute(
-    "Context: This is background information all agents should know.",
-    tools=["search_docs", "analyze_data"],  # Share specific tools
-    resources=["knowledge_base", "guidelines"],  # Share resources
-)
-```
-
 ### Properties and Status
 
 ```python

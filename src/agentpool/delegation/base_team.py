@@ -359,31 +359,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             data=data,
         )
 
-    async def distribute(
-        self,
-        content: str,
-        *,
-        tools: list[str] | None = None,
-        resources: list[str] | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> None:
-        """Distribute content and capabilities to all team members."""
-        for agent in self.iter_agents():
-            # Add context message
-            agent.conversation.add_context_message(
-                content, source="distribution", metadata=metadata
-            )
-
-            # Register tools if provided
-            if tools:
-                for tool in tools:
-                    agent.tools.register_tool(tool)
-
-            # Load resources if provided
-            if resources:
-                for resource in resources:
-                    await agent.conversation.load_context_source(resource)
-
     @asynccontextmanager
     async def temporary_state(
         self,
