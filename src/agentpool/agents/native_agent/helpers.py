@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery import ModelInfo
 
     from agentpool.agents.events import RichAgentStreamEvent
+    from agentpool_config.nodes import ToolConfirmationMode
 
 
 def process_tool_event(
@@ -86,21 +87,28 @@ def extract_text_from_messages(messages: list[Any], include_interruption_note: b
     return content
 
 
-def get_permission_category(current_mode: str) -> ModeCategory:
+def get_permission_category(current_mode: ToolConfirmationMode) -> ModeCategory:
+    """Get permission mode category using native ToolConfirmationMode values."""
     return ModeCategory(
         id="mode",
-        name="Mode",
+        name="Tool Confirmation",
         available_modes=[
             ModeInfo(
-                id="default",
-                name="Default",
-                description="Require confirmation for tools marked as needing it",
+                id="always",
+                name="Always",
+                description="Always require confirmation for all tools",
                 category_id="mode",
             ),
             ModeInfo(
-                id="acceptEdits",
-                name="Accept Edits",
-                description="Auto-approve all tool calls without confirmation",
+                id="never",
+                name="Never",
+                description="Never require confirmation (auto-approve all)",
+                category_id="mode",
+            ),
+            ModeInfo(
+                id="per_tool",
+                name="Per Tool",
+                description="Require confirmation only for tools marked as needing it",
                 category_id="mode",
             ),
         ],

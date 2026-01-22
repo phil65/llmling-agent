@@ -983,9 +983,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         )
 
         categories: list[ModeCategory] = []
-        mode_id_map = {"per_tool": "default", "always": "default", "never": "acceptEdits"}
-        current_id = mode_id_map.get(self.tool_confirmation_mode, "default")
-        mode_category = get_permission_category(current_id)
+        # Use native ToolConfirmationMode value directly
+        mode_category = get_permission_category(self.tool_confirmation_mode)
         categories.append(mode_category)
         models = await self.get_available_models()
         if models:
@@ -999,16 +998,13 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from agentpool.agents.modes import ConfigOptionChanged
 
         if category_id == "mode":
-            # Map mode_id to confirmation mode
-            mode_map: dict[str, ToolConfirmationMode] = {
-                "default": "per_tool",
-                "acceptEdits": "never",
-            }
-            if mode_id not in mode_map:
-                msg = f"Unknown permission mode: {mode_id}. Available: {list(mode_map.keys())}"
+            # Use native ToolConfirmationMode values directly
+            valid_modes: set[str] = {"always", "never", "per_tool"}
+            if mode_id not in valid_modes:
+                msg = f"Unknown permission mode: {mode_id}. Available: {valid_modes}"
                 raise ValueError(msg)
-            self.tool_confirmation_mode = mode_map[mode_id]
-            self.log.info("Tool confirmation mode changed", mode=mode_map[mode_id])
+            self.tool_confirmation_mode = mode_id  # type: ignore[assignment]
+            self.log.info("Tool confirmation mode changed", mode=mode_id)
             change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
             await self.state_updated.emit(change)
 
