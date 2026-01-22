@@ -69,7 +69,6 @@ from pydantic_ai import (
     FunctionToolResultEvent,
     ModelRequest,
     ModelResponse,
-    PartDeltaEvent,
     PartEndEvent,
     RunUsage,
     TextPart,
@@ -86,6 +85,7 @@ from pydantic_ai.usage import RequestUsage
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.claude_code_agent.converters import claude_message_to_events
 from agentpool.agents.events import (
+    PartDeltaEvent,
     PartStartEvent,
     RunErrorEvent,
     RunStartedEvent,

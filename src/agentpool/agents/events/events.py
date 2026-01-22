@@ -28,6 +28,7 @@ from pydantic_ai import (
     TextPartDelta,
     ThinkingPart,
     ThinkingPartDelta,
+    ToolCallPartDelta,
 )
 
 from agentpool.messaging import ChatMessage  # noqa: TC001
@@ -65,6 +66,12 @@ class PartDeltaEvent(PyAIPartDeltaEvent):
     @classmethod
     def text(cls, index: int, content: str) -> PartDeltaEvent:
         return cls(index=index, delta=TextPartDelta(content_delta=content))
+
+    @classmethod
+    def tool_call(cls, index: int, content: str, tool_call_id: str) -> PartDeltaEvent:
+        return cls(
+            index=index, delta=ToolCallPartDelta(args_delta=content, tool_call_id=tool_call_id)
+        )
 
 
 @dataclass(kw_only=True)
