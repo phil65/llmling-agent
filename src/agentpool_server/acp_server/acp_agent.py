@@ -29,6 +29,7 @@ from acp.schema import (
     SetSessionModeResponse,
 )
 from agentpool.log import get_logger
+from agentpool.storage.manager import TitleGeneratedEvent
 from agentpool.utils.tasks import TaskManager
 from agentpool_server.acp_server.session_manager import ACPSessionManager
 
@@ -257,6 +258,32 @@ class AgentPoolACPAgent(ACPAgent):
         self.session_manager = ACPSessionManager(pool=pool)
         self.tasks = TaskManager()
         self._initialized = False
+
+        # Connect to title generation signal to notify clients of session updates
+        if pool.storage:
+            pool.storage.title_generated.connect(self._on_title_generated)
+
+    async def _on_title_generated(self, event: TitleGeneratedEvent) -> None:
+        """Handle title generation - notify active sessions of the update."""
+        from acp.schema import SessionInfoUpdate, SessionNotification
+
+        session = self.session_manager.get_session(event.session_id)
+        if session is None:
+            logger.debug("Title generated for inactive session", session_id=event.session_id)
+            return
+
+        # Send session info update to client
+        update = SessionInfoUpdate(session_id=event.session_id, title=event.title)
+        notification = SessionNotification(session_id=event.session_id, update=update)
+        try:
+            await session.client.session_update(notification)
+            logger.info(
+                "Sent session info update",
+                session_id=event.session_id,
+                title=event.title,
+            )
+        except Exception:
+            logger.exception("Failed to send session info update", session_id=event.session_id)
 
     @property
     def agent_pool(self) -> AgentPool[Any] | None:
