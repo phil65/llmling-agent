@@ -489,7 +489,7 @@ class ACPSession:
         try:
             await self.acp_env.__aexit__(None, None, None)
             # Remove cwd context callable from all agents
-            for agent in self.agent_pool.agents.values():
+            for agent in self.agent_pool.get_agents(Agent).values():
                 if self.get_cwd_context in agent.sys_prompts.prompts:
                     agent.sys_prompts.prompts.remove(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
 

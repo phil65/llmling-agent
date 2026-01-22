@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from agentpool import Agent
 from agentpool.log import get_logger
 from agentpool_server.http_server import HTTPServer
 
@@ -78,13 +79,13 @@ class AGUIServer(HTTPServer):
         routes: list[Route] = []
 
         # Create route for each agent in the pool
-        for agent_name in self.pool.agents:
+        for agent_name in self.pool.get_agents(Agent):
 
             async def agent_handler(request: Request, agent_name: str = agent_name) -> Response:
                 """Handle AG-UI requests for a specific agent."""
                 from starlette.responses import JSONResponse
 
-                pool_agent = self.pool.agents.get(agent_name)
+                pool_agent = self.pool.get_agents(Agent).get(agent_name)
                 if pool_agent is None:
                     msg = f"Agent {agent_name!r} not found"
                     return JSONResponse({"error": msg}, status_code=404)
@@ -109,12 +110,12 @@ class AGUIServer(HTTPServer):
 
             agent_list = [
                 {"name": name, "route": f"/{name}", "model": agent.model_name}
-                for name, agent in self.pool.agents.items()
+                for name, agent in self.pool.get_agents(Agent).items()
             ]
             return JSONResponse({"agents": agent_list, "count": len(agent_list)})
 
         routes.append(Route("/", list_agents, methods=["GET"]))
-        self.log.info("Created AG-UI routes", agent_count=len(self.pool.agents))
+        self.log.info("Created AG-UI routes", agent_count=len(self.pool.get_agents(Agent)))
         return routes
 
     def get_agent_url(self, agent_name: str) -> str:
@@ -127,4 +128,4 @@ class AGUIServer(HTTPServer):
         Returns:
             Dictionary mapping agent names to their URLs
         """
-        return {name: self.get_agent_url(name) for name in self.pool.agents}
+        return {name: self.get_agent_url(name) for name in self.pool.get_agents(Agent)}

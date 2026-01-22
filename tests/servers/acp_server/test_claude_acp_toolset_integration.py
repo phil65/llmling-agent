@@ -52,8 +52,8 @@ async def test_claude_acp_with_subagent_toolset_setup(manifest_with_claude: Agen
     """Test that Claude ACP agent with Subagent toolset initializes correctly."""
     async with AgentPool(manifest=manifest_with_claude) as pool:
         # Verify ACP agent was created
-        assert "claude_orchestrator" in pool.acp_agents
-        agent = pool.acp_agents["claude_orchestrator"]
+        assert "claude_orchestrator" in pool.get_agents(ACPAgent)
+        agent = pool.get_agents(ACPAgent)["claude_orchestrator"]
         # Verify it's an ACPAgent
         assert isinstance(agent, ACPAgent)
         # Verify toolset bridge was set up
@@ -77,7 +77,7 @@ async def test_claude_acp_subagent_invocation(manifest_with_claude: AgentsManife
     - Valid API credentials for Claude
     """
     async with AgentPool(manifest=manifest_with_claude) as pool:
-        agent = pool.acp_agents["claude_orchestrator"]
+        agent = pool.get_agents(ACPAgent)["claude_orchestrator"]
         # Ask the agent to list available nodes - it should have access via MCP
         prompt = "Use the list_available_nodes tool to show me available agents"
         result = await asyncio.wait_for(agent.run(prompt), timeout=45.0)
@@ -124,7 +124,7 @@ async def test_pool_cleanup_stops_tool_bridges(manifest_with_claude: AgentsManif
     """Test that pool cleanup properly stops tool bridges."""
     pool = AgentPool(manifest=manifest_with_claude)
     async with pool:
-        agent = pool.acp_agents["claude_orchestrator"]
+        agent = pool.get_agents(ACPAgent)["claude_orchestrator"]
         assert agent._tool_bridge is not None
         assert agent._tool_bridge.port > 0
 

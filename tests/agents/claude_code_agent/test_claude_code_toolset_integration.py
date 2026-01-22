@@ -60,8 +60,8 @@ async def test_claude_code_with_subagent_toolset_setup(
     """Test that ClaudeCodeAgent with Subagent toolset initializes correctly."""
     async with AgentPool(manifest=manifest_with_claude_code) as pool:
         # Verify ClaudeCodeAgent was created (in claude_code_agents, not agents)
-        assert "claude_code_orchestrator" in pool.claude_code_agents
-        agent = pool.claude_code_agents["claude_code_orchestrator"]
+        assert "claude_code_orchestrator" in pool.get_agents()
+        agent = pool.get_agents()["claude_code_orchestrator"]
         # Verify tools are registered (SubagentToolset always has tools)
         tools = await agent.tools.get_tools()
         assert len(tools) > 0
@@ -80,7 +80,7 @@ async def test_claude_code_subagent_tool_invocation(
     - Valid API credentials for Claude
     """
     async with AgentPool(manifest=manifest_with_claude_code) as pool:
-        agent = pool.claude_code_agents["claude_code_orchestrator"]
+        agent = pool.get_agents()["claude_code_orchestrator"]
         assert isinstance(agent, ClaudeCodeAgent)
         # Ask the agent to list available nodes - it should have access via MCP
         prompt = "Use the list_available_nodes tool to show me available agents"

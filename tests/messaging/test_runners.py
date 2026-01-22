@@ -123,7 +123,7 @@ async def test_agent_pool_cleanup():
     async with AgentPool(manifest) as pool:
         # Add some agents
         _agent = pool.get_agent("test_agent")
-        assert "test_agent" in pool.agents
+        assert "test_agent" in pool.get_agents()
 
         await pool.cleanup()
-        assert not pool.agents  # Should be empty after cleanup
+        assert not pool.get_agents()  # Should be empty after cleanup

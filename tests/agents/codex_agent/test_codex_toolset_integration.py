@@ -59,8 +59,8 @@ async def test_codex_with_subagent_toolset_setup(
     """Test that CodexAgent with Subagent toolset initializes correctly."""
     async with AgentPool(manifest=manifest_with_codex) as pool:
         # Verify CodexAgent was created (in codex_agents, not agents)
-        assert "codex_orchestrator" in pool.codex_agents
-        agent = pool.codex_agents["codex_orchestrator"]
+        assert "codex_orchestrator" in pool.get_agents()
+        agent = pool.get_agents()["codex_orchestrator"]
         # Verify tools are registered (SubagentToolset always has tools)
         tools = await agent.tools.get_tools()
         assert len(tools) > 0
@@ -92,7 +92,7 @@ async def test_codex_subagent_tool_invocation():
     manifest = AgentsManifest(agents={"codex_tool_invoker": config})
 
     async with AgentPool(manifest=manifest) as pool:
-        agent = pool.codex_agents["codex_tool_invoker"]
+        agent = pool.get_agents()["codex_tool_invoker"]
         assert isinstance(agent, CodexAgent)
         # Ask the agent to list available nodes - it should have access via MCP
         prompt = "Use the list_available_nodes tool to show me available agents"

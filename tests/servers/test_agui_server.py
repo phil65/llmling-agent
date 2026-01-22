@@ -39,7 +39,7 @@ async def test_agui_server_creation(simple_agent_pool: AgentPool):
     assert server.pool is simple_agent_pool
     assert server.host == "localhost"
     assert server.port == TEST_PORT_BASE
-    assert len(server.pool.agents) == AGENT_COUNT
+    assert len(server.pool.get_agents()) == AGENT_COUNT
 
 
 async def test_agui_server_initialization(simple_agent_pool: AgentPool):
@@ -49,7 +49,7 @@ async def test_agui_server_initialization(simple_agent_pool: AgentPool):
     async with server:
         # Pool should be initialized
         assert server.pool is not None
-        assert len(server.pool.agents) == AGENT_COUNT
+        assert len(server.pool.get_agents()) == AGENT_COUNT
 
 
 async def test_agui_server_base_url(simple_agent_pool: AgentPool):
@@ -123,7 +123,7 @@ async def test_agui_server_from_config(tmp_path):
     server = AGUIServer.from_config(config_path, host="localhost", port=port)
     assert server.host == "localhost"
     assert server.port == port
-    assert len(server.pool.agents) >= 1
+    assert len(server.pool.get_agents()) >= 1
 
 
 async def test_agui_server_name_generation(simple_agent_pool: AgentPool):

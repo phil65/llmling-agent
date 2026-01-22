@@ -287,7 +287,7 @@ from agentpool.delegation import AgentPool
 async def main():
     async with AgentPool("agents.yml") as pool:
         # Access external ACP agents just like regular agents
-        claude = pool.acp_agents["claude"]
+        claude = pool.get_agents(ACPAgent)["claude"]
         result = await claude.run("Refactor this code to use async/await")
         
         # Or delegate from a coordinator agent
@@ -298,7 +298,7 @@ async def main():
         
         # Check what agents are available
         print(f"Regular agents: {list(pool.agents.keys())}")
-        print(f"ACP agents: {list(pool.acp_agents.keys())}")
+        print(f"ACP agents: {list(pool.get_agents(ACPAgent).keys())}")
 ```
 
 The external agents are spawned as subprocess instances and communicate via the ACP protocol, with automatic lifecycle management and cleanup.
@@ -541,7 +541,7 @@ Once configured, the external agent automatically has access to the tools:
 
 ```python
 async with AgentPool("config.yml") as pool:
-    claude = pool.acp_agents["claude_orchestrator"]
+    claude = pool.get_agents(ACPAgent)["claude_orchestrator"]
     
     # Claude can now delegate to internal agents
     result = await claude.run(

@@ -41,11 +41,7 @@ if TYPE_CHECKING:
     from pydantic_ai.output import OutputSpec
     from upathtools import JoinablePathLike
 
-    from agentpool.agents.acp_agent import ACPAgent
-    from agentpool.agents.agui_agent import AGUIAgent
     from agentpool.agents.base_agent import BaseAgent
-    from agentpool.agents.claude_code_agent import ClaudeCodeAgent
-    from agentpool.agents.codex_agent import CodexAgent
     from agentpool.agents.native_agent import AgentKwargs
     from agentpool.common_types import AgentName, BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation.base_team import BaseTeam
@@ -217,7 +213,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             if self._running_count == 0:
                 # Remove MCP aggregating provider from all agents
                 aggregating_provider = self.mcp.get_aggregating_provider()
-                for agent in self.agents.values():
+                for agent in self.get_agents().values():
                     agent.tools.remove_provider(aggregating_provider.name)
                 await self.cleanup()
 
@@ -287,7 +283,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.delegation.teamrun import TeamRun
 
         if agents is None:
-            agents = list(self.agents.keys())
+            agents = list(self.get_agents(Agent).keys())
         team = TeamRun(
             [self.get_agent(i) if isinstance(i, str) else i for i in agents],
             name=name,
@@ -341,7 +337,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.delegation.team import Team
 
         if agents is None:
-            agents = list(self.agents.keys())
+            agents = list(self.get_agents(Agent).keys())
         resolved = [self.get_agent(i) if isinstance(i, str) else i for i in agents]
         team = Team(resolved, name=name, description=description, shared_prompt=shared_prompt)
         if name:
@@ -368,45 +364,46 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         with suppress(KeyboardInterrupt):
             await shutdown_event.wait()
 
-    @property
-    def agents(self) -> dict[str, Agent[Any, Any]]:
-        """Get regular agents dict."""
-        return {i.name: i for i in self._items.values() if isinstance(i, Agent)}
+    @overload
+    def get_agents(self) -> dict[str, BaseAgent[Any, Any]]: ...
 
-    @property
-    def acp_agents(self) -> dict[str, ACPAgent]:
-        """Get ACP agents dict."""
-        from agentpool.agents.acp_agent import ACPAgent
+    @overload
+    def get_agents[TAgent: BaseAgent[Any, Any]](
+        self, agent_type: type[TAgent]
+    ) -> dict[str, TAgent]: ...
 
-        return {i.name: i for i in self._items.values() if isinstance(i, ACPAgent)}
+    def get_agents[TAgent: BaseAgent[Any, Any]](
+        self,
+        agent_type: type[TAgent] | None = None,
+    ) -> dict[str, TAgent] | dict[str, BaseAgent[Any, Any]]:
+        """Get agents filtered by type.
 
-    @property
-    def agui_agents(self) -> dict[str, AGUIAgent]:
-        """Get AG-UI agents dict."""
-        from agentpool.agents.agui_agent import AGUIAgent
+        Args:
+            agent_type: Optional agent type to filter by. If None, returns all agents.
 
-        return {i.name: i for i in self._items.values() if isinstance(i, AGUIAgent)}
+        Returns:
+            Dictionary mapping agent names to agent instances.
 
-    @property
-    def claude_code_agents(self) -> dict[str, ClaudeCodeAgent]:
-        """Get Claude Code agents dict."""
-        from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+        Examples:
+            # Get all agents
+            all_agents = pool.get_agents()
 
-        return {i.name: i for i in self._items.values() if isinstance(i, ClaudeCodeAgent)}
+            # Get only native agents
+            native = pool.get_agents(Agent)
 
-    @property
-    def codex_agents(self) -> dict[str, CodexAgent]:
-        """Get Codex agents dict."""
-        from agentpool.agents.codex_agent import CodexAgent
+            # Get only ACP agents
+            from agentpool.agents.acp_agent import ACPAgent
+            acp = pool.get_agents(ACPAgent)
+        """
+        from agentpool.agents.base_agent import BaseAgent
 
-        return {i.name: i for i in self._items.values() if isinstance(i, CodexAgent)}
+        filter_type = agent_type or BaseAgent
+        return {i.name: i for i in self._items.values() if isinstance(i, filter_type)}
 
     @property
     def all_agents(self) -> dict[str, BaseAgent[Any, Any]]:
         """Get all agents (regular, ACP, and AG-UI)."""
-        from agentpool.agents.base_agent import BaseAgent
-
-        return {i.name: i for i in self._items.values() if isinstance(i, BaseAgent)}
+        return self.get_agents()
 
     @property
     def main_agent(self) -> BaseAgent[Any, Any]:
@@ -502,9 +499,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         for name, config in self.manifest.teams.items():
             team = empty_teams[name]
             members: list[MessageNode[Any, Any]] = []
+            agents = self.get_agents(Agent)
             for member in config.members:
-                if member in self.agents:
-                    members.append(self.agents[member])
+                if member in agents:
+                    members.append(agents[member])
                 elif member in empty_teams:
                     members.append(empty_teams[member])
                 else:
@@ -598,7 +596,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         from agentpool.agents import Agent
 
-        base = agent if isinstance(agent, Agent) else self.agents[agent]
+        base = agent if isinstance(agent, Agent) else self.get_agents(Agent)[agent]
         # Use custom deps if provided, otherwise use shared deps
         # base.context.data = deps if deps is not None else self.shared_deps
         base.deps_type = deps_type
@@ -698,7 +696,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         # Build index of all messages by ID across all agents
         message_index: dict[str, tuple[ChatMessage[Any], str]] = {}
-        for agent in self.agents.values():
+        for agent in self.get_agents(Agent).values():
             for msg in agent.conversation.chat_messages:
                 message_index[msg.message_id] = (msg, agent.name)
 
@@ -729,7 +727,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         return next(
             (
                 msg
-                for agent in self.agents.values()
+                for agent in self.get_agents().values()
                 for msg in agent.conversation.chat_messages
                 if msg.message_id == message_id
             ),

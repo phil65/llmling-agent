@@ -126,8 +126,8 @@ async def test_team_creation(default_model: str):
         print(f"Content: {result.content}")
 
         # Verify agents were created
-        assert "alice" in pool.agents
-        assert "bob" in pool.agents
+        assert "alice" in pool.get_agents()
+        assert "bob" in pool.get_agents()
         assert "crew" in pool.teams
         # Verify team creation message
         assert "alice" in str(result.content.lower())

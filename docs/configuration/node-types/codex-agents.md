@@ -151,7 +151,7 @@ class BugReport(BaseModel):
     suggested_fix: str
 
 async with AgentPool("config.yml") as pool:
-    agent = pool.codex_agents["bug_finder"]
+    agent = pool.get_agents()["bug_finder"]
 
     # Configure for structured output
     agent.to_structured(BugReport)
@@ -195,7 +195,7 @@ Example runtime mode switching:
 from agentpool import AgentPool
 
 async with AgentPool("config.yml") as pool:
-    agent = pool.codex_agents["my_codex"]
+    agent = pool.get_agents()["my_codex"]
 
     # Switch to high reasoning for complex task
     await agent.set_mode("high", category_id="reasoning_effort")
@@ -229,7 +229,7 @@ Codex provides access to various models. The agent can dynamically fetch availab
 from agentpool import AgentPool
 
 async with AgentPool("config.yml") as pool:
-    agent = pool.codex_agents["my_codex"]
+    agent = pool.get_agents()["my_codex"]
 
     # Get available models
     models = await agent.get_available_models()

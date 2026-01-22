@@ -69,11 +69,12 @@ class WorkersTools(ResourceProvider):
             if ctx.pool is None:
                 msg = "No agent pool available"
                 raise ToolError(msg)
-            if agent_name not in ctx.pool.agents:
+            agents = ctx.pool.get_agents()
+            if agent_name not in agents:
                 msg = f"Agent {agent_name!r} not found in pool"
                 raise ToolError(msg)
 
-            worker = ctx.pool.agents[agent_name]
+            worker = agents[agent_name]
             old_history = None
 
             if pass_message_history:

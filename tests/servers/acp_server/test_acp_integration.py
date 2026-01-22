@@ -34,7 +34,7 @@ async def test_acp_server_creation(agent_pool: AgentPool):
     """Test that ACP server can be created from agent pool."""
     server = ACPServer(pool=agent_pool)
     assert server.pool is agent_pool
-    assert len(server.pool.agents) > 0
+    assert len(server.pool.get_agents()) > 0
 
 
 async def test_agent_switching_workflow(agent_pool: AgentPool, mock_acp_agent):

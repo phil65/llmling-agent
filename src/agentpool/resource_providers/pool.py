@@ -48,7 +48,7 @@ class PoolResourceProvider(ResourceProvider):
     async def get_tools(self) -> Sequence[Tool]:
         """Get tools from all agents in pool."""
         team_tools = [team.to_tool() for team in self.pool.teams.values()]
-        agents = list(self.pool.agents.values())
+        agents = list(self.pool.get_agents().values())
         team_members = {member for t in self.pool.teams.values() for member in t.nodes}
         if self.include_team_members:
             agent_tools = [agent.to_tool() for agent in agents]
