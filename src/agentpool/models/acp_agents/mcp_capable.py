@@ -359,12 +359,6 @@ class AgentpoolACPAgentConfig(BaseACPAgentConfig):
     agent: str | None = None
     """Specific agent name to use from config (defaults to first agent)."""
 
-    file_access: bool = True
-    """Enable file system access for the agent."""
-
-    terminal_access: bool = True
-    """Enable terminal access for the agent."""
-
     load_skills: bool = True
     """Load client-side skills from .claude/skills directory."""
 
@@ -380,10 +374,6 @@ class AgentpoolACPAgentConfig(BaseACPAgentConfig):
             args.append(self.config_path)
         if self.agent:
             args.extend(["--agent", self.agent])
-        if not self.file_access:
-            args.append("--no-file-access")
-        if not self.terminal_access:
-            args.append("--no-terminal-access")
         if not self.load_skills:
             args.append("--no-skills")
         return args

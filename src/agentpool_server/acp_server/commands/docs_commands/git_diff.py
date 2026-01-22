@@ -46,8 +46,8 @@ class GitDiffCommand(NodeCommand):
         assert session
         tool_call_id = f"git-diff-{uuid.uuid4().hex[:8]}"
         try:
-            caps = session.client_capabilities  # Check if we have terminal access for running git
-            if not (caps and caps.terminal and session.acp_agent.terminal_access):
+            # Check if client supports terminal for running git
+            if not (session.client_capabilities and session.client_capabilities.terminal):
                 msg = "❌ **Terminal access not available for git operations**"
                 await session.notifications.send_agent_text(msg)
                 return

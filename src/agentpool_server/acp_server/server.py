@@ -43,8 +43,6 @@ class ACPServer(BaseServer):
         pool: AgentPool[Any],
         *,
         name: str | None = None,
-        file_access: bool = True,
-        terminal_access: bool = True,
         debug_messages: bool = False,
         debug_file: str | None = None,
         debug_commands: bool = False,
@@ -58,8 +56,6 @@ class ACPServer(BaseServer):
         Args:
             pool: AgentPool containing available agents
             name: Optional Server name (auto-generated if None)
-            file_access: Whether to support file access operations
-            terminal_access: Whether to support terminal access operations
             debug_messages: Whether to enable debug message logging
             debug_file: File path for debug message logging
             debug_commands: Whether to enable debug slash commands for testing
@@ -69,8 +65,6 @@ class ACPServer(BaseServer):
             transport: Transport configuration ("stdio", "websocket", or transport object)
         """
         super().__init__(pool, name=name, raise_exceptions=True)
-        self.file_access = file_access
-        self.terminal_access = terminal_access
         self.debug_messages = debug_messages
         self.debug_file = debug_file
         self.debug_commands = debug_commands
@@ -84,8 +78,6 @@ class ACPServer(BaseServer):
         cls,
         config: JoinablePathLike | AgentsManifest,
         *,
-        file_access: bool = True,
-        terminal_access: bool = True,
         debug_messages: bool = False,
         debug_file: str | None = None,
         debug_commands: bool = False,
@@ -97,8 +89,6 @@ class ACPServer(BaseServer):
 
         Args:
             config: Path to YAML config file or pre-loaded AgentsManifest
-            file_access: Enable file system access
-            terminal_access: Enable terminal access
             debug_messages: Enable saving JSON messages to file
             debug_file: Path to debug file
             debug_commands: Enable debug slash commands for testing
@@ -117,8 +107,6 @@ class ACPServer(BaseServer):
 
         server = cls(
             pool,
-            file_access=file_access,
-            terminal_access=terminal_access,
             debug_messages=debug_messages,
             debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
             debug_commands=debug_commands,
@@ -171,15 +159,13 @@ class ACPServer(BaseServer):
         create_acp_agent = functools.partial(
             AgentPoolACPAgent,
             default_agent=default_agent,
-            file_access=self.file_access,
-            terminal_access=self.terminal_access,
             debug_commands=self.debug_commands,
             load_skills=self.load_skills,
             server=self,
         )
 
         debug_file = self.debug_file if self.debug_messages else None
-        self.log.info("ACP server started", file=self.file_access, terminal=self.terminal_access)
+        self.log.info("ACP server started")
 
         try:
             await serve(

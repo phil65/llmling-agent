@@ -53,12 +53,8 @@ class GetSchemaCommand(NodeCommand):
         tool_call_id = f"get-schema-{uuid.uuid4().hex[:8]}"
 
         try:
-            # Check if we have terminal access
-            if not (
-                session.client_capabilities
-                and session.client_capabilities.terminal
-                and session.acp_agent.terminal_access
-            ):
+            # Check if client supports terminal
+            if not (session.client_capabilities and session.client_capabilities.terminal):
                 await session.notifications.send_agent_text(
                     "❌ **Terminal access not available for schema generation**"
                 )

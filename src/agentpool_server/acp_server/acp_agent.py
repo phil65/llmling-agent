@@ -232,12 +232,6 @@ class AgentPoolACPAgent(ACPAgent):
 
     _: KW_ONLY
 
-    file_access: bool = True
-    """Whether agent can access filesystem."""
-
-    terminal_access: bool = True
-    """Whether agent can use terminal."""
-
     debug_commands: bool = False
     """Whether to enable debug slash commands for testing."""
 

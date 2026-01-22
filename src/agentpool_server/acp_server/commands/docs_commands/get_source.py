@@ -48,12 +48,8 @@ class GetSourceCommand(NodeCommand):
         tool_call_id = f"get-source-{uuid.uuid4().hex[:8]}"
 
         try:
-            # Check if we have terminal access
-            if not (
-                session.client_capabilities
-                and session.client_capabilities.terminal
-                and session.acp_agent.terminal_access
-            ):
+            # Check if client supports terminal
+            if not (session.client_capabilities and session.client_capabilities.terminal):
                 msg = "❌ **Terminal access not available for source code fetching**"
                 await session.notifications.send_agent_text(msg)
                 return

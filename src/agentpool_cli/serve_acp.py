@@ -35,20 +35,6 @@ logger = log.get_logger(__name__)
 def acp_command(  # noqa: PLR0915
     # Too many statements - complex CLI command with many options
     config: Annotated[str | None, t.Argument(help="Path to agent configuration (optional)")] = None,
-    file_access: Annotated[
-        bool,
-        t.Option(
-            "--file-access/--no-file-access",
-            help="Enable file system access for agents",
-        ),
-    ] = True,
-    terminal_access: Annotated[
-        bool,
-        t.Option(
-            "--terminal-access/--no-terminal-access",
-            help="Enable terminal access for agents",
-        ),
-    ] = True,
     show_messages: Annotated[
         bool, t.Option("--show-messages", help="Show message activity in logs")
     ] = False,
@@ -181,8 +167,6 @@ def acp_command(  # noqa: PLR0915
 
     acp_server = ACPServer.from_config(
         manifest,
-        file_access=file_access,
-        terminal_access=terminal_access,
         debug_messages=debug_messages,
         debug_file=debug_file or "acp-debug.jsonl" if debug_messages else None,
         debug_commands=debug_commands,

@@ -290,9 +290,7 @@ class ACPSession:
         for cfg in cfgs:
             try:
                 await self.agent.mcp.setup_server(cfg)
-                self.log.info(
-                    "Added MCP server to agent", server_name=cfg.name, agent=self.agent.name
-                )
+                self.log.info("Added MCP server", server_name=cfg.name, agent=self.agent.name)
             except Exception:
                 self.log.exception("Failed to setup MCP server", server_name=cfg.name)
                 # Don't fail session creation, just log the error
