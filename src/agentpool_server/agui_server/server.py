@@ -2,14 +2,17 @@
 
 This module provides a server that exposes all agents in an AgentPool
 via the AG-UI protocol, with each agent accessible at its own route.
+
+Supports all agent types (native, ACP, Claude Code, Codex, AG-UI) through
+the BaseAgentAGUIAdapter.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from agentpool import Agent
 from agentpool.log import get_logger
+from agentpool_server.agui_server.base_agent_adapter import BaseAgentAGUIAdapter
 from agentpool_server.http_server import HTTPServer
 
 
@@ -73,29 +76,24 @@ class AGUIServer(HTTPServer):
         Returns:
             List of Route objects for each agent plus root listing endpoint
         """
-        from pydantic_ai.ui.ag_ui import AGUIAdapter
         from starlette.routing import Route
 
         routes: list[Route] = []
 
-        # Create route for each agent in the pool
-        for agent_name in self.pool.get_agents(Agent):
+        # Create route for each agent in the pool (all agent types supported)
+        for agent_name in self.pool.all_agents:
 
             async def agent_handler(request: Request, agent_name: str = agent_name) -> Response:
                 """Handle AG-UI requests for a specific agent."""
                 from starlette.responses import JSONResponse
 
-                pool_agent = self.pool.get_agents(Agent).get(agent_name)
+                pool_agent = self.pool.all_agents.get(agent_name)
                 if pool_agent is None:
                     msg = f"Agent {agent_name!r} not found"
                     return JSONResponse({"error": msg}, status_code=404)
-                agentlet = await pool_agent.get_agentlet(
-                    model=pool_agent.model_name, output_type=str, input_provider=None
-                )
                 try:
-                    # Use AGUIAdapter.dispatch_request() which handles the full
-                    # AG-UI protocol: parsing request, running agent, streaming response
-                    return await AGUIAdapter.dispatch_request(request, agent=agentlet)
+                    # Use BaseAgentAGUIAdapter which works with any agent type
+                    return await BaseAgentAGUIAdapter.dispatch_request(request, agent=pool_agent)
                 except Exception as e:
                     self.log.exception("Error handling AG-UI request", agent=agent_name)
                     return JSONResponse({"error": str(e)}, status_code=500)
@@ -110,12 +108,12 @@ class AGUIServer(HTTPServer):
 
             agent_list = [
                 {"name": name, "route": f"/{name}", "model": agent.model_name}
-                for name, agent in self.pool.get_agents(Agent).items()
+                for name, agent in self.pool.all_agents.items()
             ]
             return JSONResponse({"agents": agent_list, "count": len(agent_list)})
 
         routes.append(Route("/", list_agents, methods=["GET"]))
-        self.log.info("Created AG-UI routes", agent_count=len(self.pool.get_agents(Agent)))
+        self.log.info("Created AG-UI routes", agent_count=len(self.pool.all_agents))
         return routes
 
     def get_agent_url(self, agent_name: str) -> str:
@@ -128,4 +126,4 @@ class AGUIServer(HTTPServer):
         Returns:
             Dictionary mapping agent names to their URLs
         """
-        return {name: self.get_agent_url(name) for name in self.pool.get_agents(Agent)}
+        return {name: self.get_agent_url(name) for name in self.pool.all_agents}
