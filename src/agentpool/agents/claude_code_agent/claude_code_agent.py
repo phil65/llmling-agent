@@ -118,9 +118,6 @@ if TYPE_CHECKING:
     )
     from clawd_code_sdk.types import (
         AssistantMessage,
-        HookContext,
-        HookInput,
-        SyncHookJSONOutput,
     )
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
@@ -340,6 +337,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         claude_config = ClaudeStorageConfig(path="~/.claude")
         self._claude_storage = ClaudeStorageProvider(claude_config)
 
+        # Initialize hook manager
+        from agentpool.agents.claude_code_agent.hook_manager import ClaudeCodeHookManager
+
+        self._hook_manager = ClaudeCodeHookManager(
+            agent_name=self.name,
+            agent_hooks=hooks,
+            event_queue=self._event_queue,
+            get_session_id=lambda: self.session_id,
+        )
+
     @classmethod
     def from_config(
         cls,
@@ -457,50 +464,33 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             result[name] = MCPServerStatus(name=name, status="connected", server_type=server_type)
         return result
 
+    def inject_prompt(self, message: str) -> None:
+        """Inject a message into the conversation after the next tool completes.
+
+        The message will be added as additional context visible to the model
+        after the current tool execution finishes. This allows injecting
+        guidance or corrections mid-run.
+
+        Args:
+            message: Message to inject
+
+        Note:
+            Only works when tools are executing. If no tool runs before the
+            agent completes, the injection is lost.
+        """
+        self._hook_manager.inject(message)
+
     def _build_hooks(self) -> dict[str, list[Any]]:
         """Build SDK hooks configuration.
 
-        Combines built-in hooks (like PreCompact) with user-provided AgentHooks.
+        Delegates to ClaudeCodeHookManager which combines:
+        - Built-in hooks (PreCompact, injection via PostToolUse)
+        - User-provided AgentHooks
 
         Returns:
             Dictionary mapping hook event names to HookMatcher lists
         """
-        from clawd_code_sdk.types import HookMatcher
-
-        from agentpool.agents.claude_code_agent.converters import build_sdk_hooks_from_agent_hooks
-
-        async def on_pre_compact(
-            input_data: HookInput,
-            tool_use_id: str | None,
-            context: HookContext,
-        ) -> SyncHookJSONOutput:
-            """Handle PreCompact hook by emitting a CompactionEvent."""
-            from agentpool.agents.events import CompactionEvent
-
-            # input_data is PreCompactHookInput when hook_event_name == "PreCompact"
-            trigger_value = input_data.get("trigger", "auto")
-            trigger: Literal["auto", "manual"] = "manual" if trigger_value == "manual" else "auto"
-            # Emit semantic CompactionEvent - consumers handle display differently
-            ses_id = self.session_id or "unknown"
-            compaction_event = CompactionEvent(session_id=ses_id, trigger=trigger, phase="starting")
-            await self._event_queue.put(compaction_event)
-            return {"continue_": True}
-
-        # Start with built-in hooks
-        result: dict[str, list[Any]] = {
-            "PreCompact": [HookMatcher(matcher=None, hooks=[on_pre_compact])]
-        }
-
-        # Merge AgentHooks if present
-        if self.hooks:
-            agent_hooks = build_sdk_hooks_from_agent_hooks(self.hooks, self.name)
-            for event_name, matchers in agent_hooks.items():
-                if event_name in result:
-                    result[event_name].extend(matchers)
-                else:
-                    result[event_name] = matchers
-
-        return result
+        return self._hook_manager.build_hooks()  # type: ignore[return-value]
 
     def _build_options(self, *, formatted_system_prompt: str | None = None) -> ClaudeAgentOptions:
         """Build ClaudeAgentOptions from runtime state.
