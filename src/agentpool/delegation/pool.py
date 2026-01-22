@@ -769,7 +769,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 return Agent.from_config(
                     config,
                     name=name,  # Pass dict key for manifest lookups
-                    manifest=self.manifest,
                     event_handlers=self.event_handlers,
                     input_provider=self._input_provider,
                     agent_pool=self,
@@ -785,17 +784,12 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 )
             case ClaudeCodeAgentConfig():
                 from agentpool.agents.claude_code_agent import ClaudeCodeAgent
-                from agentpool.utils.result_utils import to_type
 
-                output_type: type | None = None
-                if config.output_type:
-                    output_type = to_type(config.output_type, self.manifest.responses)
                 return ClaudeCodeAgent.from_config(
                     config,
                     event_handlers=self.event_handlers,
                     input_provider=self._input_provider,
                     agent_pool=self,
-                    output_type=output_type,
                 )
             case CodexAgentConfig():
                 from agentpool.agents.codex_agent import CodexAgent

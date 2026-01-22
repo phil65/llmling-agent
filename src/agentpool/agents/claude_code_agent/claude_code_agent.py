@@ -311,21 +311,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._setting_sources = setting_sources
         self._use_subscription = use_subscription
         self._toolsets = toolsets or []
-
         # Client state
         self._client: ClaudeSDKClient | None = None
         self._connection_task: asyncio.Task[None] | None = None
         self._current_model: AnthropicMaxModelName | str | None = self._model
         self._sdk_session_id: str | None = session_id
         self.deps_type = type(None)
-
         # ToolBridge state for exposing toolsets via MCP
         self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
         self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
-
         # Track pending tool call for permission matching
         self._pending_tool_call_ids: dict[str, str] = {}
-
         # Create Claude storage provider for session management
         claude_config = ClaudeStorageConfig(path="~/.claude")
         self._claude_storage = ClaudeStorageProvider(claude_config)
@@ -338,12 +334,22 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
-        output_type: type[TResult] | None = None,
     ) -> Self:
         """Create a ClaudeCodeAgent from a config object.
 
         All config values are extracted here and passed to the constructor.
         """
+        from agentpool.models.manifest import AgentsManifest
+        from agentpool.utils.result_utils import to_type
+
+        # Get manifest from pool or create empty one
+        manifest = agent_pool.manifest if agent_pool is not None else AgentsManifest()
+
+        # Resolve output type from config
+        resolved_output_type: type | None = None
+        if config.output_type:
+            resolved_output_type = to_type(config.output_type, manifest.responses)
+
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
@@ -385,7 +391,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             event_handlers=merged_handlers or None,
             input_provider=input_provider,
             agent_pool=agent_pool,
-            output_type=output_type,
+            output_type=resolved_output_type,
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
         )
 

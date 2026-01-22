@@ -61,7 +61,6 @@ if TYPE_CHECKING:
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageNode
     from agentpool.models.agents import NativeAgentConfig, ToolMode
-    from agentpool.models.manifest import AgentsManifest
     from agentpool.prompts.prompts import PromptType
     from agentpool.resource_providers import ResourceProvider
     from agentpool.sessions import SessionData
@@ -319,7 +318,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         config: NativeAgentConfig,
         *,
         name: str | None = None,
-        manifest: AgentsManifest | None = None,
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
@@ -333,8 +331,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         Args:
             config: Native agent configuration
             name: Optional name override (used for manifest lookups, defaults to config.name)
-            manifest: Optional manifest for resolving prompts, models, output types.
-                     If not provided, uses agent_pool.manifest or creates empty one.
             event_handlers: Optional event handlers (merged with config handlers)
             input_provider: Optional input provider for user interactions
             agent_pool: Optional agent pool for coordination
@@ -354,8 +350,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from agentpool_toolsets.builtin.workers import WorkersTools
 
         # Get manifest from pool or create empty one
-        if manifest is None:
-            manifest = agent_pool.manifest if agent_pool else AgentsManifest()
+        manifest = agent_pool.manifest if agent_pool is not None else AgentsManifest()
 
         # Use provided name, fall back to config.name, then default
         name = name or config.name or "agent"
@@ -406,9 +401,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         if config.workers:
             workers_provider = WorkersTools(workers=list(config.workers), name="workers")
             toolsets_list.append(workers_provider)
-        # Resolve output type
-        agent_output_type = manifest.get_output_type(name) or str
-        resolved_output_type = to_type(agent_output_type, manifest.responses)
+        # Resolve output type from config
+        resolved_output_type: type = str
+        if config.output_type:
+            resolved_output_type = to_type(config.output_type, manifest.responses)
         # Merge event handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
@@ -436,7 +432,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             end_strategy=config.end_strategy,
             agent_config=config,
             input_provider=input_provider,
-            output_type=resolved_output_type,  # type: ignore[arg-type]
+            output_type=resolved_output_type,
             event_handlers=merged_handlers or None,
             agent_pool=agent_pool,
             tool_mode=config.tool_mode,
