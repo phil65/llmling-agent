@@ -166,7 +166,6 @@ async def test_acp_agent_terminal_operations(tmp_path: Path, test_config_file: P
             str(test_config_file),
             "--agent",
             "test_agent",
-            "--terminal-access",
         ],
         name="test_acp_terminal_agent",
         cwd=str(tmp_path),

@@ -48,9 +48,6 @@ agentpool serve-acp agents.yml
 
 ### Available Options
 
-- `--file-access/--no-file-access`: Enable file system operations (default: enabled)
-- `--terminal-access/--no-terminal-access`: Enable terminal integration (default: enabled)
-- `--session-support/--no-session-support`: Enable session loading (default: enabled)
 - `--show-messages`: Show message activity in logs
 - `--log-level`: Set logging level (debug, info, warning, error)
 

@@ -45,8 +45,6 @@ if TYPE_CHECKING:
 async def acp_test_session(
     config: str | Path | None = None,
     *,
-    file_access: bool = True,
-    terminal_access: bool = True,
     debug_messages: bool = False,
     debug_file: str | None = None,
     debug_commands: bool = False,
@@ -92,12 +90,6 @@ async def acp_test_session(
 
     if config is not None:
         args.extend(["--config", str(config)])
-
-    if not file_access:
-        args.append("--no-file-access")
-
-    if not terminal_access:
-        args.append("--no-terminal-access")
 
     if debug_messages:
         args.append("--debug-messages")
