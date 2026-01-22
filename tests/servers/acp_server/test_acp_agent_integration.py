@@ -142,7 +142,6 @@ async def test_acp_agent_file_operations(tmp_path: Path, test_config_file: Path)
             str(test_config_file),
             "--agent",
             "test_agent",
-            "--file-access",
         ],
         name="test_acp_file_agent",
         cwd=str(tmp_path),
