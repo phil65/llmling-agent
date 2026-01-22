@@ -361,19 +361,15 @@ def get_config_search_paths() -> list[tuple[str, Path | None]]:
         List of (source_name, path_or_none) tuples showing where configs are searched
     """
     paths: list[tuple[str, Path | None]] = []
-
     # Global
     global_path = get_global_config_path()
     paths.append(("global", global_path))
-
     # Custom from env
     custom_path = os.environ.get(ENV_CONFIG_PATH)
     paths.append(("custom (env)", Path(custom_path) if custom_path else None))
-
     # Project
     project_path = find_project_config()
     paths.append(("project", project_path))
-
     return paths
 
 

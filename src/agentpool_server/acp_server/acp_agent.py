@@ -442,15 +442,11 @@ class AgentPoolACPAgent(ACPAgent):
         """
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
-
+        # Get agent from first active session, or fall back to default
+        first_session = next(iter(self.session_manager._active.values()), None)
+        agent = first_session.agent if first_session else self.default_agent
         try:
             # Get agent from active session or use default
-            agent: BaseAgent[Any, Any] | None = None
-            for session in self.session_manager._active.values():
-                agent = session.agent
-                break
-            # No active session, use default agent
-            agent = agent or self.default_agent
             # Delegate to agent's list_sessions
             logger.info("Listing sessions for agent", agent_name=agent.name)
             agent_sessions = await agent.list_sessions()
