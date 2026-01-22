@@ -29,7 +29,6 @@ from acp.schema import (
     SetSessionModeResponse,
 )
 from agentpool.log import get_logger
-from agentpool.storage.manager import TitleGeneratedEvent
 from agentpool.utils.tasks import TaskManager
 from agentpool_server.acp_server.session_manager import ACPSessionManager
 
@@ -56,6 +55,7 @@ if TYPE_CHECKING:
     )
     from agentpool import AgentPool
     from agentpool.agents.base_agent import BaseAgent
+    from agentpool.storage.manager import TitleGeneratedEvent
     from agentpool_server.acp_server.server import ACPServer
 
 logger = get_logger(__name__)
