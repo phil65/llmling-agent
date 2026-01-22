@@ -134,7 +134,6 @@ mcp-discovery = [
 mcp_run = ["mcpx-py>=0.7.0"]  # MCP.run Toolset
 notifications = ["apprise>=1.9.5"]  # Notification Toolset
 promptlayer = ["promptlayer"]  # PromptLayer Prompt Hub
-textual = ["textual>=1.0.0"]  # Textual CLI app to create configs
 tiktoken = ["tiktoken"]  # Exact token counting
 tts = ["anyvoice[tts-edge,openai]>=0.0.2"]  # Text-to-Speech using AnyVoice
 zed = ["zstandard>=0.23.0"]  # Zed IDE storage provider
