@@ -37,7 +37,7 @@ def _dict_to_chat_message(msg: dict[str, Any]) -> ChatMessage[str]:
         "cost_info": cost_info,
         "response_time": msg.get("response_time"),
         "parent_id": msg.get("parent_id"),
-        "conversation_id": msg.get("conversation_id"),
+        "session_id": msg.get("session_id"),
     }
     if msg.get("timestamp"):
         kwargs["timestamp"] = msg["timestamp"]
@@ -73,7 +73,7 @@ class MemoryStorageProvider(StorageProvider):
         filtered = []
         for msg in self.messages:
             # Skip if conversation ID doesn't match
-            if query.name and msg["conversation_id"] != query.name:
+            if query.name and msg["session_id"] != query.name:
                 continue
 
             # Skip if agent name doesn't match
@@ -128,7 +128,7 @@ class MemoryStorageProvider(StorageProvider):
     async def log_message(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         message_id: str,
         content: str,
         role: str,
@@ -148,7 +148,7 @@ class MemoryStorageProvider(StorageProvider):
             raise ValueError(msg)
 
         self.messages.append({
-            "conversation_id": conversation_id,
+            "session_id": session_id,
             "message_id": message_id,
             "parent_id": parent_id,
             "content": content,
@@ -167,16 +167,16 @@ class MemoryStorageProvider(StorageProvider):
     async def log_session(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         node_name: str,
         start_time: datetime | None = None,
     ) -> None:
         """Store conversation in memory."""
-        if next((i for i in self.conversations if i["id"] == conversation_id), None):
-            msg = f"Duplicate conversation ID: {conversation_id}"
+        if next((i for i in self.conversations if i["id"] == session_id), None):
+            msg = f"Duplicate conversation ID: {session_id}"
             raise ValueError(msg)
         self.conversations.append({
-            "id": conversation_id,
+            "id": session_id,
             "agent_name": node_name,
             "title": None,
             "start_time": start_time or get_now(),
@@ -184,35 +184,35 @@ class MemoryStorageProvider(StorageProvider):
 
     async def update_session_title(
         self,
-        conversation_id: str,
+        session_id: str,
         title: str,
     ) -> None:
         """Update the title of a conversation."""
         for conv in self.conversations:
-            if conv["id"] == conversation_id:
+            if conv["id"] == session_id:
                 conv["title"] = title
                 return
 
     async def get_session_title(
         self,
-        conversation_id: str,
+        session_id: str,
     ) -> str | None:
         """Get the title of a conversation."""
         for conv in self.conversations:
-            if conv["id"] == conversation_id:
+            if conv["id"] == session_id:
                 return conv.get("title")
         return None
 
     async def get_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
         """Get all messages for a conversation."""
         messages: list[ChatMessage[str]] = []
         for msg in self.messages:
-            if msg.get("conversation_id") != conversation_id:
+            if msg.get("session_id") != session_id:
                 continue
             messages.append(_dict_to_chat_message(msg))
 
@@ -256,18 +256,16 @@ class MemoryStorageProvider(StorageProvider):
     async def fork_conversation(
         self,
         *,
-        source_conversation_id: str,
-        new_conversation_id: str,
+        source_session_id: str,
+        new_session_id: str,
         fork_from_message_id: str | None = None,
         new_agent_name: str | None = None,
     ) -> str | None:
         """Fork a conversation at a specific point."""
         # Find source conversation
-        source_conv = next(
-            (c for c in self.conversations if c["id"] == source_conversation_id), None
-        )
+        source_conv = next((c for c in self.conversations if c["id"] == source_session_id), None)
         if not source_conv:
-            msg = f"Source conversation not found: {source_conversation_id}"
+            msg = f"Source conversation not found: {source_session_id}"
             raise ValueError(msg)
 
         # Determine fork point
@@ -275,8 +273,7 @@ class MemoryStorageProvider(StorageProvider):
         if fork_from_message_id:
             # Verify message exists in source conversation
             msg_exists = any(
-                m.get("message_id") == fork_from_message_id
-                and m["conversation_id"] == source_conversation_id
+                m.get("message_id") == fork_from_message_id and m["session_id"] == source_session_id
                 for m in self.messages
             )
             if not msg_exists:
@@ -285,9 +282,7 @@ class MemoryStorageProvider(StorageProvider):
             fork_point_id = fork_from_message_id
         else:
             # Find last message in source conversation
-            conv_messages = [
-                m for m in self.messages if m["conversation_id"] == source_conversation_id
-            ]
+            conv_messages = [m for m in self.messages if m["session_id"] == source_session_id]
             if conv_messages:
                 conv_messages.sort(key=lambda m: m.get("timestamp") or get_now())
                 fork_point_id = conv_messages[-1].get("message_id")
@@ -300,7 +295,7 @@ class MemoryStorageProvider(StorageProvider):
             else None
         )
         self.conversations.append({
-            "id": new_conversation_id,
+            "id": new_session_id,
             "agent_name": agent_name,
             "title": title,
             "start_time": get_now(),
@@ -367,7 +362,7 @@ class MemoryStorageProvider(StorageProvider):
         for conv_id, conv in convs.items():
             conv_messages: list[ChatMessage[str]] = []
             for msg in self.messages:
-                if msg["conversation_id"] != conv_id:
+                if msg["session_id"] != conv_id:
                     continue
                 if filters.query and filters.query not in msg["content"]:
                     continue
@@ -486,7 +481,7 @@ class MemoryStorageProvider(StorageProvider):
             self.messages = [
                 m
                 for m in self.messages
-                if m["conversation_id"]
+                if m["session_id"]
                 not in {c["id"] for c in self.conversations if c["agent_name"] == agent_name}
             ]
         else:
@@ -509,7 +504,7 @@ class MemoryStorageProvider(StorageProvider):
                 1
                 for m in self.messages
                 if any(
-                    c["id"] == m["conversation_id"] and c["agent_name"] == agent_name
+                    c["id"] == m["session_id"] and c["agent_name"] == agent_name
                     for c in self.conversations
                 )
             )
@@ -521,11 +516,11 @@ class MemoryStorageProvider(StorageProvider):
 
     async def delete_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
     ) -> int:
         """Delete all messages for a conversation."""
         original_count = len(self.messages)
-        self.messages = [m for m in self.messages if m["conversation_id"] != conversation_id]
+        self.messages = [m for m in self.messages if m["session_id"] != session_id]
         return original_count - len(self.messages)
 
     # Project methods

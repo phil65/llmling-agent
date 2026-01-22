@@ -425,7 +425,7 @@ class ACPSession:
                     *non_command_content,
                     input_provider=self.input_provider,
                     deps=self,
-                    conversation_id=self.session_id,  # Tie agent conversation to ACP session
+                    session_id=self.session_id,  # Tie agent conversation to ACP session
                 ):
                     if self._cancelled:
                         self.log.info("Cancelled during event loop, cleaning up tool calls")

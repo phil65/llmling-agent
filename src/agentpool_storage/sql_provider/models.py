@@ -124,8 +124,8 @@ class Message(AsyncAttrs, SQLModel, table=True):
     id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
     """Unique identifier for the message"""
 
-    conversation_id: str = Field(index=True)
-    """ID of the conversation this message belongs to"""
+    session_id: str = Field(index=True)
+    """ID of the session this message belongs to"""
 
     parent_id: str | None = Field(default=None, index=True)
     """ID of the parent message for tree-structured conversations."""
@@ -193,7 +193,7 @@ class Session(AsyncAttrs, SQLModel, table=True):
     """Database model for session persistence."""
 
     session_id: str = Field(primary_key=True)
-    """Unique session identifier. Also used as conversation_id for message storage."""
+    """Unique session identifier. Also used as session_id for message storage."""
 
     agent_name: str = Field(index=True)
     """Name of the currently active agent."""

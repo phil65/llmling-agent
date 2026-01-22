@@ -68,7 +68,7 @@ def wrap_tool[TReturn](  # noqa: PLR0915
                 agent_name=agent_ctx.node_name,
                 tool_name=tool.name,
                 tool_input=tool_input,
-                conversation_id=None,  # Could be passed through if needed
+                session_id=None,  # Could be passed through if needed
             )
             if pre_result.get("decision") == "deny":
                 reason = pre_result.get("reason", "Blocked by pre-tool hook")
@@ -100,7 +100,7 @@ def wrap_tool[TReturn](  # noqa: PLR0915
                 tool_input=tool_input,
                 tool_output=result,
                 duration_ms=duration_ms,
-                conversation_id=None,
+                session_id=None,
             )
 
         return result

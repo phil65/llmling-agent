@@ -242,7 +242,7 @@ def thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessa
             messages.append(
                 ChatMessage[str](
                     content=display_text,
-                    conversation_id=thread_id,
+                    session_id=thread_id,
                     role="user",
                     message_id=user_msg.id or msg_id,
                     name=None,
@@ -268,7 +268,7 @@ def thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessa
             messages.append(
                 ChatMessage[str](
                     content=display_text,
-                    conversation_id=thread_id,
+                    session_id=thread_id,
                     role="assistant",
                     message_id=msg_id,
                     name="zed",

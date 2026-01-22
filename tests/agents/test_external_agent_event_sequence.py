@@ -451,7 +451,7 @@ async def test_stream_complete_event_structure():
     assert msg.role == "assistant"
     assert msg.content is not None
     assert msg.message_id is not None
-    assert msg.conversation_id is not None
+    assert msg.session_id is not None
     assert msg.name is not None
 
 

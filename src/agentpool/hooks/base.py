@@ -20,7 +20,7 @@ class HookInput(TypedDict, total=False):
     # Common fields
     event: HookEvent
     agent_name: str
-    conversation_id: str | None
+    session_id: str | None
 
     # Tool-related fields (pre_tool_use, post_tool_use)
     tool_name: str

@@ -732,7 +732,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         effective_parent_id: str | None,
         store_history: bool = True,
         message_id: str | None = None,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
@@ -747,9 +747,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         run_id = str(uuid4())
         start_time = time.perf_counter()
         history_list = message_history.get_history()
-        assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
+        assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
         run_started = RunStartedEvent(
-            thread_id=self.conversation_id, run_id=run_id, agent_name=self.name
+            thread_id=self.session_id, run_id=run_id, agent_name=self.name
         )
         await event_handlers(None, run_started)
         yield run_started
@@ -810,7 +810,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     role="assistant",
                     name=self.name,
                     message_id=message_id,
-                    conversation_id=self.conversation_id,
+                    session_id=self.session_id,
                     parent_id=user_msg.message_id,
                     response_time=response_time,
                     finish_reason="stop",
@@ -825,7 +825,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     agent_run.result,
                     agent_name=self.name,
                     message_id=message_id,
-                    conversation_id=self.conversation_id,
+                    session_id=self.session_id,
                     parent_id=user_msg.message_id,
                     response_time=response_time,
                     metadata=file_tracker.get_metadata(),
@@ -1103,7 +1103,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 provider = self.agent_pool.storage.providers[0]
                 if provider.can_load_history:
                     messages = await provider.get_conversation_messages(
-                        conversation_id=session_data.session_id,
+                        session_id=session_data.session_id,
                     )
                     # Restore to conversation history
                     self.conversation.chat_messages.clear()

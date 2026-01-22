@@ -63,7 +63,7 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
 
     return ChatMessage[str](
         message_id=db_message.id,
-        conversation_id=db_message.conversation_id,
+        session_id=db_message.session_id,
         content=db_message.content,
         role=db_message.role,  # type: ignore
         name=db_message.name,
@@ -181,7 +181,7 @@ def build_message_query(query: SessionQuery) -> SelectOfScalar[Any]:
 
     conditions: list[Any] = []
     if query.name:
-        conditions.append(Message.conversation_id == query.name)
+        conditions.append(Message.session_id == query.name)
     if query.agents:
         conditions.append(Column("name").in_(query.agents))
     if query.since and (cutoff := query.get_time_cutoff()):

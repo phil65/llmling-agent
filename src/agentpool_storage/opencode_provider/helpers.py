@@ -362,14 +362,14 @@ def read_session(session_path: Path) -> Session | None:
 def message_to_chat_message(
     msg: OpenCodeMessage,
     parts: list[OpenCodePart],
-    conversation_id: str,
+    session_id: str,
 ) -> ChatMessage[str]:
     """Convert OpenCode message + parts to ChatMessage.
 
     Args:
         msg: OpenCode message metadata
         parts: OpenCode message parts
-        conversation_id: Conversation/session ID
+        session_id: Conversation/session ID
 
     Returns:
         ChatMessage suitable for agentpool storage
@@ -401,7 +401,7 @@ def message_to_chat_message(
 
     return ChatMessage[str](
         content=content,
-        conversation_id=conversation_id,
+        session_id=session_id,
         role=msg.role,
         message_id=msg.id,
         name=msg.agent,

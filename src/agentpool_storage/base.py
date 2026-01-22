@@ -29,7 +29,7 @@ class StoredMessage:
     """Base class for stored message data."""
 
     id: str
-    conversation_id: str
+    session_id: str
     timestamp: datetime
     role: str
     content: str
@@ -93,7 +93,7 @@ class StorageProvider:
     async def log_message(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         message_id: str,
         content: str,
         role: str,
@@ -112,7 +112,7 @@ class StorageProvider:
     async def log_session(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         node_name: str,
         start_time: datetime | None = None,
     ) -> None:
@@ -120,24 +120,24 @@ class StorageProvider:
 
     async def update_session_title(
         self,
-        conversation_id: str,
+        session_id: str,
         title: str,
     ) -> None:
         """Update the title of a conversation.
 
         Args:
-            conversation_id: ID of the conversation to update
+            session_id: ID of the conversation to update
             title: New title for the conversation
         """
 
     async def get_session_title(
         self,
-        conversation_id: str,
+        session_id: str,
     ) -> str | None:
         """Get the title of a conversation.
 
         Args:
-            conversation_id: ID of the conversation
+            session_id: ID of the conversation
 
         Returns:
             The conversation title, or None if not set or conversation doesn't exist.
@@ -146,14 +146,14 @@ class StorageProvider:
 
     async def get_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
         """Get all messages for a conversation.
 
         Args:
-            conversation_id: ID of the conversation
+            session_id: ID of the conversation
             include_ancestors: If True, also include messages from ancestor
                 conversations (following parent_id chain). Useful for forked
                 conversations where you want the full history.
@@ -199,8 +199,8 @@ class StorageProvider:
     async def fork_conversation(
         self,
         *,
-        source_conversation_id: str,
-        new_conversation_id: str,
+        source_session_id: str,
+        new_session_id: str,
         fork_from_message_id: str | None = None,
         new_agent_name: str | None = None,
     ) -> str | None:
@@ -211,8 +211,8 @@ class StorageProvider:
         the fork point, allowing history traversal.
 
         Args:
-            source_conversation_id: ID of the conversation to fork from
-            new_conversation_id: ID for the new forked conversation
+            source_session_id: ID of the conversation to fork from
+            new_session_id: ID for the new forked conversation
             fork_from_message_id: Message ID to fork from. If None, forks from
                 the last message in the source conversation.
             new_agent_name: Agent name for the new conversation. If None,
@@ -251,7 +251,7 @@ class StorageProvider:
     async def log_context_message(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -264,7 +264,7 @@ class StorageProvider:
             return
 
         await self.log_message(
-            conversation_id=conversation_id,
+            session_id=session_id,
             message_id=message_id or str(uuid4()),
             content=content,
             role=role,
@@ -392,7 +392,7 @@ class StorageProvider:
 
     async def delete_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
     ) -> int:
         """Delete all messages for a conversation.
 
@@ -400,7 +400,7 @@ class StorageProvider:
         replaced with compacted versions.
 
         Args:
-            conversation_id: ID of the conversation to clear
+            session_id: ID of the conversation to clear
 
         Returns:
             Number of messages deleted

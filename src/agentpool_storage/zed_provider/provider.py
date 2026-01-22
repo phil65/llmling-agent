@@ -154,7 +154,7 @@ class ZedStorageProvider(StorageProvider):
         self,
         *,
         message_id: str,
-        conversation_id: str,
+        session_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -173,7 +173,7 @@ class ZedStorageProvider(StorageProvider):
     async def log_session(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         node_name: str,
         start_time: datetime | None = None,
     ) -> None:
@@ -309,23 +309,23 @@ class ZedStorageProvider(StorageProvider):
             msg_count += len(thread.messages)
         return conv_count, msg_count
 
-    async def get_session_title(self, conversation_id: str) -> str | None:
+    async def get_session_title(self, session_id: str) -> str | None:
         """Get the title of a conversation."""
-        thread = self._load_thread(conversation_id)
+        thread = self._load_thread(session_id)
         if thread is None:
             return None
         return thread.title
 
     async def get_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
         """Get all messages for a conversation.
 
         Args:
-            conversation_id: Thread ID (conversation ID in Zed format)
+            session_id: Thread ID (conversation ID in Zed format)
             include_ancestors: If True, traverse parent_id chain to include
                 messages from ancestor conversations (not supported in Zed format)
 
@@ -335,11 +335,11 @@ class ZedStorageProvider(StorageProvider):
         Note:
             Zed threads don't have parent_id chain, so include_ancestors has no effect.
         """
-        thread = self._load_thread(conversation_id)
+        thread = self._load_thread(session_id)
         if thread is None:
             return []
 
-        messages = helpers.thread_to_chat_messages(thread, conversation_id)
+        messages = helpers.thread_to_chat_messages(thread, session_id)
         # Sort by timestamp (though they should already be in order)
         messages.sort(key=lambda m: m.timestamp or get_now())
         return messages
@@ -386,16 +386,16 @@ class ZedStorageProvider(StorageProvider):
     async def fork_conversation(
         self,
         *,
-        source_conversation_id: str,
-        new_conversation_id: str,
+        source_session_id: str,
+        new_session_id: str,
         fork_from_message_id: str | None = None,
         new_agent_name: str | None = None,
     ) -> str | None:
         """Fork a conversation at a specific point.
 
         Args:
-            source_conversation_id: Source thread ID
-            new_conversation_id: New thread ID
+            source_session_id: Source thread ID
+            new_session_id: New thread ID
             fork_from_message_id: Message ID to fork from (not used - Zed is read-only)
             new_agent_name: Not used in Zed format
 
@@ -407,7 +407,7 @@ class ZedStorageProvider(StorageProvider):
             Returns None to indicate no fork point is available.
         """
         msg = "Fork conversation not supported for Zed storage (read-only)"
-        logger.warning(msg, source=source_conversation_id, new=new_conversation_id)
+        logger.warning(msg, source=source_session_id, new=new_session_id)
         return None
 
 

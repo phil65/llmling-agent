@@ -308,7 +308,7 @@ class Talk[TTransmittedData = Any]:
         match self.connection_type:
             case "run":
                 # Use run_message to handle ChatMessage routing
-                # It extracts content, preserves conversation_id, and applies forwarding
+                # It extracts content, preserves session_id, and applies forwarding
                 return await target.run_message(message)
 
             case "context":

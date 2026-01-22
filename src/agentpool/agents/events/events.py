@@ -79,7 +79,7 @@ class RunStartedEvent:
     """Signals the start of an agent run."""
 
     thread_id: str
-    """ID of the conversation thread (conversation_id)."""
+    """ID of the conversation thread (session_id)."""
     run_id: str
     """ID of the agent run (unique per request/response cycle)."""
     agent_name: str | None = None

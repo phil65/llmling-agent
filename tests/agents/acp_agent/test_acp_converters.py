@@ -204,7 +204,7 @@ class TestACPMessageAccumulator:
     def test_metadata_fields(self) -> None:
         """Accumulator passes through metadata fields."""
         accumulator = ACPMessageAccumulator(
-            conversation_id="conv-123",
+            session_id="conv-123",
             agent_name="test-agent",
             model_name="test-model",
         )
@@ -212,7 +212,7 @@ class TestACPMessageAccumulator:
         accumulator.process(AgentMessageChunk(content=TextContentBlock(text="Hi")))
         messages = accumulator.finalize()
 
-        assert messages[0].conversation_id == "conv-123"
+        assert messages[0].session_id == "conv-123"
         assert messages[0].name == "test-agent"
         assert messages[0].model_name == "test-model"
 
@@ -295,12 +295,12 @@ class TestACPNotificationsToMessages:
 
         messages = acp_notifications_to_messages(
             updates,
-            conversation_id="conv-1",
+            session_id="conv-1",
             agent_name="agent-1",
             model_name="model-1",
         )
 
-        assert messages[0].conversation_id == "conv-1"
+        assert messages[0].session_id == "conv-1"
         assert messages[0].name == "agent-1"
         assert messages[0].model_name == "model-1"
 

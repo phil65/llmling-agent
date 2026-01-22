@@ -495,7 +495,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         message_history: MessageHistory,
         effective_parent_id: str | None,
         message_id: str | None = None,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
@@ -523,9 +523,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         text_chunks: list[str] = []
         file_tracker = FileTracker()
-        assert self.conversation_id is not None
+        assert self.session_id is not None
         run_started = RunStartedEvent(
-            thread_id=self.conversation_id,
+            thread_id=self.session_id,
             run_id=run_id,
             agent_name=self.name,
         )
@@ -606,7 +606,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 role="assistant",
                 name=self.name,
                 message_id=message_id or str(uuid.uuid4()),
-                conversation_id=self.conversation_id,
+                session_id=self.session_id,
                 parent_id=user_msg.message_id,
                 model_name=self.model_name,
                 messages=model_messages,
@@ -645,7 +645,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             role="assistant",
             name=self.name,
             message_id=message_id or str(uuid.uuid4()),
-            conversation_id=self.conversation_id,
+            session_id=self.session_id,
             parent_id=user_msg.message_id,
             model_name=self.model_name,
             messages=model_messages,
@@ -860,7 +860,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             if raw_updates:
                 chat_messages = acp_notifications_to_messages(
                     raw_updates,
-                    conversation_id=session_id,
+                    session_id=session_id,
                     agent_name=self.name,
                     model_name=self.model_name,
                 )

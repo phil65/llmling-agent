@@ -790,13 +790,13 @@ def chat_message_to_opencode(  # noqa: PLR0915
 
 def opencode_to_chat_message(
     msg: MessageWithParts,
-    conversation_id: str | None = None,
+    session_id: str | None = None,
 ) -> ChatMessage[str]:
     """Convert OpenCode MessageWithParts to ChatMessage.
 
     Args:
         msg: OpenCode message with parts
-        conversation_id: Optional conversation ID override
+        session_id: Optional conversation ID override
 
     Returns:
         ChatMessage with pydantic-ai model messages
@@ -915,7 +915,7 @@ def opencode_to_chat_message(
         content=content,
         role=role,  # type: ignore[arg-type]
         message_id=message_id,
-        conversation_id=conversation_id or session_id,
+        session_id=session_id or session_id,
         timestamp=timestamp,
         messages=model_messages,
         usage=usage,
@@ -961,18 +961,18 @@ def chat_messages_to_opencode(
 
 def opencode_to_chat_messages(
     messages: list[MessageWithParts],
-    conversation_id: str | None = None,
+    session_id: str | None = None,
 ) -> list[ChatMessage[str]]:
     """Convert a list of OpenCode messages to ChatMessages.
 
     Args:
         messages: List of OpenCode MessageWithParts
-        conversation_id: Optional conversation ID override
+        session_id: Optional conversation ID override
 
     Returns:
         List of ChatMessages
     """
-    return [opencode_to_chat_message(msg, conversation_id=conversation_id) for msg in messages]
+    return [opencode_to_chat_message(msg, session_id=session_id) for msg in messages]
 
 
 # =============================================================================

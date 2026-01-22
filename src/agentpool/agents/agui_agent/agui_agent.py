@@ -254,7 +254,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Enter async context - initialize client and base resources."""
         await super().__aenter__()
         self._client = get_client(self.headers, self.timeout)
-        self._sdk_session_id = self.conversation_id
+        self._sdk_session_id = self.session_id
         if self._startup_command:  # Start server if startup command is provided
             await self._start_server()
         self.log.debug("AG-UI client initialized", endpoint=self.endpoint)
@@ -357,7 +357,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         message_history: MessageHistory,
         effective_parent_id: str | None,
         message_id: str | None = None,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
@@ -390,9 +390,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         if not self._client:
             raise RuntimeError("Agent not initialized - use async context manager")
 
-        # Set thread_id from conversation_id (needed for AG-UI protocol)
+        # Set thread_id from session_id (needed for AG-UI protocol)
         if self._sdk_session_id is None:
-            self._sdk_session_id = self.conversation_id
+            self._sdk_session_id = self.session_id
 
         run_id = str(uuid4())  # New run ID for each run
         chunk_transformer = ChunkTransformer()  # Create chunk transformer for this run
@@ -403,8 +403,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         initial_request = ModelRequest(parts=[UserPromptPart(content=prompts)])
         model_messages.append(initial_request)
         response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
-        assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
-        thread_id = self._sdk_session_id or self.conversation_id
+        assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
+        thread_id = self._sdk_session_id or self.session_id
         run_started = RunStartedEvent(thread_id=thread_id, run_id=run_id, agent_name=self.name)
         await event_handlers(None, run_started)
         yield run_started
@@ -427,7 +427,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                     break
 
                 request_data = RunAgentInput(
-                    thread_id=self._sdk_session_id or self.conversation_id,
+                    thread_id=self._sdk_session_id or self.session_id,
                     run_id=run_id,
                     state={},
                     messages=messages,
@@ -552,7 +552,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 role="assistant",
                 name=self.name,
                 message_id=message_id or str(uuid4()),
-                conversation_id=self.conversation_id,
+                session_id=self.session_id,
                 parent_id=user_msg.message_id,
                 messages=model_messages,
                 finish_reason="stop",
@@ -589,7 +589,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             role="assistant",
             name=self.name,
             message_id=message_id or str(uuid4()),
-            conversation_id=self.conversation_id,
+            session_id=self.session_id,
             parent_id=user_msg.message_id,
             messages=model_messages,
             metadata=file_tracker.get_metadata(),

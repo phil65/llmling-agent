@@ -160,7 +160,7 @@ class OpenCodeStorageProvider(StorageProvider):
         self,
         *,
         message_id: str,
-        conversation_id: str,
+        session_id: str,
         role: str,
         model_messages: list[ModelRequest | ModelResponse],
         parent_id: str | None = None,
@@ -192,7 +192,7 @@ class OpenCodeStorageProvider(StorageProvider):
         now_ms = int(get_now().timestamp() * 1000)
 
         # Ensure message directory exists
-        msg_dir = self.messages_path / conversation_id
+        msg_dir = self.messages_path / session_id
         msg_dir.mkdir(parents=True, exist_ok=True)
 
         # Create OpenCode message based on role
@@ -200,7 +200,7 @@ class OpenCodeStorageProvider(StorageProvider):
         if role == "assistant":
             oc_message = AssistantMessage(
                 id=message_id,
-                session_id=conversation_id,
+                session_id=session_id,
                 parent_id=parent_id or "",
                 model_id=model or "",
                 provider_id="",  # TODO: get from somewhere
@@ -222,7 +222,7 @@ class OpenCodeStorageProvider(StorageProvider):
         else:  # user message
             oc_message = UserMessage(
                 id=message_id,
-                session_id=conversation_id,
+                session_id=session_id,
                 time=TimeCreated(created=now_ms),
                 model=UserMessageModel(provider_id="", model_id=model or "") if model else None,
             )
@@ -248,7 +248,7 @@ class OpenCodeStorageProvider(StorageProvider):
                         text_parts = helpers.convert_user_content_to_parts(
                             content=part.content,
                             message_id=message_id,
-                            session_id=conversation_id,
+                            session_id=session_id,
                             part_counter_start=part_counter,
                         )
                         part_counter += len(text_parts)
@@ -329,7 +329,7 @@ class OpenCodeStorageProvider(StorageProvider):
                     if isinstance(part, TextPart):
                         text_part = OpenCodeTextPart(
                             id=part_id,
-                            session_id=conversation_id,
+                            session_id=session_id,
                             message_id=message_id,
                             type="text",
                             text=part.content,
@@ -344,7 +344,7 @@ class OpenCodeStorageProvider(StorageProvider):
                     elif isinstance(part, ThinkingPart):
                         reasoning_part = OpenCodeReasoningPart(
                             id=part_id,
-                            session_id=conversation_id,
+                            session_id=session_id,
                             message_id=message_id,
                             type="reasoning",
                             text=part.content,
@@ -360,7 +360,7 @@ class OpenCodeStorageProvider(StorageProvider):
                         # Create tool part with pending status
                         tool_part = OpenCodeToolPart(
                             id=part_id,
-                            session_id=conversation_id,
+                            session_id=session_id,
                             message_id=message_id,
                             type="tool",
                             call_id=part.tool_call_id,
@@ -422,7 +422,7 @@ class OpenCodeStorageProvider(StorageProvider):
         self,
         *,
         message_id: str,
-        conversation_id: str,
+        session_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -449,7 +449,7 @@ class OpenCodeStorageProvider(StorageProvider):
             # Convert to OpenCode format and write
             await self._write_message(
                 message_id=message_id,
-                conversation_id=conversation_id,
+                session_id=session_id,
                 role=role,
                 model_messages=model_messages,
                 parent_id=parent_id,
@@ -463,7 +463,7 @@ class OpenCodeStorageProvider(StorageProvider):
     async def log_session(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         node_name: str,
         start_time: datetime | None = None,
     ) -> None:
@@ -670,14 +670,14 @@ class OpenCodeStorageProvider(StorageProvider):
 
     async def get_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
         """Get all messages for a conversation.
 
         Args:
-            conversation_id: Session ID (conversation ID in OpenCode format)
+            session_id: Session ID (conversation ID in OpenCode format)
             include_ancestors: If True, traverse parent_id chain to include
                 messages from ancestor conversations
 
@@ -685,12 +685,12 @@ class OpenCodeStorageProvider(StorageProvider):
             List of messages ordered by timestamp
         """
         # Read messages for this session
-        oc_messages = self._read_messages(conversation_id)
+        oc_messages = self._read_messages(session_id)
 
         messages: list[ChatMessage[str]] = []
         for oc_msg in oc_messages:
             parts = self._read_parts(oc_msg.id)
-            chat_msg = helpers.message_to_chat_message(oc_msg, parts, conversation_id)
+            chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
             messages.append(chat_msg)
 
         # Sort by timestamp
@@ -756,8 +756,8 @@ class OpenCodeStorageProvider(StorageProvider):
     async def fork_conversation(
         self,
         *,
-        source_conversation_id: str,
-        new_conversation_id: str,
+        source_session_id: str,
+        new_session_id: str,
         fork_from_message_id: str | None = None,
         new_agent_name: str | None = None,
     ) -> str | None:
@@ -767,8 +767,8 @@ class OpenCodeStorageProvider(StorageProvider):
         so callers can set it as parent_id for new messages.
 
         Args:
-            source_conversation_id: Source session ID
-            new_conversation_id: New session ID
+            source_session_id: Source session ID
+            new_session_id: New session ID
             fork_from_message_id: Message ID to fork from. If None, forks from last
             new_agent_name: Not directly stored in OpenCode session format
 
@@ -786,17 +786,17 @@ class OpenCodeStorageProvider(StorageProvider):
         source_session = None
         source_path = None
         for session_id, session_path in sessions:
-            if session_id == source_conversation_id:
+            if session_id == source_session_id:
                 source_session = helpers.read_session(session_path)
                 source_path = session_path
                 break
 
         if not source_session or not source_path:
-            msg = f"Source conversation not found: {source_conversation_id}"
+            msg = f"Source conversation not found: {source_session_id}"
             raise ValueError(msg)
 
         # Read source messages
-        oc_messages = self._read_messages(source_conversation_id)
+        oc_messages = self._read_messages(source_session_id)
 
         # Find fork point
         fork_point_id: str | None = None
@@ -819,12 +819,12 @@ class OpenCodeStorageProvider(StorageProvider):
         new_session_dir.mkdir(parents=True, exist_ok=True)
 
         # Create empty session file (will be populated when messages added)
-        new_session_path = new_session_dir / f"{new_conversation_id}.json"
+        new_session_path = new_session_dir / f"{new_session_id}.json"
 
         # Create new session metadata
         fork_title = f"{source_session.title} (fork)" if source_session.title else "Forked Session"
         new_session = Session(
-            id=new_conversation_id,
+            id=new_session_id,
             project_id=project_id,
             directory=source_session.directory,  # Same project directory as source
             title=fork_title,
@@ -847,8 +847,8 @@ class OpenCodeStorageProvider(StorageProvider):
         )
 
         # Create message and part directories
-        (self.messages_path / new_conversation_id).mkdir(parents=True, exist_ok=True)
-        (self.parts_path / new_conversation_id).mkdir(parents=True, exist_ok=True)
+        (self.messages_path / new_session_id).mkdir(parents=True, exist_ok=True)
+        (self.parts_path / new_session_id).mkdir(parents=True, exist_ok=True)
 
         return fork_point_id
 

@@ -164,7 +164,7 @@ async def persist_message_to_storage(
 
     try:
         # Convert to ChatMessage
-        chat_msg = opencode_to_chat_message(msg, conversation_id=session_id)
+        chat_msg = opencode_to_chat_message(msg, session_id=session_id)
         # Persist via storage manager
         await state.pool.storage.log_message(chat_msg)
     except Exception:  # noqa: BLE001
@@ -299,7 +299,7 @@ async def _process_message(  # noqa: PLR0915
                 await agent.set_mode(request.variant, category_id="thought_level")
 
         # Stream events from the agent
-        async for event in agent.run_stream(user_prompt, conversation_id=session_id):
+        async for event in agent.run_stream(user_prompt, session_id=session_id):
             match event:
                 # Text streaming start
                 case PartStartEvent(part=PydanticTextPart(content=delta)):

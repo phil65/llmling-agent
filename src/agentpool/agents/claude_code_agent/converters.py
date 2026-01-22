@@ -466,7 +466,7 @@ def build_sdk_hooks_from_agent_hooks(
                 agent_name=agent_name,
                 tool_name=tool_name,
                 tool_input=tool_input,
-                conversation_id=input_data.get("session_id"),
+                session_id=input_data.get("session_id"),
             )
 
             # Convert our hook result to SDK format
@@ -512,7 +512,7 @@ def build_sdk_hooks_from_agent_hooks(
                 tool_input=tool_input,
                 tool_output=tool_response,
                 duration_ms=0,  # SDK doesn't provide timing
-                conversation_id=input_data.get("session_id"),
+                session_id=input_data.get("session_id"),
             )
 
             # Post hooks are observation-only in SDK, can add context

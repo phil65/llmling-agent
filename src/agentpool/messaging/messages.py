@@ -189,7 +189,7 @@ class ChatMessage[TContent]:
     message_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     """Unique identifier for this message."""
 
-    conversation_id: str | None = None
+    session_id: str | None = None
     """ID of the conversation this message belongs to."""
 
     parent_id: str | None = None
@@ -289,7 +289,7 @@ class ChatMessage[TContent]:
     def user_prompt[TPromptContent: str | Sequence[UserContent] = str](
         cls,
         message: TPromptContent,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         instructions: str | None = None,
         parent_id: str | None = None,
     ) -> ChatMessage[TPromptContent]:
@@ -297,7 +297,7 @@ class ChatMessage[TContent]:
 
         Args:
             message: The prompt content
-            conversation_id: ID of the conversation
+            session_id: ID of the conversation
             instructions: Optional instructions for the model
             parent_id: ID of the parent message (typically the previous assistant response)
 
@@ -306,12 +306,12 @@ class ChatMessage[TContent]:
         """
         part = UserPromptPart(content=message)
         request = ModelRequest(parts=[part], instructions=instructions)
-        id_ = conversation_id or str(uuid.uuid4())
+        id_ = session_id or str(uuid.uuid4())
         return ChatMessage(
             messages=[request],
             role="user",
             content=message,
-            conversation_id=id_,
+            session_id=id_,
             parent_id=parent_id,
         )
 
@@ -320,7 +320,7 @@ class ChatMessage[TContent]:
         cls,
         content: TContentType,
         message: ModelMessage,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         name: str | None = None,
         parent_id: str | None = None,
     ) -> ChatMessage[TContentType]:
@@ -351,7 +351,7 @@ class ChatMessage[TContent]:
                     messages=[message],
                     usage=usage,
                     message_id=run_id or str(uuid.uuid4()),
-                    conversation_id=conversation_id,
+                    session_id=session_id,
                     model_name=model_name,
                     timestamp=timestamp,
                     provider_name=provider_name,
@@ -371,7 +371,7 @@ class ChatMessage[TContent]:
         *,
         agent_name: str | None = None,
         message_id: str | None = None,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         parent_id: str | None = None,
         response_time: float,
         metadata: SimpleJsonType | None = None,
@@ -382,7 +382,7 @@ class ChatMessage[TContent]:
             result: The PydanticAI run result
             agent_name: Name of the agent that generated this response
             message_id: Unique message identifier
-            conversation_id: Conversation identifier
+            session_id: Conversation identifier
             parent_id: ID of the parent message (typically the user message)
             response_time: Total time taken for the response
             metadata: Optional metadata to attach to the message
@@ -418,7 +418,7 @@ class ChatMessage[TContent]:
             usage=usage,
             provider_name=result.response.provider_name,
             message_id=message_id or str(uuid.uuid4()),
-            conversation_id=conversation_id,
+            session_id=session_id,
             parent_id=parent_id,
             cost_info=cost_info,
             response_time=response_time,

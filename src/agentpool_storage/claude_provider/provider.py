@@ -285,7 +285,7 @@ class ClaudeStorageProvider(StorageProvider):
     def _entry_to_chat_message(
         self,
         entry: ClaudeJSONLEntry,
-        conversation_id: str,
+        session_id: str,
         tool_id_mapping: dict[str, str] | None = None,
     ) -> ChatMessage[str] | None:
         """Convert a Claude JSONL entry to a ChatMessage.
@@ -295,7 +295,7 @@ class ClaudeStorageProvider(StorageProvider):
 
         Args:
             entry: The JSONL entry to convert
-            conversation_id: ID for the conversation
+            session_id: ID for the conversation
             tool_id_mapping: Optional mapping from tool_call_id to tool_name
                 for resolving tool names in ToolReturnPart
 
@@ -338,7 +338,7 @@ class ClaudeStorageProvider(StorageProvider):
 
         return ChatMessage[str](
             content=content,
-            conversation_id=conversation_id,
+            session_id=session_id,
             role=entry.type,
             message_id=entry.uuid,
             name="claude" if isinstance(entry, ClaudeAssistantEntry) else None,
@@ -544,7 +544,7 @@ class ClaudeStorageProvider(StorageProvider):
         self,
         *,
         message_id: str,
-        conversation_id: str,
+        session_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -559,20 +559,19 @@ class ClaudeStorageProvider(StorageProvider):
     ) -> None:
         """Log a message to Claude format.
 
-        Note: conversation_id should be in format "project_path:session_id"
+        Note: session_id should be in format "project_path:session_id"
         or just "session_id" (will use default project).
         """
-        # Parse conversation_id
-        if ":" in conversation_id:
-            project_path, session_id = conversation_id.split(":", 1)
+        # Parse session_id
+        if ":" in session_id:
+            project_path, session_id = session_id.split(":", 1)
         else:
             project_path = "/tmp"
-            session_id = conversation_id
 
         # Build ChatMessage for conversion
         chat_message = ChatMessage[str](
             content=content,
-            conversation_id=conversation_id,
+            session_id=session_id,
             role=cast(MessageRole, role),
             message_id=message_id,
             name=name,
@@ -596,7 +595,7 @@ class ClaudeStorageProvider(StorageProvider):
     async def log_session(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         node_name: str,
         start_time: datetime | None = None,
     ) -> None:
@@ -792,14 +791,14 @@ class ClaudeStorageProvider(StorageProvider):
 
     async def get_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
         """Get all messages for a conversation.
 
         Args:
-            conversation_id: Session ID (conversation ID in Claude format)
+            session_id: Session ID (conversation ID in Claude format)
             include_ancestors: If True, traverse parent_uuid chain to include
                 messages from ancestor conversations
 
@@ -809,7 +808,7 @@ class ClaudeStorageProvider(StorageProvider):
         # Find the session file
         session_path = None
         for sid, spath in self._list_sessions():
-            if sid == conversation_id:
+            if sid == session_id:
                 session_path = spath
                 break
 
@@ -821,7 +820,7 @@ class ClaudeStorageProvider(StorageProvider):
         tool_mapping = self._build_tool_id_mapping(entries)
         messages: list[ChatMessage[str]] = []
         for entry in entries:
-            msg = self._entry_to_chat_message(entry, conversation_id, tool_mapping)
+            msg = self._entry_to_chat_message(entry, session_id, tool_mapping)
             if msg:
                 messages.append(msg)
         # Sort by timestamp
@@ -886,8 +885,8 @@ class ClaudeStorageProvider(StorageProvider):
     async def fork_conversation(
         self,
         *,
-        source_conversation_id: str,
-        new_conversation_id: str,
+        source_session_id: str,
+        new_session_id: str,
         fork_from_message_id: str | None = None,
         new_agent_name: str | None = None,
     ) -> str | None:
@@ -897,8 +896,8 @@ class ClaudeStorageProvider(StorageProvider):
         so callers can set it as parent_uuid for new messages.
 
         Args:
-            source_conversation_id: Source session ID
-            new_conversation_id: New session ID
+            source_session_id: Source session ID
+            new_session_id: New session ID
             fork_from_message_id: UUID to fork from. If None, forks from last message
             new_agent_name: Not used in Claude format (no agent metadata in sessions)
 
@@ -909,12 +908,12 @@ class ClaudeStorageProvider(StorageProvider):
         sessions = self._list_sessions()
         source_path = None
         for sid, spath in sessions:
-            if sid == source_conversation_id:
+            if sid == source_session_id:
                 source_path = spath
                 break
 
         if not source_path:
-            msg = f"Source conversation not found: {source_conversation_id}"
+            msg = f"Source conversation not found: {source_session_id}"
             raise ValueError(msg)
 
         # Read source entries
@@ -947,7 +946,7 @@ class ClaudeStorageProvider(StorageProvider):
         # Create new session file (empty for now - will be populated when messages added)
         # Determine project from source path structure
         project_name = source_path.parent.name
-        new_path = self.projects_path / project_name / f"{new_conversation_id}.jsonl"
+        new_path = self.projects_path / project_name / f"{new_session_id}.jsonl"
         new_path.parent.mkdir(parents=True, exist_ok=True)
         new_path.touch()
 

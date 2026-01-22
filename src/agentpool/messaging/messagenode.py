@@ -84,15 +84,15 @@ class MessageNode[TDeps, TResult](ABC):
         name_ = f"node_{self._name}"
         self.mcp = MCPManager(name_, servers=mcp_servers, owner=self.name)
         self.enable_db_logging = enable_logging
-        self.conversation_id: str | None = None
+        self.session_id: str | None = None
         self.conversation_title: str | None = None
 
     async def log_session(self, initial_prompt: str | None = None) -> None:
         """Log conversation to storage if enabled.
 
-        Should be called at the start of run_stream() after conversation_id is set.
-        For native agents, generate conversation_id first with uuid4().
-        For wrapped agents (Claude Code), set conversation_id from SDK session first.
+        Should be called at the start of run_stream() after session_id is set.
+        For native agents, generate session_id first with uuid4().
+        For wrapped agents (Claude Code), set session_id from SDK session first.
 
         Args:
             initial_prompt: Optional initial prompt to trigger title generation.
@@ -102,9 +102,9 @@ class MessageNode[TDeps, TResult](ABC):
             """Callback for setting conversation title (called by storage manager)."""
             self.conversation_title = title
 
-        if self.enable_db_logging and self.storage and self.conversation_id:
+        if self.enable_db_logging and self.storage and self.session_id:
             await self.storage.log_session(
-                conversation_id=self.conversation_id,
+                session_id=self.session_id,
                 node_name=self.name,
                 initial_prompt=initial_prompt,
                 on_title_generated=_set_conversation_title,
@@ -371,7 +371,7 @@ class MessageNode[TDeps, TResult](ABC):
     ) -> ChatMessage[TResult]:
         """Run with an incoming ChatMessage (e.g., from Talk routing).
 
-        Extracts content from the message, preserves conversation_id,
+        Extracts content from the message, preserves session_id,
         and sets parent_id to track the message chain.
 
         Args:
@@ -383,7 +383,7 @@ class MessageNode[TDeps, TResult](ABC):
         """
         return await self.run(
             message.content,
-            conversation_id=message.conversation_id,
+            session_id=message.session_id,
             parent_id=message.message_id,
             **kwargs,
         )
@@ -394,7 +394,7 @@ class MessageNode[TDeps, TResult](ABC):
 
         if not self.enable_db_logging or not self.storage:
             return []
-        query = SessionQuery(name=self.conversation_id, limit=limit)
+        query = SessionQuery(name=self.session_id, limit=limit)
         return await self.storage.filter_messages(query)
 
     async def log_message(self, message: ChatMessage[Any]) -> None:

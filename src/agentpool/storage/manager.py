@@ -58,13 +58,13 @@ class TitleGeneratedEvent:
     """Event emitted when a conversation title is generated.
 
     Attributes:
-        conversation_id: ID of the conversation
+        session_id: ID of the conversation
         title: Generated title text
         emoji: Generated emoji representing the topic
         icon: Generated iconify icon name
     """
 
-    conversation_id: str
+    session_id: str
     title: str
     emoji: str
     icon: str
@@ -81,7 +81,7 @@ class StorageManager:
 
     Signals:
     - title_generated: Emitted when a conversation title is generated.
-      Subscribers receive TitleGeneratedEvent with conversation_id, title, emoji, icon.
+      Subscribers receive TitleGeneratedEvent with session_id, title, emoji, icon.
 
     Example:
         manager.title_generated.connect(my_handler)
@@ -253,7 +253,7 @@ class StorageManager:
         for provider in self.providers:
             if provider.should_log_agent(message.name or "no name"):
                 await provider.log_message(
-                    conversation_id=message.conversation_id or "",
+                    session_id=message.session_id or "",
                     message_id=message.message_id,
                     content=str(message.content),
                     role=message.role,
@@ -272,7 +272,7 @@ class StorageManager:
     async def log_session(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         node_name: str,
         start_time: datetime | None = None,
         initial_prompt: str | None = None,
@@ -284,7 +284,7 @@ class StorageManager:
         triggers title generation if initial_prompt is provided.
 
         Args:
-            conversation_id: Unique conversation identifier
+            session_id: Unique conversation identifier
             node_name: Name of the node/agent
             start_time: Optional start time
             initial_prompt: Optional initial prompt to trigger title generation
@@ -294,14 +294,14 @@ class StorageManager:
             return
 
         # Check if already logged (idempotent behavior)
-        if conversation_id not in self._session_logged:
+        if session_id not in self._session_logged:
             # Mark as logged before calling providers
-            self._session_logged.add(conversation_id)
+            self._session_logged.add(session_id)
 
             # Log to all providers
             for provider in self.providers:
                 await provider.log_session(
-                    conversation_id=conversation_id,
+                    session_id=session_id,
                     node_name=node_name,
                     start_time=start_time,
                 )
@@ -313,7 +313,7 @@ class StorageManager:
         prompt_length = len(initial_prompt)
         logger.info(
             "log_session title decision",
-            conversation_id=conversation_id,
+            session_id=session_id,
             prompt_length=prompt_length,
             has_model=bool(self.config.title_generation_model),
         )
@@ -322,21 +322,19 @@ class StorageManager:
         if prompt_length < 60:  # noqa: PLR2004
             logger.info(
                 "Using short prompt directly as title",
-                conversation_id=conversation_id,
+                session_id=session_id,
                 title=initial_prompt,
             )
-            await self.update_session_title(conversation_id, initial_prompt)
+            await self.update_session_title(session_id, initial_prompt)
         # For longer prompts, generate semantic title if model configured
         elif self.config.title_generation_model:
             logger.info(
                 "Creating title generation task for long prompt",
-                conversation_id=conversation_id,
+                session_id=session_id,
             )
             self.task_manager.create_task(
-                self._generate_title_from_prompt(
-                    conversation_id, initial_prompt, on_title_generated
-                ),
-                name=f"title_gen_{conversation_id[:8]}",
+                self._generate_title_from_prompt(session_id, initial_prompt, on_title_generated),
+                name=f"title_gen_{session_id[:8]}",
             )
 
     @method_spawner
@@ -366,7 +364,7 @@ class StorageManager:
     async def log_context_message(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -375,7 +373,7 @@ class StorageManager:
         """Log context message to all providers."""
         for provider in self.providers:
             await provider.log_context_message(
-                conversation_id=conversation_id,
+                session_id=session_id,
                 content=content,
                 role=role,
                 name=name,
@@ -437,51 +435,51 @@ class StorageManager:
 
     async def update_session_title(
         self,
-        conversation_id: str,
+        session_id: str,
         title: str,
     ) -> None:
         """Update conversation title in all providers.
 
         Args:
-            conversation_id: ID of the conversation to update
+            session_id: ID of the conversation to update
             title: New title for the conversation
         """
         for provider in self.providers:
-            await provider.update_session_title(conversation_id, title)
+            await provider.update_session_title(session_id, title)
 
     async def get_session_title(
         self,
-        conversation_id: str,
+        session_id: str,
     ) -> str | None:
         """Get the title of a conversation.
 
         Args:
-            conversation_id: ID of the conversation
+            session_id: ID of the conversation
 
         Returns:
             The conversation title, or None if not set.
         """
         provider = self.get_history_provider()
-        return await provider.get_session_title(conversation_id)
+        return await provider.get_session_title(session_id)
 
     async def get_session_titles(
         self,
-        conversation_ids: list[str],
+        session_ids: list[str],
     ) -> dict[str, str | None]:
         """Get titles for multiple conversations.
 
         Args:
-            conversation_ids: List of conversation IDs
+            session_ids: List of conversation IDs
 
         Returns:
-            Dict mapping conversation_id to title (or None if not set)
+            Dict mapping session_id to title (or None if not set)
         """
-        if not conversation_ids:
+        if not session_ids:
             return {}
 
         provider = self.get_history_provider()
         titles: dict[str, str | None] = {}
-        for conv_id in conversation_ids:
+        for conv_id in session_ids:
             try:
                 titles[conv_id] = await provider.get_session_title(conv_id)
             except Exception:  # noqa: BLE001
@@ -490,21 +488,21 @@ class StorageManager:
 
     async def get_message_counts(
         self,
-        conversation_ids: list[str],
+        session_ids: list[str],
     ) -> dict[str, int]:
         """Get message counts for multiple conversations.
 
         Args:
-            conversation_ids: List of conversation IDs
+            session_ids: List of conversation IDs
 
         Returns:
-            Dict mapping conversation_id to message count
+            Dict mapping session_id to message count
         """
-        if not conversation_ids:
+        if not session_ids:
             return {}
 
         counts: dict[str, int] = {}
-        for conv_id in conversation_ids:
+        for conv_id in session_ids:
             try:
                 query = SessionQuery(name=conv_id)
                 messages = await self.filter_messages(query)
@@ -516,14 +514,14 @@ class StorageManager:
     @method_spawner
     async def get_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
         """Get all messages for a conversation.
 
         Args:
-            conversation_id: ID of the conversation
+            session_id: ID of the conversation
             include_ancestors: If True, also include messages from ancestor
                 conversations by following the parent_id chain. Useful for
                 forked conversations.
@@ -533,7 +531,7 @@ class StorageManager:
         """
         provider = self.get_history_provider()
         return await provider.get_conversation_messages(
-            conversation_id, include_ancestors=include_ancestors
+            session_id, include_ancestors=include_ancestors
         )
 
     @method_spawner
@@ -568,8 +566,8 @@ class StorageManager:
     async def fork_conversation(
         self,
         *,
-        source_conversation_id: str,
-        new_conversation_id: str,
+        source_session_id: str,
+        new_session_id: str,
         fork_from_message_id: str | None = None,
         new_agent_name: str | None = None,
     ) -> str | None:
@@ -580,8 +578,8 @@ class StorageManager:
         their parent_id to maintain the history chain.
 
         Args:
-            source_conversation_id: ID of the conversation to fork from
-            new_conversation_id: ID for the new forked conversation
+            source_session_id: ID of the conversation to fork from
+            new_session_id: ID for the new forked conversation
             fork_from_message_id: Message ID to fork from. If None, forks from
                 the last message.
             new_agent_name: Agent name for the new conversation.
@@ -592,8 +590,8 @@ class StorageManager:
         """
         provider = self.get_history_provider()
         return await provider.fork_conversation(
-            source_conversation_id=source_conversation_id,
-            new_conversation_id=new_conversation_id,
+            source_session_id=source_session_id,
+            new_session_id=new_session_id,
             fork_from_message_id=fork_from_message_id,
             new_agent_name=new_agent_name,
         )
@@ -601,7 +599,7 @@ class StorageManager:
     @method_spawner
     async def delete_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
     ) -> int:
         """Delete all messages for a conversation in all providers.
 
@@ -609,7 +607,7 @@ class StorageManager:
         replaced with compacted versions.
 
         Args:
-            conversation_id: ID of the conversation to clear
+            session_id: ID of the conversation to clear
 
         Returns:
             Total number of messages deleted across all providers
@@ -617,7 +615,7 @@ class StorageManager:
         total_deleted = 0
         for provider in self.providers:
             try:
-                deleted = await provider.delete_conversation_messages(conversation_id)
+                deleted = await provider.delete_conversation_messages(session_id)
                 total_deleted += deleted
             except NotImplementedError:
                 # Provider doesn't support deletion (e.g., write-only log)
@@ -626,14 +624,14 @@ class StorageManager:
                 logger.exception(
                     "Error deleting messages from provider",
                     provider=provider.__class__.__name__,
-                    conversation_id=conversation_id,
+                    session_id=session_id,
                 )
         return total_deleted
 
     @method_spawner
     async def replace_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
         messages: Sequence[ChatMessage[Any]],
     ) -> tuple[int, int]:
         """Replace all messages for a conversation with new ones.
@@ -642,26 +640,26 @@ class StorageManager:
         where the full history is replaced with a compacted version.
 
         Args:
-            conversation_id: ID of the conversation
+            session_id: ID of the conversation
             messages: New messages to store
 
         Returns:
             Tuple of (deleted_count, added_count)
         """
         # First delete existing messages
-        deleted = await self.delete_conversation_messages(conversation_id)
+        deleted = await self.delete_conversation_messages(session_id)
 
         # Then log new messages
         added = 0
         for message in messages:
-            # Ensure conversation_id is set on the message
+            # Ensure session_id is set on the message
             msg_to_log: ChatMessage[Any] = message
-            if not message.conversation_id:
+            if not message.session_id:
                 msg_to_log = ChatMessage(
                     content=message.content,
                     role=message.role,
                     name=message.name,
-                    conversation_id=conversation_id,
+                    session_id=session_id,
                     message_id=message.message_id,
                     parent_id=message.parent_id,
                     model_name=message.model_name,
@@ -680,19 +678,19 @@ class StorageManager:
 
     async def _generate_title_core(
         self,
-        conversation_id: str,
+        session_id: str,
         prompt_text: str,
     ) -> ConversationMetadata | None:
         """Core title generation logic using LLM with structured output.
 
         Args:
-            conversation_id: ID of the conversation to title
+            session_id: ID of the conversation to title
             prompt_text: Formatted prompt text to send to the LLM
 
         Returns:
             ConversationMetadata with title, emoji, and icon, or None if generation fails.
         """
-        logger.info("_generate_title_core called", conversation_id=conversation_id)
+        logger.info("_generate_title_core called", session_id=session_id)
         if not self.config.title_generation_model:
             logger.info("No title_generation_model configured, skipping")
             return None
@@ -711,10 +709,10 @@ class StorageManager:
             metadata = result.output
 
             # Store the title
-            await self.update_session_title(conversation_id, metadata.title)
+            await self.update_session_title(session_id, metadata.title)
             logger.debug(
                 "Generated conversation metadata",
-                conversation_id=conversation_id,
+                session_id=session_id,
                 title=metadata.title,
                 emoji=metadata.emoji,
                 icon=metadata.icon,
@@ -722,26 +720,26 @@ class StorageManager:
 
             # Emit signal for subscribers (e.g., OpenCode UI updates)
             event = TitleGeneratedEvent(
-                conversation_id=conversation_id,
+                session_id=session_id,
                 title=metadata.title,
                 emoji=metadata.emoji,
                 icon=metadata.icon,
             )
             logger.info(
                 "Emitting title_generated signal",
-                conversation_id=conversation_id,
+                session_id=session_id,
                 title=metadata.title,
             )
             await self.title_generated.emit(event)
         except Exception:
-            logger.exception("Failed to generate session title", conversation_id=conversation_id)
+            logger.exception("Failed to generate session title", session_id=session_id)
             return None
         else:
             return metadata
 
     async def _generate_title_from_prompt(
         self,
-        conversation_id: str,
+        session_id: str,
         prompt: str,
         on_title_generated: Callable[[str], None] | None = None,
     ) -> str | None:
@@ -750,7 +748,7 @@ class StorageManager:
         Called automatically by log_session when initial_prompt is provided.
 
         Args:
-            conversation_id: ID of the conversation to title
+            session_id: ID of the conversation to title
             prompt: The initial user prompt
             on_title_generated: Optional callback invoked with the generated title
 
@@ -758,7 +756,7 @@ class StorageManager:
             The generated title, or None if generation fails/disabled.
         """
         # Check if title already exists
-        existing = await self.get_session_title(conversation_id)
+        existing = await self.get_session_title(session_id)
         if existing:
             if on_title_generated:
                 on_title_generated(existing)
@@ -766,7 +764,7 @@ class StorageManager:
 
         # Generate using core logic
         metadata = await self._generate_title_core(
-            conversation_id,
+            session_id,
             f"user: {prompt[:500]}",
         )
 
@@ -779,7 +777,7 @@ class StorageManager:
 
     async def generate_conversation_title(
         self,
-        conversation_id: str,
+        session_id: str,
         messages: Sequence[ChatMessage[Any]],
     ) -> str | None:
         """Generate and store a title for a conversation.
@@ -788,14 +786,14 @@ class StorageManager:
         descriptive title based on the conversation content.
 
         Args:
-            conversation_id: ID of the conversation to title
+            session_id: ID of the conversation to title
             messages: Messages to use for title generation
 
         Returns:
             The generated title, or None if title generation is disabled.
         """
         # Check if title already exists
-        existing = await self.get_session_title(conversation_id)
+        existing = await self.get_session_title(session_id)
         if existing:
             return existing
 
@@ -803,7 +801,7 @@ class StorageManager:
         formatted = "\n".join(f"{i.role}: {i.content[:500]}" for i in messages[:4])
 
         # Generate using core logic
-        metadata = await self._generate_title_core(conversation_id, formatted)
+        metadata = await self._generate_title_core(session_id, formatted)
 
         return metadata.title if metadata else None
 

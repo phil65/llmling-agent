@@ -158,7 +158,7 @@ class TeamRun[TDeps, TResult](BaseTeam[TDeps, TResult]):
             name=self.name,
             associated_messages=all_messages,
             message_id=message_id,
-            conversation_id=user_msg.conversation_id,
+            session_id=user_msg.session_id,
             parent_id=user_msg.message_id,
             metadata={
                 "execution_order": [r.agent_name for r in result],

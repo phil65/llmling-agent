@@ -506,7 +506,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             trigger_value = input_data.get("trigger", "auto")
             trigger: Literal["auto", "manual"] = "manual" if trigger_value == "manual" else "auto"
             # Emit semantic CompactionEvent - consumers handle display differently
-            ses_id = self.conversation_id or "unknown"
+            ses_id = self.session_id or "unknown"
             compaction_event = CompactionEvent(session_id=ses_id, trigger=trigger, phase="starting")
             await self._event_queue.put(compaction_event)
             return {"continue_": True}
@@ -918,7 +918,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         message_history: MessageHistory,
         effective_parent_id: str | None,
         message_id: str | None = None,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
@@ -949,8 +949,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Ensure client is connected (waits for deferred init if needed)
         await self.ensure_initialized()
-        # Initialize conversation_id on first run and log to storage
-        # Use passed conversation_id if provided (e.g., from chained agents)
+        # Initialize session_id on first run and log to storage
+        # Use passed session_id if provided (e.g., from chained agents)
         # TODO: decide whether we should store CC sessions ourselves
         # For Claude Code, session_id comes from the SDK's init message:
         #   if hasattr(message, 'subtype') and message.subtype == 'init':
@@ -974,9 +974,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             prompt_text = f"{prompt_text}\n\n{thinking_instruction}"
         run_id = str(uuid.uuid4())
         # Emit run started
-        assert self.conversation_id is not None  # Initialized by BaseAgent.run_stream()
+        assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
         run_started = RunStartedEvent(
-            thread_id=self.conversation_id,
+            thread_id=self.session_id,
             run_id=run_id,
             agent_name=self.name,
         )
@@ -1312,7 +1312,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 role="assistant",
                 name=self.name,
                 message_id=message_id or str(uuid.uuid4()),
-                conversation_id=self.conversation_id,
+                session_id=self.session_id,
                 parent_id=user_msg.message_id,
                 model_name=self.model_name,
                 messages=model_messages,
@@ -1382,7 +1382,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             role="assistant",
             name=self.name,
             message_id=message_id or str(uuid.uuid4()),
-            conversation_id=self.conversation_id,
+            session_id=self.session_id,
             parent_id=user_msg.message_id,
             model_name=self.model_name,
             messages=model_messages,
@@ -1672,7 +1672,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         try:  # Load conversation messages from Claude storage
             messages = await self._claude_storage.get_conversation_messages(
-                conversation_id=session_id,
+                session_id=session_id,
             )
         except Exception:
             self.log.exception("Failed to load Claude session", session_id=session_id)

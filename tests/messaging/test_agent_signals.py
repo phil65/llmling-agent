@@ -91,14 +91,14 @@ async def test_message_chain_through_routing():
         await agent_b.task_manager.complete_tasks()
         await agent_c.task_manager.complete_tasks()
 
-        # All agents should share the same conversation_id
+        # All agents should share the same session_id
         assert (
-            agent_a.conversation.chat_messages[0].conversation_id
-            == agent_b.conversation.chat_messages[0].conversation_id
+            agent_a.conversation.chat_messages[0].session_id
+            == agent_b.conversation.chat_messages[0].session_id
         )
         assert (
-            agent_b.conversation.chat_messages[0].conversation_id
-            == agent_c.conversation.chat_messages[0].conversation_id
+            agent_b.conversation.chat_messages[0].session_id
+            == agent_c.conversation.chat_messages[0].session_id
         )
 
         # C's response should have a chain back through B and A

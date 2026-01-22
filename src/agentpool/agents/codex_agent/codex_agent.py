@@ -331,7 +331,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         message_history: MessageHistory,
         effective_parent_id: str | None,
         message_id: str | None = None,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
@@ -355,11 +355,11 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Generate IDs if not provided
         run_id = str(uuid4())
         final_message_id = message_id or str(uuid4())
-        final_conversation_id = conversation_id or self.conversation_id
-        # Ensure conversation_id is set (should always be from base class)
-        if final_conversation_id is None:
-            raise ValueError("conversation_id must be set")
-        run_started = RunStartedEvent(thread_id=final_conversation_id, run_id=run_id)
+        final_session_id = session_id or self.session_id
+        # Ensure session_id is set (should always be from base class)
+        if final_session_id is None:
+            raise ValueError("session_id must be set")
+        run_started = RunStartedEvent(thread_id=final_session_id, run_id=run_id)
         await event_handlers(None, run_started)
         yield run_started
         # Stream turn events with bridge context set
@@ -471,7 +471,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             content=final_content,
             role="assistant",
             message_id=final_message_id,
-            conversation_id=final_conversation_id,
+            session_id=final_session_id,
             parent_id=parent_id,
             cost_info=cost_info,
             usage=request_usage,

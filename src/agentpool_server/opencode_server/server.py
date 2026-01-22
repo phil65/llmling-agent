@@ -148,9 +148,9 @@ def create_app(  # noqa: PLR0915
         from agentpool_server.opencode_server.models.events import SessionUpdatedEvent
 
         log = logging.getLogger(__name__)
-        log.info("on_title_generated called: %s, title=%s", event.conversation_id, event.title)
+        log.info("on_title_generated called: %s, title=%s", event.session_id, event.title)
 
-        session_id = event.conversation_id
+        session_id = event.session_id
         if session_id in state.sessions:
             # Update in-memory session
             session = state.sessions[session_id]

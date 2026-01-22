@@ -556,7 +556,7 @@ class ToolManagerBridge:
                 agent_name=ctx.node_name,
                 tool_name=tool.name,
                 tool_input=kwargs,
-                conversation_id=None,
+                session_id=None,
             )
             if pre_result.get("decision") == "deny":
                 reason = pre_result.get("reason", "Blocked by pre-tool hook")
@@ -592,7 +592,7 @@ class ToolManagerBridge:
                 tool_input=kwargs,
                 tool_output=result,
                 duration_ms=duration_ms,
-                conversation_id=None,
+                session_id=None,
             )
 
         return result

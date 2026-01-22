@@ -60,7 +60,7 @@ class SessionData(Schema):
     """
 
     session_id: str
-    """Unique session identifier. Also used as conversation_id for message storage."""
+    """Unique session identifier. Also used as session_id for message storage."""
 
     agent_name: str
     """Name of the currently active agent."""

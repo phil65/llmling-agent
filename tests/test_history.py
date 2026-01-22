@@ -41,14 +41,14 @@ async def sample_data(provider: SQLModelProvider):
     """Create sample conversation data."""
     # Create two conversations using provider methods
     start = BASE_TIME - timedelta(hours=1)  # 11:00
-    await provider.log_session(conversation_id="conv1", node_name="test_agent", start_time=start)
+    await provider.log_session(session_id="conv1", node_name="test_agent", start_time=start)
     start = BASE_TIME - timedelta(hours=2)  # 10:00
-    await provider.log_session(conversation_id="conv2", node_name="other_agent", start_time=start)
+    await provider.log_session(session_id="conv2", node_name="other_agent", start_time=start)
 
     # Add messages
     test_data = [
         (
-            "conv1",  # conversation_id
+            "conv1",  # session_id
             "Hello",  # content
             "user",  # role
             "user",  # name
@@ -85,7 +85,7 @@ async def sample_data(provider: SQLModelProvider):
     # Add messages using the provider's method signature
     for conv_id, content, role, name, model, cost_info in test_data:
         await provider.log_message(
-            conversation_id=conv_id,
+            session_id=conv_id,
             message_id=str(uuid4()),
             content=content,
             role=role,

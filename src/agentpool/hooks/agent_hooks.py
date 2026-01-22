@@ -45,14 +45,14 @@ class AgentHooks:
         *,
         agent_name: str,
         prompt: str,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
     ) -> HookResult:
         """Execute pre-run hooks.
 
         Args:
             agent_name: Name of the agent.
             prompt: The prompt being processed.
-            conversation_id: Optional conversation identifier.
+            session_id: Optional conversation identifier.
 
         Returns:
             Combined hook result. If any hook denies, the run should be blocked.
@@ -61,7 +61,7 @@ class AgentHooks:
             "event": "pre_run",
             "agent_name": agent_name,
             "prompt": prompt,
-            "conversation_id": conversation_id,
+            "session_id": session_id,
         }
         return await self._run_hooks(self.pre_run, input_data)
 
@@ -71,7 +71,7 @@ class AgentHooks:
         agent_name: str,
         prompt: str,
         result: Any,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
     ) -> HookResult:
         """Execute post-run hooks.
 
@@ -79,7 +79,7 @@ class AgentHooks:
             agent_name: Name of the agent.
             prompt: The prompt that was processed.
             result: The result from the run.
-            conversation_id: Optional conversation identifier.
+            session_id: Optional conversation identifier.
 
         Returns:
             Combined hook result.
@@ -89,7 +89,7 @@ class AgentHooks:
             "agent_name": agent_name,
             "prompt": prompt,
             "result": result,
-            "conversation_id": conversation_id,
+            "session_id": session_id,
         }
         return await self._run_hooks(self.post_run, input_data)
 
@@ -99,7 +99,7 @@ class AgentHooks:
         agent_name: str,
         tool_name: str,
         tool_input: dict[str, Any],
-        conversation_id: str | None = None,
+        session_id: str | None = None,
     ) -> HookResult:
         """Execute pre-tool-use hooks.
 
@@ -107,7 +107,7 @@ class AgentHooks:
             agent_name: Name of the agent.
             tool_name: Name of the tool being called.
             tool_input: Input arguments for the tool.
-            conversation_id: Optional conversation identifier.
+            session_id: Optional conversation identifier.
 
         Returns:
             Combined hook result. If any hook denies, the tool call should be blocked.
@@ -118,7 +118,7 @@ class AgentHooks:
             "agent_name": agent_name,
             "tool_name": tool_name,
             "tool_input": tool_input,
-            "conversation_id": conversation_id,
+            "session_id": session_id,
         }
         return await self._run_hooks(self.pre_tool_use, input_data)
 
@@ -130,7 +130,7 @@ class AgentHooks:
         tool_input: dict[str, Any],
         tool_output: Any,
         duration_ms: float,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
     ) -> HookResult:
         """Execute post-tool-use hooks.
 
@@ -140,7 +140,7 @@ class AgentHooks:
             tool_input: Input arguments that were passed to the tool.
             tool_output: Output from the tool.
             duration_ms: How long the tool took to execute.
-            conversation_id: Optional conversation identifier.
+            session_id: Optional conversation identifier.
 
         Returns:
             Combined hook result. May include additional_context to inject.
@@ -152,7 +152,7 @@ class AgentHooks:
             "tool_input": tool_input,
             "tool_output": tool_output,
             "duration_ms": duration_ms,
-            "conversation_id": conversation_id,
+            "session_id": session_id,
         }
         return await self._run_hooks(self.post_tool_use, input_data)
 

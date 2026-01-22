@@ -32,7 +32,7 @@ class MessageData(TypedDict):
     """Data structure for storing message information."""
 
     message_id: str
-    conversation_id: str
+    session_id: str
     content: str
     role: str
     timestamp: str
@@ -145,7 +145,7 @@ class FileProvider(StorageProvider):
         messages = []
         for msg in self._data["messages"]:
             # Apply filters
-            if query.name and msg["conversation_id"] != query.name:
+            if query.name and msg["session_id"] != query.name:
                 continue
             if query.agents and msg["name"] not in query.agents:
                 continue
@@ -177,7 +177,7 @@ class FileProvider(StorageProvider):
 
             chat_message = ChatMessage[str](
                 content=msg["content"],
-                conversation_id=msg["conversation_id"],
+                session_id=msg["session_id"],
                 role=cast(MessageRole, msg["role"]),
                 name=msg["name"],
                 model_name=msg["model"],
@@ -200,7 +200,7 @@ class FileProvider(StorageProvider):
         self,
         *,
         message_id: str,
-        conversation_id: str,
+        session_id: str,
         content: str,
         role: str,
         name: str | None = None,
@@ -215,7 +215,7 @@ class FileProvider(StorageProvider):
     ) -> None:
         """Log a new message."""
         self._data["messages"].append({
-            "conversation_id": conversation_id,
+            "session_id": session_id,
             "message_id": message_id,
             "content": content,
             "role": cast(MessageRole, role),
@@ -240,13 +240,13 @@ class FileProvider(StorageProvider):
     async def log_session(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         node_name: str,
         start_time: datetime | None = None,
     ) -> None:
         """Log a new conversation."""
         conversation: ConversationData = {
-            "id": conversation_id,
+            "id": session_id,
             "agent_name": node_name,
             "title": None,
             "start_time": (start_time or get_now()).isoformat(),
@@ -256,36 +256,36 @@ class FileProvider(StorageProvider):
 
     async def update_session_title(
         self,
-        conversation_id: str,
+        session_id: str,
         title: str,
     ) -> None:
         """Update the title of a conversation."""
         for conv in self._data["conversations"]:
-            if conv["id"] == conversation_id:
+            if conv["id"] == session_id:
                 conv["title"] = title
                 self._save()
                 return
 
     async def get_session_title(
         self,
-        conversation_id: str,
+        session_id: str,
     ) -> str | None:
         """Get the title of a conversation."""
         for conv in self._data["conversations"]:
-            if conv["id"] == conversation_id:
+            if conv["id"] == session_id:
                 return conv.get("title")
         return None
 
     async def get_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
         """Get all messages for a conversation."""
         messages: list[ChatMessage[str]] = []
         for msg in self._data["messages"]:
-            if msg["conversation_id"] != conversation_id:
+            if msg["session_id"] != session_id:
                 continue
             chat_msg = self._to_chat_message(msg)
             messages.append(chat_msg)
@@ -326,7 +326,7 @@ class FileProvider(StorageProvider):
             "cost_info": cost_info,
             "response_time": msg.get("response_time"),
             "parent_id": msg.get("parent_id"),
-            "conversation_id": msg.get("conversation_id"),
+            "session_id": msg.get("session_id"),
             "messages": deserialize_messages(msg.get("messages")),
             "finish_reason": msg.get("finish_reason"),
         }
@@ -363,19 +363,19 @@ class FileProvider(StorageProvider):
     async def fork_conversation(
         self,
         *,
-        source_conversation_id: str,
-        new_conversation_id: str,
+        source_session_id: str,
+        new_session_id: str,
         fork_from_message_id: str | None = None,
         new_agent_name: str | None = None,
     ) -> str | None:
         """Fork a conversation at a specific point."""
         # Find source conversation
         source_conv = next(
-            (c for c in self._data["conversations"] if c["id"] == source_conversation_id),
+            (c for c in self._data["conversations"] if c["id"] == source_session_id),
             None,
         )
         if not source_conv:
-            msg = f"Source conversation not found: {source_conversation_id}"
+            msg = f"Source conversation not found: {source_session_id}"
             raise ValueError(msg)
 
         # Determine fork point
@@ -383,8 +383,7 @@ class FileProvider(StorageProvider):
         if fork_from_message_id:
             # Verify message exists in source conversation
             msg_exists = any(
-                m.get("message_id") == fork_from_message_id
-                and m["conversation_id"] == source_conversation_id
+                m.get("message_id") == fork_from_message_id and m["session_id"] == source_session_id
                 for m in self._data["messages"]
             )
             if not msg_exists:
@@ -394,7 +393,7 @@ class FileProvider(StorageProvider):
         else:
             # Find last message in source conversation
             conv_messages = [
-                m for m in self._data["messages"] if m["conversation_id"] == source_conversation_id
+                m for m in self._data["messages"] if m["session_id"] == source_session_id
             ]
             if conv_messages:
                 conv_messages.sort(
@@ -412,7 +411,7 @@ class FileProvider(StorageProvider):
             else None
         )
         new_conv: ConversationData = {
-            "id": new_conversation_id,
+            "id": new_session_id,
             "agent_name": agent_name,
             "title": title,
             "start_time": get_now().isoformat(),
@@ -495,7 +494,7 @@ class FileProvider(StorageProvider):
             self._data["messages"] = [
                 m
                 for m in self._data["messages"]
-                if m["conversation_id"]
+                if m["session_id"]
                 not in {
                     c["id"] for c in self._data["conversations"] if c["agent_name"] == agent_name
                 }
@@ -522,7 +521,7 @@ class FileProvider(StorageProvider):
             msg_count = sum(
                 1
                 for m in self._data["messages"]
-                if m["conversation_id"]
+                if m["session_id"]
                 in {c["id"] for c in self._data["conversations"] if c["agent_name"] == agent_name}
             )
         else:
@@ -533,12 +532,12 @@ class FileProvider(StorageProvider):
 
     async def delete_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
     ) -> int:
         """Delete all messages for a conversation."""
         original_count = len(self._data["messages"])
         self._data["messages"] = [
-            m for m in self._data["messages"] if m["conversation_id"] != conversation_id
+            m for m in self._data["messages"] if m["session_id"] != session_id
         ]
         deleted = original_count - len(self._data["messages"])
         if deleted > 0:

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 DELETE_AGENT_MESSAGES = """\
 DELETE FROM message
-WHERE conversation_id IN (
+WHERE session_id IN (
     SELECT id FROM conversation WHERE agent_name = :agent
 )
 """

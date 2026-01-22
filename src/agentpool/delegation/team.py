@@ -141,7 +141,7 @@ class Team[TDeps = None](BaseTeam[TDeps, Any]):
             role="assistant",
             name=self.name,
             message_id=message_id,
-            conversation_id=user_msg.conversation_id,
+            session_id=user_msg.session_id,
             parent_id=user_msg.message_id,
             metadata={
                 "agent_names": [r.agent_name for r in result],

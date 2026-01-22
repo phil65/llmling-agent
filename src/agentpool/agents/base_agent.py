@@ -438,7 +438,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         *prompts: PromptCompatible,
         store_history: bool = True,
         message_id: str | None = None,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         parent_id: str | None = None,
         message_history: MessageHistory | None = None,
         input_provider: InputProvider | None = None,
@@ -455,7 +455,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             *prompts: Input prompts (various formats supported)
             store_history: Whether to store in history
             message_id: Optional message ID
-            conversation_id: Optional conversation ID
+            session_id: Optional conversation ID
             parent_id: Optional parent message ID
             message_history: Optional message history
             input_provider: Optional input provider
@@ -482,14 +482,14 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Determine effective parent_id (from param or last message in history)
         pending_parts = conversation.get_pending_parts()
         effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()
-        # Initialize or adopt conversation_id
-        if self.conversation_id is None:
-            if conversation_id:
-                # Adopt conversation_id (from agent chain or external session like ACP)
-                self.conversation_id = conversation_id
+        # Initialize or adopt session_id
+        if self.session_id is None:
+            if session_id:
+                # Adopt session_id (from agent chain or external session like ACP)
+                self.session_id = session_id
             else:
-                # Generate new conversation_id
-                self.conversation_id = generate_session_id()
+                # Generate new session_id
+                self.session_id = generate_session_id()
             # Always log conversation with initial prompt for title generation
             # StorageManager handles idempotent behavior (skip if already logged)
             # Use last prompt to avoid staged content (staged is prepended, user prompt is last)
@@ -498,14 +498,14 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             ]  # Filter to text prompts only
             initial_prompt = user_prompts[-1] if user_prompts else None
             await self.log_session(initial_prompt)
-        elif conversation_id and self.conversation_id != conversation_id:
-            # Adopt passed conversation_id (for routing chains)
-            self.conversation_id = conversation_id
+        elif session_id and self.session_id != session_id:
+            # Adopt passed session_id (for routing chains)
+            self.session_id = session_id
 
         user_msg = ChatMessage.user_prompt(
             message=converted_prompts,
             parent_id=effective_parent_id,
-            conversation_id=self.conversation_id,
+            session_id=self.session_id,
         )
 
         # Resolve event handlers
@@ -533,7 +533,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                     prompt=user_msg.content
                     if isinstance(user_msg.content, str)
                     else str(user_msg.content),
-                    conversation_id=self.conversation_id,
+                    session_id=self.session_id,
                 )
                 if pre_run_result.get("decision") == "deny":
                     reason = pre_run_result.get("reason", "Blocked by pre-run hook")
@@ -545,7 +545,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 effective_parent_id=effective_parent_id,
                 store_history=store_history,
                 message_id=message_id,
-                conversation_id=conversation_id,
+                session_id=session_id,
                 parent_id=parent_id,
                 message_history=conversation,
                 input_provider=input_provider,
@@ -580,7 +580,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                     agent_name=self.name,
                     prompt=prompt_str,
                     result=final_message.content,
-                    conversation_id=self.conversation_id,
+                    session_id=self.session_id,
                 )
 
             # Emit signal (always - for event handlers)
@@ -742,7 +742,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         message_history: MessageHistory,
         effective_parent_id: str | None,
         message_id: str | None = None,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
@@ -760,7 +760,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             user_msg: Pre-created user ChatMessage (from base class)
             effective_parent_id: Resolved parent message ID for threading
             message_id: Optional message ID
-            conversation_id: Optional conversation ID
+            session_id: Optional conversation ID
             parent_id: Optional parent message ID
             input_provider: Optional input provider
             message_history: Optional message history
@@ -896,7 +896,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         *prompts: PromptCompatible | ChatMessage[Any],
         store_history: bool = True,
         message_id: str | None = None,
-        conversation_id: str | None = None,
+        session_id: str | None = None,
         parent_id: str | None = None,
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
@@ -915,7 +915,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                             context window
             message_id: Optional message id for the returned message.
                         Automatically generated if not provided.
-            conversation_id: Optional conversation id for the returned message.
+            session_id: Optional conversation id for the returned message.
             parent_id: Parent message id
             message_history: Optional MessageHistory object to
                              use instead of agent's own conversation
@@ -937,7 +937,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             *prompts,
             store_history=store_history,
             message_id=message_id,
-            conversation_id=conversation_id,
+            session_id=session_id,
             parent_id=parent_id,
             message_history=message_history,
             deps=deps,

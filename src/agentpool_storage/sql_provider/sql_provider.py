@@ -115,7 +115,7 @@ class SQLModelProvider(StorageProvider):
     async def log_message(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         message_id: str,
         content: str,
         role: str,
@@ -136,7 +136,7 @@ class SQLModelProvider(StorageProvider):
 
         async with AsyncSession(self.engine) as session:
             msg = Message(
-                conversation_id=conversation_id,
+                session_id=session_id,
                 id=message_id,
                 parent_id=parent_id,
                 content=content,
@@ -162,7 +162,7 @@ class SQLModelProvider(StorageProvider):
     async def log_session(
         self,
         *,
-        conversation_id: str,
+        session_id: str,
         node_name: str,
         start_time: datetime | None = None,
     ) -> None:
@@ -171,19 +171,19 @@ class SQLModelProvider(StorageProvider):
 
         async with AsyncSession(self.engine) as session:
             now = start_time or get_now()
-            convo = Conversation(id=conversation_id, agent_name=node_name, start_time=now)
+            convo = Conversation(id=session_id, agent_name=node_name, start_time=now)
             session.add(convo)
             await session.commit()
 
     async def update_session_title(
         self,
-        conversation_id: str,
+        session_id: str,
         title: str,
     ) -> None:
         """Update the title of a conversation."""
         async with AsyncSession(self.engine) as session:
             result = await session.execute(
-                select(Conversation).where(Conversation.id == conversation_id)
+                select(Conversation).where(Conversation.id == session_id)
             )
             conversation = result.scalar_one_or_none()
             if conversation:
@@ -193,25 +193,25 @@ class SQLModelProvider(StorageProvider):
 
     async def get_session_title(
         self,
-        conversation_id: str,
+        session_id: str,
     ) -> str | None:
         """Get the title of a conversation."""
         async with AsyncSession(self.engine) as session:
             result = await session.execute(
-                select(Conversation.title).where(Conversation.id == conversation_id)
+                select(Conversation.title).where(Conversation.id == session_id)
             )
             return result.scalar_one_or_none()
 
     async def get_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
         """Get all messages for a conversation.
 
         Args:
-            conversation_id: ID of the conversation
+            session_id: ID of the conversation
             include_ancestors: If True, traverse parent_id chain to include
                 messages from ancestor conversations (for forked convos).
 
@@ -222,7 +222,7 @@ class SQLModelProvider(StorageProvider):
             # Get messages for this conversation
             result = await session.execute(
                 select(Message)
-                .where(Message.conversation_id == conversation_id)
+                .where(Message.session_id == session_id)
                 .order_by(Message.timestamp.asc())  # type: ignore
             )
             messages = [to_chat_message(m) for m in result.scalars().all()]
@@ -275,8 +275,8 @@ class SQLModelProvider(StorageProvider):
     async def fork_conversation(
         self,
         *,
-        source_conversation_id: str,
-        new_conversation_id: str,
+        source_session_id: str,
+        new_session_id: str,
         fork_from_message_id: str | None = None,
         new_agent_name: str | None = None,
     ) -> str | None:
@@ -288,11 +288,11 @@ class SQLModelProvider(StorageProvider):
         async with AsyncSession(self.engine) as session:
             # Get source conversation
             result = await session.execute(
-                select(Conversation).where(Conversation.id == source_conversation_id)
+                select(Conversation).where(Conversation.id == source_session_id)
             )
             source_conv = result.scalar_one_or_none()
             if not source_conv:
-                msg = f"Source conversation not found: {source_conversation_id}"
+                msg = f"Source conversation not found: {source_session_id}"
                 raise ValueError(msg)
 
             # Determine fork point
@@ -302,7 +302,7 @@ class SQLModelProvider(StorageProvider):
                 msg_result = await session.execute(
                     select(Message).where(
                         Message.id == fork_from_message_id,
-                        Message.conversation_id == source_conversation_id,
+                        Message.session_id == source_session_id,
                     )
                 )
                 fork_msg = msg_result.scalar_one_or_none()
@@ -314,7 +314,7 @@ class SQLModelProvider(StorageProvider):
                 # Fork from the last message
                 msg_result = await session.execute(
                     select(Message)
-                    .where(Message.conversation_id == source_conversation_id)
+                    .where(Message.session_id == source_session_id)
                     .order_by(desc(Message.timestamp))
                     .limit(1)
                 )
@@ -325,7 +325,7 @@ class SQLModelProvider(StorageProvider):
             # Create new conversation
             agent_name = new_agent_name or source_conv.agent_name
             new_conv = Conversation(
-                id=new_conversation_id,
+                id=new_session_id,
                 agent_name=agent_name,
                 title=f"{source_conv.title or 'Conversation'} (fork)"
                 if source_conv.title
@@ -440,7 +440,7 @@ class SQLModelProvider(StorageProvider):
 
             for conv in conversations:
                 # Get messages for this conversation
-                msg_query = select(Message).where(Message.conversation_id == conv.id)
+                msg_query = select(Message).where(Message.session_id == conv.id)
 
                 if filters.query:
                     msg_query = msg_query.where(Message.content.contains(filters.query))  # type: ignore
@@ -478,7 +478,7 @@ class SQLModelProvider(StorageProvider):
                     Message.input_tokens,
                     Message.output_tokens,
                 )
-                .join(Conversation, Message.conversation_id == Conversation.id)
+                .join(Conversation, Message.session_id == Conversation.id)
                 .where(Message.timestamp > filters.cutoff)
             )
 
@@ -580,7 +580,7 @@ class SQLModelProvider(StorageProvider):
 
     async def delete_conversation_messages(
         self,
-        conversation_id: str,
+        session_id: str,
     ) -> int:
         """Delete all messages for a conversation."""
         from sqlalchemy import delete, func
@@ -588,13 +588,13 @@ class SQLModelProvider(StorageProvider):
         async with AsyncSession(self.engine) as session:
             # First count messages to return
             count_result = await session.execute(
-                select(func.count()).where(Message.conversation_id == conversation_id)
+                select(func.count()).where(Message.session_id == session_id)
             )
             count = count_result.scalar() or 0
 
             # Then delete
             await session.execute(
-                delete(Message).where(Message.conversation_id == conversation_id)  # type: ignore[arg-type]
+                delete(Message).where(Message.session_id == session_id)  # type: ignore[arg-type]
             )
             await session.commit()
             return count

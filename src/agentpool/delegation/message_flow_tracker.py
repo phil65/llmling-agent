@@ -21,16 +21,12 @@ class MessageFlowTracker:
 
     def filter(self, message: ChatMessage[Any]) -> list[ChatMessage[Any]]:
         """Filter events for specific conversation."""
-        return [
-            e.message for e in self.events if e.message.conversation_id == message.conversation_id
-        ]
+        return [e.message for e in self.events if e.message.session_id == message.session_id]
 
     def visualize(self, message: ChatMessage[Any]) -> str:
         """Get flow visualization for specific conversation."""
         # Filter events for this conversation
-        conv_events = [
-            e for e in self.events if e.message.conversation_id == message.conversation_id
-        ]
+        conv_events = [e for e in self.events if e.message.session_id == message.session_id]
         lines = ["flowchart LR"]
         for event in conv_events:
             source = event.message.name

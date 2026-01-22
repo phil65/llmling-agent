@@ -507,8 +507,8 @@ class ACPMessageAccumulator:
         ```
     """
 
-    conversation_id: str | None = None
-    """Optional conversation ID for generated messages."""
+    session_id: str | None = None
+    """Optional session ID for generated messages."""
 
     agent_name: str | None = None
     """Optional agent name for generated messages."""
@@ -567,7 +567,7 @@ class ACPMessageAccumulator:
                 content=content,
                 role="user",
                 message_id=message_id,
-                conversation_id=self.conversation_id,
+                session_id=self.session_id,
                 parent_id=self._last_parent_id,
                 messages=[model_message],
                 name=None,
@@ -642,7 +642,7 @@ class ACPMessageAccumulator:
                 content=content,
                 role="assistant",
                 message_id=message_id,
-                conversation_id=self.conversation_id,
+                session_id=self.session_id,
                 parent_id=self._last_parent_id,
                 messages=all_messages,
                 name=self.agent_name,
@@ -776,7 +776,7 @@ class ACPMessageAccumulator:
 def acp_notifications_to_messages(
     notifications: Iterable[SessionNotification[SessionUpdate]] | Iterable[SessionUpdate],
     *,
-    conversation_id: str | None = None,
+    session_id: str | None = None,
     agent_name: str | None = None,
     model_name: str | None = None,
 ) -> list[ChatMessage[str]]:
@@ -787,7 +787,7 @@ def acp_notifications_to_messages(
 
     Args:
         notifications: Iterable of SessionNotification or SessionUpdate objects
-        conversation_id: Optional conversation ID for generated messages
+        session_id: Optional session ID for generated messages
         agent_name: Optional agent name for generated messages
         model_name: Optional model name for generated messages
 
@@ -802,14 +802,14 @@ def acp_notifications_to_messages(
         # With metadata
         messages = acp_notifications_to_messages(
             notifications,
-            conversation_id="conv-123",
+            session_id="conv-123",
             agent_name="goose",
             model_name="claude-3-opus",
         )
         ```
     """
     accumulator = ACPMessageAccumulator(
-        conversation_id=conversation_id,
+        session_id=session_id,
         agent_name=agent_name,
         model_name=model_name,
     )
