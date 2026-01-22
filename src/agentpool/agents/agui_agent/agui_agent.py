@@ -49,7 +49,6 @@ if TYPE_CHECKING:
     from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
-    from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
@@ -223,31 +222,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             agent_pool=agent_pool,
             tool_confirmation_mode=config.requires_tool_confirmation,
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
-        )
-
-    def get_context(
-        self,
-        data: Any = None,
-        input_provider: InputProvider | None = None,
-    ) -> AgentContext:
-        """Create a new context for this agent.
-
-        Args:
-            data: Optional custom data to attach to the context
-            input_provider: Optional input provider override
-
-        Returns:
-            A new AgentContext instance
-        """
-        from agentpool.agents.context import AgentContext
-
-        effective_provider = input_provider or self._input_provider
-        return AgentContext(
-            node=self,
-            pool=self.agent_pool,
-            input_provider=effective_provider,
-            data=data,
-            model_name=self.model_name,
         )
 
     async def __aenter__(self) -> Self:

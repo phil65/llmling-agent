@@ -134,7 +134,6 @@ if TYPE_CHECKING:
         ClaudeCodeCommandInfo,
         ClaudeCodeServerInfo,
     )
-    from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
@@ -408,30 +407,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             agent_pool=agent_pool,
             output_type=resolved_output_type,
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
-        )
-
-    def get_context(
-        self,
-        data: Any = None,
-        input_provider: InputProvider | None = None,
-    ) -> AgentContext:
-        """Create a new context for this agent.
-
-        Args:
-            data: Optional custom data to attach to the context
-            input_provider: Optional input provider override
-
-        Returns:
-            A new AgentContext instance
-        """
-        from agentpool.agents import AgentContext
-
-        return AgentContext(
-            node=self,
-            pool=self.agent_pool,
-            input_provider=input_provider or self._input_provider,
-            data=data,
-            model_name=self.model_name,
         )
 
     async def _setup_toolsets(self) -> None:

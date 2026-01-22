@@ -289,7 +289,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         )
         await self.agent_reset.emit(event)
 
-    @abstractmethod
     def get_context(
         self,
         data: Any = None,
@@ -304,7 +303,15 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         Returns:
             A new AgentContext instance
         """
-        ...
+        from agentpool.agents.context import AgentContext
+
+        return AgentContext(
+            node=self,
+            pool=self.agent_pool,
+            input_provider=input_provider or self._input_provider,
+            data=data,
+            model_name=self.model_name,
+        )
 
     @property
     @abstractmethod

@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
     from upathtools import JoinablePathLike
 
-    from agentpool.agents import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
@@ -530,30 +529,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     def name(self, value: str) -> None:
         """Set agent name."""
         self._name = value
-
-    def get_context(  # type: ignore[override]
-        self,
-        data: TDeps | None = None,
-        input_provider: InputProvider | None = None,
-    ) -> AgentContext[TDeps]:
-        """Create a new context for this agent.
-
-        Args:
-            data: Optional custom data to attach to the context
-            input_provider: Optional input provider override
-
-        Returns:
-            A new AgentContext instance
-        """
-        from agentpool.agents import AgentContext
-
-        return AgentContext(
-            node=self,
-            input_provider=input_provider or self._input_provider,
-            pool=self.agent_pool,
-            data=data,
-            model_name=self.model_name,
-        )
 
     def _resolve_model_string(self, model: str) -> tuple[Model, ModelSettings | None]:
         """Resolve a model string, checking variants first.

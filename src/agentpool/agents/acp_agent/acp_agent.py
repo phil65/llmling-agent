@@ -81,7 +81,6 @@ if TYPE_CHECKING:
     from acp.schema import Implementation, RequestPermissionRequest, RequestPermissionResponse
     from acp.schema.capabilities import AgentCapabilities
     from acp.schema.mcp import McpServer
-    from agentpool.agents import AgentContext
     from agentpool.agents.acp_agent.client_handler import ACPClientHandler
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
@@ -324,22 +323,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Whether terminal operations are allowed."""
         caps = self._init_request.client_capabilities
         return bool(caps and caps.terminal)
-
-    def get_context(
-        self,
-        data: Any = None,
-        input_provider: InputProvider | None = None,
-    ) -> AgentContext:
-        """Create a new context for this agent."""
-        from agentpool.agents.context import AgentContext
-
-        return AgentContext(
-            node=self,
-            pool=self.agent_pool,
-            input_provider=input_provider or self._input_provider,
-            data=data,
-            model_name=self.model_name,
-        )
 
     async def _setup_toolsets(self) -> None:
         """Initialize toolsets and start bridge if needed."""
