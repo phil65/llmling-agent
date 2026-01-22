@@ -116,7 +116,12 @@ if TYPE_CHECKING:
         ToolPermissionContext,
         ToolUseBlock,
     )
-    from clawd_code_sdk.types import HookContext, HookInput, SyncHookJSONOutput
+    from clawd_code_sdk.types import (
+        AssistantMessage,
+        HookContext,
+        HookInput,
+        SyncHookJSONOutput,
+    )
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import UserContent
@@ -168,6 +173,16 @@ def _strip_mcp_prefix(tool_name: str) -> str:
     if match := _MCP_TOOL_PATTERN.match(tool_name):
         return match.group(2)  # group(1) is agent name, group(2) is tool name
     return tool_name
+
+
+def raise_if_usage_limit_reached(message: AssistantMessage) -> None:
+    """Raise RuntimeError if usage limit is reached."""
+    from clawd_code_sdk.types import TextBlock
+
+    if len(message.content) == 1 and isinstance(message.content[0], TextBlock):
+        text_content = message.content[0].text
+        if "You've hit your limit" in text_content and "resets" in text_content:
+            raise RuntimeError(f"Claude Code usage limit reached: {text_content}")
 
 
 class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
@@ -1031,15 +1046,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         # Update model name from first assistant message
                         if message.model:
                             self._current_model = message.model
-
                         # Check for usage limit error
-                        if len(message.content) == 1 and isinstance(message.content[0], TextBlock):
-                            text_content = message.content[0].text
-                            if "You've hit your limit" in text_content and "resets" in text_content:
-                                raise RuntimeError(  # noqa: TRY301
-                                    f"Claude Code usage limit reached: {text_content}"
-                                )
-
+                        raise_if_usage_limit_reached(message)
                         for block in message.content:
                             match block:
                                 case TextBlock(text=text):
@@ -1081,10 +1089,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     # Dont emit a progress update here - it races with
                                     # permission requests and causes Zed to cancel the dialog.
                                     # Just track file modifications.
-                                    elif file_path := file_tracker.extractor(
-                                        display_name, input_data
-                                    ):
-                                        file_tracker.touched_files.add(file_path)
+                                    elif fpath := file_tracker.extractor(display_name, input_data):
+                                        file_tracker.touched_files.add(fpath)
                                     # Clean up from accumulator (always, both branches)
                                     tool_accumulator.complete(tc_id)
                                 case ToolResultBlock(tool_use_id=tc_id, content=content):
@@ -1100,13 +1106,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     )
                                     tool_input = tool_use.input if tool_use else {}
                                     # Create ToolReturnPart for the result
-                                    tool_return_part = ToolReturnPart(
+                                    return_part = ToolReturnPart(
                                         tool_name=tool_name, content=content, tool_call_id=tc_id
                                     )
                                     # Emit FunctionToolResultEvent (for session.py to complete UI)
-                                    func_result_event = FunctionToolResultEvent(
-                                        result=tool_return_part
-                                    )
+                                    func_result_event = FunctionToolResultEvent(result=return_part)
                                     await event_handlers(None, func_result_event)
                                     yield func_result_event
                                     # Also emit ToolCallCompleteEvent for consumers that expect it
@@ -1122,7 +1126,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     await event_handlers(None, tool_done_event)
                                     yield tool_done_event
                                     # Add tool return as ModelRequest
-                                    model_messages.append(ModelRequest(parts=[tool_return_part]))
+                                    model_messages.append(ModelRequest(parts=[return_part]))
 
                     # Process user messages - may contain tool results
                     elif isinstance(message, UserMessage):
@@ -1137,9 +1141,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 result_content = user_block.content
                                 # Flush response parts
                                 if current_response_parts:
-                                    model_messages.append(
-                                        ModelResponse(parts=current_response_parts)
-                                    )
+                                    model_response = ModelResponse(parts=current_response_parts)
+                                    model_messages.append(model_response)
                                     current_response_parts = []
 
                                 # Get tool name from pending calls
@@ -1149,16 +1152,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 )
                                 tool_input = tool_use.input if tool_use else {}
                                 # Create ToolReturnPart for the result
-                                tool_return_part = ToolReturnPart(
+                                return_part = ToolReturnPart(
                                     tool_name=tool_name,
                                     content=result_content,
                                     tool_call_id=tc_id,
                                 )
                                 # Emit FunctionToolResultEvent (for session.py to complete UI)
-                                func_result_event = FunctionToolResultEvent(result=tool_return_part)
+                                func_result_event = FunctionToolResultEvent(result=return_part)
                                 await event_handlers(None, func_result_event)
                                 yield func_result_event
-
                                 # Build metadata: prefer existing tool_metadata,
                                 # then convert SDK result
                                 metadata = tool_metadata.get(tc_id)
@@ -1181,7 +1183,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 await event_handlers(None, tool_complete_event)
                                 yield tool_complete_event
                                 # Add tool return as ModelRequest
-                                model_messages.append(ModelRequest(parts=[tool_return_part]))
+                                model_messages.append(ModelRequest(parts=[return_part]))
 
                     # Handle StreamEvent for real-time streaming
                     elif isinstance(message, StreamEvent):
@@ -1191,9 +1193,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         content_block = event_data.get("content_block", {})
                         block_type = content_block.get("type")
                         delta = event_data.get("delta", {})
-                        delta_type = delta.get("type")
-
-                        match event_type, block_type or delta_type:
+                        match event_type, block_type or delta.get("type"):
                             # content_block_start events
                             case "content_block_start", "text":
                                 start_event = PartStartEvent.text(index=index, content="")
@@ -1230,35 +1230,27 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                             # content_block_delta events
                             case "content_block_delta", "text_delta":
-                                text_delta = delta.get("text", "")
-                                if text_delta:
+                                if text_delta := delta.get("text", ""):
                                     text_part = TextPartDelta(content_delta=text_delta)
                                     delta_event = PartDeltaEvent(index=index, delta=text_part)
                                     await event_handlers(None, delta_event)
                                     yield delta_event
 
                             case "content_block_delta", "thinking_delta":
-                                thinking_delta = delta.get("thinking", "")
-                                if thinking_delta:
-                                    thinking_part_delta = ThinkingPartDelta(
-                                        content_delta=thinking_delta
-                                    )
-                                    delta_event = PartDeltaEvent(
-                                        index=index, delta=thinking_part_delta
-                                    )
+                                if delta := delta.get("thinking", ""):
+                                    thinking_delta = ThinkingPartDelta(content_delta=delta)
+                                    delta_event = PartDeltaEvent(index=index, delta=thinking_delta)
                                     await event_handlers(None, delta_event)
                                     yield delta_event
 
                             case "content_block_delta", "input_json_delta":
                                 # Accumulate tool argument JSON fragments
-                                partial_json = delta.get("partial_json", "")
-                                if partial_json:
+                                if partial_json := delta.get("partial_json", ""):
                                     # Find which tool call this belongs to by index
                                     for tc_id in tool_accumulator._calls:
                                         tool_accumulator.add_args(tc_id, partial_json)
                                         # Emit PartDeltaEvent with ToolCallPartDelta
                                         tool_delta = ToolCallPartDelta(
-                                            tool_name_delta=None,
                                             args_delta=partial_json,
                                             tool_call_id=tc_id,
                                         )
