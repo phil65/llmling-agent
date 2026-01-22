@@ -1082,3 +1082,62 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Default: just delegate to load_session
         # Subclasses can override to skip history loading for efficiency
         return await self.load_session(session_id)
+
+    async def load_rules(self) -> None:
+        """Load agent rules from global and project locations.
+
+        Searches for AGENTS.md/CLAUDE.md files in:
+        1. Global: ~/.config/agentpool/AGENTS.md (user-wide rules)
+        2. Project: {env.cwd}/AGENTS.md (project-specific rules)
+
+        Both are merged and staged for injection into the first prompt.
+        Uses the agent's execution environment for filesystem access,
+        making this work across local and remote (ACP) environments.
+
+        This method should be called after the agent's env is properly configured.
+        For ACP sessions, call after ACPExecutionEnvironment is assigned.
+        """
+        from agentpool_config.resolution import get_global_config_dir
+
+        rules_file_names = ("AGENTS.md", "CLAUDE.md")
+        rules_parts: list[str] = []
+
+        # 1. Global rules from config directory
+        global_dir = get_global_config_dir()
+        for name in rules_file_names:
+            path = global_dir / name
+            if path.is_file():
+                try:
+                    content = path.read_text(encoding="utf-8")
+                    rules_parts.append(f"## Global Rules\n\n{content}")
+                    logger.debug("Loaded global rules", path=str(path))
+                except OSError:
+                    logger.exception("Failed to read global rules", path=str(path))
+                break
+
+        # 2. Project rules from env.cwd
+        project_dir = self.env.cwd if self.env else None
+        if project_dir:
+            fs = self.env.get_fs()
+            for name in rules_file_names:
+                rules_path = f"{project_dir}/{name}"
+                try:
+                    # Use filesystem abstraction (works for local and ACP)
+                    if await fs._exists(rules_path):
+                        content_bytes = await fs._cat_file(rules_path)
+                        content = content_bytes.decode("utf-8")
+                        rules_parts.append(f"## Project Rules\n\n{content}")
+                        logger.debug("Loaded project rules", path=rules_path)
+                        break
+                except (OSError, UnicodeDecodeError):
+                    logger.debug("No project rules found", path=rules_path)
+
+        # Stage combined rules for first prompt
+        if rules_parts:
+            combined = "\n\n".join(rules_parts)
+            self.staged_content.add_text(combined)
+            logger.info(
+                "Staged agent rules",
+                global_rules=bool(any("Global" in p for p in rules_parts)),
+                project_rules=bool(any("Project" in p for p in rules_parts)),
+            )

@@ -303,15 +303,15 @@ class ACPSession:
             self.log.exception("Failed to register MCP prompts as commands")
 
     async def init_project_context(self) -> None:
-        """Load AGENTS.md/CLAUDE.md file and stage as initial context.
+        """Load agent rules from global and project locations.
 
-        The project context is staged as user message content rather than system prompts,
-        which ensures it's available for all agent types and avoids timing issues with
-        agent initialization.
+        Delegates to agent.load_rules() which handles:
+        - Global rules from ~/.config/agentpool/AGENTS.md
+        - Project rules from {cwd}/AGENTS.md or CLAUDE.md
+
+        Both are merged and staged for the first prompt.
         """
-        if info := await self.requests.read_agent_rules(self.cwd):
-            # Stage as user message to be prepended to first prompt
-            self.agent.staged_content.add_text(f"## Project Information\n\n{info}")
+        await self.agent.load_rules()
 
     async def init_client_skills(self) -> None:
         """Discover and load skills from client-side .claude/skills directory.
