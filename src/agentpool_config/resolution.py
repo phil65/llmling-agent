@@ -72,10 +72,7 @@ class ResolvedConfig:
 
     def get_layer(self, source: ConfigSource) -> ConfigLayer | None:
         """Get a specific layer by source type."""
-        for layer in self.layers:
-            if layer.source == source:
-                return layer
-        return None
+        return next((layer for layer in self.layers if layer.source == source), None)
 
 
 # Standard config file names to search for
