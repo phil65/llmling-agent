@@ -294,6 +294,15 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         prompt_manager = self.agent_pool.prompt_manager if self.agent_pool else None
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=prompt_manager)
         self._formatted_system_prompt: str | None = None  # Set in __aenter__
+
+        # Initialize hook manager (wraps AgentHooks and handles injection)
+        from agentpool.agents.native_agent.hook_manager import NativeAgentHookManager
+
+        self._hook_manager = NativeAgentHookManager(
+            agent_name=self.name,
+            agent_hooks=hooks,
+        )
+        # Keep self.hooks for backward compatibility
         self.hooks = hooks
         self._default_usage_limits = usage_limits
         self._providers = list(providers) if providers else None  # model discovery
@@ -660,7 +669,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         context_for_tools = self.get_context(input_provider=input_provider)
 
         for tool in tools:
-            wrapped = wrap_tool(tool, context_for_tools, hooks=self.hooks)
+            wrapped = wrap_tool(tool, context_for_tools, hooks=self._hook_manager)
             if get_argument_key(wrapped, RunContext):
                 agent.tool(wrapped)
             else:
@@ -829,6 +838,22 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             pass_message_history=pass_message_history,
             parent=self if pass_message_history else None,
         )
+
+    def inject_prompt(self, message: str) -> None:
+        """Inject a message into the conversation after the next tool completes.
+
+        The message will be added as additional context visible to the model
+        after the current tool execution finishes. This allows injecting
+        guidance or corrections mid-run.
+
+        Args:
+            message: Message to inject
+
+        Note:
+            Only works when tools are executing. If no tool runs before the
+            agent completes, the injection is lost.
+        """
+        self._hook_manager.inject(message)
 
     async def set_model(self, model: Model | str) -> None:
         """Set the model for this agent.

@@ -21,14 +21,48 @@ from agentpool.utils.signatures import create_modified_signature, update_signatu
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from agentpool.hooks import AgentHooks
+    from agentpool.agents.native_agent.hook_manager import NativeAgentHookManager
     from agentpool.tools.base import Tool
+
+
+def _inject_additional_context(
+    result: Any,
+    additional: str,
+) -> ToolReturn:
+    """Inject additional context into a tool result.
+
+    Wraps or modifies the result to include additional context that will
+    be visible to the model after the tool execution.
+
+    Args:
+        result: Original tool result (any type or ToolReturn)
+        additional: Additional context to inject
+
+    Returns:
+        ToolReturn with the additional context appended to content
+    """
+    if isinstance(result, ToolReturn):
+        # Append to existing content
+        existing = result.content
+        if existing is None:
+            new_content = additional
+        elif isinstance(existing, str):
+            new_content = f"{existing}\n\n[Additional Context]\n{additional}"
+        else:
+            # Sequence of UserContent - append as string
+            new_content = [*existing, f"\n\n[Additional Context]\n{additional}"]
+        return replace(result, content=new_content)
+    # Wrap in ToolReturn to add content
+    return ToolReturn(
+        return_value=result,
+        content=f"[Additional Context]\n{additional}",
+    )
 
 
 def wrap_tool[TReturn](  # noqa: PLR0915
     tool: Tool[TReturn],
     agent_ctx: AgentContext,
-    hooks: AgentHooks | None = None,
+    hooks: NativeAgentHookManager | None = None,
 ) -> Callable[..., Awaitable[TReturn | ToolReturn | None]]:
     """Wrap tool with confirmation handling and hooks.
 
@@ -94,7 +128,7 @@ def wrap_tool[TReturn](  # noqa: PLR0915
 
         # Post-tool hooks
         if hooks:
-            await hooks.run_post_tool_hooks(
+            post_result = await hooks.run_post_tool_hooks(
                 agent_name=agent_ctx.node_name,
                 tool_name=tool.name,
                 tool_input=tool_input,
@@ -102,6 +136,10 @@ def wrap_tool[TReturn](  # noqa: PLR0915
                 duration_ms=duration_ms,
                 session_id=None,
             )
+
+            # Inject additional context if provided by hooks
+            if additional := post_result.get("additional_context"):
+                result = _inject_additional_context(result, additional)
 
         return result
 

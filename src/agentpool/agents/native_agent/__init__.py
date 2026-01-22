@@ -3,5 +3,6 @@
 from __future__ import annotations
 
 from .agent import Agent, AgentKwargs
+from .hook_manager import NativeAgentHookManager
 
-__all__ = ["Agent", "AgentKwargs"]
+__all__ = ["Agent", "AgentKwargs", "NativeAgentHookManager"]
