@@ -23,7 +23,6 @@ from syrupy.extensions.json import JSONSnapshotExtension
 import yaml
 
 from agentpool.delegation import AgentPool
-from agentpool.models.manifest import AgentsManifest
 from agentpool_config.agentpool_tools import BashToolConfig
 
 
@@ -70,7 +69,6 @@ def create_server_config_file(temp_dir: Path, tool_name: str, tool_args: dict[st
     }
 
     config = {"agents": {"test_agent": agent_config}}
-
     config_path = temp_dir / "server_config.yml"
     config_path.write_text(yaml.dump(config, default_flow_style=False))
     return config_path
@@ -139,12 +137,7 @@ class ACPViaACPHarness:
             tools: Tool configurations (provided to client, bridged to server via MCP)
         """
         # Create server config (dumb agent with no tools)
-        server_config_path = create_server_config_file(
-            self.temp_dir,
-            tool_name,
-            tool_args,
-        )
-
+        server_config_path = create_server_config_file(self.temp_dir, tool_name, tool_args)
         # Extract mock environment from first tool (all should have same env)
         mock_env = None
         for tool in tools:
@@ -153,8 +146,6 @@ class ACPViaACPHarness:
                 break
         if not mock_env:
             # Default mock env with deterministic IDs
-            from exxec_config import MockExecutionEnvironmentConfig
-
             mock_env = MockExecutionEnvironmentConfig(deterministic_ids=True)
 
         # Create client config (ACP agent with tools that will be bridged)
@@ -168,17 +159,11 @@ class ACPViaACPHarness:
         )
 
         self.recorded_events.clear()
-
         # Use AgentPool to instantiate the client agent from config
-        manifest = AgentsManifest.from_file(client_config_path)
-        pool = AgentPool(manifest=manifest)
-
-        async with pool:
+        async with AgentPool(manifest=client_config_path) as pool:
             # ACP agents are in pool.all_agents dict
             agent = pool.all_agents["test_client"]
             async for event in agent.run_stream("Execute the tool"):
-                from dataclasses import asdict
-
                 event_dict = asdict(event)
                 event_dict["type"] = type(event).__name__
                 self.recorded_events.append(event_dict)
@@ -222,7 +207,6 @@ class TestExecuteCommandViaACP:
             tool_args={"command": "echo hello"},
             tools=[BashToolConfig(environment=mock_env)],
         )
-
         # Filter to tool call messages for stable comparison
         tool_events = [
             e
