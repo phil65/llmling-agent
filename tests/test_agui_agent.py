@@ -13,9 +13,7 @@ from pydantic_ai import PartDeltaEvent
 import pytest
 
 from agentpool.agents.agui_agent import AGUIAgent
-from agentpool.agents.agui_agent.agui_converters import (
-    agui_to_native_event,
-)
+from agentpool.agents.agui_agent.agui_converters import agui_to_native_event
 from agentpool.agents.events import StreamCompleteEvent, ToolCallStartEvent as NativeToolCallStart
 from agentpool.messaging import ChatMessage
 from agentpool.talk.stats import MessageStats

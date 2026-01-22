@@ -20,7 +20,6 @@ from pydantic_ai import (
     DocumentUrl,
     FileUrl,
     ImageUrl,
-    PartDeltaEvent,
     TextPartDelta,
     ThinkingPartDelta,
     VideoUrl,
@@ -28,6 +27,7 @@ from pydantic_ai import (
 
 from agentpool.agents.events import (
     CustomEvent,
+    PartDeltaEvent,
     PlanUpdateEvent,
     RunErrorEvent,
     RunStartedEvent,
@@ -92,11 +92,7 @@ def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None: 
             return RunErrorEvent(message=message, code=code)
 
         # === Text Message Events ===
-
-        case TextMessageContentEvent(delta=delta):
-            return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=delta))
-
-        case TextMessageChunkEvent(delta=delta) if delta:
+        case TextMessageContentEvent(delta=delta) | TextMessageChunkEvent(delta=delta) if delta:
             return PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=delta))
 
         case TextMessageStartEvent() | TextMessageEndEvent():
