@@ -196,6 +196,8 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self.hooks = hooks
         self._cancelled = False
         self._current_stream_task: asyncio.Task[Any] | None = None
+        # Queue for prompts to be processed after current run completes
+        self._queued_prompts: list[tuple[PromptCompatible, ...]] = []
         # Deferred initialization support - subclasses set True in __aenter__,
         # override ensure_initialized() to do actual connection
         self._connect_pending: bool = False
@@ -440,8 +442,34 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         finally:
             self._background_task = None
 
+    def queue_prompt(self, *prompts: PromptCompatible) -> None:
+        """Queue a prompt to be processed after the current run completes.
+
+        When called during an active run_stream, the queued prompt will be
+        processed in a continuation loop without exiting the stream. This
+        allows tools or external code to schedule follow-up work.
+
+        Args:
+            *prompts: Prompts to queue (same format as run/run_stream)
+
+        Example:
+            # In a tool implementation:
+            async def my_tool(ctx: AgentContext) -> str:
+                ctx.agent.queue_prompt("Now analyze the results")
+                return "Initial work done"
+        """
+        self._queued_prompts.append(prompts)
+
+    def has_queued_prompts(self) -> bool:
+        """Check if there are queued prompts waiting to be processed."""
+        return bool(self._queued_prompts)
+
+    def clear_queued_prompts(self) -> None:
+        """Clear all queued prompts without processing them."""
+        self._queued_prompts.clear()
+
     @method_spawner
-    async def run_stream(  # noqa: PLR0915
+    async def run_stream(
         self,
         *prompts: PromptCompatible,
         store_history: bool = True,
@@ -456,8 +484,84 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Run agent with streaming output.
 
-        This method delegates to _stream_events() which must be implemented by subclasses.
-        Handles prompt conversion from various formats to UserContent.
+        This method delegates to _run_stream_once() for actual processing.
+        If prompts are queued via queue_prompt() during execution, they will be
+        processed in sequence without exiting the stream.
+
+        Args:
+            *prompts: Input prompts (various formats supported)
+            store_history: Whether to store in history
+            message_id: Optional message ID
+            session_id: Optional conversation ID
+            parent_id: Optional parent message ID
+            message_history: Optional message history
+            input_provider: Optional input provider
+            wait_for_connections: Whether to wait for connected agents
+            deps: Optional dependencies
+            event_handlers: Optional event handlers
+
+        Yields:
+            Stream events during execution
+        """
+        from agentpool.utils.identifiers import generate_session_id
+
+        # Initialize session_id once for the entire run (including queued prompts)
+        if self.session_id is None:
+            if session_id:
+                self.session_id = session_id
+            else:
+                self.session_id = generate_session_id()
+            user_prompts = [str(p) for p in prompts if isinstance(p, str)]
+            initial_prompt = user_prompts[-1] if user_prompts else None
+            await self.log_session(initial_prompt)
+        elif session_id and self.session_id != session_id:
+            self.session_id = session_id
+
+        # Reset cancellation state and track current task
+        self._cancelled = False
+        self._current_stream_task = asyncio.current_task()
+
+        # Queue the initial prompts
+        self._queued_prompts.insert(0, prompts)
+
+        try:
+            # Process queued prompts until queue is empty
+            while self._queued_prompts and not self._cancelled:
+                current_prompts = self._queued_prompts.pop(0)
+                async for event in self._run_stream_once(
+                    *current_prompts,
+                    store_history=store_history,
+                    message_id=message_id,
+                    session_id=session_id,
+                    parent_id=parent_id,
+                    message_history=message_history,
+                    input_provider=input_provider,
+                    wait_for_connections=wait_for_connections,
+                    deps=deps,
+                    event_handlers=event_handlers,
+                ):
+                    yield event
+        finally:
+            self._current_stream_task = None
+            self._queued_prompts.clear()  # Clean slate for next run
+
+    async def _run_stream_once(
+        self,
+        *prompts: PromptCompatible,
+        store_history: bool = True,
+        message_id: str | None = None,
+        session_id: str | None = None,
+        parent_id: str | None = None,
+        message_history: MessageHistory | None = None,
+        input_provider: InputProvider | None = None,
+        wait_for_connections: bool | None = None,
+        deps: TDeps | None = None,
+        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+    ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
+        """Process a single prompt group with streaming output.
+
+        This is the internal implementation called by run_stream().
+        Session initialization is handled by the caller.
 
         Args:
             *prompts: Input prompts (various formats supported)
@@ -478,7 +582,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         from agentpool.agents.events import resolve_event_handlers
         from agentpool.messaging import ChatMessage
-        from agentpool.utils.identifiers import generate_session_id
 
         # Convert prompts to standard UserContent format
         converted_prompts = await convert_prompts(prompts)
@@ -490,25 +593,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Determine effective parent_id (from param or last message in history)
         pending_parts = conversation.get_pending_parts()
         effective_parent_id = parent_id if parent_id else conversation.get_last_message_id()
-        # Initialize or adopt session_id
-        if self.session_id is None:
-            if session_id:
-                # Adopt session_id (from agent chain or external session like ACP)
-                self.session_id = session_id
-            else:
-                # Generate new session_id
-                self.session_id = generate_session_id()
-            # Always log conversation with initial prompt for title generation
-            # StorageManager handles idempotent behavior (skip if already logged)
-            # Use last prompt to avoid staged content (staged is prepended, user prompt is last)
-            user_prompts = [
-                str(p) for p in prompts if isinstance(p, str)
-            ]  # Filter to text prompts only
-            initial_prompt = user_prompts[-1] if user_prompts else None
-            await self.log_session(initial_prompt)
-        elif session_id and self.session_id != session_id:
-            # Adopt passed session_id (for routing chains)
-            self.session_id = session_id
 
         user_msg = ChatMessage.user_prompt(
             message=converted_prompts,
@@ -517,7 +601,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         )
 
         # Resolve event handlers
-
         if event_handlers is not None:
             resolved_handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
                 resolve_event_handlers(event_handlers)
@@ -525,12 +608,8 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         else:
             resolved_handler = self.event_handler
 
-        # Reset cancellation state for this run
-        self._cancelled = False
-
         # Stream events from implementation
         final_message = None
-        self._current_stream_task = asyncio.current_task()
         conversation = message_history if message_history is not None else self.conversation
         await self.message_received.emit(user_msg)
         try:
@@ -574,8 +653,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             )
             await self.run_failed.emit(failed_event)
             raise
-        finally:
-            self._current_stream_task = None
 
         # Post-processing after stream completes
         if final_message is not None:
