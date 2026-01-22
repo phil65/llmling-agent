@@ -150,7 +150,12 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         self._current_sandbox: SandboxMode | None = sandbox
         self._current_turn_id: str | None = None
 
-        self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
+        # Pass injection_manager for mid-run injection support
+        self._tool_bridge = ToolManagerBridge(
+            node=self,
+            server_name=f"agentpool-{self.name}-tools",
+            injection_manager=self._injection_manager,
+        )
 
     @classmethod
     def from_config(

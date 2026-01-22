@@ -81,24 +81,27 @@ class PromptInjectionManager:
         """Consume the next pending injection.
 
         Called by agent-specific hooks (e.g., post-tool hooks) to get
-        the next message to inject into the conversation.
+        the next message to inject into the conversation. The message
+        is wrapped in XML tags for clear delineation.
 
         Returns:
-            The next injection message, or None if no injections pending
+            The next injection message wrapped in XML tags, or None if none pending
         """
         if self._pending_injections:
             msg = self._pending_injections.pop(0)
             logger.debug("Consumed injection", message_len=len(msg))
-            return msg
+            return f"<injected-context>\n{msg}\n</injected-context>"
         return None
 
     def consume_all(self) -> list[str]:
         """Consume all pending injections.
 
         Returns:
-            List of all pending injection messages (may be empty)
+            List of all pending injection messages wrapped in XML tags (may be empty)
         """
-        result = self._pending_injections.copy()
+        result = [
+            f"<injected-context>\n{msg}\n</injected-context>" for msg in self._pending_injections
+        ]
         self._pending_injections.clear()
         if result:
             logger.debug("Consumed all injections", count=len(result))

@@ -34,9 +34,12 @@ def _inject_additional_context(
     Wraps or modifies the result to include additional context that will
     be visible to the model after the tool execution.
 
+    The additional context is expected to already be wrapped in XML tags
+    by the PromptInjectionManager.
+
     Args:
         result: Original tool result (any type or ToolReturn)
-        additional: Additional context to inject
+        additional: Additional context to inject (already XML-wrapped)
 
     Returns:
         ToolReturn with the additional context appended to content
@@ -47,14 +50,11 @@ def _inject_additional_context(
         if existing is None:
             return replace(result, content=additional)
         if isinstance(existing, str):
-            return replace(result, content=f"{existing}\n\n[Additional Context]\n{additional}")
+            return replace(result, content=f"{existing}\n\n{additional}")
         # Sequence of UserContent - append as string
-        return replace(result, content=[*existing, f"\n\n[Additional Context]\n{additional}"])
+        return replace(result, content=[*existing, f"\n\n{additional}"])
     # Wrap in ToolReturn to add content
-    return ToolReturn(
-        return_value=result,
-        content=f"[Additional Context]\n{additional}",
-    )
+    return ToolReturn(return_value=result, content=additional)
 
 
 def wrap_tool[TReturn](  # noqa: PLR0915

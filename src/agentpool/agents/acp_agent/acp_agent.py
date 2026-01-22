@@ -220,8 +220,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._extra_mcp_servers: list[McpServer] = []
         self._sessions_cache: list[SessionData] | None = None
 
-        # Create bridge (not started yet)
-        self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
+        # Create bridge (not started yet) - pass injection_manager for mid-run injection support
+        self._tool_bridge = ToolManagerBridge(
+            node=self,
+            server_name=f"agentpool-{self.name}-tools",
+            injection_manager=self._injection_manager,
+        )
 
         # Track the prompt task for cancellation
         self._prompt_task: asyncio.Task[Any] | None = None

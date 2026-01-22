@@ -329,7 +329,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._sdk_session_id: str | None = session_id
         self.deps_type = type(None)
         # ToolBridge state for exposing toolsets via MCP
-        self._tool_bridge = ToolManagerBridge(node=self, server_name=f"agentpool-{self.name}-tools")
+        # Pass injection_manager for mid-run injection support
+        self._tool_bridge = ToolManagerBridge(
+            node=self,
+            server_name=f"agentpool-{self.name}-tools",
+            injection_manager=self._injection_manager,
+        )
         self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
         # Track pending tool call for permission matching
         self._pending_tool_call_ids: dict[str, str] = {}

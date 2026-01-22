@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from acp.schema.mcp import HttpMcpServer
     from agentpool.agents import AgentContext
     from agentpool.agents.base_agent import BaseAgent
+    from agentpool.agents.prompt_injection import PromptInjectionManager
     from agentpool.tools.base import Tool
     from agentpool.ui.base import InputProvider
 _ = ResourceChangeEvent  # Used at runtime in method signature
@@ -179,6 +180,38 @@ def _convert_to_tool_result(result: Any) -> ToolResult:
     return FastMCPToolResult(content=result if result is not None else "")
 
 
+def _append_injection_to_result(result: Any, injection: str) -> Any:
+    """Append an injected message to a tool result.
+
+    The injection is already wrapped in XML tags by the PromptInjectionManager.
+
+    Handles different result types:
+    - str: Append with newline separator
+    - AgentPool ToolResult: Modify content field
+    - dict: Add 'injected_context' key
+    - Other: Wrap in dict with original and injection
+    """
+    from agentpool.tools.base import ToolResult as AgentPoolToolResult
+
+    if isinstance(result, str):
+        return f"{result}\n\n{injection}"
+
+    if isinstance(result, AgentPoolToolResult):
+        existing = result.content
+        if existing is None:
+            return replace(result, content=injection)
+        if isinstance(existing, str):
+            return replace(result, content=f"{existing}\n\n{injection}")
+        # existing is a list
+        return replace(result, content=[*existing, f"\n\n{injection}"])
+
+    if isinstance(result, dict):
+        return {**result, "injected_context": injection}
+
+    # For other types, return tuple with original and injection
+    return (result, {"injected_context": injection})
+
+
 def _extract_tool_call_id(context: Context | None) -> str:
     """Extract Claude's original tool_call_id from request metadata.
 
@@ -246,6 +279,14 @@ class ToolManagerBridge:
 
     _actual_port: int | None = field(default=None, init=False, repr=False)
     """Actual port the server is bound to."""
+
+    injection_manager: PromptInjectionManager | None = field(default=None, repr=False)
+    """Optional injection manager for mid-run prompt injection.
+
+    When set, the bridge will consume pending injections after each tool call
+    and append them to the tool result. This enables prompt injection for
+    ACP agents (ACPAgent, ClaudeCodeAgent, CodexAgent) that use the bridge.
+    """
 
     async def __aenter__(self) -> Self:
         """Start the MCP server."""
@@ -505,6 +546,13 @@ class ToolManagerBridge:
                     logger.info("Emitting ToolResultMetadataEvent", tool_call_id=tc_id)
                     event = ToolResultMetadataEvent(tool_call_id=tc_id, metadata=result.metadata)
                     await ctx.events.emit_event(event)
+
+                # Consume pending injection and append to result
+                if self._bridge.injection_manager and (
+                    injection := self._bridge.injection_manager.consume()
+                ):
+                    result = _append_injection_to_result(result, injection)
+
                 return _convert_to_tool_result(result)
 
         # Create a custom FastMCP Tool that wraps our tool
