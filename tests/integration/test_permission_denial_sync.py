@@ -56,13 +56,14 @@ class DenyingInputProvider:
     async def get_tool_confirmation(
         self,
         context: Any,
-        tool: Any,
+        tool_name: str,
+        tool_description: str,
         args: dict[str, Any],
         message_history: list[Any] | None = None,
     ) -> str:
         """Deny all tool calls after a small delay."""
         tool_call_id = getattr(context, "tool_call_id", "unknown")
-        self.trace.log_permission_request(tool.name, tool_call_id)
+        self.trace.log_permission_request(tool_name, tool_call_id)
         await asyncio.sleep(self.delay)
         self.denial_count += 1
         return "skip"
