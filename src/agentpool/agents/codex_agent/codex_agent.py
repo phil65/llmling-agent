@@ -551,40 +551,30 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         )
         from agentpool.agents.modes import ModeCategory, ModeInfo
 
-        categories: list[ModeCategory] = []
-        categories.append(
+        categories = [
             ModeCategory(
                 id="mode",
                 name="Tool Approval",
                 available_modes=POLICY_MODES,
                 current_mode_id=self._approval_policy,
                 category="mode",
-            )
-        )
-        # Reasoning effort modes
-        categories.append(
+            ),
             ModeCategory(
                 id="thought_level",
                 name="Reasoning Effort",
                 available_modes=EFFORT_MODES,
                 current_mode_id=self._current_effort or "medium",
                 category="thought_level",
-            )
-        )
-        # Sandbox modes
-        categories.append(
+            ),
             ModeCategory(
                 id="sandbox",
                 name="Sandbox Mode",
                 available_modes=SANDBOX_MODES,
                 current_mode_id=self._current_sandbox or "workspace-write",
                 category="other",
-            )
-        )
-        # Model selection
-        models = await self.get_available_models()
-        if models:
-            current_model = self._current_model or self._model or ""
+            ),
+        ]
+        if models := await self.get_available_models():
             model_modes = [
                 ModeInfo(
                     id=m.id,
@@ -599,7 +589,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                     id="model",
                     name="Model",
                     available_modes=model_modes,
-                    current_mode_id=current_model,
+                    current_mode_id=self._current_model or self._model or "",
                     category="model",
                 )
             )
@@ -678,6 +668,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         Returns:
             SessionData if thread was resumed successfully, None otherwise
         """
+        from agentpool.agents.codex_agent.codex_converters import turns_to_chat_messages
         from agentpool.sessions.models import SessionData
 
         if not self._client:
@@ -689,16 +680,12 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         except Exception:
             self.log.exception("Failed to resume Codex thread", session_id=session_id)
             return None
-
         # Update current thread ID
         thread = response.thread
         self._sdk_session_id = thread.id
         self.log.info("Thread resumed from Codex server", sdk_session_id=thread.id)
-
         # Convert turns to ChatMessages and populate conversation
         if thread.turns:
-            from agentpool.agents.codex_agent.codex_converters import turns_to_chat_messages
-
             chat_messages = turns_to_chat_messages(thread.turns)
             self.conversation.chat_messages.clear()
             self.conversation.chat_messages.extend(chat_messages)
@@ -708,15 +695,12 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 turn_count=len(thread.turns),
                 message_count=len(chat_messages),
             )
-
         # Build SessionData from the resumed thread
         created_at = datetime.fromtimestamp(thread.created_at, tz=UTC)
-        cwd = thread.cwd or str(self._cwd or Path.cwd())
-
         return SessionData(
             session_id=thread.id,
             agent_name=self.name,
-            cwd=cwd,
+            cwd=thread.cwd or str(self._cwd or Path.cwd()),
             created_at=created_at,
             last_active=created_at,  # Codex doesn't track separate last_active
             metadata={"title": thread.preview} if thread.preview else {},
