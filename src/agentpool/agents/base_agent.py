@@ -297,12 +297,18 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self,
         data: Any = None,
         input_provider: InputProvider | None = None,
+        tool_call_id: str | None = None,
+        tool_input: dict[str, Any] | None = None,
+        tool_name: str | None = None,
     ) -> AgentContext[Any]:
         """Create a new context for this agent.
 
         Args:
             data: Optional custom data to attach to the context
             input_provider: Optional input provider override
+            tool_call_id: Optional tool call ID
+            tool_input: Optional tool input
+            tool_name: Optional tool name
 
         Returns:
             A new AgentContext instance
@@ -315,6 +321,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             input_provider=input_provider or self._input_provider,
             data=data,
             model_name=self.model_name,
+            tool_call_id=tool_call_id,
+            tool_input=tool_input,
+            tool_name=tool_name,
         )
 
     @property

@@ -211,7 +211,6 @@ class ACPClientHandler(Client):
 
         name = params.tool_call.title or "operation"
         logger.info("Permission requested", tool_name=name)
-
         # Check auto_approve FIRST, before any forwarding
         # This ensures "bypass permissions" mode works even for nested ACP agents
         if self.auto_approve and params.options:
@@ -229,23 +228,19 @@ class ACPClientHandler(Client):
                 )
             except Exception:
                 logger.exception("Failed to forward permission via callback")
-                # Fall through to old logic
-            else:
+            else:  # Fall through to old logic
                 return response
 
         if self._input_provider:
-            ctx = self._agent.get_context()  # Use the agent's NodeContext
-            # Attach tool call metadata for permission event matching
-            ctx.tool_call_id = params.tool_call.tool_call_id
-            ctx.tool_name = params.tool_call.title
-            args = (
-                params.tool_call.raw_input if isinstance(params.tool_call.raw_input, dict) else {}
+            tc = params.tool_call
+            args = tc.raw_input if isinstance(tc.raw_input, dict) else {}
+            ctx = self._agent.get_context(
+                tool_call_id=tc.tool_call_id,
+                tool_name=tc.title,
+                tool_input=args,
             )
-            ctx.tool_input = args
             # Create a dummy tool representation from ACP params
-            tool = FunctionTool(
-                callable=lambda: None, name=params.tool_call.tool_call_id, description=name
-            )
+            tool = FunctionTool(callable=lambda: None, name=tc.tool_call_id, description=name)
             try:
                 result = await self._input_provider.get_tool_confirmation(ctx, tool=tool, args=args)
                 # Map confirmation result to ACP response
@@ -445,11 +440,7 @@ class ACPClientHandler(Client):
         description = cmd.description
         input_hint = cmd.input.root.hint if cmd.input else None
 
-        async def execute_command(
-            ctx: Any,
-            args: list[str],
-            kwargs: dict[str, str],
-        ) -> None:
+        async def execute_command(ctx: Any, args: list[str], kwargs: dict[str, str]) -> None:
             """Execute the remote ACP slash command."""
             # Build command string
             args_str = " ".join(args) if args else ""
@@ -458,7 +449,6 @@ class ACPClientHandler(Client):
                 args_str = f"{args_str} {kwargs_str}".strip()
 
             full_command = f"/{name} {args_str}".strip()
-
             # Execute via agent run_stream - the slash command goes as a prompt
             async for event in self._agent.run_stream(full_command):
                 # Extract text from PartDeltaEvent with TextPartDelta
