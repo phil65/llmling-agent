@@ -21,6 +21,7 @@ from typing import Any
 from mcp.types import ElicitResult
 import pytest
 
+from acp.schema import ToolCallStart
 from agentpool.agents.claude_code_agent import ClaudeCodeAgent
 from agentpool_server.acp_server.event_converter import ACPEventConverter
 
@@ -174,7 +175,7 @@ async def test_no_duplicate_acp_tool_call_notifications():
         async for event in agent.run_stream(prompt, input_provider=input_provider):
             # Convert to ACP notifications
             async for acp_update in converter.convert(event):
-                if type(acp_update).__name__ == "ToolCallStart":
+                if isinstance(acp_update, ToolCallStart):
                     tc_id = acp_update.tool_call_id
                     tool_call_starts[tc_id] = tool_call_starts.get(tc_id, 0) + 1
 
