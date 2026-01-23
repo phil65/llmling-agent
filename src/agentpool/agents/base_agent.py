@@ -166,6 +166,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         from fsspec.implementations.memory import MemoryFileSystem
         from slashed import CommandStore
 
+        from agentpool.agents.prompt_injection import PromptInjectionManager
         from agentpool.agents.staged_content import StagedContent
         from agentpool_commands import get_commands
 
@@ -180,31 +181,22 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         )
         self._infinite = False
         self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
-        # Shared infrastructure - previously duplicated in all 4 agents
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
-        # Use storage from agent_pool if available, otherwise memory-only
         storage = agent_pool.storage if agent_pool else None
         self.conversation = MessageHistory(storage=storage)
         self.env = env or LocalExecutionEnvironment()
         self._input_provider = input_provider
         self._output_type: type[TResult] = output_type
         self.tools = ToolManager()
-        resolved_handlers = resolve_event_handlers(event_handlers)
-        self.event_handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
-            resolved_handlers
-        )
+        handlers = resolve_event_handlers(event_handlers)
+        self.event_handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(handlers)
         self.hooks = hooks
         self._cancelled = False
         self._current_stream_task: asyncio.Task[Any] | None = None
-        # Prompt injection and queuing manager
-        from agentpool.agents.prompt_injection import PromptInjectionManager
-
         self._injection_manager = PromptInjectionManager()
         # Deferred initialization support - subclasses set True in __aenter__,
         # override ensure_initialized() to do actual connection
         self._connect_pending: bool = False
-        # State change signal - emitted when mode/model/commands change
-        # Uses union type for different state update kinds
         self._command_store = CommandStore(commands=[*get_commands(), *(commands or [])])
         # Initialize store (registers builtin help/exit commands)
         self._command_store._initialize_sync()
