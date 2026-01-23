@@ -120,7 +120,6 @@ if TYPE_CHECKING:
     from anyenv import MultiEventHandler
     from clawd_code_sdk import (
         AgentDefinition,
-        ClaudeAgentOptions,
         ClaudeSDKClient,
         McpServerConfig,
         PermissionMode,
@@ -475,31 +474,19 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             result[name] = MCPServerStatus(name=name, status="connected", server_type=server_type)
         return result
 
-    def _build_hooks(self) -> dict[str, list[Any]]:
-        """Build SDK hooks configuration.
-
-        Delegates to ClaudeCodeHookManager which combines:
-        - Built-in hooks (PreCompact, injection via PostToolUse)
-        - User-provided AgentHooks
-
-        Returns:
-            Dictionary mapping hook event names to HookMatcher lists
-        """
-        return self._hook_manager.build_hooks()
-
-    def _build_options(
+    def _get_client(
         self,
         *,
         formatted_system_prompt: str | None = None,
         fork_session: bool = False,
-    ) -> ClaudeAgentOptions:
+    ) -> ClaudeSDKClient:
         """Build ClaudeAgentOptions from runtime state.
 
         Args:
             formatted_system_prompt: Pre-formatted system prompt from SystemPrompts manager
             fork_session: Whether to fork the session
         """
-        from clawd_code_sdk import ClaudeAgentOptions
+        from clawd_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
         from clawd_code_sdk.types import SystemPromptPreset
 
         from agentpool.agents.claude_code_agent.converters import to_output_format
@@ -545,7 +532,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Force subscription usage by clearing API key
             env["ANTHROPIC_API_KEY"] = ""
 
-        return ClaudeAgentOptions(
+        opts = ClaudeAgentOptions(
             cwd=self._cwd,
             allowed_tools=self._allowed_tools or [],
             disallowed_tools=self._disallowed_tools or [],
@@ -564,12 +551,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             output_format=to_output_format(self._output_type),
             mcp_servers=self._mcp_servers or {},
             include_partial_messages=True,
-            hooks=self._build_hooks(),  # type: ignore[arg-type]
+            hooks=self._hook_manager.build_hooks(),  # type: ignore[arg-type]
             setting_sources=self._setting_sources,
             extra_args=extra_args,
             resume=self._sdk_session_id,
             fork_session=fork_session,
         )
+        return ClaudeSDKClient(opts)
 
     async def _can_use_tool(  # noqa: PLR0911
         self,
@@ -661,13 +649,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
     async def __aenter__(self) -> Self:
         """Connect to Claude Code with deferred client connection."""
-        from clawd_code_sdk import ClaudeSDKClient
-
         await super().__aenter__()
         await self._setup_toolsets()  # Setup toolsets before building opts (they add MCP servers)
         formatted_prompt = await self.sys_prompts.format_system_prompt(self)
-        options = self._build_options(formatted_system_prompt=formatted_prompt)
-        self._client = ClaudeSDKClient(options=options)
+        self._client = self._get_client(formatted_system_prompt=formatted_prompt)
         # Start connection in background task to reduce first-prompt latency
         # The task owns the anyio context, we just await it when needed
         self._connection_task = asyncio.create_task(self._do_connect())
@@ -697,7 +682,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 the stored session ID. If False, start a fresh session.
         """
         # Recreate client with new options
-        from clawd_code_sdk import ClaudeSDKClient
 
         session_to_resume = self._sdk_session_id if resume_session else None
         self.log.info("Reconnecting CC agent", resume=resume_session, session_id=session_to_resume)
@@ -719,16 +703,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 self.log.exception("Error disconnecting Claude Code client during reconnect")
             self._client = None
 
-        # Clear session ID if not resuming (before _build_options which uses it)
+        # Clear session ID if not resuming (before _get_client which uses it)
         if not resume_session:
             self._sdk_session_id = None
 
         formatted_prompt = await self.sys_prompts.format_system_prompt(self)
-        # _build_options includes resume=self._sdk_session_id automatically
-        options = self._build_options(formatted_system_prompt=formatted_prompt)
+        # _get_client includes resume=self._sdk_session_id automatically
         if session_to_resume:
             self.log.info("Attempting to resume session", session=session_to_resume)
-        self._client = ClaudeSDKClient(options=options)
+        self._client = self._get_client(formatted_system_prompt=formatted_prompt)
         try:  # Reconnect in background
             self._connection_task = asyncio.create_task(self._do_connect())
             await self._connection_task
@@ -785,9 +768,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         server_info = await self.get_server_info()
         if not server_info:
             self.log.warning("No server info available for command population")
-            return
-        if not server_info.commands:
-            self.log.debug("No commands available from Claude Code server")
             return
         # Commands to skip - not useful or problematic in this context
         unsupported = {"login", "logout", "release-notes", "todos"}
@@ -875,14 +855,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         from clawd_code_sdk import (
             AssistantMessage,
-            ClaudeSDKClient,
             Message,
             ResultMessage,
             SystemMessage,
             TextBlock,
             ThinkingBlock,
             ToolResultBlock,
-            ToolUseBlock as ToolUseBlockType,
+            ToolUseBlock,
             UserMessage,
         )
         from clawd_code_sdk.types import StreamEvent
@@ -942,8 +921,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Create fork client that shares parent's context but has separate session ID
             # See: src/agentpool/agents/claude_code_agent/FORKING.md
             # Build options using same method as main client
-            fork_options = self._build_options(fork_session=True)
-            fork_client = ClaudeSDKClient(options=fork_options)
+            fork_client = self._get_client(fork_session=True)
             await fork_client.connect()
             client = fork_client
 
@@ -988,7 +966,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     current_response_parts.append(TextPart(content=text))
                                 case ThinkingBlock(thinking=thinking):
                                     current_response_parts.append(ThinkingPart(content=thinking))
-                                case ToolUseBlockType(id=tc_id, name=name, input=input_data):
+                                case ToolUseBlock(id=tc_id, name=name, input=input_data):
                                     pending_tool_calls[tc_id] = block
                                     display_name = _strip_mcp_prefix(name)
                                     tool_call_part = ToolCallPart(
