@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from agentpool.agents.context import AgentContext, ConfirmationResult
     from agentpool.messaging import ChatMessage
     from agentpool.messaging.context import NodeContext
-    from agentpool.tools.base import Tool
 
 
 logger = get_logger(__name__)
@@ -60,7 +59,8 @@ class StdlibInputProvider(InputProvider):
     async def get_tool_confirmation(
         self,
         context: AgentContext[Any],
-        tool: Tool,
+        tool_name: str,
+        tool_description: str,
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> ConfirmationResult:
@@ -68,8 +68,8 @@ class StdlibInputProvider(InputProvider):
         prompt = dedent(f"""
             Tool Execution Confirmation
             -------------------------
-            Tool: {tool.name}
-            Description: {tool.description or "No description"}
+            Tool: {tool_name}
+            Description: {tool_description or "No description"}
             Agent: {agent_name}
 
             Arguments:

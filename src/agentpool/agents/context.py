@@ -141,7 +141,9 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         if (mode == "per_tool" and not tool.requires_confirmation) or mode == "never":
             return "allow"
         history = self.agent.conversation.get_history() if self.pool else []
-        return await provider.get_tool_confirmation(self, tool, args, history)
+        return await provider.get_tool_confirmation(
+            self, tool.name, tool.description or "", args, history
+        )
 
     @property
     def internal_fs(self) -> MemoryFileSystem:

@@ -582,7 +582,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from clawd_code_sdk import PermissionResultAllow, PermissionResultDeny
 
         from agentpool.agents.claude_code_agent.elicitation import handle_clarifying_questions
-        from agentpool.tools import FunctionTool
 
         # Handle AskUserQuestion specially - this is Claude asking for clarification
         if tool_name == "AskUserQuestion":
@@ -621,16 +620,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
             display_name = _strip_mcp_prefix(tool_name)
             self.log.debug("Permission request", tool_name=display_name, tool_call_id=tool_call_id)
-            # Create a dummy Tool for the confirmation dialog
-            desc = f"Claude Code tool: {tool_name}"
-            tool = FunctionTool(callable=lambda: None, name=display_name, description=desc)
             ctx = self.get_context(
                 tool_call_id=tool_call_id, tool_input=input_data, tool_name=tool_name
             )
 
             result = await self._input_provider.get_tool_confirmation(
                 context=ctx,
-                tool=tool,
+                tool_name=display_name,
+                tool_description=f"Claude Code tool: {tool_name}",
                 args=input_data,
             )
 

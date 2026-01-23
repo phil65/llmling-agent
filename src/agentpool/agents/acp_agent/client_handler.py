@@ -207,8 +207,6 @@ class ACPClientHandler(Client):
         self, params: RequestPermissionRequest
     ) -> RequestPermissionResponse:
         """Handle permission requests via InputProvider."""
-        from agentpool.tools import FunctionTool
-
         name = params.tool_call.title or "operation"
         logger.info("Permission requested", tool_name=name)
         # Check auto_approve FIRST, before any forwarding
@@ -239,10 +237,13 @@ class ACPClientHandler(Client):
                 tool_name=tc.title,
                 tool_input=args,
             )
-            # Create a dummy tool representation from ACP params
-            tool = FunctionTool(callable=lambda: None, name=tc.tool_call_id, description=name)
             try:
-                result = await self._input_provider.get_tool_confirmation(ctx, tool=tool, args=args)
+                result = await self._input_provider.get_tool_confirmation(
+                    ctx,
+                    tool_name=tc.tool_call_id,
+                    tool_description=name,
+                    args=args,
+                )
                 # Map confirmation result to ACP response
                 if result == "allow":
                     option_id = params.options[0].option_id if params.options else "allow"

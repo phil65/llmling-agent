@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from agentpool.agents.context import AgentContext, ConfirmationResult
     from agentpool.messaging import ChatMessage
     from agentpool.messaging.context import NodeContext
-    from agentpool.tools.base import Tool
 
 
 class InputProvider(ABC):
@@ -63,7 +62,8 @@ class InputProvider(ABC):
     def get_tool_confirmation(
         self,
         context: AgentContext[Any],
-        tool: Tool,
+        tool_name: str,
+        tool_description: str,
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> Coroutine[Any, Any, ConfirmationResult]:
@@ -71,7 +71,8 @@ class InputProvider(ABC):
 
         Args:
             context: Current node context
-            tool: Information about the tool to be executed
+            tool_name: Name of the tool to be executed
+            tool_description: Human-readable description of the tool
             args: Tool arguments
             message_history: Optional conversation history
         """

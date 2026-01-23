@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from agentpool import AgentContext
     from agentpool.agents.context import ConfirmationResult
     from agentpool.messaging import ChatMessage
-    from agentpool.tools.base import Tool
     from agentpool_server.acp_server.session import ACPSession
 
 logger = get_logger(__name__)
@@ -101,7 +100,8 @@ class ACPInputProvider(InputProvider):
     async def get_tool_confirmation(
         self,
         context: AgentContext[Any],
-        tool: Tool,
+        tool_name: str,
+        tool_description: str,
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> ConfirmationResult:
@@ -112,7 +112,8 @@ class ACPInputProvider(InputProvider):
 
         Args:
             context: Current node context
-            tool: Information about the tool to be executed
+            tool_name: Name of the tool to be executed
+            tool_description: Human-readable description of the tool
             args: Tool arguments that will be passed to the tool
             message_history: Optional conversation history
 
@@ -121,13 +122,13 @@ class ACPInputProvider(InputProvider):
         """
         try:
             # Check if we have a standing approval/rejection for this tool
-            if tool.name in self._tool_approvals:
-                standing_decision = self._tool_approvals[tool.name]
+            if tool_name in self._tool_approvals:
+                standing_decision = self._tool_approvals[tool_name]
                 if standing_decision == "allow_always":
-                    logger.debug("Auto-allowing tool", tool_name=tool.name, reason="allow_always")
+                    logger.debug("Auto-allowing tool", tool_name=tool_name, reason="allow_always")
                     return "allow"
                 if standing_decision == "reject_always":
-                    logger.debug("Auto-rejecting tool", tool_name=tool.name, reason="reject_always")
+                    logger.debug("Auto-rejecting tool", tool_name=tool_name, reason="reject_always")
                     return "skip"
 
             # Create a descriptive title for the permission request
@@ -136,14 +137,14 @@ class ACPInputProvider(InputProvider):
             actual_tool_call_id = getattr(context, "tool_call_id", None)
             if not actual_tool_call_id:
                 msg = (
-                    f"No tool_call_id in context for tool {tool.name!r}. "
+                    f"No tool_call_id in context for tool {tool_name!r}. "
                     "This indicates a bug in tool call tracking."
                 )
                 logger.error(msg)
                 raise RuntimeError(msg)  # noqa: TRY301
             logger.debug(
                 "Requesting permission",
-                tool_name=tool.name,
+                tool_name=tool_name,
                 tool_call_id=actual_tool_call_id,
             )
             # Note: We no longer send tool_call_start/progress notifications here.
@@ -153,7 +154,7 @@ class ACPInputProvider(InputProvider):
 
             from acp.utils import generate_tool_title
 
-            title = generate_tool_title(tool.name, args)
+            title = generate_tool_title(tool_name, args)
             response = await self.session.requests.request_permission(
                 tool_call_id=actual_tool_call_id,
                 title=title,
@@ -162,7 +163,7 @@ class ACPInputProvider(InputProvider):
             )
             logger.info(
                 "Permission response received",
-                tool_name=tool.name,
+                tool_name=tool_name,
                 outcome=response.outcome,
                 outcome_type=type(response.outcome).__name__,
             )
@@ -171,11 +172,11 @@ class ACPInputProvider(InputProvider):
                 logger.info(
                     "AllowedOutcome detected",
                     option_id=response.outcome.option_id,
-                    tool_name=tool.name,
+                    tool_name=tool_name,
                 )
-                return self._handle_permission_response(response.outcome.option_id, tool.name)
+                return self._handle_permission_response(response.outcome.option_id, tool_name)
             if response.outcome.outcome == "cancelled":
-                logger.debug("Permission cancelled", tool_name=tool.name)
+                logger.debug("Permission cancelled", tool_name=tool_name)
                 return "skip"
             # Handle other unexpected outcomes
             logger.warning("Unexpected permission outcome", outcome=response.outcome.outcome)

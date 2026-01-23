@@ -39,7 +39,7 @@ async def test_tool_confirmation():
     assert len(mock.calls) == 1
     call = mock.calls[0]
     assert call.method == "get_tool_confirmation"
-    assert call.args[1].name == tool_info_with.name
+    assert call.args[1] == tool_info_with.name
 
     # Test tool without confirmation requirement
     mock = MockInputProvider(tool_confirmation="allow")

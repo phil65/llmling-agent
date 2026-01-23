@@ -16,7 +16,6 @@ from agentpool_server.opencode_server.models.events import PermissionRequestEven
 if TYPE_CHECKING:
     from agentpool.agents.context import AgentContext, ConfirmationResult
     from agentpool.messaging import ChatMessage
-    from agentpool.tools.base import Tool
     from agentpool_server.opencode_server.state import ServerState
 
 logger = get_logger(__name__)
@@ -68,7 +67,8 @@ class OpenCodeInputProvider(InputProvider):
     async def get_tool_confirmation(
         self,
         context: AgentContext[Any],
-        tool: Tool,
+        tool_name: str,
+        tool_description: str,
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> ConfirmationResult:
@@ -79,7 +79,8 @@ class OpenCodeInputProvider(InputProvider):
 
         Args:
             context: Current node context
-            tool: Information about the tool to be executed
+            tool_name: Name of the tool to be executed
+            tool_description: Human-readable description of the tool
             args: Tool arguments that will be passed to the tool
             message_history: Optional conversation history
 
@@ -88,13 +89,13 @@ class OpenCodeInputProvider(InputProvider):
         """
         try:
             # Check if we have a standing approval/rejection for this tool
-            if tool.name in self._tool_approvals:
-                standing_decision = self._tool_approvals[tool.name]
+            if tool_name in self._tool_approvals:
+                standing_decision = self._tool_approvals[tool_name]
                 if standing_decision == "always":
-                    logger.debug("Auto-allowing tool", tool_name=tool.name, reason="always")
+                    logger.debug("Auto-allowing tool", tool_name=tool_name, reason="always")
                     return "allow"
                 if standing_decision == "reject":
-                    logger.debug("Auto-rejecting tool", tool_name=tool.name, reason="reject")
+                    logger.debug("Auto-rejecting tool", tool_name=tool_name, reason="reject")
                     return "skip"
 
             # Create a pending permission request
@@ -103,7 +104,7 @@ class OpenCodeInputProvider(InputProvider):
 
             pending = PendingPermission(
                 permission_id=permission_id,
-                tool_name=tool.name,
+                tool_name=tool_name,
                 args=args,
                 future=future,
             )
@@ -125,14 +126,14 @@ class OpenCodeInputProvider(InputProvider):
             event = PermissionRequestEvent.create(
                 session_id=self.session_id,
                 permission_id=permission_id,
-                tool_name=tool.name,
+                tool_name=tool_name,
                 args_preview=args_preview,
-                message=f"Tool '{tool.name}' wants to execute with args: {args_preview}",
+                message=f"Tool '{tool_name}' wants to execute with args: {args_preview}",
                 call_id=call_id,
             )
 
             await self.state.broadcast_event(event)
-            logger.info("Permission requested", permission_id=permission_id, tool_name=tool.name)
+            logger.info("Permission requested", permission_id=permission_id, tool_name=tool_name)
             # Wait for the client to respond
             try:
                 response = await future
@@ -144,7 +145,7 @@ class OpenCodeInputProvider(InputProvider):
                 self._pending_permissions.pop(permission_id, None)
 
             # Map OpenCode response to our confirmation result
-            return self._handle_permission_response(response, tool.name)
+            return self._handle_permission_response(response, tool_name)
 
         except Exception:
             logger.exception("Failed to get tool confirmation")
@@ -343,7 +344,6 @@ class OpenCodeInputProvider(InputProvider):
         try:
             answers = await future  # list[list[str]]
             answer = answers[0] if answers else []  # Get first question's answer
-
             # ElicitResult content must be a dict, not a plain value
             # Wrap the answer in a dict with a "value" key
             # Multi-select: return list in dict
@@ -351,7 +351,7 @@ class OpenCodeInputProvider(InputProvider):
             content: dict[str, str | list[str]] = (
                 {"value": answer} if is_multi else {"value": answer[0] if answer else ""}
             )
-            return types.ElicitResult(action="accept", content=content)
+            return types.ElicitResult(action="accept", content=content)  # pyright: ignore[reportArgumentType]
         except asyncio.CancelledError:
             logger.info("Question cancelled", question_id=question_id)
             return types.ElicitResult(action="cancel")

@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from agentpool.agents.context import AgentContext, ConfirmationResult
     from agentpool.messaging import ChatMessage
     from agentpool.messaging.context import NodeContext
-    from agentpool.tools.base import Tool
 
 InputMethod = Literal["get_input", "get_tool_confirmation", "get_elicitation"]
 
@@ -59,13 +58,19 @@ class MockInputProvider(InputProvider):
     async def get_tool_confirmation(
         self,
         context: AgentContext[Any],
-        tool: Tool,
+        tool_name: str,
+        tool_description: str,
         args: dict[str, Any],
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> ConfirmationResult:
         kwargs = {"message_history": message_history}
         result = self.tool_confirmation
-        call = InputCall("get_tool_confirmation", (context, tool, args), kwargs, result=result)
+        call = InputCall(
+            "get_tool_confirmation",
+            (context, tool_name, tool_description, args),
+            kwargs,
+            result=result,
+        )
         self.calls.append(call)
         return result  # pyright: ignore
 

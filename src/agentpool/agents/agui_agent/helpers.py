@@ -47,7 +47,8 @@ async def _should_confirm_tool(
 
 
 async def _get_tool_confirmation(
-    tool: Tool,
+    tool_name: str,
+    tool_description: str,
     args: dict[str, Any],
     input_provider: InputProvider,
     context: AgentContext[Any],
@@ -55,7 +56,8 @@ async def _get_tool_confirmation(
     """Get confirmation for tool execution.
 
     Args:
-        tool: Tool to confirm
+        tool_name: Name of the tool to confirm
+        tool_description: Human-readable description of the tool
         args: Tool arguments
         input_provider: Provider for confirmation UI
         context: Node context
@@ -65,7 +67,8 @@ async def _get_tool_confirmation(
     """
     return await input_provider.get_tool_confirmation(
         context=context,
-        tool=tool,
+        tool_name=tool_name,
+        tool_description=tool_description,
         args=args,
         message_history=None,
     )
@@ -118,7 +121,9 @@ async def execute_tool_calls(
                 results.append(result_msg)
                 continue
 
-            confirmation = await _get_tool_confirmation(tool, args, input_provider, context)
+            confirmation = await _get_tool_confirmation(
+                tool.name, tool.description or "", args, input_provider, context
+            )
             if confirmation == "skip":
                 logger.info("Tool execution skipped by user", tool=tool_name)
                 result_msg = AGUIToolMessage(
