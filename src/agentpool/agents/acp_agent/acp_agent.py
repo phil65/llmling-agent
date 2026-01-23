@@ -228,11 +228,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         deps_type: type[TDeps] | None = None,
         agent_pool: AgentPool[Any] | None = None,
     ) -> Self:
-        """Create an ACPAgent from a config object.
-
-        This is the recommended way to create an ACPAgent. All config values
-        are extracted here and passed to the constructor.
-        """
+        """Create an ACPAgent from a config object."""
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
@@ -282,8 +278,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
     @property
     def allow_file_operations(self) -> bool:
         """Whether file operations are allowed."""
-        caps = self._init_request.client_capabilities
-        if caps and caps.fs:
+        if (caps := self._init_request.client_capabilities) and caps.fs:
             return bool(caps.fs.read_text_file or caps.fs.write_text_file)
         return False
 
@@ -312,8 +307,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         try:
             await run_with_process_monitor(process, self._initialize, context="ACP initialization")
             # Load existing session or create new one
-            if self._sdk_session_id:
-                session_to_load = self._sdk_session_id
+            if session_to_load := self._sdk_session_id:
                 self._sdk_session_id = None
                 result = await run_with_process_monitor(
                     process,
@@ -859,7 +853,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
 if __name__ == "__main__":
 
-    async def main():
+    async def main() -> None:
         async with ACPAgent(command="claude-code-acp") as agent:
             async for event in agent.run_stream("hello"):
                 print(event)

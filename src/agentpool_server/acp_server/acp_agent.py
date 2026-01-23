@@ -55,6 +55,8 @@ if TYPE_CHECKING:
     )
     from agentpool import AgentPool
     from agentpool.agents.base_agent import BaseAgent
+    from agentpool.agents.modes import ModeInfo
+    from agentpool.sessions import SessionData
     from agentpool.storage.manager import TitleGeneratedEvent
     from agentpool_server.acp_server.server import ACPServer
 
@@ -125,11 +127,6 @@ async def get_session_mode_state(agent: BaseAgent) -> SessionModeState | None:
     Returns:
         SessionModeState from agent's modes, None if no modes available
     """
-    from agentpool.agents.base_agent import BaseAgent
-
-    if not isinstance(agent, BaseAgent):
-        return None
-
     try:
         mode_categories = await agent.get_modes()
     except Exception:
@@ -143,9 +140,7 @@ async def get_session_mode_state(agent: BaseAgent) -> SessionModeState | None:
     category = next((c for c in mode_categories if c.id != "model"), None)
     if not category:
         return None
-
-    # Convert ModeInfo to ACP SessionMode
-    acp_modes = [
+    acp_modes = [  # Convert ModeInfo to ACP SessionMode
         SessionMode(
             id=mode.id,
             name=mode.name,
@@ -153,11 +148,7 @@ async def get_session_mode_state(agent: BaseAgent) -> SessionModeState | None:
         )
         for mode in category.available_modes
     ]
-
-    return SessionModeState(
-        available_modes=acp_modes,
-        current_mode_id=category.current_mode_id,
-    )
+    return SessionModeState(available_modes=acp_modes, current_mode_id=category.current_mode_id)
 
 
 async def get_session_config_options(agent: BaseAgent) -> list[SessionConfigOption]:
@@ -171,43 +162,36 @@ async def get_session_config_options(agent: BaseAgent) -> list[SessionConfigOpti
     Returns:
         List of SessionConfigOption from agent's mode categories
     """
-    from agentpool.agents.base_agent import BaseAgent
-
-    if not isinstance(agent, BaseAgent):
-        return []
-
     try:
         mode_categories = await agent.get_modes()
     except Exception:
         logger.exception("Failed to get modes from agent")
         return []
-
-    if not mode_categories:
-        return []
-
     # Convert each ModeCategory to a SessionConfigOption
-    config_options: list[SessionConfigOption] = []
-    for category in mode_categories:
-        options = [
-            SessionConfigSelectOption(
-                value=mode.id,
-                name=mode.name,
-                description=mode.description,
-            )
-            for mode in category.available_modes
-        ]
-        config_options.append(
-            SessionConfigOption(
-                id=category.id,
-                name=category.name,
-                description=None,
-                category=category.category,
-                current_value=category.current_mode_id,
-                options=options,
-            )
+    return [
+        SessionConfigOption(
+            id=category.id,
+            name=category.name,
+            description=None,
+            category=category.category,
+            current_value=category.current_mode_id,
+            options=[to_session_select_option(mode) for mode in category.available_modes],
         )
+        for category in mode_categories
+    ]
 
-    return config_options
+
+def to_session_select_option(mode: ModeInfo) -> SessionConfigSelectOption:
+    return SessionConfigSelectOption(value=mode.id, name=mode.name, description=mode.description)
+
+
+def to_session_info(session_data: SessionData) -> SessionInfo:
+    return SessionInfo(
+        session_id=session_data.session_id,
+        cwd=session_data.cwd or "",
+        title=session_data.title,
+        updated_at=session_data.updated_at,
+    )
 
 
 @dataclass
@@ -252,10 +236,8 @@ class AgentPoolACPAgent(ACPAgent):
         self.session_manager = ACPSessionManager(pool=pool)
         self.tasks = TaskManager()
         self._initialized = False
-
         # Connect to title generation signal to notify clients of session updates
-        if pool.storage:
-            pool.storage.title_generated.connect(self._on_title_generated)
+        pool.storage.title_generated.connect(self._on_title_generated)
 
     async def _on_title_generated(self, event: TitleGeneratedEvent) -> None:
         """Handle title generation - notify active sessions of the update."""
@@ -271,11 +253,7 @@ class AgentPoolACPAgent(ACPAgent):
         notification = SessionNotification(session_id=event.session_id, update=update)
         try:
             await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
-            logger.info(
-                "Sent session info update",
-                session_id=event.session_id,
-                title=event.title,
-            )
+            logger.info("Sent session info update", session_id=event.session_id, title=event.title)
         except Exception:
             logger.exception("Failed to send session info update", session_id=event.session_id)
 
@@ -371,6 +349,8 @@ class AgentPoolACPAgent(ACPAgent):
         Delegates to the agent's load_session method, which populates agent.conversation.
         Then replays the conversation to the client via ACP notifications.
         """
+        from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
+
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
 
@@ -395,15 +375,14 @@ class AgentPoolACPAgent(ACPAgent):
                 return LoadSessionResponse()
 
             # Load session via agent - this populates agent.conversation
-            result = await self.default_agent.load_session(params.session_id)
-            if not result:
+            if not await self.default_agent.load_session(params.session_id):
                 logger.warning("Agent failed to load session", session_id=params.session_id)
                 return LoadSessionResponse()
 
             # Replay loaded conversation to client via ACP notifications
-            if self.default_agent.conversation.chat_messages:
+            if msgs := self.default_agent.conversation.chat_messages:
                 model_messages: list[ModelRequest | ModelResponse] = []
-                for chat_msg in self.default_agent.conversation.chat_messages:
+                for chat_msg in msgs:
                     if chat_msg.messages:
                         model_messages.extend(chat_msg.messages)
 
@@ -414,10 +393,6 @@ class AgentPoolACPAgent(ACPAgent):
                         session_id=params.session_id,
                         message_count=len(model_messages),
                     )
-
-            # Build response with agent state
-            from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
-
             mode_state: SessionModeState | None = None
             models: SessionModelState | None = None
             if isinstance(self.default_agent, ACPAgentClient) and self.default_agent._state:
@@ -429,7 +404,6 @@ class AgentPoolACPAgent(ACPAgent):
             self.tasks.create_task(session.agent.load_rules(session.cwd))
             logger.info("Session loaded", session_id=params.session_id)
             return LoadSessionResponse(models=models, modes=mode_state, config_options=config_opts)
-
         except Exception:
             logger.exception("Failed to load session", session_id=params.session_id)
             return LoadSessionResponse()
@@ -451,20 +425,10 @@ class AgentPoolACPAgent(ACPAgent):
             logger.info("Listing sessions for agent", agent_name=agent.name)
             agent_sessions = await agent.list_sessions()
             logger.info("Agent returned sessions", count=len(agent_sessions))
-            # Convert to ACP SessionInfo
             # TODO: Re-enable cwd filter once session storage is unified
-            sessions = [
-                SessionInfo(
-                    session_id=s.session_id,
-                    cwd=s.cwd or "",
-                    title=s.title,
-                    updated_at=s.updated_at,
-                )
-                for s in agent_sessions
-            ]
+            sessions = [to_session_info(s) for s in agent_sessions]
             logger.info("Listed sessions", count=len(sessions))
             return ListSessionsResponse(sessions=sessions)
-
         except Exception:
             logger.exception("Failed to list sessions")
             return ListSessionsResponse(sessions=[])
@@ -533,7 +497,6 @@ class AgentPoolACPAgent(ACPAgent):
             # Schedule post-resume tasks
             self.tasks.create_task(session.send_available_commands_update())
             self.tasks.create_task(session.agent.load_rules(session.cwd))
-
             logger.info("Session resumed", session_id=params.session_id)
             return ResumeSessionResponse()
 
@@ -552,7 +515,6 @@ class AgentPoolACPAgent(ACPAgent):
 
         logger.info("Processing prompt", session_id=params.session_id)
         session = self.session_manager.get_session(params.session_id)
-
         # Auto-recreate session if not found (e.g., after pool swap)
         if not session:
             logger.info("Session not found, recreating", session_id=params.session_id)
@@ -675,8 +637,7 @@ class AgentPoolACPAgent(ACPAgent):
                 return None
 
             # Get available models from agent and validate
-            toko_models = await session.agent.get_available_models()
-            if toko_models:
+            if toko_models := await session.agent.get_available_models():
                 # Build list of valid model IDs (using id_override if set)
                 available_ids = [m.id_override if m.id_override else m.id for m in toko_models]
                 if params.model_id not in available_ids:

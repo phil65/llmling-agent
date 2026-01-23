@@ -181,10 +181,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             *config_handlers,
             *(event_handlers or []),
         ]
-
         # Extract toolsets from config
-        toolsets = config.get_tool_providers() if config.tools else []
-
         return cls(
             # Identity
             name=config.name,
@@ -200,7 +197,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             sandbox=config.sandbox,
             # MCP and toolsets
             mcp_servers=config.get_mcp_servers(),
-            toolsets=toolsets,
+            toolsets=config.get_tool_providers(),
             # Runtime
             event_handlers=merged_handlers or None,
             input_provider=input_provider,
