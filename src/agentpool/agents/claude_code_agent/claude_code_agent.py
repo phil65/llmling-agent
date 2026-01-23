@@ -92,12 +92,18 @@ from agentpool.agents.events import (
     StreamCompleteEvent,
     ToolCallCompleteEvent,
     ToolCallStartEvent,
+    ToolResultMetadataEvent,
 )
+from agentpool.agents.events.infer_info import derive_rich_tool_info
 from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.modes import ModeInfo
+from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
+from agentpool.common_types import MCPServerStatus
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.messages import TokenCost
+from agentpool.sessions.models import SessionData
+from agentpool.utils.now import get_now
 from agentpool.utils.streams import merge_queue_into_iterator
 
 
@@ -115,10 +121,9 @@ if TYPE_CHECKING:
         PermissionResult,
         ToolPermissionContext,
         ToolUseBlock,
+        UserMessage,
     )
-    from clawd_code_sdk.types import (
-        AssistantMessage,
-    )
+    from clawd_code_sdk.types import AssistantMessage
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import UserContent
@@ -133,17 +138,12 @@ if TYPE_CHECKING:
     )
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
-    from agentpool.common_types import (
-        BuiltinEventHandlerType,
-        IndividualEventHandler,
-        MCPServerStatus,
-    )
+    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
     from agentpool.delegation import AgentPool
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
     from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig, SettingSource
     from agentpool.resource_providers import ResourceProvider
-    from agentpool.sessions import SessionData
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
 
@@ -179,6 +179,17 @@ def raise_if_usage_limit_reached(message: AssistantMessage) -> None:
         text_content = message.content[0].text
         if "You've hit your limit" in text_content and "resets" in text_content:
             raise RuntimeError(f"Claude Code usage limit reached: {text_content}")
+
+
+def parse_command_output(msg: UserMessage) -> str | None:
+    content = msg.content if isinstance(msg.content, str) else ""
+    # Extract content from <local-command-stdout> or <local-command-stderr>
+    match = re.search(
+        r"<local-command-(?:stdout|stderr)>(.*?)</local-command-(?:stdout|stderr)>",
+        content,
+        re.DOTALL,
+    )
+    return match.group(1) if match else None
 
 
 class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
@@ -452,8 +463,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             Dict mapping server name to MCPServerStatus dataclass
         """
-        from agentpool.common_types import MCPServerStatus
-
         result: dict[str, MCPServerStatus] = {}
         for name, config in self._mcp_servers.items():
             server_type = config.get("type", "unknown")
@@ -826,16 +835,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         if isinstance(block, TextBlock):
                             await ctx.print(block.text)
                 elif isinstance(msg, UserMessage):
-                    # Handle local command output wrapped in XML tags
-                    content = msg.content if isinstance(msg.content, str) else ""
-                    # Extract content from <local-command-stdout> or <local-command-stderr>
-                    match = re.search(
-                        r"<local-command-(?:stdout|stderr)>(.*?)</local-command-(?:stdout|stderr)>",
-                        content,
-                        re.DOTALL,
-                    )
-                    if match:
-                        await ctx.print(match.group(1))
+                    if parsed := parse_command_output(msg):
+                        await ctx.print(parsed)
                 elif isinstance(msg, ResultMessage):
                     if msg.result:
                         await ctx.print(msg.result)
@@ -881,9 +882,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from clawd_code_sdk.types import StreamEvent
 
         from agentpool.agents.claude_code_agent.converters import convert_to_opencode_metadata
-        from agentpool.agents.events import ToolResultMetadataEvent
-        from agentpool.agents.events.infer_info import derive_rich_tool_info
-        from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
         await self.ensure_initialized()
         # Initialize session_id on first run and log to storage
@@ -1203,11 +1201,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     # Convert to events and yield
                     # (skip AssistantMessage - already streamed via StreamEvent)
                     if not isinstance(message, AssistantMessage):
-                        for event in claude_message_to_events(
-                            message,
-                            agent_name=self.name,
-                            pending_tool_calls={},  # Already handled above
-                        ):
+                        for event in claude_message_to_events(message, agent_name=self.name):
                             await event_handlers(None, event)
                             yield event
 
@@ -1493,8 +1487,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             List of SessionData objects
         """
-        from agentpool.sessions.models import SessionData
-        from agentpool.utils.now import get_now
         from agentpool_storage.models import QueryFilters
 
         try:
@@ -1556,9 +1548,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             SessionData if session was found and loaded, None otherwise
         """
-        from agentpool.sessions.models import SessionData
-        from agentpool.utils.now import get_now
-
         try:  # Load conversation messages from Claude storage
             messages = await self._claude_storage.get_conversation_messages(session_id=session_id)
         except Exception:
@@ -1579,10 +1568,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 await self.reconnect(resume_session=True)
                 self.log.info("Reconnected with loaded session", session_id=session_id)
             except Exception:
-                self.log.exception(
-                    "Failed to reconnect with loaded session, continuing with local history",
-                    session_id=session_id,
-                )
+                msg = "Failed to reconnect with loaded session, continuing with local history"
+                self.log.exception(msg, session_id=session_id)
                 # Don't fail the load - we still have the conversation history locally
 
             # Build SessionData from loaded messages
@@ -1591,11 +1578,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             cwd = str(self._cwd or Path.cwd())
             # Try to extract cwd from message metadata
             for msg in reversed(messages):
-                if msg.metadata and "cwd" in msg.metadata:
-                    cwd_val = msg.metadata["cwd"]
-                    if isinstance(cwd_val, str):
-                        cwd = cwd_val
-                        break
+                if msg.metadata and (val := msg.metadata.get("cwd")) and isinstance(val, str):
+                    cwd = val
+                    break
 
             return SessionData(
                 session_id=session_id,

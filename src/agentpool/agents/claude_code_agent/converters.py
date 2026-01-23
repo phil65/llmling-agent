@@ -19,7 +19,7 @@ from agentpool.agents.events import ToolCallCompleteEvent, ToolCallStartEvent
 
 
 if TYPE_CHECKING:
-    from clawd_code_sdk import ContentBlock, McpServerConfig, Message, ToolUseBlock
+    from clawd_code_sdk import ContentBlock, McpServerConfig, Message
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool_config.mcp_server import MCPServerConfig as NativeMCPServerConfig
@@ -62,32 +62,30 @@ def content_block_to_event(block: ContentBlock, index: int = 0) -> RichAgentStre
 def claude_message_to_events(
     message: Message,
     agent_name: str = "",
-    pending_tool_calls: dict[str, ToolUseBlock] | None = None,
 ) -> list[RichAgentStreamEvent[Any]]:
     """Convert a Claude SDK Message to a list of streaming events.
 
     Args:
         message: Claude SDK message (UserMessage, AssistantMessage, etc.)
         agent_name: Name of the agent for event attribution
-        pending_tool_calls: Dict to track tool calls awaiting results
 
     Returns:
         List of corresponding streaming events
     """
     from clawd_code_sdk import AssistantMessage, ToolResultBlock, ToolUseBlock
 
+    pending_tool_calls = {}
     events: list[RichAgentStreamEvent[Any]] = []
     match message:
         case AssistantMessage(content=content):
             for idx, block in enumerate(content):
                 # Track tool use blocks for later pairing with results
-                if isinstance(block, ToolUseBlock) and pending_tool_calls is not None:
+                if isinstance(block, ToolUseBlock):
                     pending_tool_calls[block.id] = block
 
                 # Handle tool results - pair with pending tool call
-                if isinstance(block, ToolResultBlock) and pending_tool_calls is not None:
-                    tool_use = pending_tool_calls.pop(block.tool_use_id, None)
-                    if tool_use:
+                if isinstance(block, ToolResultBlock):
+                    if tool_use := pending_tool_calls.pop(block.tool_use_id, None):
                         complete_event = ToolCallCompleteEvent(
                             tool_name=tool_use.name,
                             tool_call_id=block.tool_use_id,
