@@ -101,7 +101,6 @@ class OpenCodeInputProvider(InputProvider):
             # Create a pending permission request
             permission_id = self._generate_permission_id()
             future: asyncio.Future[PermissionResponse] = asyncio.get_event_loop().create_future()
-
             pending = PendingPermission(
                 permission_id=permission_id,
                 tool_name=tool_name,
@@ -109,15 +108,13 @@ class OpenCodeInputProvider(InputProvider):
                 future=future,
             )
             self._pending_permissions[permission_id] = pending
-
             max_preview_args = 3
             args_preview = ", ".join(f"{k}={v!r}" for k, v in list(args.items())[:max_preview_args])
             if len(args) > max_preview_args:
                 args_preview += ", ..."
-
             # Extract call_id from AgentContext if available (set by ClaudeCodeAgent from streaming)
             # Fall back to a generated ID if not available
-            call_id = getattr(context, "tool_call_id", None)
+            call_id = context.tool_call_id
             if call_id is None:
                 # Generate a synthetic call_id - won't match TUI tool parts but allows display
                 call_id = f"toolu_{permission_id}"
@@ -230,23 +227,16 @@ class OpenCodeInputProvider(InputProvider):
         """
         # For URL elicitation, we could open the URL
         if isinstance(params, types.ElicitRequestURLParams):
-            logger.info(
-                "URL elicitation request",
-                message=params.message,
-                url=params.url,
-            )
+            logger.info("URL elicitation request", message=params.message, url=params.url)
             # Could potentially open URL in browser here
             return types.ElicitResult(action="decline")
-
         # For form elicitation with enum schema, use OpenCode questions
         if isinstance(params, types.ElicitRequestFormParams):
             schema = params.requestedSchema
-
             # Check if schema defines options (enum)
             enum_values = schema.get("enum")
             if enum_values:
                 return await self._handle_question_elicitation(params, schema)
-
             # Check if it's an array schema with enum items
             if schema.get("type") == "array":
                 items = schema.get("items", {})
@@ -257,7 +247,7 @@ class OpenCodeInputProvider(InputProvider):
         logger.info(
             "Form elicitation request (not supported)",
             message=params.message,
-            schema=getattr(params, "requestedSchema", None),
+            schema=params.requestedSchema,
         )
         return types.ElicitResult(action="decline")
 
@@ -275,9 +265,9 @@ class OpenCodeInputProvider(InputProvider):
         Returns:
             Elicit result with user's answer
         """
-        import asyncio
-
         from agentpool_server.opencode_server.models.events import QuestionAskedEvent
+        from agentpool_server.opencode_server.models.question import QuestionInfo, QuestionOption
+        from agentpool_server.opencode_server.state import PendingQuestion
 
         # Extract enum values
         is_multi = schema.get("type") == "array"
@@ -291,13 +281,6 @@ class OpenCodeInputProvider(InputProvider):
 
         # Extract descriptions if available (custom x-option-descriptions field)
         descriptions = schema.get("x-option-descriptions", {})
-
-        # Build OpenCode question format
-        from agentpool_server.opencode_server.models.question import (
-            QuestionInfo,
-            QuestionOption,
-        )
-
         question_id = self._generate_permission_id()  # Reuse ID generator
         question_info = QuestionInfo(
             question=params.message,
@@ -311,20 +294,13 @@ class OpenCodeInputProvider(InputProvider):
             ],
             multiple=is_multi or None,
         )
-
         # Create future to wait for answer
         future: asyncio.Future[list[list[str]]] = asyncio.get_event_loop().create_future()
-
-        # Store pending question
-        from agentpool_server.opencode_server.state import PendingQuestion
-
         self.state.pending_questions[question_id] = PendingQuestion(
             session_id=self.session_id,
             questions=[question_info],
             future=future,
-            tool=None,  # Not associated with a specific tool call
         )
-
         # Broadcast event (serialize QuestionInfo to dict)
         event = QuestionAskedEvent.create(
             request_id=question_id,
@@ -332,7 +308,6 @@ class OpenCodeInputProvider(InputProvider):
             questions=[question_info.model_dump(mode="json", by_alias=True)],
         )
         await self.state.broadcast_event(event)
-
         logger.info(
             "Question asked",
             question_id=question_id,
@@ -357,10 +332,7 @@ class OpenCodeInputProvider(InputProvider):
             return types.ElicitResult(action="cancel")
         except Exception as e:
             logger.exception("Question failed", question_id=question_id)
-            return types.ErrorData(
-                code=-1,  # Generic error code
-                message=f"Elicitation failed: {e}",
-            )
+            return types.ErrorData(code=-1, message=f"Elicitation failed: {e}")  # Generic err code
         finally:
             # Clean up pending question
             self.state.pending_questions.pop(question_id, None)
@@ -371,11 +343,7 @@ class OpenCodeInputProvider(InputProvider):
         self._tool_approvals.clear()
         logger.info("Cleared tool approval decisions", count=approval_count)
 
-    def resolve_question(
-        self,
-        question_id: str,
-        answers: list[list[str]],
-    ) -> bool:
+    def resolve_question(self, question_id: str, answers: list[list[str]]) -> bool:
         """Resolve a pending question request.
 
         Called by the REST endpoint when the client responds.
@@ -398,11 +366,7 @@ class OpenCodeInputProvider(InputProvider):
             return False
 
         future.set_result(answers)
-        logger.info(
-            "Question resolved",
-            question_id=question_id,
-            answers=answers,
-        )
+        logger.info("Question resolved", question_id=question_id, answers=answers)
         return True
 
     def cancel_all_pending(self) -> int:
