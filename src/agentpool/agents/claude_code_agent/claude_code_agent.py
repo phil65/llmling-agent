@@ -88,6 +88,7 @@ from agentpool.agents.claude_code_agent.exceptions import (
     AgentNotInitializedError,
     ThinkingModeAlreadyConfiguredError,
     UnknownCategoryError,
+    UnknownModeError,
 )
 from agentpool.agents.events import (
     PartDeltaEvent,
@@ -1438,9 +1439,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if category_id == "mode":
             # Map mode_id to PermissionMode
             if mode_id not in VALID_MODES:
-                msg = f"Unknown permission mode: {mode_id}. Available: {list(VALID_MODES)}"
-                raise ValueError(msg)
-
+                raise UnknownModeError(mode_id, list(VALID_MODES))
             permission_mode: PermissionMode = mode_id  # type: ignore[assignment]
             self._permission_mode = permission_mode
             if self._client:  # Update SDK client if initialized
@@ -1451,7 +1450,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             if models := await self.get_available_models():
                 valid_ids = {m.id_override if m.id_override else m.id for m in models}
                 if mode_id not in valid_ids:
-                    raise ValueError(f"Unknown model: {mode_id}. Available: {valid_ids}")
+                    raise UnknownModeError(mode_id, list(valid_ids))
             # Set the model directly
             self._model = mode_id
             self._current_model = mode_id
@@ -1464,8 +1463,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 raise ThinkingModeAlreadyConfiguredError
             # Validate thinking mode
             if mode_id not in THINKING_MODE_PROMPTS:
-                msg = f"Unknown mode: {mode_id}. Available: {list(THINKING_MODE_PROMPTS.keys())}"
-                raise ValueError(msg)
+                raise UnknownModeError(mode_id, list(THINKING_MODE_PROMPTS.keys()))
             self._thinking_mode = mode_id  # type: ignore[assignment]
         else:
             raise UnknownCategoryError(category_id)
