@@ -112,24 +112,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     This allows integrating any ACP-compatible agent into the agentpool
     pool, enabling composition with native agents via connections, teams, etc.
-
-    The agent manages:
-    - Subprocess lifecycle (spawn on enter, terminate on exit)
-    - ACP protocol initialization and session creation
-    - Prompt execution with session update collection
-    - Client-side operations (filesystem, terminals, permissions)
-
-    Supports both blocking `run()` and streaming `run_iter()` execution modes.
-
-    Example:
-        ```python
-        # From config (recommended)
-        config = ClaudeACPAgentConfig(cwd="/project")
-        agent = ACPAgent.from_config(config, agent_pool=pool)
-
-        # Direct instantiation
-        agent = ACPAgent(command="claude-code-acp", cwd="/project")
-        ```
     """
 
     AGENT_TYPE: ClassVar = "acp"
@@ -257,10 +239,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             *config_handlers,
             *(event_handlers or []),
         ]
-
-        # Extract tool providers from config
-        tool_providers = config.get_tool_providers()
-
         return cls(
             command=config.get_command(),
             args=config.get_args(),
@@ -280,7 +258,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 allow_file_operations=config.allow_file_operations,
             ),
             # Tools
-            tool_providers=tool_providers,
+            tool_providers=config.get_tool_providers(),
             mcp_servers=config.mcp_servers,
             # Runtime options
             event_handlers=merged_handlers or None,
@@ -707,8 +685,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if not self._connection or not self._sdk_session_id or not self._state:
             raise RuntimeError("Not connected to ACP server")
         available_modes = await self.get_modes()
-        matching_category = next((c for c in available_modes if c.id == category_id), None)
-        if matching_category:
+        if matching_category := next((c for c in available_modes if c.id == category_id), None):
             valid_ids = {m.id for m in matching_category.available_modes}
             if mode_id not in valid_ids:
                 raise ValueError(f"Unknown {category_id}: {mode_id}. Available: {valid_ids}")
@@ -844,7 +821,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     "Restored conversation history",
                     session_id=session_id,
                     message_count=len(chat_messages),
-                    update_count=len(raw_updates),
                 )
             else:
                 self.log.debug("No conversation history to restore", session_id=session_id)
