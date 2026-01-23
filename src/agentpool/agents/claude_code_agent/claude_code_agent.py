@@ -472,11 +472,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         return self._hook_manager.build_hooks()
 
-    def _build_options(self, *, formatted_system_prompt: str | None = None) -> ClaudeAgentOptions:
+    def _build_options(
+        self,
+        *,
+        formatted_system_prompt: str | None = None,
+        fork_session: bool = False,
+    ) -> ClaudeAgentOptions:
         """Build ClaudeAgentOptions from runtime state.
 
         Args:
             formatted_system_prompt: Pre-formatted system prompt from SystemPrompts manager
+            fork_session: Whether to fork the session
         """
         from clawd_code_sdk import ClaudeAgentOptions
         from clawd_code_sdk.types import SystemPromptPreset
@@ -547,6 +553,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             setting_sources=self._setting_sources,
             extra_args=extra_args,
             resume=self._sdk_session_id,
+            fork_session=fork_session,
         )
 
     async def _can_use_tool(  # noqa: PLR0911
@@ -934,10 +941,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Create fork client that shares parent's context but has separate session ID
             # See: src/agentpool/agents/claude_code_agent/FORKING.md
             # Build options using same method as main client
-            fork_options = self._build_options()
-            # Add fork-specific parameters
-            fork_options.resume = self._sdk_session_id  # Fork from current session
-            fork_options.fork_session = True  # Create new session ID
+            fork_options = self._build_options(fork_session=True)
             fork_client = ClaudeSDKClient(options=fork_options)
             await fork_client.connect()
             client = fork_client
