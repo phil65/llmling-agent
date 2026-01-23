@@ -84,6 +84,11 @@ from pydantic_ai.usage import RequestUsage
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.claude_code_agent.converters import claude_message_to_events
+from agentpool.agents.claude_code_agent.exceptions import (
+    AgentNotInitializedError,
+    ThinkingModeAlreadyConfiguredError,
+    UnknownCategoryError,
+)
 from agentpool.agents.events import (
     PartDeltaEvent,
     PartStartEvent,
@@ -898,7 +903,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if input_provider is not None:
             self._input_provider = input_provider
         if not self._client:
-            raise RuntimeError("Agent not initialized - use async context manager")
+            raise AgentNotInitializedError
         # Get pending parts from conversation (staged content)
         # Combine pending parts with new prompts, then join into single string for Claude SDK
         #
@@ -1258,7 +1263,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 try:
                     await fork_client.disconnect()
                 except Exception as e:  # noqa: BLE001
-                    get_logger(__name__).warning(f"Error disconnecting fork client: {e}")
+                    self.log.warning("Error disconnecting fork client", error=e)
 
         # Flush any remaining response parts
         if current_response_parts:
@@ -1456,20 +1461,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         elif category_id == "thought_level":
             # Check if max_thinking_tokens is configured (takes precedence over keyword)
             if self._max_thinking_tokens:
-                msg = (
-                    "Cannot change thinking mode: max_thinking_tokens is configured. "
-                    "The envvar MAX_THINKING_TOKENS takes precedence over the 'ultrathink' keyword."
-                )
-                raise ValueError(msg)
+                raise ThinkingModeAlreadyConfiguredError
             # Validate thinking mode
             if mode_id not in THINKING_MODE_PROMPTS:
                 msg = f"Unknown mode: {mode_id}. Available: {list(THINKING_MODE_PROMPTS.keys())}"
                 raise ValueError(msg)
             self._thinking_mode = mode_id  # type: ignore[assignment]
         else:
-            raise ValueError(
-                f"Unknown category: {category_id}. Available: permissions, model, thought_level"
-            )
+            raise UnknownCategoryError(category_id)
         change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
         await self.state_updated.emit(change)
         self.log.info("Config option changed", config_id=category_id, value=mode_id)
