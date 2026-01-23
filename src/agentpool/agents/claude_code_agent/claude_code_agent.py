@@ -880,14 +880,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
         from clawd_code_sdk.types import StreamEvent
 
-        from agentpool.agents.claude_code_agent.converters import (
-            convert_tool_result_to_opencode_metadata,
-        )
+        from agentpool.agents.claude_code_agent.converters import convert_to_opencode_metadata
         from agentpool.agents.events import ToolResultMetadataEvent
         from agentpool.agents.events.infer_info import derive_rich_tool_info
         from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
-        # Ensure client is connected (waits for deferred init if needed)
         await self.ensure_initialized()
         # Initialize session_id on first run and log to storage
         # Use passed session_id if provided (e.g., from chained agents)
@@ -1097,7 +1094,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 metadata = tool_metadata.get(tc_id)
                                 if not metadata and message.tool_use_result is not None:
                                     # Convert Claude Code SDK's tool_use_result to OpenCode format
-                                    metadata = convert_tool_result_to_opencode_metadata(
+                                    metadata = convert_to_opencode_metadata(
                                         tool_name, message.tool_use_result, tool_input
                                     )
 

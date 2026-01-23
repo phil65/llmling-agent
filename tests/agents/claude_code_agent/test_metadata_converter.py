@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from agentpool.agents.claude_code_agent.converters import (
-    convert_tool_result_to_opencode_metadata,
-)
+from agentpool.agents.claude_code_agent.converters import convert_to_opencode_metadata
 
 
 class TestConvertToolResultToOpencodeMetadata:
-    """Tests for convert_tool_result_to_opencode_metadata function."""
+    """Tests for convert_to_opencode_metadata function."""
 
     def test_write_tool_result(self) -> None:
         """Test conversion of Write tool result."""
@@ -20,7 +18,7 @@ class TestConvertToolResultToOpencodeMetadata:
             "originalFile": None,
         }
 
-        metadata = convert_tool_result_to_opencode_metadata("Write", sdk_result)
+        metadata = convert_to_opencode_metadata("Write", sdk_result)
 
         assert metadata is not None
         assert metadata["filePath"] == "/tmp/test/hello.py"
@@ -50,7 +48,7 @@ class TestConvertToolResultToOpencodeMetadata:
             "replaceAll": False,
         }
 
-        metadata = convert_tool_result_to_opencode_metadata("Edit", sdk_result)
+        metadata = convert_to_opencode_metadata("Edit", sdk_result)
 
         assert metadata is not None
         assert "diff" in metadata
@@ -76,7 +74,7 @@ class TestConvertToolResultToOpencodeMetadata:
             },
         }
 
-        metadata = convert_tool_result_to_opencode_metadata("Read", sdk_result)
+        metadata = convert_to_opencode_metadata("Read", sdk_result)
 
         assert metadata is not None
         assert metadata["filePath"] == "/tmp/test/hello.py"
@@ -98,7 +96,7 @@ class TestConvertToolResultToOpencodeMetadata:
             "description": "Print greeting",
         }
 
-        metadata = convert_tool_result_to_opencode_metadata("Bash", sdk_result, tool_input)
+        metadata = convert_to_opencode_metadata("Bash", sdk_result, tool_input)
 
         assert metadata is not None
         assert metadata["output"] == "Hello from bash"
@@ -115,7 +113,7 @@ class TestConvertToolResultToOpencodeMetadata:
         }
         tool_input = {"command": "some_command"}
 
-        metadata = convert_tool_result_to_opencode_metadata("Bash", sdk_result, tool_input)
+        metadata = convert_to_opencode_metadata("Bash", sdk_result, tool_input)
 
         assert metadata is not None
         assert "output line" in metadata["output"]
@@ -131,7 +129,7 @@ class TestConvertToolResultToOpencodeMetadata:
             "isImage": False,
         }
 
-        metadata = convert_tool_result_to_opencode_metadata("Bash", sdk_result)
+        metadata = convert_to_opencode_metadata("Bash", sdk_result)
 
         assert metadata is not None
         assert metadata["exit"] is None  # Interrupted commands have no clean exit
@@ -140,13 +138,13 @@ class TestConvertToolResultToOpencodeMetadata:
         """Test that Bash error results (strings) return None."""
         sdk_result = "Error: Exit code 1\ncat: /nonexistent: No such file"
 
-        metadata = convert_tool_result_to_opencode_metadata("Bash", sdk_result)
+        metadata = convert_to_opencode_metadata("Bash", sdk_result)
 
         assert metadata is None
 
     def test_none_result(self) -> None:
         """Test that None tool_use_result returns None."""
-        metadata = convert_tool_result_to_opencode_metadata("Write", None)
+        metadata = convert_to_opencode_metadata("Write", None)
 
         assert metadata is None
 
@@ -154,7 +152,7 @@ class TestConvertToolResultToOpencodeMetadata:
         """Test that unknown tools return None."""
         sdk_result = {"some": "data"}
 
-        metadata = convert_tool_result_to_opencode_metadata("UnknownTool", sdk_result)
+        metadata = convert_to_opencode_metadata("UnknownTool", sdk_result)
 
         assert metadata is None
 
@@ -169,9 +167,9 @@ class TestConvertToolResultToOpencodeMetadata:
         }
 
         # All these should work
-        assert convert_tool_result_to_opencode_metadata("write", sdk_result) is not None
-        assert convert_tool_result_to_opencode_metadata("WRITE", sdk_result) is not None
-        assert convert_tool_result_to_opencode_metadata("Write", sdk_result) is not None
+        assert convert_to_opencode_metadata("write", sdk_result) is not None
+        assert convert_to_opencode_metadata("WRITE", sdk_result) is not None
+        assert convert_to_opencode_metadata("Write", sdk_result) is not None
 
     def test_edit_with_missing_original_file(self) -> None:
         """Test Edit conversion when originalFile is None."""
@@ -185,7 +183,7 @@ class TestConvertToolResultToOpencodeMetadata:
             "replaceAll": False,
         }
 
-        metadata = convert_tool_result_to_opencode_metadata("Edit", sdk_result)
+        metadata = convert_to_opencode_metadata("Edit", sdk_result)
 
         assert metadata is not None
         assert metadata["filediff"]["before"] == ""
@@ -196,19 +194,19 @@ class TestConvertToolResultToOpencodeMetadata:
         """Test Write conversion with missing fields returns None."""
         # Missing filePath
         sdk_result = {"content": "test"}
-        metadata = convert_tool_result_to_opencode_metadata("Write", sdk_result)
+        metadata = convert_to_opencode_metadata("Write", sdk_result)
         assert metadata is None
 
         # Missing content
         sdk_result = {"filePath": "/tmp/test.py"}
-        metadata = convert_tool_result_to_opencode_metadata("Write", sdk_result)
+        metadata = convert_to_opencode_metadata("Write", sdk_result)
         assert metadata is None
 
     def test_read_with_missing_file_field(self) -> None:
         """Test Read conversion with missing file field returns None."""
         sdk_result = {"type": "text"}  # Missing "file" object
 
-        metadata = convert_tool_result_to_opencode_metadata("Read", sdk_result)
+        metadata = convert_to_opencode_metadata("Read", sdk_result)
 
         assert metadata is None
 
@@ -234,7 +232,7 @@ class TestTodoWriteConversion:
             ],
         }
 
-        metadata = convert_tool_result_to_opencode_metadata("TodoWrite", sdk_result)
+        metadata = convert_to_opencode_metadata("TodoWrite", sdk_result)
 
         assert metadata is not None
         assert "todos" in metadata
@@ -263,7 +261,7 @@ class TestTodoWriteConversion:
             ],
         }
 
-        metadata = convert_tool_result_to_opencode_metadata("TodoWrite", sdk_result)
+        metadata = convert_to_opencode_metadata("TodoWrite", sdk_result)
 
         assert metadata is not None
         todos = metadata["todos"]
@@ -284,7 +282,7 @@ class TestTodoWriteConversion:
             "newTodos": [],
         }
 
-        metadata = convert_tool_result_to_opencode_metadata("TodoWrite", sdk_result)
+        metadata = convert_to_opencode_metadata("TodoWrite", sdk_result)
 
         assert metadata is None
 
@@ -296,9 +294,9 @@ class TestTodoWriteConversion:
         }
 
         # All these should work
-        assert convert_tool_result_to_opencode_metadata("todowrite", sdk_result) is not None
-        assert convert_tool_result_to_opencode_metadata("TODOWRITE", sdk_result) is not None
-        assert convert_tool_result_to_opencode_metadata("TodoWrite", sdk_result) is not None
+        assert convert_to_opencode_metadata("todowrite", sdk_result) is not None
+        assert convert_to_opencode_metadata("TODOWRITE", sdk_result) is not None
+        assert convert_to_opencode_metadata("TodoWrite", sdk_result) is not None
 
 
 class TestStructuredPatchToDiff:
@@ -324,7 +322,7 @@ class TestStructuredPatchToDiff:
             "replaceAll": False,
         }
 
-        metadata = convert_tool_result_to_opencode_metadata("Edit", sdk_result)
+        metadata = convert_to_opencode_metadata("Edit", sdk_result)
 
         assert metadata is not None
         diff = metadata["diff"]

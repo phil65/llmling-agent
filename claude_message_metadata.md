@@ -2,7 +2,7 @@
 
 This document describes the structure of messages and metadata returned by the Claude Code SDK (`clawd_code_sdk`).
 
-> **Note**: The `convert_tool_result_to_opencode_metadata()` function in
+> **Note**: The `convert_to_opencode_metadata()` function in
 > `src/agentpool/agents/claude_code_agent/converters.py` converts these shapes
 > to the OpenCode TUI metadata format for rich display of file operations.
 

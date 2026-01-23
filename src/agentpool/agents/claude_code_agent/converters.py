@@ -175,7 +175,7 @@ def to_output_format(output_type: type) -> dict[str, Any] | None:
     return output_format
 
 
-def convert_tool_result_to_opencode_metadata(  # noqa: PLR0911
+def convert_to_opencode_metadata(  # noqa: PLR0911
     tool_name: str,
     tool_use_result: dict[str, Any] | str | None,
     tool_input: dict[str, Any] | None = None,
