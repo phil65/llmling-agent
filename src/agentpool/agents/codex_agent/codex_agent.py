@@ -15,6 +15,11 @@ from pydantic_ai.usage import RequestUsage, RunUsage
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import PartDeltaEvent, RunStartedEvent, StreamCompleteEvent
+from agentpool.agents.exceptions import (
+    AgentNotInitializedError,
+    UnknownCategoryError,
+    UnknownModeError,
+)
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.sessions.models import SessionData
@@ -324,7 +329,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         from codex_adapter.models import ThreadTokenUsageUpdatedData
 
         if not self._client or not self._sdk_session_id:
-            raise RuntimeError("Codex client not initialized")
+            raise AgentNotInitializedError
 
         input_items = user_content_to_codex(prompts)
         # Generate IDs if not provided
@@ -597,22 +602,29 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         from agentpool.agents.modes import ConfigOptionChanged
 
         if category_id == "mode":
-            if mode_id not in ["never", "on-request", "on-failure", "untrusted"]:
-                raise ValueError(f"Invalid approval policy: {mode_id}")
+            valid_policies = ["never", "on-request", "on-failure", "untrusted"]
+            if mode_id not in valid_policies:
+                raise UnknownModeError(mode_id, valid_policies)
             self._approval_policy = mode_id  # type: ignore[assignment]
         elif category_id == "thought_level":
-            if mode_id not in ["low", "medium", "high", "xhigh"]:
-                raise ValueError(f"Invalid reasoning effort: {mode_id}")
+            valid_efforts = ["low", "medium", "high", "xhigh"]
+            if mode_id not in valid_efforts:
+                raise UnknownModeError(mode_id, valid_efforts)
             self._current_effort = mode_id  # type: ignore[assignment]
         elif category_id == "model":
             self._current_model = mode_id
         elif category_id == "sandbox":
-            valid = ["read-only", "workspace-write", "danger-full-access", "external-sandbox"]
-            if mode_id not in valid:
-                raise ValueError(f"Invalid sandbox mode: {mode_id}. Valid: {valid}")
+            valid_sandboxes = [
+                "read-only",
+                "workspace-write",
+                "danger-full-access",
+                "external-sandbox",
+            ]
+            if mode_id not in valid_sandboxes:
+                raise UnknownModeError(mode_id, valid_sandboxes)
             self._current_sandbox = mode_id  # type: ignore[assignment]
         else:
-            raise ValueError(f"Unknown category: {category_id}")
+            raise UnknownCategoryError(category_id)
         self.log.info("Config option changed", category=category_id, value=mode_id)
         change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
         await self.state_updated.emit(change)

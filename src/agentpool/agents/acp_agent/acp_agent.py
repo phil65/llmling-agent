@@ -56,6 +56,11 @@ from agentpool.agents.events import (
     ToolResultMetadataEvent,
 )
 from agentpool.agents.events.processors import FileTracker
+from agentpool.agents.exceptions import (
+    AgentNotInitializedError,
+    UnknownCategoryError,
+    UnknownModeError,
+)
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.utils.streams import merge_queue_into_iterator
@@ -384,7 +389,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities
 
         if not self._connection:
-            raise RuntimeError("Connection not initialized")
+            raise AgentNotInitializedError
 
         # Collect all MCP servers (extra + from mcp_servers list)
         all_servers = self._extra_mcp_servers[:]
@@ -459,7 +464,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if input_provider is not None and self._client_handler:
             self._client_handler._input_provider = input_provider
         if not self._connection or not self._sdk_session_id or not self._state:
-            raise RuntimeError("Agent not initialized - use async context manager")
+            raise AgentNotInitializedError
 
         run_id = str(uuid.uuid4())
         self._state.clear()
@@ -682,10 +687,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if matching_category := next((c for c in available_modes if c.id == category_id), None):
             valid_ids = {m.id for m in matching_category.available_modes}
             if mode_id not in valid_ids:
-                raise ValueError(f"Unknown {category_id}: {mode_id}. Available: {valid_ids}")
+                raise UnknownModeError(mode_id, sorted(valid_ids))
         else:
             available_cats = {c.id for c in available_modes}
-            raise ValueError(f"Unknown category: {category_id}. Available: {available_cats}")
+            raise UnknownCategoryError(category_id, sorted(available_cats))
         if self._state.config_options:
             assert category_id
             config_request = SetSessionConfigOptionRequest(
@@ -709,7 +714,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             else:
                 raise RuntimeError("Remote ACP agent does not support model changes.")
         else:
-            raise ValueError(f"Unknown category: {category_id}. Available: mode, model")
+            raise UnknownCategoryError(category_id, ["mode", "model"])
         self.log.info("Config option changed", config_id=category_id, value=mode_id)
         change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
         await self.state_updated.emit(change)

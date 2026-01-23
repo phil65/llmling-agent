@@ -15,8 +15,11 @@ class AgentNotInitializedError(RuntimeError):
 class UnknownCategoryError(ValueError):
     """Raised when an unknown category is encountered."""
 
-    def __init__(self, category_id: str):
-        msg = f"Unknown category: {category_id}. Available: permissions, model, thought_level"
+    def __init__(self, category_id: str, available: Sequence[str] | None = None):
+        if available:
+            msg = f"Unknown category: {category_id}. Available: {', '.join(available)}"
+        else:
+            msg = f"Unknown category: {category_id}"
         super().__init__(msg)
 
 

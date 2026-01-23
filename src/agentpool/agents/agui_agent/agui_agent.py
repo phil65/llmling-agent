@@ -31,6 +31,7 @@ from agentpool.agents.agui_agent.helpers import execute_tool_calls, parse_sse_st
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.agents.events.processors import FileTracker
+from agentpool.agents.exceptions import AgentNotInitializedError
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.tools import ToolManager
@@ -363,7 +364,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._input_provider = input_provider
 
         if not self._client:
-            raise RuntimeError("Agent not initialized - use async context manager")
+            raise AgentNotInitializedError
 
         # Set thread_id from session_id (needed for AG-UI protocol)
         if self._sdk_session_id is None:
