@@ -322,7 +322,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             data=data,
             model_name=self.model_name,
             tool_call_id=tool_call_id,
-            tool_input=tool_input,
+            tool_input=tool_input or {},
             tool_name=tool_name,
         )
 
