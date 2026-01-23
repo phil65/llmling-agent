@@ -98,3 +98,18 @@ MODES = [
         category_id="mode",
     ),
 ]
+
+THINKING_MODES = [
+    ModeInfo(
+        id="off",
+        name="Thinking Off",
+        description="No extended thinking",
+        category_id="thought_level",
+    ),
+    ModeInfo(
+        id="on",
+        name="Thinking On",
+        description="Extended thinking (~32k tokens)",
+        category_id="thought_level",
+    ),
+]

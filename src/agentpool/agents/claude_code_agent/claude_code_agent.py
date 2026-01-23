@@ -811,13 +811,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             if kwargs:
                 kwargs_str = " ".join(f"{k}={v}" for k, v in kwargs.items())
                 args_str = f"{args_str} {kwargs_str}".strip()
-
-            full_command = f"/{name} {args_str}".strip()
-
             # Execute via agent run - slash commands go through as prompts
             if not self._client:
                 return
-            await self._client.query(full_command)
+            await self._client.query(f"/{name} {args_str}".strip())
             async for msg in self._client.receive_response():
                 if isinstance(msg, AssistantMessage):
                     for block in msg.content:
@@ -1355,27 +1352,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             await self._client.set_permission_mode(mode)
 
     async def get_available_models(self) -> list[ModelInfo] | None:
-        """Get available models for Claude Code agent.
-
-        Returns a static list of Claude models (opus, sonnet, haiku) since
-        Claude Code SDK only supports these models with simple IDs.
-
-        Returns:
-            List of tokonomics ModelInfo for Claude models
-        """
+        """Get available models for Claude Code agent (defined as static list)."""
         from agentpool.agents.claude_code_agent.static_info import MODELS
 
         return MODELS
 
     async def get_server_info(self) -> ClaudeCodeServerInfo | None:
-        """Get server initialization info from Claude Code.
-
-        Returns information from the Claude Code server including:
-        - Available models (opus, sonnet, haiku) with descriptions and pricing
-        - Available slash commands with descriptions and argument hints
-        - Current and available output styles
-        - Account information (token source, API key source)
-        """
+        """Get server initialization info (models, commands, account info, ...) from Claude Code."""
         from agentpool.agents.claude_code_agent.models import ClaudeCodeServerInfo
 
         if not self._client:
@@ -1396,20 +1379,18 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Returns:
             List of ModeCategory for permissions and models
         """
-        from agentpool.agents.claude_code_agent.static_info import MODES
+        from agentpool.agents.claude_code_agent.static_info import MODES, THINKING_MODES
         from agentpool.agents.modes import ModeCategory
 
-        categories: list[ModeCategory] = []
-        current_id = self._permission_mode or "default"
-        categories.append(
+        categories = [
             ModeCategory(
                 id="mode",
                 name="Mode",
                 available_modes=MODES,
-                current_mode_id=current_id,
+                current_mode_id=self._permission_mode or "default",
                 category="mode",
             )
-        )
+        ]
         # Model selection
         if models := await self.get_available_models():
             # Use id_override if available (e.g., "opus" for Claude Code SDK)
@@ -1438,25 +1419,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Thinking level selection
         # Only expose if MAX_THINKING_TOKENS is not set (keyword only works without env var)
         if not self._max_thinking_tokens:
-            thinking_modes = [
-                ModeInfo(
-                    id="off",
-                    name="Thinking Off",
-                    description="No extended thinking",
-                    category_id="thought_level",
-                ),
-                ModeInfo(
-                    id="on",
-                    name="Thinking On",
-                    description="Extended thinking (~32k tokens)",
-                    category_id="thought_level",
-                ),
-            ]
             categories.append(
                 ModeCategory(
                     id="thought_level",
                     name="Thinking Level",
-                    available_modes=thinking_modes,
+                    available_modes=THINKING_MODES,
                     current_mode_id=self._thinking_mode,
                     category="thought_level",
                 )
