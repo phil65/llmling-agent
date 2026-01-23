@@ -148,6 +148,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         self._current_effort: ReasoningEffort | None = reasoning_effort
         self._current_sandbox: SandboxMode | None = sandbox
         self._current_turn_id: str | None = None
+        # Populated by capture_metadata during streaming, read after stream completes
+        self._token_usage_data: dict[str, int] | None = None
         # Pass injection_manager for mid-run injection support
         self._tool_bridge = ToolManagerBridge(node=self, injection_manager=self._injection_manager)
 
@@ -336,7 +338,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         yield run_started
         # Stream turn events with bridge context set
         accumulated_text: list[str] = []
-        token_usage_data: dict[str, int] | None = None
+        self._token_usage_data = None
         # Pass output type directly - adapter handles conversion to JSON schema
         output_schema = None if self._output_type is str else self._output_type
 
@@ -344,7 +346,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             raw_events: AsyncIterator[CodexEvent],
         ) -> AsyncIterator[CodexEvent]:
             """Wrapper to capture token usage and turn_id before event conversion."""
-            nonlocal token_usage_data
             from codex_adapter import TurnStartedData
 
             async for event in raw_events:
@@ -356,7 +357,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                     event.data, ThreadTokenUsageUpdatedData
                 ):
                     usage = event.data.token_usage.last
-                    token_usage_data = {
+                    self._token_usage_data = {
                         "input_tokens": usage.input_tokens,
                         "output_tokens": usage.output_tokens,
                         "cache_read_tokens": usage.cached_input_tokens,
@@ -409,19 +410,19 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         cost_info: TokenCost | None = None
         request_usage = RequestUsage()
 
-        if token_usage_data:
+        if self._token_usage_data:
             run_usage = RunUsage(
-                input_tokens=token_usage_data.get("input_tokens", 0),
-                output_tokens=token_usage_data.get("output_tokens", 0),
-                cache_read_tokens=token_usage_data.get("cache_read_tokens", 0),
+                input_tokens=self._token_usage_data.get("input_tokens", 0),
+                output_tokens=self._token_usage_data.get("output_tokens", 0),
+                cache_read_tokens=self._token_usage_data.get("cache_read_tokens", 0),
                 cache_write_tokens=0,  # Codex doesn't provide cache write tokens
             )
             # TODO: Calculate actual cost - for now set to 0
             cost_info = TokenCost(token_usage=run_usage, total_cost=Decimal(0))
             request_usage = RequestUsage(
-                input_tokens=token_usage_data.get("input_tokens", 0),
-                output_tokens=token_usage_data.get("output_tokens", 0),
-                cache_read_tokens=token_usage_data.get("cache_read_tokens", 0),
+                input_tokens=self._token_usage_data.get("input_tokens", 0),
+                output_tokens=self._token_usage_data.get("output_tokens", 0),
+                cache_read_tokens=self._token_usage_data.get("cache_read_tokens", 0),
                 cache_write_tokens=0,
             )
 
