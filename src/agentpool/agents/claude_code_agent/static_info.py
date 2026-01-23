@@ -97,6 +97,18 @@ MODES = [
         description="Skip all permission checks (use with caution)",
         category_id="mode",
     ),
+    # ModeInfo(
+    #     id="delegate",
+    #     name="Delegate",
+    #     description="Delegate mode, restricts to only Teammate and Task tools",
+    #     category_id="mode",
+    # ),
+    # ModeInfo(
+    #     id="dontAsk",
+    #     name="Do not ask",
+    #     description="Don't prompt for permissions, deny if not pre-approved",
+    #     category_id="mode",
+    # ),
 ]
 
 THINKING_MODES = [
