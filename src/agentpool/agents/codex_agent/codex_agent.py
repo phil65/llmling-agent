@@ -17,6 +17,7 @@ from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import PartDeltaEvent, RunStartedEvent, StreamCompleteEvent
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
+from agentpool.sessions.models import SessionData
 
 
 if TYPE_CHECKING:
@@ -36,7 +37,6 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageHistory
     from agentpool.models.codex_agents import CodexAgentConfig
     from agentpool.resource_providers import ResourceProvider
-    from agentpool.sessions import SessionData
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from codex_adapter import ApprovalPolicy, CodexClient, ReasoningEffort, SandboxMode
@@ -320,6 +320,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         )
         from agentpool.agents.events import PlanUpdateEvent
         from agentpool.messaging.messages import TokenCost
+        from codex_adapter import TurnStartedData
         from codex_adapter.models import ThreadTokenUsageUpdatedData
 
         if not self._client or not self._sdk_session_id:
@@ -346,8 +347,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             raw_events: AsyncIterator[CodexEvent],
         ) -> AsyncIterator[CodexEvent]:
             """Wrapper to capture token usage and turn_id before event conversion."""
-            from codex_adapter import TurnStartedData
-
             async for event in raw_events:
                 # Capture turn_id for interrupt support
                 if event.event_type == "turn/started" and isinstance(event.data, TurnStartedData):
@@ -431,8 +430,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         if self._output_type is not str and self._output_type is not None:
             try:
                 parsed = json.loads(final_text)
-                adapter = TypeAdapter(self._output_type)
-                final_content = adapter.validate_python(parsed)
+                final_content = TypeAdapter(self._output_type).validate_python(parsed)
             except (json.JSONDecodeError, ValueError) as e:
                 msg = "Failed to parse structured output, returning raw text"
                 self.log.warning(msg, error=str(e), output_type=self._output_type)
@@ -526,13 +524,11 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 # Infer provider from model name
                 model_id = model_data.model or model_data.id
                 # Use display_name and description from API if available
-                name = model_data.display_name or model_data.id
-                desc = model_data.description or f"Model: {model_id}"
                 info = TokModelInfo(
                     id=model_id,
-                    name=name,
+                    name=model_data.display_name or model_data.id,
                     provider="openai",
-                    description=desc,
+                    description=model_data.description or f"Model: {model_id}",
                     id_override=model_id,
                 )
                 models.append(info)
@@ -628,8 +624,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         limit: int | None = None,
     ) -> list[SessionData]:
         """List threads ("sessions") from Codex server."""
-        from agentpool.sessions.models import SessionData
-
         if not self._client:
             return []
         try:
@@ -670,7 +664,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             SessionData if thread was resumed successfully, None otherwise
         """
         from agentpool.agents.codex_agent.codex_converters import turns_to_chat_messages
-        from agentpool.sessions.models import SessionData
 
         if not self._client:
             self.log.error("Cannot load session: Codex client not initialized")
