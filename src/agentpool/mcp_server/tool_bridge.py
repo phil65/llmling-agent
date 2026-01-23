@@ -254,7 +254,7 @@ class ToolManagerBridge:
     node: BaseAgent[Any, Any]
     """The node whose tools to expose."""
 
-    server_name: str = "agentpool-toolmanager"
+    server_name: str | None = None
     """Name for the MCP server."""
 
     _current_deps: Any = field(default=None, init=False, repr=False)
@@ -301,7 +301,7 @@ class ToolManagerBridge:
         """Start the HTTP MCP server in the background."""
         from fastmcp import FastMCP
 
-        self._mcp = FastMCP(name=self.server_name)
+        self._mcp = FastMCP(name=self.resolved_server_name)
         await self._register_tools()
         self._subscribe_to_tool_changes()
         await self._start_server()
@@ -407,6 +407,11 @@ class ToolManagerBridge:
         """Get the server URL."""
         return f"http://127.0.0.1:{self.port}/mcp"
 
+    @property
+    def resolved_server_name(self) -> str:
+        """Get the server name."""
+        return self.server_name or f"agentpool-{self.node.name}-tools"
+
     def get_mcp_server_config(self) -> HttpMcpServer:
         """Get ACP-compatible MCP server configuration.
 
@@ -415,7 +420,7 @@ class ToolManagerBridge:
         from acp.schema import HttpMcpServer
 
         url = HttpUrl(self.url)
-        return HttpMcpServer(name=self.server_name, url=url)
+        return HttpMcpServer(name=self.resolved_server_name, url=url)
 
     def get_claude_mcp_server_config(self) -> dict[str, McpServerConfig]:
         """Get Claude Agent SDK-compatible MCP server configuration.
@@ -440,7 +445,7 @@ class ToolManagerBridge:
         # Use HTTP transport to preserve _meta field with claudecode/toolUseId
         # SDK transport drops _meta in Claude Agent SDK's query.py
         url = f"http://127.0.0.1:{self.port}/mcp"
-        return {self.server_name: {"type": "http", "url": url}}
+        return {self.resolved_server_name: {"type": "http", "url": url}}
 
     def get_codex_mcp_server_config(self) -> tuple[str, Any]:
         """Get Codex app-server-compatible MCP server configuration.
@@ -458,7 +463,7 @@ class ToolManagerBridge:
             raise RuntimeError("Bridge not started - call start() first")
 
         url = f"http://127.0.0.1:{self.port}/mcp"
-        return (self.server_name, CodexHttpMcpServer(url=url))
+        return (self.resolved_server_name, CodexHttpMcpServer(url=url))
 
     async def _register_tools(self) -> None:
         """Register all node tools with the FastMCP server."""
@@ -666,7 +671,7 @@ class ToolManagerBridge:
         )
         self._server = uvicorn.Server(cfg)
         # Start server in background task
-        name = f"mcp-bridge-{self.server_name}"
+        name = f"mcp-bridge-{self.resolved_server_name}"
         self._server_task = asyncio.create_task(self._server.serve(), name=name)
         await anyio.sleep(0.1)  # Wait briefly for server to start
         msg = "ToolManagerBridge started"

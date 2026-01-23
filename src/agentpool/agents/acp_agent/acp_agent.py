@@ -183,28 +183,21 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             commands=commands,
             hooks=hooks,
         )
-
         # Permission handling
         self.auto_approve = auto_approve
-
         # Command
         self._command = command
         self._args = args or []
-
         # Environment
         self._cwd = cwd
         self._env_vars = env_vars or {}
         self._client_env = client_execution_env
-
         # ACP initialization
         self._init_request = init_request or self._create_default_init_request()
-
         # Tools
         self._tool_providers = tool_providers or []
-
         # Provider type for model messages
         self._provider_type = provider_type
-
         # ACP-specific state
         self.acp_permission_callback: (
             Callable[[RequestPermissionRequest], Awaitable[RequestPermissionResponse]] | None
@@ -219,14 +212,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._state: ACPSessionState | None = None
         self._extra_mcp_servers: list[McpServer] = []
         self._sessions_cache: list[SessionData] | None = None
-
         # Create bridge (not started yet) - pass injection_manager for mid-run injection support
-        self._tool_bridge = ToolManagerBridge(
-            node=self,
-            server_name=f"agentpool-{self.name}-tools",
-            injection_manager=self._injection_manager,
-        )
-
+        self._tool_bridge = ToolManagerBridge(node=self, injection_manager=self._injection_manager)
         # Track the prompt task for cancellation
         self._prompt_task: asyncio.Task[Any] | None = None
 

@@ -331,11 +331,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self.deps_type = type(None)
         # ToolBridge state for exposing toolsets via MCP
         # Pass injection_manager for mid-run injection support
-        self._tool_bridge = ToolManagerBridge(
-            node=self,
-            server_name=f"agentpool-{self.name}-tools",
-            injection_manager=self._injection_manager,
-        )
+        self._tool_bridge = ToolManagerBridge(node=self, injection_manager=self._injection_manager)
         self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
         # Track pending tool call for permission matching
         self._pending_tool_call_ids: dict[str, str] = {}
@@ -710,10 +706,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         formatted_prompt = await self.sys_prompts.format_system_prompt(self)
         # _build_options includes resume=self._sdk_session_id automatically
         options = self._build_options(formatted_system_prompt=formatted_prompt)
-
         if session_to_resume:
             self.log.info("Attempting to resume session", session=session_to_resume)
-
         self._client = ClaudeSDKClient(options=options)
         try:  # Reconnect in background
             self._connection_task = asyncio.create_task(self._do_connect())

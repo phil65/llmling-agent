@@ -143,19 +143,13 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         # Extra MCP servers in Codex format (e.g., tool bridge)
         self._extra_mcp_servers: list[tuple[str, Any]] = []
-
         # Track current settings (for when they change mid-session)
         self._current_model: str | None = model
         self._current_effort: ReasoningEffort | None = reasoning_effort
         self._current_sandbox: SandboxMode | None = sandbox
         self._current_turn_id: str | None = None
-
         # Pass injection_manager for mid-run injection support
-        self._tool_bridge = ToolManagerBridge(
-            node=self,
-            server_name=f"agentpool-{self.name}-tools",
-            injection_manager=self._injection_manager,
-        )
+        self._tool_bridge = ToolManagerBridge(node=self, injection_manager=self._injection_manager)
 
     @classmethod
     def from_config(
