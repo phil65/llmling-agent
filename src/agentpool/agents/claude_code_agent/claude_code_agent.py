@@ -684,23 +684,17 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from clawd_code_sdk import ClaudeSDKClient
 
         session_to_resume = self._sdk_session_id if resume_session else None
-        self.log.info(
-            "Reconnecting Claude Code agent", resume=resume_session, session_id=session_to_resume
-        )
-
+        self.log.info("Reconnecting CC agent", resume=resume_session, session_id=session_to_resume)
         # Cancel existing connection if active
         if self._connection_task and not self._connection_task.done():
             self._connection_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._connection_task
         self._connection_task = None
-
         # # Clean up tool bridge
         # if self._tool_bridge._mcp is not None:
         #     await self._tool_bridge.stop()
         # self._mcp_servers.clear()
-
-        # Disconnect existing client
         if self._client:
             try:
                 await self._client.disconnect()
@@ -935,7 +929,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         request = ModelRequest(parts=[UserPromptPart(content=prompt_text)])
         model_messages: list[ModelResponse | ModelRequest] = [request]
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
-        text_chunks: list[str] = []
         pending_tool_calls: dict[str, ToolUseBlock] = {}
         # Track tool calls that already had ToolCallStartEvent emitted (via StreamEvent)
         emitted_tool_starts: set[str] = set()
@@ -956,7 +949,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Add fork-specific parameters
             fork_options.resume = self._sdk_session_id  # Fork from current session
             fork_options.fork_session = True  # Create new session ID
-
             fork_client = ClaudeSDKClient(options=fork_options)
             await fork_client.connect()
             client = fork_client
@@ -999,7 +991,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         for block in message.content:
                             match block:
                                 case TextBlock(text=text):
-                                    text_chunks.append(text)
                                     current_response_parts.append(TextPart(content=text))
                                 case ThinkingBlock(thinking=thinking):
                                     current_response_parts.append(ThinkingPart(content=thinking))
@@ -1010,7 +1001,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         tool_name=display_name, args=input_data, tool_call_id=tc_id
                                     )
                                     current_response_parts.append(tool_call_part)
-
                                     # Emit FunctionToolCallEvent (triggers UI notification)
                                     # func_tool_event = FunctionToolCallEvent(part=tool_call_part)
                                     # await event_handlers(None, func_tool_event)
@@ -1253,9 +1243,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             metadata = file_tracker.get_metadata()
             if self._sdk_session_id:
                 metadata["sdk_session_id"] = self._sdk_session_id
-
+            content = "".join(i.content for i in current_response_parts if isinstance(i, TextPart))
             response_msg = ChatMessage[TResult](
-                content="".join(text_chunks),  # type: ignore[arg-type]
+                content=content,  # type: ignore[arg-type]
                 role="assistant",
                 name=self.name,
                 message_id=message_id or str(uuid.uuid4()),
@@ -1291,10 +1281,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             model_messages.append(ModelResponse(parts=current_response_parts))
 
         # Determine final content - use structured output if available
+        content = "".join(i.content for i in current_response_parts if isinstance(i, TextPart))
         final_content: TResult = (
             result_message.structured_output  # type: ignore[assignment]
             if self._output_type is not str and result_message and result_message.structured_output
-            else "".join(text_chunks)
+            else content
         )
 
         # Build cost_info and usage from ResultMessage if available
@@ -1415,9 +1406,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from agentpool.agents.modes import ModeCategory
 
         categories: list[ModeCategory] = []
-        # Permission modes
         current_id = self._permission_mode or "default"
-
         categories.append(
             ModeCategory(
                 id="mode",
@@ -1427,15 +1416,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 category="mode",
             )
         )
-
         # Model selection
-        models = await self.get_available_models()
-        if models:
+        if models := await self.get_available_models():
             # Use id_override if available (e.g., "opus" for Claude Code SDK)
             def get_model_id(m: ModelInfo) -> str:
                 return m.id_override if m.id_override else m.id
 
-            current_model = self.model_name or get_model_id(models[0])
             modes = [
                 ModeInfo(
                     id=get_model_id(m),
@@ -1450,7 +1436,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     id="model",
                     name="Model",
                     available_modes=modes,
-                    current_mode_id=current_model,
+                    current_mode_id=self.model_name or get_model_id(models[0]),
                     category="model",
                 )
             )
@@ -1497,14 +1483,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
             permission_mode: PermissionMode = mode_id  # type: ignore[assignment]
             self._permission_mode = permission_mode
-            # Update SDK client if initialized
-            if self._client:
+            if self._client:  # Update SDK client if initialized
                 await self.ensure_initialized()
                 await self._client.set_permission_mode(permission_mode)
         elif category_id == "model":
             # Validate model exists
-            models = await self.get_available_models()
-            if models:
+            if models := await self.get_available_models():
                 valid_ids = {m.id_override if m.id_override else m.id for m in models}
                 if mode_id not in valid_ids:
                     raise ValueError(f"Unknown model: {mode_id}. Available: {valid_ids}")
@@ -1596,10 +1580,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Sort by last_active, most recent first
             result.sort(key=lambda s: s.updated_at or "", reverse=True)
             # cwd filter is applied at storage level via QueryFilters
-            # Apply limit
-            if limit is not None:
-                result = result[:limit]
-            return result
+            return result if limit is None else result[:limit]
 
     async def load_session(self, session_id: str) -> SessionData | None:
         """Load and restore a session from Claude storage.
@@ -1618,9 +1599,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from agentpool.utils.now import get_now
 
         try:  # Load conversation messages from Claude storage
-            messages = await self._claude_storage.get_conversation_messages(
-                session_id=session_id,
-            )
+            messages = await self._claude_storage.get_conversation_messages(session_id=session_id)
         except Exception:
             self.log.exception("Failed to load Claude session", session_id=session_id)
             return None
