@@ -84,12 +84,7 @@ from pydantic_ai.usage import RequestUsage
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.claude_code_agent.converters import claude_message_to_events
-from agentpool.agents.claude_code_agent.exceptions import (
-    AgentNotInitializedError,
-    ThinkingModeAlreadyConfiguredError,
-    UnknownCategoryError,
-    UnknownModeError,
-)
+from agentpool.agents.claude_code_agent.exceptions import ThinkingModeAlreadyConfiguredError
 from agentpool.agents.events import (
     PartDeltaEvent,
     PartStartEvent,
@@ -102,6 +97,11 @@ from agentpool.agents.events import (
 )
 from agentpool.agents.events.infer_info import derive_rich_tool_info
 from agentpool.agents.events.processors import FileTracker
+from agentpool.agents.exceptions import (
+    AgentNotInitializedError,
+    UnknownCategoryError,
+    UnknownModeError,
+)
 from agentpool.agents.modes import ModeInfo
 from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 from agentpool.common_types import MCPServerStatus
