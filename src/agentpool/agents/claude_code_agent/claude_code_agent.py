@@ -718,7 +718,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
     async def ensure_initialized(self) -> None:
         """Wait for background connection task to complete."""
-        if self._connection_task:
+        if self._connection_task and self._connection_task is not asyncio.current_task():
             await self._connection_task
             self._connection_task = None
 
@@ -1359,6 +1359,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Get server initialization info (models, commands, account info, ...) from Claude Code."""
         from agentpool.agents.claude_code_agent.models import ClaudeCodeServerInfo
 
+        await self.ensure_initialized()
         if not self._client:
             self.log.warning("Cannot get server info: not connected")
             return None
