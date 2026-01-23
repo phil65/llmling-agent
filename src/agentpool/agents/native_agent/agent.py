@@ -734,7 +734,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         history_list = message_history.get_history()
         assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
         run_started = RunStartedEvent(
-            thread_id=self.session_id, run_id=run_id, agent_name=self.name
+            session_id=self.session_id,
+            run_id=run_id,
+            agent_name=self.name,
         )
         await event_handlers(None, run_started)
         yield run_started

@@ -512,7 +512,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         file_tracker = FileTracker()
         assert self.session_id is not None
         run_started = RunStartedEvent(
-            thread_id=self.session_id,
+            session_id=self.session_id,
             run_id=run_id,
             agent_name=self.name,
         )

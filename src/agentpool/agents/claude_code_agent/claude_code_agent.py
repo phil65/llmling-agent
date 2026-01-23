@@ -272,6 +272,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             session_id: Session ID to resume on connect (avoids reconnect overhead)
             toolsets: Resource providers for tools to expose via MCP bridge
         """
+        from agentpool.agents.claude_code_agent.hook_manager import ClaudeCodeHookManager
         from agentpool.agents.sys_prompts import SystemPrompts
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
         from agentpool_config.storage import ClaudeStorageConfig
@@ -341,10 +342,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Create Claude storage provider for session management
         claude_config = ClaudeStorageConfig(path="~/.claude")
         self._claude_storage = ClaudeStorageProvider(claude_config)
-
-        # Initialize hook manager
-        from agentpool.agents.claude_code_agent.hook_manager import ClaudeCodeHookManager
-
         self._hook_manager = ClaudeCodeHookManager(
             agent_name=self.name,
             agent_hooks=hooks,
@@ -371,7 +368,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Get manifest from pool or create empty one
         manifest = agent_pool.manifest if agent_pool is not None else AgentsManifest()
-
         # Resolve output type from config
         resolved_output_type: type | None = None
         if config.output_type:
@@ -383,10 +379,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             *config_handlers,
             *(event_handlers or []),
         ]
-
         # Extract toolsets from config
         toolsets = config.get_tool_providers() if config.tools else []
-
         return cls(
             # Identity
             name=config.name,
@@ -932,7 +926,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Emit run started
         assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
         run_started = RunStartedEvent(
-            thread_id=self.session_id,
+            session_id=self.session_id,
             run_id=run_id,
             agent_name=self.name,
         )
@@ -1638,10 +1632,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self.conversation.chat_messages.clear()
             self.conversation.chat_messages.extend(messages)
             self.log.info("Session loaded", session_id=session_id, message_count=len(messages))
-
             # Set the SDK session ID so reconnect can resume this session
             self._sdk_session_id = session_id
-
             # Reconnect to Claude SDK with the loaded session to properly resume
             try:
                 await self.reconnect(resume_session=True)

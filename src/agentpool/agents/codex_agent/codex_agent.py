@@ -260,7 +260,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             response = await self._client.thread_resume(self._sdk_session_id)
             thread = response.thread
             self._sdk_session_id = thread.id
-            self.log.info("Codex thread resumed", thread_id=self._sdk_session_id, cwd=cwd)
+            self.log.info("Codex thread resumed", sdk_session_id=self._sdk_session_id, cwd=cwd)
             # Restore conversation history from resumed thread
             if thread.turns:
                 chat_messages = turns_to_chat_messages(thread.turns)
@@ -277,7 +277,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 sandbox=self._current_sandbox,
             )
             self._sdk_session_id = response.thread.id
-            self.log.info("Codex thread started", thread_id=self._sdk_session_id, cwd=cwd)
+            self.log.info("Codex thread started", sdk_session_id=self._sdk_session_id, cwd=cwd)
         return self
 
     async def __aexit__(
@@ -340,7 +340,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Ensure session_id is set (should always be from base class)
         if final_session_id is None:
             raise ValueError("session_id must be set")
-        run_started = RunStartedEvent(thread_id=final_session_id, run_id=run_id)
+        run_started = RunStartedEvent(session_id=final_session_id, run_id=run_id)
         await event_handlers(None, run_started)
         yield run_started
         # Stream turn events with bridge context set
@@ -510,7 +510,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 await self._client.turn_interrupt(self._sdk_session_id, self._current_turn_id)
                 self.log.info(
                     "Codex turn interrupted",
-                    thread_id=self._sdk_session_id,
+                    sdk_session_id=self._sdk_session_id,
                     turn_id=self._current_turn_id,
                 )
             except Exception:
@@ -702,7 +702,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Update current thread ID
         thread = response.thread
         self._sdk_session_id = thread.id
-        self.log.info("Thread resumed from Codex server", thread_id=thread.id)
+        self.log.info("Thread resumed from Codex server", sdk_session_id=thread.id)
 
         # Convert turns to ChatMessages and populate conversation
         if thread.turns:

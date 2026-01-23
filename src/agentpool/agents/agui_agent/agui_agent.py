@@ -380,7 +380,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
         thread_id = self._sdk_session_id or self.session_id
-        run_started = RunStartedEvent(thread_id=thread_id, run_id=run_id, agent_name=self.name)
+        run_started = RunStartedEvent(session_id=thread_id, run_id=run_id, agent_name=self.name)
         await event_handlers(None, run_started)
         yield run_started
         # Convert existing conversation history to AG-UI format

@@ -80,7 +80,7 @@ def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None: 
         # === Lifecycle Events ===
 
         case AGUIRunStartedEvent(thread_id=thread_id, run_id=run_id):
-            return RunStartedEvent(thread_id=thread_id, run_id=run_id)
+            return RunStartedEvent(session_id=thread_id, run_id=run_id)
 
         case AGUIRunErrorEvent(message=message, code=code):
             return RunErrorEvent(message=message, code=code)
