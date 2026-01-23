@@ -879,3 +879,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 self._state.finish_load()
             self.log.exception("Failed to load session from ACP server")
             return None
+
+
+if __name__ == "__main__":
+
+    async def main():
+        async with ACPAgent(command="claude-code-acp") as agent:
+            async for event in agent.run_stream("hello"):
+                print(event)
+
+    asyncio.run(main())
