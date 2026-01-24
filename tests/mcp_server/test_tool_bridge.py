@@ -32,7 +32,7 @@ async def list_pool_agents(ctx: AgentContext) -> str:
     """List all agents in the pool."""
     if ctx.pool is None:
         return "No pool available"
-    return ", ".join(ctx.pool.agents.keys())
+    return ", ".join(ctx.pool.all_agents.keys())
 
 
 async def test_bridge_lifecycle():

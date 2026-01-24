@@ -150,7 +150,7 @@ Example - check pool state:
 ```python
 async def main():
     if ctx.pool:
-        agents = list(ctx.pool.agents.keys())
+        agents = list(ctx.pool.get_agents().keys())
         return f"Agents in pool: {agents}"
     return "No pool available"
 ```
