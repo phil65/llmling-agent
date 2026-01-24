@@ -483,12 +483,7 @@ class ClaudeStorageProvider(StorageProvider):
             List of messages ordered by timestamp
         """
         # Find the session file
-        session_path = None
-        for sid, spath in self._list_sessions():
-            if sid == session_id:
-                session_path = spath
-                break
-
+        session_path = next((p for sid, p in self._list_sessions() if sid == session_id), None)
         if not session_path:
             return []
 
