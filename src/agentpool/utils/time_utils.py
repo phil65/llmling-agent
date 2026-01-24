@@ -22,6 +22,18 @@ def get_now(tz_mode: TimeZoneMode = "utc") -> datetime:
     return now.astimezone() if tz_mode == "local" else now
 
 
+def ms_to_datetime(ms: int) -> datetime:
+    """Convert milliseconds timestamp to datetime.
+
+    Args:
+        ms: Milliseconds since epoch
+
+    Returns:
+        Datetime object in UTC
+    """
+    return datetime.fromtimestamp(ms / 1000, tz=UTC)
+
+
 def parse_iso_timestamp(value: str) -> datetime:
     """Parse an ISO 8601 timestamp string, handling 'Z' suffix.
 

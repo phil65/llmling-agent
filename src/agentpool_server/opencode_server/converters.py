@@ -24,6 +24,7 @@ from pydantic_ai import (
 
 from agentpool.common_types import PathReference
 from agentpool.sessions.models import SessionData
+from agentpool.utils.time_utils import ms_to_datetime
 from agentpool_server.opencode_server.models import (
     AssistantMessage,
     MessagePath,
@@ -516,13 +517,6 @@ def _datetime_to_ms(dt: Any) -> int:
     return now_ms()
 
 
-def _ms_to_datetime(ms: int) -> Any:
-    """Convert milliseconds timestamp to datetime."""
-    from datetime import UTC, datetime
-
-    return datetime.fromtimestamp(ms / 1000, tz=UTC)
-
-
 def chat_message_to_opencode(  # noqa: PLR0915
     msg: ChatMessage[Any],
     session_id: str,
@@ -879,7 +873,7 @@ def opencode_to_chat_message(
         )
         finish_reason = info.finish
 
-    timestamp = _ms_to_datetime(created_ms)
+    timestamp = ms_to_datetime(created_ms)
 
     # Build model messages from parts
     model_messages: list[ModelRequest | ModelResponse] = []

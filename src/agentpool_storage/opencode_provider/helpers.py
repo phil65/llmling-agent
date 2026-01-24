@@ -6,7 +6,6 @@ Stateless conversion and utility functions for working with OpenCode format.
 from __future__ import annotations
 
 import base64
-from datetime import UTC, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -30,6 +29,7 @@ from pydantic_ai import (
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
+from agentpool.utils.time_utils import ms_to_datetime
 from agentpool_server.opencode_server.models import (
     AssistantMessage,
     FilePart as OpenCodeFilePart,
@@ -44,6 +44,7 @@ from agentpool_server.opencode_server.models import (
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from datetime import datetime
     from pathlib import Path
 
     from pydantic_ai.messages import UserContent
@@ -55,18 +56,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
-
-def ms_to_datetime(ms: int) -> datetime:
-    """Convert milliseconds timestamp to datetime.
-
-    Args:
-        ms: Milliseconds since epoch
-
-    Returns:
-        Datetime object in UTC
-    """
-    return datetime.fromtimestamp(ms / 1000, tz=UTC)
 
 
 def convert_user_content_to_parts(

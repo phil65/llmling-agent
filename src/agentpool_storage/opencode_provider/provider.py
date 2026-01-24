@@ -658,9 +658,8 @@ class OpenCodeStorageProvider(StorageProvider):
     ) -> list[ChatMessage[str]]:
         """Get all messages for a session."""
         # Read messages for this session
-        oc_messages = self._read_messages(session_id)
         messages: list[ChatMessage[str]] = []
-        for oc_msg in oc_messages:
+        for oc_msg in self._read_messages(session_id):
             parts = self._read_parts(oc_msg.id)
             chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
             messages.append(chat_msg)
