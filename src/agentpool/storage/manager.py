@@ -91,13 +91,13 @@ class StorageManager:
     # Signal emitted when a conversation title is generated
     title_generated: Signal[TitleGeneratedEvent] = Signal()
 
-    def __init__(self, config: StorageConfig) -> None:
+    def __init__(self, config: StorageConfig | None = None) -> None:
         """Initialize storage manager.
 
         Args:
             config: Storage configuration including providers and filters
         """
-        self.config = config
+        self.config = config or StorageConfig()
         self.task_manager = TaskManager()
         self.providers = [self._create_provider(cfg) for cfg in self.config.effective_providers]
         self._session_logged: set[str] = set()  # Track logged conversations for idempotency

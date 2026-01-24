@@ -198,6 +198,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from llmling_models_config import StringModelConfig
 
         from agentpool.agents.interactions import Interactions
+        from agentpool.agents.native_agent.hook_manager import NativeAgentHookManager
         from agentpool.agents.sys_prompts import SystemPrompts
         from agentpool.models.agents import NativeAgentConfig
         from agentpool.models.manifest import AgentsManifest
@@ -235,10 +236,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             hooks=hooks,
         )
         self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
-
         # Store config for context creation
         # Convert model to proper config type for NativeAgentConfig
-
         config_model: AnyModelConfig
         if isinstance(model, Model):
             config_model = StringModelConfig(
@@ -256,8 +255,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         # Store builtin tools for pydantic-ai
         self._builtin_tools = list(builtin_tools) if builtin_tools else []
         # Override tools with Agent-specific ToolManager (with tools and tool_mode)
-        all_tools = list(tools or [])
-        self.tools = ToolManager(all_tools, tool_mode=tool_mode)
+        self.tools = ToolManager(tools, tool_mode=tool_mode)
         for toolset_provider in toolsets or []:
             self.tools.add_provider(toolset_provider)
         aggregating_provider = self.mcp.get_aggregating_provider()
@@ -267,7 +265,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         if knowledge:
             resources.extend(knowledge.get_resources())
         manifest = agent_pool.manifest if agent_pool else AgentsManifest()
-        storage = agent_pool.storage if agent_pool else StorageManager(manifest.storage)
+        storage = agent_pool.storage if agent_pool else StorageManager()
         self.conversation = MessageHistory(
             storage=storage,
             converter=ConversionManager(config=manifest.conversion),
@@ -294,17 +292,12 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         prompt_manager = self.agent_pool.prompt_manager if self.agent_pool else None
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=prompt_manager)
         self._formatted_system_prompt: str | None = None  # Set in __aenter__
-
-        # Initialize hook manager (wraps AgentHooks and handles injection)
-        from agentpool.agents.native_agent.hook_manager import NativeAgentHookManager
-
         self._hook_manager = NativeAgentHookManager(
             agent_name=self.name,
             agent_hooks=hooks,
             injection_manager=self._injection_manager,
         )
-        # Keep self.hooks for backward compatibility
-        self.hooks = hooks
+
         self._default_usage_limits = usage_limits
         self._providers = list(providers) if providers else None  # model discovery
 
