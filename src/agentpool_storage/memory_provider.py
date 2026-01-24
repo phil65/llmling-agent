@@ -182,21 +182,14 @@ class MemoryStorageProvider(StorageProvider):
             "start_time": start_time or get_now(),
         })
 
-    async def update_session_title(
-        self,
-        session_id: str,
-        title: str,
-    ) -> None:
+    async def update_session_title(self, session_id: str, title: str) -> None:
         """Update the title of a conversation."""
         for conv in self.conversations:
             if conv["id"] == session_id:
                 conv["title"] = title
                 return
 
-    async def get_session_title(
-        self,
-        session_id: str,
-    ) -> str | None:
+    async def get_session_title(self, session_id: str) -> str | None:
         """Get the title of a conversation."""
         for conv in self.conversations:
             if conv["id"] == session_id:
@@ -423,10 +416,7 @@ class MemoryStorageProvider(StorageProvider):
 
         return results
 
-    async def get_session_stats(
-        self,
-        filters: StatsFilters,
-    ) -> dict[str, dict[str, Any]]:
+    async def get_session_stats(self, filters: StatsFilters) -> dict[str, dict[str, Any]]:
         """Get statistics from memory."""
         # Collect raw data
         rows = []
@@ -457,12 +447,7 @@ class MemoryStorageProvider(StorageProvider):
                 completion += msg.cost_info.token_usage.output_tokens
         return {"total": total, "prompt": prompt, "completion": completion}
 
-    async def reset(
-        self,
-        *,
-        agent_name: str | None = None,
-        hard: bool = False,
-    ) -> tuple[int, int]:
+    async def reset(self, *, agent_name: str | None = None, hard: bool = False) -> tuple[int, int]:
         """Reset stored data."""
         # Get counts first
         conv_count, msg_count = await self.get_session_counts(agent_name=agent_name)
@@ -492,11 +477,7 @@ class MemoryStorageProvider(StorageProvider):
 
         return conv_count, msg_count
 
-    async def get_session_counts(
-        self,
-        *,
-        agent_name: str | None = None,
-    ) -> tuple[int, int]:
+    async def get_session_counts(self, *, agent_name: str | None = None) -> tuple[int, int]:
         """Get conversation and message counts."""
         if agent_name:
             conv_count = sum(1 for c in self.conversations if c["agent_name"] == agent_name)
@@ -514,10 +495,7 @@ class MemoryStorageProvider(StorageProvider):
 
         return conv_count, msg_count
 
-    async def delete_conversation_messages(
-        self,
-        session_id: str,
-    ) -> int:
+    async def delete_session_messages(self, session_id: str) -> int:
         """Delete all messages for a session."""
         original_count = len(self.messages)
         self.messages = [m for m in self.messages if m["session_id"] != session_id]

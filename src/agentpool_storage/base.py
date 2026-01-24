@@ -118,11 +118,7 @@ class StorageProvider:
     ) -> None:
         """Log a conversation (if supported)."""
 
-    async def update_session_title(
-        self,
-        session_id: str,
-        title: str,
-    ) -> None:
+    async def update_session_title(self, session_id: str, title: str) -> None:
         """Update the title of a conversation.
 
         Args:
@@ -130,10 +126,7 @@ class StorageProvider:
             title: New title for the conversation
         """
 
-    async def get_session_title(
-        self,
-        session_id: str,
-    ) -> str | None:
+    async def get_session_title(self, session_id: str) -> str | None:
         """Get the title of a conversation.
 
         Args:
@@ -390,7 +383,7 @@ class StorageProvider:
         """
         raise NotImplementedError
 
-    async def delete_conversation_messages(
+    async def delete_session_messages(
         self,
         session_id: str,
     ) -> int:

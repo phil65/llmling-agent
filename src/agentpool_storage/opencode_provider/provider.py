@@ -436,17 +436,14 @@ class OpenCodeStorageProvider(StorageProvider):
         finish_reason: Any | None = None,
     ) -> None:
         """Log a message to OpenCode format."""
+        from agentpool.storage.serialization import messages_adapter
+
         if not messages:
             logger.debug("No structured messages to log, skipping")
             return
 
         try:
-            # Deserialize pydantic-ai messages
-            from agentpool.storage.serialization import messages_adapter
-
             model_messages = messages_adapter.validate_json(messages)
-
-            # Convert to OpenCode format and write
             await self._write_message(
                 message_id=message_id,
                 session_id=session_id,
@@ -574,10 +571,7 @@ class OpenCodeStorageProvider(StorageProvider):
 
         return result
 
-    async def get_session_stats(
-        self,
-        filters: StatsFilters,
-    ) -> dict[str, dict[str, Any]]:
+    async def get_session_stats(self, filters: StatsFilters) -> dict[str, dict[str, Any]]:
         """Get conversation statistics."""
         from agentpool_server.opencode_server.models import AssistantMessage
 
@@ -632,12 +626,7 @@ class OpenCodeStorageProvider(StorageProvider):
 
         return dict(stats)
 
-    async def reset(
-        self,
-        *,
-        agent_name: str | None = None,
-        hard: bool = False,
-    ) -> tuple[int, int]:
+    async def reset(self, *, agent_name: str | None = None, hard: bool = False) -> tuple[int, int]:
         """Reset storage.
 
         Warning: This would delete OpenCode data!
@@ -645,18 +634,11 @@ class OpenCodeStorageProvider(StorageProvider):
         logger.warning("Reset not implemented for OpenCode storage (read-only)")
         return 0, 0
 
-    async def get_session_counts(
-        self,
-        *,
-        agent_name: str | None = None,
-    ) -> tuple[int, int]:
+    async def get_session_counts(self, *, agent_name: str | None = None) -> tuple[int, int]:
         """Get counts of conversations and messages."""
         conv_count = 0
         msg_count = 0
-
-        sessions = self._list_sessions()
-
-        for session_id, session_path in sessions:
+        for session_id, session_path in self._list_sessions():
             session = helpers.read_session(session_path)
             if not session:
                 continue
@@ -686,7 +668,6 @@ class OpenCodeStorageProvider(StorageProvider):
         """
         # Read messages for this session
         oc_messages = self._read_messages(session_id)
-
         messages: list[ChatMessage[str]] = []
         for oc_msg in oc_messages:
             parts = self._read_parts(oc_msg.id)
@@ -797,7 +778,6 @@ class OpenCodeStorageProvider(StorageProvider):
 
         # Read source messages
         oc_messages = self._read_messages(source_session_id)
-
         # Find fork point
         fork_point_id: str | None = None
         if fork_from_message_id:
@@ -811,16 +791,13 @@ class OpenCodeStorageProvider(StorageProvider):
         elif oc_messages:
             # Messages are already in time order from _read_messages
             fork_point_id = oc_messages[-1].id
-
         # Create new session directory structure
         # Determine project from source path structure
         project_id = source_path.parent.name
         new_session_dir = self.sessions_path / project_id
         new_session_dir.mkdir(parents=True, exist_ok=True)
-
         # Create empty session file (will be populated when messages added)
         new_session_path = new_session_dir / f"{new_session_id}.json"
-
         # Create new session metadata
         fork_title = f"{source_session.title} (fork)" if source_session.title else "Forked Session"
         new_session = Session(
@@ -833,11 +810,7 @@ class OpenCodeStorageProvider(StorageProvider):
                 created=int(get_now().timestamp() * 1000),
                 updated=int(get_now().timestamp() * 1000),
             ),
-            summary=SessionSummary(
-                files=0,
-                additions=0,
-                deletions=0,
-            ),
+            summary=SessionSummary(files=0, additions=0, deletions=0),
         )
 
         # Write session file
@@ -845,11 +818,9 @@ class OpenCodeStorageProvider(StorageProvider):
             anyenv.dump_json(new_session.model_dump(by_alias=True), indent=True),
             encoding="utf-8",
         )
-
         # Create message and part directories
         (self.messages_path / new_session_id).mkdir(parents=True, exist_ok=True)
         (self.parts_path / new_session_id).mkdir(parents=True, exist_ok=True)
-
         return fork_point_id
 
 

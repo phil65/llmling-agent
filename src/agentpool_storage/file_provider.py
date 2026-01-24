@@ -254,11 +254,7 @@ class FileProvider(StorageProvider):
         self._data["conversations"].append(conversation)
         self._save()
 
-    async def update_session_title(
-        self,
-        session_id: str,
-        title: str,
-    ) -> None:
+    async def update_session_title(self, session_id: str, title: str) -> None:
         """Update the title of a conversation."""
         for conv in self._data["conversations"]:
             if conv["id"] == session_id:
@@ -266,10 +262,7 @@ class FileProvider(StorageProvider):
                 self._save()
                 return
 
-    async def get_session_title(
-        self,
-        session_id: str,
-    ) -> str | None:
+    async def get_session_title(self, session_id: str) -> str | None:
         """Get the title of a conversation."""
         for conv in self._data["conversations"]:
             if conv["id"] == session_id:
@@ -462,12 +455,7 @@ class FileProvider(StorageProvider):
                 break
         return commands
 
-    async def reset(
-        self,
-        *,
-        agent_name: str | None = None,
-        hard: bool = False,
-    ) -> tuple[int, int]:
+    async def reset(self, *, agent_name: str | None = None, hard: bool = False) -> tuple[int, int]:
         """Reset stored data."""
         # Get counts first
         conv_count, msg_count = await self.get_session_counts(agent_name=agent_name)
@@ -508,11 +496,7 @@ class FileProvider(StorageProvider):
         self._save()
         return conv_count, msg_count
 
-    async def get_session_counts(
-        self,
-        *,
-        agent_name: str | None = None,
-    ) -> tuple[int, int]:
+    async def get_session_counts(self, *, agent_name: str | None = None) -> tuple[int, int]:
         """Get conversation and message counts."""
         if agent_name:
             conv_count = sum(
@@ -530,10 +514,7 @@ class FileProvider(StorageProvider):
 
         return conv_count, msg_count
 
-    async def delete_conversation_messages(
-        self,
-        session_id: str,
-    ) -> int:
+    async def delete_session_messages(self, session_id: str) -> int:
         """Delete all messages for a session."""
         original_count = len(self._data["messages"])
         self._data["messages"] = [
@@ -548,8 +529,6 @@ class FileProvider(StorageProvider):
 
     def _to_project_data(self, data: ProjectDataDict) -> ProjectData:
         """Convert dict to ProjectData."""
-        from datetime import datetime
-
         from agentpool.sessions.models import ProjectData
 
         return ProjectData(

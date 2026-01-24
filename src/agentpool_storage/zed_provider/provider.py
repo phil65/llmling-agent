@@ -285,11 +285,7 @@ class ZedStorageProvider(StorageProvider):
         logger.warning("ZedStorageProvider is read-only, cannot reset")
         return 0, 0
 
-    async def get_session_counts(
-        self,
-        *,
-        agent_name: str | None = None,
-    ) -> tuple[int, int]:
+    async def get_session_counts(self, *, agent_name: str | None = None) -> tuple[int, int]:
         """Get counts of conversations and messages."""
         conv_count = 0
         msg_count = 0

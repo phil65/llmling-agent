@@ -16,37 +16,30 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from decimal import Decimal
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+import anyenv
 from pydantic import TypeAdapter
-from pydantic_ai import RunUsage
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    TextPart,
-    ThinkingPart,
-    ToolCallPart,
-    ToolReturnPart,
-    UserPromptPart,
-)
-from pydantic_ai.usage import RequestUsage
 
 from agentpool.common_types import MessageRole
 from agentpool.log import get_logger
-from agentpool.messaging import ChatMessage, TokenCost
+from agentpool.messaging import ChatMessage
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 from agentpool_storage.base import StorageProvider
+from agentpool_storage.claude_provider.converters import (
+    chat_message_to_entry,
+    encode_project_path,
+    entry_to_chat_message,
+    extract_title,
+    normalize_model_name,
+)
 from agentpool_storage.claude_provider.models import (
     ClaudeApiMessage,
     ClaudeAssistantEntry,
     ClaudeJSONLEntry,
-    ClaudeMessageContent,
-    ClaudeUsage,
     ClaudeUserEntry,
-    ClaudeUserMessage,
 )
 from agentpool_storage.models import TokenUsage
 
@@ -56,6 +49,7 @@ if TYPE_CHECKING:
 
     from pydantic_ai import FinishReason
 
+    from agentpool.messaging import TokenCost
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import ClaudeStorageConfig
     from agentpool_storage.models import ConversationData, MessageData, QueryFilters, StatsFilters
@@ -64,43 +58,52 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def _extract_text_content(message: ClaudeApiMessage | ClaudeUserMessage) -> str:
-    """Extract text content from a Claude message for display.
-
-    Only extracts text and thinking blocks, not tool calls/results.
-    """
-    msg_content = message.content
-    if isinstance(msg_content, str):
-        return msg_content
-
-    text_parts: list[str] = []
-    for part in msg_content:
-        if part.type == "text" and part.text:
-            text_parts.append(part.text)
-        elif part.type == "thinking" and part.thinking:
-            # Include thinking in display content
-            text_parts.append(f"<thinking>\n{part.thinking}\n</thinking>")
-    return "\n".join(text_parts)
+def write_entry(session_path: Path, entry: ClaudeJSONLEntry) -> None:
+    """Append an entry to a session file."""
+    session_path.parent.mkdir(parents=True, exist_ok=True)
+    with session_path.open("a", encoding="utf-8") as f:
+        f.write(entry.model_dump_json(by_alias=True) + "\n")
 
 
-def _normalize_model_name(model: str | None) -> str | None:
-    """Normalize Claude model names to simple IDs.
+def _build_tool_id_mapping(entries: list[ClaudeJSONLEntry]) -> dict[str, str]:
+    """Build a mapping from tool_call_id to tool_name from assistant entries."""
+    mapping: dict[str, str] = {}
+    for entry in entries:
+        if not isinstance(entry, ClaudeAssistantEntry):
+            continue
+        msg = entry.message
+        if not isinstance(msg.content, list):
+            continue
+        for block in msg.content:
+            if block.type == "tool_use" and block.id and block.name:
+                mapping[block.id] = block.name
+    return mapping
 
-    Claude storage uses full model names like 'claude-opus-4-5-20251101'
-    but Claude Code agent exposes simple IDs like 'opus', 'sonnet', 'haiku'.
-    This normalizes to simple IDs for consistency with get_available_models().
-    """
-    if model is None:
-        return None
-    model_lower = model.lower()
-    if "opus" in model_lower:
-        return "opus"
-    if "sonnet" in model_lower:
-        return "sonnet"
-    if "haiku" in model_lower:
-        return "haiku"
-    # Return original if not a known Claude model
-    return model
+
+def _read_session(session_path: Path) -> list[ClaudeJSONLEntry]:
+    """Read all entries from a session file."""
+    entries: list[ClaudeJSONLEntry] = []
+    if not session_path.exists():
+        return entries
+
+    adapter = TypeAdapter[Any](ClaudeJSONLEntry)
+    with session_path.open("r", encoding="utf-8") as f:
+        for raw_line in f:
+            stripped = raw_line.strip()
+            if not stripped:
+                continue
+            try:
+                data = anyenv.load_json(stripped, return_type=dict)
+                entry = adapter.validate_python(data)
+                entries.append(entry)
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.warning(
+                    "Failed to parse JSONL line",
+                    path=str(session_path),
+                    error=str(e),
+                    raw_line=raw_line,
+                )
+    return entries
 
 
 class ClaudeStorageProvider(StorageProvider):
@@ -146,27 +149,9 @@ class ClaudeStorageProvider(StorageProvider):
         """Ensure required directories exist."""
         self.projects_path.mkdir(parents=True, exist_ok=True)
 
-    def _encode_project_path(self, path: str) -> str:
-        """Encode a project path to Claude's format.
-
-        Claude encodes paths by replacing / with - and prepending -.
-        Example: /home/user/project -> -home-user-project
-        """
-        return path.replace("/", "-")
-
-    def _decode_project_path(self, encoded: str) -> str:
-        """Decode a Claude project path back to filesystem path.
-
-        Example: -home-user-project -> /home/user/project
-        """
-        if encoded.startswith("-"):
-            encoded = encoded[1:]
-        return "/" + encoded.replace("-", "/")
-
     def _get_project_dir(self, project_path: str) -> Path:
         """Get the directory for a project's conversations."""
-        encoded = self._encode_project_path(project_path)
-        return self.projects_path / encoded
+        return self.projects_path / encode_project_path(project_path)
 
     def _list_sessions(self, project_path: str | None = None) -> list[tuple[str, Path]]:
         """List all sessions, optionally filtered by project.
@@ -189,310 +174,6 @@ class ClaudeStorageProvider(StorageProvider):
                         sessions.append((session_id, f))
         return sessions
 
-    def _extract_title(self, session_path: Path, max_chars: int = 60) -> str | None:
-        """Extract title from session file efficiently.
-
-        Looks for a summary entry first, then falls back to the first line
-        of the first user message. Stops reading as soon as a title is found.
-
-        Args:
-            session_path: Path to the JSONL session file
-            max_chars: Maximum characters for title (truncates with '...')
-
-        Returns:
-            Extracted title or None if no suitable content found
-        """
-        if not session_path.exists():
-            return None
-
-        try:
-            with session_path.open(encoding="utf-8", errors="ignore") as fp:
-                for line in fp:
-                    # Summary entries take priority
-                    if '"type":"summary"' in line:
-                        try:
-                            entry = json.loads(line)
-                            if summary := entry.get("summary"):
-                                return str(summary)
-                        except json.JSONDecodeError:
-                            pass
-
-                    # First user message as fallback - stop here
-                    if '"type":"user"' in line:
-                        try:
-                            entry = json.loads(line)
-                            msg = entry.get("message", {})
-                            content = msg.get("content", "")
-                            if isinstance(content, str) and content:
-                                # Use first line only, strip whitespace
-                                first_line = content.split("\n")[0].strip()
-                                if len(first_line) > max_chars:
-                                    return first_line[:max_chars] + "..."
-                                return first_line if first_line else None
-                        except json.JSONDecodeError:
-                            pass
-                        break  # Stop after first user message
-        except OSError:
-            pass
-
-        return None
-
-    def _read_session(self, session_path: Path) -> list[ClaudeJSONLEntry]:
-        """Read all entries from a session file."""
-        entries: list[ClaudeJSONLEntry] = []
-        if not session_path.exists():
-            return entries
-
-        adapter = TypeAdapter[Any](ClaudeJSONLEntry)
-        with session_path.open("r", encoding="utf-8") as f:
-            for raw_line in f:
-                stripped = raw_line.strip()
-                if not stripped:
-                    continue
-                try:
-                    data = json.loads(stripped)
-                    entry = adapter.validate_python(data)
-                    entries.append(entry)
-                except (json.JSONDecodeError, ValueError) as e:
-                    logger.warning(
-                        "Failed to parse JSONL line",
-                        path=str(session_path),
-                        error=str(e),
-                        raw_line=raw_line,
-                    )
-        return entries
-
-    def _write_entry(self, session_path: Path, entry: ClaudeJSONLEntry) -> None:
-        """Append an entry to a session file."""
-        session_path.parent.mkdir(parents=True, exist_ok=True)
-        with session_path.open("a", encoding="utf-8") as f:
-            f.write(entry.model_dump_json(by_alias=True) + "\n")
-
-    def _build_tool_id_mapping(self, entries: list[ClaudeJSONLEntry]) -> dict[str, str]:
-        """Build a mapping from tool_call_id to tool_name from assistant entries."""
-        mapping: dict[str, str] = {}
-        for entry in entries:
-            if not isinstance(entry, ClaudeAssistantEntry):
-                continue
-            msg = entry.message
-            if not isinstance(msg.content, list):
-                continue
-            for block in msg.content:
-                if block.type == "tool_use" and block.id and block.name:
-                    mapping[block.id] = block.name
-        return mapping
-
-    def _entry_to_chat_message(
-        self,
-        entry: ClaudeJSONLEntry,
-        session_id: str,
-        tool_id_mapping: dict[str, str] | None = None,
-    ) -> ChatMessage[str] | None:
-        """Convert a Claude JSONL entry to a ChatMessage.
-
-        Reconstructs pydantic-ai ModelRequest/ModelResponse objects and stores
-        them in the messages field for full fidelity.
-
-        Args:
-            entry: The JSONL entry to convert
-            session_id: ID for the conversation
-            tool_id_mapping: Optional mapping from tool_call_id to tool_name
-                for resolving tool names in ToolReturnPart
-
-        Returns None for non-message entries (queue-operation, summary, etc.).
-        """
-        # Only handle user/assistant entries with messages
-        if not isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry)):
-            return None
-
-        message = entry.message
-        timestamp = parse_iso_timestamp(entry.timestamp)
-        # Extract display content (text only for UI)
-        content = _extract_text_content(message)
-        # Build pydantic-ai message
-        pydantic_message = self._build_pydantic_message(
-            entry, message, timestamp, tool_id_mapping or {}
-        )
-        # Extract token usage and cost
-        cost_info = None
-        model = None
-        finish_reason = None
-        if isinstance(entry, ClaudeAssistantEntry) and isinstance(message, ClaudeApiMessage):
-            usage = message.usage
-            input_tokens = (
-                usage.input_tokens
-                + usage.cache_read_input_tokens
-                + usage.cache_creation_input_tokens
-            )
-            output_tokens = usage.output_tokens
-            if input_tokens or output_tokens:
-                cost_info = TokenCost(
-                    token_usage=RunUsage(input_tokens=input_tokens, output_tokens=output_tokens),
-                    total_cost=Decimal(0),  # Claude doesn't store cost directly
-                )
-            model = _normalize_model_name(message.model)
-            finish_reason = message.stop_reason
-
-        return ChatMessage[str](
-            content=content,
-            session_id=session_id,
-            role=entry.type,
-            message_id=entry.uuid,
-            name="claude" if isinstance(entry, ClaudeAssistantEntry) else None,
-            model_name=model,
-            cost_info=cost_info,
-            timestamp=timestamp,
-            parent_id=entry.parent_uuid,
-            messages=[pydantic_message] if pydantic_message else [],
-            provider_details={"finish_reason": finish_reason} if finish_reason else {},
-        )
-
-    def _build_pydantic_message(
-        self,
-        entry: ClaudeUserEntry | ClaudeAssistantEntry,
-        message: ClaudeApiMessage | ClaudeUserMessage,
-        timestamp: datetime,
-        tool_id_mapping: dict[str, str],
-    ) -> ModelRequest | ModelResponse | None:
-        """Build a pydantic-ai ModelRequest or ModelResponse from Claude data.
-
-        Args:
-            entry: The entry being converted
-            message: The message content
-            timestamp: Parsed timestamp
-            tool_id_mapping: Mapping from tool_call_id to tool_name
-        """
-        msg_content = message.content
-
-        if isinstance(entry, ClaudeUserEntry):
-            # Build ModelRequest with user prompt parts
-            parts: list[UserPromptPart | ToolReturnPart] = []
-
-            if isinstance(msg_content, str):
-                parts.append(UserPromptPart(content=msg_content, timestamp=timestamp))
-            else:
-                for block in msg_content:
-                    if block.type == "text" and block.text:
-                        parts.append(UserPromptPart(content=block.text, timestamp=timestamp))
-                    elif block.type == "tool_result" and block.tool_use_id:
-                        # Reconstruct tool return - look up tool name from mapping
-                        tool_content = self._extract_tool_result_content(block)
-                        tool_name = tool_id_mapping.get(block.tool_use_id, "")
-                        parts.append(
-                            ToolReturnPart(
-                                tool_name=tool_name,
-                                content=tool_content,
-                                tool_call_id=block.tool_use_id,
-                                timestamp=timestamp,
-                            )
-                        )
-
-            return ModelRequest(parts=parts, timestamp=timestamp) if parts else None
-
-        # Build ModelResponse for assistant
-        if not isinstance(message, ClaudeApiMessage):
-            return None
-
-        resp_parts: list[TextPart | ToolCallPart | ThinkingPart] = []
-        usage = RequestUsage(
-            input_tokens=message.usage.input_tokens,
-            output_tokens=message.usage.output_tokens,
-            cache_read_tokens=message.usage.cache_read_input_tokens,
-            cache_write_tokens=message.usage.cache_creation_input_tokens,
-        )
-
-        if isinstance(msg_content, str):
-            resp_parts.append(TextPart(content=msg_content))
-        else:
-            for block in msg_content:
-                if block.type == "text" and block.text:
-                    resp_parts.append(TextPart(content=block.text))
-                elif block.type == "thinking" and block.thinking:
-                    resp_parts.append(
-                        ThinkingPart(content=block.thinking, signature=block.signature)
-                    )
-                elif block.type == "tool_use" and block.id and block.name:
-                    args = block.input or {}
-                    resp_parts.append(
-                        ToolCallPart(tool_name=block.name, args=args, tool_call_id=block.id)
-                    )
-
-        if not resp_parts:
-            return None
-        model = _normalize_model_name(message.model)
-        return ModelResponse(parts=resp_parts, usage=usage, model_name=model, timestamp=timestamp)
-
-    def _extract_tool_result_content(self, block: ClaudeMessageContent) -> str:
-        """Extract content from a tool_result block."""
-        if block.content is None:
-            return ""
-        if isinstance(block.content, str):
-            return block.content
-        # List of content dicts
-        text_parts = [
-            tc.get("text", "")
-            for tc in block.content
-            if isinstance(tc, dict) and tc.get("type") == "text"
-        ]
-        return "\n".join(text_parts)
-
-    def _chat_message_to_entry(
-        self,
-        message: ChatMessage[str],
-        session_id: str,
-        parent_uuid: str | None = None,
-        cwd: str | None = None,
-    ) -> ClaudeUserEntry | ClaudeAssistantEntry:
-        """Convert a ChatMessage to a Claude JSONL entry."""
-        import uuid
-
-        msg_uuid = message.message_id or str(uuid.uuid4())
-        timestamp = (message.timestamp or get_now()).isoformat().replace("+00:00", "Z")
-
-        # Build entry based on role
-        if message.role == "user":
-            user_msg = ClaudeUserMessage(role="user", content=message.content)
-            return ClaudeUserEntry(
-                type="user",
-                uuid=msg_uuid,
-                parent_uuid=parent_uuid,
-                session_id=session_id,
-                timestamp=timestamp,
-                message=user_msg,
-                cwd=cwd or "",
-                version="agentpool",
-                user_type="external",
-                is_sidechain=False,
-            )
-
-        # Assistant message
-        content_blocks = [ClaudeMessageContent(type="text", text=message.content)]
-        usage = ClaudeUsage()
-        if message.cost_info:
-            usage = ClaudeUsage(
-                input_tokens=message.cost_info.token_usage.input_tokens,
-                output_tokens=message.cost_info.token_usage.output_tokens,
-            )
-        assistant_msg = ClaudeApiMessage(
-            model=message.model_name or "unknown",
-            id=f"msg_{msg_uuid[:20]}",
-            role="assistant",
-            content=content_blocks,
-            usage=usage,
-        )
-        return ClaudeAssistantEntry(
-            type="assistant",
-            uuid=msg_uuid,
-            parent_uuid=parent_uuid,
-            session_id=session_id,
-            timestamp=timestamp,
-            message=assistant_msg,
-            cwd=cwd or "",
-            version="agentpool",
-            user_type="external",
-            is_sidechain=False,
-        )
-
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages based on query."""
         messages: list[ChatMessage[str]] = []
@@ -503,11 +184,11 @@ class ClaudeStorageProvider(StorageProvider):
             if query.name and session_id != query.name:
                 continue
 
-            entries = self._read_session(session_path)
-            tool_mapping = self._build_tool_id_mapping(entries)
+            entries = _read_session(session_path)
+            tool_mapping = _build_tool_id_mapping(entries)
 
             for entry in entries:
-                msg = self._entry_to_chat_message(entry, session_id, tool_mapping)
+                msg = entry_to_chat_message(entry, session_id, tool_mapping)
                 if msg is None:
                     continue
 
@@ -579,7 +260,7 @@ class ClaudeStorageProvider(StorageProvider):
         )
 
         # Convert to entry and write
-        entry = self._chat_message_to_entry(
+        entry = chat_message_to_entry(
             chat_message,
             session_id=session_id,
             parent_uuid=parent_id,
@@ -587,7 +268,7 @@ class ClaudeStorageProvider(StorageProvider):
         )
 
         session_path = self._get_project_dir(project_path) / f"{session_id}.jsonl"
-        self._write_entry(session_path, entry)
+        write_entry(session_path, entry)
 
     async def log_session(
         self,
@@ -614,27 +295,22 @@ class ClaudeStorageProvider(StorageProvider):
         sessions = self._list_sessions(project_path=filters.cwd)
 
         for session_id, session_path in sessions:
-            entries = self._read_session(session_path)
+            entries = _read_session(session_path)
             if not entries:
                 continue
 
-            tool_mapping = self._build_tool_id_mapping(entries)
-
+            tool_mapping = _build_tool_id_mapping(entries)
             # Build messages
             messages: list[ChatMessage[str]] = []
             first_timestamp: datetime | None = None
             total_tokens = 0
-
             for entry in entries:
-                msg = self._entry_to_chat_message(entry, session_id, tool_mapping)
+                msg = entry_to_chat_message(entry, session_id, tool_mapping)
                 if msg is None:
                     continue
-
                 messages.append(msg)
-
                 if first_timestamp is None and msg.timestamp:
                     first_timestamp = msg.timestamp
-
                 if msg.cost_info:
                     total_tokens += msg.cost_info.token_usage.total_tokens
 
@@ -644,13 +320,10 @@ class ClaudeStorageProvider(StorageProvider):
             # Apply filters
             if filters.agent_name and not any(m.name == filters.agent_name for m in messages):
                 continue
-
             if filters.since and first_timestamp and first_timestamp < filters.since:
                 continue
-
             if filters.query and not any(filters.query in m.content for m in messages):
                 continue
-
             # Build MessageData list
             msg_data_list: list[MessageData] = []
             for msg in messages:
@@ -679,7 +352,7 @@ class ClaudeStorageProvider(StorageProvider):
             conv_data = ConversationData(
                 id=session_id,
                 agent=messages[0].name or "claude",
-                title=self._extract_title(session_path),
+                title=extract_title(session_path),
                 start_time=(first_timestamp or get_now()).isoformat(),
                 messages=msg_data_list,
                 token_usage=token_usage_data,
@@ -691,16 +364,13 @@ class ClaudeStorageProvider(StorageProvider):
 
         return result
 
-    async def get_session_stats(
-        self,
-        filters: StatsFilters,
-    ) -> dict[str, dict[str, Any]]:
+    async def get_session_stats(self, filters: StatsFilters) -> dict[str, dict[str, Any]]:
         """Get conversation statistics."""
         stats: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"total_tokens": 0, "messages": 0, "models": set()}
         )
         for _session_id, session_path in self._list_sessions():
-            entries = self._read_session(session_path)
+            entries = _read_session(session_path)
 
             for entry in entries:
                 if not isinstance(entry, ClaudeAssistantEntry):
@@ -710,7 +380,7 @@ class ClaudeStorageProvider(StorageProvider):
                     continue
 
                 api_msg = entry.message
-                model = _normalize_model_name(api_msg.model)
+                model = normalize_model_name(api_msg.model)
                 usage = api_msg.usage
                 total_tokens = (
                     usage.input_tokens + usage.output_tokens + usage.cache_read_input_tokens
@@ -739,12 +409,7 @@ class ClaudeStorageProvider(StorageProvider):
 
         return dict(stats)
 
-    async def reset(
-        self,
-        *,
-        agent_name: str | None = None,
-        hard: bool = False,
-    ) -> tuple[int, int]:
+    async def reset(self, *, agent_name: str | None = None, hard: bool = False) -> tuple[int, int]:
         """Reset storage.
 
         Warning: This will delete Claude conversation files!
@@ -752,7 +417,7 @@ class ClaudeStorageProvider(StorageProvider):
         conv_count = 0
         msg_count = 0
         for _session_id, session_path in self._list_sessions():
-            entries = self._read_session(session_path)
+            entries = _read_session(session_path)
             msg_count += len([
                 e for e in entries if isinstance(e, (ClaudeUserEntry, ClaudeAssistantEntry))
             ])
@@ -772,7 +437,7 @@ class ClaudeStorageProvider(StorageProvider):
         conv_count = 0
         msg_count = 0
         for _session_id, session_path in self._list_sessions():
-            entries = self._read_session(session_path)
+            entries = _read_session(session_path)
             msg_entries = [
                 e for e in entries if isinstance(e, (ClaudeUserEntry, ClaudeAssistantEntry))
             ]
@@ -810,11 +475,11 @@ class ClaudeStorageProvider(StorageProvider):
             return []
 
         # Read entries and convert to messages
-        entries = self._read_session(session_path)
-        tool_mapping = self._build_tool_id_mapping(entries)
+        entries = _read_session(session_path)
+        tool_mapping = _build_tool_id_mapping(entries)
         messages: list[ChatMessage[str]] = []
         for entry in entries:
-            msg = self._entry_to_chat_message(entry, session_id, tool_mapping)
+            msg = entry_to_chat_message(entry, session_id, tool_mapping)
             if msg:
                 messages.append(msg)
         # Sort by timestamp
@@ -840,14 +505,14 @@ class ClaudeStorageProvider(StorageProvider):
         """
         # Search all sessions for the message
         for session_id, session_path in self._list_sessions():
-            entries = self._read_session(session_path)
-            tool_mapping = self._build_tool_id_mapping(entries)
+            entries = _read_session(session_path)
+            tool_mapping = _build_tool_id_mapping(entries)
             for entry in entries:
                 if (
                     isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry))
                     and entry.uuid == message_id
                 ):
-                    return self._entry_to_chat_message(entry, session_id, tool_mapping)
+                    return entry_to_chat_message(entry, session_id, tool_mapping)
 
         return None
 
@@ -911,8 +576,7 @@ class ClaudeStorageProvider(StorageProvider):
             raise ValueError(msg)
 
         # Read source entries
-        entries = self._read_session(source_path)
-
+        entries = _read_session(source_path)
         # Find fork point
         fork_point_id: str | None = None
         if fork_from_message_id:
@@ -943,7 +607,6 @@ class ClaudeStorageProvider(StorageProvider):
         new_path = self.projects_path / project_name / f"{new_session_id}.jsonl"
         new_path.parent.mkdir(parents=True, exist_ok=True)
         new_path.touch()
-
         return fork_point_id
 
 

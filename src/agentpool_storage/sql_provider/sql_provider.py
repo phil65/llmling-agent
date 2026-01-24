@@ -175,11 +175,7 @@ class SQLModelProvider(StorageProvider):
             session.add(convo)
             await session.commit()
 
-    async def update_session_title(
-        self,
-        session_id: str,
-        title: str,
-    ) -> None:
+    async def update_session_title(self, session_id: str, title: str) -> None:
         """Update the title of a conversation."""
         async with AsyncSession(self.engine) as session:
             result = await session.execute(
@@ -191,10 +187,7 @@ class SQLModelProvider(StorageProvider):
                 session.add(conversation)
                 await session.commit()
 
-    async def get_session_title(
-        self,
-        session_id: str,
-    ) -> str | None:
+    async def get_session_title(self, session_id: str) -> str | None:
         """Get the title of a conversation."""
         async with AsyncSession(self.engine) as session:
             result = await session.execute(
@@ -238,20 +231,14 @@ class SQLModelProvider(StorageProvider):
 
             return messages
 
-    async def get_message(
-        self,
-        message_id: str,
-    ) -> ChatMessage[str] | None:
+    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
         """Get a single message by ID."""
         async with AsyncSession(self.engine) as session:
             result = await session.execute(select(Message).where(Message.id == message_id))
             msg = result.scalar_one_or_none()
             return to_chat_message(msg) if msg else None
 
-    async def get_message_ancestry(
-        self,
-        message_id: str,
-    ) -> list[ChatMessage[str]]:
+    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
         """Get the ancestry chain of a message.
 
         Traverses parent_id chain to build full history.
@@ -460,10 +447,7 @@ class SQLModelProvider(StorageProvider):
 
             return results
 
-    async def get_session_stats(
-        self,
-        filters: StatsFilters,
-    ) -> dict[str, dict[str, Any]]:
+    async def get_session_stats(self, filters: StatsFilters) -> dict[str, dict[str, Any]]:
         """Get statistics using SQL aggregations."""
         from agentpool_storage.sql_provider.models import Conversation, Message
 
@@ -508,12 +492,7 @@ class SQLModelProvider(StorageProvider):
         # Use base class aggregation
         return self.aggregate_stats(rows, filters.group_by)
 
-    async def reset(
-        self,
-        *,
-        agent_name: str | None = None,
-        hard: bool = False,
-    ) -> tuple[int, int]:
+    async def reset(self, *, agent_name: str | None = None, hard: bool = False) -> tuple[int, int]:
         """Reset database storage."""
         from sqlalchemy import text
 
@@ -551,11 +530,7 @@ class SQLModelProvider(StorageProvider):
             await session.commit()
         return conv_count, msg_count
 
-    async def get_session_counts(
-        self,
-        *,
-        agent_name: str | None = None,
-    ) -> tuple[int, int]:
+    async def get_session_counts(self, *, agent_name: str | None = None) -> tuple[int, int]:
         """Get conversation and message counts."""
         from agentpool_storage.sql_provider import Conversation, Message
 
@@ -578,10 +553,7 @@ class SQLModelProvider(StorageProvider):
 
         return conv_count, msg_count
 
-    async def delete_conversation_messages(
-        self,
-        session_id: str,
-    ) -> int:
+    async def delete_session_messages(self, session_id: str) -> int:
         """Delete all messages for a session."""
         from sqlalchemy import delete, func
 

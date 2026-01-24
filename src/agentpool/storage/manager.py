@@ -397,11 +397,7 @@ class StorageManager:
             current_session_only=current_session_only,
         )
 
-    async def update_session_title(
-        self,
-        session_id: str,
-        title: str,
-    ) -> None:
+    async def update_session_title(self, session_id: str, title: str) -> None:
         """Update conversation title in all providers.
 
         Args:
@@ -411,10 +407,7 @@ class StorageManager:
         for provider in self.providers:
             await provider.update_session_title(session_id, title)
 
-    async def get_session_title(
-        self,
-        session_id: str,
-    ) -> str | None:
+    async def get_session_title(self, session_id: str) -> str | None:
         """Get the title of a conversation.
 
         Args:
@@ -426,10 +419,7 @@ class StorageManager:
         provider = self.get_history_provider()
         return await provider.get_session_title(session_id)
 
-    async def get_session_titles(
-        self,
-        session_ids: list[str],
-    ) -> dict[str, str | None]:
+    async def get_session_titles(self, session_ids: list[str]) -> dict[str, str | None]:
         """Get titles for multiple conversations.
 
         Args:
@@ -450,10 +440,7 @@ class StorageManager:
                 titles[conv_id] = None
         return titles
 
-    async def get_message_counts(
-        self,
-        session_ids: list[str],
-    ) -> dict[str, int]:
+    async def get_message_counts(self, session_ids: list[str]) -> dict[str, int]:
         """Get message counts for multiple conversations.
 
         Args:
@@ -559,7 +546,7 @@ class StorageManager:
         )
 
     @method_spawner
-    async def delete_conversation_messages(
+    async def delete_session_messages(
         self,
         session_id: str,
     ) -> int:
@@ -577,7 +564,7 @@ class StorageManager:
         total_deleted = 0
         for provider in self.providers:
             try:
-                deleted = await provider.delete_conversation_messages(session_id)
+                deleted = await provider.delete_session_messages(session_id)
                 total_deleted += deleted
             except NotImplementedError:
                 # Provider doesn't support deletion (e.g., write-only log)
@@ -609,7 +596,7 @@ class StorageManager:
             Tuple of (deleted_count, added_count)
         """
         # First delete existing messages
-        deleted = await self.delete_conversation_messages(session_id)
+        deleted = await self.delete_session_messages(session_id)
 
         # Then log new messages
         added = 0
