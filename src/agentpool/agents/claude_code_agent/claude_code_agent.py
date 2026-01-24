@@ -1467,18 +1467,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             return result if limit is None else result[:limit]
 
     async def load_session(self, session_id: str) -> SessionData | None:
-        """Load and restore a session from Claude storage.
-
-        Loads session data from Claude JSONL files and restores the conversation
-        history for this agent. This also reconnects to the Claude SDK with the
-        loaded session ID to properly resume the conversation.
-
-        Args:
-            session_id: Unique identifier for the session to load
-
-        Returns:
-            SessionData if session was found and loaded, None otherwise
-        """
+        """Load and restore a session from Claude storage (requires reconnect)."""
         try:  # Load conversation messages from Claude storage
             messages = await self._claude_storage.get_conversation_messages(session_id=session_id)
         except Exception:
