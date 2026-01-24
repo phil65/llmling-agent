@@ -255,13 +255,10 @@ def build_pydantic_messages(  # noqa: PLR0915
         if user_content:
             user_part = UserPromptPart(content=user_content, timestamp=timestamp)
             result.append(ModelRequest(parts=[user_part], timestamp=timestamp))
-
         return result
-
     # Assistant message - may contain both tool calls and results
     response_parts: list[TextPart | ToolCallPart | ThinkingPart] = []
     tool_return_parts: list[ToolReturnPart] = []
-
     # Build usage
     usage = RequestUsage()
     if isinstance(msg, AssistantMessage) and msg.tokens:
@@ -271,7 +268,6 @@ def build_pydantic_messages(  # noqa: PLR0915
             cache_read_tokens=msg.tokens.cache.read,
             cache_write_tokens=msg.tokens.cache.write,
         )
-
     for part in parts:
         if isinstance(part, OpenCodeTextPart) and part.text:
             response_parts.append(TextPart(content=part.text))
@@ -295,20 +291,17 @@ def build_pydantic_messages(  # noqa: PLR0915
     # Add the response if we have parts
     if response_parts:
         # AssistantMessage only has model_id, not model
-        model_name = msg.model_id if isinstance(msg, AssistantMessage) else None
         result.append(
             ModelResponse(
                 parts=response_parts,
                 usage=usage,
-                model_name=model_name,
+                model_name=msg.model_id if isinstance(msg, AssistantMessage) else None,
                 timestamp=timestamp,
             )
         )
-
     # Add tool returns as a separate request (simulating user sending results back)
     if tool_return_parts:
         result.append(ModelRequest(parts=tool_return_parts, timestamp=timestamp))
-
     return result
 
 

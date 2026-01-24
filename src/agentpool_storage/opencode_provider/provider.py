@@ -352,8 +352,7 @@ class OpenCodeStorageProvider(StorageProvider):
         for session_id, session_path in self._list_sessions():
             if query.name and session_id != query.name:
                 continue
-            session = helpers.read_session(session_path)
-            if not session:
+            if not session_path.exists():
                 continue
             oc_messages = self._read_messages(session_id)
             # Read parts for all messages
@@ -540,7 +539,6 @@ class OpenCodeStorageProvider(StorageProvider):
                     tokens = oc_msg.tokens.input + oc_msg.tokens.output
 
                 msg_timestamp = ms_to_datetime(oc_msg.time.created)
-
                 # Group by specified criterion
                 match filters.group_by:
                     case "model":
@@ -576,7 +574,7 @@ class OpenCodeStorageProvider(StorageProvider):
         conv_count = 0
         msg_count = 0
         for session_id, session_path in self._list_sessions():
-            if not helpers.read_session(session_path):
+            if not session_path.exists():
                 continue
             if oc_messages := self._read_messages(session_id):
                 conv_count += 1
@@ -647,9 +645,8 @@ class OpenCodeStorageProvider(StorageProvider):
         # Fast path: if we know the session, load messages once and traverse in-memory
         ancestors: list[ChatMessage[str]] = []
         if session_id:
-            oc_messages = self._read_messages(session_id)
             # Build ID -> message index for O(1) lookups
-            msg_by_id = {msg.id: msg for msg in oc_messages}
+            msg_by_id = {msg.id: msg for msg in self._read_messages(session_id)}
             current_id: str | None = message_id
             while current_id:
                 oc_msg = msg_by_id.get(current_id)
@@ -724,7 +721,6 @@ class OpenCodeStorageProvider(StorageProvider):
         new_session_dir = self.sessions_path / project_id
         new_session_dir.mkdir(parents=True, exist_ok=True)
         # Create empty session file (will be populated when messages added)
-        new_session_path = new_session_dir / f"{new_session_id}.json"
         # Create new session metadata
         fork_title = f"{source_session.title} (fork)" if source_session.title else "Forked Session"
         new_session = Session(
@@ -739,9 +735,9 @@ class OpenCodeStorageProvider(StorageProvider):
             ),
             summary=SessionSummary(files=0, additions=0, deletions=0),
         )
-
         # Write session file
         dct = new_session.model_dump(by_alias=True)
+        new_session_path = new_session_dir / f"{new_session_id}.json"
         new_session_path.write_text(anyenv.dump_json(dct, indent=True), encoding="utf-8")
         # Create message and part directories
         (self.messages_path / new_session_id).mkdir(parents=True, exist_ok=True)
