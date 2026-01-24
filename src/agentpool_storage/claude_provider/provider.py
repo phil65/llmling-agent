@@ -625,16 +625,9 @@ class ClaudeStorageProvider(StorageProvider):
         """
         # Find source session
         sessions = self._list_sessions()
-        source_path = None
-        for sid, spath in sessions:
-            if sid == source_session_id:
-                source_path = spath
-                break
-
+        source_path = next((spath for sid, spath in sessions if sid == source_session_id), None)
         if not source_path:
-            msg = f"Source conversation not found: {source_session_id}"
-            raise ValueError(msg)
-
+            raise ValueError(f"Source conversation not found: {source_session_id}")
         # Read source entries
         entries = _read_session(source_path)
         # Find fork point
