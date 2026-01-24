@@ -122,11 +122,7 @@ class FileProvider(StorageProvider):
         import yamling
 
         if self.path.exists():
-            self._data = yamling.load_file(
-                self.path,
-                self.format,  # pyright: ignore
-                verify_type=StorageData,
-            )
+            self._data = yamling.load_file(self.path, self.format, verify_type=StorageData)
         self._save()
 
     def _save(self) -> None:
@@ -167,13 +163,11 @@ class FileProvider(StorageProvider):
             if msg["token_usage"]:
                 usage = msg["token_usage"]
                 cost = Decimal(msg["cost"] or 0.0)
-                cost_info = TokenCost(
-                    token_usage=RunUsage(
-                        input_tokens=usage["prompt"],
-                        output_tokens=usage["completion"],
-                    ),
-                    total_cost=cost,
+                run_usage = RunUsage(
+                    input_tokens=usage["prompt"],
+                    output_tokens=usage["completion"],
                 )
+                cost_info = TokenCost(token_usage=run_usage, total_cost=cost)
 
             chat_message = ChatMessage[str](
                 content=msg["content"],
@@ -264,10 +258,8 @@ class FileProvider(StorageProvider):
 
     async def get_session_title(self, session_id: str) -> str | None:
         """Get the title of a conversation."""
-        for conv in self._data["conversations"]:
-            if conv["id"] == session_id:
-                return conv.get("title")
-        return None
+        conv = next((c for c in self._data["conversations"] if c["id"] == session_id), None)
+        return conv.get("title") if conv else None
 
     async def get_session_messages(
         self,
@@ -276,25 +268,20 @@ class FileProvider(StorageProvider):
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
         """Get all messages for a session."""
-        messages: list[ChatMessage[str]] = []
-        for msg in self._data["messages"]:
-            if msg["session_id"] != session_id:
-                continue
-            chat_msg = self._to_chat_message(msg)
-            messages.append(chat_msg)
-
+        messages = [
+            self._to_chat_message(msg)
+            for msg in self._data["messages"]
+            if msg["session_id"] == session_id
+        ]
         # Sort by timestamp
         messages.sort(key=lambda m: m.timestamp or get_now())
-
         if not include_ancestors or not messages:
             return messages
-
         # Get ancestor chain if first message has parent_id
         first_msg = messages[0]
         if first_msg.parent_id:
             ancestors = await self.get_message_ancestry(first_msg.parent_id, session_id=session_id)
             return ancestors + messages
-
         return messages
 
     def _to_chat_message(self, msg: MessageData) -> ChatMessage[str]:
@@ -327,7 +314,6 @@ class FileProvider(StorageProvider):
             kwargs["timestamp"] = datetime.fromisoformat(msg["timestamp"])
         if msg.get("message_id"):
             kwargs["message_id"] = msg["message_id"]
-
         return ChatMessage[str](**kwargs)
 
     async def get_message(
@@ -337,10 +323,14 @@ class FileProvider(StorageProvider):
         session_id: str | None = None,
     ) -> ChatMessage[str] | None:
         """Get a single message by ID."""
-        for msg in self._data["messages"]:
-            if msg.get("message_id") == message_id:
-                return self._to_chat_message(msg)
-        return None
+        return next(
+            (
+                self._to_chat_message(m)
+                for m in self._data["messages"]
+                if m.get("message_id") == message_id
+            ),
+            None,
+        )
 
     async def get_message_ancestry(
         self,
@@ -351,7 +341,6 @@ class FileProvider(StorageProvider):
         """Get the ancestry chain of a message."""
         ancestors: list[ChatMessage[str]] = []
         current_id: str | None = message_id
-
         while current_id:
             msg = await self.get_message(current_id, session_id=session_id)
             if not msg:
@@ -421,7 +410,6 @@ class FileProvider(StorageProvider):
         }
         self._data["conversations"].append(new_conv)
         self._save()
-
         return fork_point_id
 
     async def log_command(

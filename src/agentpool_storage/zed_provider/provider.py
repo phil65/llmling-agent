@@ -289,22 +289,15 @@ class ZedStorageProvider(StorageProvider):
         """Get counts of conversations and messages."""
         conv_count = 0
         msg_count = 0
-        threads = self._list_threads()
-        for thread_id, _summary, _updated_at in threads:
-            thread = self._load_thread(thread_id)
-            if thread is None:
-                continue
-
-            conv_count += 1
-            msg_count += len(thread.messages)
+        for thread_id, _summary, _updated_at in self._list_threads():
+            if thread := self._load_thread(thread_id):
+                conv_count += 1
+                msg_count += len(thread.messages)
         return conv_count, msg_count
 
     async def get_session_title(self, session_id: str) -> str | None:
         """Get the title of a conversation."""
-        thread = self._load_thread(session_id)
-        if thread is None:
-            return None
-        return thread.title
+        return thread.title if (thread := self._load_thread(session_id)) else None
 
     async def get_session_messages(
         self,
@@ -325,14 +318,12 @@ class ZedStorageProvider(StorageProvider):
         Note:
             Zed threads don't have parent_id chain, so include_ancestors has no effect.
         """
-        thread = self._load_thread(session_id)
-        if thread is None:
-            return []
-
-        messages = helpers.thread_to_chat_messages(thread, session_id)
-        # Sort by timestamp (though they should already be in order)
-        messages.sort(key=lambda m: m.timestamp or get_now())
-        return messages
+        if thread := self._load_thread(session_id):
+            messages = helpers.thread_to_chat_messages(thread, session_id)
+            # Sort by timestamp (though they should already be in order)
+            messages.sort(key=lambda m: m.timestamp or get_now())
+            return messages
+        return []
 
     async def get_message(
         self,

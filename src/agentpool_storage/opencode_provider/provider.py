@@ -359,7 +359,7 @@ class OpenCodeStorageProvider(StorageProvider):
             msg_parts_map = {oc_msg.id: self._read_parts(oc_msg.id) for oc_msg in oc_messages}
             for oc_msg in oc_messages:
                 parts = msg_parts_map.get(oc_msg.id, [])
-                chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
+                chat_msg = helpers.to_chat_message(oc_msg, parts, session_id)
 
                 # Apply filters
                 if query.agents and chat_msg.name not in query.agents:
@@ -451,7 +451,7 @@ class OpenCodeStorageProvider(StorageProvider):
             total_cost = 0.0
             for oc_msg in oc_messages:
                 parts = msg_parts_map.get(oc_msg.id, [])
-                chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
+                chat_msg = helpers.to_chat_message(oc_msg, parts, session_id)
                 chat_messages.append(chat_msg)
 
                 # Only assistant messages have tokens and cost
@@ -593,7 +593,7 @@ class OpenCodeStorageProvider(StorageProvider):
         messages: list[ChatMessage[str]] = []
         for oc_msg in self._read_messages(session_id):
             parts = self._read_parts(oc_msg.id)
-            chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
+            chat_msg = helpers.to_chat_message(oc_msg, parts, session_id)
             messages.append(chat_msg)
 
         # Sort by timestamp
@@ -620,7 +620,7 @@ class OpenCodeStorageProvider(StorageProvider):
             for oc_msg in self._read_messages(sid):
                 if oc_msg.id == message_id:
                     parts = self._read_parts(oc_msg.id)
-                    return helpers.message_to_chat_message(oc_msg, parts, sid)
+                    return helpers.to_chat_message(oc_msg, parts, sid)
 
         return None
 
@@ -653,7 +653,7 @@ class OpenCodeStorageProvider(StorageProvider):
                 if not oc_msg:
                     break
                 parts = self._read_parts(oc_msg.id)
-                chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
+                chat_msg = helpers.to_chat_message(oc_msg, parts, session_id)
                 ancestors.append(chat_msg)
                 current_id = chat_msg.parent_id
             ancestors.reverse()

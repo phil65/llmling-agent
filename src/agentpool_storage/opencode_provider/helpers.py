@@ -324,27 +324,15 @@ def read_session(session_path: Path) -> Session | None:
         return None
 
 
-def message_to_chat_message(
+def to_chat_message(
     msg: OpenCodeMessage,
     parts: list[OpenCodePart],
     session_id: str,
 ) -> ChatMessage[str]:
-    """Convert OpenCode message + parts to ChatMessage.
-
-    Args:
-        msg: OpenCode message metadata
-        parts: OpenCode message parts
-        session_id: Conversation/session ID
-
-    Returns:
-        ChatMessage suitable for agentpool storage
-    """
+    """Convert OpenCode message + parts to ChatMessage."""
     timestamp = ms_to_datetime(msg.time.created)
-    # Extract text content for display
     content = extract_text_content(parts)
-    # Build pydantic-ai messages
     pydantic_messages = build_pydantic_messages(msg, parts, timestamp)
-    # Extract cost info (only for assistant messages)
     cost_info = None
     model_name = None
     parent_id = None
