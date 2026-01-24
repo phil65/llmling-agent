@@ -335,9 +335,7 @@ class ClaudeStorageProvider(StorageProvider):
 
         result: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
         # Use cwd filter at filesystem level for efficiency
-        sessions = self._list_sessions(project_path=filters.cwd)
-
-        for session_id, session_path in sessions:
+        for session_id, session_path in self._list_sessions(project_path=filters.cwd):
             entries = _read_session(session_path)
             if not entries:
                 continue
