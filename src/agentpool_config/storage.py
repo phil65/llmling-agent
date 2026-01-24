@@ -250,13 +250,53 @@ class ZedStorageConfig(BaseStorageProviderConfig):
         return ZedStorageProvider(self)
 
 
+class ACPStorageConfig(BaseStorageProviderConfig):
+    """ACP server storage configuration.
+
+    Read-only provider that queries a connected ACP server for session history.
+    The connection is established at runtime by the agent, not from config.
+    """
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "ACP Storage"})
+
+    type: Literal["acp"] = Field("acp", init=False)
+    """ACP server storage configuration."""
+
+    def get_provider(self) -> StorageProvider:
+        """Create an ACP storage provider instance."""
+        from agentpool_storage.acp_provider import ACPStorageProvider
+
+        return ACPStorageProvider(self)
+
+
+class CodexStorageConfig(BaseStorageProviderConfig):
+    """Codex server storage configuration.
+
+    Read-only provider that queries a connected Codex server for session history.
+    The connection is established at runtime by the agent, not from config.
+    """
+
+    model_config = ConfigDict(json_schema_extra={"x-doc-title": "Codex Storage"})
+
+    type: Literal["codex"] = Field("codex", init=False)
+    """Codex server storage configuration."""
+
+    def get_provider(self) -> StorageProvider:
+        """Create a Codex storage provider instance."""
+        from agentpool_storage.codex_provider import CodexStorageProvider
+
+        return CodexStorageProvider(self)
+
+
 StorageProviderConfig = Annotated[
     SQLStorageConfig
     | FileStorageConfig
     | MemoryStorageConfig
     | ClaudeStorageConfig
     | OpenCodeStorageConfig
-    | ZedStorageConfig,
+    | ZedStorageConfig
+    | ACPStorageConfig
+    | CodexStorageConfig,
     Field(discriminator="type"),
 ]
 

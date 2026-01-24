@@ -201,7 +201,7 @@ class StorageManager:
         self,
         query: SessionQuery,
         preferred_provider: str | None = None,
-    ) -> list[ChatMessage[str]]:
+    ) -> list[ChatMessage[Any]]:
         """Get messages matching query.
 
         Args:
@@ -481,7 +481,7 @@ class StorageManager:
         session_id: str,
         *,
         include_ancestors: bool = False,
-    ) -> list[ChatMessage[str]]:
+    ) -> list[ChatMessage[Any]]:
         """Get all messages for a session.
 
         Args:
@@ -497,7 +497,7 @@ class StorageManager:
         return await provider.get_session_messages(session_id, include_ancestors=include_ancestors)
 
     @method_spawner
-    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+    async def get_message(self, message_id: str) -> ChatMessage[Any] | None:
         """Get a single message by ID.
 
         Args:
@@ -510,7 +510,7 @@ class StorageManager:
         return await provider.get_message(message_id)
 
     @method_spawner
-    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[Any]]:
         """Get the ancestry chain of a message.
 
         Traverses the parent_id chain to build full history leading to this message.

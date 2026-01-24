@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 import sqlite3
 from typing import TYPE_CHECKING, Any, Literal
-
+import anyenv
 from pydantic import AliasChoices, BaseModel, Field
 from pydantic_ai.messages import (
     BinaryContent,
@@ -186,7 +186,7 @@ def _decompress_thread(data: bytes, data_type: str) -> ZedThread:
     else:
         json_data = data
 
-    thread_dict = json.loads(json_data)
+    thread_dict = anyenv.load_json(json_data, return_type=dict)
     return ZedThread.model_validate(thread_dict)
 
 

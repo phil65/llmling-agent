@@ -85,7 +85,7 @@ class StorageProvider:
         """Check if this provider should log the given agent."""
         return self.config.agents is None or agent_name in self.config.agents
 
-    async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
+    async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[Any]]:
         """Get messages matching query (if supported)."""
         msg = f"{self.__class__.__name__} does not support loading history"
         raise NotImplementedError(msg)
@@ -149,7 +149,7 @@ class StorageProvider:
         session_id: str,
         *,
         include_ancestors: bool = False,
-    ) -> list[ChatMessage[str]]:
+    ) -> list[ChatMessage[Any]]:
         """Get all messages for a session.
 
         Args:
@@ -167,7 +167,7 @@ class StorageProvider:
     async def get_message(
         self,
         message_id: str,
-    ) -> ChatMessage[str] | None:
+    ) -> ChatMessage[Any] | None:
         """Get a single message by ID.
 
         Args:
@@ -181,7 +181,7 @@ class StorageProvider:
     async def get_message_ancestry(
         self,
         message_id: str,
-    ) -> list[ChatMessage[str]]:
+    ) -> list[ChatMessage[Any]]:
         """Get the ancestry chain of a message.
 
         Traverses the parent_id chain to build full history leading to this message.
@@ -275,7 +275,7 @@ class StorageProvider:
     async def get_sessions(
         self,
         filters: QueryFilters,
-    ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
+    ) -> list[tuple[ConversationData, Sequence[ChatMessage[Any]]]]:
         """Get filtered conversations with their messages.
 
         Args:
