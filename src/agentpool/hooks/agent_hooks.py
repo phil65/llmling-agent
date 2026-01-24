@@ -11,6 +11,8 @@ from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from agentpool.hooks.base import Hook, HookInput
 
 
@@ -31,10 +33,10 @@ class AgentHooks:
         post_tool_use: Hooks executed after a tool completes.
     """
 
-    pre_run: list[Hook] = field(default_factory=list)
-    post_run: list[Hook] = field(default_factory=list)
-    pre_tool_use: list[Hook] = field(default_factory=list)
-    post_tool_use: list[Hook] = field(default_factory=list)
+    pre_run: Sequence[Hook] = field(default_factory=list)
+    post_run: Sequence[Hook] = field(default_factory=list)
+    pre_tool_use: Sequence[Hook] = field(default_factory=list)
+    post_tool_use: Sequence[Hook] = field(default_factory=list)
 
     def has_hooks(self) -> bool:
         """Check if any hooks are configured."""
@@ -157,7 +159,7 @@ class AgentHooks:
         return await self._run_hooks(self.post_tool_use, input_data)
 
     @staticmethod
-    async def _run_hooks(hooks: list[Hook], input_data: HookInput) -> HookResult:
+    async def _run_hooks(hooks: Sequence[Hook], input_data: HookInput) -> HookResult:
         """Run a list of hooks and combine their results.
 
         Hooks are run in parallel. Results are combined:

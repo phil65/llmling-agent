@@ -111,9 +111,7 @@ async def test_pre_tool_hook_allow():
         return "tool_result"
 
     hooks = AgentHooks(pre_tool_use=[CallableHook(event="pre_tool_use", fn=allow_hook)])
-    agent = Agent(model="test", hooks=hooks, tools=[simple_tool])
-
-    async with agent:
+    async with Agent(model="test", hooks=hooks, tools=[simple_tool]) as agent:
         # Just verify the hooks are set up correctly
         assert agent.hooks is not None
         assert len(agent.hooks.pre_tool_use) == 1
@@ -127,9 +125,7 @@ async def test_pre_tool_hook_with_matcher():
     hooks = AgentHooks(
         pre_tool_use=[CallableHook(event="pre_tool_use", fn=deny_hook, matcher="other_tool")]
     )
-    agent = Agent(model="test", hooks=hooks)
-
-    async with agent:
+    async with Agent(model="test", hooks=hooks) as agent:
         # Run should succeed because matcher doesn't match any tool
         result = await agent.run("Hello")
         assert result.content is not None
@@ -141,11 +137,8 @@ async def test_pre_tool_hook_with_matcher():
 async def test_post_tool_hook():
     """Test post-tool hook setup."""
     reset_hook_state()
-
     hooks = AgentHooks(post_tool_use=[CallableHook(event="post_tool_use", fn=record_result_hook)])
-    agent = Agent(model="test", hooks=hooks)
-
-    async with agent:
+    async with Agent(model="test", hooks=hooks) as agent:
         assert agent.hooks is not None
         assert len(agent.hooks.post_tool_use) == 1
 
@@ -157,7 +150,6 @@ def test_agent_hooks_has_hooks():
     """Test has_hooks method."""
     empty = AgentHooks()
     assert not empty.has_hooks()
-
     with_pre_run = AgentHooks(pre_run=[CallableHook(event="pre_run", fn=allow_hook)])
     assert with_pre_run.has_hooks()
 
