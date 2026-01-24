@@ -158,6 +158,9 @@ logger = get_logger(__name__)
 # Format: mcp__agentpool-{agent_name}-tools__{tool_name}
 _MCP_TOOL_PATTERN = re.compile(r"^mcp__agentpool-(.+)-tools__(.+)$")
 
+# Slash commands that don't make sense when Claude Code is used as a sub-agent
+EXCLUDED_SLASH_COMMANDS = frozenset({"login", "logout", "release-notes", "todos"})
+
 # Thinking modes for extended thinking budget allocation
 ThinkingMode = Literal["off", "on"]
 # Map thinking mode to prompt instruction
@@ -753,16 +756,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         server_info = await self.get_server_info()
         # Commands to skip - not useful or problematic in this context
-        unsupported = {"login", "logout", "release-notes", "todos"}
-        for cmd_info in server_info.commands:
-            name = cmd_info.name
-            if not name or name in unsupported:
-                continue
-
-            command = self._create_claude_code_command(cmd_info)
+        commands = [
+            self._create_claude_code_command(cmd_info)
+            for cmd_info in server_info.commands
+            if cmd_info.name and cmd_info.name not in EXCLUDED_SLASH_COMMANDS
+        ]
+        for command in commands:
             self._command_store.register_command(command, replace=True)
-        command_count = len(self._command_store.list_commands())
-        self.log.info("Populated command store", command_count=command_count)
+        self.log.info("Populated command store", command_count=len(commands))
 
     def _create_claude_code_command(self, cmd_info: ClaudeCodeCommandInfo) -> Command:
         """Create a slashed Command from Claude Code command info.

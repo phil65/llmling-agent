@@ -70,7 +70,6 @@ async def _get_tool_confirmation(
         tool_name=tool_name,
         tool_description=tool_description,
         args=args,
-        message_history=None,
     )
 
 
