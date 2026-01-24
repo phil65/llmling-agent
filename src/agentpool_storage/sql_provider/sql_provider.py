@@ -226,19 +226,31 @@ class SQLModelProvider(StorageProvider):
             # Find the first message's parent_id to get ancestor chain
             first_msg = messages[0]
             if first_msg.parent_id:
-                ancestors = await self.get_message_ancestry(first_msg.parent_id)
+                ancestors = await self.get_message_ancestry(
+                    first_msg.parent_id, session_id=session_id
+                )
                 return ancestors + messages
 
             return messages
 
-    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+    async def get_message(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> ChatMessage[str] | None:
         """Get a single message by ID."""
         async with AsyncSession(self.engine) as session:
             result = await session.execute(select(Message).where(Message.id == message_id))
             msg = result.scalar_one_or_none()
             return to_chat_message(msg) if msg else None
 
-    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+    async def get_message_ancestry(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> list[ChatMessage[str]]:
         """Get the ancestry chain of a message.
 
         Traverses parent_id chain to build full history.

@@ -160,11 +160,14 @@ class StorageProvider:
     async def get_message(
         self,
         message_id: str,
+        *,
+        session_id: str | None = None,
     ) -> ChatMessage[Any] | None:
         """Get a single message by ID.
 
         Args:
             message_id: ID of the message
+            session_id: Optional session ID hint for faster lookup
 
         Returns:
             The message if found, None otherwise.
@@ -174,6 +177,8 @@ class StorageProvider:
     async def get_message_ancestry(
         self,
         message_id: str,
+        *,
+        session_id: str | None = None,
     ) -> list[ChatMessage[Any]]:
         """Get the ancestry chain of a message.
 
@@ -182,6 +187,7 @@ class StorageProvider:
 
         Args:
             message_id: ID of the message to get ancestry for
+            session_id: Optional session ID hint for faster lookup
 
         Returns:
             List of messages from oldest ancestor to the specified message.

@@ -683,39 +683,51 @@ class OpenCodeStorageProvider(StorageProvider):
         # Get ancestor chain if first message has parent_id
         first_msg = messages[0]
         if first_msg.parent_id:
-            ancestors = await self.get_message_ancestry(first_msg.parent_id)
+            ancestors = await self.get_message_ancestry(first_msg.parent_id, session_id=session_id)
             return ancestors + messages
 
         return messages
 
-    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+    async def get_message(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> ChatMessage[str] | None:
         """Get a single message by ID.
 
         Args:
             message_id: ID of the message
+            session_id: Optional session ID hint for faster lookup
 
         Returns:
             The message if found, None otherwise
         """
-        # Search all sessions for the message
-        sessions = self._list_sessions()
-
-        for session_id, _session_path in sessions:
-            oc_messages = self._read_messages(session_id)
+        # If session_id is provided, search only that session
+        sessions = [(session_id, None)] if session_id else self._list_sessions()
+        for sid, _session_path in sessions:
+            assert sid is not None
+            oc_messages = self._read_messages(sid)
             for oc_msg in oc_messages:
                 if oc_msg.id == message_id:
                     parts = self._read_parts(oc_msg.id)
-                    return helpers.message_to_chat_message(oc_msg, parts, session_id)
+                    return helpers.message_to_chat_message(oc_msg, parts, sid)
 
         return None
 
-    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+    async def get_message_ancestry(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> list[ChatMessage[str]]:
         """Get the ancestry chain of a message.
 
         Traverses parent_id chain to build full history.
 
         Args:
             message_id: ID of the message
+            session_id: Optional session ID hint for faster lookup
 
         Returns:
             List of messages from oldest ancestor to the specified message
@@ -724,7 +736,7 @@ class OpenCodeStorageProvider(StorageProvider):
         current_id: str | None = message_id
 
         while current_id:
-            msg = await self.get_message(current_id)
+            msg = await self.get_message(current_id, session_id=session_id)
             if not msg:
                 break
             ancestors.append(msg)

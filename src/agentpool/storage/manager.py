@@ -484,32 +484,44 @@ class StorageManager:
         return await provider.get_session_messages(session_id, include_ancestors=include_ancestors)
 
     @method_spawner
-    async def get_message(self, message_id: str) -> ChatMessage[Any] | None:
+    async def get_message(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> ChatMessage[Any] | None:
         """Get a single message by ID.
 
         Args:
             message_id: ID of the message
+            session_id: Optional session ID hint for faster lookup
 
         Returns:
             The message if found, None otherwise.
         """
         provider = self.get_history_provider()
-        return await provider.get_message(message_id)
+        return await provider.get_message(message_id, session_id=session_id)
 
     @method_spawner
-    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[Any]]:
+    async def get_message_ancestry(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> list[ChatMessage[Any]]:
         """Get the ancestry chain of a message.
 
         Traverses the parent_id chain to build full history leading to this message.
 
         Args:
             message_id: ID of the message
+            session_id: Optional session ID hint for faster lookup
 
         Returns:
             List of messages from oldest ancestor to the specified message.
         """
         provider = self.get_history_provider()
-        return await provider.get_message_ancestry(message_id)
+        return await provider.get_message_ancestry(message_id, session_id=session_id)
 
     @method_spawner
     async def fork_conversation(

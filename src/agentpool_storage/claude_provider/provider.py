@@ -153,6 +153,24 @@ class ClaudeStorageProvider(StorageProvider):
         """Get the directory for a project's conversations."""
         return self.projects_path / encode_project_path(project_path)
 
+    def _find_session_path(self, session_id: str) -> Path | None:
+        """Find the file path for a session by ID.
+
+        Searches across all project directories.
+
+        Args:
+            session_id: Session ID (file stem)
+
+        Returns:
+            Path to the session file, or None if not found
+        """
+        for project_dir in self.projects_path.iterdir():
+            if project_dir.is_dir():
+                candidate = project_dir / f"{session_id}.jsonl"
+                if candidate.exists():
+                    return candidate
+        return None
+
     def _list_sessions(self, project_path: str | None = None) -> list[tuple[str, Path]]:
         """List all sessions, optionally filtered by project.
 
@@ -489,22 +507,33 @@ class ClaudeStorageProvider(StorageProvider):
         # Get ancestor chain if first message has parent_id
         first_msg = messages[0]
         if first_msg.parent_id:
-            ancestors = await self.get_message_ancestry(first_msg.parent_id)
+            ancestors = await self.get_message_ancestry(first_msg.parent_id, session_id=session_id)
             return ancestors + messages
 
         return messages
 
-    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+    async def get_message(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> ChatMessage[str] | None:
         """Get a single message by ID.
 
         Args:
             message_id: UUID of the message
+            session_id: Optional session ID hint for faster lookup
 
         Returns:
             The message if found, None otherwise
         """
-        # Search all sessions for the message
-        for session_id, session_path in self._list_sessions():
+        # If session_id is provided, search only that session
+        sessions = (
+            [(session_id, p)]
+            if session_id and (p := self._find_session_path(session_id))
+            else self._list_sessions()
+        )
+        for sid, session_path in sessions:
             entries = _read_session(session_path)
             tool_mapping = _build_tool_id_mapping(entries)
             for entry in entries:
@@ -512,17 +541,23 @@ class ClaudeStorageProvider(StorageProvider):
                     isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry))
                     and entry.uuid == message_id
                 ):
-                    return entry_to_chat_message(entry, session_id, tool_mapping)
+                    return entry_to_chat_message(entry, sid, tool_mapping)
 
         return None
 
-    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+    async def get_message_ancestry(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> list[ChatMessage[str]]:
         """Get the ancestry chain of a message.
 
         Traverses parent_uuid chain to build full history.
 
         Args:
             message_id: UUID of the message
+            session_id: Optional session ID hint for faster lookup
 
         Returns:
             List of messages from oldest ancestor to the specified message
@@ -531,7 +566,7 @@ class ClaudeStorageProvider(StorageProvider):
         current_id: str | None = message_id
 
         while current_id:
-            msg = await self.get_message(current_id)
+            msg = await self.get_message(current_id, session_id=session_id)
             if not msg:
                 break
             ancestors.append(msg)

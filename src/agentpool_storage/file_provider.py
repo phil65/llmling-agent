@@ -292,7 +292,7 @@ class FileProvider(StorageProvider):
         # Get ancestor chain if first message has parent_id
         first_msg = messages[0]
         if first_msg.parent_id:
-            ancestors = await self.get_message_ancestry(first_msg.parent_id)
+            ancestors = await self.get_message_ancestry(first_msg.parent_id, session_id=session_id)
             return ancestors + messages
 
         return messages
@@ -330,20 +330,30 @@ class FileProvider(StorageProvider):
 
         return ChatMessage[str](**kwargs)
 
-    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+    async def get_message(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> ChatMessage[str] | None:
         """Get a single message by ID."""
         for msg in self._data["messages"]:
             if msg.get("message_id") == message_id:
                 return self._to_chat_message(msg)
         return None
 
-    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+    async def get_message_ancestry(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> list[ChatMessage[str]]:
         """Get the ancestry chain of a message."""
         ancestors: list[ChatMessage[str]] = []
         current_id: str | None = message_id
 
         while current_id:
-            msg = await self.get_message(current_id)
+            msg = await self.get_message(current_id, session_id=session_id)
             if not msg:
                 break
             ancestors.append(msg)

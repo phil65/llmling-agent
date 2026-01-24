@@ -696,20 +696,26 @@ class ZedStorageProvider(StorageProvider):
         messages.sort(key=lambda m: m.timestamp or get_now())
         return messages
 
-    async def get_message(self, message_id: str) -> ChatMessage[str] | None:
+    async def get_message(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> ChatMessage[str] | None:
         """Get a single message by ID.
 
         Args:
             message_id: ID of the message
+            session_id: Optional session ID (thread_id) hint for faster lookup
 
         Returns:
             The message if found, None otherwise
 
         Note:
-            Zed doesn't store individual message IDs, so this searches all threads.
-            This is inefficient for large datasets.
+            Zed doesn't store individual message IDs, so this searches threads.
         """
-        for thread_id, _summary, _updated_at in self._list_threads():
+        threads = [(session_id, None, None)] if session_id else self._list_threads()
+        for thread_id, _summary, _updated_at in threads:
             thread = self._load_thread(thread_id)
             if thread is None:
                 continue
@@ -718,11 +724,17 @@ class ZedStorageProvider(StorageProvider):
                 return match
         return None
 
-    async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:
+    async def get_message_ancestry(
+        self,
+        message_id: str,
+        *,
+        session_id: str | None = None,
+    ) -> list[ChatMessage[str]]:
         """Get the ancestry chain of a message.
 
         Args:
             message_id: ID of the message
+            session_id: Optional session ID (thread_id) hint for faster lookup
 
         Returns:
             List of messages from oldest ancestor to the specified message
@@ -731,7 +743,7 @@ class ZedStorageProvider(StorageProvider):
             Zed threads don't support parent_id chains, so this only returns
             the single message if found.
         """
-        msg = await self.get_message(message_id)
+        msg = await self.get_message(message_id, session_id=session_id)
         return [msg] if msg else []
 
     async def fork_conversation(
