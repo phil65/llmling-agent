@@ -109,8 +109,8 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.messaging.messages import TokenCost
 from agentpool.sessions.models import SessionData
-from agentpool.utils.time_utils import get_now
 from agentpool.utils.streams import merge_queue_into_iterator
+from agentpool.utils.time_utils import get_now
 
 
 if TYPE_CHECKING:

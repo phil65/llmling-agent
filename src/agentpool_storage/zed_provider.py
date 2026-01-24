@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 import sqlite3
 from typing import TYPE_CHECKING, Any, Literal
+
 import anyenv
 from pydantic import AliasChoices, BaseModel, Field
 from pydantic_ai.messages import (
@@ -713,7 +714,7 @@ class ZedStorageProvider(StorageProvider):
             if thread is None:
                 continue
             messages = _thread_to_chat_messages(thread, thread_id)
-            if match := next((msg for msg in messages if msg.message_id == message_id), None)
+            if match := next((msg for msg in messages if msg.message_id == message_id), None):
                 return match
         return None
 
