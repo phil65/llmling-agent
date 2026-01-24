@@ -92,9 +92,6 @@ class BaseStorageProviderConfig(Schema):
     log_commands: bool = Field(default=True, title="Log commands")
     """Whether to log command executions"""
 
-    log_context: bool = Field(default=True, title="Log context")
-    """Whether to log context messages."""
-
     def get_provider(self) -> StorageProvider:
         """Create a storage provider instance from this configuration."""
         raise NotImplementedError
@@ -357,9 +354,6 @@ class StorageConfig(Schema):
 
     log_commands: bool = Field(default=True, title="Log commands")
     """Whether to log command executions."""
-
-    log_context: bool = Field(default=True, title="Log context")
-    """Whether to log additions to the context."""
 
     title_generation_model: ModelId | str | None = Field(
         default="google-gla:gemini-2.5-flash-lite,openrouter:deepseek/deepseek-r1-0528:free",

@@ -150,7 +150,6 @@ class StorageManager:
                 "log_messages": config.log_messages and self.config.log_messages,
                 "log_sessions": config.log_sessions and self.config.log_sessions,
                 "log_commands": config.log_commands and self.config.log_commands,
-                "log_context": config.log_context and self.config.log_context,
                 "agents": logged_agents,
             }
         )
@@ -322,26 +321,6 @@ class StorageManager:
                 command=command,
                 context_type=context_type,
                 metadata=metadata,
-            )
-
-    @method_spawner
-    async def log_context_message(
-        self,
-        *,
-        session_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        model: str | None = None,
-    ) -> None:
-        """Log context message to all providers."""
-        for provider in self.providers:
-            await provider.log_context_message(
-                session_id=session_id,
-                content=content,
-                role=role,
-                name=name,
-                model=model,
             )
 
     @method_spawner

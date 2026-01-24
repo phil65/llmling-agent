@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, Self
-from uuid import uuid4
 
 from agentpool.utils.tasks import TaskManager
 
@@ -63,7 +62,6 @@ class StorageProvider:
         self.log_messages = config.log_messages
         self.log_sessions = config.log_sessions
         self.log_commands = config.log_commands
-        self.log_context = config.log_context
 
     async def __aenter__(self) -> Self:
         """Initialize provider resources."""
@@ -246,30 +244,6 @@ class StorageProvider:
         """Get command history (if supported)."""
         msg = f"{self.__class__.__name__} does not support retrieving commands"
         raise NotImplementedError(msg)
-
-    async def log_context_message(
-        self,
-        *,
-        session_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        model: str | None = None,
-        message_id: str | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> None:
-        """Log a context message if context logging is enabled."""
-        if not self.log_context:
-            return
-
-        await self.log_message(
-            session_id=session_id,
-            message_id=message_id or str(uuid4()),
-            content=content,
-            role=role,
-            name=name,
-            model=model,
-        )
 
     async def get_sessions(
         self,

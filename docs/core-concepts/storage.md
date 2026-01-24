@@ -105,7 +105,6 @@ storage:
   log_sessions: true      # Enable conversation tracking
 
   log_commands: true          # Enable command logging
-  log_context: true           # Enable context logging
 
   # Provider handling
   filter_mode: and            # How to combine filters (and/override)

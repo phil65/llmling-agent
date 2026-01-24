@@ -856,12 +856,6 @@
           "description": "Whether to log command executions",
           "title": "Log commands",
           "type": "boolean"
-        },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log context messages.",
-          "title": "Log context",
-          "type": "boolean"
         }
       },
       "title": "ACPStorageConfig",
@@ -10146,12 +10140,6 @@
           "title": "Log commands",
           "type": "boolean"
         },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log context messages.",
-          "title": "Log context",
-          "type": "boolean"
-        },
         "path": {
           "default": "~/.claude",
           "description": "Path to Claude data directory (default: ~/.claude)",
@@ -12043,12 +12031,6 @@
           "default": true,
           "description": "Whether to log command executions",
           "title": "Log commands",
-          "type": "boolean"
-        },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log context messages.",
-          "title": "Log context",
           "type": "boolean"
         }
       },
@@ -21151,12 +21133,6 @@
           "title": "Log commands",
           "type": "boolean"
         },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log context messages.",
-          "title": "Log context",
-          "type": "boolean"
-        },
         "path": {
           "description": "Path to storage file (extension determines format unless specified)",
           "examples": [
@@ -28873,12 +28849,6 @@
           "description": "Whether to log command executions",
           "title": "Log commands",
           "type": "boolean"
-        },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log context messages.",
-          "title": "Log context",
-          "type": "boolean"
         }
       },
       "title": "MemoryStorageConfig",
@@ -34475,12 +34445,6 @@
           "title": "Log commands",
           "type": "boolean"
         },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log context messages.",
-          "title": "Log context",
-          "type": "boolean"
-        },
         "path": {
           "default": "~/.local/share/opencode/storage",
           "description": "Path to OpenCode storage directory.",
@@ -38341,12 +38305,6 @@
           "title": "Log commands",
           "type": "boolean"
         },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log context messages.",
-          "title": "Log context",
-          "type": "boolean"
-        },
         "url": {
           "description": "Database URL (e.g. sqlite:///history.db)",
           "examples": [
@@ -41503,12 +41461,6 @@
           "default": true,
           "description": "Whether to log command executions.",
           "title": "Log commands",
-          "type": "boolean"
-        },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log additions to the context.",
-          "title": "Log context",
           "type": "boolean"
         },
         "title_generation_model": {
@@ -48160,12 +48112,6 @@
           "default": true,
           "description": "Whether to log command executions",
           "title": "Log commands",
-          "type": "boolean"
-        },
-        "log_context": {
-          "default": true,
-          "description": "Whether to log context messages.",
-          "title": "Log context",
           "type": "boolean"
         },
         "path": {
