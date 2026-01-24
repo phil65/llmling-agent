@@ -210,7 +210,8 @@ class MemoryStorageProvider(StorageProvider):
             messages.append(_dict_to_chat_message(msg))
 
         # Sort by timestamp
-        messages.sort(key=lambda m: m.timestamp or get_now())
+        now = get_now()
+        messages.sort(key=lambda m: m.timestamp or now)
 
         if not include_ancestors or not messages:
             return messages
@@ -287,7 +288,8 @@ class MemoryStorageProvider(StorageProvider):
             # Find last message in source conversation
             conv_messages = [m for m in self.messages if m["session_id"] == source_session_id]
             if conv_messages:
-                conv_messages.sort(key=lambda m: m.get("timestamp") or get_now())
+                now = get_now()
+                conv_messages.sort(key=lambda m: m.get("timestamp") or now)
                 fork_point_id = conv_messages[-1].get("message_id")
 
         # Create new conversation

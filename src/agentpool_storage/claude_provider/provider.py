@@ -518,7 +518,8 @@ class ClaudeStorageProvider(StorageProvider):
             m for entry in entries if (m := entry_to_chat_message(entry, session_id, tool_mapping))
         ]
         # Sort by timestamp
-        messages.sort(key=lambda m: m.timestamp or get_now())
+        now = get_now()
+        messages.sort(key=lambda m: m.timestamp or now)
         if not include_ancestors or not messages:
             return messages
         # Get ancestor chain if first message has parent_id

@@ -274,7 +274,8 @@ class FileProvider(StorageProvider):
             if msg["session_id"] == session_id
         ]
         # Sort by timestamp
-        messages.sort(key=lambda m: m.timestamp or get_now())
+        now = get_now()
+        messages.sort(key=lambda m: m.timestamp or now)
         if not include_ancestors or not messages:
             return messages
         # Get ancestor chain if first message has parent_id
