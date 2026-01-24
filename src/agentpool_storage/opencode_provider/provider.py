@@ -34,9 +34,17 @@ from pydantic_ai.messages import (
 
 from agentpool.log import get_logger
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
-from agentpool.utils.time_utils import get_now
+from agentpool.utils.time_utils import get_now, ms_to_datetime
+from agentpool_server.opencode_server.models import (
+    AssistantMessage,
+    MessageInfo as OpenCodeMessage,
+    Part as OpenCodePart,
+    Session,
+    SessionSummary,
+    TimeCreatedUpdated,
+)
 from agentpool_storage.base import StorageProvider
-from agentpool_storage.models import TokenUsage
+from agentpool_storage.models import ConversationData as ConvData, TokenUsage
 from agentpool_storage.opencode_provider import helpers
 
 
@@ -46,16 +54,7 @@ if TYPE_CHECKING:
     from agentpool.messaging import ChatMessage, TokenCost
     from agentpool_config.session import SessionQuery
     from agentpool_config.storage import OpenCodeStorageConfig
-    from agentpool_server.opencode_server.models import (
-        MessageInfo as OpenCodeMessage,
-        Part as OpenCodePart,
-    )
-    from agentpool_storage.models import (
-        ConversationData,
-        MessageData,
-        QueryFilters,
-        StatsFilters,
-    )
+    from agentpool_storage.models import ConversationData, MessageData, QueryFilters, StatsFilters
 
 logger = get_logger(__name__)
 
@@ -103,10 +102,9 @@ class OpenCodeStorageProvider(StorageProvider):
 
     def _list_sessions(self, project_id: str | None = None) -> list[tuple[str, Path]]:
         """List all sessions, optionally filtered by project."""
-        sessions: list[tuple[str, Path]] = []
         if not self.sessions_path.exists():
-            return sessions
-
+            return []
+        sessions: list[tuple[str, Path]] = []
         if project_id:
             project_dir = self.sessions_path / project_id
             if project_dir.exists():
@@ -119,13 +117,10 @@ class OpenCodeStorageProvider(StorageProvider):
 
     def _read_messages(self, session_id: str) -> list[OpenCodeMessage]:
         """Read all messages for a session."""
-        from agentpool_server.opencode_server.models import MessageInfo as OpenCodeMessage
-
-        messages: list[OpenCodeMessage] = []
         msg_dir = self.messages_path / session_id
         if not msg_dir.exists():
-            return messages
-
+            return []
+        messages: list[OpenCodeMessage] = []
         adapter = TypeAdapter[OpenCodeMessage](OpenCodeMessage)
         for msg_file in sorted(msg_dir.glob("*.json")):
             try:
@@ -139,13 +134,11 @@ class OpenCodeStorageProvider(StorageProvider):
 
     def _read_parts(self, message_id: str) -> list[OpenCodePart]:
         """Read all parts for a message."""
-        from agentpool_server.opencode_server.models import Part as OpenCodePart
-
-        parts: list[OpenCodePart] = []
         parts_dir = self.parts_path / message_id
         if not parts_dir.exists():
-            return parts
+            return []
 
+        parts: list[OpenCodePart] = []
         adapter = TypeAdapter[Any](OpenCodePart)
         for part_file in sorted(parts_dir.glob("*.json")):
             try:
@@ -190,11 +183,9 @@ class OpenCodeStorageProvider(StorageProvider):
         )
 
         now_ms = int(get_now().timestamp() * 1000)
-
         # Ensure message directory exists
         msg_dir = self.messages_path / session_id
         msg_dir.mkdir(parents=True, exist_ok=True)
-
         # Create OpenCode message based on role
         oc_message: OpenCodeMessage
         if role == "assistant":
@@ -313,12 +304,9 @@ class OpenCodeStorageProvider(StorageProvider):
                                 tool=tool_part.tool,
                                 state=completed_state,
                             )
-                            tool_part_file.write_text(
-                                anyenv.dump_json(
-                                    updated_tool_part.model_dump(by_alias=True), indent=True
-                                ),
-                                encoding="utf-8",
-                            )
+                            dct = updated_tool_part.model_dump(by_alias=True)
+                            text = anyenv.dump_json(dct, indent=True)
+                            tool_part_file.write_text(text, encoding="utf-8")
 
             elif isinstance(msg, ModelResponse):
                 # Model response parts
@@ -336,10 +324,8 @@ class OpenCodeStorageProvider(StorageProvider):
                             time=TimeStartEndOptional(start=now_ms),
                         )
                         part_file = parts_dir / f"{part_id}.json"
-                        part_file.write_text(
-                            anyenv.dump_json(text_part.model_dump(by_alias=True), indent=True),
-                            encoding="utf-8",
-                        )
+                        dct = text_part.model_dump(by_alias=True)
+                        part_file.write_text(anyenv.dump_json(dct, indent=True), encoding="utf-8")
 
                     elif isinstance(part, ThinkingPart):
                         reasoning_part = OpenCodeReasoningPart(
@@ -351,10 +337,8 @@ class OpenCodeStorageProvider(StorageProvider):
                             time=TimeStartEndOptional(start=now_ms),
                         )
                         part_file = parts_dir / f"{part_id}.json"
-                        part_file.write_text(
-                            anyenv.dump_json(reasoning_part.model_dump(by_alias=True), indent=True),
-                            encoding="utf-8",
-                        )
+                        dct = reasoning_part.model_dump(by_alias=True)
+                        part_file.write_text(anyenv.dump_json(dct, indent=True), encoding="utf-8")
 
                     elif isinstance(part, ToolCallPart):
                         # Create tool part with pending status
@@ -368,26 +352,19 @@ class OpenCodeStorageProvider(StorageProvider):
                             state=ToolStatePending(status="pending", input=safe_args_as_dict(part)),
                         )
                         part_file = parts_dir / f"{part_id}.json"
-                        part_file.write_text(
-                            anyenv.dump_json(tool_part.model_dump(by_alias=True), indent=True),
-                            encoding="utf-8",
-                        )
+                        dct = tool_part.model_dump(by_alias=True)
+                        part_file.write_text(anyenv.dump_json(dct, indent=True), encoding="utf-8")
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages based on query."""
         messages: list[ChatMessage[str]] = []
-        sessions = self._list_sessions()
-
-        for session_id, session_path in sessions:
+        for session_id, session_path in self._list_sessions():
             if query.name and session_id != query.name:
                 continue
-
             session = helpers.read_session(session_path)
             if not session:
                 continue
-
             oc_messages = self._read_messages(session_id)
-
             # Read parts for all messages
             msg_parts_map = {oc_msg.id: self._read_parts(oc_msg.id) for oc_msg in oc_messages}
             for oc_msg in oc_messages:
@@ -440,12 +417,11 @@ class OpenCodeStorageProvider(StorageProvider):
             return
 
         try:
-            model_messages = messages_adapter.validate_json(messages)
             await self._write_message(
                 message_id=message_id,
                 session_id=session_id,
                 role=role,
-                model_messages=model_messages,
+                model_messages=messages_adapter.validate_json(messages),
                 parent_id=parent_id,
                 model=model,
                 cost_info=cost_info,
@@ -469,27 +445,20 @@ class OpenCodeStorageProvider(StorageProvider):
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
         """Get filtered conversations with their messages."""
-        from agentpool_server.opencode_server.models import AssistantMessage
-        from agentpool_storage.models import ConversationData as ConvData
-
         result: list[tuple[ConvData, Sequence[ChatMessage[str]]]] = []
-        sessions = self._list_sessions()
-        for session_id, session_path in sessions:
+        for session_id, session_path in self._list_sessions():
             session = helpers.read_session(session_path)
             if not session:
                 continue
-
             oc_messages = self._read_messages(session_id)
             if not oc_messages:
                 continue
-
             # Read parts for all messages
             msg_parts_map = {oc_msg.id: self._read_parts(oc_msg.id) for oc_msg in oc_messages}
             # Convert messages
             chat_messages: list[ChatMessage[str]] = []
             total_tokens = 0
             total_cost = 0.0
-
             for oc_msg in oc_messages:
                 parts = msg_parts_map.get(oc_msg.id, [])
                 chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
@@ -504,19 +473,14 @@ class OpenCodeStorageProvider(StorageProvider):
 
             if not chat_messages:
                 continue
-
-            first_timestamp = helpers.ms_to_datetime(session.time.created)
-
+            first_timestamp = ms_to_datetime(session.time.created)
             # Apply filters
             if filters.agent_name and not any(m.name == filters.agent_name for m in chat_messages):
                 continue
-
             if filters.since and first_timestamp < filters.since:
                 continue
-
             if filters.query and not any(filters.query in m.content for m in chat_messages):
                 continue
-
             # Build MessageData list
             msg_data_list: list[MessageData] = []
             for chat_msg in chat_messages:
@@ -556,9 +520,7 @@ class OpenCodeStorageProvider(StorageProvider):
                 messages=msg_data_list,
                 token_usage=token_usage_data,
             )
-
             result.append((conv_data, chat_messages))
-
             if filters.limit and len(result) >= filters.limit:
                 break
 
@@ -566,8 +528,6 @@ class OpenCodeStorageProvider(StorageProvider):
 
     async def get_session_stats(self, filters: StatsFilters) -> dict[str, dict[str, Any]]:
         """Get conversation statistics."""
-        from agentpool_server.opencode_server.models import AssistantMessage
-
         stats: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"total_tokens": 0, "messages": 0, "models": set(), "total_cost": 0.0}
         )
@@ -576,23 +536,19 @@ class OpenCodeStorageProvider(StorageProvider):
             if not session:
                 continue
 
-            timestamp = helpers.ms_to_datetime(session.time.created)
+            timestamp = ms_to_datetime(session.time.created)
             if timestamp < filters.cutoff:
                 continue
-
-            oc_messages = self._read_messages(session.id)
-
-            for oc_msg in oc_messages:
+            for oc_msg in self._read_messages(session.id):
                 if not isinstance(oc_msg, AssistantMessage):
                     continue
-
                 # AssistantMessage only has model_id
                 model = oc_msg.model_id or "unknown"
                 tokens = 0
                 if oc_msg.tokens:
                     tokens = oc_msg.tokens.input + oc_msg.tokens.output
 
-                msg_timestamp = helpers.ms_to_datetime(oc_msg.time.created)
+                msg_timestamp = ms_to_datetime(oc_msg.time.created)
 
                 # Group by specified criterion
                 match filters.group_by:
@@ -656,16 +612,13 @@ class OpenCodeStorageProvider(StorageProvider):
 
         # Sort by timestamp
         messages.sort(key=lambda m: m.timestamp or get_now())
-
         if not include_ancestors or not messages:
             return messages
-
         # Get ancestor chain if first message has parent_id
         first_msg = messages[0]
         if first_msg.parent_id:
             ancestors = await self.get_message_ancestry(first_msg.parent_id, session_id=session_id)
             return ancestors + messages
-
         return messages
 
     async def get_message(
@@ -754,12 +707,6 @@ class OpenCodeStorageProvider(StorageProvider):
         Returns:
             The ID of the fork point message
         """
-        from agentpool_server.opencode_server.models import (
-            Session,
-            SessionSummary,
-            TimeCreatedUpdated,
-        )
-
         # Find source session
         source_path = next(
             (p for sid, p in self._list_sessions() if sid == source_session_id),

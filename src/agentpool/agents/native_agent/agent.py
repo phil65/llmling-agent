@@ -893,19 +893,15 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """Get available models for this agent.
 
         Uses tokonomics model discovery to fetch models from configured providers.
-        Defaults to openai, anthropic, and gemini if no providers specified.
+        Defaults to models.dev if no providers specified.
 
         Returns:
             List of tokonomics ModelInfo, or None if discovery fails
         """
         from tokonomics.model_discovery import get_all_models
 
-        try:
-            delta = timedelta(days=200)
-            return await get_all_models(providers=self._providers or ["models.dev"], max_age=delta)
-        except Exception:
-            self.log.exception("Failed to discover models")
-            return None
+        delta = timedelta(days=200)
+        return await get_all_models(providers=self._providers or ["models.dev"], max_age=delta)
 
     async def get_modes(self) -> list[ModeCategory]:
         """Get available mode categories for this agent.

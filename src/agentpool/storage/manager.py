@@ -286,11 +286,7 @@ class StorageManager:
 
         # For short prompts, use them directly as title (like Claude Code)
         if prompt_length < 60:  # noqa: PLR2004
-            logger.info(
-                "Using short prompt directly as title",
-                session_id=session_id,
-                title=initial_prompt,
-            )
+            logger.info("Using short prompt as title", session_id=session_id, title=initial_prompt)
             await self.update_session_title(session_id, initial_prompt)
         # For longer prompts, generate semantic title if model configured
         elif self.config.title_generation_model:
