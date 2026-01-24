@@ -555,7 +555,7 @@ class ClaudeStorageProvider(StorageProvider):
             tool_mapping = _build_tool_id_mapping(entries)
             for entry in entries:
                 if (
-                    isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry))
+                    isinstance(entry, ClaudeUserEntry | ClaudeAssistantEntry)
                     and entry.uuid == message_id
                 ):
                     return entry_to_chat_message(entry, sid, tool_mapping)
@@ -585,11 +585,11 @@ class ClaudeStorageProvider(StorageProvider):
             entries = _read_session(session_path)
             tool_mapping = _build_tool_id_mapping(entries)
             # Build UUID -> entry index for O(1) lookups
-            entry_by_uuid: dict[str, ClaudeUserEntry | ClaudeAssistantEntry] = {}
-            for entry in entries:
-                if isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry)):
-                    entry_by_uuid[entry.uuid] = entry
-
+            entry_by_uuid = {
+                entry.uuid: entry
+                for entry in entries
+                if isinstance(entry, ClaudeUserEntry | ClaudeAssistantEntry)
+            }
             ancestors: list[ChatMessage[str]] = []
             current_id: str | None = message_id
             while current_id and (found := entry_by_uuid.get(current_id)):
