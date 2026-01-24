@@ -811,6 +811,63 @@
       "title": "ACPAgentWorkerConfig",
       "type": "object"
     },
+    "ACPStorageConfig": {
+      "additionalProperties": false,
+      "description": "ACP server storage configuration.\n\nRead-only provider that queries a connected ACP server for session history.\nThe connection is established at runtime by the agent, not from config.",
+      "properties": {
+        "type": {
+          "const": "acp",
+          "default": "acp",
+          "description": "ACP server storage configuration.",
+          "title": "Type",
+          "type": "string"
+        },
+        "log_messages": {
+          "default": true,
+          "description": "Whether to log messages",
+          "title": "Log messages",
+          "type": "boolean"
+        },
+        "agents": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional set of agent names to include. If None, logs all agents.",
+          "title": "Agent filter"
+        },
+        "log_sessions": {
+          "default": true,
+          "description": "Whether to log conversations",
+          "title": "Log conversations",
+          "type": "boolean"
+        },
+        "log_commands": {
+          "default": true,
+          "description": "Whether to log command executions",
+          "title": "Log commands",
+          "type": "boolean"
+        },
+        "log_context": {
+          "default": true,
+          "description": "Whether to log context messages.",
+          "title": "Log context",
+          "type": "boolean"
+        }
+      },
+      "title": "ACPStorageConfig",
+      "type": "object",
+      "x-doc-title": "ACP Storage"
+    },
     "AGUIAgentConfig": {
       "additionalProperties": false,
       "description": "Configuration for AG-UI protocol agents.\n\nAG-UI agents connect to remote HTTP endpoints that implement the AG-UI protocol,\nenabling integration of any AG-UI compatible server into the agentpool pool.\n\nExample:\n    ```yaml\n    agents:\n      remote_assistant:\n        type: agui\n        endpoint: http://localhost:8000/agent/run\n        timeout: 30.0\n        headers:\n          X-API-Key: ${API_KEY}\n        tools:\n          - import_path: mymodule.my_tool_function\n\n      managed_agent:\n        endpoint: http://localhost:8765/agent/run\n        startup_command: \"uv run ag-ui-server config.yml\"\n        startup_delay: 3.0\n        tools:\n          - import_path: package.tool_one\n          - import_path: package.tool_two\n    ```",
@@ -11942,6 +11999,63 @@
       "x-doc-title": "Codex Agent Configuration",
       "x-icon": "octicon:code-16"
     },
+    "CodexStorageConfig": {
+      "additionalProperties": false,
+      "description": "Codex server storage configuration.\n\nRead-only provider that queries a connected Codex server for session history.\nThe connection is established at runtime by the agent, not from config.",
+      "properties": {
+        "type": {
+          "const": "codex",
+          "default": "codex",
+          "description": "Codex server storage configuration.",
+          "title": "Type",
+          "type": "string"
+        },
+        "log_messages": {
+          "default": true,
+          "description": "Whether to log messages",
+          "title": "Log messages",
+          "type": "boolean"
+        },
+        "agents": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional set of agent names to include. If None, logs all agents.",
+          "title": "Agent filter"
+        },
+        "log_sessions": {
+          "default": true,
+          "description": "Whether to log conversations",
+          "title": "Log conversations",
+          "type": "boolean"
+        },
+        "log_commands": {
+          "default": true,
+          "description": "Whether to log command executions",
+          "title": "Log commands",
+          "type": "boolean"
+        },
+        "log_context": {
+          "default": true,
+          "description": "Whether to log context messages.",
+          "title": "Log context",
+          "type": "boolean"
+        }
+      },
+      "title": "CodexStorageConfig",
+      "type": "object",
+      "x-doc-title": "Codex Storage"
+    },
     "CommandHookConfig": {
       "additionalProperties": false,
       "description": "Hook that executes a shell command.\n\nThe command receives hook input as JSON via stdin and should return\nJSON output via stdout. Exit code 0 = success, exit code 2 = block.",
@@ -21047,7 +21161,7 @@
           "description": "Path to storage file (extension determines format unless specified)",
           "examples": [
             "/data/storage.json",
-            "~/agent_data.yaml"
+            "~/data.yaml"
           ],
           "title": "Storage file path",
           "type": "string"
@@ -21073,9 +21187,7 @@
           "description": "Storage format (auto=detect from extension)",
           "examples": [
             "auto",
-            "json",
-            "yaml",
-            "toml"
+            "yaml"
           ],
           "title": "Storage format"
         },
@@ -41260,7 +41372,9 @@
               "items": {
                 "discriminator": {
                   "mapping": {
+                    "acp": "#/$defs/ACPStorageConfig",
                     "claude": "#/$defs/ClaudeStorageConfig",
+                    "codex": "#/$defs/CodexStorageConfig",
                     "file": "#/$defs/FileStorageConfig",
                     "memory": "#/$defs/MemoryStorageConfig",
                     "opencode": "#/$defs/OpenCodeStorageConfig",
@@ -41287,6 +41401,12 @@
                   },
                   {
                     "$ref": "#/$defs/ZedStorageConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/ACPStorageConfig"
+                  },
+                  {
+                    "$ref": "#/$defs/CodexStorageConfig"
                   }
                 ]
               },
