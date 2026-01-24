@@ -72,7 +72,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
     from types import TracebackType
 
-    from anyenv import MultiEventHandler
     from anyio.abc import Process
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
@@ -450,7 +449,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
-        event_handlers: MultiEventHandler[IndividualEventHandler],
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
@@ -475,13 +473,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         text_chunks: list[str] = []
         file_tracker = FileTracker()
         assert self.session_id is not None
-        run_started = RunStartedEvent(
+        yield RunStartedEvent(
             session_id=self.session_id,
             run_id=run_id,
             agent_name=self.name,
         )
-        await event_handlers(None, run_started)
-        yield run_started
         final_blocks = convert_to_acp_content(prompts)
         # Handle ephemeral execution (fork session if store_history=False)
         session_id = self._sdk_session_id
@@ -545,7 +541,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                         text_chunks.append(part.content)
                     if part:
                         current_response_parts.append(part)
-                    await event_handlers(None, event)
                     yield event
         except asyncio.CancelledError:
             self.log.info("Stream cancelled via task cancellation")
@@ -564,9 +559,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 metadata=file_tracker.get_metadata(),
                 finish_reason="stop",
             )
-            complete_event = StreamCompleteEvent(message=message)
-            await event_handlers(None, complete_event)
-            yield complete_event
+            yield StreamCompleteEvent(message=message)
             self._prompt_task = None
             return
 
@@ -605,9 +598,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             usage=usage,
             cost_info=cost_info,
         )
-        complete_event = StreamCompleteEvent(message=message)
-        await event_handlers(None, complete_event)
-        yield complete_event
+        yield StreamCompleteEvent(message=message)
 
     @property
     def model_name(self) -> str | None:

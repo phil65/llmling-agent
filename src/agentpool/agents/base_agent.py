@@ -669,8 +669,8 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 input_provider=input_provider,
                 wait_for_connections=wait_for_connections,
                 deps=deps,
-                event_handlers=resolved_handler,
             ):
+                await resolved_handler(None, event)
                 yield event
                 # Capture final message from StreamCompleteEvent
                 if isinstance(event, StreamCompleteEvent):
@@ -862,7 +862,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
-        event_handlers: MultiEventHandler[IndividualEventHandler],
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
@@ -881,7 +880,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             input_provider: Optional input provider
             message_history: Optional message history
             deps: Optional dependencies
-            event_handlers: Optional event handlers
             wait_for_connections: Whether to wait for connected agents
             store_history: Whether to store in history
 

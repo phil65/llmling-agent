@@ -32,7 +32,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Awaitable, Callable, Coroutine, Sequence
     from types import TracebackType
 
-    from anyenv import MultiEventHandler
     from exxec import ExecutionEnvironment
     from llmling_models_config import AnyModelConfig
     from pydantic_ai import BaseToolCallPart, UsageLimits, UserContent
@@ -353,7 +352,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         # Get manifest from pool or create empty one
         manifest = agent_pool.manifest if agent_pool is not None else AgentsManifest()
-
         # Use provided name, fall back to config.name, then default
         name = name or config.name or "agent"
         # Normalize system_prompt to a list for iteration
@@ -677,7 +675,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         file_tracker: FileTracker,
         pending_tcs: dict[str, BaseToolCallPart],
         message_id: str,
-        event_handlers: MultiEventHandler[IndividualEventHandler],
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
         """Process events from a node stream (ModelRequest or CallTools).
 
@@ -686,7 +683,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             file_tracker: Tracker for file operations
             pending_tcs: Dictionary of pending tool calls
             message_id: Current message ID
-            event_handlers: Event handlers to notify
 
         Yields:
             Processed stream events
@@ -695,10 +691,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             async for event in file_tracker(merged):
                 if self._cancelled:
                     break
-                await event_handlers(None, event)
                 yield event
                 if combined := process_tool_event(self.name, event, pending_tcs, message_id):
-                    await event_handlers(None, combined)
                     yield combined
 
     async def _stream_events(
@@ -715,7 +709,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
         deps: TDeps | None = None,
-        event_handlers: MultiEventHandler[IndividualEventHandler],
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
         from pydantic_graph import End
 
@@ -726,13 +719,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         start_time = time.perf_counter()
         history_list = message_history.get_history()
         assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
-        run_started = RunStartedEvent(
+        yield RunStartedEvent(
             session_id=self.session_id,
             run_id=run_id,
             agent_name=self.name,
         )
-        await event_handlers(None, run_started)
-        yield run_started
         agentlet = await self.get_agentlet(None, self._output_type, input_provider)
         response_msg: ChatMessage[Any] | None = None
         # Prepend pending context parts (prompts are already pydantic-ai UserContent format)
@@ -761,7 +752,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                 file_tracker=file_tracker,
                                 pending_tcs=pending_tcs,
                                 message_id=message_id,
-                                event_handlers=event_handlers,
                             ):
                                 yield event
 
@@ -772,7 +762,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                                 file_tracker=file_tracker,
                                 pending_tcs=pending_tcs,
                                 message_id=message_id,
-                                event_handlers=event_handlers,
                             ):
                                 yield event
             except asyncio.CancelledError:
@@ -795,9 +784,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                     response_time=response_time,
                     finish_reason="stop",
                 )
-                complete_event = StreamCompleteEvent(message=response_msg)
-                await event_handlers(None, complete_event)
-                yield complete_event
+                yield StreamCompleteEvent(message=response_msg)
                 return
 
             if agent_run.result:
@@ -814,9 +801,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 raise RuntimeError("Stream completed without producing a result")
 
         # Send additional enriched completion event
-        complete_event = StreamCompleteEvent(message=response_msg)
-        await event_handlers(None, complete_event)
-        yield complete_event
+        yield StreamCompleteEvent(message=response_msg)
 
     def register_worker(
         self,

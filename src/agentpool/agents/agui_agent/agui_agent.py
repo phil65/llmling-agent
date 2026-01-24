@@ -44,7 +44,6 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from ag_ui.core import Message, ToolMessage
-    from anyenv import MultiEventHandler
     from evented_config import EventConfig
     from pydantic_ai import UserContent
     from slashed import BaseCommand
@@ -336,7 +335,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
-        event_handlers: MultiEventHandler[IndividualEventHandler],
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
@@ -381,9 +379,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
         assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
         thread_id = self._sdk_session_id or self.session_id
-        run_started = RunStartedEvent(session_id=thread_id, run_id=run_id, agent_name=self.name)
-        await event_handlers(None, run_started)
-        yield run_started
+        yield RunStartedEvent(session_id=thread_id, run_id=run_id, agent_name=self.name)
         # Convert existing conversation history to AG-UI format
         # AG-UI protocol expects full history with each request (stateless server)
         # Extract ModelMessages from ChatMessages
@@ -466,18 +462,14 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                                     while not self._event_queue.empty():
                                         try:
                                             custom_event = self._event_queue.get_nowait()
-                                            await event_handlers(None, custom_event)
                                             yield custom_event
                                         except asyncio.QueueEmpty:
                                             break
-                                    # Distribute to handlers
-                                    await event_handlers(None, native_event)
                                     yield native_event
 
                         # Flush any pending chunk events at end of stream
                         for event in chunk_transformer.flush():
                             if native_event := agui_to_native_event(event):
-                                await event_handlers(None, native_event)
                                 yield native_event
 
                 except httpx.HTTPError:
@@ -541,9 +533,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 finish_reason="stop",
                 metadata=file_tracker.get_metadata(),
             )
-            complete_event = StreamCompleteEvent(message=final_message)
-            await event_handlers(None, complete_event)
-            yield complete_event
+            yield StreamCompleteEvent(message=final_message)
             return
 
         # Flush any remaining response parts
@@ -554,7 +544,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         while not self._event_queue.empty():
             try:
                 queued_event = self._event_queue.get_nowait()
-                await event_handlers(None, queued_event)
                 yield queued_event
             except asyncio.QueueEmpty:
                 break
@@ -579,9 +568,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             usage=usage,
             cost_info=cost_info,
         )
-        complete_event = StreamCompleteEvent(message=final_message)
-        await event_handlers(None, complete_event)
-        yield complete_event  # Post-processing handled by base class
+        yield StreamCompleteEvent(message=final_message)  # Post-processing handled by base class
 
     @property
     def model_name(self) -> str | None:

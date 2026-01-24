@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
 
-    from anyenv import MultiEventHandler
     from exxec import ExecutionEnvironment
     from pydantic_ai import UserContent
     from tokonomics.model_discovery.model_info import ModelInfo
@@ -314,7 +313,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
-        event_handlers: MultiEventHandler[IndividualEventHandler],
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
@@ -339,9 +337,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Ensure session_id is set (should always be from base class)
         if final_session_id is None:
             raise ValueError("session_id must be set")
-        run_started = RunStartedEvent(session_id=final_session_id, run_id=run_id)
-        await event_handlers(None, run_started)
-        yield run_started
+        yield RunStartedEvent(session_id=final_session_id, run_id=run_id)
         # Stream turn events with bridge context set
         accumulated_text: list[str] = []
         self._token_usage_data = None
@@ -382,7 +378,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 )
                 # Wrap to capture metadata (turn_id, token usage), then convert
                 async for native_event in convert_codex_stream(capture_metadata(raw_stream)):
-                    await event_handlers(None, native_event)
                     yield native_event
 
                     # Handle plan updates - sync to pool.todos
@@ -454,9 +449,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             model_name=self.model_name,
         )
 
-        complete_event: StreamCompleteEvent[OutputDataT] = StreamCompleteEvent(message=complete_msg)
-        await event_handlers(None, complete_event)
-        yield complete_event
+        yield StreamCompleteEvent[OutputDataT](message=complete_msg)
 
     @property
     def model_name(self) -> str:

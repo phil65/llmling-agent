@@ -117,7 +117,6 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
     from types import TracebackType
 
-    from anyenv import MultiEventHandler
     from clawd_code_sdk import (
         AgentDefinition,
         ClaudeSDKClient,
@@ -846,7 +845,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         parent_id: str | None = None,
         input_provider: InputProvider | None = None,
         deps: TDeps | None = None,
-        event_handlers: MultiEventHandler[IndividualEventHandler],
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
@@ -892,13 +890,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         run_id = str(uuid.uuid4())
         # Emit run started
         assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
-        run_started = RunStartedEvent(
+        yield RunStartedEvent(
             session_id=self.session_id,
             run_id=run_id,
             agent_name=self.name,
         )
-        await event_handlers(None, run_started)
-        yield run_started
         request = ModelRequest(parts=[UserPromptPart(content=prompt_text)])
         model_messages: list[ModelResponse | ModelRequest] = [request]
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
@@ -939,7 +935,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             # Don't yield metadata events - they're internal correlation only
                             continue
                         # It's an event from the queue - yield it immediately
-                        await event_handlers(None, event_or_message)
                         yield event_or_message
                         continue
 
@@ -990,7 +985,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         )
                                         # Track file modifications
                                         file_tracker.process_event(tool_start_event)
-                                        await event_handlers(None, tool_start_event)
                                         yield tool_start_event
                                     # Already emitted ToolCallStartEvent early via streaming.
                                     # Dont emit a progress update here - it races with
@@ -1017,11 +1011,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         tool_name=tool_name, content=content, tool_call_id=tc_id
                                     )
                                     # Emit FunctionToolResultEvent (for session.py to complete UI)
-                                    func_result_event = FunctionToolResultEvent(result=return_part)
-                                    await event_handlers(None, func_result_event)
-                                    yield func_result_event
+                                    yield FunctionToolResultEvent(result=return_part)
                                     # Also emit ToolCallCompleteEvent for consumers that expect it
-                                    tool_done_event = ToolCallCompleteEvent(
+                                    yield ToolCallCompleteEvent(
                                         tool_name=tool_name,
                                         tool_call_id=tc_id,
                                         tool_input=tool_input,
@@ -1030,8 +1022,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                         message_id="",
                                         metadata=tool_metadata.get(tc_id),
                                     )
-                                    await event_handlers(None, tool_done_event)
-                                    yield tool_done_event
                                     # Add tool return as ModelRequest
                                     model_messages.append(ModelRequest(parts=[return_part]))
 
@@ -1065,9 +1055,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     tool_call_id=tc_id,
                                 )
                                 # Emit FunctionToolResultEvent (for session.py to complete UI)
-                                func_result_event = FunctionToolResultEvent(result=return_part)
-                                await event_handlers(None, func_result_event)
-                                yield func_result_event
+                                yield FunctionToolResultEvent(result=return_part)
                                 # Build metadata: prefer existing tool_metadata,
                                 # then convert SDK result
                                 metadata = tool_metadata.get(tc_id)
@@ -1078,7 +1066,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     )
 
                                 # Also emit ToolCallCompleteEvent for consumers that expect it
-                                tool_complete_event = ToolCallCompleteEvent(
+                                yield ToolCallCompleteEvent(
                                     tool_name=tool_name,
                                     tool_call_id=tc_id,
                                     tool_input=tool_input,
@@ -1087,8 +1075,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     message_id="",
                                     metadata=metadata,
                                 )
-                                await event_handlers(None, tool_complete_event)
-                                yield tool_complete_event
                                 # Add tool return as ModelRequest
                                 model_messages.append(ModelRequest(parts=[return_part]))
 
@@ -1103,14 +1089,10 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         match event_type, block_type or delta.get("type"):
                             # content_block_start events
                             case "content_block_start", "text":
-                                start_event = PartStartEvent.text(index=index, content="")
-                                await event_handlers(None, start_event)
-                                yield start_event
+                                yield PartStartEvent.text(index=index, content="")
 
                             case "content_block_start", "thinking":
-                                start_event = PartStartEvent.thinking(index=index, content="")
-                                await event_handlers(None, start_event)
-                                yield start_event
+                                yield PartStartEvent.thinking(index=index, content="")
 
                             case "content_block_start", "tool_use":
                                 # Emit ToolCallStartEvent early (args still streaming)
@@ -1122,7 +1104,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 self._pending_tool_call_ids[raw_tool_name] = tc_id
                                 # Derive rich info with empty args for now
                                 rich_info = derive_rich_tool_info(raw_tool_name, {})
-                                tool_start_event = ToolCallStartEvent(
+                                emitted_tool_starts.add(tc_id)
+                                yield ToolCallStartEvent(
                                     tool_call_id=tc_id,
                                     tool_name=tool_name,
                                     title=rich_info.title,
@@ -1131,24 +1114,20 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     content=rich_info.content,
                                     raw_input={},  # Empty, will be filled when complete
                                 )
-                                emitted_tool_starts.add(tc_id)
-                                await event_handlers(None, tool_start_event)
-                                yield tool_start_event
 
                             # content_block_delta events
                             case "content_block_delta", "text_delta":
                                 if text_delta := delta.get("text", ""):
-                                    text_part = TextPartDelta(content_delta=text_delta)
-                                    delta_event = PartDeltaEvent(index=index, delta=text_part)
-                                    await event_handlers(None, delta_event)
-                                    yield delta_event
+                                    yield PartDeltaEvent(
+                                        index=index, delta=TextPartDelta(content_delta=text_delta)
+                                    )
 
                             case "content_block_delta", "thinking_delta":
                                 if delta := delta.get("thinking", ""):
-                                    thinking_delta = ThinkingPartDelta(content_delta=delta)
-                                    delta_event = PartDeltaEvent(index=index, delta=thinking_delta)
-                                    await event_handlers(None, delta_event)
-                                    yield delta_event
+                                    yield PartDeltaEvent(
+                                        index=index,
+                                        delta=ThinkingPartDelta(content_delta=delta),
+                                    )
 
                             case "content_block_delta", "input_json_delta":
                                 # Accumulate tool argument JSON fragments
@@ -1156,22 +1135,19 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     # Find which tool call this belongs to by index
                                     for tc_id in tool_accumulator._calls:
                                         tool_accumulator.add_args(tc_id, partial_json)
-                                        # Emit PartDeltaEvent with ToolCallPartDelta
-                                        tool_delta = ToolCallPartDelta(
-                                            args_delta=partial_json,
-                                            tool_call_id=tc_id,
+                                        yield PartDeltaEvent(
+                                            index=index,
+                                            delta=ToolCallPartDelta(
+                                                args_delta=partial_json,
+                                                tool_call_id=tc_id,
+                                            ),
                                         )
-                                        delta_event = PartDeltaEvent(index=index, delta=tool_delta)
-                                        await event_handlers(None, delta_event)
-                                        yield delta_event
                                         break  # Only one tool call streams at a time
 
                             # content_block_stop events
                             case "content_block_stop", _:
                                 # Emit with empty part - content was accumulated via deltas
-                                end_event = PartEndEvent(index=index, part=TextPart(content=""))
-                                await event_handlers(None, end_event)
-                                yield end_event
+                                yield PartEndEvent(index=index, part=TextPart(content=""))
 
                             case _:
                                 pass  # Ignore other event types (message_start, etc.)
@@ -1183,7 +1159,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     # (skip AssistantMessage - already streamed via StreamEvent)
                     if not isinstance(message, AssistantMessage):
                         for event in claude_message_to_events(message, agent_name=self.name):
-                            await event_handlers(None, event)
                             yield event
 
                     # Check for result (end of response) and capture usage info
@@ -1221,16 +1196,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 finish_reason="stop",
                 metadata=metadata,
             )
-            complete_event = StreamCompleteEvent(message=response_msg)
-            await event_handlers(None, complete_event)
-            yield complete_event
+            yield StreamCompleteEvent(message=response_msg)
             # Post-processing handled by base class
             return
 
         except Exception as e:
-            error_event = RunErrorEvent(message=str(e), run_id=run_id, agent_name=self.name)
-            await event_handlers(None, error_event)
-            yield error_event
+            yield RunErrorEvent(message=str(e), run_id=run_id, agent_name=self.name)
             raise
 
         finally:
@@ -1297,9 +1268,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
 
         # Emit stream complete - post-processing handled by base class
-        complete_event = StreamCompleteEvent[TResult](message=chat_message)
-        await event_handlers(None, complete_event)
-        yield complete_event
+        yield StreamCompleteEvent[TResult](message=chat_message)
 
     async def _interrupt(self) -> None:
         """Call Claude SDK's native interrupt() to stop the query."""
@@ -1540,8 +1509,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 await self.reconnect(resume_session=True)
                 self.log.info("Reconnected with loaded session", session_id=session_id)
             except Exception:
-                msg = "Failed to reconnect with loaded session, continuing with local history"
-                self.log.exception(msg, session_id=session_id)
+                error_msg = "Failed to reconnect with loaded session, continuing with local history"
+                self.log.exception(error_msg, session_id=session_id)
                 # Don't fail the load - we still have the conversation history locally
 
             # Build SessionData from loaded messages
