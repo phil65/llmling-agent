@@ -42,7 +42,11 @@ def get_database_path() -> str:
 
 # Shared engine cache - ensures one engine per database URL
 _engine_cache: dict[str, AsyncEngine] = {}
-is_pytest = os.getenv("PYTEST_CURRENT_TEST")
+
+
+def is_pytest() -> bool:
+    """Check if running under pytest (must be called at runtime, not import time)."""
+    return bool(os.getenv("PYTEST_CURRENT_TEST"))
 
 
 def get_shared_engine(url: str, pool_size: int = 5) -> AsyncEngine:
@@ -387,7 +391,7 @@ class StorageConfig(Schema):
             - Configured providers otherwise
         """
         if self.providers is None:
-            return [MemoryStorageConfig()] if is_pytest else [SQLStorageConfig()]
+            return [MemoryStorageConfig()] if is_pytest() else [SQLStorageConfig()]
         return self.providers
 
     def get_session_store(self) -> SessionStore:
@@ -396,7 +400,7 @@ class StorageConfig(Schema):
         from agentpool_storage.session_store import SQLSessionStore
 
         # Use memory store during tests
-        if is_pytest:
+        if is_pytest():
             return MemorySessionStore()
 
         match self.session_store:
