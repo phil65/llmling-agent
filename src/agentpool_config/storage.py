@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine
 
     from agentpool.sessions.store import SessionStore
+    from agentpool_storage.base import StorageProvider
 
 
 FilterMode = Literal["and", "override"]
@@ -94,6 +95,10 @@ class BaseStorageProviderConfig(Schema):
     log_context: bool = Field(default=True, title="Log context")
     """Whether to log context messages."""
 
+    def get_provider(self) -> StorageProvider:
+        """Create a storage provider instance from this configuration."""
+        raise NotImplementedError
+
 
 class SQLStorageConfig(BaseStorageProviderConfig):
     """SQL database storage configuration."""
@@ -110,12 +115,7 @@ class SQLStorageConfig(BaseStorageProviderConfig):
     )
     """Database URL (e.g. sqlite:///history.db)"""
 
-    pool_size: int = Field(
-        default=5,
-        ge=1,
-        examples=[5, 10, 20],
-        title="Connection pool size",
-    )
+    pool_size: int = Field(default=5, ge=1, examples=[5, 10, 20], title="Connection pool size")
     """Connection pool size"""
 
     auto_migration: bool = Field(default=True, title="Auto migration")
@@ -123,6 +123,12 @@ class SQLStorageConfig(BaseStorageProviderConfig):
 
     def get_engine(self) -> AsyncEngine:
         return get_shared_engine(self.url, self.pool_size)
+
+    def get_provider(self) -> StorageProvider:
+        """Create a SQL storage provider instance."""
+        from agentpool_storage.sql_provider import SQLModelProvider
+
+        return SQLModelProvider(self)
 
 
 class FileStorageConfig(BaseStorageProviderConfig):
@@ -133,21 +139,20 @@ class FileStorageConfig(BaseStorageProviderConfig):
     type: Literal["file"] = Field("file", init=False)
     """File storage configuration."""
 
-    path: str = Field(
-        examples=["/data/storage.json", "~/agent_data.yaml"],
-        title="Storage file path",
-    )
+    path: str = Field(examples=["/data/storage.json", "~/data.yaml"], title="Storage file path")
     """Path to storage file (extension determines format unless specified)"""
 
-    format: FormatType = Field(
-        default="auto",
-        examples=["auto", "json", "yaml", "toml"],
-        title="Storage format",
-    )
+    format: FormatType = Field(default="auto", examples=["auto", "yaml"], title="Storage format")
     """Storage format (auto=detect from extension)"""
 
     encoding: str = Field(default="utf-8", examples=["utf-8", "ascii"], title="File encoding")
     """File encoding of the storage file."""
+
+    def get_provider(self) -> StorageProvider:
+        """Create a file storage provider instance."""
+        from agentpool_storage.file_provider import FileProvider
+
+        return FileProvider(self)
 
 
 class MemoryStorageConfig(BaseStorageProviderConfig):
@@ -157,6 +162,12 @@ class MemoryStorageConfig(BaseStorageProviderConfig):
 
     type: Literal["memory"] = Field("memory", init=False)
     """In-memory storage configuration for testing."""
+
+    def get_provider(self) -> StorageProvider:
+        """Create a memory storage provider instance."""
+        from agentpool_storage.memory_provider import MemoryStorageProvider
+
+        return MemoryStorageProvider(self)
 
 
 class ClaudeStorageConfig(BaseStorageProviderConfig):
@@ -178,6 +189,12 @@ class ClaudeStorageConfig(BaseStorageProviderConfig):
     )
     """Path to Claude data directory (default: ~/.claude)"""
 
+    def get_provider(self) -> StorageProvider:
+        """Create a Claude storage provider instance."""
+        from agentpool_storage.claude_provider import ClaudeStorageProvider
+
+        return ClaudeStorageProvider(self)
+
 
 class OpenCodeStorageConfig(BaseStorageProviderConfig):
     """OpenCode native storage format configuration.
@@ -197,6 +214,12 @@ class OpenCodeStorageConfig(BaseStorageProviderConfig):
         title="OpenCode storage directory",
     )
     """Path to OpenCode storage directory."""
+
+    def get_provider(self) -> StorageProvider:
+        """Create an OpenCode storage provider instance."""
+        from agentpool_storage.opencode_provider import OpenCodeStorageProvider
+
+        return OpenCodeStorageProvider(self)
 
 
 class ZedStorageConfig(BaseStorageProviderConfig):
@@ -219,6 +242,12 @@ class ZedStorageConfig(BaseStorageProviderConfig):
         title="Zed threads database path",
     )
     """Path to Zed threads database (or parent directory)."""
+
+    def get_provider(self) -> StorageProvider:
+        """Create a Zed storage provider instance."""
+        from agentpool_storage.zed_provider import ZedStorageProvider
+
+        return ZedStorageProvider(self)
 
 
 StorageProviderConfig = Annotated[

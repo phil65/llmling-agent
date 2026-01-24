@@ -17,15 +17,7 @@ from agentpool.messaging import ChatMessage
 from agentpool.storage.serialization import serialize_messages
 from agentpool.utils.tasks import TaskManager
 from agentpool_config.session import SessionQuery
-from agentpool_config.storage import (
-    ClaudeStorageConfig,
-    FileStorageConfig,
-    MemoryStorageConfig,
-    OpenCodeStorageConfig,
-    SQLStorageConfig,
-    StorageConfig,
-    ZedStorageConfig,
-)
+from agentpool_config.storage import StorageConfig
 
 
 if TYPE_CHECKING:
@@ -163,33 +155,7 @@ class StorageManager:
             }
         )
 
-        match provider_config:
-            case SQLStorageConfig() as config:
-                from agentpool_storage.sql_provider import SQLModelProvider
-
-                return SQLModelProvider(provider_config)
-            case FileStorageConfig():
-                from agentpool_storage.file_provider import FileProvider
-
-                return FileProvider(provider_config)
-            case MemoryStorageConfig():
-                from agentpool_storage.memory_provider import MemoryStorageProvider
-
-                return MemoryStorageProvider(provider_config)
-            case ClaudeStorageConfig():
-                from agentpool_storage.claude_provider import ClaudeStorageProvider
-
-                return ClaudeStorageProvider(provider_config)
-            case OpenCodeStorageConfig():
-                from agentpool_storage.opencode_provider import OpenCodeStorageProvider
-
-                return OpenCodeStorageProvider(provider_config)
-            case ZedStorageConfig():
-                from agentpool_storage.zed_provider import ZedStorageProvider
-
-                return ZedStorageProvider(provider_config)
-            case _:
-                raise ValueError(f"Unknown provider type: {provider_config}")
+        return provider_config.get_provider()
 
     def get_history_provider(self, preferred: str | None = None) -> StorageProvider:
         """Get provider for loading history.
@@ -329,10 +295,7 @@ class StorageManager:
             await self.update_session_title(session_id, initial_prompt)
         # For longer prompts, generate semantic title if model configured
         elif self.config.title_generation_model:
-            logger.info(
-                "Creating title generation task for long prompt",
-                session_id=session_id,
-            )
+            logger.info("Creating title generation task for long prompt", session_id=session_id)
             self.task_manager.create_task(
                 self._generate_title_from_prompt(session_id, initial_prompt, on_title_generated),
                 name=f"title_gen_{session_id[:8]}",
