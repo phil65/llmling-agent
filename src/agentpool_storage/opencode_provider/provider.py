@@ -656,16 +656,7 @@ class OpenCodeStorageProvider(StorageProvider):
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
-        """Get all messages for a session.
-
-        Args:
-            session_id: Session ID (conversation ID in OpenCode format)
-            include_ancestors: If True, traverse parent_id chain to include
-                messages from ancestor conversations
-
-        Returns:
-            List of messages ordered by timestamp
-        """
+        """Get all messages for a session."""
         # Read messages for this session
         oc_messages = self._read_messages(session_id)
         messages: list[ChatMessage[str]] = []
@@ -694,21 +685,12 @@ class OpenCodeStorageProvider(StorageProvider):
         *,
         session_id: str | None = None,
     ) -> ChatMessage[str] | None:
-        """Get a single message by ID.
-
-        Args:
-            message_id: ID of the message
-            session_id: Optional session ID hint for faster lookup
-
-        Returns:
-            The message if found, None otherwise
-        """
+        """Get a single message by ID."""
         # If session_id is provided, search only that session
         sessions = [(session_id, None)] if session_id else self._list_sessions()
         for sid, _session_path in sessions:
             assert sid is not None
-            oc_messages = self._read_messages(sid)
-            for oc_msg in oc_messages:
+            for oc_msg in self._read_messages(sid):
                 if oc_msg.id == message_id:
                     parts = self._read_parts(oc_msg.id)
                     return helpers.message_to_chat_message(oc_msg, parts, sid)
@@ -734,12 +716,11 @@ class OpenCodeStorageProvider(StorageProvider):
             List of messages from oldest ancestor to the specified message
         """
         # Fast path: if we know the session, load messages once and traverse in-memory
+        ancestors: list[ChatMessage[str]] = []
         if session_id:
             oc_messages = self._read_messages(session_id)
             # Build ID -> message index for O(1) lookups
             msg_by_id = {msg.id: msg for msg in oc_messages}
-
-            ancestors: list[ChatMessage[str]] = []
             current_id: str | None = message_id
             while current_id:
                 oc_msg = msg_by_id.get(current_id)
@@ -751,9 +732,7 @@ class OpenCodeStorageProvider(StorageProvider):
                 current_id = chat_msg.parent_id
             ancestors.reverse()
             return ancestors
-
         # Slow path: search all sessions
-        ancestors = []
         current_id = message_id
         while current_id:
             msg = await self.get_message(current_id)
@@ -793,18 +772,14 @@ class OpenCodeStorageProvider(StorageProvider):
         )
 
         # Find source session
-        sessions = self._list_sessions()
-        source_session = None
-        source_path = None
-        for session_id, session_path in sessions:
-            if session_id == source_session_id:
-                source_session = helpers.read_session(session_path)
-                source_path = session_path
-                break
-
-        if not source_session or not source_path:
+        source_path = next(
+            (p for sid, p in self._list_sessions() if sid == source_session_id),
+            None,
+        )
+        if not source_path:
             msg = f"Source conversation not found: {source_session_id}"
             raise ValueError(msg)
+        source_session = helpers.read_session(source_path)
 
         # Read source messages
         oc_messages = self._read_messages(source_session_id)
