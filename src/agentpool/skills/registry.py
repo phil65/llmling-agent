@@ -39,9 +39,9 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
         """Initialize with custom skill directories or auto-detect."""
         super().__init__()
         if skills_dirs:
-            self.skills_dirs = [to_upath(i) for i in skills_dirs or []]
+            self.skills_dirs = [to_upath(i).expanduser() for i in skills_dirs]
         else:
-            self.skills_dirs = [to_upath(i) for i in self.DEFAULT_SKILL_PATHS or []]
+            self.skills_dirs = [to_upath(i).expanduser() for i in self.DEFAULT_SKILL_PATHS]
 
     async def discover_skills(self) -> None:
         """Scan filesystem and register all found skills.
@@ -74,8 +74,8 @@ class SkillsRegistry(BaseRegistry[str, Skill]):
             search_path = base_path if base_path is not None else fs.root_marker
             original_skills_dir: UPath | None = None
         else:
-            original_skills_dir = to_upath(skills_dir)
-            fs = upath_to_fs(skills_dir, **storage_options)
+            original_skills_dir = to_upath(skills_dir).expanduser()
+            fs = upath_to_fs(original_skills_dir, **storage_options)
             search_path = fs.root_marker
 
         try:
