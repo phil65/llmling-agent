@@ -191,11 +191,8 @@ def raise_if_usage_limit_reached(message: AssistantMessage) -> None:
 def parse_command_output(msg: UserMessage) -> str | None:
     content = msg.content if isinstance(msg.content, str) else ""
     # Extract content from <local-command-stdout> or <local-command-stderr>
-    match = re.search(
-        r"<local-command-(?:stdout|stderr)>(.*?)</local-command-(?:stdout|stderr)>",
-        content,
-        re.DOTALL,
-    )
+    pattern = r"<local-command-(?:stdout|stderr)>(.*?)</local-command-(?:stdout|stderr)>"
+    match = re.search(pattern, content, re.DOTALL)
     return match.group(1) if match else None
 
 
@@ -315,7 +312,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._allowed_tools = allowed_tools
         self._disallowed_tools = disallowed_tools
         self._include_builtin_system_prompt = include_builtin_system_prompt
-
         # Initialize SystemPrompts manager
         all_prompts: list[AnyPromptType] = []
         if system_prompt is not None:
@@ -325,7 +321,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 all_prompts.extend(system_prompt)
         prompt_manager = agent_pool.prompt_manager if agent_pool else None
         self.sys_prompts = SystemPrompts(all_prompts, prompt_manager=prompt_manager)
-
         self._model = model
         self._max_turns = max_turns
         self._max_budget_usd = max_budget_usd
@@ -386,15 +381,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         resolved_output_type: type | None = None
         if config.output_type:
             resolved_output_type = to_type(config.output_type, manifest.responses)
-
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
             *config_handlers,
             *(event_handlers or []),
         ]
-        # Extract toolsets from config
-        toolsets = config.get_tool_providers() if config.tools else []
         return cls(
             # Identity
             name=config.name,
@@ -420,7 +412,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             setting_sources=config.setting_sources,
             use_subscription=config.use_subscription,
             # Toolsets
-            toolsets=toolsets,
+            toolsets=config.get_tool_providers() if config.tools else [],
             # Runtime
             event_configs=list(config.triggers),
             event_handlers=merged_handlers or None,
@@ -650,7 +642,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     async def _do_connect(self) -> None:
         """Actually connect the client. Runs in background task."""
         if not self._client:
-            raise RuntimeError("Client not created - call __aenter__ first")
+            raise AgentNotInitializedError
 
         try:
             await self._client.connect()
@@ -671,7 +663,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 the stored session ID. If False, start a fresh session.
         """
         # Recreate client with new options
-
         session_to_resume = self._sdk_session_id if resume_session else None
         self.log.info("Reconnecting CC agent", resume=resume_session, session_id=session_to_resume)
         # Cancel existing connection if active
@@ -878,11 +869,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         run_id = str(uuid.uuid4())
         # Emit run started
         assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
-        yield RunStartedEvent(
-            session_id=self.session_id,
-            run_id=run_id,
-            agent_name=self.name,
-        )
+        yield RunStartedEvent(session_id=self.session_id, run_id=run_id, agent_name=self.name)
         request = ModelRequest(parts=[UserPromptPart(content=prompt_text)])
         model_messages: list[ModelResponse | ModelRequest] = [request]
         current_response_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
@@ -1035,7 +1022,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 tool_name = _strip_mcp_prefix(
                                     tool_use.name if tool_use else "unknown"
                                 )
-                                tool_input = tool_use.input if tool_use else {}
                                 # Create ToolReturnPart for the result
                                 return_part = ToolReturnPart(
                                     tool_name=tool_name,
@@ -1046,6 +1032,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                 yield FunctionToolResultEvent(result=return_part)
                                 # Build metadata: prefer existing tool_metadata,
                                 # then convert SDK result
+                                tool_input = tool_use.input if tool_use else {}
                                 metadata = tool_metadata.get(tc_id)
                                 if not metadata and message.tool_use_result is not None:
                                     # Convert Claude Code SDK's tool_use_result to OpenCode format
@@ -1105,17 +1092,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                             # content_block_delta events
                             case "content_block_delta", "text_delta":
-                                if text_delta := delta.get("text", ""):
-                                    yield PartDeltaEvent(
-                                        index=index, delta=TextPartDelta(content_delta=text_delta)
-                                    )
+                                if delta := delta.get("text", ""):
+                                    text_delta = TextPartDelta(content_delta=delta)
+                                    yield PartDeltaEvent(index=index, delta=text_delta)
 
                             case "content_block_delta", "thinking_delta":
                                 if delta := delta.get("thinking", ""):
-                                    yield PartDeltaEvent(
-                                        index=index,
-                                        delta=ThinkingPartDelta(content_delta=delta),
-                                    )
+                                    thinking_delta = ThinkingPartDelta(content_delta=delta)
+                                    yield PartDeltaEvent(index=index, delta=thinking_delta)
 
                             case "content_block_delta", "input_json_delta":
                                 # Accumulate tool argument JSON fragments
@@ -1123,13 +1107,11 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                                     # Find which tool call this belongs to by index
                                     for tc_id in tool_accumulator._calls:
                                         tool_accumulator.add_args(tc_id, partial_json)
-                                        yield PartDeltaEvent(
-                                            index=index,
-                                            delta=ToolCallPartDelta(
-                                                args_delta=partial_json,
-                                                tool_call_id=tc_id,
-                                            ),
+                                        tool_delta = ToolCallPartDelta(
+                                            args_delta=partial_json,
+                                            tool_call_id=tc_id,
                                         )
+                                        yield PartDeltaEvent(index=index, delta=tool_delta)
                                         break  # Only one tool call streams at a time
 
                             # content_block_stop events

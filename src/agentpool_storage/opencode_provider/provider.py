@@ -389,10 +389,7 @@ class OpenCodeStorageProvider(StorageProvider):
             oc_messages = self._read_messages(session_id)
 
             # Read parts for all messages
-            msg_parts_map: dict[str, list[OpenCodePart]] = {}
-            for oc_msg in oc_messages:
-                parts = self._read_parts(oc_msg.id)
-                msg_parts_map[oc_msg.id] = parts
+            msg_parts_map = {oc_msg.id: self._read_parts(oc_msg.id) for oc_msg in oc_messages}
             for oc_msg in oc_messages:
                 parts = msg_parts_map.get(oc_msg.id, [])
                 chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
@@ -487,11 +484,7 @@ class OpenCodeStorageProvider(StorageProvider):
                 continue
 
             # Read parts for all messages
-            msg_parts_map: dict[str, list[OpenCodePart]] = {}
-            for oc_msg in oc_messages:
-                parts = self._read_parts(oc_msg.id)
-                msg_parts_map[oc_msg.id] = parts
-
+            msg_parts_map = {oc_msg.id: self._read_parts(oc_msg.id) for oc_msg in oc_messages}
             # Convert messages
             chat_messages: list[ChatMessage[str]] = []
             total_tokens = 0
@@ -578,10 +571,7 @@ class OpenCodeStorageProvider(StorageProvider):
         stats: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"total_tokens": 0, "messages": 0, "models": set(), "total_cost": 0.0}
         )
-
-        sessions = self._list_sessions()
-
-        for _session_id, session_path in sessions:
+        for _session_id, session_path in self._list_sessions():
             session = helpers.read_session(session_path)
             if not session:
                 continue

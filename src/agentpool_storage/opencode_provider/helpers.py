@@ -195,7 +195,7 @@ def extract_text_content(parts: list[OpenCodePart]) -> str:
     return "\n".join(text_parts)
 
 
-def build_pydantic_messages(
+def build_pydantic_messages(  # noqa: PLR0915
     msg: OpenCodeMessage,
     parts: list[OpenCodePart],
     timestamp: datetime,
