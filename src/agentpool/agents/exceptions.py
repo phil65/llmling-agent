@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 class AgentNotInitializedError(RuntimeError):
     """Raised when an agent is not initialized."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("Agent not initialized - use async context manager")
 
 
