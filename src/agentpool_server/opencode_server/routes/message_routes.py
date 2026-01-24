@@ -245,7 +245,8 @@ async def _process_message(  # noqa: PLR0915
     status_event = SessionStatusEvent.create(session_id, SessionStatus(type="busy"))
     await state.broadcast_event(status_event)
     # Extract user prompt text
-    user_prompt = extract_user_prompt_from_parts([p.model_dump() for p in request.parts])
+    fs = state.agent.env.get_fs() if state.agent.env else None
+    user_prompt = extract_user_prompt_from_parts([p.model_dump() for p in request.parts], fs=fs)
     # Create assistant message with sortable ID (must come after user message)
     assistant_msg_id = identifier.ascending("message")
     tokens = Tokens(cache=TokensCache(read=0, write=0))

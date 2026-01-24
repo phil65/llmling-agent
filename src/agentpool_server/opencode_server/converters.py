@@ -58,6 +58,7 @@ from agentpool_server.opencode_server.time_utils import now_ms
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from fsspec.asyn import AsyncFileSystem
     from pydantic_ai import UserContent
 
     from agentpool.agents.events import (
@@ -318,6 +319,7 @@ def convert_tool_complete_event(
 
 def _convert_file_part_to_user_content(  # noqa: PLR0911
     part: dict[str, Any],
+    fs: AsyncFileSystem | None = None,
 ) -> UserContent | PathReference:
     """Convert an OpenCode FilePartInput to pydantic-ai content or PathReference.
 
@@ -331,6 +333,7 @@ def _convert_file_part_to_user_content(  # noqa: PLR0911
 
     Args:
         part: OpenCode file part with mime, url, and optional filename
+        fs: Optional async filesystem for PathReference resolution
 
     Returns:
         Appropriate pydantic-ai content type or PathReference
@@ -355,7 +358,7 @@ def _convert_file_part_to_user_content(  # noqa: PLR0911
             display_name = f"@{filename}" if filename else None
             return PathReference(
                 path=path,
-                fs=None,
+                fs=fs,
                 mime_type=mime or None,
                 display_name=display_name,
             )
@@ -374,7 +377,7 @@ def _convert_file_part_to_user_content(  # noqa: PLR0911
         display_name = f"@{filename}" if filename else None
         return PathReference(
             path=path,
-            fs=None,
+            fs=fs,
             mime_type=mime or None,
             display_name=display_name,
         )
@@ -395,6 +398,7 @@ def _convert_file_part_to_user_content(  # noqa: PLR0911
 
 def extract_user_prompt_from_parts(
     parts: list[dict[str, Any]],
+    fs: AsyncFileSystem | None = None,
 ) -> str | Sequence[UserContent | PathReference]:
     """Extract user prompt from OpenCode message parts.
 
@@ -405,6 +409,7 @@ def extract_user_prompt_from_parts(
 
     Args:
         parts: List of OpenCode message parts
+        fs: Optional async filesystem for PathReference resolution
 
     Returns:
         Either a simple string (text-only) or a list of UserContent/PathReference items
@@ -420,7 +425,7 @@ def extract_user_prompt_from_parts(
                 result.append(text)
 
         elif part_type == "file":
-            content = _convert_file_part_to_user_content(part)
+            content = _convert_file_part_to_user_content(part, fs=fs)
             result.append(content)
 
         elif part_type == "agent":
