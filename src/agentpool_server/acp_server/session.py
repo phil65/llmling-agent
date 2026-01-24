@@ -39,6 +39,7 @@ from agentpool_server.acp_server.input_provider import ACPInputProvider
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    from pydantic_ai import UserContent
     from slashed import CommandContext
 
     from acp import Client, RequestPermissionRequest, RequestPermissionResponse
@@ -51,7 +52,7 @@ if TYPE_CHECKING:
     )
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.modes import ConfigOptionChanged
-    from agentpool.common_types import PromptCompatible
+    from agentpool.common_types import PathReference
     from agentpool.prompts.manager import PromptManager
     from agentpool.prompts.prompts import MCPClientPrompt
     from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
@@ -95,9 +96,9 @@ def _is_slash_command(text: str) -> bool:
 
 
 def split_commands(
-    contents: Sequence[PromptCompatible],
+    contents: Sequence[UserContent | PathReference],
     command_store: CommandStore,
-) -> tuple[list[str], list[PromptCompatible]]:
+) -> tuple[list[str], list[UserContent | PathReference]]:
     """Split content into local slash commands and pass-through content.
 
     Only commands that exist in the local command_store are extracted.
@@ -105,7 +106,7 @@ def split_commands(
     so they flow through to the agent and reach the nested server.
     """
     commands: list[str] = []
-    non_command_content: list[PromptCompatible] = []
+    non_command_content: list[UserContent | PathReference] = []
     for item in contents:
         # Check if this is a LOCAL command we handle
         if (

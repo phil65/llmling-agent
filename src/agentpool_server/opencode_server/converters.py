@@ -22,6 +22,7 @@ from pydantic_ai import (
     VideoUrl,
 )
 
+from agentpool.common_types import PathReference
 from agentpool.sessions.models import SessionData
 from agentpool_server.opencode_server.models import (
     AssistantMessage,
@@ -315,12 +316,16 @@ def convert_tool_complete_event(
 # =============================================================================
 
 
-def _convert_file_part_to_user_content(part: dict[str, Any]) -> Any:
-    """Convert an OpenCode FilePartInput to pydantic-ai MultiModalContent.
+def _convert_file_part_to_user_content(  # noqa: PLR0911
+    part: dict[str, Any],
+) -> UserContent | PathReference:
+    """Convert an OpenCode FilePartInput to pydantic-ai content or PathReference.
 
     Supports:
+    - file:// URLs with text/* or directory MIME -> PathReference (deferred resolution)
+    - data: URIs -> BinaryContent
     - Images (image/*) -> ImageUrl or BinaryContent
-    - Documents (application/pdf, text/*) -> DocumentUrl or BinaryContent
+    - Documents (application/pdf) -> DocumentUrl or BinaryContent
     - Audio (audio/*) -> AudioUrl or BinaryContent
     - Video (video/*) -> VideoUrl or BinaryContent
 
@@ -328,16 +333,53 @@ def _convert_file_part_to_user_content(part: dict[str, Any]) -> Any:
         part: OpenCode file part with mime, url, and optional filename
 
     Returns:
-        Appropriate pydantic-ai content type
+        Appropriate pydantic-ai content type or PathReference
     """
+    from urllib.parse import unquote, urlparse
+
     mime = part.get("mime", "")
     url = part.get("url", "")
+    filename = part.get("filename", "")
 
     # Handle data: URIs - convert to BinaryContent
     if url.startswith("data:"):
         return BinaryContent.from_data_uri(url)
 
-    # Handle regular URLs or file paths based on mime type
+    # Handle file:// URLs for text files and directories -> PathReference
+    if url.startswith("file://"):
+        parsed = urlparse(url)
+        path = unquote(parsed.path)
+
+        # Text files and directories get deferred context resolution
+        if mime.startswith("text/") or mime == "application/x-directory" or not mime:
+            display_name = f"@{filename}" if filename else None
+            return PathReference(
+                path=path,
+                fs=None,
+                mime_type=mime or None,
+                display_name=display_name,
+            )
+
+        # Media files from local filesystem - use URL types
+        if mime.startswith("image/"):
+            return ImageUrl(url=url)
+        if mime.startswith("audio/"):
+            return AudioUrl(url=url)
+        if mime.startswith("video/"):
+            return VideoUrl(url=url)
+        if mime == "application/pdf":
+            return DocumentUrl(url=url)
+
+        # Unknown MIME for file:// - defer to PathReference
+        display_name = f"@{filename}" if filename else None
+        return PathReference(
+            path=path,
+            fs=None,
+            mime_type=mime or None,
+            display_name=display_name,
+        )
+
+    # Handle regular URLs based on mime type
     if mime.startswith("image/"):
         return ImageUrl(url=url)
     if mime.startswith("audio/"):
@@ -353,20 +395,21 @@ def _convert_file_part_to_user_content(part: dict[str, Any]) -> Any:
 
 def extract_user_prompt_from_parts(
     parts: list[dict[str, Any]],
-) -> str | Sequence[UserContent]:
+) -> str | Sequence[UserContent | PathReference]:
     """Extract user prompt from OpenCode message parts.
 
-    Converts OpenCode parts to pydantic-ai UserContent format:
+    Converts OpenCode parts to pydantic-ai UserContent or PathReference format:
     - Text parts become strings
-    - File parts become ImageUrl, DocumentUrl, AudioUrl, VideoUrl, or BinaryContent
+    - File parts with file:// URLs become PathReference (deferred resolution)
+    - Other file parts become ImageUrl, DocumentUrl, AudioUrl, VideoUrl, or BinaryContent
 
     Args:
         parts: List of OpenCode message parts
 
     Returns:
-        Either a simple string (text-only) or a list of UserContent items
+        Either a simple string (text-only) or a list of UserContent/PathReference items
     """
-    result: list[UserContent] = []
+    result: list[UserContent | PathReference] = []
 
     for part in parts:
         part_type = part.get("type")
