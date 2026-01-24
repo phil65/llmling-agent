@@ -19,7 +19,8 @@ from agentpool.agents.events import ToolCallCompleteEvent, ToolCallStartEvent
 
 
 if TYPE_CHECKING:
-    from clawd_code_sdk import ContentBlock, McpServerConfig, Message, SystemPromptPreset
+    from clawd_code_sdk import ContentBlock, McpServerConfig, Message
+    from clawd_code_sdk.types import SystemPromptPreset
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool_config.mcp_server import MCPServerConfig as NativeMCPServerConfig
@@ -62,7 +63,7 @@ def content_block_to_event(block: ContentBlock, index: int = 0) -> RichAgentStre
 def to_claude_system_prompt(
     system_prompt: str, include_default: bool = True
 ) -> SystemPromptPreset | str:
-    from clawd_code_sdk import SystemPromptPreset
+    from clawd_code_sdk.types import SystemPromptPreset
 
     if include_default:
         # Use SystemPromptPreset to append to builtin prompt
