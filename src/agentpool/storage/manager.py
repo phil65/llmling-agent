@@ -23,6 +23,7 @@ from agentpool_config.storage import (
     MemoryStorageConfig,
     OpenCodeStorageConfig,
     SQLStorageConfig,
+    StorageConfig,
     ZedStorageConfig,
 )
 
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
 
     from agentpool.common_types import JsonValue
     from agentpool.sessions.models import ProjectData
-    from agentpool_config.storage import BaseStorageProviderConfig, StorageConfig
+    from agentpool_config.storage import BaseStorageProviderConfig
     from agentpool_storage.base import StorageProvider
 
 logger = get_logger(__name__)
