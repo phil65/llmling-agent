@@ -208,7 +208,7 @@ def extract_text_content(parts: list[OpenCodePart]) -> str:
     return "\n".join(text_parts)
 
 
-def build_pydantic_messages(  # noqa: PLR0915
+def build_pydantic_messages(
     msg: OpenCodeMessage,
     parts: list[OpenCodePart],
     timestamp: datetime,
@@ -233,7 +233,6 @@ def build_pydantic_messages(  # noqa: PLR0915
     if isinstance(msg, UserMessage):
         # Build UserPromptPart content from text and file parts
         user_content: list[UserContent] = []
-
         for part in parts:
             if isinstance(part, OpenCodeTextPart) and part.text:
                 user_content.append(part.text)
@@ -241,7 +240,6 @@ def build_pydantic_messages(  # noqa: PLR0915
                 # Convert FilePart back to appropriate UserContent type
                 url = part.url
                 mime = part.mime
-
                 # Detect data URLs for BinaryContent
                 if url.startswith("data:"):
                     # Parse data URL: data:mime;base64,data
@@ -251,20 +249,16 @@ def build_pydantic_messages(  # noqa: PLR0915
                         data = base64.b64decode(b64_data)
                         user_content.append(BinaryContent(data=data, media_type=media_type))
                     continue
-
                 # Convert to appropriate URL type based on MIME
-                if mime.startswith("image/") or mime == "image/*":
-                    user_content.append(
-                        ImageUrl(url=url, media_type=mime if mime != "image/*" else None)
-                    )
-                elif mime.startswith("audio/") or mime == "audio/*":
-                    user_content.append(
-                        AudioUrl(url=url, media_type=mime if mime != "audio/*" else None)
-                    )
-                elif mime.startswith("video/") or mime == "video/*":
-                    user_content.append(
-                        VideoUrl(url=url, media_type=mime if mime != "video/*" else None)
-                    )
+                if mime.startswith("image/"):
+                    mime_typ = mime if mime != "image/*" else None
+                    user_content.append(ImageUrl(url=url, media_type=mime_typ))
+                elif mime.startswith("audio/"):
+                    mime_typ = mime if mime != "audio/*" else None
+                    user_content.append(AudioUrl(url=url, media_type=mime_typ))
+                elif mime.startswith("video/"):
+                    mime_typ = mime if mime != "video/*" else None
+                    user_content.append(VideoUrl(url=url, media_type=mime_typ))
                 elif mime == "application/pdf" or mime.startswith("application/"):
                     user_content.append(DocumentUrl(url=url, media_type=mime))
                 else:
@@ -272,17 +266,12 @@ def build_pydantic_messages(  # noqa: PLR0915
                     user_content.append(DocumentUrl(url=url, media_type=mime))
 
         if user_content:
-            # Create UserPromptPart with content (str or Sequence)
-            content: str | Sequence[UserContent]
-            if len(user_content) == 1 and isinstance(user_content[0], str):
-                content = user_content[0]
-            else:
-                content = user_content
-
-            request_parts: list[UserPromptPart | ToolReturnPart] = [
-                UserPromptPart(content=content, timestamp=timestamp)
-            ]
-            result.append(ModelRequest(parts=request_parts, timestamp=timestamp))
+            result.append(
+                ModelRequest(
+                    parts=[UserPromptPart(content=user_content, timestamp=timestamp)],
+                    timestamp=timestamp,
+                )
+            )
 
         return result
 

@@ -777,10 +777,9 @@ class OpenCodeStorageProvider(StorageProvider):
             None,
         )
         if not source_path:
-            msg = f"Source conversation not found: {source_session_id}"
-            raise ValueError(msg)
+            raise ValueError(f"Source conversation not found: {source_session_id}")
         source_session = helpers.read_session(source_path)
-
+        assert source_session
         # Read source messages
         oc_messages = self._read_messages(source_session_id)
         # Find fork point
