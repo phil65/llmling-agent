@@ -113,8 +113,8 @@ async def test_pre_tool_hook_allow():
     hooks = AgentHooks(pre_tool_use=[CallableHook(event="pre_tool_use", fn=allow_hook)])
     async with Agent(model="test", hooks=hooks, tools=[simple_tool]) as agent:
         # Just verify the hooks are set up correctly
-        assert agent.hooks is not None
-        assert len(agent.hooks.pre_tool_use) == 1
+        assert agent._hook_manager.has_hooks()
+        assert len(agent._hook_manager.agent_hooks.pre_tool_use) == 1
 
 
 async def test_pre_tool_hook_with_matcher():
@@ -139,8 +139,8 @@ async def test_post_tool_hook():
     reset_hook_state()
     hooks = AgentHooks(post_tool_use=[CallableHook(event="post_tool_use", fn=record_result_hook)])
     async with Agent(model="test", hooks=hooks) as agent:
-        assert agent.hooks is not None
-        assert len(agent.hooks.post_tool_use) == 1
+        assert agent._hook_manager.has_hooks()
+        assert len(agent._hook_manager.agent_hooks.post_tool_use) == 1
 
 
 # Tests for AgentHooks class
