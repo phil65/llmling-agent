@@ -657,6 +657,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                     reason = pre_run_result.get("reason", "Blocked by pre-run hook")
                     raise RuntimeError(f"Run blocked: {reason}")  # noqa: TRY301
 
+            context = self.get_context(input_provider=input_provider)
             async for event in self._stream_events(
                 [*pending_parts, *converted_prompts],
                 user_msg=user_msg,
@@ -670,7 +671,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
                 wait_for_connections=wait_for_connections,
                 deps=deps,
             ):
-                await resolved_handler(None, event)
+                await resolved_handler(context, event)
                 yield event
                 # Capture final message from StreamCompleteEvent
                 if isinstance(event, StreamCompleteEvent):

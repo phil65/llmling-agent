@@ -30,13 +30,12 @@ from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai import RunContext
-
+    from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
 
 
-async def simple_print_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
+async def simple_print_handler(ctx: AgentContext[Any], event: RichAgentStreamEvent[Any]) -> None:
     """Simple event handler that prints text and basic tool information.
 
     Focus: Core text output and minimal tool notifications.
@@ -66,7 +65,7 @@ async def simple_print_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]
             print(file=sys.stderr)  # Final newline
 
 
-async def detailed_print_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
+async def detailed_print_handler(ctx: AgentContext[Any], event: RichAgentStreamEvent[Any]) -> None:
     """Detailed event handler with rich tool execution information.
 
     Focus: Comprehensive execution visibility.
@@ -145,7 +144,7 @@ def create_file_stream_handler(
     # Open file handle that persists across calls
     file_handle = file_path.open(mode, encoding="utf-8")
 
-    async def file_stream_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
+    async def file_stream_handler(ctx: AgentContext[Any], event: RichAgentStreamEvent[Any]) -> None:
         """Stream agent output to file."""
         match event:
             case (

@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
     from upathtools import JoinablePathLike
 
+    from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
@@ -1096,7 +1097,7 @@ if __name__ == "__main__":
     sys_prompt = "Open browser with google,"
     _model = "openai:gpt-5-nano"
 
-    async def handle_events(ctx: RunContext, event: Any) -> None:
+    async def handle_events(ctx: AgentContext[Any], event: RichAgentStreamEvent[Any]) -> None:
         print(f"[EVENT] {type(event).__name__}: {event}")
 
     agent = Agent(model=_model, tools=["webbrowser.open"], event_handlers=[handle_events])

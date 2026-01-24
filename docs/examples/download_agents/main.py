@@ -26,7 +26,7 @@ from agentpool.docs.utils import get_config_path, is_pyodide, run
 
 
 if TYPE_CHECKING:
-    from pydantic_ai import RunContext
+    from agentpool.agents.context import AgentContext
 
 
 # set your OpenAI API key here
@@ -68,7 +68,7 @@ async def run_example() -> None:
     config_path = get_config_path(None if is_pyodide() else __file__)
     manifest = AgentsManifest.from_file(config_path)
 
-    async def event_handler(ctx: RunContext, event: RichAgentStreamEvent[Any]) -> None:
+    async def event_handler(ctx: AgentContext[Any], event: RichAgentStreamEvent[Any]) -> None:
         from agentpool.agents.events import ToolCallProgressEvent
 
         if isinstance(event, ToolCallProgressEvent):

@@ -16,7 +16,7 @@ from typing import (
 )
 
 from pydantic import BaseModel, ConfigDict, field_validator
-from pydantic_ai import AgentStreamEvent, RunContext
+from pydantic_ai import AgentStreamEvent
 from pydantic_ai.models import Model
 from tokonomics.model_names import ModelId
 from toprompt.to_prompt import AnyPromptType
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from uuid import UUID
 
+    from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.tools.base import Tool
 
@@ -83,7 +84,7 @@ SyncFilterFn = Callable[..., bool]
 AnyFilterFn = Callable[..., bool | Awaitable[bool]]
 # Event handler types for composable event processing
 # Individual event handler for composability - takes single events
-IndividualEventHandler = Callable[[RunContext, AgentStreamEvent], Awaitable[None]]
+type IndividualEventHandler = Callable[[AgentContext[Any], AgentStreamEvent], Awaitable[None]]
 BuiltinEventHandlerType = Literal["simple", "detailed"]
 PromptCompatible = AnyPromptType | JoinablePathLike
 # P = ParamSpec("P")

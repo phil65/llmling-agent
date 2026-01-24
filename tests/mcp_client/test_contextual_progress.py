@@ -5,16 +5,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pydantic_ai import RunContext  # noqa: TC002
 from pydantic_ai.models.test import TestModel
 import pytest
 
 from agentpool import AgentPool
+from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.agents.events import ToolCallProgressEvent
 from agentpool_config.mcp_server import StdioMCPServerConfig
 
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from agentpool.agents.events import RichAgentStreamEvent
 
 
@@ -34,7 +36,7 @@ class ProgressCapture:
     def __init__(self):
         self.progress_events: list[ToolCallProgressEvent] = []
 
-    async def __call__(self, ctx: RunContext, event: RichAgentStreamEvent[object]) -> None:
+    async def __call__(self, ctx: AgentContext[Any], event: RichAgentStreamEvent[object]) -> None:
         """Capture progress with full context."""
         if isinstance(event, ToolCallProgressEvent):
             self.progress_events.append(event)

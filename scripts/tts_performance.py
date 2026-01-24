@@ -21,15 +21,15 @@ from agentpool_config.event_handlers import EdgeTTSEventHandlerConfig, TTSEventH
 
 if TYPE_CHECKING:
     from anyvoice import TTSMode
-    from pydantic_ai import RunContext
 
+    from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
 
 
 TTSProvider = Literal["openai", "edge"]
 
 
-async def print_handler(ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
+async def print_handler(ctx: AgentContext[Any], event: RichAgentStreamEvent[Any]) -> None:
     """Print text deltas as they arrive."""
     match event:
         case PartStartEvent(part=TextPart(content=text)):

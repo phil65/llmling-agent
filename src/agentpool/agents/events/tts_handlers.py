@@ -10,8 +10,8 @@ from pydantic_ai import PartDeltaEvent, PartStartEvent, TextPart, TextPartDelta
 
 if TYPE_CHECKING:
     from anyvoice import TTSStream
-    from pydantic_ai import RunContext
 
+    from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
 
 TTSMode = Literal["sync_sentence", "sync_run", "async_queue", "async_cancel"]
@@ -67,7 +67,7 @@ class BaseTTSEventHandler:
             await self._tts_stream.__aexit__(None, None, None)
             self._tts_stream = None
 
-    async def __call__(self, ctx: RunContext[Any], event: RichAgentStreamEvent[Any]) -> None:
+    async def __call__(self, ctx: AgentContext[Any], event: RichAgentStreamEvent[Any]) -> None:
         """Handle stream events and trigger TTS synthesis."""
         from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 
