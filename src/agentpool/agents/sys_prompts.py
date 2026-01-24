@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal
 
 from agentpool import text_templates
+from agentpool.agents.exceptions import PromptResolutionError
 
 
 if TYPE_CHECKING:
@@ -76,13 +77,13 @@ class SystemPrompts:
             await sys_prompts.add_by_reference("langfuse:expert@v2")
         """
         if not self.prompt_manager:
-            raise RuntimeError("No prompt_manager available to resolve prompts")
+            raise PromptResolutionError("no prompt_manager available")
 
         try:
             content = await self.prompt_manager.get(reference)
             self.prompts.append(content)
         except Exception as e:
-            raise RuntimeError(f"Failed to add prompt {reference!r}") from e
+            raise PromptResolutionError(f"failed to add prompt {reference!r}") from e
 
     async def add(
         self,
@@ -105,7 +106,7 @@ class SystemPrompts:
             await sys_prompts.add("expert", provider="langfuse", version="v2")
         """
         if not self.prompt_manager:
-            raise RuntimeError("No prompt_manager available to resolve prompts")
+            raise PromptResolutionError("no prompt_manager available")
 
         try:
             content = await self.prompt_manager.get_from(
@@ -117,8 +118,7 @@ class SystemPrompts:
             self.prompts.append(content)
         except Exception as e:
             ref = f"{provider + ':' if provider else ''}{identifier}"
-
-            raise RuntimeError(f"Failed to add prompt {ref!r}") from e
+            raise PromptResolutionError(f"failed to add prompt {ref!r}") from e
 
     def clear(self) -> None:
         """Clear all system prompts."""

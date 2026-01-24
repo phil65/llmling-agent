@@ -29,3 +29,24 @@ class UnknownModeError(ValueError):
     def __init__(self, mode_id: str, available_modes: Sequence[str]):
         msg = f"Unknown mode: {mode_id}. Available: {', '.join(available_modes)}"
         super().__init__(msg)
+
+
+class OperationNotAllowedError(RuntimeError):
+    """Raised when an operation is blocked by permission or configuration."""
+
+    def __init__(self, operation: str):
+        super().__init__(f"{operation} not allowed")
+
+
+class ResourceNotFoundError(ValueError):
+    """Raised when a requested resource cannot be found."""
+
+    def __init__(self, resource_type: str, resource_id: str):
+        super().__init__(f"{resource_type} {resource_id} not found")
+
+
+class PromptResolutionError(RuntimeError):
+    """Raised when a prompt cannot be resolved."""
+
+    def __init__(self, detail: str):
+        super().__init__(f"Prompt resolution failed: {detail}")
