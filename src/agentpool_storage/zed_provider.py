@@ -541,7 +541,7 @@ class ZedStorageProvider(StorageProvider):
         """Log a conversation - NOT SUPPORTED (read-only provider)."""
         logger.warning("ZedStorageProvider is read-only, cannot log conversations")
 
-    async def get_conversations(
+    async def get_sessions(
         self,
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
@@ -605,7 +605,7 @@ class ZedStorageProvider(StorageProvider):
 
         return result
 
-    async def get_conversation_stats(self, filters: StatsFilters) -> dict[str, dict[str, Any]]:
+    async def get_session_stats(self, filters: StatsFilters) -> dict[str, dict[str, Any]]:
         """Get conversation statistics."""
         stats: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"total_tokens": 0, "messages": 0, "models": set()}
@@ -652,7 +652,7 @@ class ZedStorageProvider(StorageProvider):
         logger.warning("ZedStorageProvider is read-only, cannot reset")
         return 0, 0
 
-    async def get_conversation_counts(
+    async def get_session_counts(
         self,
         *,
         agent_name: str | None = None,
@@ -677,13 +677,13 @@ class ZedStorageProvider(StorageProvider):
             return None
         return thread.title
 
-    async def get_conversation_messages(
+    async def get_session_messages(
         self,
         session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
-        """Get all messages for a conversation.
+        """Get all messages for a session.
 
         Args:
             session_id: Thread ID (conversation ID in Zed format)
@@ -786,18 +786,18 @@ if __name__ == "__main__":
         print(f"Exists: {provider.db_path.exists()}")
         # List conversations
         filters = QueryFilters(limit=10)
-        conversations = await provider.get_conversations(filters)
+        conversations = await provider.get_sessions(filters)
         print(f"\nFound {len(conversations)} conversations")
         for conv_data, messages in conversations[:5]:
             print(f"  - {conv_data['id'][:8]}... | {conv_data['title'] or 'Untitled'}")
             print(f"    Messages: {len(messages)}, Updated: {conv_data['start_time']}")
         # Get counts
-        conv_count, msg_count = await provider.get_conversation_counts()
+        conv_count, msg_count = await provider.get_session_counts()
         print(f"\nTotal: {conv_count} conversations, {msg_count} messages")
         # Get stats
         cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=30)
         stats_filters = StatsFilters(cutoff=cutoff, group_by="day")
-        stats = await provider.get_conversation_stats(stats_filters)
+        stats = await provider.get_session_stats(stats_filters)
         print(f"\nStats: {stats}")
 
     asyncio.run(main())

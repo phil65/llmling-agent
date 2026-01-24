@@ -1417,7 +1417,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Don't filter by agent name - Claude storage uses 'claude' for all
             # Pass cwd filter to storage for efficient filesystem-level filtering
             filters = QueryFilters(cwd=cwd)
-            conversations = await self._claude_storage.get_conversations(filters=filters)
+            conversations = await self._claude_storage.get_sessions(filters=filters)
             result: list[SessionData] = []
             for conv_data, messages in conversations:
                 # Build SessionData from conversation
@@ -1461,7 +1461,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     async def load_session(self, session_id: str) -> SessionData | None:
         """Load and restore a session from Claude storage (requires reconnect)."""
         try:  # Load conversation messages from Claude storage
-            messages = await self._claude_storage.get_conversation_messages(session_id=session_id)
+            messages = await self._claude_storage.get_session_messages(session_id=session_id)
         except Exception:
             self.log.exception("Failed to load Claude session", session_id=session_id)
             return None

@@ -144,13 +144,13 @@ class StorageProvider:
         """
         return None
 
-    async def get_conversation_messages(
+    async def get_session_messages(
         self,
         session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
-        """Get all messages for a conversation.
+        """Get all messages for a session.
 
         Args:
             session_id: ID of the conversation
@@ -272,7 +272,7 @@ class StorageProvider:
             model=model,
         )
 
-    async def get_conversations(
+    async def get_sessions(
         self,
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
@@ -311,7 +311,7 @@ class StorageProvider:
         msg = f"{self.__class__.__name__} does not support filtered conversations"
         raise NotImplementedError(msg)
 
-    async def get_conversation_stats(
+    async def get_session_stats(
         self,
         filters: StatsFilters,
     ) -> dict[str, dict[str, Any]]:
@@ -375,7 +375,7 @@ class StorageProvider:
         """
         raise NotImplementedError
 
-    async def get_conversation_counts(
+    async def get_session_counts(
         self,
         *,
         agent_name: str | None = None,
@@ -394,7 +394,7 @@ class StorageProvider:
         self,
         session_id: str,
     ) -> int:
-        """Delete all messages for a conversation.
+        """Delete all messages for a session.
 
         Used for compaction - removes existing messages so they can be
         replaced with compacted versions.

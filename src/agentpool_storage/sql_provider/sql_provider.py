@@ -202,13 +202,13 @@ class SQLModelProvider(StorageProvider):
             )
             return result.scalar_one_or_none()
 
-    async def get_conversation_messages(
+    async def get_session_messages(
         self,
         session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
-        """Get all messages for a conversation.
+        """Get all messages for a session.
 
         Args:
             session_id: ID of the conversation
@@ -384,8 +384,8 @@ class SQLModelProvider(StorageProvider):
             limit=limit,
         )
 
-        # Use existing get_conversations method
-        conversations = await self.get_conversations(filters)
+        # Use existing get_sessions method
+        conversations = await self.get_sessions(filters)
         return [
             format_conversation(conv, msgs, compact=compact, include_tokens=include_tokens)
             for conv, msgs in conversations
@@ -414,7 +414,7 @@ class SQLModelProvider(StorageProvider):
             result = await session.execute(query)
             return [h.command for h in result.scalars()]
 
-    async def get_conversations(
+    async def get_sessions(
         self,
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
@@ -460,7 +460,7 @@ class SQLModelProvider(StorageProvider):
 
             return results
 
-    async def get_conversation_stats(
+    async def get_session_stats(
         self,
         filters: StatsFilters,
     ) -> dict[str, dict[str, Any]]:
@@ -538,7 +538,7 @@ class SQLModelProvider(StorageProvider):
                 return 0, 0
 
             # Get counts first
-            conv_count, msg_count = await self.get_conversation_counts(agent_name=agent_name)
+            conv_count, msg_count = await self.get_session_counts(agent_name=agent_name)
 
             # Delete data
             if agent_name:
@@ -551,7 +551,7 @@ class SQLModelProvider(StorageProvider):
             await session.commit()
         return conv_count, msg_count
 
-    async def get_conversation_counts(
+    async def get_session_counts(
         self,
         *,
         agent_name: str | None = None,
@@ -582,7 +582,7 @@ class SQLModelProvider(StorageProvider):
         self,
         session_id: str,
     ) -> int:
-        """Delete all messages for a conversation."""
+        """Delete all messages for a session."""
         from sqlalchemy import delete, func
 
         async with AsyncSession(self.engine) as session:

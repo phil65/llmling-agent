@@ -1068,7 +1068,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             if self.agent_pool.storage.providers:
                 provider = self.agent_pool.storage.providers[0]
                 if provider.can_load_history:
-                    messages = await provider.get_conversation_messages(
+                    messages = await provider.get_session_messages(
                         session_id=session_data.session_id,
                     )
                     # Restore to conversation history

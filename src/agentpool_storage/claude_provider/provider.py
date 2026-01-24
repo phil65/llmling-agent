@@ -605,7 +605,7 @@ class ClaudeStorageProvider(StorageProvider):
         This is a no-op but could be extended to create an initial entry.
         """
 
-    async def get_conversations(
+    async def get_sessions(
         self,
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
@@ -694,7 +694,7 @@ class ClaudeStorageProvider(StorageProvider):
 
         return result
 
-    async def get_conversation_stats(
+    async def get_session_stats(
         self,
         filters: StatsFilters,
     ) -> dict[str, dict[str, Any]]:
@@ -769,7 +769,7 @@ class ClaudeStorageProvider(StorageProvider):
 
         return conv_count, msg_count
 
-    async def get_conversation_counts(
+    async def get_session_counts(
         self,
         *,
         agent_name: str | None = None,
@@ -789,13 +789,13 @@ class ClaudeStorageProvider(StorageProvider):
 
         return conv_count, msg_count
 
-    async def get_conversation_messages(
+    async def get_session_messages(
         self,
         session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
-        """Get all messages for a conversation.
+        """Get all messages for a session.
 
         Args:
             session_id: Session ID (conversation ID in Claude format)

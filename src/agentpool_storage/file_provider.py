@@ -276,13 +276,13 @@ class FileProvider(StorageProvider):
                 return conv.get("title")
         return None
 
-    async def get_conversation_messages(
+    async def get_session_messages(
         self,
         session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
-        """Get all messages for a conversation."""
+        """Get all messages for a session."""
         messages: list[ChatMessage[str]] = []
         for msg in self._data["messages"]:
             if msg["session_id"] != session_id:
@@ -470,7 +470,7 @@ class FileProvider(StorageProvider):
     ) -> tuple[int, int]:
         """Reset stored data."""
         # Get counts first
-        conv_count, msg_count = await self.get_conversation_counts(agent_name=agent_name)
+        conv_count, msg_count = await self.get_session_counts(agent_name=agent_name)
 
         if hard:
             if agent_name:
@@ -508,7 +508,7 @@ class FileProvider(StorageProvider):
         self._save()
         return conv_count, msg_count
 
-    async def get_conversation_counts(
+    async def get_session_counts(
         self,
         *,
         agent_name: str | None = None,
@@ -534,7 +534,7 @@ class FileProvider(StorageProvider):
         self,
         session_id: str,
     ) -> int:
-        """Delete all messages for a conversation."""
+        """Delete all messages for a session."""
         original_count = len(self._data["messages"])
         self._data["messages"] = [
             m for m in self._data["messages"] if m["session_id"] != session_id

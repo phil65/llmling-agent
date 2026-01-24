@@ -152,7 +152,7 @@ def show_stats(
 
         async def main() -> None:
             async with provider:
-                stats = await provider.get_conversation_stats(filters)
+                stats = await provider.get_session_stats(filters)
             formatted = format_stats(stats, period, group_by)
             format_output(formatted, output_format)
 

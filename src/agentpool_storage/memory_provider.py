@@ -203,13 +203,13 @@ class MemoryStorageProvider(StorageProvider):
                 return conv.get("title")
         return None
 
-    async def get_conversation_messages(
+    async def get_session_messages(
         self,
         session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
-        """Get all messages for a conversation."""
+        """Get all messages for a session."""
         messages: list[ChatMessage[str]] = []
         for msg in self.messages:
             if msg.get("session_id") != session_id:
@@ -342,7 +342,7 @@ class MemoryStorageProvider(StorageProvider):
                 break
         return filtered
 
-    async def get_conversations(
+    async def get_sessions(
         self,
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
@@ -423,7 +423,7 @@ class MemoryStorageProvider(StorageProvider):
 
         return results
 
-    async def get_conversation_stats(
+    async def get_session_stats(
         self,
         filters: StatsFilters,
     ) -> dict[str, dict[str, Any]]:
@@ -465,7 +465,7 @@ class MemoryStorageProvider(StorageProvider):
     ) -> tuple[int, int]:
         """Reset stored data."""
         # Get counts first
-        conv_count, msg_count = await self.get_conversation_counts(agent_name=agent_name)
+        conv_count, msg_count = await self.get_session_counts(agent_name=agent_name)
 
         if hard:
             if agent_name:
@@ -492,7 +492,7 @@ class MemoryStorageProvider(StorageProvider):
 
         return conv_count, msg_count
 
-    async def get_conversation_counts(
+    async def get_session_counts(
         self,
         *,
         agent_name: str | None = None,
@@ -518,7 +518,7 @@ class MemoryStorageProvider(StorageProvider):
         self,
         session_id: str,
     ) -> int:
-        """Delete all messages for a conversation."""
+        """Delete all messages for a session."""
         original_count = len(self.messages)
         self.messages = [m for m in self.messages if m["session_id"] != session_id]
         return original_count - len(self.messages)

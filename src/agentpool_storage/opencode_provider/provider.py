@@ -470,7 +470,7 @@ class OpenCodeStorageProvider(StorageProvider):
         """Log a conversation start."""
         # No-op for read-only provider
 
-    async def get_conversations(
+    async def get_sessions(
         self,
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
@@ -574,7 +574,7 @@ class OpenCodeStorageProvider(StorageProvider):
 
         return result
 
-    async def get_conversation_stats(
+    async def get_session_stats(
         self,
         filters: StatsFilters,
     ) -> dict[str, dict[str, Any]]:
@@ -645,7 +645,7 @@ class OpenCodeStorageProvider(StorageProvider):
         logger.warning("Reset not implemented for OpenCode storage (read-only)")
         return 0, 0
 
-    async def get_conversation_counts(
+    async def get_session_counts(
         self,
         *,
         agent_name: str | None = None,
@@ -668,13 +668,13 @@ class OpenCodeStorageProvider(StorageProvider):
 
         return conv_count, msg_count
 
-    async def get_conversation_messages(
+    async def get_session_messages(
         self,
         session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
-        """Get all messages for a conversation.
+        """Get all messages for a session.
 
         Args:
             session_id: Session ID (conversation ID in OpenCode format)
@@ -869,7 +869,7 @@ if __name__ == "__main__":
 
         # List conversations
         filters = QueryFilters(limit=10)
-        conversations = await provider.get_conversations(filters)
+        conversations = await provider.get_sessions(filters)
         print(f"\nFound {len(conversations)} conversations")
 
         for conv_data, messages in conversations[:5]:
@@ -877,7 +877,7 @@ if __name__ == "__main__":
             print(f"    Messages: {len(messages)}, Updated: {conv_data['start_time']}")
 
         # Get counts
-        conv_count, msg_count = await provider.get_conversation_counts()
+        conv_count, msg_count = await provider.get_session_counts()
         print(f"\nTotal: {conv_count} conversations, {msg_count} messages")
 
         # Get stats
@@ -885,7 +885,7 @@ if __name__ == "__main__":
             cutoff=dt.datetime.now(dt.UTC) - dt.timedelta(days=30),
             group_by="day",
         )
-        stats = await provider.get_conversation_stats(stats_filters)
+        stats = await provider.get_session_stats(stats_filters)
         print(f"\nStats: {stats}")
 
     asyncio.run(main())

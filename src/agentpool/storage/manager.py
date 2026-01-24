@@ -245,13 +245,13 @@ class StorageManager:
         initial_prompt: str | None = None,
         on_title_generated: Callable[[str], None] | None = None,
     ) -> None:
-        """Log conversation to all providers (idempotent).
+        """Log session to all providers (idempotent).
 
-        If conversation was already logged, skips provider calls but still
+        If session was already logged, skips provider calls but still
         triggers title generation if initial_prompt is provided.
 
         Args:
-            session_id: Unique conversation identifier
+            session_id: Unique session identifier
             node_name: Name of the node/agent
             start_time: Optional start time
             initial_prompt: Optional initial prompt to trigger title generation
@@ -366,14 +366,14 @@ class StorageManager:
         return results[-1] if results else (0, 0)
 
     @method_spawner
-    async def get_conversation_counts(
+    async def get_session_counts(
         self,
         *,
         agent_name: str | None = None,
     ) -> tuple[int, int]:
         """Get counts from primary provider."""
         provider = self.get_history_provider()
-        return await provider.get_conversation_counts(agent_name=agent_name)
+        return await provider.get_session_counts(agent_name=agent_name)
 
     @method_spawner
     async def get_commands(
@@ -476,13 +476,13 @@ class StorageManager:
         return counts
 
     @method_spawner
-    async def get_conversation_messages(
+    async def get_session_messages(
         self,
         session_id: str,
         *,
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
-        """Get all messages for a conversation.
+        """Get all messages for a session.
 
         Args:
             session_id: ID of the conversation
@@ -494,9 +494,7 @@ class StorageManager:
             List of messages ordered by timestamp.
         """
         provider = self.get_history_provider()
-        return await provider.get_conversation_messages(
-            session_id, include_ancestors=include_ancestors
-        )
+        return await provider.get_session_messages(session_id, include_ancestors=include_ancestors)
 
     @method_spawner
     async def get_message(self, message_id: str) -> ChatMessage[str] | None:
@@ -565,7 +563,7 @@ class StorageManager:
         self,
         session_id: str,
     ) -> int:
-        """Delete all messages for a conversation in all providers.
+        """Delete all messages for a session in all providers.
 
         Used for compaction - removes existing messages so they can be
         replaced with compacted versions.
@@ -598,7 +596,7 @@ class StorageManager:
         session_id: str,
         messages: Sequence[ChatMessage[Any]],
     ) -> tuple[int, int]:
-        """Replace all messages for a conversation with new ones.
+        """Replace all messages for a session with new ones.
 
         Deletes existing messages and logs new ones. Used for compaction
         where the full history is replaced with a compacted version.

@@ -337,12 +337,12 @@ await provider.log_message(
 ### Resuming a Session
 ```python
 # Get existing sessions
-conversations = await provider.get_conversations(
+conversations = await provider.get_sessions(
     project_path="/path/to/project"
 )
 
 # Load latest session
-messages = await provider.get_conversation_messages(
+messages = await provider.get_session_messages(
     project_path="/path/to/project",
     session_id=conversations[0]["sessionId"],
     limit=50  # Last 50 messages

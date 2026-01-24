@@ -103,16 +103,16 @@ def test_parse_time_period():
     assert parse_time_period("1w") == timedelta(weeks=1)
 
 
-async def test_get_conversations(provider: SQLModelProvider, sample_data: None):
+async def test_get_sessions(provider: SQLModelProvider, sample_data: None):
     """Test conversation retrieval with filters."""
     # Get all conversations
     filters = QueryFilters()
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     assert len(results) == 2
 
     # Filter by agent
     filters = QueryFilters(agent_name="test_agent")
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     assert len(results) == 1
     conv, msgs = results[0]
     assert conv["agent"] == "test_agent"
@@ -120,15 +120,15 @@ async def test_get_conversations(provider: SQLModelProvider, sample_data: None):
 
     # Filter by time
     filters = QueryFilters(since=BASE_TIME - timedelta(hours=1.5))
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     assert len(results) == 1
 
 
-async def test_get_conversation_stats(provider: SQLModelProvider, sample_data: None):
+async def test_get_session_stats(provider: SQLModelProvider, sample_data: None):
     """Test statistics retrieval and aggregation."""
     cutoff = BASE_TIME - timedelta(hours=3)
     filters = StatsFilters(cutoff=cutoff, group_by="model")
-    stats = await provider.get_conversation_stats(filters)
+    stats = await provider.get_session_stats(filters)
 
     # Check model grouping
     assert "gpt-5" in stats
@@ -142,7 +142,7 @@ async def test_complex_filtering(provider: SQLModelProvider, sample_data: None):
     """Test combined filtering capabilities."""
     since = BASE_TIME - timedelta(hours=1.5)
     filters = QueryFilters(agent_name="test_agent", model="gpt-5", since=since, query="Hello")
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     assert len(results) == 1
     conv, msgs = results[0]
     assert conv["agent"] == "test_agent"
@@ -154,12 +154,12 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
     """Test basic filtering by agent and model."""
     # Get all conversations
     filters = QueryFilters()
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     assert len(results) == 2
 
     # Filter by agent
     filters = QueryFilters(agent_name="test_agent")
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     assert len(results) == 1
     conv, msgs = results[0]
     assert conv["agent"] == "test_agent"
@@ -167,7 +167,7 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
 
     # Filter by model
     filters = QueryFilters(model="gpt-5")
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     assert len(results) == 1
     conv, msgs = results[0]
     assert all(msg.model_name == "gpt-5" for msg in msgs)
@@ -177,24 +177,24 @@ async def test_time_filters(provider: SQLModelProvider, sample_data: None):
     """Test time-based filtering."""
     # First find conversation start times using provider method
     filters = QueryFilters()
-    conversations = await provider.get_conversations(filters)
+    conversations = await provider.get_sessions(filters)
     latest_conv_time = max(
         datetime.fromisoformat(conv_data["start_time"]) for conv_data, _ in conversations
     )
 
     # Get all conversations (no time filter)
     filters = QueryFilters()
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     assert len(results) == 2  # All conversations
 
     # Filter with cutoff after latest conversation - should get nothing
     filters = QueryFilters(since=latest_conv_time + timedelta(seconds=1))
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     assert len(results) == 0  # No conversations after cutoff
 
     # Filter with cutoff before latest conversation - should get conversations
     filters = QueryFilters(since=latest_conv_time - timedelta(hours=1))
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     assert len(results) > 0
 
 
@@ -221,12 +221,12 @@ async def test_period_filtering(provider: SQLModelProvider, sample_data: None):
 
     # Test with QueryFilters
     filters = QueryFilters(since=since)
-    results = await provider.get_conversations(filters)
+    results = await provider.get_sessions(filters)
     print(f"\nGot {len(results)} conversations with since={since}")
 
     # Print all conversations and their times using provider method
     filters = QueryFilters()
-    conversations = await provider.get_conversations(filters)
+    conversations = await provider.get_sessions(filters)
     for conv_data, _ in conversations:
         start_time = datetime.fromisoformat(conv_data["start_time"])
         print(f"Conversation {conv_data['id']}: {conv_data['start_time']}")
