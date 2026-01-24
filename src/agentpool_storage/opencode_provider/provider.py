@@ -724,6 +724,7 @@ class OpenCodeStorageProvider(StorageProvider):
         """Get the ancestry chain of a message.
 
         Traverses parent_id chain to build full history.
+        When session_id is provided, loads messages once and traverses in-memory.
 
         Args:
             message_id: ID of the message
@@ -732,17 +733,34 @@ class OpenCodeStorageProvider(StorageProvider):
         Returns:
             List of messages from oldest ancestor to the specified message
         """
-        ancestors: list[ChatMessage[str]] = []
-        current_id: str | None = message_id
+        # Fast path: if we know the session, load messages once and traverse in-memory
+        if session_id:
+            oc_messages = self._read_messages(session_id)
+            # Build ID -> message index for O(1) lookups
+            msg_by_id = {msg.id: msg for msg in oc_messages}
 
+            ancestors: list[ChatMessage[str]] = []
+            current_id: str | None = message_id
+            while current_id:
+                oc_msg = msg_by_id.get(current_id)
+                if not oc_msg:
+                    break
+                parts = self._read_parts(oc_msg.id)
+                chat_msg = helpers.message_to_chat_message(oc_msg, parts, session_id)
+                ancestors.append(chat_msg)
+                current_id = chat_msg.parent_id
+            ancestors.reverse()
+            return ancestors
+
+        # Slow path: search all sessions
+        ancestors = []
+        current_id = message_id
         while current_id:
-            msg = await self.get_message(current_id, session_id=session_id)
+            msg = await self.get_message(current_id)
             if not msg:
                 break
             ancestors.append(msg)
             current_id = msg.parent_id
-
-        # Reverse to get oldest first
         ancestors.reverse()
         return ancestors
 
