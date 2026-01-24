@@ -30,6 +30,7 @@ from agentpool.agents.events import (
 from agentpool.agents.events.infer_info import derive_rich_tool_info
 from agentpool.utils import identifiers as identifier
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
+from agentpool.utils.time_utils import now_ms
 from agentpool_server.opencode_server.converters import (
     _convert_params_for_ui,
     extract_user_prompt_from_parts,
@@ -72,7 +73,6 @@ from agentpool_server.opencode_server.models.parts import (
     TokenCache,
 )
 from agentpool_server.opencode_server.routes.session_routes import get_or_load_session
-from agentpool_server.opencode_server.time_utils import now_ms
 
 
 if TYPE_CHECKING:

@@ -57,7 +57,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 import re
@@ -110,7 +109,7 @@ from agentpool.messaging import ChatMessage
 from agentpool.messaging.messages import TokenCost
 from agentpool.sessions.models import SessionData
 from agentpool.utils.streams import merge_queue_into_iterator
-from agentpool.utils.time_utils import get_now
+from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 
 
 if TYPE_CHECKING:
@@ -1400,9 +1399,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Don't filter by agent name - Claude storage uses 'claude' for all
             # Pass cwd filter to storage for efficient filesystem-level filtering
             filters = QueryFilters(cwd=cwd)
-            conversations = await self._claude_storage.get_sessions(filters=filters)
             result: list[SessionData] = []
-            for conv_data, messages in conversations:
+            for conv_data, messages in await self._claude_storage.get_sessions(filters=filters):
                 # Build SessionData from conversation
                 last_active = get_now()
                 session_cwd: str | None = None
@@ -1417,16 +1415,12 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                             session_cwd = cwd_val
 
                 # Parse start_time
-                try:
-                    created_at = datetime.fromisoformat(conv_data["start_time"])
-                except (ValueError, KeyError):
-                    created_at = last_active
-
+                start_time = conv_data.get("start_time", "")
                 session_data = SessionData(
                     session_id=conv_data["id"],
                     agent_name=self.name,
                     cwd=session_cwd or str(self._cwd or Path.cwd()),
-                    created_at=created_at,
+                    created_at=parse_iso_timestamp(start_time, fallback=last_active),
                     last_active=last_active,
                     metadata={"title": conv_data.get("title")} if conv_data.get("title") else {},
                 )

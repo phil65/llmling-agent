@@ -12,6 +12,7 @@ from pydantic_ai import FileUrl
 
 from agentpool.repomap import RepoMap, find_src_files
 from agentpool.utils import identifiers as identifier
+from agentpool.utils.time_utils import now_ms
 from agentpool_server.opencode_server.command_validation import validate_command
 from agentpool_server.opencode_server.converters import (
     agent_messages_to_opencode,
@@ -53,7 +54,6 @@ from agentpool_server.opencode_server.models import (
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.events import PermissionResolvedEvent
 from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
-from agentpool_server.opencode_server.time_utils import now_ms
 
 
 if TYPE_CHECKING:

@@ -24,7 +24,7 @@ from pydantic_ai import (
 
 from agentpool.common_types import PathReference
 from agentpool.sessions.models import SessionData
-from agentpool.utils.time_utils import ms_to_datetime
+from agentpool.utils.time_utils import ms_to_datetime, now_ms
 from agentpool_server.opencode_server.models import (
     AssistantMessage,
     MessagePath,
@@ -53,7 +53,6 @@ from agentpool_server.opencode_server.models.parts import (
     TimeStartEndOptional,
     TokenCache,
 )
-from agentpool_server.opencode_server.time_utils import now_ms
 
 
 if TYPE_CHECKING:

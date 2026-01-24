@@ -20,13 +20,13 @@ from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 import pytest
 
+from agentpool.utils.time_utils import now_ms
 from agentpool_server.opencode_server.models import (
     Session,
 )
 from agentpool_server.opencode_server.models.common import TimeCreatedUpdated
 from agentpool_server.opencode_server.routes import file_router, session_router
 from agentpool_server.opencode_server.state import ServerState
-from agentpool_server.opencode_server.time_utils import now_ms
 
 
 if TYPE_CHECKING:
