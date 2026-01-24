@@ -36,7 +36,6 @@ from agentpool_storage.claude_provider.converters import (
     normalize_model_name,
 )
 from agentpool_storage.claude_provider.models import (
-    ClaudeApiMessage,
     ClaudeAssistantEntry,
     ClaudeJSONLEntry,
     ClaudeUserEntry,
@@ -78,6 +77,32 @@ def _build_tool_id_mapping(entries: list[ClaudeJSONLEntry]) -> dict[str, str]:
             if block.type == "tool_use" and block.id and block.name:
                 mapping[block.id] = block.name
     return mapping
+
+
+def _count_session_messages(session_path: Path) -> int:
+    """Count user/assistant messages in a session without full validation.
+
+    Only parses JSON to check the 'type' field, skipping Pydantic validation.
+
+    Args:
+        session_path: Path to the JSONL session file
+
+    Returns:
+        Number of user/assistant message entries
+    """
+    count = 0
+    with session_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                data = anyenv.load_json(stripped, return_type=dict)
+                if data.get("type") in ("user", "assistant"):
+                    count += 1
+            except (json.JSONDecodeError, ValueError):
+                pass
+    return count
 
 
 def _read_session(session_path: Path) -> list[ClaudeJSONLEntry]:
@@ -388,38 +413,46 @@ class ClaudeStorageProvider(StorageProvider):
             lambda: {"total_tokens": 0, "messages": 0, "models": set()}
         )
         for _session_id, session_path in self._list_sessions():
-            entries = _read_session(session_path)
+            with session_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    stripped = line.strip()
+                    if not stripped:
+                        continue
+                    try:
+                        data = anyenv.load_json(stripped, return_type=dict)
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+                    if data.get("type") != "assistant":
+                        continue
+                    msg = data.get("message")
+                    if not isinstance(msg, dict) or msg.get("type") != "message":
+                        continue
+                    model = normalize_model_name(msg.get("model", "unknown"))
+                    usage = msg.get("usage", {})
+                    input_tokens = usage.get("input_tokens", 0) or 0
+                    output_tokens = usage.get("output_tokens", 0) or 0
+                    cache_read = usage.get("cache_read_input_tokens", 0) or 0
+                    total_tokens = input_tokens + output_tokens + cache_read
+                    timestamp_str = data.get("timestamp", "")
+                    if not timestamp_str:
+                        continue
+                    timestamp = parse_iso_timestamp(timestamp_str)
+                    if timestamp < filters.cutoff:
+                        continue
+                    # Group by specified criterion
+                    match filters.group_by:
+                        case "model":
+                            key = model or "unknown"
+                        case "hour":
+                            key = timestamp.strftime("%Y-%m-%d %H:00")
+                        case "day":
+                            key = timestamp.strftime("%Y-%m-%d")
+                        case _:
+                            key = "claude"  # Default agent grouping
 
-            for entry in entries:
-                if not isinstance(entry, ClaudeAssistantEntry):
-                    continue
-
-                if not isinstance(entry.message, ClaudeApiMessage):
-                    continue
-
-                api_msg = entry.message
-                model = normalize_model_name(api_msg.model)
-                usage = api_msg.usage
-                total_tokens = (
-                    usage.input_tokens + usage.output_tokens + usage.cache_read_input_tokens
-                )
-                timestamp = parse_iso_timestamp(entry.timestamp)
-                if timestamp < filters.cutoff:  # Apply time filter
-                    continue
-                # Group by specified criterion
-                match filters.group_by:
-                    case "model":
-                        key = model or "unknown"
-                    case "hour":
-                        key = timestamp.strftime("%Y-%m-%d %H:00")
-                    case "day":
-                        key = timestamp.strftime("%Y-%m-%d")
-                    case _:
-                        key = "claude"  # Default agent grouping
-
-                stats[key]["messages"] += 1
-                stats[key]["total_tokens"] += total_tokens
-                stats[key]["models"].add(model)
+                    stats[key]["messages"] += 1
+                    stats[key]["total_tokens"] += total_tokens
+                    stats[key]["models"].add(model)
 
         # Convert sets to lists for JSON serialization
         for value in stats.values():
@@ -435,10 +468,8 @@ class ClaudeStorageProvider(StorageProvider):
         conv_count = 0
         msg_count = 0
         for _session_id, session_path in self._list_sessions():
-            entries = _read_session(session_path)
-            msg_count += len([
-                e for e in entries if isinstance(e, (ClaudeUserEntry, ClaudeAssistantEntry))
-            ])
+            count = _count_session_messages(session_path)
+            msg_count += count
             conv_count += 1
 
             if hard or not agent_name:
@@ -455,15 +486,10 @@ class ClaudeStorageProvider(StorageProvider):
         conv_count = 0
         msg_count = 0
         for _session_id, session_path in self._list_sessions():
-            entries = _read_session(session_path)
-            msg_entries = [
-                e for e in entries if isinstance(e, (ClaudeUserEntry, ClaudeAssistantEntry))
-            ]
-
-            if msg_entries:
+            count = _count_session_messages(session_path)
+            if count:
                 conv_count += 1
-                msg_count += len(msg_entries)
-
+                msg_count += count
         return conv_count, msg_count
 
     async def get_session_messages(
