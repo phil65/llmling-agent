@@ -27,6 +27,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
     from uuid import UUID
 
+    from fsspec.asyn import AsyncFileSystem
+
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.tools.base import Tool
@@ -86,7 +88,30 @@ AnyFilterFn = Callable[..., bool | Awaitable[bool]]
 # Individual event handler for composability - takes single events
 type IndividualEventHandler = Callable[[AgentContext[Any], AgentStreamEvent], Awaitable[None]]
 BuiltinEventHandlerType = Literal["simple", "detailed"]
-PromptCompatible = AnyPromptType | JoinablePathLike
+
+
+@dataclass(frozen=True, slots=True)
+class PathReference:
+    """A reference to a file or directory that should be resolved to context.
+
+    Used to defer file/directory context resolution to the prompt conversion layer.
+    The ACP layer (and other protocol adapters) emit these instead of eagerly
+    reading files. Resolution happens in convert_prompts().
+
+    Attributes:
+        path: Filesystem path string
+        fs: Optional async filesystem for reading (None = local filesystem)
+        mime_type: Optional MIME type hint from the protocol layer
+        display_name: Optional display name (e.g. "@converters.py")
+    """
+
+    path: str
+    fs: AsyncFileSystem | None = None
+    mime_type: str | None = None
+    display_name: str | None = None
+
+
+PromptCompatible = AnyPromptType | JoinablePathLike | PathReference
 # P = ParamSpec("P")
 # SyncAsync = Callable[P, OptionalAwaitable[T]]
 EndStrategy = Literal["early", "exhaustive"]

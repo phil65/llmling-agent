@@ -39,7 +39,6 @@ from agentpool_server.acp_server.input_provider import ACPInputProvider
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from pydantic_ai import UserContent
     from slashed import CommandContext
 
     from acp import Client, RequestPermissionRequest, RequestPermissionResponse
@@ -52,6 +51,7 @@ if TYPE_CHECKING:
     )
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.modes import ConfigOptionChanged
+    from agentpool.common_types import PromptCompatible
     from agentpool.prompts.manager import PromptManager
     from agentpool.prompts.prompts import MCPClientPrompt
     from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
@@ -95,9 +95,9 @@ def _is_slash_command(text: str) -> bool:
 
 
 def split_commands(
-    contents: Sequence[UserContent],
+    contents: Sequence[PromptCompatible],
     command_store: CommandStore,
-) -> tuple[list[str], list[UserContent]]:
+) -> tuple[list[str], list[PromptCompatible]]:
     """Split content into local slash commands and pass-through content.
 
     Only commands that exist in the local command_store are extracted.
@@ -105,7 +105,7 @@ def split_commands(
     so they flow through to the agent and reach the nested server.
     """
     commands: list[str] = []
-    non_command_content: list[UserContent] = []
+    non_command_content: list[PromptCompatible] = []
     for item in contents:
         # Check if this is a LOCAL command we handle
         if (
@@ -384,7 +384,7 @@ class ACPSession:
         """
         self._cancelled = False
         fs = self.agent.env.get_fs() if self.agent.env else None
-        contents = await from_acp_content(content_blocks, fs=fs)
+        contents = from_acp_content(content_blocks, fs=fs)
         self.log.debug("Converted content", content=contents)
         if not contents:
             self.log.warning("Empty prompt received")

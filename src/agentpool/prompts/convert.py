@@ -9,6 +9,8 @@ from pydantic_ai import AudioUrl, BinaryContent, BinaryImage, DocumentUrl, Image
 from toprompt import to_prompt
 from upathtools import UPath, read_path, to_upath
 
+from agentpool.common_types import PathReference
+
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -32,6 +34,24 @@ async def convert_prompts(
     result: list[UserContent] = []
     for p in prompts:
         match p:
+            case PathReference(path=path, fs=fs, mime_type=mime_type, display_name=display_name):
+                from pathlib import Path
+
+                from agentpool.repomap import get_resource_context
+
+                # Add display link if available
+                if display_name:
+                    result.append(display_name)
+
+                # Generate context (repo map / file outline)
+                context = await get_resource_context(Path(path), fs=fs, max_files_to_read=50)
+                if context:
+                    uri = f"file://{path}"
+                    result.append(f'\n<context ref="{uri}">\n{context}\n</context>')
+                elif not display_name:
+                    # No context generated and no display name - use path as fallback
+                    result.append(path)
+
             case os.PathLike() | UPath():
                 from agentpool.mime_utils import guess_type
 

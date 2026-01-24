@@ -7,7 +7,6 @@ content blocks, session updates, and other data structures using the external ac
 from __future__ import annotations
 
 import base64
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, assert_never, overload
 from urllib.parse import unquote, urlparse
 
@@ -27,6 +26,7 @@ from acp.schema import (
     TextContentBlock,
     TextResourceContents,
 )
+from agentpool.common_types import PathReference
 from agentpool.log import get_logger
 from agentpool_config.mcp_server import (
     SSEMCPServerConfig,
@@ -114,51 +114,64 @@ def format_uri_as_link(uri: str) -> str:
     return uri
 
 
-async def _get_resource_context(
+def _uri_to_path(uri: str) -> str | None:
+    """Extract filesystem path from a file:// URI.
+
+    Args:
+        uri: URI string
+
+    Returns:
+        Filesystem path string, or None if not a file:// URI
+    """
+    if not uri.startswith("file://"):
+        return None
+    parsed = urlparse(uri)
+    return unquote(parsed.path)
+
+
+def _uri_to_path_reference(
     uri: str,
     mime_type: str | None,
     fs: AsyncFileSystem | None,
-) -> str | None:
-    """Get context for a resource (file or directory).
+) -> PathReference | None:
+    """Create a PathReference from a URI if it's a file:// reference.
 
     Args:
-        uri: Resource URI (file:// or zed://)
-        mime_type: MIME type hint from client
-        fs: Filesystem to use for accessing files
+        uri: URI string
+        mime_type: Optional MIME type hint
+        fs: Optional async filesystem
 
     Returns:
-        Context string if applicable, None otherwise
+        PathReference if URI is a file:// reference, None otherwise
     """
-    # Only process file:// URIs for now
-    if not uri.startswith("file://"):
+    path = _uri_to_path(uri)
+    if path is None:
         return None
-
-    # Parse the file path from URI
-    parsed = urlparse(uri)
-    path_str = unquote(parsed.path)
-    path = Path(path_str)
-
-    # Use the context_generation module
-    from agentpool.repomap import get_resource_context
-
-    # Limit to 50 files for ACP to avoid excessive network calls
-    return await get_resource_context(path, fs=fs, max_files_to_read=50)
+    return PathReference(
+        path=path,
+        fs=fs,
+        mime_type=mime_type,
+        display_name=format_uri_as_link(uri),
+    )
 
 
-async def from_acp_content(
+def from_acp_content(  # noqa: PLR0915
     blocks: Sequence[ContentBlock],
     fs: AsyncFileSystem | None = None,
-) -> Sequence[UserContent]:
-    """Convert ACP content blocks to pydantic-ai UserContent objects.
+) -> Sequence[UserContent | PathReference]:
+    """Convert ACP content blocks to UserContent or PathReference objects.
+
+    File/directory references are converted to PathReference objects, deferring
+    context resolution to the prompt conversion layer (convert_prompts).
 
     Args:
         blocks: List of ACP ContentBlock objects
-        fs: Optional filesystem for accessing file/directory content
+        fs: Optional filesystem for file references
 
     Returns:
-        List of pydantic-ai UserContent objects (str, ImageUrl, BinaryContent, etc.)
+        List of UserContent or PathReference objects
     """
-    content: list[UserContent] = []
+    content: list[UserContent | PathReference] = []
     logger.info("Processing content blocks", block_count=len(blocks))
 
     for block in blocks:
@@ -168,7 +181,6 @@ async def from_acp_content(
                 content.append(text)
 
             case ImageContentBlock(data=data, mime_type=mime_type):
-                # ACP image data is base64 encoded
                 binary_data = base64.b64decode(data)
                 content.append(BinaryImage(data=binary_data, media_type=mime_type))
 
@@ -177,7 +189,6 @@ async def from_acp_content(
                 content.append(BinaryContent(data=binary_data, media_type=mime_type))
 
             case ResourceContentBlock(uri=uri, mime_type=mime_type):
-                # Convert to appropriate URL type based on MIME type
                 if mime_type:
                     if mime_type.startswith("image/"):
                         content.append(ImageUrl(url=uri))
@@ -188,26 +199,26 @@ async def from_acp_content(
                     elif mime_type == "application/pdf":
                         content.append(DocumentUrl(url=uri))
                     else:
-                        # Generic resource - convert to text link and try to add context
-                        content.append(format_uri_as_link(uri))
-                        context = await _get_resource_context(uri, mime_type, fs)
-                        if context:
-                            content.append(f'\n<context ref="{uri}">\n{context}\n</context>')
+                        # Try to create a PathReference for file:// URIs
+                        ref = _uri_to_path_reference(uri, mime_type, fs)
+                        if ref:
+                            content.append(ref)
+                        else:
+                            content.append(format_uri_as_link(uri))
                 else:
-                    # No MIME type - try to add context for file/directory references
-                    content.append(format_uri_as_link(uri))
-                    context = await _get_resource_context(uri, mime_type, fs)
-                    if context:
-                        content.append(f'\n<context ref="{uri}">\n{context}\n</context>')
+                    # No MIME type - try to create PathReference for file:// URIs
+                    ref = _uri_to_path_reference(uri, mime_type, fs)
+                    if ref:
+                        content.append(ref)
+                    else:
+                        content.append(format_uri_as_link(uri))
 
             case EmbeddedResourceContentBlock(resource=resource):
                 match resource:
                     case TextResourceContents(uri=uri, text=text):
                         content.append(format_uri_as_link(uri))
-                        # Client provided the text content, use it directly
                         content.append(f'\n<context ref="{uri}">\n{text}\n</context>')
                     case BlobResourceContents(blob=blob, mime_type=mime_type):
-                        # Convert embedded binary to appropriate content type
                         binary_data = base64.b64decode(blob)
                         if mime_type and mime_type.startswith("image/"):
                             content.append(BinaryImage(data=binary_data, media_type=mime_type))
@@ -218,7 +229,6 @@ async def from_acp_content(
                                 BinaryContent(data=binary_data, media_type="application/pdf")
                             )
                         else:
-                            # Unknown binary type - describe it
                             formatted_uri = format_uri_as_link(resource.uri)
                             content.append(f"Binary Resource: {formatted_uri}")
 
