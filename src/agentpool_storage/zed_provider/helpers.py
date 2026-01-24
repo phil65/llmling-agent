@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import base64
 import io
-import json
 from typing import Any
 
+import anyenv
 from pydantic_ai.messages import (
     BinaryContent,
     ModelRequest,
@@ -32,6 +32,26 @@ from agentpool_storage.zed_provider.models import ZedThread
 logger = get_logger(__name__)
 
 
+# Module-level reusable decompressor (stateless, thread-safe for decompression)
+_ZSTD_DECOMPRESSOR = zstandard.ZstdDecompressor()
+
+
+def _decompress(data: bytes, data_type: str) -> bytes:
+    """Decompress thread data.
+
+    Args:
+        data: Compressed thread data
+        data_type: Type of compression ("zstd" or plain)
+
+    Returns:
+        Decompressed bytes
+    """
+    if data_type == "zstd":
+        reader = _ZSTD_DECOMPRESSOR.stream_reader(io.BytesIO(data))
+        return reader.read()
+    return data
+
+
 def decompress_thread(data: bytes, data_type: str) -> ZedThread:
     """Decompress and parse thread data.
 
@@ -42,16 +62,25 @@ def decompress_thread(data: bytes, data_type: str) -> ZedThread:
     Returns:
         Parsed ZedThread object
     """
-    if data_type == "zstd":
-        dctx = zstandard.ZstdDecompressor()
-        # Use stream_reader for data without content size in header
-        reader = dctx.stream_reader(io.BytesIO(data))
-        json_data = reader.read()
-    else:
-        json_data = data
-
-    thread_dict = json.loads(json_data)
+    json_data = _decompress(data, data_type)
+    thread_dict = anyenv.load_json(json_data)
     return ZedThread.model_validate(thread_dict)
+
+
+def decompress_thread_raw(data: bytes, data_type: str) -> dict[str, Any]:
+    """Decompress thread data and return raw dict (skip model_validate).
+
+    Useful for lightweight operations like counting messages.
+
+    Args:
+        data: Compressed thread data
+        data_type: Type of compression ("zstd" or plain)
+
+    Returns:
+        Raw thread dict
+    """
+    json_data = _decompress(data, data_type)
+    return anyenv.load_json(json_data)
 
 
 def parse_user_content(  # noqa: PLR0915
@@ -223,55 +252,46 @@ def thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessa
     model_name = None
     if thread.model:
         model_name = f"{thread.model.provider}:{thread.model.model}"
-
     for idx, msg in enumerate(thread.messages):
         if msg == "Resume":
             continue  # Skip control messages
         msg_id = f"{thread_id}_{idx}"
-
         if msg.User is not None:
             user_msg = msg.User
             display_text, pydantic_content = parse_user_content(user_msg.content)
             part = UserPromptPart(content=pydantic_content)
-            model_request = ModelRequest(parts=[part])
-
-            messages.append(
-                ChatMessage[str](
-                    content=display_text,
-                    session_id=thread_id,
-                    role="user",
-                    message_id=user_msg.id or msg_id,
-                    name=None,
-                    model_name=None,
-                    timestamp=updated_at,  # Zed doesn't store per-message timestamps
-                    messages=[model_request],
-                )
+            chat_message = ChatMessage[str](
+                content=display_text,
+                session_id=thread_id,
+                role="user",
+                message_id=user_msg.id or msg_id,
+                name=None,
+                model_name=None,
+                timestamp=updated_at,  # Zed doesn't store per-message timestamps
+                messages=[ModelRequest(parts=[part])],
             )
+            messages.append(chat_message)
 
         elif msg.Agent is not None:
             agent_msg = msg.Agent
             display_text, pydantic_parts = parse_agent_content(agent_msg.content)
-            # Build ModelResponse
             usage = RequestUsage()
             model_response = ModelResponse(parts=pydantic_parts, usage=usage, model_name=model_name)
-            # Build tool return parts for next request if there are tool results
-            tool_return_parts = parse_tool_results(agent_msg.tool_results)
             # Create the messages list - response, then optionally tool returns
             pydantic_messages: list[ModelResponse | ModelRequest] = [model_response]
-            if tool_return_parts:
+            # Build tool return parts for next request if there are tool results
+            if tool_return_parts := parse_tool_results(agent_msg.tool_results):
                 pydantic_messages.append(ModelRequest(parts=tool_return_parts))
-
-            messages.append(
-                ChatMessage[str](
-                    content=display_text,
-                    session_id=thread_id,
-                    role="assistant",
-                    message_id=msg_id,
-                    name="zed",
-                    model_name=model_name,
-                    timestamp=updated_at,
-                    messages=pydantic_messages,
-                )
+            chat_message = ChatMessage[str](
+                content=display_text,
+                session_id=thread_id,
+                role="assistant",
+                message_id=msg_id,
+                name="zed",
+                model_name=model_name,
+                timestamp=updated_at,
+                messages=pydantic_messages,
             )
+            messages.append(chat_message)
 
     return messages

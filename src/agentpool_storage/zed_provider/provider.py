@@ -289,10 +289,20 @@ class ZedStorageProvider(StorageProvider):
         """Get counts of conversations and messages."""
         conv_count = 0
         msg_count = 0
-        for thread_id, _summary, _updated_at in self._list_threads():
-            if thread := self._load_thread(thread_id):
-                conv_count += 1
-                msg_count += len(thread.messages)
+        try:
+            conn = self._get_connection()
+            cursor = conn.execute("SELECT data_type, data FROM threads")
+            for data_type, data in cursor:
+                thread_dict = helpers.decompress_thread_raw(data, data_type)
+                messages = thread_dict.get("messages")
+                if messages is not None:
+                    conv_count += 1
+                    msg_count += len(messages)
+            conn.close()
+        except FileNotFoundError:
+            pass
+        except sqlite3.Error as e:
+            logger.warning("Failed to count Zed threads", error=str(e))
         return conv_count, msg_count
 
     async def get_session_title(self, session_id: str) -> str | None:
@@ -348,8 +358,7 @@ class ZedStorageProvider(StorageProvider):
             thread = self._load_thread(thread_id)
             if thread is None:
                 continue
-            messages = helpers.thread_to_chat_messages(thread, thread_id)
-            for msg in messages:
+            for msg in helpers.thread_to_chat_messages(thread, thread_id):
                 if msg.message_id == message_id:
                     return msg
         return None
