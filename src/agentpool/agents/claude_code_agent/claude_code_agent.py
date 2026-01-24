@@ -752,9 +752,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         are filtered out (e.g., login, logout, context, cost).
         """
         server_info = await self.get_server_info()
-        if not server_info:
-            self.log.warning("No server info available for command population")
-            return
         # Commands to skip - not useful or problematic in this context
         unsupported = {"login", "logout", "release-notes", "todos"}
         for cmd_info in server_info.commands:
@@ -1290,19 +1287,14 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         return MODELS
 
-    async def get_server_info(self) -> ClaudeCodeServerInfo | None:
+    async def get_server_info(self) -> ClaudeCodeServerInfo:
         """Get server initialization info (models, commands, account info, ...) from Claude Code."""
         from agentpool.agents.claude_code_agent.models import ClaudeCodeServerInfo
 
         await self.ensure_initialized()
-        if not self._client:
-            self.log.warning("Cannot get server info: not connected")
-            return None
-        # Get raw server info from SDK client
+        assert self._client, "Client not connected after ensure_initialized"
         raw_info = await self._client.get_server_info()
-        if not raw_info:
-            self.log.warning("No server info available from Claude Code")
-            return None
+        assert raw_info, "No server info returned (streaming mode should always provide it)"
         return ClaudeCodeServerInfo.model_validate(raw_info)
 
     async def get_modes(self) -> list[ModeCategory]:
