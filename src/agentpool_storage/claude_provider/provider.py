@@ -495,11 +495,9 @@ class ClaudeStorageProvider(StorageProvider):
         # Read entries and convert to messages
         entries = _read_session(session_path)
         tool_mapping = _build_tool_id_mapping(entries)
-        messages: list[ChatMessage[str]] = []
-        for entry in entries:
-            msg = entry_to_chat_message(entry, session_id, tool_mapping)
-            if msg:
-                messages.append(msg)
+        messages = [
+            m for entry in entries if (m := entry_to_chat_message(entry, session_id, tool_mapping))
+        ]
         # Sort by timestamp
         messages.sort(key=lambda m: m.timestamp or get_now())
         if not include_ancestors or not messages:
