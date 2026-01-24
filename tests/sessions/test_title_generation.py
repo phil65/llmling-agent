@@ -121,8 +121,8 @@ class TestStorageManagerTitleGeneration:
             title = await manager.get_session_title(conv_id)
             assert title == "My Title"
 
-    async def test_generate_conversation_title_from_messages(self) -> None:
-        """Test the generate_conversation_title method with messages."""
+    async def test_generate_session_title_from_messages(self) -> None:
+        """Test the generate_session_title method with messages."""
         config = StorageConfig(providers=[MemoryStorageConfig()], title_generation_model="test")
         async with StorageManager(config) as manager:
             conv_id = "msg_title_test"
@@ -133,7 +133,7 @@ class TestStorageManagerTitleGeneration:
                 ChatMessage(content="Python is a programming language.", role="assistant"),
             ]
             # Generate title from messages
-            title = await manager.generate_conversation_title(conv_id, messages)
+            title = await manager.generate_session_title(conv_id, messages)
             assert title is not None
             # Verify it was stored
             stored = await manager.get_session_title(conv_id)

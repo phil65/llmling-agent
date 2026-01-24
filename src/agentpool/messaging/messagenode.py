@@ -85,7 +85,7 @@ class MessageNode[TDeps, TResult](ABC):
         self.mcp = MCPManager(name_, servers=mcp_servers, owner=self.name)
         self.enable_db_logging = enable_logging
         self.session_id: str | None = None
-        self.conversation_title: str | None = None
+        self.session_title: str | None = None
 
     async def log_session(self, initial_prompt: str | None = None) -> None:
         """Log conversation to storage if enabled.
@@ -98,16 +98,16 @@ class MessageNode[TDeps, TResult](ABC):
             initial_prompt: Optional initial prompt to trigger title generation.
         """
 
-        def _set_conversation_title(title: str) -> None:
+        def _set_session_title(title: str) -> None:
             """Callback for setting conversation title (called by storage manager)."""
-            self.conversation_title = title
+            self.session_title = title
 
         if self.enable_db_logging and self.storage and self.session_id:
             await self.storage.log_session(
                 session_id=self.session_id,
                 node_name=self.name,
                 initial_prompt=initial_prompt,
-                on_title_generated=_set_conversation_title,
+                on_title_generated=_set_session_title,
             )
 
     async def __aenter__(self) -> Self:

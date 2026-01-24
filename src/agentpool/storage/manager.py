@@ -736,7 +736,7 @@ class StorageManager:
             return title
         return None
 
-    async def generate_conversation_title(
+    async def generate_session_title(
         self,
         session_id: str,
         messages: Sequence[ChatMessage[Any]],
