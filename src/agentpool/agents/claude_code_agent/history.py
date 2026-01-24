@@ -7,8 +7,9 @@ from ~/.claude/projects/ and converting it to pydantic-ai message format.
 from __future__ import annotations
 
 from datetime import datetime
-import json
 from typing import TYPE_CHECKING, Annotated, Any, Literal
+
+import anyenv
 
 
 if TYPE_CHECKING:
@@ -166,10 +167,8 @@ def parse_entry(line: str) -> ClaudeCodeEntry | None:
     if not line:
         return None
 
-    data = json.loads(line)
-    entry_type = data.get("type")
-
-    match entry_type:
+    data = anyenv.load_json(line, return_type=dict)
+    match data.get("type"):
         case "user":
             return ClaudeCodeUserEntry.model_validate(data)
         case "assistant":

@@ -9,6 +9,7 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any, TypeVar
 
+import anyenv
 from pydantic import BaseModel, TypeAdapter
 
 from codex_adapter.codex_types import HttpMcpServer, StdioMcpServer
@@ -701,7 +702,7 @@ class CodexClient:
                     continue
 
                 try:
-                    message = json.loads(line)
+                    message = anyenv.load_json(line, return_type=dict)
                     await self._process_message(message)
                 except json.JSONDecodeError:
                     logger.warning("Failed to parse JSON: %s", line)

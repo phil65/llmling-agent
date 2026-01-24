@@ -10,6 +10,7 @@ import re
 import shutil
 from typing import TYPE_CHECKING, Any
 
+import anyenv
 from fastapi import APIRouter, HTTPException, Query
 
 from agentpool_server.opencode_server.dependencies import StateDep
@@ -164,7 +165,7 @@ async def _search_with_ripgrep(
         if not line.strip():
             continue
         try:
-            data = json.loads(line)
+            data = anyenv.load_json(line, return_type=dict)
             if data.get("type") != "match":
                 continue
 
@@ -173,10 +174,8 @@ async def _search_with_ripgrep(
             line_number = match_data.get("line_number", 0)
             line_text = match_data.get("lines", {}).get("text", "").rstrip("\n")
             absolute_offset = match_data.get("absolute_offset", 0)
-
             # Convert to relative path
             rel_path = path[len(base_path_prefix) :] if path.startswith(base_path_prefix) else path
-
             # Extract submatches
             submatches = []
             for sm in match_data.get("submatches", []):
