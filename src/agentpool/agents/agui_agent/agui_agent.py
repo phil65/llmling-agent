@@ -31,7 +31,7 @@ from agentpool.agents.agui_agent.helpers import execute_tool_calls, parse_sse_st
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.agents.events.processors import FileTracker
-from agentpool.agents.exceptions import AgentNotInitializedError
+from agentpool.agents.exceptions import AgentNotInitializedError, OperationNotAllowedError
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.tools import ToolManager
@@ -605,8 +605,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _set_mode(self, mode_id: str, category_id: str) -> None:
         """AG-UI doesn't support mode switching."""
-        msg = "AG-UI agent does not support mode switching - model is controlled by remote server"
-        raise ValueError(msg)
+        raise OperationNotAllowedError("mode switching (model is controlled by remote server)")
 
     async def list_sessions(
         self,

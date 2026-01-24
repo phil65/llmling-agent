@@ -204,6 +204,20 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self._internal_fs: MemoryFileSystem = MemoryFileSystem()
         self.staged_content = StagedContent()
 
+    def __repr__(self) -> str:
+        typ = self.__class__.__name__
+        desc = f", {self.description!r}" if self.description else ""
+        return f"{typ}({self.name!r}, model={self.model_name!r}{desc})"
+
+    async def __prompt__(self) -> str:
+        typ = self.__class__.__name__
+        model = self.model_name or "default"
+        parts = [f"Agent: {self.name}", f"Type: {typ}", f"Model: {model}"]
+        if self.description:
+            parts.append(f"Description: {self.description}")
+        parts.extend([await self.tools.__prompt__(), self.conversation.__prompt__()])
+        return "\n".join(parts)
+
     @overload
     def __and__(  # if other doesnt define deps, we take the agents one
         self, other: ProcessorCallback[Any] | Team[TDeps] | Agent[TDeps, Any]

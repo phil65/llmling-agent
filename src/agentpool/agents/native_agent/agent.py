@@ -17,6 +17,7 @@ from pydantic_ai.models import Model
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.agents.events.processors import FileTracker
+from agentpool.agents.exceptions import UnknownCategoryError, UnknownModeError
 from agentpool.agents.native_agent.helpers import process_tool_event
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory
@@ -76,6 +77,7 @@ logger = get_logger(__name__)
 NoneType = type(None)
 
 TResult = TypeVar("TResult")
+VALID_MODES = ["always", "never", "per_tool"]
 
 
 class AgentKwargs(TypedDict, total=False):
@@ -297,25 +299,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             agent_hooks=hooks,
             injection_manager=self._injection_manager,
         )
-
         self._default_usage_limits = usage_limits
         self._providers = list(providers) if providers else None  # model discovery
 
-    def __repr__(self) -> str:
-        desc = f", {self.description!r}" if self.description else ""
-        return f"Agent({self.name!r}, model={self._model!r}{desc})"
-
-    async def __prompt__(self) -> str:
-        typ = self.__class__.__name__
-        model = self.model_name or "default"
-        parts = [f"Agent: {self.name}", f"Type: {typ}", f"Model: {model}"]
-        if self.description:
-            parts.append(f"Description: {self.description}")
-        parts.extend([await self.tools.__prompt__(), self.conversation.__prompt__()])
-        return "\n".join(parts)
-
     @classmethod
-    def from_config(  # noqa: PLR0915
+    def from_config(
         cls,
         config: NativeAgentConfig,
         *,
@@ -357,11 +345,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         name = name or config.name or "agent"
         # Normalize system_prompt to a list for iteration
         sys_prompts: list[str] = []
-        prompt_source = config.system_prompt
-        if prompt_source is not None:
-            prompts_to_process = (
-                [prompt_source] if isinstance(prompt_source, str) else prompt_source
-            )
+        if (sys_prompt := config.system_prompt) is not None:
+            prompts_to_process = [sys_prompt] if isinstance(sys_prompt, str) else sys_prompt
             for prompt in prompts_to_process:
                 match prompt:
                     case (str() as sys_prompt) | StaticPromptConfig(content=sys_prompt):
@@ -407,20 +392,14 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         if config.output_type:
             resolved_output_type = to_type(config.output_type, manifest.responses)
         # Merge event handlers
-        config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
-            *config_handlers,
+            *config.get_event_handlers(),
             *(event_handlers or []),
         ]
-        # Resolve model
         resolved_model = manifest.resolve_model(config.model)
-        model = resolved_model.get_model()
-        model_settings = resolved_model.get_model_settings()
-        # Extract builtin tools
-        builtin_tools = config.get_builtin_tools()
         return cls(
-            model=model,
-            model_settings=model_settings,
+            model=resolved_model.get_model(),
+            model_settings=resolved_model.get_model_settings(),
             system_prompt=sys_prompts,
             name=name,
             display_name=config.display_name,
@@ -441,7 +420,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             toolsets=toolsets_list,
             hooks=config.hooks.get_agent_hooks() if config.hooks else None,
             tool_confirmation_mode=config.requires_tool_confirmation,
-            builtin_tools=builtin_tools or None,
+            builtin_tools=config.get_builtin_tools() or None,
             usage_limits=config.usage_limits,
             providers=config.model_providers,
         )
@@ -617,9 +596,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         wrapped_tool.__annotations__ = {"prompt": str, "return": self._output_type or Any}
         normalized_name = self.name.replace("_", " ").title()
         docstring = f"Get expert answer from specialized agent: {normalized_name}"
-        description = description or self.description
-        if description:
-            docstring = f"{docstring}\n\n{description}"
+        if desc := (description or self.description):
+            docstring = f"{docstring}\n\n{desc}"
         tool_name = name or f"ask_{self.name}"
         wrapped_tool.__doc__ = docstring
         wrapped_tool.__name__ = tool_name
@@ -720,11 +698,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         start_time = time.perf_counter()
         history_list = message_history.get_history()
         assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
-        yield RunStartedEvent(
-            session_id=self.session_id,
-            run_id=run_id,
-            agent_name=self.name,
-        )
+        yield RunStartedEvent(session_id=self.session_id, run_id=run_id, agent_name=self.name)
         agentlet = await self.get_agentlet(None, self._output_type, input_provider)
         response_msg: ChatMessage[Any] | None = None
         # Prepend pending context parts (prompts are already pydantic-ai UserContent format)
@@ -843,12 +817,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 - "per_tool": Use individual tool settings
 
         Raises:
-            ValueError: If mode is not a valid ToolConfirmationMode
+            UnknownModeError: If mode is not a valid ToolConfirmationMode
         """
-        valid_modes: set[str] = {"always", "never", "per_tool"}
-        if mode not in valid_modes:
-            msg = f"Invalid tool confirmation mode: {mode!r}. Must be one of {valid_modes}"
-            raise ValueError(msg)
+        if mode not in VALID_MODES:
+            raise UnknownModeError(mode, VALID_MODES)
         self.tool_confirmation_mode = mode  # type: ignore[assignment]
         self.log.info("Tool confirmation mode changed", mode=mode)
 
@@ -952,8 +924,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         # Use native ToolConfirmationMode value directly
         mode_category = get_permission_category(self.tool_confirmation_mode)
         categories.append(mode_category)
-        models = await self.get_available_models()
-        if models:
+        if models := await self.get_available_models():
             current_model = self.model_name or (models[0].id if models else "")
             model_category = get_model_category(current_model, models)
             categories.append(model_category)
@@ -965,10 +936,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         if category_id == "mode":
             # Use native ToolConfirmationMode values directly
-            valid_modes: set[str] = {"always", "never", "per_tool"}
-            if mode_id not in valid_modes:
-                msg = f"Unknown permission mode: {mode_id}. Available: {valid_modes}"
-                raise ValueError(msg)
+            if mode_id not in VALID_MODES:
+                raise UnknownModeError(mode_id, VALID_MODES)
             self.tool_confirmation_mode = mode_id  # type: ignore[assignment]
             self.log.info("Tool confirmation mode changed", mode=mode_id)
             change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
@@ -976,22 +945,18 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         elif category_id == "model":
             # Validate model exists
-            models = await self.get_available_models()
-            if models:
-                valid_ids = {m.pydantic_ai_id for m in models}
+            if models := await self.get_available_models():
+                valid_ids = [m.pydantic_ai_id for m in models]
                 if mode_id not in valid_ids:
-                    msg = f"Unknown model: {mode_id}. Available: {valid_ids}"
-                    raise ValueError(msg)
+                    raise UnknownModeError(mode_id, valid_ids)
             # Set the model directly
             self._model, settings = self._resolve_model_string(mode_id)
             if settings:
                 self.model_settings = settings
             self.log.info("Model changed", model=mode_id)
             await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
-
         else:
-            msg = f"Unknown category: {category_id}. Available: permissions, model"
-            raise ValueError(msg)
+            raise UnknownCategoryError(category_id, ["mode", "model"])
 
     async def list_sessions(
         self,
@@ -1013,26 +978,24 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """
         if not self.agent_pool:
             return []
-
         # Get sessions from session store
         try:
             # Get session IDs from store
             session_ids = await self.agent_pool.sessions.store.list_sessions(agent_name=self.name)
             # Load each session to get full SessionData
             result: list[SessionData] = []
-            storage = self.agent_pool.storage
             for session_id in session_ids:
-                session_data = await self.agent_pool.sessions.store.load(session_id)
-                if session_data:
+                if session_data := await self.agent_pool.sessions.store.load(session_id):
                     # Filter by cwd if specified
                     if cwd is not None and session_data.cwd != cwd:
                         continue
                     # Fetch title from conversation storage if not in metadata
-                    if not session_data.title and storage:
-                        title = await storage.get_session_title(session_data.session_id)
-                        if title:
-                            # Update metadata with title
-                            session_data = session_data.with_metadata(title=title)
+                    if (
+                        not session_data.title
+                        and (storage := self.agent_pool.storage)
+                        and (title := await storage.get_session_title(session_data.session_id))
+                    ):
+                        session_data = session_data.with_metadata(title=title)
                     result.append(session_data)
                     # Check limit
                     if limit is not None and len(result) >= limit:
@@ -1063,14 +1026,11 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             session_data = await self.agent_pool.sessions.store.load(session_id)
             if not session_data:
                 return None
-
             # Load conversation history if available from storage providers
             if self.agent_pool.storage.providers:
                 provider = self.agent_pool.storage.providers[0]
                 if provider.can_load_history:
-                    messages = await provider.get_session_messages(
-                        session_id=session_data.session_id,
-                    )
+                    messages = await provider.get_session_messages(session_id=session_id)
                     # Restore to conversation history
                     self.conversation.chat_messages.clear()
                     self.conversation.chat_messages.extend(messages)
