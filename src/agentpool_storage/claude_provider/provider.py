@@ -581,30 +581,23 @@ class ClaudeStorageProvider(StorageProvider):
             List of messages from oldest ancestor to the specified message
         """
         # Fast path: if we know the session, load once and traverse in-memory
-        if session_id:
-            session_path = self._find_session_path(session_id)
-            if session_path:
-                entries = _read_session(session_path)
-                tool_mapping = _build_tool_id_mapping(entries)
-                # Build UUID -> entry index for O(1) lookups
-                entry_by_uuid: dict[str, ClaudeUserEntry | ClaudeAssistantEntry] = {}
-                for entry in entries:
-                    if isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry)):
-                        entry_by_uuid[entry.uuid] = entry
+        if session_id and (session_path := self._find_session_path(session_id)):
+            entries = _read_session(session_path)
+            tool_mapping = _build_tool_id_mapping(entries)
+            # Build UUID -> entry index for O(1) lookups
+            entry_by_uuid: dict[str, ClaudeUserEntry | ClaudeAssistantEntry] = {}
+            for entry in entries:
+                if isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry)):
+                    entry_by_uuid[entry.uuid] = entry
 
-                ancestors: list[ChatMessage[str]] = []
-                current_id: str | None = message_id
-                while current_id:
-                    found = entry_by_uuid.get(current_id)
-                    if not found:
-                        break
-                    msg = entry_to_chat_message(found, session_id, tool_mapping)
-                    if not msg:
-                        break
+            ancestors: list[ChatMessage[str]] = []
+            current_id: str | None = message_id
+            while current_id and (found := entry_by_uuid.get(current_id)):
+                if msg := entry_to_chat_message(found, session_id, tool_mapping):
                     ancestors.append(msg)
-                    current_id = msg.parent_id
-                ancestors.reverse()
-                return ancestors
+                current_id = found.parent_uuid
+            ancestors.reverse()
+            return ancestors
 
         # Slow path: search all sessions
         ancestors = []
