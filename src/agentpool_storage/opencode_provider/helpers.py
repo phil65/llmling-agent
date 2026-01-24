@@ -11,14 +11,15 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 import anyenv
-from pydantic_ai import RunUsage
-from pydantic_ai.messages import (
+from pydantic_ai import (
     AudioUrl,
     BinaryContent,
     DocumentUrl,
     ImageUrl,
     ModelRequest,
     ModelResponse,
+    RequestUsage,
+    RunUsage,
     TextPart,
     ThinkingPart,
     ToolCallPart,
@@ -26,7 +27,6 @@ from pydantic_ai.messages import (
     UserPromptPart,
     VideoUrl,
 )
-from pydantic_ai.usage import RequestUsage
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
@@ -46,9 +46,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-    from pydantic_ai.messages import (
-        UserContent,
-    )
+    from pydantic_ai.messages import UserContent
 
     from agentpool_server.opencode_server.models import (
         MessageInfo as OpenCodeMessage,
@@ -266,12 +264,8 @@ def build_pydantic_messages(
                     user_content.append(DocumentUrl(url=url, media_type=mime))
 
         if user_content:
-            result.append(
-                ModelRequest(
-                    parts=[UserPromptPart(content=user_content, timestamp=timestamp)],
-                    timestamp=timestamp,
-                )
-            )
+            user_part = UserPromptPart(content=user_content, timestamp=timestamp)
+            result.append(ModelRequest(parts=[user_part], timestamp=timestamp))
 
         return result
 
