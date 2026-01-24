@@ -220,13 +220,13 @@ class ClaudeStorageProvider(StorageProvider):
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages based on query."""
         messages: list[ChatMessage[str]] = []
-        # Determine which sessions to search
-        sessions = self._list_sessions()
+        # Narrow session list when a specific session is requested
+        if query.name:
+            path = self._find_session_path(query.name)
+            sessions = [(query.name, path)] if path else []
+        else:
+            sessions = self._list_sessions()
         for session_id, session_path in sessions:
-            # Filter by conversation/session name if specified
-            if query.name and session_id != query.name:
-                continue
-
             entries = _read_session(session_path)
             tool_mapping = _build_tool_id_mapping(entries)
 

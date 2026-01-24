@@ -349,9 +349,12 @@ class OpenCodeStorageProvider(StorageProvider):
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages based on query."""
         messages: list[ChatMessage[str]] = []
-        for session_id, session_path in self._list_sessions():
-            if query.name and session_id != query.name:
-                continue
+        # Narrow session list when a specific session is requested
+        if query.name:
+            sessions = [(sid, p) for sid, p in self._list_sessions() if sid == query.name]
+        else:
+            sessions = self._list_sessions()
+        for session_id, session_path in sessions:
             if not session_path.exists():
                 continue
             oc_messages = self._read_messages(session_id)

@@ -121,11 +121,12 @@ class ZedStorageProvider(StorageProvider):
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages based on query."""
         messages: list[ChatMessage[str]] = []
-        for thread_id, summary, _updated_at in self._list_threads():
-            # Filter by conversation name if specified
-            if query.name and query.name not in (thread_id, summary):
-                continue
-
+        # Narrow thread list when a specific name is requested
+        if query.name:
+            threads = [(tid, s, u) for tid, s, u in self._list_threads() if query.name in (tid, s)]
+        else:
+            threads = self._list_threads()
+        for thread_id, _summary, _updated_at in threads:
             thread = self._load_thread(thread_id)
             if thread is None:
                 continue
