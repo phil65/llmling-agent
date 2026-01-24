@@ -22,7 +22,7 @@ from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
 from agentpool.prompts.convert import convert_prompts
 from agentpool.tools.manager import ToolManager
 from agentpool.utils.inspection import call_with_context
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 
 
 if TYPE_CHECKING:

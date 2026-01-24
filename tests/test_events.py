@@ -5,7 +5,7 @@ from evented_config import TimeEventConfig
 import pytest
 
 from agentpool.messaging import EventManager
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 
 
 @pytest.fixture

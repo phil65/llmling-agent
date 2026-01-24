@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Self
 
 from agentpool.log import get_logger
 from agentpool.sessions.models import SessionData
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 from agentpool_storage.sql_provider.models import Session
 
 

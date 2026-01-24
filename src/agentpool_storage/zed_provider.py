@@ -27,7 +27,7 @@ import zstandard
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 from agentpool_storage.base import StorageProvider
 
 
@@ -333,10 +333,7 @@ def _parse_tool_results(tool_results: dict[str, Any]) -> list[ToolReturnPart]:
 def _thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessage[str]]:
     """Convert a Zed thread to ChatMessages."""
     messages: list[ChatMessage[str]] = []
-    try:
-        updated_at = datetime.fromisoformat(thread.updated_at.replace("Z", "+00:00"))
-    except (ValueError, AttributeError):
-        updated_at = get_now()
+    updated_at = parse_iso_timestamp(thread.updated_at)
     # Get model info
     model_name = None
     if thread.model:
@@ -554,10 +551,7 @@ class ZedStorageProvider(StorageProvider):
             if thread is None:
                 continue
             # Parse timestamp
-            try:
-                updated_at = datetime.fromisoformat(updated_at_str.replace("Z", "+00:00"))
-            except (ValueError, AttributeError):
-                updated_at = get_now()
+            updated_at = parse_iso_timestamp(updated_at_str)
             # Apply filters
             if filters.since and updated_at < filters.since:
                 continue
@@ -611,10 +605,7 @@ class ZedStorageProvider(StorageProvider):
             lambda: {"total_tokens": 0, "messages": 0, "models": set()}
         )
         for thread_id, _summary, updated_at_str in self._list_threads():
-            try:
-                timestamp = datetime.fromisoformat(updated_at_str.replace("Z", "+00:00"))
-            except (ValueError, AttributeError):
-                timestamp = get_now()
+            timestamp = parse_iso_timestamp(updated_at_str)
             # Apply time filter
             if timestamp < filters.cutoff:
                 continue
@@ -660,8 +651,7 @@ class ZedStorageProvider(StorageProvider):
         """Get counts of conversations and messages."""
         conv_count = 0
         msg_count = 0
-        threads = self._list_threads()
-        for thread_id, _summary, _updated_at in threads:
+        for thread_id, _summary, _updated_at in self._list_threads():
             thread = self._load_thread(thread_id)
             if thread is None:
                 continue
@@ -723,9 +713,8 @@ class ZedStorageProvider(StorageProvider):
             if thread is None:
                 continue
             messages = _thread_to_chat_messages(thread, thread_id)
-            for msg in messages:
-                if msg.message_id == message_id:
-                    return msg
+            if match := next((msg for msg in messages if msg.message_id == message_id), None)
+                return match
         return None
 
     async def get_message_ancestry(self, message_id: str) -> list[ChatMessage[str]]:

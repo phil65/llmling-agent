@@ -15,7 +15,7 @@ from agentpool.delegation.base_team import BaseTeam
 from agentpool.log import get_logger
 from agentpool.messaging import AgentResponse, ChatMessage, TeamResponse
 from agentpool.messaging.processing import finalize_message, prepare_prompts
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 
 
 logger = get_logger(__name__)

@@ -146,7 +146,7 @@ class MemorySessionStore:
         return result
 
     async def cleanup_expired(self, max_age_hours: int = 24) -> int:
-        from agentpool.utils.now import get_now
+        from agentpool.utils.time_utils import get_now
 
         now = get_now()
         expired = []

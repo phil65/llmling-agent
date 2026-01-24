@@ -17,7 +17,7 @@ from pydantic import SecretStr
 
 from agentpool.log import get_logger
 from agentpool.utils.inspection import execute, get_fn_name
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 from agentpool.utils.tasks import TaskManager
 
 

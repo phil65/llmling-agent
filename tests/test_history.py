@@ -8,7 +8,7 @@ from pydantic_ai import RunUsage
 import pytest
 
 from agentpool.messaging import TokenCost
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 from agentpool.utils.parse_time import parse_time_period
 from agentpool_config.storage import SQLStorageConfig
 from agentpool_storage.models import QueryFilters, StatsFilters

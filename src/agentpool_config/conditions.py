@@ -55,7 +55,7 @@ class Jinja2Condition(ConnectionCondition):
     async def check(self, context: EventContext[Any]) -> bool:
         from jinjarope import Environment
 
-        from agentpool.utils.now import get_now
+        from agentpool.utils.time_utils import get_now
 
         env = Environment(trim_blocks=True, lstrip_blocks=True, enable_async=True)
         template = env.from_string(self.template)
@@ -147,7 +147,7 @@ class TimeCondition(ConnectionCondition):
 
     async def check(self, context: EventContext[Any]) -> bool:
         """Check if time duration has elapsed."""
-        from agentpool.utils.now import get_now
+        from agentpool.utils.time_utils import get_now
 
         elapsed = get_now() - context.stats.start_time
         return elapsed >= self.duration

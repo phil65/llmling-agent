@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from agentpool.log import get_logger
 from agentpool.sessions.models import ProjectData
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 
 
 if TYPE_CHECKING:

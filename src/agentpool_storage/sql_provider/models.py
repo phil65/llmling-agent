@@ -15,7 +15,7 @@ from sqlmodel import JSON, Field, SQLModel
 from sqlmodel.main import SQLModelConfig  # type: ignore[attr-defined]
 
 from agentpool.common_types import JsonValue
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 
 
 if TYPE_CHECKING:

@@ -102,7 +102,7 @@ logger = get_logger(__name__)
 
 
 def get_updated_at(date_str: str | None) -> datetime:
-    from agentpool.utils.now import get_now
+    from agentpool.utils.time_utils import get_now
 
     updated_at = get_now()
     if date_str:
@@ -763,7 +763,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         )
         from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities
         from agentpool.sessions.models import SessionData
-        from agentpool.utils.now import get_now
+        from agentpool.utils.time_utils import get_now
 
         if not self._connection:
             self.log.error("Cannot load session: not connected to ACP server")

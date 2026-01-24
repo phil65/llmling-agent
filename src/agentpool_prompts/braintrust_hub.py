@@ -60,7 +60,7 @@ class BraintrustPromptMetadata:
     @classmethod
     def from_api_object(cls, obj: dict[str, Any]) -> BraintrustPromptMetadata:
         """Create metadata from Braintrust API response object."""
-        created = None
+        created: datetime | None = None
         if obj.get("created"):
             with contextlib.suppress(ValueError, AttributeError):
                 created = datetime.fromisoformat(obj["created"].replace("Z", "+00:00"))

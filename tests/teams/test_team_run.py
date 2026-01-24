@@ -8,7 +8,7 @@ from llmling_models import function_to_model
 import pytest
 
 from agentpool import Agent, AgentPool, ChatMessage
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 
 
 async def delayed_processor(msg: str, delay: float = 0.1) -> str:

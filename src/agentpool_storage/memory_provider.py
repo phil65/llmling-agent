@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.storage import deserialize_messages
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import ConversationData
 

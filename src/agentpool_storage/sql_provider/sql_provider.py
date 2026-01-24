@@ -11,7 +11,7 @@ from sqlmodel import SQLModel, desc, select
 
 from agentpool.log import get_logger
 from agentpool.messaging import TokenCost
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 from agentpool.utils.parse_time import parse_time_period
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import QueryFilters

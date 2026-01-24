@@ -13,7 +13,7 @@ from agentpool.common_types import JsonValue, MessageRole  # noqa: TC001
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.storage import deserialize_messages
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import TokenUsage
 

@@ -8,7 +8,7 @@ from typing import Any
 from pydantic import Field
 from schemez import Schema
 
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 
 
 class ProjectData(Schema):

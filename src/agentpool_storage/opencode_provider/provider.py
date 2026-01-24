@@ -33,7 +33,7 @@ from pydantic_ai.messages import (
 )
 
 from agentpool.log import get_logger
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import TokenUsage

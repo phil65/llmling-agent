@@ -31,7 +31,7 @@ import tokonomics
 from agentpool.common_types import MessageRole, SimpleJsonType  # noqa: TC001
 from agentpool.log import get_logger
 from agentpool.utils.inspection import dataclasses_no_defaults_repr
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 
 

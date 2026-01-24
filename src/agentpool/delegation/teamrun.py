@@ -16,7 +16,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import AgentResponse, ChatMessage, TeamResponse
 from agentpool.messaging.processing import finalize_message, prepare_prompts
 from agentpool.talk.talk import Talk, TeamTalk
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 
 
 if TYPE_CHECKING:

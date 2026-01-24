@@ -6,7 +6,6 @@ Stateless conversion and utility functions for working with Zed format.
 from __future__ import annotations
 
 import base64
-from datetime import datetime
 import io
 import json
 from typing import Any
@@ -26,7 +25,7 @@ import zstandard
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import parse_iso_timestamp
 from agentpool_storage.zed_provider.models import ZedThread
 
 
@@ -219,10 +218,7 @@ def thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessa
         List of ChatMessage objects
     """
     messages: list[ChatMessage[str]] = []
-    try:
-        updated_at = datetime.fromisoformat(thread.updated_at.replace("Z", "+00:00"))
-    except (ValueError, AttributeError):
-        updated_at = get_now()
+    updated_at = parse_iso_timestamp(thread.updated_at)
     # Get model info
     model_name = None
     if thread.model:

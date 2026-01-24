@@ -14,7 +14,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.talk.stats import AggregatedTalkStats, TalkStats
 from agentpool.utils.inspection import execute
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 
 
 if TYPE_CHECKING:

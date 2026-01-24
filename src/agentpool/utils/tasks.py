@@ -11,7 +11,7 @@ import anyio
 
 from agentpool.log import get_logger
 from agentpool.utils.inspection import get_fn_name
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 
 
 if TYPE_CHECKING:

@@ -176,7 +176,7 @@ class FileConnectionConfig(ConnectionConfig):
 
     def resolve_path(self, context: dict[str, str]) -> UPath:
         """Resolve path template with context variables."""
-        from agentpool.utils.now import get_now
+        from agentpool.utils.time_utils import get_now
 
         now = get_now()
         date = now.strftime("%Y-%m-%d")

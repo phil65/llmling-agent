@@ -16,7 +16,7 @@ from upathtools import read_path, to_upath
 from agentpool.log import get_logger
 from agentpool.storage import StorageManager
 from agentpool.utils.count_tokens import count_tokens
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now
 from agentpool_config.session import SessionQuery
 
 

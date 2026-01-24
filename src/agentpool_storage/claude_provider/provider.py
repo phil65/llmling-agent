@@ -37,7 +37,7 @@ from pydantic_ai.usage import RequestUsage
 from agentpool.common_types import MessageRole
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
-from agentpool.utils.now import get_now
+from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.claude_provider.models import (
     ClaudeApiMessage,
@@ -306,10 +306,7 @@ class ClaudeStorageProvider(StorageProvider):
             return None
 
         message = entry.message
-        try:
-            timestamp = datetime.fromisoformat(entry.timestamp.replace("Z", "+00:00"))
-        except (ValueError, AttributeError):
-            timestamp = get_now()
+        timestamp = parse_iso_timestamp(entry.timestamp)
         # Extract display content (text only for UI)
         content = _extract_text_content(message)
         # Build pydantic-ai message
@@ -718,10 +715,7 @@ class ClaudeStorageProvider(StorageProvider):
                 total_tokens = (
                     usage.input_tokens + usage.output_tokens + usage.cache_read_input_tokens
                 )
-                try:
-                    timestamp = datetime.fromisoformat(entry.timestamp.replace("Z", "+00:00"))
-                except (ValueError, AttributeError):
-                    timestamp = get_now()
+                timestamp = parse_iso_timestamp(entry.timestamp)
                 if timestamp < filters.cutoff:  # Apply time filter
                     continue
                 # Group by specified criterion
