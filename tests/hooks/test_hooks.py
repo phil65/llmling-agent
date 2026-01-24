@@ -180,9 +180,7 @@ async def test_multiple_hooks_all_allow():
             CallableHook(event="pre_run", fn=allow_hook),
         ]
     )
-    agent = Agent(model="test", hooks=hooks)
-
-    async with agent:
+    async with Agent(model="test", hooks=hooks) as agent:
         result = await agent.run("Hello")
 
     assert len(hook_state["calls"]) == 2
@@ -199,9 +197,7 @@ async def test_multiple_hooks_one_denies():
             CallableHook(event="pre_run", fn=deny_hook),
         ]
     )
-    agent = Agent(model="test", hooks=hooks)
-
-    async with agent:
+    async with Agent(model="test", hooks=hooks) as agent:
         with pytest.raises(RuntimeError, match="Run blocked"):
             await agent.run("Hello")
 
