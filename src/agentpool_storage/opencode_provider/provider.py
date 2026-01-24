@@ -220,15 +220,11 @@ class OpenCodeStorageProvider(StorageProvider):
 
         # Write message file
         msg_file = msg_dir / f"{message_id}.json"
-        msg_file.write_text(
-            anyenv.dump_json(oc_message.model_dump(by_alias=True), indent=True),
-            encoding="utf-8",
-        )
-
+        dct = oc_message.model_dump(by_alias=True)
+        msg_file.write_text(anyenv.dump_json(dct, indent=True), encoding="utf-8")
         # Convert model messages to OpenCode parts
         parts_dir = self.parts_path / message_id
         parts_dir.mkdir(parents=True, exist_ok=True)
-
         part_counter = 0
         for msg in model_messages:
             if isinstance(msg, ModelRequest):
@@ -243,7 +239,6 @@ class OpenCodeStorageProvider(StorageProvider):
                             part_counter_start=part_counter,
                         )
                         part_counter += len(text_parts)
-
                         # Write each part to disk
                         for text_part in text_parts:
                             part_file = parts_dir / f"{text_part.id}.json"
@@ -257,10 +252,8 @@ class OpenCodeStorageProvider(StorageProvider):
                         # Find the tool part with matching call_id
                         for existing_file in parts_dir.glob("*.json"):
                             try:
-                                content = anyenv.load_json(
-                                    existing_file.read_text(encoding="utf-8"),
-                                    return_type=dict,
-                                )
+                                text = existing_file.read_text(encoding="utf-8")
+                                content = anyenv.load_json(text, return_type=dict)
                                 if (
                                     content.get("type") == "tool"
                                     and content.get("callID") == part.tool_call_id
@@ -272,10 +265,8 @@ class OpenCodeStorageProvider(StorageProvider):
 
                         if tool_part_file:
                             # Update the tool part with output - create new completed state
-                            tool_part = anyenv.load_json(
-                                tool_part_file.read_text(encoding="utf-8"),
-                                return_type=OpenCodeToolPart,
-                            )
+                            text = tool_part_file.read_text(encoding="utf-8")
+                            tool_part = anyenv.load_json(text, return_type=OpenCodeToolPart)
                             # Create new ToolStateCompleted (states are immutable)
                             # All tool states have .input,
                             # but only Running/Completed/Error have .time
@@ -585,12 +576,9 @@ class OpenCodeStorageProvider(StorageProvider):
         conv_count = 0
         msg_count = 0
         for session_id, session_path in self._list_sessions():
-            session = helpers.read_session(session_path)
-            if not session:
+            if not helpers.read_session(session_path):
                 continue
-
-            oc_messages = self._read_messages(session_id)
-            if oc_messages:
+            if oc_messages := self._read_messages(session_id):
                 conv_count += 1
                 msg_count += len(oc_messages)
 
@@ -615,9 +603,8 @@ class OpenCodeStorageProvider(StorageProvider):
         if not include_ancestors or not messages:
             return messages
         # Get ancestor chain if first message has parent_id
-        first_msg = messages[0]
-        if first_msg.parent_id:
-            ancestors = await self.get_message_ancestry(first_msg.parent_id, session_id=session_id)
+        if parent_id := messages[0].parent_id:
+            ancestors = await self.get_message_ancestry(parent_id, session_id=session_id)
             return ancestors + messages
         return messages
 
@@ -754,10 +741,8 @@ class OpenCodeStorageProvider(StorageProvider):
         )
 
         # Write session file
-        new_session_path.write_text(
-            anyenv.dump_json(new_session.model_dump(by_alias=True), indent=True),
-            encoding="utf-8",
-        )
+        dct = new_session.model_dump(by_alias=True)
+        new_session_path.write_text(anyenv.dump_json(dct, indent=True), encoding="utf-8")
         # Create message and part directories
         (self.messages_path / new_session_id).mkdir(parents=True, exist_ok=True)
         (self.parts_path / new_session_id).mkdir(parents=True, exist_ok=True)
