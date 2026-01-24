@@ -476,33 +476,23 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     def _get_client(
         self,
         *,
-        formatted_system_prompt: str | None = None,
+        system_prompt: str | None = None,
         fork_session: bool = False,
     ) -> ClaudeSDKClient:
         """Build ClaudeAgentOptions from runtime state.
 
         Args:
-            formatted_system_prompt: Pre-formatted system prompt from SystemPrompts manager
+            system_prompt: Pre-formatted system prompt from SystemPrompts manager
             fork_session: Whether to fork the session
         """
         from clawd_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
-        from clawd_code_sdk.types import SystemPromptPreset
 
-        from agentpool.agents.claude_code_agent.converters import to_output_format
+        from agentpool.agents.claude_code_agent.converters import (
+            to_claude_system_prompt,
+            to_output_format,
+        )
 
-        # Build system prompt value
-        system_prompt: str | SystemPromptPreset | None = None
-        if formatted_system_prompt:
-            if self._include_builtin_system_prompt:
-                # Use SystemPromptPreset to append to builtin prompt
-                system_prompt = SystemPromptPreset(
-                    type="preset",
-                    preset="claude_code",
-                    append=formatted_system_prompt,
-                )
-            else:
-                system_prompt = formatted_system_prompt
-
+        sys_prompt = to_claude_system_prompt(system_prompt) if system_prompt else None
         # Determine effective permission mode
         permission_mode = self._permission_mode
         if self._dangerously_skip_permissions and not permission_mode:
@@ -535,7 +525,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             cwd=self._cwd,
             allowed_tools=self._allowed_tools or [],
             disallowed_tools=self._disallowed_tools or [],
-            system_prompt=system_prompt,
+            system_prompt=sys_prompt,
             model=self._model,
             max_turns=self._max_turns,
             max_budget_usd=self._max_budget_usd,
@@ -648,7 +638,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         await super().__aenter__()
         await self._setup_toolsets()  # Setup toolsets before building opts (they add MCP servers)
         formatted_prompt = await self.sys_prompts.format_system_prompt(self)
-        self._client = self._get_client(formatted_system_prompt=formatted_prompt)
+        self._client = self._get_client(system_prompt=formatted_prompt)
         # Start connection in background task to reduce first-prompt latency
         # The task owns the anyio context, we just await it when needed
         self._connection_task = asyncio.create_task(self._do_connect())
@@ -707,7 +697,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # _get_client includes resume=self._sdk_session_id automatically
         if session_to_resume:
             self.log.info("Attempting to resume session", session=session_to_resume)
-        self._client = self._get_client(formatted_system_prompt=formatted_prompt)
+        self._client = self._get_client(system_prompt=formatted_prompt)
         try:  # Reconnect in background
             self._connection_task = asyncio.create_task(self._do_connect())
             await self._connection_task
