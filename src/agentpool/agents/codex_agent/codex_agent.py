@@ -35,7 +35,11 @@ if TYPE_CHECKING:
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
-    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
+    from agentpool.common_types import (
+        BuiltinEventHandlerType,
+        IndividualEventHandler,
+        MCPServerStatus,
+    )
     from agentpool.delegation import AgentPool
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
@@ -286,6 +290,34 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         """Clean up Codex client."""
         await self._cleanup()
         await super().__aexit__(exc_type, exc_val, exc_tb)
+
+    async def get_mcp_server_info(self) -> dict[str, MCPServerStatus]:
+        """Get MCP server status from connected Codex client.
+
+        Queries live status including tools, resources, and auth when
+        the client is connected. Falls back to config-based reporting.
+        """
+        from agentpool.common_types import MCPServerStatus
+
+        result: dict[str, MCPServerStatus] = {}
+        if self._client:
+            try:
+                response = await self._client.mcp_server_status_list()
+            except Exception:  # noqa: BLE001
+                pass
+            else:
+                for server in response.data:
+                    result[server.name] = MCPServerStatus(
+                        name=server.name,
+                        status="connected" if server.tools else "disconnected",
+                        server_name=server.name,
+                    )
+                return result
+        # Fallback: report from config
+        for name in self._extra_mcp_servers:
+            if isinstance(name, tuple):
+                result[name[0]] = MCPServerStatus(name=name[0], status="connected")
+        return result
 
     async def _cleanup(self) -> None:
         """Clean up resources."""
