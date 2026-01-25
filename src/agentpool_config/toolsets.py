@@ -17,7 +17,7 @@ from searchly_config import (
     get_config_class,
 )
 from tokonomics.model_names import ModelId
-from upathtools import UPath
+from upathtools import UPath, core
 from upathtools_config import FilesystemConfigType
 from upathtools_config.base import FileSystemConfig
 
@@ -471,8 +471,6 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
 
     def get_provider(self) -> ResourceProvider:
         """Create FSSpec filesystem tools provider."""
-        import fsspec
-
         from agentpool.prompts.conversion_manager import ConversionManager
         from agentpool_toolsets.fsspec_toolset import FSSpecTools
 
@@ -486,7 +484,7 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
             fs = None
         elif isinstance(self.fs, str):
             # URI string - use fsspec directly
-            fs, _url_path = fsspec.url_to_fs(self.fs, **self.storage_options)
+            fs, _url_path = core.url_to_fs(self.fs, **self.storage_options)
         elif isinstance(self.fs, FileSystemConfig):
             # Full config object - use create_fs()
             fs = self.fs.create_fs()
