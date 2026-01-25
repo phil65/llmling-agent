@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -79,6 +80,43 @@ ToolStatus = Literal["pending", "running", "completed", "error"]
 FinishReason = Literal["stop", "tool-calls", "length", "error"]
 
 
+@dataclass(slots=True)
+class OpenCodeSessionMetadata:
+    """Lightweight session metadata without loading messages/parts."""
+
+    session_id: str
+    path: Path
+    title: str
+    directory: str
+    created_at: datetime
+    updated_at: datetime
+    project_id: str
+
+
+def _read_session_metadata(session_path: Path) -> OpenCodeSessionMetadata | None:
+    """Read minimal metadata from a session file without loading messages/parts.
+
+    Args:
+        session_path: Path to the session JSON file
+
+    Returns:
+        OpenCodeSessionMetadata or None if file is invalid
+    """
+    session = helpers.read_session(session_path)
+    if session is None:
+        return None
+
+    return OpenCodeSessionMetadata(
+        session_id=session.id,
+        path=session_path,
+        title=session.title,
+        directory=session.directory,
+        created_at=ms_to_datetime(session.time.created),
+        updated_at=ms_to_datetime(session.time.updated),
+        project_id=session.project_id,
+    )
+
+
 class OpenCodeStorageProvider(StorageProvider):
     """Storage provider that reads/writes OpenCode's native format.
 
@@ -114,6 +152,28 @@ class OpenCodeStorageProvider(StorageProvider):
                 if project_dir.is_dir():
                     sessions.extend((f.stem, f) for f in project_dir.glob("*.json"))
         return sessions
+
+    def list_session_metadata(
+        self,
+        project_id: str | None = None,
+    ) -> list[OpenCodeSessionMetadata]:
+        """List all sessions with lightweight metadata (no message/part loading).
+
+        This is much faster than get_sessions() as it only reads session JSON files
+        without loading messages or parts.
+
+        Args:
+            project_id: Optional project ID to filter by
+
+        Returns:
+            List of OpenCodeSessionMetadata objects
+        """
+        result: list[OpenCodeSessionMetadata] = []
+        for _, session_path in self._list_sessions(project_id=project_id):
+            metadata = _read_session_metadata(session_path)
+            if metadata is not None:
+                result.append(metadata)
+        return result
 
     def _read_messages(self, session_id: str) -> list[OpenCodeMessage]:
         """Read all messages for a session."""

@@ -25,7 +25,7 @@ from agentpool_storage.claude_provider.models import (
     ClaudeUserEntry,
     ClaudeUserMessage,
 )
-from agentpool_storage.claude_provider.provider import ClaudeStorageProvider
+from agentpool_storage.claude_provider.provider import ClaudeStorageProvider, SessionMetadata
 
 __all__ = [
     "ClaudeApiMessage",
@@ -43,4 +43,5 @@ __all__ = [
     "ClaudeUsage",
     "ClaudeUserEntry",
     "ClaudeUserMessage",
+    "SessionMetadata",
 ]

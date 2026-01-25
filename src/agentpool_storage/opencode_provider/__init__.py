@@ -9,8 +9,12 @@ design decisions.
 
 from __future__ import annotations
 
-from agentpool_storage.opencode_provider.provider import OpenCodeStorageProvider
+from agentpool_storage.opencode_provider.provider import (
+    OpenCodeSessionMetadata,
+    OpenCodeStorageProvider,
+)
 
 __all__ = [
+    "OpenCodeSessionMetadata",
     "OpenCodeStorageProvider",
 ]
