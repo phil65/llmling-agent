@@ -17,7 +17,6 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
-import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -101,7 +100,7 @@ def _count_session_messages(session_path: Path) -> int:
                 data = anyenv.load_json(stripped, return_type=dict)
                 if data.get("type") in ("user", "assistant"):
                     count += 1
-            except (json.JSONDecodeError, ValueError):
+            except anyenv.JsonLoadError:
                 pass
     return count
 
@@ -122,7 +121,7 @@ def _read_session(session_path: Path) -> list[ClaudeJSONLEntry]:
                 data = anyenv.load_json(stripped, return_type=dict)
                 entry = adapter.validate_python(data)
                 entries.append(entry)
-            except (json.JSONDecodeError, ValueError) as e:
+            except anyenv.JsonLoadError as e:
                 logger.warning(
                     "Failed to parse JSONL line",
                     path=str(session_path),
@@ -208,7 +207,7 @@ def _read_session_metadata(
 
                     # Always update last_timestamp for user/assistant messages
                     last_timestamp = timestamp
-            except (json.JSONDecodeError, ValueError):
+            except anyenv.JsonLoadError:
                 continue
 
     if message_count == 0:
@@ -534,7 +533,7 @@ class ClaudeStorageProvider(StorageProvider):
                         continue
                     try:
                         data = anyenv.load_json(stripped, return_type=dict)
-                    except (json.JSONDecodeError, ValueError):
+                    except anyenv.JsonLoadError:
                         continue
                     if data.get("type") != "assistant":
                         continue
