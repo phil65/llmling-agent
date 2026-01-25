@@ -381,9 +381,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if config.output_type:
             resolved_output_type = to_type(config.output_type, manifest.responses)
         # Merge config-level handlers with provided handlers
-        config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
-            *config_handlers,
+            *config.get_event_handlers(),
             *(event_handlers or []),
         ]
         return cls(
@@ -1385,13 +1384,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         cwd: str | None = None,
         limit: int | None = None,
     ) -> list[SessionData]:
-        """List sessions from Claude storage.
-
-        Queries the Claude storage provider (~/.claude/projects/) for available sessions.
-
-        Returns:
-            List of SessionData objects
-        """
+        """List sessions from Claude storage (~/.claude/projects/)."""
         from agentpool_storage.models import QueryFilters
 
         try:
@@ -1463,7 +1456,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
             # Build SessionData from loaded messages
             last_active = messages[-1].timestamp if messages[-1].timestamp else get_now()
-            created_at = messages[0].timestamp if messages[0].timestamp else last_active
             cwd = str(self._cwd or Path.cwd())
             # Try to extract cwd from message metadata
             for msg in reversed(messages):
@@ -1475,7 +1467,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 session_id=session_id,
                 agent_name=self.name,
                 cwd=cwd,
-                created_at=created_at,
+                created_at=messages[0].timestamp if messages[0].timestamp else last_active,
                 last_active=last_active,
             )
 
