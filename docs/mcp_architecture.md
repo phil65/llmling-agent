@@ -132,6 +132,7 @@ provider to Native Agents' ToolManagers (`base_team.py:102`).
 \* AG-UI starts MCPManager but providers don't flow into AG-UI requests
 \** AG-UI can add ToolManager tools dynamically, but MCP integration is incomplete
 \*** ACP reads `self.mcp.servers` (config list) but doesn't use providers
+\**** Codex supports `config/mcpServer/reload` (re-reads config from disk, rebuilds on next turn)
 
 ---
 

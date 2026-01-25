@@ -22,6 +22,8 @@ from codex_adapter.models import (
     InitializeParams,
     JsonRpcRequest,
     JsonRpcResponse,
+    ListMcpServerStatusParams,
+    ListMcpServerStatusResponse,
     ModelListResponse,
     SkillsListParams,
     SkillsListResponse,
@@ -648,6 +650,33 @@ class CodexClient:
         )
         result = await self._send_request("command/exec", params)
         return CommandExecResponse.model_validate(result)
+
+    async def mcp_server_refresh(self) -> None:
+        """Reload MCP server configurations from disk.
+
+        Triggers all threads to rebuild their MCP connections on the next turn
+        using the latest config file.
+        """
+        await self._send_request("config/mcpServer/reload")
+
+    async def mcp_server_status_list(
+        self,
+        *,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> ListMcpServerStatusResponse:
+        """List MCP server status with tool and resource information.
+
+        Args:
+            cursor: Pagination cursor from previous call
+            limit: Maximum number of servers to return
+
+        Returns:
+            Response with server status entries and optional next_cursor
+        """
+        params = ListMcpServerStatusParams(cursor=cursor, limit=limit)
+        result = await self._send_request("mcpServerStatus/list", params)
+        return ListMcpServerStatusResponse.model_validate(result)
 
     async def _send_request(self, method: str, params: BaseModel | None = None) -> Any:
         """Send a JSON-RPC request and wait for response.

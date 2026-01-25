@@ -652,6 +652,60 @@ class CommandExecResponse(CodexBaseModel):
 
 
 # ============================================================================
+# MCP server status models
+# ============================================================================
+
+
+class McpTool(CodexBaseModel):
+    """Tool exposed by an MCP server."""
+
+    name: str
+    description: str | None = None
+
+
+class McpResource(CodexBaseModel):
+    """Resource exposed by an MCP server."""
+
+    uri: str
+    name: str | None = None
+    description: str | None = None
+    mime_type: str | None = None
+
+
+class McpResourceTemplate(CodexBaseModel):
+    """Resource template exposed by an MCP server."""
+
+    uri_template: str
+    name: str | None = None
+    description: str | None = None
+    mime_type: str | None = None
+
+
+class McpServerStatusEntry(CodexBaseModel):
+    """Status of a single MCP server."""
+
+    name: str
+    tools: dict[str, McpTool] = Field(default_factory=dict)
+    resources: list[McpResource] = Field(default_factory=list)
+    resource_templates: list[McpResourceTemplate] = Field(default_factory=list)
+    auth_status: str = "Unsupported"
+
+
+class ListMcpServerStatusParams(CodexBaseModel):
+    """Parameters for mcpServerStatus/list request."""
+
+    cursor: str | None = None
+    limit: int | None = None
+
+
+class ListMcpServerStatusResponse(CodexBaseModel):
+    """Response for mcpServerStatus/list request."""
+
+    data: list[McpServerStatusEntry]
+    next_cursor: str | None = None
+
+
+# ============================================================================
 # JSON-RPC message models
 # ============================================================================
 
