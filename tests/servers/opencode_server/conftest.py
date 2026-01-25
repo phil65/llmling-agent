@@ -21,9 +21,8 @@ from httpx import ASGITransport, AsyncClient
 import pytest
 
 from agentpool.utils.time_utils import now_ms
-from agentpool_server.opencode_server.models import (
-    Session,
-)
+from agentpool_server.opencode_server.dependencies import get_state
+from agentpool_server.opencode_server.models import Session
 from agentpool_server.opencode_server.models.common import TimeCreatedUpdated
 from agentpool_server.opencode_server.routes import file_router, session_router
 from agentpool_server.opencode_server.state import ServerState
@@ -159,17 +158,18 @@ def mock_pool(
 
 
 @pytest.fixture
-def mock_env() -> Mock:
+def mock_env(tmp_project_dir: Path) -> Mock:
     """Create a mock agent environment.
 
-    Note: env.get_fs() raises NotImplementedError to trigger the fallback
-    to local Path operations in file_routes.py. This is important for
-    testing path traversal with real filesystem behavior.
+    Uses a real AsyncLocalFileSystem for proper path traversal testing.
     """
+    from upathtools.filesystems import AsyncLocalFileSystem
+
     env = Mock()
-    # Raise NotImplementedError to trigger fallback to local Path operations
-    env.get_fs = Mock(side_effect=NotImplementedError("Use local filesystem"))
-    env.cwd = None
+    # Use real async filesystem for proper path handling
+    fs = AsyncLocalFileSystem()
+    env.get_fs = Mock(return_value=fs)
+    env.cwd = str(tmp_project_dir)
     env.execute_command = AsyncMock(
         return_value=Mock(success=True, result="command output", error=None)
     )
@@ -202,10 +202,7 @@ def server_state(
     mock_agent: Mock,
 ) -> ServerState:
     """Create a server state for testing."""
-    return ServerState(
-        working_dir=str(tmp_project_dir),
-        agent=mock_agent,
-    )
+    return ServerState(working_dir=str(tmp_project_dir), agent=mock_agent)
 
 
 # =============================================================================
@@ -219,12 +216,7 @@ def app(server_state: ServerState) -> FastAPI:
     app = FastAPI()
     app.include_router(session_router)
     app.include_router(file_router)
-
-    # Override the state dependency
-    from agentpool_server.opencode_server.dependencies import get_state
-
     app.dependency_overrides[get_state] = lambda: server_state
-
     return app
 
 
@@ -272,7 +264,6 @@ class EventCapture:
 def event_capture(server_state: ServerState) -> EventCapture:
     """Create an event capture and hook it into the server state."""
     capture = EventCapture()
-
     # Patch the broadcast_event method to capture events
     original_broadcast = server_state.broadcast_event
 
@@ -281,7 +272,6 @@ def event_capture(server_state: ServerState) -> EventCapture:
         await original_broadcast(event)
 
     server_state.broadcast_event = capturing_broadcast  # type: ignore[method-assign]
-
     return capture
 
 
