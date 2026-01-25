@@ -236,6 +236,8 @@ class AgentPoolACPAgent(ACPAgent):
         self.session_manager = ACPSessionManager(pool=pool)
         self.tasks = TaskManager()
         self._initialized = False
+        self._sessions_cache: ListSessionsResponse | None = None
+        self._sessions_cache_time: float = 0.0
         # Connect to title generation signal to notify clients of session updates
         pool.storage.title_generated.connect(self._on_title_generated)
 
@@ -413,25 +415,40 @@ class AgentPoolACPAgent(ACPAgent):
 
         Delegates to the current agent's list_sessions method which handles
         fetching sessions from storage with proper titles.
+
+        Uses a short TTL cache to avoid redundant expensive storage reads
+        when clients request the list multiple times in quick succession.
         """
+        import time
+
         if not self._initialized:
             raise RuntimeError("Agent not initialized")
+
+        # Return cached result if fresh (within 10 seconds)
+        cache_ttl = 10.0
+        now = time.monotonic()
+        if self._sessions_cache and (now - self._sessions_cache_time) < cache_ttl:
+            logger.debug("Returning cached sessions list", count=len(self._sessions_cache.sessions))
+            return self._sessions_cache
+
         # Get agent from first active session, or fall back to default
         first_session = next(iter(self.session_manager._active.values()), None)
         agent = first_session.agent if first_session else self.default_agent
         try:
-            # Get agent from active session or use default
-            # Delegate to agent's list_sessions
             logger.info("Listing sessions for agent", agent_name=agent.name)
             agent_sessions = await agent.list_sessions()
             logger.info("Agent returned sessions", count=len(agent_sessions))
-            # TODO: Re-enable cwd filter once session storage is unified
             sessions = [to_session_info(s) for s in agent_sessions]
             logger.info("Listed sessions", count=len(sessions))
-            return ListSessionsResponse(sessions=sessions)
+            response = ListSessionsResponse(sessions=sessions)
         except Exception:
             logger.exception("Failed to list sessions")
             return ListSessionsResponse(sessions=[])
+        else:
+            # Cache the result
+            self._sessions_cache = response
+            self._sessions_cache_time = now
+            return response
 
     async def fork_session(self, params: ForkSessionRequest) -> ForkSessionResponse:
         """Fork an existing session.

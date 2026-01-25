@@ -125,7 +125,7 @@ class CodeTools(ResourceProvider):
         """Get filesystem (from env or fallback to local)."""
         from fsspec.asyn import AsyncFileSystem
         from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
-        from morefs.asyn_local import AsyncLocalFileSystem
+        from upathtools.filesystems import AsyncLocalFileSystem
 
         env = self._get_env(agent_ctx)
         fs = env.get_fs() if env else None

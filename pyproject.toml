@@ -59,6 +59,7 @@ dependencies = [
   "pydocket>=0.16.1",
   "python-dotenv>=1.0.1",
   "rich",
+  "ripgrep-rs>=0.3.0; sys_platform != 'win32'",  # Supports free-threaded Python 3.13+ (Linux only for now)
   "schemez[codegen]",
   # "schemez @ file:///home/phil65/dev/oss/schemez",
   "searchly[all]>=2.0.1",
@@ -121,21 +122,21 @@ coding = [
 ]  # Packages to allow coding functionality
 composio = ["composio"]  # Composio toolsets
 events = ["evented[all]"]  # Event triggers for agents
-git = ["fsspec[git]"]  # Git support
+# git = ["fsspec[git]"]  # Git support (disabled: cffi doesn't support free-threaded 3.13)
 langfuse = ["langfuse"]  # Langfuse Prompt Hub
 markitdown = [
   "markitdown; python_version < '3.14'"
 ]  # MarkItDown Media Converter
 mcp-discovery = [
   "fastembed>=0.7.4; python_version < '3.14'",
-  "lancedb>=0.26.0; python_version < '3.14'",
+  # "lancedb>=0.26.0; python_version < '3.14'",
   "pyarrow>=19.0.0; python_version < '3.14'",
 ]  # MCP Discovery Toolset with semantic search
 mcp_run = ["mcpx-py>=0.7.0"]  # MCP.run Toolset
 notifications = ["apprise>=1.9.5"]  # Notification Toolset
 promptlayer = ["promptlayer"]  # PromptLayer Prompt Hub
 tiktoken = ["tiktoken"]  # Exact token counting
-tts = ["anyvoice[tts-edge,openai]>=0.0.2"]  # Text-to-Speech using AnyVoice
+# tts = ["anyvoice[tts-edge,openai]>=0.0.2"]  # Text-to-Speech using AnyVoice (disabled: cffi doesn't support free-threaded 3.13)
 zed = ["zstandard>=0.23.0"]  # Zed IDE storage provider
 
 [dependency-groups]
@@ -144,7 +145,7 @@ dev = [
   "check-jsonschema>=0.35.0",
   "devtools",
   "fastembed>=0.7.4; python_version < '3.14'",
-  "lancedb>=0.26.0; python_version < '3.14'",
+  # "lancedb>=0.26.0; python_version < '3.14'",
   "openapi_spec_validator",
   "pyinstaller>=6.17.0",
   "pyreadline3",
