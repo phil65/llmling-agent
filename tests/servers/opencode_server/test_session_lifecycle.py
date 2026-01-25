@@ -12,8 +12,6 @@ Note: The OpenCode API uses camelCase field names with "ID" suffix:
 
 from __future__ import annotations
 
-import pytest
-
 from agentpool_server.opencode_server.models import SessionStatus
 from agentpool_server.opencode_server.models.events import (
     SessionCreatedEvent,
