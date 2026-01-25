@@ -415,6 +415,28 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
     rm = sync_wrapper(_rm)
 
+    @overload
+    async def _find(
+        self,
+        path: str,
+        maxdepth: int | None = None,
+        withdirs: bool = False,
+        *,
+        detail: Literal[False] = False,
+        **kwargs: Any,
+    ) -> list[str]: ...
+
+    @overload
+    async def _find(
+        self,
+        path: str,
+        maxdepth: int | None = None,
+        withdirs: bool = False,
+        *,
+        detail: Literal[True],
+        **kwargs: Any,
+    ) -> dict[str, AcpInfo]: ...
+
     async def _find(
         self,
         path: str,

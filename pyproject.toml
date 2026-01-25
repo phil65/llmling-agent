@@ -129,14 +129,16 @@ markitdown = [
 ]  # MarkItDown Media Converter
 mcp-discovery = [
   "fastembed>=0.7.4; python_version < '3.14'",
-  # "lancedb>=0.26.0; python_version < '3.14'",
+  "lancedb>=0.26.0; python_version < '3.14'",
   "pyarrow>=19.0.0; python_version < '3.14'",
 ]  # MCP Discovery Toolset with semantic search
 mcp_run = ["mcpx-py>=0.7.0"]  # MCP.run Toolset
 notifications = ["apprise>=1.9.5"]  # Notification Toolset
 promptlayer = ["promptlayer"]  # PromptLayer Prompt Hub
 tiktoken = ["tiktoken"]  # Exact token counting
-# tts = ["anyvoice[tts-edge,openai]>=0.0.2"]  # Text-to-Speech using AnyVoice (disabled: cffi doesn't support free-threaded 3.13)
+tts = [
+  "anyvoice[tts-edge,openai]>=0.0.2"
+]  # Text-to-Speech using AnyVoice (disabled: cffi doesn't support free-threaded 3.13)
 zed = ["zstandard>=0.23.0"]  # Zed IDE storage provider
 
 [dependency-groups]
@@ -145,7 +147,7 @@ dev = [
   "check-jsonschema>=0.35.0",
   "devtools",
   "fastembed>=0.7.4; python_version < '3.14'",
-  # "lancedb>=0.26.0; python_version < '3.14'",
+  "lancedb>=0.26.0; python_version < '3.14'",
   "openapi_spec_validator",
   "pyinstaller>=6.17.0",
   "pyreadline3",
