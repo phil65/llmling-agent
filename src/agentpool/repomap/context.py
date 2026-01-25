@@ -47,7 +47,7 @@ async def get_resource_context(
 
     Args:
         path: File or directory path
-        fs: Optional AsyncFileSystem to use (defaults to LocalFileSystem)
+        fs: Optional AsyncFileSystem to use (defaults to AsyncLocalFileSystem)
         max_files_to_read: Maximum files to read for directories (None = unlimited)
 
     Returns:
@@ -82,13 +82,13 @@ async def generate_directory_context(
 
     Args:
         path: Directory path
-        fs: Optional AsyncFileSystem to use (defaults to LocalFileSystem)
+        fs: Optional AsyncFileSystem to use (defaults to AsyncLocalFileSystem)
         max_files_to_read: Maximum number of files to read and analyze (None = unlimited)
 
     Returns:
         Repository map string or None if generation fails
     """
-    from fsspec.implementations.local import LocalFileSystem
+    from upathtools.filesystems import AsyncLocalFileSystem
 
     from agentpool.repomap.core import RepoMap
     from agentpool.repomap.languages import is_language_supported
@@ -99,7 +99,7 @@ async def generate_directory_context(
     try:
         # Use provided filesystem or fall back to local
         if fs is None:
-            fs = LocalFileSystem()
+            fs = AsyncLocalFileSystem()
         repo_map = RepoMap(fs, root_path=str(path), max_tokens=4096)
 
         # Find all source files in the directory (non-recursive for now)
