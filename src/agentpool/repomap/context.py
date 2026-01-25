@@ -30,7 +30,6 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
-
 # Token estimation: ~4 chars per token
 LARGE_FILE_THRESHOLD = 8192  # ~2000 tokens
 
@@ -95,18 +94,12 @@ async def generate_directory_context(
     from agentpool.repomap.utils import is_important
 
     logger.info("Generating directory context", path=str(path))
-
+    if fs is None:
+        fs = AsyncLocalFileSystem()
+    repo_map = RepoMap(fs, root_path=str(path), max_tokens=4096)
     try:
-        # Use provided filesystem or fall back to local
-        if fs is None:
-            fs = AsyncLocalFileSystem()
-        repo_map = RepoMap(fs, root_path=str(path), max_tokens=4096)
-
         # Find all source files in the directory (non-recursive for now)
-        all_files = [
-            item for item in path.iterdir() if item.is_file() and is_language_supported(item.name)
-        ]
-
+        all_files = [i for i in path.iterdir() if i.is_file() and is_language_supported(i.name)]
         if not all_files:
             logger.debug("No source files found in directory", path=str(path))
             return f"Directory: {path}\n(No source files found)"
@@ -114,7 +107,6 @@ async def generate_directory_context(
         # Prioritize important files (config files, __init__.py, etc.)
         priority_files = [f for f in all_files if is_important(f.name) or f.name == "__init__.py"]
         other_files = [f for f in all_files if f not in priority_files]
-
         # Select top N files for detailed analysis
         if max_files_to_read is not None:
             selected_files = (priority_files + other_files)[:max_files_to_read]
@@ -134,17 +126,11 @@ async def generate_directory_context(
         # Generate the map for selected files
         files_to_analyze = [str(f) for f in selected_files]
         map_content = await repo_map.get_map(files_to_analyze)
-
         if not map_content:
             logger.warning("Repomap generation returned empty", path=str(path))
             return f"Directory: {path}"
 
-        logger.info(
-            "Successfully generated repomap",
-            content_length=len(map_content),
-            path=str(path),
-        )
-
+        logger.info("Successfully generated repomap", size=len(map_content), path=str(path))
         # Build output with header
         header = f"# Repository map for {path.name}\n\n"
         if remaining_files:
@@ -152,9 +138,7 @@ async def generate_directory_context(
                 f"## Detailed structure "
                 f"(analyzed {len(selected_files)} of {len(all_files)} files):\n\n"
             )
-
         result = header + map_content
-
         # Append listing of remaining files
         if remaining_files:
             result += "\n\n## Additional files (not analyzed):\n"
@@ -193,21 +177,17 @@ async def generate_file_context(path: Path, fs: AsyncFileSystem | None = None) -
     from agentpool.repomap.utils import truncate_with_notice
 
     logger.info("Generating file context", path=str(path))
-
     try:
         # TODO: Handle binary files with metadata
         # from mimetypes import guess_type
         # mime_type = guess_type(str(path))
         # if is_binary_mime(mime_type):
         #     return generate_binary_file_metadata(path)
-
         # Read file content
         content = path.read_text(encoding="utf-8", errors="ignore")
-
         # For large files, try to generate outline
         if len(content) > LARGE_FILE_THRESHOLD:
             logger.info("File is large, generating outline", path=str(path), size=len(content))
-
             # Use centralized outline generation
             outline = await generate_file_outline(path, fs=fs, content=content)
             if outline:
