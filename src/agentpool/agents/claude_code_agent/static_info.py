@@ -114,14 +114,32 @@ MODES = [
 THINKING_MODES = [
     ModeInfo(
         id="off",
-        name="Thinking Off",
+        name="Off",
         description="No extended thinking",
         category_id="thought_level",
     ),
     ModeInfo(
-        id="on",
-        name="Thinking On",
-        description="Extended thinking (~32k tokens)",
+        id="4k",
+        name="4K tokens",
+        description="Light reasoning (4,096 tokens)",
+        category_id="thought_level",
+    ),
+    ModeInfo(
+        id="8k",
+        name="8K tokens",
+        description="Moderate reasoning (8,192 tokens)",
+        category_id="thought_level",
+    ),
+    ModeInfo(
+        id="16k",
+        name="16K tokens",
+        description="Deep reasoning (16,384 tokens)",
+        category_id="thought_level",
+    ),
+    ModeInfo(
+        id="32k",
+        name="32K tokens",
+        description="Maximum reasoning (32,768 tokens)",
         category_id="thought_level",
     ),
 ]

@@ -83,7 +83,6 @@ from pydantic_ai.usage import RequestUsage
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.claude_code_agent.converters import claude_message_to_events
-from agentpool.agents.claude_code_agent.exceptions import ThinkingModeAlreadyConfiguredError
 from agentpool.agents.events import (
     PartDeltaEvent,
     PartStartEvent,
@@ -161,10 +160,15 @@ _MCP_TOOL_PATTERN = re.compile(r"^mcp__agentpool-(.+)-tools__(.+)$")
 EXCLUDED_SLASH_COMMANDS = frozenset({"login", "logout", "release-notes", "todos"})
 
 # Thinking modes for extended thinking budget allocation
-ThinkingMode = Literal["off", "on"]
-# Map thinking mode to prompt instruction
-# "ultrathink" triggers ~32k token thinking budget in Claude Code
-THINKING_MODE_PROMPTS: dict[ThinkingMode, str] = {"off": "", "on": "ultrathink"}
+ThinkingMode = Literal["off", "4k", "8k", "16k", "32k"]
+# Map thinking mode to token budget (0 = off)
+THINKING_MODE_TOKENS: dict[ThinkingMode, int] = {
+    "off": 0,
+    "4k": 4096,
+    "8k": 8192,
+    "16k": 16384,
+    "32k": 32768,
+}
 
 
 def _strip_mcp_prefix(tool_name: str) -> str:
@@ -860,10 +864,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Combine pending parts with new prompts, then join into single string for Claude SDK
         #
         prompt_text = " ".join(str(p) for p in prompts)
-        # Inject thinking instruction if enabled
-        if self._thinking_mode == "on":
-            thinking_instruction = THINKING_MODE_PROMPTS[self._thinking_mode]
-            prompt_text = f"{prompt_text}\n\n{thinking_instruction}"
         run_id = str(uuid.uuid4())
         # Emit run started
         assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
@@ -1324,17 +1324,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             )
 
         # Thinking level selection
-        # Only expose if MAX_THINKING_TOKENS is not set (keyword only works without env var)
-        if not self._max_thinking_tokens:
-            categories.append(
-                ModeCategory(
-                    id="thought_level",
-                    name="Thinking Level",
-                    available_modes=THINKING_MODES,
-                    current_mode_id=self._thinking_mode,
-                    category="thought_level",
-                )
+        categories.append(
+            ModeCategory(
+                id="thought_level",
+                name="Thinking Level",
+                available_modes=THINKING_MODES,
+                current_mode_id=self._thinking_mode,
+                category="thought_level",
             )
+        )
 
         return categories
 
@@ -1365,13 +1363,15 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 await self.ensure_initialized()
                 await self._client.set_model(mode_id)
         elif category_id == "thought_level":
-            # Check if max_thinking_tokens is configured (takes precedence over keyword)
-            if self._max_thinking_tokens:
-                raise ThinkingModeAlreadyConfiguredError
             # Validate thinking mode
-            if mode_id not in THINKING_MODE_PROMPTS:
-                raise UnknownModeError(mode_id, list(THINKING_MODE_PROMPTS.keys()))
+            if mode_id not in THINKING_MODE_TOKENS:
+                raise UnknownModeError(mode_id, list(THINKING_MODE_TOKENS.keys()))
             self._thinking_mode = mode_id  # type: ignore[assignment]
+            # Set thinking tokens via SDK
+            if self._client:
+                await self.ensure_initialized()
+                tokens = THINKING_MODE_TOKENS[self._thinking_mode]
+                await self._client.set_max_thinking_tokens(tokens)
         else:
             raise UnknownCategoryError(category_id)
         change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
