@@ -728,8 +728,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             try:
                 await self._client.disconnect()
                 self.log.info("Claude Code client disconnected")
-            except Exception:
-                self.log.exception("Error disconnecting Claude Code client")
+            except Exception:  # noqa: BLE001
+                self.log.warning("Error disconnecting Claude Code client")
             self._client = None
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
@@ -1384,38 +1384,40 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         cwd: str | None = None,
         limit: int | None = None,
     ) -> list[SessionData]:
-        """List sessions from Claude storage (~/.claude/projects/)."""
-        from agentpool_storage.models import QueryFilters
+        """List sessions from Claude storage (~/.claude/projects/).
 
+        Uses fast metadata reading that only parses timestamps and message counts,
+        without loading full message content.
+        """
         try:
-            # Use storage sessions API which works with Claude provider
-            # Don't filter by agent name - Claude storage uses 'claude' for all
-            # Pass cwd filter to storage for efficient filesystem-level filtering
-            filters = QueryFilters(cwd=cwd)
+            # Use fast metadata listing - avoids parsing all message content
+            metadata_list = self._claude_storage.list_session_metadata(project_path=cwd)
             result: list[SessionData] = []
-            for conv_data, messages in await self._claude_storage.get_sessions(filters=filters):
-                # Build SessionData from conversation
-                last_active = get_now()
-                session_cwd: str | None = None
-                if messages:
-                    last_msg = messages[-1]
-                    if last_msg.timestamp:
-                        last_active = last_msg.timestamp
-                    # Extract cwd from message metadata if available
-                    if last_msg.metadata:
-                        cwd_val = last_msg.metadata.get("cwd")
-                        if isinstance(cwd_val, str):
-                            session_cwd = cwd_val
+            default_cwd = str(self._cwd or Path.cwd())
 
-                # Parse start_time
-                start_time = conv_data.get("start_time", "")
+            for meta in metadata_list:
+                # Parse timestamps
+                now = get_now()
+                created_at = (
+                    parse_iso_timestamp(meta.first_timestamp, fallback=now)
+                    if meta.first_timestamp
+                    else now
+                )
+                last_active = (
+                    parse_iso_timestamp(meta.last_timestamp, fallback=created_at)
+                    if meta.last_timestamp
+                    else created_at
+                )
+
                 session_data = SessionData(
-                    session_id=conv_data["id"],
+                    session_id=meta.session_id,
                     agent_name=self.name,
-                    cwd=session_cwd or str(self._cwd or Path.cwd()),
-                    created_at=parse_iso_timestamp(start_time, fallback=last_active),
+                    cwd=meta.cwd or default_cwd,
+                    created_at=created_at,
                     last_active=last_active,
-                    metadata={"title": conv_data.get("title")} if conv_data.get("title") else {},
+                    metadata={"title": meta.title, "message_count": meta.message_count}
+                    if meta.title
+                    else {"message_count": meta.message_count},
                 )
                 result.append(session_data)
 
@@ -1425,7 +1427,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         else:
             # Sort by last_active, most recent first
             result.sort(key=lambda s: s.updated_at or "", reverse=True)
-            # cwd filter is applied at storage level via QueryFilters
             return result if limit is None else result[:limit]
 
     async def load_session(self, session_id: str) -> SessionData | None:
@@ -1474,6 +1475,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
 if __name__ == "__main__":
     import os
+    import time
 
     os.environ["ANTHROPIC_API_KEY"] = ""
 
@@ -1481,8 +1483,12 @@ if __name__ == "__main__":
         """Demo: Basic call to Claude Code."""
         async with ClaudeCodeAgent(name="demo", event_handlers=["detailed"]) as agent:
             # print("Response (streaming): ", end="", flush=True)
-            async for _ in agent.run_stream("What files are in the current directory?"):
-                pass
-            # await agent.list_sessions()
+            # async for _ in agent.run_stream("What files are in the current directory?"):
+            #     pass
+            await agent.ensure_initialized()
+            print(now := time.time())
+            sessions = await agent.list_sessions()
+            print(time.time() - now)
+            print(sessions)
 
     anyio.run(main)

@@ -15,6 +15,7 @@ See ARCHITECTURE.md for detailed documentation of the storage format.
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime
 import json
 from pathlib import Path
@@ -131,6 +132,99 @@ def _read_session(session_path: Path) -> list[ClaudeJSONLEntry]:
     return entries
 
 
+@dataclass(slots=True)
+class SessionMetadata:
+    """Lightweight session metadata without full message parsing."""
+
+    session_id: str
+    path: Path
+    first_timestamp: str | None
+    last_timestamp: str | None
+    cwd: str | None
+    message_count: int
+    title: str | None
+
+
+def _read_session_metadata(
+    session_path: Path,
+    max_title_chars: int = 60,
+) -> SessionMetadata | None:
+    """Read minimal metadata from a session file without full parsing.
+
+    Extracts timestamps, message count, cwd, and title in a single pass.
+    This is much faster than validating all entries with Pydantic.
+
+    Args:
+        session_path: Path to the JSONL session file
+        max_title_chars: Maximum characters for title (truncates with '...')
+
+    Returns:
+        SessionMetadata with timestamps, message count, and title,
+        or None if file is empty/invalid
+    """
+    if not session_path.exists():
+        return None
+
+    first_timestamp: str | None = None
+    last_timestamp: str | None = None
+    cwd: str | None = None
+    title: str | None = None
+    message_count = 0
+
+    with session_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                data = anyenv.load_json(stripped, return_type=dict)
+                entry_type = data.get("type")
+
+                # Summary entries provide the best title
+                if entry_type == "summary" and title is None and (summary := data.get("summary")):
+                    title = str(summary)
+
+                # Count user/assistant messages and extract metadata
+                if entry_type in ("user", "assistant"):
+                    message_count += 1
+                    timestamp = data.get("timestamp")
+                    # Get timestamp and cwd from first message entry
+                    if first_timestamp is None:
+                        first_timestamp = timestamp
+                        if cwd is None:
+                            cwd = data.get("cwd")
+
+                    # First user message as fallback title
+                    if entry_type == "user" and title is None:
+                        msg = data.get("message", {})
+                        content = msg.get("content", "")
+                        if isinstance(content, str) and content:
+                            first_line = content.split("\n")[0].strip()
+                            if first_line:
+                                if len(first_line) > max_title_chars:
+                                    title = first_line[:max_title_chars] + "..."
+                                else:
+                                    title = first_line
+
+                    # Always update last_timestamp for user/assistant messages
+                    last_timestamp = timestamp
+            except (json.JSONDecodeError, ValueError):
+                continue
+
+    if message_count == 0:
+        return None
+
+    return SessionMetadata(
+        session_id=session_path.stem,
+        path=session_path,
+        first_timestamp=first_timestamp,
+        last_timestamp=last_timestamp,
+        cwd=cwd,
+        message_count=message_count,
+        title=title,
+    )
+
+
 class ClaudeStorageProvider(StorageProvider):
     """Storage provider that reads/writes Claude Code's native format.
 
@@ -216,6 +310,28 @@ class ClaudeStorageProvider(StorageProvider):
                         session_id = f.stem
                         sessions.append((session_id, f))
         return sessions
+
+    def list_session_metadata(
+        self,
+        project_path: str | None = None,
+    ) -> list[SessionMetadata]:
+        """List all sessions with lightweight metadata (no full message parsing).
+
+        This is much faster than get_sessions() as it only reads timestamps
+        and message counts without validating all message content.
+
+        Args:
+            project_path: Optional project directory to filter by
+
+        Returns:
+            List of SessionMetadata objects with timestamps and counts
+        """
+        result: list[SessionMetadata] = []
+        for _, session_path in self._list_sessions(project_path=project_path):
+            metadata = _read_session_metadata(session_path)
+            if metadata is not None:
+                result.append(metadata)
+        return result
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages based on query."""
