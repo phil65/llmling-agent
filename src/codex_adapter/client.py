@@ -33,6 +33,7 @@ from codex_adapter.models import (
     ThreadListParams,
     ThreadListResponse,
     ThreadLoadedListResponse,
+    ThreadReadParams,
     ThreadResponse,
     ThreadResumeParams,
     ThreadRollbackParams,
@@ -389,6 +390,20 @@ class CodexClient:
         params = ThreadListParams(cursor=cursor, limit=limit, model_providers=model_providers)
         result = await self._send_request("thread/list", params)
         return ThreadListResponse.model_validate(result)
+
+    async def thread_read(self, thread_id: str, *, include_turns: bool = False) -> ThreadResponse:
+        """Read a thread's data.
+
+        Args:
+            thread_id: The thread ID to read
+            include_turns: When True, include turns and their items
+
+        Returns:
+            ThreadResponse with thread data
+        """
+        params = ThreadReadParams(thread_id=thread_id, include_turns=include_turns)
+        result = await self._send_request("thread/read", params)
+        return ThreadResponse.model_validate(result)
 
     async def thread_loaded_list(self) -> list[str]:
         """List thread IDs currently loaded in memory."""

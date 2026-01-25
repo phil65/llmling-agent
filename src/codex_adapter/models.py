@@ -111,6 +111,13 @@ class ThreadListParams(CodexBaseModel):
     model_providers: list[str] | None = None
 
 
+class ThreadReadParams(CodexBaseModel):
+    """Parameters for thread/read request."""
+
+    thread_id: str
+    include_turns: bool = False
+
+
 class ThreadArchiveParams(CodexBaseModel):
     """Parameters for thread/archive request."""
 
