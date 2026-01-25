@@ -97,11 +97,14 @@ def _get_fs(state: StateDep) -> tuple[AsyncFileSystem, str]:
 
     Returns:
         Tuple of (filesystem, base_path).
-        base_path is the root directory to use for operations.
+        base_path is the resolved root directory to use for operations.
     """
     fs = state.agent.env.get_fs()
     # Use env's cwd if set, otherwise use state.working_dir
-    base_path = state.agent.env.cwd or state.working_dir
+    # Resolve symlinks to ensure consistent path comparison
+    # (important on macOS where /tmp -> /private/var/folders/...)
+    raw_path = state.agent.env.cwd or state.working_dir
+    base_path = str(Path(raw_path).resolve())
     return (fs, base_path)
 
 
@@ -144,6 +147,7 @@ async def _search_with_ripgrep(
     )
     stdout, _ = await proc.communicate()
     matches: list[FindMatch] = []
+    # base_path is already resolved by _get_fs()
     base_path_prefix = base_path.rstrip("/") + "/"
     for line in stdout.decode("utf-8", errors="replace").splitlines():
         if not line.strip():
@@ -219,6 +223,7 @@ async def _find_files_with_ripgrep(query: str, base_path: str, max_results: int 
     )
     stdout, _ = await proc.communicate()
     results: list[str] = []
+    # base_path is already resolved by _get_fs()
     base_path_prefix = base_path.rstrip("/") + "/"
     for line in stdout.decode("utf-8", errors="replace").splitlines():
         if not line.strip():
