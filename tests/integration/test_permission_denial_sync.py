@@ -80,7 +80,6 @@ requires_claude_code = pytest.mark.skipif(
 )
 
 
-@pytest.mark.asyncio
 @pytest.mark.integration
 @requires_claude_code
 async def test_tool_call_event_ordering():
@@ -149,7 +148,6 @@ async def test_tool_call_event_ordering():
                 )
 
 
-@pytest.mark.asyncio
 @pytest.mark.integration
 @requires_claude_code
 async def test_no_duplicate_acp_tool_call_notifications():

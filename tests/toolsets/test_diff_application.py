@@ -63,7 +63,6 @@ class TestParseDiff:
 class TestApplyDiffEdits:
     """Tests for the standard apply_diff_edits function."""
 
-    @pytest.mark.asyncio
     async def test_simple_replacement(self):
         original = """\
 def greet(name):
@@ -82,7 +81,6 @@ def greet(name):
         assert 'print(f"Hello, {name}!")' in result
         assert 'print("Hello")' not in result
 
-    @pytest.mark.asyncio
     async def test_multiple_edits(self):
         original = """\
 def foo():
@@ -106,7 +104,6 @@ def bar():
         assert "return 2" in result
         assert "return 4" in result
 
-    @pytest.mark.asyncio
     async def test_indentation_tolerance(self):
         """Test that small indentation differences are handled."""
         original = """\
@@ -122,7 +119,6 @@ def bar():
 class TestApplyDiffEditsStreaming:
     """Tests for the streaming fuzzy matcher approach."""
 
-    @pytest.mark.asyncio
     async def test_simple_replacement(self):
         original = """\
 def greet(name):
@@ -141,7 +137,6 @@ def greet(name):
         assert 'print(f"Hello, {name}!")' in result
         assert 'print("Hello")' not in result
 
-    @pytest.mark.asyncio
     async def test_fuzzy_matching(self):
         """Test that fuzzy matching handles minor differences."""
         original = """\
@@ -160,7 +155,6 @@ fn foo2(b: usize) -> usize {
         assert "41" in result
         assert "42" in result  # foo2 unchanged
 
-    @pytest.mark.asyncio
     async def test_indentation_reindent(self):
         """Test that streaming matcher preserves file indentation."""
         original = """\
@@ -174,7 +168,6 @@ class Example:
         # Should preserve the original indentation
         assert "return 100" in result
 
-    @pytest.mark.asyncio
     async def test_line_hint_disambiguation(self):
         """Test that line hints help disambiguate multiple matches."""
         original = """\
@@ -201,7 +194,6 @@ def third():
 class TestCompareApproaches:
     """Tests that compare both approaches on the same input."""
 
-    @pytest.mark.asyncio
     async def test_both_handle_simple_case(self):
         original = """\
 def hello():
@@ -214,7 +206,6 @@ def hello():
         assert 'print("universe")' in result1
         assert 'print("universe")' in result2
 
-    @pytest.mark.asyncio
     async def test_both_handle_multiline(self):
         original = """\
 impl Display for User {

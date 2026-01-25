@@ -23,7 +23,6 @@ from agentpool_server.opencode_server.models.events import (
 class TestSessionCreatedEvent:
     """Tests for session.created event emission."""
 
-    @pytest.mark.asyncio
     async def test_should_emit_session_created_event_when_session_is_created(
         self,
         async_client,
@@ -55,7 +54,6 @@ class TestSessionCreatedEvent:
         assert event.properties.info.title == session_data["title"]
         assert event.properties.info.project_id == "default"  # Python attr is snake_case
 
-    @pytest.mark.asyncio
     async def test_session_created_event_should_be_emitted_before_session_updated(
         self,
         async_client,
@@ -98,7 +96,6 @@ class TestSessionCreatedEvent:
 class TestSessionCRUD:
     """Tests for session CRUD operations."""
 
-    @pytest.mark.asyncio
     async def test_create_session_returns_valid_session(
         self,
         async_client,
@@ -121,7 +118,6 @@ class TestSessionCRUD:
         assert "created" in session["time"]
         assert "updated" in session["time"]
 
-    @pytest.mark.asyncio
     async def test_create_session_with_parent_id(
         self,
         async_client,
@@ -141,7 +137,6 @@ class TestSessionCRUD:
         child = child_response.json()
         assert child["parentID"] == parent_id  # Response uses camelCase
 
-    @pytest.mark.asyncio
     async def test_create_session_with_default_title(
         self,
         async_client,
@@ -153,7 +148,6 @@ class TestSessionCRUD:
         session = response.json()
         assert session["title"] == "New Session"
 
-    @pytest.mark.asyncio
     async def test_get_session_returns_created_session(
         self,
         async_client,
@@ -171,7 +165,6 @@ class TestSessionCRUD:
         assert session["id"] == session_id
         assert session["title"] == "Get Test"
 
-    @pytest.mark.asyncio
     async def test_get_nonexistent_session_returns_404(
         self,
         async_client,
@@ -182,7 +175,6 @@ class TestSessionCRUD:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
 
-    @pytest.mark.asyncio
     async def test_update_session_title(
         self,
         async_client,
@@ -212,7 +204,6 @@ class TestSessionCRUD:
         last_update = updated_events[-1]
         assert last_update.properties.info.title == "Updated Title"
 
-    @pytest.mark.asyncio
     async def test_update_nonexistent_session_returns_404(
         self,
         async_client,
@@ -225,7 +216,6 @@ class TestSessionCRUD:
 
         assert response.status_code == 404
 
-    @pytest.mark.asyncio
     async def test_delete_session(
         self,
         async_client,
@@ -251,7 +241,6 @@ class TestSessionCRUD:
         assert len(deleted_events) == 1
         assert deleted_events[0].properties.session_id == session_id
 
-    @pytest.mark.asyncio
     async def test_delete_nonexistent_session_returns_404(
         self,
         async_client,
@@ -261,7 +250,6 @@ class TestSessionCRUD:
 
         assert response.status_code == 404
 
-    @pytest.mark.asyncio
     async def test_list_sessions_empty(
         self,
         async_client,
@@ -272,7 +260,6 @@ class TestSessionCRUD:
         assert response.status_code == 200
         assert response.json() == []
 
-    @pytest.mark.asyncio
     async def test_list_sessions_returns_created_sessions(
         self,
         async_client,
@@ -318,7 +305,6 @@ class TestSessionCRUD:
 class TestSessionStatus:
     """Tests for session status management."""
 
-    @pytest.mark.asyncio
     async def test_get_session_status_empty_when_all_idle(
         self,
         async_client,
@@ -334,7 +320,6 @@ class TestSessionStatus:
         # Only non-idle sessions are returned
         assert response.json() == {}
 
-    @pytest.mark.asyncio
     async def test_session_status_is_idle_by_default(
         self,
         async_client,
@@ -349,7 +334,6 @@ class TestSessionStatus:
         assert session_id in server_state.session_status
         assert server_state.session_status[session_id].type == "idle"
 
-    @pytest.mark.asyncio
     async def test_abort_session(
         self,
         async_client,
@@ -370,7 +354,6 @@ class TestSessionStatus:
         assert abort_response.json() is True
         assert server_state.session_status[session_id].type == "idle"
 
-    @pytest.mark.asyncio
     async def test_abort_nonexistent_session_returns_404(
         self,
         async_client,
@@ -384,7 +367,6 @@ class TestSessionStatus:
 class TestSessionFork:
     """Tests for session forking functionality."""
 
-    @pytest.mark.asyncio
     async def test_fork_session_creates_new_session_with_parent(
         self,
         async_client,
@@ -416,7 +398,6 @@ class TestSessionFork:
         assert fork_event.properties.info.id == forked["id"]
         assert fork_event.properties.info.parent_id == original_id  # Python attr
 
-    @pytest.mark.asyncio
     async def test_fork_nonexistent_session_returns_404(
         self,
         async_client,
@@ -430,7 +411,6 @@ class TestSessionFork:
 class TestSessionTodos:
     """Tests for session todo management."""
 
-    @pytest.mark.asyncio
     async def test_get_session_todos_empty_initially(
         self,
         async_client,
@@ -446,7 +426,6 @@ class TestSessionTodos:
         assert todos_response.status_code == 200
         assert todos_response.json() == []
 
-    @pytest.mark.asyncio
     async def test_get_todos_for_nonexistent_session_returns_404(
         self,
         async_client,

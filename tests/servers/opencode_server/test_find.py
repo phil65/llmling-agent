@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 class TestFindText:
     """Tests for /find endpoint (text/regex search)."""
 
-    @pytest.mark.asyncio
     async def test_basic_search(
         self,
         async_client,
@@ -49,7 +48,6 @@ class TestFindText:
             assert "lines" in match
             assert "line_number" in match
 
-    @pytest.mark.asyncio
     async def test_no_matches_returns_empty_list(
         self,
         async_client,
@@ -70,7 +68,6 @@ class TestFindText:
         matches = response.json()
         assert matches == []
 
-    @pytest.mark.asyncio
     async def test_handles_crlf_line_endings(
         self,
         async_client,
@@ -92,7 +89,6 @@ class TestFindText:
         matches = response.json()
         assert len(matches) == 3
 
-    @pytest.mark.asyncio
     async def test_handles_windows_crlf(
         self,
         async_client,
@@ -111,7 +107,6 @@ class TestFindText:
         matches = response.json()
         assert len(matches) == 3
 
-    @pytest.mark.asyncio
     async def test_handles_mixed_line_endings(
         self,
         async_client,
@@ -130,7 +125,6 @@ class TestFindText:
         matches = response.json()
         assert len(matches) == 3
 
-    @pytest.mark.asyncio
     async def test_regex_pattern(
         self,
         async_client,
@@ -151,7 +145,6 @@ class TestFindText:
         matches = response.json()
         assert len(matches) == 2
 
-    @pytest.mark.asyncio
     async def test_invalid_regex_returns_400(
         self,
         async_client,
@@ -166,7 +159,6 @@ class TestFindText:
         assert response.status_code == 400
         assert "regex" in response.json()["detail"].lower()
 
-    @pytest.mark.asyncio
     async def test_search_in_subdirectories(
         self,
         async_client,
@@ -191,7 +183,6 @@ class TestFindText:
         assert any("src/utils/helper.py" in p or "src\\utils\\helper.py" in p for p in paths)
         assert any("main.py" in p for p in paths)
 
-    @pytest.mark.asyncio
     async def test_skips_excluded_directories(
         self,
         async_client,
@@ -222,7 +213,6 @@ class TestFindText:
         assert len(matches) == 1
         assert "src.py" in matches[0]["path"]["text"]
 
-    @pytest.mark.asyncio
     async def test_returns_line_numbers(
         self,
         async_client,
@@ -241,7 +231,6 @@ class TestFindText:
         assert len(matches) == 1
         assert matches[0]["line_number"] == 3
 
-    @pytest.mark.asyncio
     async def test_limits_results(
         self,
         async_client,
@@ -266,7 +255,6 @@ class TestFindText:
 class TestFindFiles:
     """Tests for /find/file endpoint (file name search)."""
 
-    @pytest.mark.asyncio
     async def test_find_by_extension(
         self,
         async_client,
@@ -287,7 +275,6 @@ class TestFindFiles:
         assert len(files) == 2
         assert all(f.endswith(".py") for f in files)
 
-    @pytest.mark.asyncio
     async def test_find_by_name_pattern(
         self,
         async_client,
@@ -308,7 +295,6 @@ class TestFindFiles:
         assert len(files) == 2
         assert all("test_" in f for f in files)
 
-    @pytest.mark.asyncio
     async def test_find_in_subdirectories(
         self,
         async_client,
@@ -330,7 +316,6 @@ class TestFindFiles:
         files = response.json()
         assert len(files) == 3
 
-    @pytest.mark.asyncio
     async def test_skips_excluded_directories(
         self,
         async_client,
@@ -353,7 +338,6 @@ class TestFindFiles:
         assert len(files) == 1
         assert files[0] == "src.js"
 
-    @pytest.mark.asyncio
     async def test_include_directories_option(
         self,
         async_client,
@@ -374,7 +358,6 @@ class TestFindFiles:
         # Should include both directories and the file
         assert len(files) == 3
 
-    @pytest.mark.asyncio
     async def test_returns_relative_paths(
         self,
         async_client,
@@ -400,7 +383,6 @@ class TestFindFiles:
         assert "deep" in path
         assert "nested" in path
 
-    @pytest.mark.asyncio
     async def test_no_matches_returns_empty(
         self,
         async_client,

@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 class TestFileContentPathTraversal:
     """Tests for /file/content endpoint path traversal protection."""
 
-    @pytest.mark.asyncio
     async def test_rejects_dotdot_traversal_to_etc_passwd(
         self,
         async_client,
@@ -54,7 +53,6 @@ class TestFileContentPathTraversal:
             word in detail for word in ("access", "denied", "escapes", "outside", "invalid")
         ), f"Response should indicate access denial, got: {detail}"
 
-    @pytest.mark.asyncio
     async def test_rejects_deeply_nested_traversal(
         self,
         async_client,
@@ -73,7 +71,6 @@ class TestFileContentPathTraversal:
             f"Deeply nested traversal should be blocked, got status {response.status_code}"
         )
 
-    @pytest.mark.asyncio
     async def test_allows_valid_paths_within_project(
         self,
         async_client,
@@ -96,7 +93,6 @@ class TestFileContentPathTraversal:
         data = response.json()
         assert data["content"] == "valid content"
 
-    @pytest.mark.asyncio
     async def test_allows_subdirectory_paths(
         self,
         async_client,
@@ -116,7 +112,6 @@ class TestFileContentPathTraversal:
         assert response.status_code == 200
         assert response.json()["content"] == "# helper code"
 
-    @pytest.mark.asyncio
     async def test_rejects_absolute_path_outside_project(
         self,
         async_client,
@@ -132,7 +127,6 @@ class TestFileContentPathTraversal:
             f"Absolute path outside project should be blocked, got status {response.status_code}"
         )
 
-    @pytest.mark.asyncio
     async def test_rejects_encoded_traversal(
         self,
         async_client,
@@ -152,7 +146,6 @@ class TestFileContentPathTraversal:
 class TestFileListPathTraversal:
     """Tests for /file endpoint (directory listing) path traversal protection."""
 
-    @pytest.mark.asyncio
     async def test_rejects_dotdot_traversal_to_etc(
         self,
         async_client,
@@ -172,7 +165,6 @@ class TestFileListPathTraversal:
             f"got status {response.status_code}: {response.text}"
         )
 
-    @pytest.mark.asyncio
     async def test_allows_valid_subdirectory_listing(
         self,
         async_client,
@@ -198,7 +190,6 @@ class TestFileListPathTraversal:
         assert len(files) == 1
         assert files[0]["name"] == "file.txt"
 
-    @pytest.mark.asyncio
     async def test_rejects_absolute_path_directory(
         self,
         async_client,
@@ -216,7 +207,6 @@ class TestFileListPathTraversal:
 class TestFindPathTraversal:
     """Tests for /find endpoint path traversal protection."""
 
-    @pytest.mark.asyncio
     async def test_find_only_searches_within_project(
         self,
         async_client,
@@ -244,7 +234,6 @@ class TestFindPathTraversal:
 class TestFindFilePathTraversal:
     """Tests for /find/file endpoint path traversal protection."""
 
-    @pytest.mark.asyncio
     async def test_find_file_only_returns_project_files(
         self,
         async_client,
@@ -278,7 +267,6 @@ class TestPathContainmentLogic:
     similar to OpenCode's Filesystem.contains() tests.
     """
 
-    @pytest.mark.asyncio
     async def test_allows_paths_within_project(
         self,
         async_client,
@@ -297,7 +285,6 @@ class TestPathContainmentLogic:
 
         assert response.status_code == 200
 
-    @pytest.mark.asyncio
     async def test_blocks_prefix_collision(
         self,
         async_client,
@@ -331,7 +318,6 @@ class TestPathContainmentLogic:
             (sibling / "secret.txt").unlink(missing_ok=True)
             sibling.rmdir()
 
-    @pytest.mark.asyncio
     async def test_handles_symlink_escape(
         self,
         async_client,
@@ -371,7 +357,6 @@ class TestDotEnvProtection:
     similar to OpenCode's read.test.ts tests for .env blocking.
     """
 
-    @pytest.mark.asyncio
     async def test_blocks_env_file(
         self,
         async_client,
@@ -396,7 +381,6 @@ class TestDotEnvProtection:
                 "consider blocking .env, .env.local, .env.production"
             )
 
-    @pytest.mark.asyncio
     async def test_blocks_env_local_file(
         self,
         async_client,
@@ -414,7 +398,6 @@ class TestDotEnvProtection:
         if response.status_code == 200:
             pytest.skip(".env.local protection not yet implemented")
 
-    @pytest.mark.asyncio
     async def test_blocks_env_production_file(
         self,
         async_client,
@@ -431,3 +414,7 @@ class TestDotEnvProtection:
 
         if response.status_code == 200:
             pytest.skip(".env.production protection not yet implemented")
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-vv"])

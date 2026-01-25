@@ -10,13 +10,10 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, Mock
 
-import pytest
-
 
 class TestShellBasic:
     """Basic shell command execution tests."""
 
-    @pytest.mark.asyncio
     async def test_basic_echo_command(
         self,
         async_client,
@@ -50,7 +47,6 @@ class TestShellBasic:
         assert "info" in result
         assert "parts" in result
 
-    @pytest.mark.asyncio
     async def test_shell_command_failure(
         self,
         async_client,
@@ -78,7 +74,6 @@ class TestShellBasic:
         assert len(text_parts) >= 1
         assert "error" in text_parts[0]["text"].lower()
 
-    @pytest.mark.asyncio
     async def test_shell_nonexistent_session_returns_404(
         self,
         async_client,
@@ -98,7 +93,6 @@ class TestShellDangerousCommands:
     These tests verify that dangerous commands are blocked.
     """
 
-    @pytest.mark.asyncio
     async def test_blocks_rm_rf_root(
         self,
         async_client,
@@ -116,7 +110,6 @@ class TestShellDangerousCommands:
         assert response.status_code == 403
         assert "restricted" in response.json()["detail"].lower()
 
-    @pytest.mark.asyncio
     async def test_blocks_sudo_commands(
         self,
         async_client,
@@ -134,7 +127,6 @@ class TestShellDangerousCommands:
         assert response.status_code == 403
         assert "restricted" in response.json()["detail"].lower()
 
-    @pytest.mark.asyncio
     async def test_blocks_curl_to_shell_pipe(
         self,
         async_client,
@@ -156,7 +148,6 @@ class TestShellDangerousCommands:
 class TestShellPathTraversal:
     """Tests for path traversal in shell commands."""
 
-    @pytest.mark.asyncio
     async def test_blocks_reading_etc_passwd(
         self,
         async_client,
@@ -174,7 +165,6 @@ class TestShellPathTraversal:
         assert response.status_code == 403
         assert "restricted" in response.json()["detail"].lower()
 
-    @pytest.mark.asyncio
     async def test_blocks_directory_escape(
         self,
         async_client,
@@ -196,7 +186,6 @@ class TestShellPathTraversal:
 class TestShellSessionStatus:
     """Tests for session status during shell execution."""
 
-    @pytest.mark.asyncio
     async def test_session_becomes_busy_during_execution(
         self,
         async_client,
@@ -228,7 +217,6 @@ class TestShellSessionStatus:
         assert len(busy_events) >= 1
         assert len(idle_events) >= 1
 
-    @pytest.mark.asyncio
     async def test_session_returns_to_idle_after_execution(
         self,
         async_client,
@@ -254,7 +242,6 @@ class TestShellSessionStatus:
 class TestShellMessageStructure:
     """Tests for shell command message/part structure."""
 
-    @pytest.mark.asyncio
     async def test_returns_message_with_parts(
         self,
         async_client,
@@ -292,7 +279,6 @@ class TestShellMessageStructure:
         assert "text" in part_types
         assert "step-finish" in part_types
 
-    @pytest.mark.asyncio
     async def test_text_part_includes_command_and_output(
         self,
         async_client,
@@ -319,7 +305,6 @@ class TestShellMessageStructure:
         assert "my_command" in text  # Command should be shown
         assert "output123" in text  # Output should be shown
 
-    @pytest.mark.asyncio
     async def test_message_has_completion_time(
         self,
         async_client,
