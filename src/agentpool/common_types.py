@@ -52,7 +52,9 @@ type JsonObject = dict[str, JsonValue]
 type JsonArray = list[JsonValue]
 
 
-MCPConnectionStatus = Literal["connected", "disconnected", "error"]
+MCPConnectionStatus = Literal[
+    "connected", "disconnected", "error", "pending", "failed", "needs-auth", "disabled"
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,12 +66,16 @@ class MCPServerStatus:
         status: Connection status
         server_type: Transport type (stdio, sse, http)
         error: Error message if status is "error"
+        server_name: Self-reported server name
+        server_version: Self-reported server version
     """
 
     name: str
     status: MCPConnectionStatus
     server_type: str = "unknown"
     error: str | None = None
+    server_name: str | None = None
+    server_version: str | None = None
 
 
 NodeName = str

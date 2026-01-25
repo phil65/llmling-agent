@@ -969,7 +969,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         return MessageStats(messages=list(self.conversation.chat_messages))
 
-    def get_mcp_server_info(self) -> dict[str, MCPServerStatus]:
+    async def get_mcp_server_info(self) -> dict[str, MCPServerStatus]:
         """Get information about configured MCP servers.
 
         Returns a dict mapping server names to their status info. Used by

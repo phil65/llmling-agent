@@ -95,7 +95,7 @@ async def get_mcp_status(state: StateDep) -> dict[str, MCPStatus]:
     Returns status for each connected MCP server.
     """
     # Use agent's get_mcp_server_info method which handles different agent types
-    server_info = state.agent.get_mcp_server_info()
+    server_info = await state.agent.get_mcp_server_info()
 
     # Convert MCPServerStatus dataclass to MCPStatus response model
     return {

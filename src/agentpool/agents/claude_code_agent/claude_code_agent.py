@@ -455,16 +455,39 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """Get the model name."""
         return self._current_model
 
-    def get_mcp_server_info(self) -> dict[str, MCPServerStatus]:
+    async def get_mcp_server_info(self) -> dict[str, MCPServerStatus]:
         """Get information about configured MCP servers.
 
         Returns a dict mapping server names to their status info. This is used
         by the OpenCode /mcp endpoint to display MCP servers in the sidebar.
 
+        If a client is connected, queries live status from Claude Code.
+        Otherwise falls back to reporting from config.
+
         Returns:
             Dict mapping server name to MCPServerStatus dataclass
         """
         result: dict[str, MCPServerStatus] = {}
+        # Try live status from connected client
+        if self._client:
+            try:
+                await self.ensure_initialized()
+                live_status = await self._client.get_mcp_status()
+                for server in live_status.get("mcpServers", []):
+                    name = server.get("name", "unknown")
+                    status = server.get("status", "disconnected")
+                    server_info = server.get("serverInfo") or {}
+                    result[name] = MCPServerStatus(
+                        name=name,
+                        status=status,
+                        server_type=server.get("type", "unknown"),
+                        server_name=server_info.get("name"),
+                        server_version=server_info.get("version"),
+                    )
+                return result
+            except Exception:  # noqa: BLE001
+                pass
+        # Fallback: report from config
         for name, config in self._mcp_servers.items():
             server_type = config.get("type", "unknown")
             result[name] = MCPServerStatus(name=name, status="connected", server_type=server_type)
