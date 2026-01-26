@@ -3,7 +3,7 @@ from __future__ import annotations, annotations as _annotations
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Any, TypeVar, assert_never
+from typing import TYPE_CHECKING, Any, assert_never
 import uuid
 
 from fasta2a.applications import FastA2A  # type: ignore[import-untyped]
@@ -45,10 +45,6 @@ if TYPE_CHECKING:
     from starlette.types import ExceptionHandler, Lifespan
 
     from agentpool.agents.base_agent import BaseAgent
-
-
-# AgentWorker output type needs to be invariant for use in both parameter and return positions
-WorkerOutputT = TypeVar("WorkerOutputT")
 
 
 @asynccontextmanager
@@ -121,18 +117,13 @@ class AgentWorker[WorkerOutputT, AgentDepsT](Worker[list[ModelMessage]]):  # typ
             )
 
         await self.storage.update_task(task["id"], state="working")
-
         # Load context - contains pydantic-ai msg history from previous tasks in this conversation
         message_history = await self.storage.load_context(task["context_id"]) or []
         message_history.extend(self.build_message_history(task.get("history", [])))
-
         try:
             result = await self.agent.run(message_history=message_history)  # type: ignore
-            messages = [
-                msg
-                for chat_msg in self.agent.conversation.chat_messages
-                for msg in chat_msg.messages
-            ]
+            chat_msgs = self.agent.conversation.chat_messages
+            messages = [msg for chat_msg in chat_msgs for msg in chat_msg.messages]
             await self.storage.update_context(task["context_id"], messages)
             # Convert new messages to A2A format for task history
             a2a_messages: list[Message] = []
@@ -141,16 +132,11 @@ class AgentWorker[WorkerOutputT, AgentDepsT](Worker[list[ModelMessage]]):  # typ
                     # Skip user prompts - they're already in task history
                     continue
                 # Convert response parts to A2A format
-                a2a_parts = self._response_parts_to_a2a(message.parts)
+                a2a_parts = _response_parts_to_a2a(message.parts)
                 if a2a_parts:  # Add if there are visible parts (text/thinking)
-                    a2a_messages.append(
-                        Message(
-                            role="agent",
-                            parts=a2a_parts,
-                            kind="message",
-                            message_id=str(uuid.uuid4()),
-                        )
-                    )
+                    id_ = str(uuid.uuid4())
+                    msg = Message(role="agent", parts=a2a_parts, kind="message", message_id=id_)
+                    a2a_messages.append(msg)
 
             artifacts = self.build_artifacts(result.data)
         except Exception:
@@ -193,115 +179,107 @@ class AgentWorker[WorkerOutputT, AgentDepsT](Worker[list[ModelMessage]]):  # typ
         model_messages: list[ModelMessage] = []
         for message in history:
             if message["role"] == "user":
-                model_messages.append(
-                    ModelRequest(parts=self._request_parts_from_a2a(message["parts"]))
-                )
+                model_messages.append(ModelRequest(parts=_request_parts_from_a2a(message["parts"])))
             else:
                 model_messages.append(
-                    ModelResponse(parts=self._response_parts_from_a2a(message["parts"]))
+                    ModelResponse(parts=_response_parts_from_a2a(message["parts"]))
                 )
         return model_messages
 
-    def _request_parts_from_a2a(self, parts: list[Part]) -> list[ModelRequestPart]:
-        """Convert A2A Part objects to pydantic-ai ModelRequestPart objects.
 
-        This handles the conversion from A2A protocol parts (text, file, data) to
-        pydantic-ai's internal request parts (UserPromptPart with various content types).
+def _request_parts_from_a2a(parts: list[Part]) -> list[ModelRequestPart]:
+    """Convert A2A Part objects to pydantic-ai ModelRequestPart objects.
 
-        Args:
-            parts: List of A2A Part objects from incoming messages
+    This handles the conversion from A2A protocol parts (text, file, data) to
+    pydantic-ai's internal request parts (UserPromptPart with various content types).
 
-        Returns:
-            List of ModelRequestPart objects for the pydantic-ai agent
-        """
-        model_parts: list[ModelRequestPart] = []
-        for part in parts:
-            if part["kind"] == "text":
-                model_parts.append(UserPromptPart(content=part["text"]))
-            elif part["kind"] == "file":
-                file_content = part["file"]
-                if "bytes" in file_content:
-                    data = file_content["bytes"].encode("utf-8")
-                    mime_type = file_content.get("mime_type", "application/octet-stream")
-                    content: UserContent = BinaryContent(data=data, media_type=mime_type)
-                    model_parts.append(UserPromptPart(content=[content]))
-                else:
-                    url = file_content["uri"]
-                    for url_cls in (DocumentUrl, AudioUrl, ImageUrl, VideoUrl):
-                        content = url_cls(url=url)
-                        try:
-                            content.media_type  # noqa: B018
-                        except ValueError:  # pragma: no cover
-                            continue
-                        else:
-                            break
-                    else:
-                        raise ValueError(f"Unsupported file type: {url}")  # pragma: no cover
-                    model_parts.append(UserPromptPart(content=[content]))
-            elif part["kind"] == "data":
-                raise NotImplementedError("Data parts are not supported yet.")
+    Args:
+        parts: List of A2A Part objects from incoming messages
+
+    Returns:
+        List of ModelRequestPart objects for the pydantic-ai agent
+    """
+    model_parts: list[ModelRequestPart] = []
+    for part in parts:
+        if part["kind"] == "text":
+            model_parts.append(UserPromptPart(content=part["text"]))
+        elif part["kind"] == "file":
+            file_content = part["file"]
+            if "bytes" in file_content:
+                data = file_content["bytes"].encode("utf-8")
+                mime_type = file_content.get("mime_type", "application/octet-stream")
+                content: UserContent = BinaryContent(data=data, media_type=mime_type)
+                model_parts.append(UserPromptPart(content=[content]))
             else:
-                assert_never(part)
-        return model_parts
+                url = file_content["uri"]
+                for url_cls in (DocumentUrl, AudioUrl, ImageUrl, VideoUrl):
+                    content = url_cls(url=url)
+                    try:
+                        content.media_type  # noqa: B018
+                    except ValueError:  # pragma: no cover
+                        continue
+                    else:
+                        break
+                else:
+                    raise ValueError(f"Unsupported file type: {url}")  # pragma: no cover
+                model_parts.append(UserPromptPart(content=[content]))
+        elif part["kind"] == "data":
+            raise NotImplementedError("Data parts are not supported yet.")
+        else:
+            assert_never(part)
+    return model_parts
 
-    def _response_parts_from_a2a(self, parts: list[Part]) -> list[ModelResponsePart]:
-        """Convert A2A Part objects to pydantic-ai ModelResponsePart objects.
 
-        This handles the conversion from A2A protocol parts (text, file, data) to
-        pydantic-ai's internal response parts. Currently only supports text parts
-        as agent responses in A2A are expected to be text-based.
+def _response_parts_from_a2a(parts: list[Part]) -> list[ModelResponsePart]:
+    """Convert A2A Part objects to pydantic-ai ModelResponsePart objects.
 
-        Args:
-            parts: List of A2A Part objects from stored agent messages
+    This handles the conversion from A2A protocol parts (text, file, data) to
+    pydantic-ai's internal response parts. Currently only supports text parts
+    as agent responses in A2A are expected to be text-based.
 
-        Returns:
-            List of ModelResponsePart objects for message history
-        """
-        model_parts: list[ModelResponsePart] = []
-        for part in parts:
-            if part["kind"] == "text":
-                model_parts.append(TextPart(content=part["text"]))
-            elif part["kind"] == "file":  # pragma: no cover
-                raise NotImplementedError("File parts are not supported yet.")
-            elif part["kind"] == "data":  # pragma: no cover
-                raise NotImplementedError("Data parts are not supported yet.")
-            else:  # pragma: no cover
-                assert_never(part)
-        return model_parts
+    Args:
+        parts: List of A2A Part objects from stored agent messages
 
-    def _response_parts_to_a2a(self, parts: Sequence[ModelResponsePart]) -> list[Part]:
-        """Convert pydantic-ai ModelResponsePart objects to A2A Part objects.
+    Returns:
+        List of ModelResponsePart objects for message history
+    """
+    model_parts: list[ModelResponsePart] = []
+    for part in parts:
+        if part["kind"] == "text":
+            model_parts.append(TextPart(content=part["text"]))
+        elif part["kind"] == "file":  # pragma: no cover
+            raise NotImplementedError("File parts are not supported yet.")
+        elif part["kind"] == "data":  # pragma: no cover
+            raise NotImplementedError("Data parts are not supported yet.")
+        else:  # pragma: no cover
+            assert_never(part)
+    return model_parts
 
-        This handles the conversion from pydantic-ai's internal response parts to
-        A2A protocol parts. Different part types are handled as follows:
-        - TextPart: Converted directly to A2A TextPart
-        - ThinkingPart: Converted to TextPart with metadata indicating it's thinking
-        - ToolCallPart: Skipped (internal to agent execution)
 
-        Args:
-            parts: List of ModelResponsePart objects from agent response
+def _response_parts_to_a2a(parts: Sequence[ModelResponsePart]) -> list[Part]:
+    """Convert pydantic-ai ModelResponsePart objects to A2A Part objects.
 
-        Returns:
-            List of A2A Part objects suitable for sending via A2A protocol
-        """
-        a2a_parts: list[Part] = []
-        for part in parts:
-            if isinstance(part, TextPart):
-                a2a_parts.append(A2ATextPart(kind="text", text=part.content))
-            elif isinstance(part, ThinkingPart):
-                # Convert thinking to text with metadata
-                a2a_parts.append(
-                    A2ATextPart(
-                        kind="text",
-                        text=part.content,
-                        metadata={
-                            "type": "thinking",
-                            "thinking_id": part.id,
-                            "signature": part.signature,
-                        },
-                    )
-                )
-            elif isinstance(part, ToolCallPart):
-                # Skip tool calls - they're internal to agent execution
-                pass
-        return a2a_parts
+    This handles the conversion from pydantic-ai's internal response parts to
+    A2A protocol parts. Different part types are handled as follows:
+    - TextPart: Converted directly to A2A TextPart
+    - ThinkingPart: Converted to TextPart with metadata indicating it's thinking
+    - ToolCallPart: Skipped (internal to agent execution)
+
+    Args:
+        parts: List of ModelResponsePart objects from agent response
+
+    Returns:
+        List of A2A Part objects suitable for sending via A2A protocol
+    """
+    a2a_parts: list[Part] = []
+    for part in parts:
+        if isinstance(part, TextPart):
+            a2a_parts.append(A2ATextPart(kind="text", text=part.content))
+        elif isinstance(part, ThinkingPart):
+            # Convert thinking to text with metadata
+            meta = {"type": "thinking", "thinking_id": part.id, "signature": part.signature}
+            a2a_parts.append(A2ATextPart(kind="text", text=part.content, metadata=meta))
+        elif isinstance(part, ToolCallPart):
+            # Skip tool calls - they're internal to agent execution
+            pass
+    return a2a_parts

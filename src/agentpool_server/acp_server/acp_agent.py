@@ -506,8 +506,7 @@ class AgentPoolACPAgent(ACPAgent):
 
             # Load session state in the agent (populates conversation) but don't replay to client
             # This restores the agent's internal state so it can continue the conversation
-            result = await self.default_agent.load_session(params.session_id)
-            if not result:
+            if not await self.default_agent.load_session(params.session_id):
                 logger.warning("Agent failed to load session state", session_id=params.session_id)
                 # Continue anyway - session wrapper is created, agent may still work
 
@@ -557,8 +556,7 @@ class AgentPoolACPAgent(ACPAgent):
                     client_capabilities=self.client_capabilities,
                     client_info=self.client_info,
                 )
-                session = self.session_manager.get_session(params.session_id)
-                if session:
+                if session := self.session_manager.get_session(params.session_id):
                     # Initialize session extras
                     self.tasks.create_task(session.send_available_commands_update())
                     self.tasks.create_task(session.agent.load_rules(session.cwd))
@@ -594,8 +592,7 @@ class AgentPoolACPAgent(ACPAgent):
                 await session.cancel()
                 logger.info("Cancelled operations", session_id=params.session_id)
             else:
-                msg = "Session not found for cancellation"
-                logger.warning(msg, session_id=params.session_id)
+                logger.warning("Session not found for cancellation", session_id=params.session_id)
 
         except Exception:
             logger.exception("Failed to cancel session", session_id=params.session_id)
@@ -616,11 +613,11 @@ class AgentPoolACPAgent(ACPAgent):
         """
         from agentpool.agents.acp_agent import ACPAgent as ACPAgentClient
 
+        session = self.session_manager.get_session(params.session_id)
+        if not session:
+            logger.warning("Session not found for mode switch", session_id=params.session_id)
+            return None
         try:
-            session = self.session_manager.get_session(params.session_id)
-            if not session:
-                logger.warning("Session not found for mode switch", session_id=params.session_id)
-                return None
             # Call set_mode directly - agent handles mode-specific logic
             await session.agent.set_mode(params.mode_id, category_id="mode")
             # Update stored mode state for ACPAgent
@@ -646,23 +643,18 @@ class AgentPoolACPAgent(ACPAgent):
         Changes the model for the active agent in the session.
         Validates that the requested model is available via agent.get_available_models().
         """
+        session = self.session_manager.get_session(params.session_id)
+        if not session:
+            msg = "Session not found for model switch"
+            logger.warning(msg, session_id=params.session_id)
+            return None
         try:
-            session = self.session_manager.get_session(params.session_id)
-            if not session:
-                msg = "Session not found for model switch"
-                logger.warning(msg, session_id=params.session_id)
-                return None
-
             # Get available models from agent and validate
             if toko_models := await session.agent.get_available_models():
                 # Build list of valid model IDs (using id_override if set)
-                available_ids = [m.id_override if m.id_override else m.id for m in toko_models]
-                if params.model_id not in available_ids:
-                    logger.warning(
-                        "Model not in available models",
-                        model_id=params.model_id,
-                        available=available_ids,
-                    )
+                ids = [m.id_override if m.id_override else m.id for m in toko_models]
+                if (id_ := params.model_id) not in ids:
+                    logger.warning("Model not in available models", model_id=id_, available=ids)
                     return None
 
             # Set the model on the agent (all agents now have async set_model)
@@ -681,20 +673,18 @@ class AgentPoolACPAgent(ACPAgent):
         Forwards the config option change to the agent's set_mode method
         and returns the updated config options.
         """
+        session = self.session_manager.get_session(params.session_id)
+        if not session or not session.agent:
+            msg = "Session not found for config option change"
+            logger.warning(msg, session_id=params.session_id)
+            return None
+        logger.info(
+            "Set config option",
+            config_id=params.config_id,
+            value=params.value,
+            session_id=params.session_id,
+        )
         try:
-            session = self.session_manager.get_session(params.session_id)
-            if not session or not session.agent:
-                msg = "Session not found for config option change"
-                logger.warning(msg, session_id=params.session_id)
-                return None
-
-            logger.info(
-                "Set config option",
-                config_id=params.config_id,
-                value=params.value,
-                session_id=params.session_id,
-            )
-
             # Forward to agent's set_mode method
             # config_id maps to category_id, value maps to mode_id
             await session.agent.set_mode(params.value, category_id=params.config_id)
