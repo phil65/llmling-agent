@@ -127,10 +127,6 @@ class ToolManager:
         tool_info.enabled = False
         logger.debug("Disabled tool", tool_name=tool_name)
 
-    async def list_tools(self) -> dict[str, bool]:
-        """Get a mapping of all tools and their enabled status."""
-        return {tool.name: tool.enabled for tool in await self.get_tools()}
-
     async def get_tools(
         self,
         state: ToolState = "all",

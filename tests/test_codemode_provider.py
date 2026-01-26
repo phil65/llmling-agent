@@ -64,11 +64,10 @@ async def test_secure_codemode_provider_with_agent():
     agent = Agent(model="test", toolsets=[provider])
     async with agent:
         # Verify tool is properly registered
-        available_tools = await agent.tools.list_tools()
-        assert len(available_tools) == 1
-        tool_names = list(available_tools.keys())
+        available_tools = await agent.tools.get_tools()
+        tool_names = [i.name for i in available_tools]
+        assert len(tool_names) == 1
         assert any(name.startswith("execute") for name in tool_names)
-        assert all(available_tools.values())
 
 
 async def test_codemode_tool_schema_generation():

@@ -111,8 +111,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """Emitted when agent is reset."""
 
         agent_name: AgentName
-        previous_tools: dict[str, bool]
-        new_tools: dict[str, bool]
         timestamp: datetime = field(default_factory=get_now)
 
     @dataclass(frozen=True)
@@ -299,16 +297,9 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
     async def reset(self) -> None:
         """Reset agent state (conversation history and tool states)."""
-        old_tools = await self.tools.list_tools()
         await self.conversation.clear()
         await self.tools.reset_states()
-        new_tools = await self.tools.list_tools()
-
-        event = self.AgentReset(
-            agent_name=self.name,
-            previous_tools=old_tools,
-            new_tools=new_tools,
-        )
+        event = self.AgentReset(agent_name=self.name)
         await self.agent_reset.emit(event)
 
     def get_context(
