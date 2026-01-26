@@ -87,7 +87,11 @@ class MessageNode[TDeps, TResult](ABC):
         self.session_id: str | None = None
         self.session_title: str | None = None
 
-    async def log_session(self, initial_prompt: str | None = None) -> None:
+    async def log_session(
+        self,
+        initial_prompt: str | None = None,
+        model: str | None = None,
+    ) -> None:
         """Log conversation to storage if enabled.
 
         Should be called at the start of run_stream() after session_id is set.
@@ -96,6 +100,7 @@ class MessageNode[TDeps, TResult](ABC):
 
         Args:
             initial_prompt: Optional initial prompt to trigger title generation.
+            model: Requested model identifier for this session.
         """
 
         def _set_session_title(title: str) -> None:
@@ -106,6 +111,7 @@ class MessageNode[TDeps, TResult](ABC):
             await self.storage.log_session(
                 session_id=self.session_id,
                 node_name=self.name,
+                model=model,
                 initial_prompt=initial_prompt,
                 on_title_generated=_set_session_title,
             )

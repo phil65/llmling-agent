@@ -170,6 +170,7 @@ class MemoryStorageProvider(StorageProvider):
         session_id: str,
         node_name: str,
         start_time: datetime | None = None,
+        model: str | None = None,
     ) -> None:
         """Store conversation in memory."""
         if next((i for i in self.conversations if i["id"] == session_id), None):

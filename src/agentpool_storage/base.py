@@ -113,6 +113,7 @@ class StorageProvider:
         session_id: str,
         node_name: str,
         start_time: datetime | None = None,
+        model: str | None = None,
     ) -> None:
         """Log a conversation (if supported)."""
 

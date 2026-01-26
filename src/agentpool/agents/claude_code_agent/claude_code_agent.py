@@ -338,7 +338,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Client state
         self._client: ClaudeSDKClient | None = None
         self._connection_task: asyncio.Task[None] | None = None
-        self._current_model: AnthropicMaxModelName | str | None = self._model
+
         self._sdk_session_id: str | None = session_id
         self.deps_type = type(None)
         # ToolBridge state for exposing toolsets via MCP
@@ -446,8 +446,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
     @property
     def model_name(self) -> str | None:
-        """Get the model name."""
-        return self._current_model
+        """Get the requested model name."""
+        return self._model
 
     async def get_mcp_server_info(self) -> dict[str, MCPServerStatus]:
         """Get information about configured MCP servers.
@@ -875,6 +875,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Track tool calls that already had ToolCallStartEvent emitted (via StreamEvent)
         emitted_tool_starts: set[str] = set()
         tool_accumulator = ToolCallAccumulator()
+        resolved_model: str | None = None
         # Track files modified during this run
         file_tracker = FileTracker()
         # Accumulate metadata events by tool_call_id (workaround for SDK stripping _meta)
@@ -920,9 +921,9 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
                     # Process assistant messages - extract parts incrementally
                     if isinstance(message, AssistantMessage):
-                        # Update model name from first assistant message
+                        # Track resolved model from provider response
                         if message.model:
-                            self._current_model = message.model
+                            resolved_model = message.model
                         # Check for usage limit error
                         raise_if_usage_limit_reached(message)
                         for block in message.content:
@@ -1159,7 +1160,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 message_id=message_id or str(uuid.uuid4()),
                 session_id=self.session_id,
                 parent_id=user_msg.message_id,
-                model_name=self.model_name,
+                model_name=resolved_model or self.model_name,
                 messages=model_messages,
                 finish_reason="stop",
                 metadata=metadata,
@@ -1226,7 +1227,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             message_id=message_id or str(uuid.uuid4()),
             session_id=self.session_id,
             parent_id=user_msg.message_id,
-            model_name=self.model_name,
+            model_name=resolved_model or self.model_name,
             messages=model_messages,
             cost_info=cost_info,
             usage=request_usage or RequestUsage(),
@@ -1358,7 +1359,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     raise UnknownModeError(mode_id, list(valid_ids))
             # Set the model directly
             self._model = mode_id
-            self._current_model = mode_id
             if self._client:
                 await self.ensure_initialized()
                 await self._client.set_model(mode_id)

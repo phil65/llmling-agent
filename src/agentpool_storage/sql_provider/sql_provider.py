@@ -165,13 +165,14 @@ class SQLModelProvider(StorageProvider):
         session_id: str,
         node_name: str,
         start_time: datetime | None = None,
+        model: str | None = None,
     ) -> None:
         """Log conversation to database."""
         from agentpool_storage.sql_provider.models import Conversation
 
         async with AsyncSession(self.engine) as session:
             now = start_time or get_now()
-            convo = Conversation(id=session_id, agent_name=node_name, start_time=now)
+            convo = Conversation(id=session_id, agent_name=node_name, start_time=now, model=model)
             session.add(convo)
             await session.commit()
 

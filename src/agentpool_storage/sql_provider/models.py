@@ -291,4 +291,7 @@ class Conversation(AsyncAttrs, SQLModel, table=True):
     total_cost: float = 0.0
     """Total cost of this conversation in USD"""
 
+    model: str | None = Field(default=None, index=True)
+    """Requested model identifier for this session"""
+
     model_config = SQLModelConfig(use_attribute_docstrings=True)  # pyright: ignore[reportCallIssue]

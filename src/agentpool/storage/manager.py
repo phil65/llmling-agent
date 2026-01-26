@@ -241,6 +241,7 @@ class StorageManager:
         session_id: str,
         node_name: str,
         start_time: datetime | None = None,
+        model: str | None = None,
         initial_prompt: str | None = None,
         on_title_generated: Callable[[str], None] | None = None,
     ) -> None:
@@ -253,6 +254,7 @@ class StorageManager:
             session_id: Unique session identifier
             node_name: Name of the node/agent
             start_time: Optional start time
+            model: Requested model identifier for this session
             initial_prompt: Optional initial prompt to trigger title generation
             on_title_generated: Optional callback invoked when title is generated
         """
@@ -270,6 +272,7 @@ class StorageManager:
                     session_id=session_id,
                     node_name=node_name,
                     start_time=start_time,
+                    model=model,
                 )
 
         # Handle title generation based on prompt length
