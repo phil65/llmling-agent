@@ -105,7 +105,6 @@ class AuggieACPAgentConfig(BaseACPAgentConfig):
             type: acp
             provider: auggie
             model: auggie-sonnet
-            workspace_root: /path/to/workspace
             rules: [rules.md]
             shell: bash
         ```
@@ -122,13 +121,6 @@ class AuggieACPAgentConfig(BaseACPAgentConfig):
         examples=["auggie-sonnet", "auggie-haiku"],
     )
     """Model to use."""
-
-    workspace_root: str | None = Field(
-        default=None,
-        title="Workspace Root",
-        examples=["/path/to/workspace", "/home/user/project"],
-    )
-    """Workspace root (auto-detects git root if absent)."""
 
     rules: list[str] | None = Field(
         default=None,
@@ -213,8 +205,6 @@ class AuggieACPAgentConfig(BaseACPAgentConfig):
 
         if self.model:
             args.extend(["--model", self.model])
-        if self.workspace_root:
-            args.extend(["--workspace-root", self.workspace_root])
         if self.rules:
             for rule_file in self.rules:
                 args.extend(["--rules", rule_file])
