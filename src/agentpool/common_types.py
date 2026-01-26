@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+import os
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -81,6 +82,7 @@ class MCPServerStatus:
 NodeName = str
 TeamName = str
 AgentName = str
+StrPath = str | os.PathLike[str]
 MessageRole = Literal["user", "assistant"]
 PartType = Literal["text", "image", "audio", "video"]
 ModelType = Model | ModelId | str

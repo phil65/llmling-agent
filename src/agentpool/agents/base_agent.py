@@ -7,6 +7,7 @@ import asyncio
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass, field
+import os
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, overload
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
         MCPServerStatus,
         ProcessorCallback,
         PromptCompatible,
+        StrPath,
     )
     from agentpool.delegation import AgentPool, Team, TeamRun
     from agentpool.hooks import AgentHooks
@@ -139,7 +141,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
         # New shared parameters
-        env: ExecutionEnvironment | None = None,
+        env: ExecutionEnvironment | StrPath | None = None,
         input_provider: InputProvider | None = None,
         output_type: type[TResult] = str,  # type: ignore[assignment]
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
@@ -157,7 +159,8 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             agent_pool: Agent pool for coordination
             enable_logging: Whether to enable database logging
             event_configs: Event trigger configurations
-            env: Execution environment for running code/commands
+            env: Execution environment, or a path (str/PathLike) to use as cwd
+                for a LocalExecutionEnvironment
             input_provider: Provider for user input and confirmations
             output_type: Output type for this agent
             event_handlers: Event handlers for this agent
@@ -187,7 +190,13 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
         storage = agent_pool.storage if agent_pool else None
         self.conversation = MessageHistory(storage=storage)
-        self.env = env or LocalExecutionEnvironment()
+        match env:
+            case None:
+                self.env: ExecutionEnvironment = LocalExecutionEnvironment()
+            case str() | os.PathLike():
+                self.env = LocalExecutionEnvironment(cwd=str(env))
+            case _:
+                self.env = env
         self._input_provider = input_provider
         self._output_type: type[TResult] = output_type
         self.tools = ToolManager()
