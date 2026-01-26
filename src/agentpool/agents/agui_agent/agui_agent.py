@@ -478,8 +478,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Drain the event queue and yield events."""
         while not self._event_queue.empty():
             try:
-                queued_event = self._event_queue.get_nowait()
-                yield queued_event
+                yield self._event_queue.get_nowait()
             except asyncio.QueueEmpty:
                 break
 

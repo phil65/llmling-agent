@@ -6,7 +6,7 @@ from dataclasses import replace
 from functools import wraps
 import inspect
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import RunContext
 from pydantic_ai.messages import ToolReturn
@@ -143,7 +143,7 @@ def wrap_tool[TReturn](  # noqa: PLR0915
 
     if run_ctx_key or agent_ctx_key:
         # Tool has RunContext and/or AgentContext
-        async def wrapped(
+        async def wrapped(  # pyright: ignore[reportRedeclaration]
             ctx: RunContext, *args: Any, **kwargs: Any
         ) -> TReturn | None | ToolReturn:  # pyright: ignore
             result = await agent_ctx.handle_confirmation(tool, kwargs)
@@ -221,7 +221,9 @@ def wrap_tool[TReturn](  # noqa: PLR0915
     return wrapped
 
 
-async def _handle_confirmation_result(result: str, name: str) -> None:
+async def _handle_confirmation_result(
+    result: Literal["skip", "abort_run", "abort_chain"], name: str
+) -> None:
     """Handle non-allow confirmation results."""
     match result:
         case "skip":

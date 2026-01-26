@@ -1462,7 +1462,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             cwd = str(self._cwd or Path.cwd())
             # Try to extract cwd from message metadata
             for msg in reversed(messages):
-                if msg.metadata and (val := msg.metadata.get("cwd")) and isinstance(val, str):
+                if (val := msg.metadata.get("cwd")) and isinstance(val, str):
                     cwd = val
                     break
 
