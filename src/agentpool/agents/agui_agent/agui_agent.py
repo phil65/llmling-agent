@@ -240,7 +240,17 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._client = None
         self._sdk_session_id = None
         if self._startup_process:  # Stop server if we started it
-            await self._stop_server()
+            if not self._startup_process:
+                return
+
+            self.log.info("Stopping AG-UI server")
+            try:
+                await hard_kill(self._startup_process)  # Use cross-platform hard kill helper
+            except Exception:  # Log but don't fail if kill has issues
+                self.log.exception("Error during process termination")
+            finally:
+                self._startup_process = None
+                self.log.info("AG-UI server stopped")
         self.log.debug("AG-UI client closed")
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
@@ -287,20 +297,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             raise RuntimeError(msg)
 
         self.log.info("AG-UI server started")
-
-    async def _stop_server(self) -> None:
-        """Stop the AG-UI server subprocess."""
-        if not self._startup_process:
-            return
-
-        self.log.info("Stopping AG-UI server")
-        try:
-            await hard_kill(self._startup_process)  # Use cross-platform hard kill helper
-        except Exception:  # Log but don't fail if kill has issues
-            self.log.exception("Error during process termination")
-        finally:
-            self._startup_process = None
-            self.log.info("AG-UI server stopped")
 
     async def _stream_events(  # noqa: PLR0915
         self,
@@ -407,12 +403,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 # If no results (all tools were server-side), we're done
                 if not pending_tool_results:
                     break
-
                 # Flush current response parts to model_messages
                 if response_parts:
                     model_messages.append(ModelResponse(parts=response_parts))
                     response_parts = []
-
                 # Create ModelRequest with tool return parts
                 tc_id_to_name = {tc_id: name for tc_id, name, _ in tool_calls_pending}
                 tool_return_parts = [
@@ -456,13 +450,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             model_messages.append(ModelResponse(parts=response_parts))
 
         # Final drain of event queue after stream completes
-        while not self._event_queue.empty():
-            try:
-                queued_event = self._event_queue.get_nowait()
-                yield queued_event
-            except asyncio.QueueEmpty:
-                break
-
+        async for e in self._drain_event_queue():
+            yield e
         # Calculate approximate token usage from what we can observe
         usage, cost_info = await calculate_usage_from_parts(
             input_parts=prompts,
@@ -484,6 +473,15 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             cost_info=cost_info,
         )
         yield StreamCompleteEvent(message=final_message)  # Post-processing handled by base class
+
+    async def _drain_event_queue(self) -> AsyncIterator[RichAgentStreamEvent[Any]]:
+        """Drain the event queue and yield events."""
+        while not self._event_queue.empty():
+            try:
+                queued_event = self._event_queue.get_nowait()
+                yield queued_event
+            except asyncio.QueueEmpty:
+                break
 
     async def _process_events(
         self,
@@ -534,15 +532,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
                 # Convert to native event and distribute to handlers
                 if native_event := agui_to_native_event(event):
-                    # Track file modifications
                     file_tracker.process_event(native_event)
-                    # Check for queued custom events first
-                    while not self._event_queue.empty():
-                        try:
-                            custom_event = self._event_queue.get_nowait()
-                            yield custom_event
-                        except asyncio.QueueEmpty:
-                            break
+                    async for e in self._drain_event_queue():
+                        yield e
                     yield native_event
 
         # Flush any pending chunk events at end of stream
