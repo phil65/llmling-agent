@@ -78,16 +78,10 @@ class CodexAgentConfig(BaseAgentConfig):
     If not specified, Codex uses its default sandbox policy.
     """
 
-    base_instructions: str | None = Field(
-        default=None,
-        title="Base Instructions",
-    )
+    base_instructions: str | None = Field(default=None, title="Base Instructions")
     """Base system instructions for the Codex session."""
 
-    developer_instructions: str | None = Field(
-        default=None,
-        title="Developer Instructions",
-    )
+    developer_instructions: str | None = Field(default=None, title="Developer Instructions")
     """Developer-provided instructions for the Codex session."""
 
     tools: list[AnyToolConfig | str] = Field(

@@ -10,7 +10,6 @@ Run with: pytest tests/agents/claude_code_agent/test_claude_code_toolset_integra
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 import shutil
 
 import pytest
@@ -35,12 +34,11 @@ def claude_code_config_with_subagent() -> ClaudeCodeAgentConfig:
     return ClaudeCodeAgentConfig(
         name="claude_code_orchestrator",
         description="Claude Code agent with subagent delegation capabilities",
-        cwd=str(Path.cwd()),
         model="haiku",
         permission_mode="acceptEdits",
         tools=[SubagentToolsetConfig()],
         builtin_tools=[],  # Disable builtin tools for focused testing
-        env={"ANTHROPIC_API_KEY": ""},  # Use subscription, not direct API key
+        env_vars={"ANTHROPIC_API_KEY": ""},  # Use subscription, not direct API key
     )
 
 
@@ -96,7 +94,6 @@ async def test_claude_code_multiple_toolsets():
     """Test ClaudeCodeAgent with multiple toolsets."""
     config = ClaudeCodeAgentConfig(
         name="claude_code_multi",
-        cwd=str(Path.cwd()),
         permission_mode="acceptEdits",
         tools=[SubagentToolsetConfig(), SkillsToolsetConfig()],
         builtin_tools=[],
@@ -120,7 +117,6 @@ async def test_claude_code_mcp_servers_config():
     # Create config with both external MCP server and toolset
     config = ClaudeCodeAgentConfig(
         name="claude_code_mixed",
-        cwd=str(Path.cwd()),
         permission_mode="acceptEdits",
         tools=[SubagentToolsetConfig()],
         mcp_servers=[StdioMCPServerConfig(name="external_test", command="echo", args=["test"])],

@@ -74,9 +74,9 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
 
     Example:
         ```yaml
-        claude_code_agents:
+        agent:
           coder:
-            cwd: /path/to/project
+            type: claude_code
             model: claude-sonnet-4-5
             allowed_tools:
               - Read
@@ -86,7 +86,6 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
             max_turns: 10
 
           planner:
-            cwd: /path/to/project
             permission_mode: plan
             max_thinking_tokens: 10000
             include_builtin_system_prompt: false
@@ -105,13 +104,6 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
 
     type: Literal["claude_code"] = Field(default="claude_code", init=False)
     """Top-level discriminator for agent type."""
-
-    cwd: str | None = Field(
-        default=None,
-        title="Working Directory",
-        examples=["/path/to/project", ".", "/home/user/myproject"],
-    )
-    """Working directory for Claude Code operations."""
 
     model: AnthropicMaxModelName | str | None = Field(
         default="opus",
@@ -216,7 +208,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
 
     output_type: OutputTypeField = None
 
-    env: dict[str, str] | None = Field(
+    env_vars: dict[str, str] | None = Field(
         default=None,
         title="Environment Variables",
         examples=[{"ANTHROPIC_API_KEY": "", "DEBUG": "1"}],
@@ -287,10 +279,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     If not specified, Claude Code will load all available settings.
     """
 
-    use_subscription: bool = Field(
-        default=False,
-        title="Use Claude Subscription",
-    )
+    use_subscription: bool = Field(default=False, title="Use Claude Subscription")
     """Force usage of Claude subscription instead of API key.
 
     When True, sets ANTHROPIC_API_KEY to empty string, forcing Claude Code

@@ -45,7 +45,7 @@ Example:
     ```python
     async with ClaudeCodeAgent(
         name="claude_coder",
-        cwd="/path/to/project",
+        env="/path/to/project",
         allowed_tools=["Read", "Write", "Bash"],
     ) as agent:
         async for event in agent.run_stream("Write a hello world program"):
@@ -218,7 +218,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         deps_type: type[TDeps] | None = None,
         description: str | None = None,
         display_name: str | None = None,
-        cwd: str | None = None,
         allowed_tools: list[str] | None = None,
         disallowed_tools: list[str] | None = None,
         system_prompt: str | Sequence[str | AnyPromptType] | None = None,
@@ -256,7 +255,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             deps_type: Type of dependencies for the agent
             description: Agent description
             display_name: Display name for UI
-            cwd: Working directory for Claude Code
             allowed_tools: List of allowed tool names
             disallowed_tools: List of disallowed tool names
             system_prompt: System prompt - string or list (appended to builtin by default)
@@ -310,7 +308,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             hooks=hooks,
         )
         self._subagents = builtin_subagents
-        self._cwd = cwd
         self._allowed_tools = allowed_tools
         self._disallowed_tools = disallowed_tools
         self._include_builtin_system_prompt = include_builtin_system_prompt
@@ -393,7 +390,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             deps_type=deps_type,
             display_name=config.display_name,
             # Claude Code settings
-            cwd=config.cwd,
             allowed_tools=config.allowed_tools,
             disallowed_tools=config.disallowed_tools,
             system_prompt=config.system_prompt,
@@ -404,7 +400,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             max_thinking_tokens=config.max_thinking_tokens,
             permission_mode=config.permission_mode,
             mcp_servers=config.get_mcp_servers(),
-            env_vars=config.env,
+            env_vars=config.env_vars,
             add_dir=config.add_dir,
             builtin_tools=config.builtin_tools,
             fallback_model=config.fallback_model,
@@ -534,7 +530,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             env["ANTHROPIC_API_KEY"] = ""
 
         opts = ClaudeAgentOptions(
-            cwd=self._cwd,
+            cwd=self.env.cwd,
             allowed_tools=self._allowed_tools or [],
             disallowed_tools=self._disallowed_tools or [],
             system_prompt=sys_prompt,
@@ -1394,7 +1390,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Use fast metadata listing - avoids parsing all message content
         metadata_list = self._claude_storage.list_session_metadata(project_path=cwd)
         result: list[SessionData] = []
-        default_cwd = str(self._cwd or Path.cwd())
+        default_cwd = str(self.env.cwd or Path.cwd())
         for meta in metadata_list:
             # Parse timestamps
             now = get_now()
@@ -1453,7 +1449,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
             # Build SessionData from loaded messages
             last_active = messages[-1].timestamp if messages[-1].timestamp else get_now()
-            cwd = str(self._cwd or Path.cwd())
+            cwd = str(self.env.cwd or Path.cwd())
             # Try to extract cwd from message metadata
             for msg in reversed(messages):
                 if (val := msg.metadata.get("cwd")) and isinstance(val, str):
