@@ -166,10 +166,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             commands=commands,
             hooks=hooks,
         )
-
         # Tool confirmation mode for local tool execution
         self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
-
         # AG-UI specific configuration
         self.endpoint = endpoint
         self.timeout = timeout
@@ -368,11 +366,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         for chat_msg in message_history.get_history():
             model_msgs.extend(chat_msg.messages)
         history_messages = model_messages_to_agui(model_msgs)
-
         # Convert new user message content to AG-UI format
         final_content = to_agui_input_content(prompts)
         user_message = UserMessage(id=str(uuid4()), content=final_content)
-
         # Build messages list: history + new user message
         messages: list[Message] = [*history_messages, user_message]
         tool_accumulator = ToolCallAccumulator()
@@ -456,11 +452,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 except httpx.HTTPError:
                     self.log.exception("HTTP error during AG-UI run")
                     raise
-                # If cancelled, break out of the while loop
-                if self._cancelled:
-                    break
-                # If no tool calls pending, we're done
-                if not tool_calls_pending:
+                # If cancelled or no pending tool calls, break out of the while loop
+                if self._cancelled or not tool_calls_pending:
                     break
                 # Execute pending tool calls locally and collect results
                 pending_tool_results = await execute_tool_calls(
