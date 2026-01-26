@@ -204,7 +204,13 @@ async def test_tool_call_with_meta_tool_use_id():
             )
 
 
-@pytest.mark.skip(reason="Requires Claude Code CLI - run manually to verify")
+requires_claude_code = pytest.mark.skipif(
+    shutil.which("claude") is None,
+    reason="Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code",
+)
+
+
+@requires_claude_code
 async def test_claude_code_passes_tool_use_id_in_meta():
     """Integration test: verify Claude Code CLI passes claudecode/toolUseId in _meta.
 
@@ -225,12 +231,6 @@ async def test_claude_code_passes_tool_use_id_in_meta():
     # For this test to work, we need to use our MCP bridge and check
     # what Claude Code actually sends. Let's modify the approach.
     # Placeholder - see test below
-
-
-requires_claude_code = pytest.mark.skipif(
-    shutil.which("claude") is None,
-    reason="Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code",
-)
 
 
 @requires_claude_code
