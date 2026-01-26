@@ -1391,45 +1391,39 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         Uses fast metadata reading that only parses timestamps and message counts,
         without loading full message content.
         """
-        try:
-            # Use fast metadata listing - avoids parsing all message content
-            metadata_list = self._claude_storage.list_session_metadata(project_path=cwd)
-            result: list[SessionData] = []
-            default_cwd = str(self._cwd or Path.cwd())
+        # Use fast metadata listing - avoids parsing all message content
+        metadata_list = self._claude_storage.list_session_metadata(project_path=cwd)
+        result: list[SessionData] = []
+        default_cwd = str(self._cwd or Path.cwd())
+        for meta in metadata_list:
+            # Parse timestamps
+            now = get_now()
+            created_at = (
+                parse_iso_timestamp(meta.first_timestamp, fallback=now)
+                if meta.first_timestamp
+                else now
+            )
+            last_active = (
+                parse_iso_timestamp(meta.last_timestamp, fallback=created_at)
+                if meta.last_timestamp
+                else created_at
+            )
 
-            for meta in metadata_list:
-                # Parse timestamps
-                now = get_now()
-                created_at = (
-                    parse_iso_timestamp(meta.first_timestamp, fallback=now)
-                    if meta.first_timestamp
-                    else now
-                )
-                last_active = (
-                    parse_iso_timestamp(meta.last_timestamp, fallback=created_at)
-                    if meta.last_timestamp
-                    else created_at
-                )
+            session_data = SessionData(
+                session_id=meta.session_id,
+                agent_name=self.name,
+                cwd=meta.cwd or default_cwd,
+                created_at=created_at,
+                last_active=last_active,
+                metadata={"title": meta.title, "message_count": meta.message_count}
+                if meta.title
+                else {"message_count": meta.message_count},
+            )
+            result.append(session_data)
 
-                session_data = SessionData(
-                    session_id=meta.session_id,
-                    agent_name=self.name,
-                    cwd=meta.cwd or default_cwd,
-                    created_at=created_at,
-                    last_active=last_active,
-                    metadata={"title": meta.title, "message_count": meta.message_count}
-                    if meta.title
-                    else {"message_count": meta.message_count},
-                )
-                result.append(session_data)
-
-        except Exception:
-            self.log.exception("Failed to list Claude sessions")
-            return []
-        else:
-            # Sort by last_active, most recent first
-            result.sort(key=lambda s: s.updated_at or "", reverse=True)
-            return result if limit is None else result[:limit]
+        # Sort by last_active, most recent first
+        result.sort(key=lambda s: s.updated_at or "", reverse=True)
+        return result if limit is None else result[:limit]
 
     async def load_session(self, session_id: str) -> SessionData | None:
         """Load and restore a session from Claude storage (requires reconnect)."""
