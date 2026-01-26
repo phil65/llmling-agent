@@ -393,6 +393,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             allowed_tools=config.allowed_tools,
             disallowed_tools=config.disallowed_tools,
             system_prompt=config.system_prompt,
+            env=config.get_execution_environment(),
             include_builtin_system_prompt=config.include_builtin_system_prompt,
             model=config.model,
             max_turns=config.max_turns,

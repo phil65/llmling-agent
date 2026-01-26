@@ -49,6 +49,7 @@ if TYPE_CHECKING:
 
     from ag_ui.core import Message, ToolMessage
     from evented_config import EventConfig
+    from exxec import ExecutionEnvironment
     from pydantic_ai import UserContent
     from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
@@ -58,6 +59,7 @@ if TYPE_CHECKING:
     from agentpool.common_types import (
         BuiltinEventHandlerType,
         IndividualEventHandler,
+        StrPath,
         ToolType,
     )
     from agentpool.delegation import AgentPool
@@ -118,6 +120,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         startup_delay: float = 2.0,
         tools: Sequence[ToolType] | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
+        env: ExecutionEnvironment | StrPath | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
@@ -143,6 +146,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             startup_delay: Seconds to wait after starting server before connecting (default: 2.0)
             tools: Tools to expose to the remote agent (executed locally when called)
             mcp_servers: MCP servers to connect
+            env: Execution environment
             agent_pool: Agent pool for multi-agent coordination
             enable_logging: Whether to enable database logging
             input_provider: Provider for user input/confirmations
@@ -158,6 +162,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             display_name=display_name,
             mcp_servers=mcp_servers,
             deps_type=deps_type,
+            env=env,
             agent_pool=agent_pool,
             enable_logging=enable_logging,
             event_configs=event_configs,
@@ -206,6 +211,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             description=config.description,
             display_name=config.display_name,
             event_handlers=merged_handlers or None,
+            env=config.get_execution_environment(),
             timeout=config.timeout,
             input_provider=input_provider,
             headers=config.headers,

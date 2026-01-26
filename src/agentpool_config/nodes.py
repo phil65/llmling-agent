@@ -2,23 +2,22 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, assert_never
 
 from evented_config import EventConfig
+from exxec_config import ExecutionEnvironmentConfig
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
 from agentpool_config.event_handlers import EventHandlerConfig
 from agentpool_config.forward_targets import ForwardingTarget
 from agentpool_config.hooks import HooksConfig
-from agentpool_config.mcp_server import (
-    BaseMCPServerConfig,
-    MCPServerConfig,
-    StdioMCPServerConfig,
-)
+from agentpool_config.mcp_server import BaseMCPServerConfig, MCPServerConfig, StdioMCPServerConfig
 
 
 if TYPE_CHECKING:
+    from exxec import ExecutionEnvironment
+
     from agentpool.common_types import IndividualEventHandler
 
 
@@ -210,3 +209,21 @@ class BaseAgentConfig(NodeConfig):
     Allows adding context, blocking operations, modifying inputs, or triggering
     side effects during run execution and tool usage.
     """
+
+    environment: ExecutionEnvironmentConfig | str | None = Field(
+        default=None, title="Execution environment"
+    )
+    """Execution environment configuration for this agent."""
+
+    def get_execution_environment(self) -> ExecutionEnvironment:
+        """Get the execution environment for this agent."""
+        from exxec.local_provider import LocalExecutionEnvironment
+        from exxec_config import BaseExecutionEnvironmentConfig
+
+        match self.environment:
+            case BaseExecutionEnvironmentConfig() as cfg:
+                return cfg.get_provider()
+            case str() | None:
+                return LocalExecutionEnvironment(cwd=self.environment)
+            case _ as unreachable:
+                assert_never(unreachable)

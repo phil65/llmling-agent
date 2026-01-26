@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Literal, assert_never
 from uuid import UUID
 
-from exxec_config import ExecutionEnvironmentConfig  # noqa: TC002
 from llmling_models_config import AnyModelConfig  # noqa: TC002
 from pydantic import ConfigDict, Field, model_validator
 from pydantic_ai import UsageLimits  # noqa: TC002
@@ -32,8 +31,6 @@ from agentpool_config.workers import WorkerConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
-    from exxec import ExecutionEnvironment
-
     from agentpool.prompts.prompts import BasePrompt
     from agentpool.resource_providers import ResourceProvider
     from agentpool.tools.base import Tool
@@ -43,10 +40,7 @@ ToolMode = Literal["codemode"]
 logger = log.get_logger(__name__)
 
 # Unified type for all tool configurations (single tools + toolsets)
-AnyToolConfig = Annotated[
-    NativeAgentToolConfig | ToolsetConfig,
-    Field(discriminator="type"),
-]
+AnyToolConfig = Annotated[NativeAgentToolConfig | ToolsetConfig, Field(discriminator="type")]
 
 
 class NativeAgentConfig(BaseAgentConfig):
@@ -199,11 +193,6 @@ class NativeAgentConfig(BaseAgentConfig):
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/worker_configuration/
     """
 
-    environment: ExecutionEnvironmentConfig | str | None = Field(
-        default=None, title="Execution environment"
-    )
-    """Execution environment configuration for this agent."""
-
     usage_limits: UsageLimits | None = Field(default=None, title="Usage limits")
     """Usage limits for this agent."""
 
@@ -262,19 +251,6 @@ class NativeAgentConfig(BaseAgentConfig):
         if isinstance((model := data.get("model")), str):
             data["model"] = {"type": "string", "identifier": model}
         return data
-
-    def get_execution_environment(self) -> ExecutionEnvironment:
-        """Get the execution environment for this agent."""
-        from exxec.local_provider import LocalExecutionEnvironment
-        from exxec_config import BaseExecutionEnvironmentConfig
-
-        match self.environment:
-            case BaseExecutionEnvironmentConfig() as cfg:
-                return cfg.get_provider()
-            case str() | None:
-                return LocalExecutionEnvironment(cwd=self.environment)
-            case _ as unreachable:
-                assert_never(unreachable)
 
     def get_tool_providers(self) -> list[ResourceProvider]:
         """Get all resource providers for this agent's tools.

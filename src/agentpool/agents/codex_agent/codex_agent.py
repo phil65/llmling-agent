@@ -204,6 +204,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             display_name=config.display_name,
             # Codex settings
             model=config.model,
+            env=config.get_execution_environment(),
             reasoning_effort=config.reasoning_effort,
             base_instructions=config.base_instructions,
             developer_instructions=config.developer_instructions,
