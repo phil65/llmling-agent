@@ -317,25 +317,13 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
-        from ag_ui.core import (
-            RunAgentInput,
-            TextMessageChunkEvent,
-            TextMessageContentEvent,
-            ThinkingTextMessageContentEvent,
-            ToolCallArgsEvent as AGUIToolCallArgsEvent,
-            ToolCallEndEvent as AGUIToolCallEndEvent,
-            ToolCallStartEvent as AGUIToolCallStartEvent,
-            UserMessage,
-        )
+        from ag_ui.core import RunAgentInput, UserMessage
 
         from agentpool.agents.agui_agent.agui_converters import (
-            agui_to_native_event,
             model_messages_to_agui,
             to_agui_input_content,
             to_agui_tool,
         )
-        from agentpool.agents.agui_agent.chunk_transformer import ChunkTransformer
-        from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 
         if input_provider is not None:
             self._input_provider = input_provider
@@ -348,7 +336,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._sdk_session_id = self.session_id
 
         run_id = str(uuid4())  # New run ID for each run
-        chunk_transformer = ChunkTransformer()  # Create chunk transformer for this run
         # Track messages in pydantic-ai format: ModelRequest -> ModelResponse -> ModelRequest...
         # This mirrors pydantic-ai's new_messages() which includes the initial user request.
         model_messages: list[ModelResponse | ModelRequest] = []
@@ -371,7 +358,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         user_message = UserMessage(id=str(uuid4()), content=final_content)
         # Build messages list: history + new user message
         messages: list[Message] = [*history_messages, user_message]
-        tool_accumulator = ToolCallAccumulator()
         pending_tool_results: list[ToolMessage] = []
         file_tracker = FileTracker()
         tools = await self.tools.get_tools(state="enabled")
@@ -394,61 +380,16 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
                 data = request_data.model_dump(by_alias=True)
                 tool_calls_pending: list[tuple[str, str, dict[str, Any]]] = []
-
                 try:
                     async with self._client.stream("POST", self.endpoint, json=data) as response:
                         response.raise_for_status()
-                        async for raw_event in parse_sse_stream(response):
-                            # Check for cancellation during streaming
-                            if self._cancelled:
-                                self.log.info("Stream cancelled during event processing")
-                                break
-                            # Transform chunks to proper START/CONTENT/END sequences
-                            for event in chunk_transformer.transform(raw_event):
-                                # Handle events for accumulation and tool calls
-                                match event:
-                                    case TextMessageContentEvent(delta=delta):
-                                        response_parts.append(TextPart(content=delta))
-                                    case TextMessageChunkEvent(delta=delta) if delta:
-                                        response_parts.append(TextPart(content=delta))
-                                    case ThinkingTextMessageContentEvent(delta=delta):
-                                        response_parts.append(ThinkingPart(content=delta))
-                                    case AGUIToolCallStartEvent(
-                                        tool_call_id=tc_id, tool_call_name=name
-                                    ) if name:
-                                        tool_accumulator.start(tc_id, name)
-                                    case AGUIToolCallArgsEvent(tool_call_id=tc_id, delta=delta):
-                                        tool_accumulator.add_args(tc_id, delta)
-                                    case AGUIToolCallEndEvent(tool_call_id=tc_id):
-                                        if result := tool_accumulator.complete(tc_id):
-                                            tool_name, args = result
-                                            tool_calls_pending.append((tc_id, tool_name, args))
-                                            response_parts.append(
-                                                ToolCallPart(
-                                                    tool_name=tool_name,
-                                                    args=args,
-                                                    tool_call_id=tc_id,
-                                                )
-                                            )
-
-                                # Convert to native event and distribute to handlers
-                                if native_event := agui_to_native_event(event):
-                                    # Track file modifications
-                                    file_tracker.process_event(native_event)
-                                    # Check for queued custom events first
-                                    while not self._event_queue.empty():
-                                        try:
-                                            custom_event = self._event_queue.get_nowait()
-                                            yield custom_event
-                                        except asyncio.QueueEmpty:
-                                            break
-                                    yield native_event
-
-                        # Flush any pending chunk events at end of stream
-                        for event in chunk_transformer.flush():
-                            if native_event := agui_to_native_event(event):
-                                yield native_event
-
+                        async for event in self._process_events(
+                            response=response,
+                            response_parts=response_parts,
+                            file_tracker=file_tracker,
+                            tool_calls_pending=tool_calls_pending,
+                        ):
+                            yield event
                 except httpx.HTTPError:
                     self.log.exception("HTTP error during AG-UI run")
                     raise
@@ -543,6 +484,71 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             cost_info=cost_info,
         )
         yield StreamCompleteEvent(message=final_message)  # Post-processing handled by base class
+
+    async def _process_events(
+        self,
+        response: httpx.Response,
+        response_parts: list[TextPart | ThinkingPart | ToolCallPart],
+        file_tracker: FileTracker,
+        tool_calls_pending: list[tuple[str, str, dict[str, Any]]],
+    ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
+        from ag_ui.core import (
+            TextMessageChunkEvent,
+            TextMessageContentEvent,
+            ThinkingTextMessageContentEvent,
+            ToolCallArgsEvent as AGUIToolCallArgsEvent,
+            ToolCallEndEvent as AGUIToolCallEndEvent,
+            ToolCallStartEvent as AGUIToolCallStartEvent,
+        )
+
+        from agentpool.agents.agui_agent.agui_converters import agui_to_native_event
+        from agentpool.agents.agui_agent.chunk_transformer import ChunkTransformer
+        from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
+
+        tool_accumulator = ToolCallAccumulator()
+        chunk_transformer = ChunkTransformer()  # Create chunk transformer for this run
+        async for raw_event in parse_sse_stream(response):
+            # Check for cancellation during streaming
+            if self._cancelled:
+                self.log.info("Stream cancelled during event processing")
+                break
+            # Transform chunks to proper START/CONTENT/END sequences
+            for event in chunk_transformer.transform(raw_event):
+                match event:  # Handle events for accumulation and tool calls
+                    case TextMessageContentEvent(delta=delta):
+                        response_parts.append(TextPart(content=delta))
+                    case TextMessageChunkEvent(delta=delta) if delta:
+                        response_parts.append(TextPart(content=delta))
+                    case ThinkingTextMessageContentEvent(delta=delta):
+                        response_parts.append(ThinkingPart(content=delta))
+                    case AGUIToolCallStartEvent(tool_call_id=tc_id, tool_call_name=name) if name:
+                        tool_accumulator.start(tc_id, name)
+                    case AGUIToolCallArgsEvent(tool_call_id=tc_id, delta=delta):
+                        tool_accumulator.add_args(tc_id, delta)
+                    case AGUIToolCallEndEvent(tool_call_id=tc_id):
+                        if result := tool_accumulator.complete(tc_id):
+                            tool_name, args = result
+                            tool_calls_pending.append((tc_id, tool_name, args))
+                            p = ToolCallPart(tool_name=tool_name, args=args, tool_call_id=tc_id)
+                            response_parts.append(p)
+
+                # Convert to native event and distribute to handlers
+                if native_event := agui_to_native_event(event):
+                    # Track file modifications
+                    file_tracker.process_event(native_event)
+                    # Check for queued custom events first
+                    while not self._event_queue.empty():
+                        try:
+                            custom_event = self._event_queue.get_nowait()
+                            yield custom_event
+                        except asyncio.QueueEmpty:
+                            break
+                    yield native_event
+
+        # Flush any pending chunk events at end of stream
+        for event in chunk_transformer.flush():
+            if native_event := agui_to_native_event(event):
+                yield native_event
 
     @property
     def model_name(self) -> str | None:
