@@ -735,6 +735,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 return AGUIAgent.from_config(
                     config,
                     event_handlers=self.event_handlers,
+                    input_provider=self._input_provider,
                     agent_pool=self,
                 )
             case ClaudeCodeAgentConfig():
@@ -761,6 +762,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 return ACPAgent.from_config(
                     config,
                     event_handlers=self.event_handlers,
+                    input_provider=self._input_provider,
                     agent_pool=self,
                 )
             case _:
