@@ -23,11 +23,11 @@ async def example_with_http_mcp_server():
 
     async with CodexClient(mcp_servers=mcp_servers) as client:
         thread = await client.thread_start(cwd="/path/to/project")
-        print(f"Started thread: {thread.id}")
+        print(f"Started thread: {thread.thread.id}")
 
         # Now the Codex agent has access to all tools exposed by the MCP server
         async for event in client.turn_stream(
-            thread.id, "List available tools and show what they can do"
+            thread.thread.id, "List available tools and show what they can do"
         ):
             if text := event.get_text_delta():
                 print(text, end="", flush=True)
@@ -45,9 +45,9 @@ async def example_with_stdio_mcp_server():
 
     async with CodexClient(mcp_servers=mcp_servers) as client:
         thread = await client.thread_start(cwd="/tmp")
-        print(f"Started thread: {thread.id}")
+        print(f"Started thread: {thread.thread.id}")
 
-        async for event in client.turn_stream(thread.id, "List files in current directory"):
+        async for event in client.turn_stream(thread.thread.id, "List files in current directory"):
             if text := event.get_text_delta():
                 print(text, end="", flush=True)
         print()
@@ -76,11 +76,11 @@ async def example_with_multiple_mcp_servers():
 
     async with CodexClient(mcp_servers=mcp_servers) as client:
         thread = await client.thread_start(cwd="/path/to/project")
-        print(f"Started thread with {len(mcp_servers)} MCP servers: {thread.id}")
+        print(f"Started thread with {len(mcp_servers)} MCP servers: {thread.thread.id}")
 
         # The agent now has access to tools from all three MCP servers
         async for event in client.turn_stream(
-            thread.id,
+            thread.thread.id,
             "Show me all available tools and their sources",
         ):
             if text := event.get_text_delta():
@@ -111,11 +111,11 @@ async def example_integration_with_agentpool():
 
     async with CodexClient(mcp_servers=mcp_servers) as client:
         thread = await client.thread_start()
-        print(f"Codex agent with AgentPool tools: {thread.id}")
+        print(f"Codex agent with AgentPool tools: {thread.thread.id}")
 
         # Now the Codex agent can use tools from AgentPool!
         async for event in client.turn_stream(
-            thread.id,
+            thread.thread.id,
             "Use the available tools to analyze this project",
         ):
             if text := event.get_text_delta():
