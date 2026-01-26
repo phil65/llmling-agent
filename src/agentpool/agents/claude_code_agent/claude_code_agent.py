@@ -82,7 +82,15 @@ from pydantic_ai import (
 from pydantic_ai.usage import RequestUsage
 
 from agentpool.agents.base_agent import BaseAgent
-from agentpool.agents.claude_code_agent.converters import claude_message_to_events
+from agentpool.agents.claude_code_agent.converters import (
+    claude_message_to_events,
+    confirmation_result_to_native,
+    convert_mcp_servers_to_sdk_format,
+    convert_to_opencode_metadata,
+    to_claude_system_prompt,
+    to_output_format,
+)
+from agentpool.agents.claude_code_agent.exceptions import raise_if_usage_limit_reached
 from agentpool.agents.events import (
     PartDeltaEvent,
     PartStartEvent,
@@ -125,7 +133,6 @@ if TYPE_CHECKING:
         ToolUseBlock,
         UserMessage,
     )
-    from clawd_code_sdk.types import AssistantMessage
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import UserContent
@@ -152,23 +159,22 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Pattern to strip MCP server prefix from tool names
-# Format: mcp__agentpool-{agent_name}-tools__{tool_name}
-_MCP_TOOL_PATTERN = re.compile(r"^mcp__agentpool-(.+)-tools__(.+)$")
-
-# Slash commands that don't make sense when Claude Code is used as a sub-agent
-EXCLUDED_SLASH_COMMANDS = frozenset({"login", "logout", "release-notes", "todos"})
-
-# Thinking modes for extended thinking budget allocation
 ThinkingMode = Literal["off", "4k", "8k", "16k", "32k"]
-# Map thinking mode to token budget (0 = off)
+
+_MCP_TOOL_PATTERN = re.compile(r"^mcp__agentpool-(.+)-tools__(.+)$")
+"""Pattern to detect CC-provided tool names ( mcp__agentpool-{agent_name}-tools__{tool_name} )."""
+
+EXCLUDED_SLASH_COMMANDS = frozenset({"login", "logout", "release-notes", "todos"})
+"""Slash commands that don't make sense when Claude Code is used as a sub-agent"""
+
 THINKING_MODE_TOKENS: dict[ThinkingMode, int] = {
     "off": 0,
-    "4k": 4096,
-    "8k": 8192,
-    "16k": 16384,
-    "32k": 32768,
+    "4k": 4000,
+    "8k": 8000,
+    "16k": 16000,
+    "32k": 32000,
 }
+"""Token limit for each thinking mode."""
 
 
 def _strip_mcp_prefix(tool_name: str) -> str:
@@ -179,16 +185,6 @@ def _strip_mcp_prefix(tool_name: str) -> str:
     if match := _MCP_TOOL_PATTERN.match(tool_name):
         return match.group(2)  # group(1) is agent name, group(2) is tool name
     return tool_name
-
-
-def raise_if_usage_limit_reached(message: AssistantMessage) -> None:
-    """Raise RuntimeError if usage limit is reached."""
-    from clawd_code_sdk.types import TextBlock
-
-    if len(message.content) == 1 and isinstance(message.content[0], TextBlock):
-        text_content = message.content[0].text
-        if "You've hit your limit" in text_content and "resets" in text_content:
-            raise RuntimeError(f"Claude Code usage limit reached: {text_content}")
 
 
 def parse_command_output(msg: UserMessage) -> str | None:
@@ -431,8 +427,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         and starts an MCP bridge to expose them to Claude Code via the SDK's
         native MCP support. Also converts external MCP servers to SDK format.
         """
-        from agentpool.agents.claude_code_agent.converters import convert_mcp_servers_to_sdk_format
-
         # Convert external MCP servers to SDK format first
         if self._external_mcp_servers:
             external_configs = convert_mcp_servers_to_sdk_format(self._external_mcp_servers)
@@ -508,11 +502,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         """
         from clawd_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
 
-        from agentpool.agents.claude_code_agent.converters import (
-            to_claude_system_prompt,
-            to_output_format,
-        )
-
         sys_prompt = to_claude_system_prompt(system_prompt) if system_prompt else None
         # Determine effective permission mode
         permission_mode = self._permission_mode
@@ -569,7 +558,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         )
         return ClaudeSDKClient(opts)
 
-    async def _can_use_tool(  # noqa: PLR0911
+    async def _can_use_tool(
         self,
         tool_name: str,
         input_data: dict[str, Any],
@@ -633,24 +622,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             ctx = self.get_context(
                 tool_call_id=tool_call_id, tool_input=input_data, tool_name=tool_name
             )
-
             result = await self._input_provider.get_tool_confirmation(
                 context=ctx,
                 tool_name=display_name,
                 tool_description=f"Claude Code tool: {tool_name}",
                 args=input_data,
             )
-
-            match result:
-                case "allow":
-                    return PermissionResultAllow()
-                case "skip":
-                    return PermissionResultDeny(message="User skipped tool execution")
-                case "abort_run" | "abort_chain":
-                    return PermissionResultDeny(message="User aborted execution", interrupt=True)
-                case _:
-                    return PermissionResultDeny(message="Unknown confirmation result")
-
+            return confirmation_result_to_native(result)
         # Default: deny if no input provider
         return PermissionResultDeny(message="No input provider configured")
 
@@ -865,8 +843,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             UserMessage,
         )
         from clawd_code_sdk.types import StreamEvent
-
-        from agentpool.agents.claude_code_agent.converters import convert_to_opencode_metadata
 
         await self.ensure_initialized()
         # Initialize session_id on first run and log to storage

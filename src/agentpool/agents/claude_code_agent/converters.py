@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from difflib import unified_diff
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, assert_never, cast
 import uuid
 
 from pydantic import TypeAdapter
@@ -19,9 +19,10 @@ from agentpool.agents.events import ToolCallCompleteEvent, ToolCallStartEvent
 
 
 if TYPE_CHECKING:
-    from clawd_code_sdk import ContentBlock, McpServerConfig, Message
+    from clawd_code_sdk import ContentBlock, McpServerConfig, Message, PermissionResult
     from clawd_code_sdk.types import SystemPromptPreset
 
+    from agentpool.agents.context import ConfirmationResult
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool_config.mcp_server import MCPServerConfig as NativeMCPServerConfig
 
@@ -58,6 +59,20 @@ def content_block_to_event(block: ContentBlock, index: int = 0) -> RichAgentStre
             )
         case _:
             return None
+
+
+def confirmation_result_to_native(result: ConfirmationResult) -> PermissionResult:
+    from clawd_code_sdk import PermissionResultAllow, PermissionResultDeny
+
+    match result:
+        case "allow":
+            return PermissionResultAllow()
+        case "skip":
+            return PermissionResultDeny(message="User skipped tool execution")
+        case "abort_run" | "abort_chain":
+            return PermissionResultDeny(message="User aborted execution", interrupt=True)
+        case _ as unreachable:
+            raise assert_never(unreachable)
 
 
 def to_claude_system_prompt(
