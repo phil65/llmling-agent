@@ -382,9 +382,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                         async for event in self._process_events(
                             response=response,
                             response_parts=response_parts,
-                            file_tracker=file_tracker,
                             tool_calls_pending=tool_calls_pending,
                         ):
+                            file_tracker.process_event(event)
                             yield event
                 except httpx.HTTPError:
                     self.log.exception("HTTP error during AG-UI run")
@@ -451,6 +451,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         # Final drain of event queue after stream completes
         async for e in self._drain_event_queue():
+            file_tracker.process_event(e)
             yield e
         # Calculate approximate token usage from what we can observe
         usage, cost_info = await calculate_usage_from_parts(
@@ -487,7 +488,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self,
         response: httpx.Response,
         response_parts: list[TextPart | ThinkingPart | ToolCallPart],
-        file_tracker: FileTracker,
         tool_calls_pending: list[tuple[str, str, dict[str, Any]]],
     ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
         from ag_ui.core import (
@@ -532,7 +532,6 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
                 # Convert to native event and distribute to handlers
                 if native_event := agui_to_native_event(event):
-                    file_tracker.process_event(native_event)
                     async for e in self._drain_event_queue():
                         yield e
                     yield native_event
