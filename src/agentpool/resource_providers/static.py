@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, overload
 
 from agentpool.resource_providers import ResourceProvider
+from agentpool.tools.base import Tool
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Sequence
     from typing import Any
 
     from agentpool import Agent, MessageNode
     from agentpool.common_types import ToolSource, ToolType
     from agentpool.prompts.prompts import BasePrompt
     from agentpool.resource_providers.resource_info import ResourceInfo
-    from agentpool.tools.base import Tool
 
 
 class StaticResourceProvider(ResourceProvider):
@@ -60,13 +61,18 @@ class StaticResourceProvider(ResourceProvider):
         """Get pre-configured resources."""
         return self._resources
 
-    def add_tool(self, tool: Tool) -> None:
+    def add_tool(self, tool: ToolType) -> None:
         """Add a tool to this provider.
 
         Args:
             tool: Tool to add
         """
-        self._tools.append(tool)
+        match tool:
+            case Tool():
+                instance = tool
+            case Callable() | str():
+                instance = Tool.from_callable(tool)
+        self._tools.append(instance)
 
     def remove_tool(self, name: str) -> bool:
         """Remove a tool by name.

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Literal, assert_never
 
 from agentpool.log import get_logger
 from agentpool.resource_providers import StaticResourceProvider
-from agentpool.tools.base import Tool
 from agentpool.utils.baseregistry import AgentPoolError
 
 
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
     from agentpool.resource_providers import ResourceProvider
     from agentpool.resource_providers.codemode.provider import CodeModeResourceProvider
     from agentpool.resource_providers.resource_info import ResourceInfo
+    from agentpool.tools.base import Tool
 
 
 logger = get_logger(__name__)
@@ -63,8 +63,7 @@ class ToolManager:
         self.register_tool = self.builtin_provider.register_tool
         self.register_worker = self.worker_provider.register_worker
         for tool in tools or []:
-            t = self._validate_item(tool)
-            self.builtin_provider.add_tool(t)
+            self.builtin_provider.add_tool(tool)
 
     @property
     def providers(self) -> list[ResourceProvider]:
@@ -115,18 +114,6 @@ class ToolManager:
         """Reset all tools to their default enabled states."""
         for info in await self.get_tools():
             info.enabled = True
-
-    def _validate_item(self, item: ToolType) -> Tool:
-        """Validate and convert items before registration."""
-        match item:
-            case Tool():
-                return item
-            case Callable() | str():
-                return Tool.from_callable(item)
-            case _:
-                typ = type(item)
-                msg = f"Item must be Tool or callable. Got {typ}"
-                raise ToolError(msg)
 
     async def enable_tool(self, tool_name: str) -> None:
         """Enable a previously disabled tool."""
