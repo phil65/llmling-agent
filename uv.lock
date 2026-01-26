@@ -41,7 +41,7 @@ wheels = [
 
 [[package]]
 name = "agentpool"
-version = "2.8.6"
+version = "2.8.7"
 source = { editable = "." }
 dependencies = [
     { name = "anyenv", extra = ["httpx"] },
