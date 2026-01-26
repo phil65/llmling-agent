@@ -55,6 +55,7 @@ if TYPE_CHECKING:
         ModelType,
         ProcessorCallback,
         SessionIdType,
+        StrPath,
         ToolType,
     )
     from agentpool.delegation import AgentPool
@@ -142,7 +143,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         tool_mode: ToolMode | None = None,
         knowledge: Knowledge | None = None,
         agent_config: NativeAgentConfig | None = None,
-        env: ExecutionEnvironment | None = None,
+        env: ExecutionEnvironment | StrPath | None = None,
         hooks: AgentHooks | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
         builtin_tools: Sequence[AbstractBuiltinTool] | None = None,

@@ -39,6 +39,7 @@ if TYPE_CHECKING:
         BuiltinEventHandlerType,
         IndividualEventHandler,
         MCPServerStatus,
+        StrPath,
     )
     from agentpool.delegation import AgentPool
     from agentpool.hooks import AgentHooks
@@ -66,7 +67,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         name: str | None = None,
         description: str | None = None,
         display_name: str | None = None,
-        cwd: str | Path | None = None,
         model: str | None = None,
         reasoning_effort: ReasoningEffort | None = None,
         base_instructions: str | None = None,
@@ -74,7 +74,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
-        env: ExecutionEnvironment | None = None,
+        env: ExecutionEnvironment | StrPath | None = None,
         input_provider: InputProvider | None = None,
         output_type: type[OutputDataT] = str,  # type: ignore[assignment]
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
@@ -91,7 +91,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             deps_type: Type of dependencies for the agent
             description: Agent description
             display_name: Human-readable display name
-            cwd: Working directory for Codex
             model: Model to use (e.g., "claude-3-5-sonnet-20241022")
             reasoning_effort: Reasoning effort level ("low", "medium", "high")
             base_instructions: Base system instructions for the session
@@ -127,7 +126,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         )
 
         # Codex settings
-        self._cwd = cwd
         self._model = model
         self._reasoning_effort = reasoning_effort
         self._base_instructions = base_instructions
@@ -203,7 +201,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             description=config.description,
             display_name=config.display_name,
             # Codex settings
-            cwd=config.cwd,
             model=config.model,
             reasoning_effort=config.reasoning_effort,
             base_instructions=config.base_instructions,
@@ -258,7 +255,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         # Create and connect client with MCP servers
         self._client = CodexClient(mcp_servers=mcp_servers_dict)
         await self._client.__aenter__()
-        cwd = str(self._cwd or Path.cwd())
+        cwd = str(self.env.cwd or Path.cwd())
 
         # Resume existing session or start new thread
         if self._sdk_session_id:
@@ -680,7 +677,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 session_data = SessionData(
                     session_id=thread_data.id,
                     agent_name=self.name,
-                    cwd=thread_data.cwd or str(self._cwd or Path.cwd()),
+                    cwd=thread_data.cwd or str(self.env.cwd or Path.cwd()),
                     created_at=created_at,
                     last_active=created_at,  # Codex doesn't track separate last_active
                     metadata={"title": thread_data.preview} if thread_data.preview else {},
@@ -736,7 +733,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         return SessionData(
             session_id=thread.id,
             agent_name=self.name,
-            cwd=thread.cwd or str(self._cwd or Path.cwd()),
+            cwd=thread.cwd or str(self.env.cwd or Path.cwd()),
             created_at=created_at,
             last_active=created_at,  # Codex doesn't track separate last_active
             metadata={"title": thread.preview} if thread.preview else {},

@@ -147,7 +147,7 @@ if TYPE_CHECKING:
     )
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
-    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
+    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler, StrPath
     from agentpool.delegation import AgentPool
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
@@ -236,7 +236,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         dangerously_skip_permissions: bool = False,
         setting_sources: list[SettingSource] | None = None,
         use_subscription: bool = False,
-        env: ExecutionEnvironment | None = None,
+        env: ExecutionEnvironment | StrPath | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,

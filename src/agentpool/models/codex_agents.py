@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path  # noqa: TC003
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
@@ -33,13 +32,6 @@ class CodexAgentConfig(BaseAgentConfig):
 
     type: Literal["codex"] = Field("codex", init=False)
     """Top-level discriminator for agent type."""
-
-    cwd: str | Path | None = Field(
-        default=None,
-        title="Working Directory",
-        examples=["/path/to/project", ".", "/home/user/myproject"],
-    )
-    """Working directory for Codex session."""
 
     model: str | None = Field(
         default=None,
