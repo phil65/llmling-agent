@@ -4,6 +4,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from agentpool import AgentPool
+from agentpool.messaging.message_utils import get_message_chain
 
 
 async def test_message_chain():
@@ -25,14 +26,14 @@ async def test_message_chain():
         result_b = await agent_b.run_message(result_a)
         assert result_b.parent_id is not None
         # Chain should show A
-        chain_b = pool.get_message_chain(result_b)
+        chain_b = get_message_chain(result_b, pool.get_agents())
         assert "agent-a" in chain_b
 
         # When C processes B's message
         result_c = await agent_c.run_message(result_b)
         assert result_c.parent_id is not None
         # Chain should show A and B
-        chain_c = pool.get_message_chain(result_c)
+        chain_c = get_message_chain(result_c, pool.get_agents())
         assert "agent-a" in chain_c
         assert "agent-b" in chain_c
 
@@ -108,13 +109,13 @@ async def test_message_chain_through_routing():
                 None,
             )
             if c_response:
-                chain = pool.get_message_chain(c_response)
+                chain = get_message_chain(c_response, pool.get_agents())
                 # Chain should include both A and B
                 assert "agent-a" in chain or "agent-b" in chain
 
 
-async def test_find_message_by_id():
-    """Test that pool.find_message_by_id works across agents."""
+async def test_build_message_index():
+    """Test that pool.build_message_index works across agents."""
     async with AgentPool() as pool:
         agent_a = await pool.add_agent("agent-a", model="test")
         agent_b = await pool.add_agent("agent-b", model="test")
@@ -122,17 +123,22 @@ async def test_find_message_by_id():
         result_a = await agent_a.run("Hello from A")
         result_b = await agent_b.run("Hello from B")
 
+        index = pool.build_message_index()
+
         # Should find messages from both agents
-        found_a = pool.find_message_by_id(result_a.message_id)
-        found_b = pool.find_message_by_id(result_b.message_id)
+        assert result_a.message_id in index
+        assert result_b.message_id in index
 
-        assert found_a is not None
-        assert found_b is not None
-        assert found_a.message_id == result_a.message_id
-        assert found_b.message_id == result_b.message_id
+        found_a_msg, found_a_agent = index[result_a.message_id]
+        found_b_msg, found_b_agent = index[result_b.message_id]
 
-        # Non-existent ID should return None
-        assert pool.find_message_by_id("non-existent-id") is None
+        assert found_a_msg.message_id == result_a.message_id
+        assert found_a_agent == "agent-a"
+        assert found_b_msg.message_id == result_b.message_id
+        assert found_b_agent == "agent-b"
+
+        # Non-existent ID should not be in index
+        assert "non-existent-id" not in index
 
 
 if __name__ == "__main__":

@@ -681,58 +681,15 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         return "\n".join(lines)
 
-    def get_message_chain(self, message: ChatMessage[Any]) -> list[str]:
-        """Get the chain of agent names that processed a message.
-
-        Reconstructs the forwarding chain by walking parent_id references
-        across all agents' conversations in the pool.
-
-        Args:
-            message: The message to trace back
+    def build_message_index(self) -> dict[str, tuple[ChatMessage[Any], str]]:
+        """Build an index mapping message IDs to (message, agent_name) tuples.
 
         Returns:
-            List of agent names in order from origin to current message's agent.
-            Empty list if message has no parent or parent not found.
+            Dictionary mapping message_id -> (ChatMessage, agent_name).
         """
-        # Build index of all messages by ID across all agents
-        message_index: dict[str, tuple[ChatMessage[Any], str]] = {}
-        for agent in self.get_agents(Agent).values():
-            for msg in agent.conversation.chat_messages:
-                message_index[msg.message_id] = (msg, agent.name)
+        from agentpool.messaging.message_utils import build_message_index
 
-        # Walk back through parent_id chain
-        chain: list[str] = []
-        current_id = message.parent_id
-
-        while current_id and current_id in message_index:
-            parent_msg, agent_name = message_index[current_id]
-            # Only add agent name if it's different from previous (avoid duplicates)
-            if not chain or chain[-1] != agent_name:
-                chain.append(agent_name)
-            current_id = parent_msg.parent_id
-
-        # Reverse to get origin -> current order
-        chain.reverse()
-        return chain
-
-    def find_message_by_id(self, message_id: str) -> ChatMessage[Any] | None:
-        """Find a message by ID across all agents in the pool.
-
-        Args:
-            message_id: The message ID to search for
-
-        Returns:
-            The ChatMessage if found, None otherwise
-        """
-        return next(
-            (
-                msg
-                for agent in self.get_agents().values()
-                for msg in agent.conversation.chat_messages
-                if msg.message_id == message_id
-            ),
-            None,
-        )
+        return build_message_index(self.get_agents())
 
     def _create_agent_from_config[TAgentDeps](
         self,
