@@ -64,7 +64,7 @@ class PromptCompleter(CompletionProvider):
         """Complete prompt references."""
         current = ctx.current_word
         pool = ctx.command_context.context.pool
-        if not pool:
+        if pool is None:
             return
 
         prompt_manager = pool.prompt_manager

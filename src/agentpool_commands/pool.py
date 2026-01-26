@@ -33,7 +33,7 @@ class ListPoolsCommand(NodeCommand):
         from agentpool_cli import agent_store
 
         pool = ctx.context.pool
-        if not pool:
+        if pool is None:
             raise RuntimeError("No pool configured")
         try:
             output_lines = ["## 🏊 Agent Pool Configurations\n"]
@@ -217,7 +217,7 @@ class SpawnCommand(NodeCommand):
         from agentpool.agents.events import SubAgentEvent
 
         pool = ctx.context.pool
-        if not pool:
+        if pool is None:
             await ctx.output.print("❌ **No agent pool available**")
             return
 
