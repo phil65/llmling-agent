@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, assert_never
+from typing import TYPE_CHECKING, Annotated, Any, Literal, assert_never
 
 from evented_config import EventConfig
-from exxec_config import ExecutionEnvironmentConfig
+from exxec_config import E2bExecutionEnvironmentConfig, ExecutionEnvironmentConfig
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
@@ -210,10 +210,15 @@ class BaseAgentConfig(NodeConfig):
     side effects during run execution and tool usage.
     """
 
-    environment: ExecutionEnvironmentConfig | str | None = Field(
-        default=None, title="Execution environment"
-    )
-    """Execution environment configuration for this agent."""
+    environment: Annotated[
+        ExecutionEnvironmentConfig | str | None,
+        Field(
+            default=None,
+            title="Execution Environment",
+            examples=["docker", E2bExecutionEnvironmentConfig(template="python-sandbox")],
+        ),
+    ] = None
+    """Execution environment config for the agent's own toolsets."""
 
     def get_execution_environment(self) -> ExecutionEnvironment:
         """Get the execution environment for this agent."""

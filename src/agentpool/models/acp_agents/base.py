@@ -69,19 +69,6 @@ class BaseACPAgentConfig(BaseAgentConfig):
     in-process MCP server and made available to the external ACP agent.
     """
 
-    execution_environment: Annotated[
-        ExecutionEnvironmentStr | ExecutionEnvironmentConfig,
-        Field(
-            default="local",
-            title="Execution Environment",
-            examples=[
-                "docker",
-                E2bExecutionEnvironmentConfig(template="python-sandbox"),
-            ],
-        ),
-    ] = "local"
-    """Execution environment config for the agent's own toolsets."""
-
     client_execution_environment: Annotated[
         ExecutionEnvironmentStr | ExecutionEnvironmentConfig | None,
         Field(
@@ -150,14 +137,6 @@ class BaseACPAgentConfig(BaseAgentConfig):
             providers.append(StaticResourceProvider(name="tools", tools=static_tools))
 
         return providers
-
-    def get_execution_environment(self) -> ExecutionEnvironment:
-        """Create execution environment from config."""
-        from exxec import get_environment
-
-        if isinstance(self.execution_environment, str):
-            return get_environment(self.execution_environment)
-        return self.execution_environment.get_provider()
 
     def get_client_execution_environment(self) -> ExecutionEnvironment | None:
         """Create client execution environment from config.

@@ -112,17 +112,10 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
     provider: Literal["codex"] = Field("codex", init=False)
     """Discriminator for Codex ACP agent."""
 
-    model: str | None = Field(
-        default=None,
-        title="Model",
-        examples=["o3", "o4-mini"],
-    )
+    model: str | None = Field(default=None, title="Model", examples=["o3", "o4-mini"])
     """Model override."""
 
-    auto_approve: bool = Field(
-        default=False,
-        title="Auto Approve",
-    )
+    auto_approve: bool = Field(default=False, title="Auto Approve")
     """Automatically accept all actions (YOLO mode)."""
 
     sandbox_permissions: list[str] | None = Field(

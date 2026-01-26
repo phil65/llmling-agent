@@ -3,8 +3,6 @@
 This test creates an AgentPool with a Claude ACP agent configured with
 the Subagent toolset, which gets exposed via an internal MCP server bridge.
 The Claude agent can then use our internal tools through MCP.
-
-Run with: pytest tests/servers/acp_server/test_claude_acp_toolset_integration.py -v
 """
 
 from __future__ import annotations
@@ -33,8 +31,6 @@ def claude_config_with_subagent() -> ClaudeACPAgentConfig:
     """Create Claude ACP config with Subagent toolset."""
     return ClaudeACPAgentConfig(
         name="claude_orchestrator",
-        description="Claude agent with subagent delegation capabilities",
-        cwd=str(Path.cwd()),
         tools=[SubagentToolsetConfig()],
         env_vars={"ANTHROPIC_API_KEY": ""},  # Use subscription, not direct API key
     )
@@ -43,9 +39,7 @@ def claude_config_with_subagent() -> ClaudeACPAgentConfig:
 @pytest.fixture
 def manifest_with_claude(claude_config_with_subagent: ClaudeACPAgentConfig) -> AgentsManifest:
     """Create manifest with Claude ACP agent."""
-    return AgentsManifest(
-        agents={"claude_orchestrator": claude_config_with_subagent},
-    )
+    return AgentsManifest(agents={"claude_orchestrator": claude_config_with_subagent})
 
 
 async def test_claude_acp_with_subagent_toolset_setup(manifest_with_claude: AgentsManifest):
@@ -54,8 +48,6 @@ async def test_claude_acp_with_subagent_toolset_setup(manifest_with_claude: Agen
         # Verify ACP agent was created
         assert "claude_orchestrator" in pool.get_agents(ACPAgent)
         agent = pool.get_agents(ACPAgent)["claude_orchestrator"]
-        # Verify it's an ACPAgent
-        assert isinstance(agent, ACPAgent)
         # Verify toolset bridge was set up
         assert agent._tool_bridge is not None
         # Verify the MCP server is running
@@ -87,10 +79,8 @@ async def test_claude_acp_subagent_invocation(manifest_with_claude: AgentsManife
 
 async def test_claude_acp_tool_bridge_mcp_config(claude_config_with_subagent: ClaudeACPAgentConfig):
     """Test that tool bridge MCP config is properly passed to session."""
-    async with AgentPool() as pool:
-        # Manually create and configure agent
-        agent = ACPAgent.from_config(claude_config_with_subagent, agent_pool=pool)
-        async with agent:
+    async with AgentPool() as pool:  # noqa: SIM117
+        async with ACPAgent.from_config(claude_config_with_subagent, agent_pool=pool) as agent:
             # Verify extra MCP servers include our bridge
             assert len(agent._extra_mcp_servers) > 0
             # Find our toolset bridge server
@@ -107,23 +97,20 @@ async def test_claude_acp_multiple_toolsets():
 
     tools = [SubagentToolsetConfig(), DebugToolsetConfig()]
     config = ClaudeACPAgentConfig(name="claude_multi", cwd=str(Path.cwd()), tools=tools)
-    async with AgentPool() as pool:
-        agent = ACPAgent.from_config(config, agent_pool=pool)
-        async with agent:
-            # All toolsets should be exposed via single bridge
-            assert agent._tool_bridge is not None
-            tool_names = {t.name for t in await agent.tools.get_tools()}
-            # Should have tools from both toolsets
-            # SubagentToolset provides: list_available_nodes, delegate_to, ask_agent
-            assert "list_available_nodes" in tool_names
-            assert "delegate_to" in tool_names
-            assert "execute_introspection" in tool_names
+    async with AgentPool() as pool, ACPAgent.from_config(config, agent_pool=pool) as agent:
+        # All toolsets should be exposed via single bridge
+        assert agent._tool_bridge is not None
+        tool_names = {t.name for t in await agent.tools.get_tools()}
+        # Should have tools from both toolsets
+        # SubagentToolset provides: list_available_nodes, delegate_to, ask_agent
+        assert "list_available_nodes" in tool_names
+        assert "delegate_to" in tool_names
+        assert "execute_introspection" in tool_names
 
 
 async def test_pool_cleanup_stops_tool_bridges(manifest_with_claude: AgentsManifest):
     """Test that pool cleanup properly stops tool bridges."""
-    pool = AgentPool(manifest=manifest_with_claude)
-    async with pool:
+    async with AgentPool(manifest=manifest_with_claude) as pool:
         agent = pool.get_agents(ACPAgent)["claude_orchestrator"]
         assert agent._tool_bridge is not None
         assert agent._tool_bridge.port > 0
