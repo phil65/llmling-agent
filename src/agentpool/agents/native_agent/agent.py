@@ -208,7 +208,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         from agentpool_commands.pool import CompactCommand
         from agentpool_config.session import MemoryConfig
 
-        self.deps_type = deps_type
         self.model_settings = model_settings
         memory_cfg = (
             session if isinstance(session, MemoryConfig) else MemoryConfig.from_value(session)
@@ -226,6 +225,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             name=name,
             description=description,
             display_name=display_name,
+            deps_type=deps_type,
             enable_logging=memory_cfg.enable,
             mcp_servers=all_mcp_servers,
             agent_pool=agent_pool,

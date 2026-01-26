@@ -105,6 +105,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self,
         endpoint: str,
         *,
+        deps_type: type[TDeps] | None = None,
         name: str = "agui-agent",
         description: str | None = None,
         display_name: str | None = None,
@@ -127,6 +128,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         Args:
             endpoint: HTTP endpoint for the AG-UI agent
+            deps_type: Type of dependencies to use
             name: Agent name for identification
             description: Agent description
             display_name: Human-readable display name
@@ -152,6 +154,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             description=description,
             display_name=display_name,
             mcp_servers=mcp_servers,
+            deps_type=deps_type,
             agent_pool=agent_pool,
             enable_logging=enable_logging,
             event_configs=event_configs,
@@ -186,20 +189,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
+        deps_type: type[TDeps] | None = None,
     ) -> Self:
-        """Create an AGUIAgent from a config object.
-
-        This is the preferred way to instantiate an AGUIAgent from configuration.
-
-        Args:
-            config: AG-UI agent configuration
-            event_handlers: Optional event handlers (merged with config handlers)
-            input_provider: Optional input provider for user interactions
-            agent_pool: Optional agent pool for coordination
-
-        Returns:
-            Configured AGUIAgent instance
-        """
+        """Create an AGUIAgent from a config object."""
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
@@ -209,6 +201,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         return cls(
             endpoint=config.endpoint,
             name=config.name or "agui-agent",
+            deps_type=deps_type,
             description=config.description,
             display_name=config.display_name,
             event_handlers=merged_handlers or None,

@@ -158,6 +158,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         super().__init__(
             name=name or command,
             description=description,
+            deps_type=deps_type,
             display_name=display_name,
             mcp_servers=mcp_servers,
             agent_pool=agent_pool,
@@ -188,7 +189,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.acp_permission_callback: (
             Callable[[RequestPermissionRequest], Awaitable[RequestPermissionResponse]] | None
         ) = None
-        self.deps_type = deps_type or type(None)
         self._process: Process | None = None
         self._connection: ClientSideConnection | None = None
         self._client_handler: ACPClientHandler | None = None

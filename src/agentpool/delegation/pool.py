@@ -7,7 +7,7 @@ from asyncio import Lock
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self, Unpack, overload
+from typing import TYPE_CHECKING, Any, Self, Unpack, assert_never, overload
 
 from anyenv import ProcessManager
 import anyio
@@ -737,6 +737,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     event_handlers=self.event_handlers,
                     input_provider=self._input_provider,
                     agent_pool=self,
+                    deps_type=deps_type,
                 )
             case ClaudeCodeAgentConfig():
                 from agentpool.agents.claude_code_agent import ClaudeCodeAgent
@@ -746,6 +747,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     event_handlers=self.event_handlers,
                     input_provider=self._input_provider,
                     agent_pool=self,
+                    deps_type=deps_type,
                 )
             case CodexAgentConfig():
                 from agentpool.agents.codex_agent import CodexAgent
@@ -755,6 +757,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     event_handlers=self.event_handlers,
                     input_provider=self._input_provider,
                     agent_pool=self,
+                    deps_type=deps_type,
                 )
             case BaseACPAgentConfig():
                 from agentpool.agents.acp_agent import ACPAgent
@@ -764,9 +767,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                     event_handlers=self.event_handlers,
                     input_provider=self._input_provider,
                     agent_pool=self,
+                    deps_type=deps_type,
                 )
-            case _:
-                raise TypeError(f"Unknown agent config type: {type(config)}")
+            case _ as unreachable:
+                assert_never(unreachable)
 
     def create_agent[TAgentDeps](  # noqa: PLR0915
         self,

@@ -215,6 +215,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self,
         *,
         name: str | None = None,
+        deps_type: type[TDeps] | None = None,
         description: str | None = None,
         display_name: str | None = None,
         cwd: str | None = None,
@@ -252,6 +253,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         Args:
             name: Agent name
+            deps_type: Type of dependencies for the agent
             description: Agent description
             display_name: Display name for UI
             cwd: Working directory for Claude Code
@@ -295,6 +297,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         super().__init__(
             name=name or "claude_code",
             description=description,
+            deps_type=deps_type,
             display_name=display_name,
             agent_pool=agent_pool,
             enable_logging=enable_logging,
@@ -338,11 +341,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Client state
         self._client: ClaudeSDKClient | None = None
         self._connection_task: asyncio.Task[None] | None = None
-
         self._sdk_session_id: str | None = session_id
-        self.deps_type = type(None)
         # ToolBridge state for exposing toolsets via MCP
-        # Pass injection_manager for mid-run injection support
         self._tool_bridge = ToolManagerBridge(node=self, injection_manager=self._injection_manager)
         self._mcp_servers: dict[str, McpServerConfig] = {}  # Claude SDK MCP server configs
         # Track pending tool call for permission matching
@@ -366,6 +366,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
+        deps_type: type[TDeps] | None = None,
     ) -> Self:
         """Create a ClaudeCodeAgent from a config object.
 
@@ -389,6 +390,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             # Identity
             name=config.name,
             description=config.description,
+            deps_type=deps_type,
             display_name=config.display_name,
             # Claude Code settings
             cwd=config.cwd,

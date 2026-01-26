@@ -131,6 +131,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         self,
         *,
         name: str = "agent",
+        deps_type: type[TDeps] | None = None,
         description: str | None = None,
         display_name: str | None = None,
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
@@ -149,6 +150,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         Args:
             name: Agent name
+            deps_type: Type of dependencies to use
             description: Agent description
             display_name: Human-readable display name
             mcp_servers: MCP server configurations
@@ -180,6 +182,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             event_configs=event_configs,
         )
         self._infinite = False
+        self.deps_type = deps_type  # or type(None)
         self._background_task: asyncio.Task[ChatMessage[Any]] | None = None
         self._event_queue: asyncio.Queue[RichAgentStreamEvent[Any]] = asyncio.Queue()
         storage = agent_pool.storage if agent_pool else None

@@ -62,6 +62,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
     def __init__(
         self,
         *,
+        deps_type: type[TDeps] | None = None,
         name: str | None = None,
         description: str | None = None,
         display_name: str | None = None,
@@ -87,6 +88,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         Args:
             name: Agent name
+            deps_type: Type of dependencies for the agent
             description: Agent description
             display_name: Human-readable display name
             cwd: Working directory for Codex
@@ -112,6 +114,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         super().__init__(
             name=name or "codex",
+            deps_type=deps_type,
             description=description,
             display_name=display_name,
             agent_pool=agent_pool,
@@ -169,6 +172,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
+        deps_type: type[TDeps] | None = None,
     ) -> Self:
         """Create agent from configuration.
 
@@ -195,6 +199,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         return cls(
             # Identity
             name=config.name,
+            deps_type=deps_type,
             description=config.description,
             display_name=config.display_name,
             # Codex settings
