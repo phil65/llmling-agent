@@ -6,6 +6,7 @@ import os
 import shutil
 from typing import TYPE_CHECKING
 
+from clawd_code_sdk import ClaudeAgentOptions, ClaudeSDKClient, tool
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 import pytest
@@ -219,7 +220,6 @@ async def test_claude_code_passes_tool_use_id_in_meta():
 
     Run manually with: pytest -v -s -k test_claude_code_passes_tool_use_id_in_meta --run-skip
     """
-    from clawd_code_sdk import tool
 
     @tool(name="capture_meta", description="Captures the _meta field", input_schema={"value": int})
     async def capture_meta_tool(input_data: dict) -> dict:
@@ -243,8 +243,6 @@ async def test_claude_code_mcp_bridge_integration():
     3. Asks Claude to use the tool
     4. Verifies the tool_call_id was extracted from meta
     """
-    from clawd_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
-
     # Force SDK to use Claude Code CLI subscription instead of API
     os.environ["ANTHROPIC_API_KEY"] = ""
     captured_ids: list[str] = []

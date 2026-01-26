@@ -229,7 +229,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         max_thinking_tokens: int | None = None,
         permission_mode: PermissionMode | None = None,
         mcp_servers: Sequence[MCPServerConfig] | None = None,
-        environment: dict[str, str] | None = None,
+        env_vars: dict[str, str] | None = None,
         add_dir: list[str] | None = None,
         builtin_tools: list[str] | None = None,
         fallback_model: AnthropicMaxModelName | str | None = None,
@@ -267,7 +267,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             max_thinking_tokens: Max tokens for extended thinking
             permission_mode: Permission mode ("default", "acceptEdits", "plan", "bypassPermissions")
             mcp_servers: External MCP servers to connect to (internal format, converted at runtime)
-            environment: Environment variables for the agent process
+            env_vars: Environment variables for the agent process
             add_dir: Additional directories to allow tool access to
             builtin_tools: Available tools from built-in set. Special: "LSP" for code intelligence,
                            "Chrome" for browser control
@@ -330,7 +330,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._permission_mode: PermissionMode | None = permission_mode
         self._thinking_mode: ThinkingMode = "off"
         self._external_mcp_servers = list(mcp_servers) if mcp_servers else []
-        self._environment = environment
+        self._env_vars = env_vars
         self._add_dir = add_dir
         self._builtin_tools = builtin_tools
         self._fallback_model = fallback_model
@@ -404,7 +404,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             max_thinking_tokens=config.max_thinking_tokens,
             permission_mode=config.permission_mode,
             mcp_servers=config.get_mcp_servers(),
-            environment=config.env,
+            env_vars=config.env,
             add_dir=config.add_dir,
             builtin_tools=config.builtin_tools,
             fallback_model=config.fallback_model,
@@ -523,7 +523,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if "Chrome" in builtin_tools:
             extra_args["chrome"] = None
         # Build environment variables
-        env = dict(self._environment or {})
+        env = dict(self._env_vars or {})
         env["clawd_code_sdk_SKIP_VERSION_CHECK"] = "1"
         env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
         if "LSP" in builtin_tools:

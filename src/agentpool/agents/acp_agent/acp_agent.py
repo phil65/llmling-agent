@@ -249,7 +249,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             provider_type=config.type,
             # Environment
             cwd=config.cwd,
-            env_vars=config.env,
+            env_vars=config.env_vars,
             execution_env=config.get_execution_environment(),
             client_execution_env=config.get_client_execution_environment(),
             # ACP initialization

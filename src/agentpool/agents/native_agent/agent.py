@@ -405,7 +405,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             name=name,
             display_name=config.display_name,
             deps_type=deps_type,
-            env=config.environment.get_provider() if config.environment else None,
+            env=config.get_execution_environment(),
             description=config.description,
             retries=config.retries,
             session=config.get_session_config(),

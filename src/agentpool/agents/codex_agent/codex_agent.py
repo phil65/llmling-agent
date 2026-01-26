@@ -76,6 +76,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         mcp_servers: Sequence[str | MCPServerConfig] | None = None,
         env: ExecutionEnvironment | StrPath | None = None,
         input_provider: InputProvider | None = None,
+        env_vars: dict[str, str] | None = None,
         output_type: type[OutputDataT] = str,  # type: ignore[assignment]
         event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
         hooks: AgentHooks | None = None,
@@ -100,6 +101,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             mcp_servers: MCP server configurations
             env: Execution environment
             input_provider: Provider for user input
+            env_vars: Environment variables for the agent
             output_type: Output type for structured responses (default: str)
             event_handlers: Event handlers for this agent
             hooks: Agent hooks for pre/post tool execution
@@ -133,7 +135,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         self._approval_policy: ApprovalPolicy = approval_policy or "never"
         self._sandbox = sandbox
         self._toolsets = toolsets or []
-
+        self._env_vars = env_vars or {}
         # Client state
         self._client: CodexClient | None = None
         self._sdk_session_id: str | None = session_id

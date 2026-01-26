@@ -45,7 +45,7 @@ class BaseACPAgentConfig(BaseAgentConfig):
     )
     """Working directory for the session."""
 
-    env: dict[str, str] = Field(
+    env_vars: dict[str, str] = Field(
         default_factory=dict,
         title="Environment Variables",
         examples=[{"PATH": "/usr/local/bin:/usr/bin", "DEBUG": "1"}],

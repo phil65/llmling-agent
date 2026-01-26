@@ -32,10 +32,11 @@ from agentpool_config.workers import WorkerConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
+    from exxec import ExecutionEnvironment
+
     from agentpool.prompts.prompts import BasePrompt
     from agentpool.resource_providers import ResourceProvider
     from agentpool.tools.base import Tool
-
 
 ToolMode = Literal["codemode"]
 
@@ -198,7 +199,7 @@ class NativeAgentConfig(BaseAgentConfig):
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/worker_configuration/
     """
 
-    environment: ExecutionEnvironmentConfig | None = Field(
+    environment: ExecutionEnvironmentConfig | str | None = Field(
         default=None, title="Execution environment"
     )
     """Execution environment configuration for this agent."""
@@ -261,6 +262,19 @@ class NativeAgentConfig(BaseAgentConfig):
         if isinstance((model := data.get("model")), str):
             data["model"] = {"type": "string", "identifier": model}
         return data
+
+    def get_execution_environment(self) -> ExecutionEnvironment:
+        """Get the execution environment for this agent."""
+        from exxec.local_provider import LocalExecutionEnvironment
+        from exxec_config import BaseExecutionEnvironmentConfig
+
+        match self.environment:
+            case BaseExecutionEnvironmentConfig() as cfg:
+                return cfg.get_provider()
+            case str() | None:
+                return LocalExecutionEnvironment(cwd=self.environment)
+            case _ as unreachable:
+                assert_never(unreachable)
 
     def get_tool_providers(self) -> list[ResourceProvider]:
         """Get all resource providers for this agent's tools.

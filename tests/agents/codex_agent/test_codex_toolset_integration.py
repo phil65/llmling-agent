@@ -35,7 +35,6 @@ def codex_config_with_subagent() -> CodexAgentConfig:
     return CodexAgentConfig(
         name="codex_orchestrator",
         description="Codex agent with subagent delegation capabilities",
-        cwd=str(Path.cwd()),
         model="gpt-5.1-codex-mini",
         reasoning_effort="medium",
         approval_policy="never",
@@ -83,7 +82,6 @@ async def test_codex_subagent_tool_invocation():
     # Create a unique config for this test to avoid conflicts with other tests
     config = CodexAgentConfig(
         name="codex_tool_invoker",  # Unique name
-        cwd=str(Path.cwd()),
         model="gpt-5.1-codex-mini",
         reasoning_effort="medium",
         approval_policy="never",
@@ -108,7 +106,6 @@ async def test_codex_multiple_toolsets():
     """Test CodexAgent with multiple toolsets."""
     config = CodexAgentConfig(
         name="codex_multi",
-        cwd=str(Path.cwd()),
         model="gpt-5.1-codex-mini",
         reasoning_effort="medium",
         approval_policy="never",
@@ -135,7 +132,6 @@ async def test_codex_mcp_servers_config():
     test_server_path = Path(__file__).parent.parent.parent / "mcp_server" / "server.py"
     config = CodexAgentConfig(
         name="codex_mixed",
-        cwd=str(Path.cwd()),
         model="gpt-5.1-codex-mini",
         reasoning_effort="medium",
         approval_policy="never",

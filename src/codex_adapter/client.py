@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator, Mapping  # noqa: TC003
 import contextlib
 import json
 import logging
+import os
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import anyenv
@@ -132,6 +133,7 @@ class CodexClient:
         self,
         codex_command: str = "codex",
         profile: str | None = None,
+        env_vars: dict[str, str] | None = None,
         mcp_servers: Mapping[str, McpServerConfig] | None = None,
     ) -> None:
         """Initialize the Codex app-server client.
@@ -139,6 +141,7 @@ class CodexClient:
         Args:
             codex_command: Path to the codex binary (default: "codex")
             profile: Optional Codex profile to use
+            env_vars: Optional environment variables to set for the Codex process.
             mcp_servers: Optional MCP servers to inject programmatically.
                 Keys are server names, values are server configurations.
 
@@ -150,6 +153,7 @@ class CodexClient:
         self._mcp_servers = dict(mcp_servers) if mcp_servers else {}
         self._process: asyncio.subprocess.Process | None = None
         self._request_id = 0
+        self._env_vars = env_vars or {}
         self._pending_requests: dict[int, asyncio.Future[Any]] = {}
         self._event_queue: asyncio.Queue[CodexEvent | None] = asyncio.Queue()
         self._turn_queues: dict[str, asyncio.Queue[CodexEvent | None]] = {}
@@ -193,6 +197,7 @@ class CodexClient:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 limit=10 * 1024 * 1024,
+                env={**os.environ, **self._env_vars},
             )
         except FileNotFoundError as exc:
             raise CodexProcessError(f"Codex binary not found: {self._codex_command}") from exc

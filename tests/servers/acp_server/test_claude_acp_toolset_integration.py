@@ -36,7 +36,7 @@ def claude_config_with_subagent() -> ClaudeACPAgentConfig:
         description="Claude agent with subagent delegation capabilities",
         cwd=str(Path.cwd()),
         tools=[SubagentToolsetConfig()],
-        env={"ANTHROPIC_API_KEY": ""},  # Use subscription, not direct API key
+        env_vars={"ANTHROPIC_API_KEY": ""},  # Use subscription, not direct API key
     )
 
 

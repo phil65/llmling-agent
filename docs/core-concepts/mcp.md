@@ -50,7 +50,7 @@ agent = Agent(
         StdioMCPServerConfig(
             command="python",
             args=["-m", "codetools"],
-            env={"DEBUG": "1"}
+            env_vars={"DEBUG": "1"}
         )
     ]
 )
