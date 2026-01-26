@@ -74,7 +74,7 @@ async def _get_tool_confirmation(
 
 
 async def execute_tool_calls(
-    tool_calls: list[tuple[str, str, dict[str, Any]]],
+    tool_calls: dict[str, tuple[str, dict[str, Any]]],
     tools_by_name: dict[str, Tool],
     *,
     confirmation_mode: ToolConfirmationMode = "never",
@@ -84,7 +84,7 @@ async def execute_tool_calls(
     """Execute tool calls locally and return results.
 
     Args:
-        tool_calls: List of (tool_call_id, tool_name, args) tuples
+        tool_calls: Dictionary mapping tool_call_id to (tool_name, args) tuples
         tools_by_name: Dictionary mapping tool names to Tool instances
         confirmation_mode: Tool confirmation mode
         input_provider: Optional input provider for confirmation requests
@@ -96,7 +96,7 @@ async def execute_tool_calls(
     from ag_ui.core import ToolMessage as AGUIToolMessage
 
     results: list[AGUIToolMessage] = []
-    for tc_id, tool_name, args in tool_calls:
+    for tc_id, (tool_name, args) in tool_calls.items():
         if tool_name not in tools_by_name:
             # Tool not registered locally - this is a server-side tool, skip it
             logger.debug("Skipping server-side tool", tool=tool_name)

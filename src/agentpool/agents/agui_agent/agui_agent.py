@@ -375,7 +375,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                 )
 
                 data = request_data.model_dump(by_alias=True)
-                tool_calls_pending: list[tuple[str, str, dict[str, Any]]] = []
+                tool_calls_pending: dict[str, tuple[str, dict[str, Any]]] = {}
                 try:
                     async with self._client.stream("POST", self.endpoint, json=data) as response:
                         response.raise_for_status()
@@ -408,10 +408,9 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                     model_messages.append(ModelResponse(parts=response_parts))
                     response_parts = []
                 # Create ModelRequest with tool return parts
-                tc_id_to_name = {tc_id: name for tc_id, name, _ in tool_calls_pending}
                 tool_return_parts = [
                     ToolReturnPart(
-                        tool_name=tc_id_to_name.get(r.tool_call_id, "unknown"),
+                        tool_name=tool_calls_pending.get(r.tool_call_id, ("unknown", {}))[0],
                         content=r.content,
                         tool_call_id=r.tool_call_id,
                     )
@@ -488,7 +487,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self,
         response: httpx.Response,
         response_parts: list[TextPart | ThinkingPart | ToolCallPart],
-        tool_calls_pending: list[tuple[str, str, dict[str, Any]]],
+        tool_calls_pending: dict[str, tuple[str, dict[str, Any]]],
     ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
         from ag_ui.core import (
             TextMessageChunkEvent,
@@ -526,7 +525,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                     case AGUIToolCallEndEvent(tool_call_id=tc_id):
                         if result := tool_accumulator.complete(tc_id):
                             tool_name, args = result
-                            tool_calls_pending.append((tc_id, tool_name, args))
+                            tool_calls_pending[tc_id] = (tool_name, args)
                             p = ToolCallPart(tool_name=tool_name, args=args, tool_call_id=tc_id)
                             response_parts.append(p)
 
