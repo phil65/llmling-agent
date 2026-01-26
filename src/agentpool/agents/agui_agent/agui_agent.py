@@ -31,7 +31,11 @@ from agentpool.agents.agui_agent.helpers import execute_tool_calls, parse_sse_st
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.agents.events.processors import FileTracker
-from agentpool.agents.exceptions import AgentNotInitializedError, OperationNotAllowedError
+from agentpool.agents.exceptions import (
+    AgentNotInitializedError,
+    OperationNotAllowedError,
+    UnknownModeError,
+)
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.tools import ToolManager
@@ -61,7 +65,6 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageHistory
     from agentpool.models.agui_agents import AGUIAgentConfig
     from agentpool.sessions import SessionData
-    from agentpool.tools import Tool
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
@@ -243,33 +246,18 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         self.log.debug("AG-UI client closed")
         await super().__aexit__(exc_type, exc_val, exc_tb)
 
-    def register_tool(self, tool: ToolType) -> Tool:
-        """Register a tool for client-side execution.
-
-        Args:
-            tool: Tool instance or callable to register
-
-        Returns:
-            Registered Tool instance
-        """
-        return self.tools.register_tool(tool)
-
     async def set_tool_confirmation_mode(self, mode: str) -> None:
         """Set the tool confirmation mode for local tool execution.
 
         Args:
-            mode: Tool confirmation mode:
-                - "always": Always require confirmation for all tools
-                - "never": Never require confirmation
-                - "per_tool": Use individual tool settings
+            mode: Tool confirmation mode (always, never, per_tool)
 
         Raises:
             ValueError: If mode is not a valid ToolConfirmationMode
         """
         valid_modes: set[str] = {"always", "never", "per_tool"}
         if mode not in valid_modes:
-            msg = f"Invalid tool confirmation mode: {mode!r}. Must be one of {valid_modes}"
-            raise ValueError(msg)
+            raise UnknownModeError(mode, list(valid_modes))
         self.tool_confirmation_mode = mode  # type: ignore[assignment]
         self.log.info("Tool confirmation mode changed", mode=mode)
 
@@ -288,7 +276,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
             self._startup_command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            start_new_session=True,  # Create new process group
+            start_new_session=True,
         )
         self.log.debug("Waiting for server startup", delay=self._startup_delay)
         await anyio.sleep(self._startup_delay)
