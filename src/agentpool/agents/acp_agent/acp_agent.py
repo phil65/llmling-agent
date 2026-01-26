@@ -279,19 +279,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """
         return self._client_env if self._client_env is not None else self.env
 
-    @property
-    def allow_file_operations(self) -> bool:
-        """Whether file operations are allowed."""
-        if (caps := self._init_request.client_capabilities) and caps.fs:
-            return bool(caps.fs.read_text_file or caps.fs.write_text_file)
-        return False
-
-    @property
-    def allow_terminal(self) -> bool:
-        """Whether terminal operations are allowed."""
-        caps = self._init_request.client_capabilities
-        return bool(caps and caps.terminal)
-
     async def _setup_toolsets(self) -> None:
         """Initialize toolsets and start bridge if needed."""
         if not self._tool_providers:
@@ -473,11 +460,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         text_chunks: list[str] = []
         file_tracker = FileTracker()
         assert self.session_id is not None
-        yield RunStartedEvent(
-            session_id=self.session_id,
-            run_id=run_id,
-            agent_name=self.name,
-        )
+        yield RunStartedEvent(session_id=self.session_id, run_id=run_id, agent_name=self.name)
         final_blocks = convert_to_acp_content(prompts)
         # Handle ephemeral execution (fork session if store_history=False)
         session_id = self._sdk_session_id

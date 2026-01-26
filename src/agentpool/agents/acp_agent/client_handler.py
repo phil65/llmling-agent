@@ -103,11 +103,14 @@ class ACPClientHandler(Client):
 
     @property
     def allow_file_operations(self) -> bool:
-        return self._agent.allow_file_operations
+        if (caps := self._agent._init_request.client_capabilities) and caps.fs:
+            return bool(caps.fs.read_text_file or caps.fs.write_text_file)
+        return False
 
     @property
     def allow_terminal(self) -> bool:
-        return self._agent.allow_terminal
+        caps = self._agent._init_request.client_capabilities
+        return bool(caps and caps.terminal)
 
     async def session_update(self, params: SessionNotification[Any]) -> None:
         """Handle session update notifications from the agent.
