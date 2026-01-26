@@ -7,7 +7,6 @@ agents:
     description: "Codex app-server agent with enhanced tools"
     model: "gpt-5.1-codex-max"
     reasoning_effort: "medium"
-    cwd: "."
     tools:
       - type: subagent
       - type: bash

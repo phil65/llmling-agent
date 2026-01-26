@@ -283,7 +283,7 @@ async def test_agui_agent_register_tool():
 
     async with AGUIAgent(endpoint="http://localhost:8000/run", name="test-agent") as agent:
         # Register tool dynamically
-        tool = agent.register_tool(my_tool)
+        tool = agent.tools.register_tool(my_tool)
         assert tool.name == "my_tool"
 
         # Verify it's in the tool manager

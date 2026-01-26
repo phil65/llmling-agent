@@ -36,3 +36,7 @@ def test_pool_config_loads(name: str, config_path: str) -> None:
     config = AgentsManifest.from_file(path)
     assert config is not None
     assert config.config_file_path == config_path
+
+
+if __name__ == "__main__":
+    pytest.main(["-vv", __file__])
