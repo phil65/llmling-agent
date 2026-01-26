@@ -75,14 +75,8 @@ async def list_lsp_servers(state: StateDep) -> list[LspStatus]:
     Returns:
         List of LSP server status objects.
     """
-    try:
-        lsp_manager = state.get_or_create_lsp_manager()
-    except RuntimeError:
-        # Agent doesn't have an execution environment - return empty list
-        return []
-
     servers: list[LspStatus] = []
-    for server_id, server_state in lsp_manager._servers.items():
+    for server_id, server_state in state.lsp_manager._servers.items():
         # Get relative root path
         root_uri = server_state.root_uri or ""
         if root_uri.startswith("file://"):
@@ -127,17 +121,12 @@ async def start_lsp_server(
     Raises:
         HTTPException: If the server fails to start or is not registered.
     """
-    try:
-        lsp_manager = state.get_or_create_lsp_manager()
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e)) from e
-
     # Default to working directory if no root provided
     if root_uri is None:
         root_uri = f"file://{state.working_dir}"
 
     try:
-        server_state = await lsp_manager.start_server(server_id, root_uri)
+        server_state = await state.lsp_manager.start_server(server_id, root_uri)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except RuntimeError as e:
@@ -175,12 +164,7 @@ async def stop_lsp_server(
     Returns:
         Success message.
     """
-    try:
-        lsp_manager = state.get_or_create_lsp_manager()
-    except RuntimeError:
-        return {"status": "ok", "message": "No LSP manager active"}
-
-    await lsp_manager.stop_server(server_id)
+    await state.lsp_manager.stop_server(server_id)
 
     # Emit lsp.updated event to notify clients of server status change
     await state.broadcast_event(LspUpdatedEvent.create())
@@ -208,11 +192,6 @@ async def get_diagnostics(
     Returns:
         Dictionary mapping file paths to lists of diagnostic objects.
     """
-    try:
-        lsp_manager = state.get_or_create_lsp_manager()
-    except RuntimeError:
-        return {}
-
     results: dict[str, list[Diagnostic]] = {}
 
     # If a specific path is provided, run CLI diagnostics for it
@@ -222,10 +201,10 @@ async def get_diagnostics(
             path = os.path.join(state.working_dir, path)  # noqa: PTH118
 
         # Find the appropriate server for this file
-        server_info = lsp_manager.get_server_for_file(path)
+        server_info = state.lsp_manager.get_server_for_file(path)
         if server_info and server_info.has_cli_diagnostics:
             try:
-                result = await lsp_manager.run_cli_diagnostics(server_info.id, [path])
+                result = await state.lsp_manager.run_cli_diagnostics(server_info.id, [path])
                 if result.success and result.diagnostics:
                     for diag in result.diagnostics:
                         file_path = diag.file or path
@@ -278,17 +257,12 @@ async def list_available_servers(state: StateDep) -> list[dict[str, object]]:
     Returns:
         List of server configurations.
     """
-    try:
-        lsp_manager = state.get_or_create_lsp_manager()
-    except RuntimeError:
-        return []
-
     servers = []
-    for server_id, config in lsp_manager._server_configs.items():
+    for server_id, config in state.lsp_manager._server_configs.items():
         servers.append({
             "id": server_id,
             "extensions": config.extensions,
-            "running": server_id in lsp_manager._servers,
+            "running": server_id in state.lsp_manager._servers,
         })
 
     return servers

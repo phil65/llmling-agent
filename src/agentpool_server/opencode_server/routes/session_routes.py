@@ -105,7 +105,7 @@ async def list_sessions(state: StateDep) -> list[Session]:
     from the appropriate storage (pool storage, Claude storage, ACP server, etc.).
     """
     # Get sessions from the agent - filter by agent's cwd if available
-    cwd = state.agent.env.cwd if state.agent.env else None
+    cwd = state.agent.env.cwd
     session_data_list = await state.agent.list_sessions(cwd=cwd)
 
     # Convert to OpenCode Session format and cache
@@ -356,7 +356,7 @@ async def init_session(  # noqa: D417
 
     # Get the agent and filesystem
     agent = state.agent
-    fs = agent.env.get_fs()
+    fs = state.fs
     working_dir = state.working_dir
     try:
         all_files = await find_src_files(fs, working_dir)
@@ -957,7 +957,7 @@ async def revert_session(session_id: str, request: RevertRequest, state: StateDe
     if file_ops.changes:
         revert_ops = file_ops.get_revert_operations(since_message_id=request.message_id)
         if revert_ops:
-            fs = state.agent.env.get_fs()
+            fs = state.fs
             for path, content in revert_ops:
                 try:
                     if content is None:
@@ -1019,7 +1019,7 @@ async def unrevert_session(session_id: str, state: StateDep) -> Session:
     file_ops = state.pool.file_ops
     if file_ops.reverted_changes:
         unrevert_ops = file_ops.get_unrevert_operations()
-        fs = state.agent.env.get_fs()
+        fs = state.fs
         for path, content in unrevert_ops:
             try:
                 if content is None:

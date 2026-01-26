@@ -82,7 +82,6 @@ def _sort_functions(functions: list[NodeFunction]) -> list[NodeFunction]:
     """
     # First by explicit order
     ordered = sorted(functions, key=lambda f: f.name)
-
     # Then resolve dependencies
     result = []
     seen = set()

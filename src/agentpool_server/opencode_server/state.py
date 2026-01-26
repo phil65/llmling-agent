@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
+from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -12,6 +13,8 @@ from agentpool.diagnostics.lsp_manager import LSPManager
 
 
 if TYPE_CHECKING:
+    from fsspec.asyn import AsyncFileSystem
+
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.delegation import AgentPool
     from agentpool_server.opencode_server.input_provider import OpenCodeInputProvider
@@ -84,8 +87,29 @@ class ServerState:
     _first_subscriber_triggered: bool = field(default=False, repr=False)
     # Background tasks (for cleanup on shutdown)
     background_tasks: set[asyncio.Task[Any]] = field(default_factory=set)
-    # LSP manager for language server integration (initialized lazily)
-    lsp_manager: LSPManager | None = None
+
+    def __post_init__(self) -> None:
+        """Initialize derived state."""
+        self.lsp_manager = LSPManager(env=self.agent.env)
+        self.lsp_manager.register_defaults()
+
+    @property
+    def fs(self) -> AsyncFileSystem:
+        """Get the fsspec filesystem from the agent's environment."""
+        return self.agent.env.get_fs()
+
+    @property
+    def base_path(self) -> str:
+        """Get the resolved root directory for file operations."""
+        raw_path = self.agent.env.cwd or self.working_dir
+        return str(Path(raw_path).resolve())
+
+    @property
+    def is_local_fs(self) -> bool:
+        """Check if the filesystem is local."""
+        from fsspec.implementations.local import LocalFileSystem
+
+        return isinstance(self.fs, LocalFileSystem)
 
     @property
     def pool(self) -> AgentPool[Any]:
@@ -107,8 +131,6 @@ class ServerState:
         for task in self.background_tasks:
             task.cancel()
         if self.background_tasks:
-            import asyncio
-
             await asyncio.gather(*self.background_tasks, return_exceptions=True)
         self.background_tasks.clear()
 
@@ -117,25 +139,3 @@ class ServerState:
         print(f"Broadcasting event: {event.type} to {len(self.event_subscribers)} subscribers")
         for queue in self.event_subscribers:
             await queue.put(event)
-
-    def get_or_create_lsp_manager(self) -> LSPManager:
-        """Get or create the LSP manager.
-
-        Creates the LSP manager lazily using the agent's execution environment.
-
-        Returns:
-            The LSP manager instance.
-
-        Raises:
-            RuntimeError: If the agent doesn't have an execution environment.
-        """
-        if self.lsp_manager is not None:
-            return self.lsp_manager
-        # Get the execution environment from the agent
-        env = getattr(self.agent, "env", None)
-        if env is None:
-            raise RuntimeError("Agent does not have an execution environment for LSP")
-
-        self.lsp_manager = LSPManager(env=env)
-        self.lsp_manager.register_defaults()
-        return self.lsp_manager

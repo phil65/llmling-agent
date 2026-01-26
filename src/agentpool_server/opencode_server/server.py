@@ -283,8 +283,7 @@ def create_app(  # noqa: PLR0915
         if project_file_watcher:
             await project_file_watcher.stop()
         # Clean up LSP servers
-        if state.lsp_manager is not None:
-            await state.lsp_manager.stop_all()
+        await state.lsp_manager.stop_all()
 
     app = FastAPI(
         title="OpenCode-Compatible API",

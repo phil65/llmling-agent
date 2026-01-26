@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import asyncio
 import fnmatch
 import os
 from pathlib import Path
 import re
 import shutil
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import anyenv
 from fastapi import APIRouter, HTTPException, Query
@@ -23,21 +22,17 @@ from agentpool_server.opencode_server.models import (
 from agentpool_server.opencode_server.models.file import SubmatchInfo
 
 
-if TYPE_CHECKING:
-    from fsspec.asyn import AsyncFileSystem
-
-
 router = APIRouter(tags=["file"])
 
 
-# Directories to skip when searching
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".tox", "dist", "build"}
+"""Directories to skip when searching."""
 
-# Sensitive files that should never be exposed via the API
 BLOCKED_FILES = {".env", ".env.local", ".env.production", ".env.development", ".env.test"}
+"""Sensitive files that should never be exposed via the API."""
 
 
-def _validate_path(root: Path, user_path: str) -> Path:
+def _validate_path(root: Path | str, user_path: str) -> Path:
     """Validate and resolve a user-provided path, ensuring it stays within root.
 
     Args:
@@ -51,66 +46,21 @@ def _validate_path(root: Path, user_path: str) -> Path:
         HTTPException: If the path escapes root or is blocked.
     """
     # Resolve the root to handle any symlinks in the root itself
-    resolved_root = root.resolve()
-
+    resolved_root = Path(root).resolve()
     # Join and resolve the full path (this handles ../, symlinks, etc.)
-    target = (root / user_path).resolve()
-
+    target = (Path(root) / user_path).resolve()
     # Check that the resolved path is within the resolved root
     try:
         target.relative_to(resolved_root)
     except ValueError:
-        raise HTTPException(
-            status_code=403,
-            detail="Access denied: path escapes project directory",
-        ) from None
+        detail = "Access denied: path escapes project directory"
+        raise HTTPException(status_code=403, detail=detail) from None
 
-    # Check for blocked files
     if target.name in BLOCKED_FILES:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Access denied: {target.name} files are protected",
-        )
+        detail = f"Access denied: {target.name} files are protected"
+        raise HTTPException(status_code=403, detail=detail)
 
     return target
-
-
-def _validate_path_str(root: str, user_path: str) -> str:
-    """Validate path for fsspec filesystem (string-based).
-
-    Args:
-        root: The root directory path as string.
-        user_path: The user-provided relative path.
-
-    Returns:
-        The validated absolute path as string.
-
-    Raises:
-        HTTPException: If the path escapes root or is blocked.
-    """
-    validated = _validate_path(Path(root), user_path)
-    return str(validated)
-
-
-def _get_fs(state: StateDep) -> tuple[AsyncFileSystem, str]:
-    """Get the fsspec filesystem from the agent's environment.
-
-    Returns:
-        Tuple of (filesystem, base_path).
-        base_path is the resolved root directory to use for operations.
-    """
-    fs = state.agent.env.get_fs()
-    # Use env's cwd if set, otherwise use state.working_dir
-    # Resolve symlinks to ensure consistent path comparison
-    # (important on macOS where /tmp -> /private/var/folders/...)
-    raw_path = state.agent.env.cwd or state.working_dir
-    base_path = str(Path(raw_path).resolve())
-    return (fs, base_path)
-
-
-def _is_local_fs(fs: AsyncFileSystem) -> bool:
-    """Check if filesystem is a local filesystem."""
-    return getattr(fs, "local_file", False)
 
 
 def _has_ripgrep() -> bool:
@@ -140,14 +90,10 @@ async def _search_with_ripgrep(
         cmd.extend(["--glob", f"!{skip_dir}/"])
     cmd.extend(["-e", pattern, base_path])
     # Run ripgrep asynchronously
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
+    proc = await anyenv.create_process(*cmd, stdout="pipe", stderr="pipe")
     stdout, _ = await proc.communicate()
     matches: list[FindMatch] = []
-    # base_path is already resolved by _get_fs()
+    # base_path is already resolved by state.base_path
     base_path_prefix = base_path.rstrip("/") + "/"
     for line in stdout.decode("utf-8", errors="replace").splitlines():
         if not line.strip():
@@ -213,17 +159,12 @@ async def _find_files_with_ripgrep(query: str, base_path: str, max_results: int 
     if not any(c in query for c in glob_chars):
         query = f"*{query}*"
     # Use **/ prefix to match the filename in any directory
-    cmd.extend(["--glob", f"**/{query}"])
-    cmd.append(base_path)
+    cmd.extend(["--glob", f"**/{query}", base_path])
     # Run ripgrep asynchronously
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
+    proc = await anyenv.create_process(*cmd, stdout="pipe", stderr="pipe")
     stdout, _ = await proc.communicate()
     results: list[str] = []
-    # base_path is already resolved by _get_fs()
+    # base_path is already resolved by state.base_path
     base_path_prefix = base_path.rstrip("/") + "/"
     for line in stdout.decode("utf-8", errors="replace").splitlines():
         if not line.strip():
@@ -242,23 +183,18 @@ async def list_files(state: StateDep, path: str = Query(default="")) -> list[Fil
     working_path = Path(state.working_dir)
     # Validate path if provided (empty path means root, which is always valid)
     target_p = _validate_path(working_path, path) if path else working_path.resolve()
-    fs, _base_path = _get_fs(state)
-    resolved_root = working_path.resolve()
     target = str(target_p)
     try:
         nodes = []
-        for entry in await fs._ls(target, detail=True):
+        for entry in await state.fs._ls(target, detail=True):
             full_name = entry.get("name", "")
             name = full_name.split("/")[-1]
-            if not name:
-                continue
-            # Skip blocked files in directory listings
-            if name in BLOCKED_FILES:
+            if not name or name in BLOCKED_FILES:
                 continue
             node_type = "directory" if entry.get("type") == "directory" else "file"
             size = entry.get("size") if node_type == "file" else None
             # Build relative path from resolved root
-            rel_path = os.path.relpath(full_name, resolved_root)
+            rel_path = os.path.relpath(full_name, working_path.resolve())
             nodes.append(FileNode(name=name, path=rel_path or name, type=node_type, size=size))
         return sorted(nodes, key=lambda n: (n.type != "directory", n.name.lower()))
     except FileNotFoundError as err:
@@ -271,10 +207,8 @@ async def read_file(state: StateDep, path: str = Query()) -> FileContent:
     working_path = Path(state.working_dir)
     # Validate path - this checks for traversal, symlink escapes, and blocked files
     target = _validate_path(working_path, path)
-    fs, _base_path = _get_fs(state)
-    full_path = str(target)
     try:
-        content = await fs._cat_file(full_path)
+        content = await state.fs._cat_file(str(target))
         if isinstance(content, bytes):
             content = content.decode("utf-8")
         return FileContent(path=path, content=content)
@@ -303,16 +237,16 @@ async def find_text(state: StateDep, pattern: str = Query()) -> list[FindMatch]:
     except re.error as e:
         raise HTTPException(status_code=400, detail=f"Invalid regex: {e}") from e
     max_matches = 100
-    fs, base_path = _get_fs(state)
+    base_path = state.base_path
     # Fast path: use ripgrep for local filesystems
-    if _is_local_fs(fs) and _has_ripgrep():
+    if state.is_local_fs and _has_ripgrep():
         return await _search_with_ripgrep(pattern, base_path, max_matches)
     # Slow path: manual file iteration via fsspec
     matches: list[FindMatch] = []
     regex = re.compile(pattern)
     try:
         # Use find to get all files recursively (limit depth to avoid scanning huge trees)
-        for path in await fs._find(base_path, maxdepth=10, withdirs=False):
+        for path in await state.fs._find(base_path, maxdepth=10, withdirs=False):
             if len(matches) >= max_matches:
                 break
             # Skip directories we don't want to search
@@ -321,7 +255,7 @@ async def find_text(state: StateDep, pattern: str = Query()) -> list[FindMatch]:
             # Get relative path
             rel_path = path[len(base_path) :].lstrip("/") if path.startswith(base_path) else path
             try:
-                content = await fs._cat_file(path)
+                content = await state.fs._cat_file(path)
                 if isinstance(content, bytes):
                     content = content.decode("utf-8")
                 for line_num, line in enumerate(content.splitlines(), 1):
@@ -355,9 +289,10 @@ async def find_files(
     """Find files by name pattern (glob-style matching)."""
     include_dirs = dirs.lower() == "true"
     max_results = 100
-    fs, base_path = _get_fs(state)
+    fs = state.fs
+    base_path = state.base_path
     # Fast path: use ripgrep for local filesystems (files only, not dirs)
-    if not include_dirs and _is_local_fs(fs) and _has_ripgrep():
+    if not include_dirs and state.is_local_fs and _has_ripgrep():
         return await _find_files_with_ripgrep(query, base_path, max_results)
     # Slow path: manual file iteration via fsspec
     results: list[str] = []

@@ -97,13 +97,7 @@ def _warmup_lsp_for_files(state: ServerState, file_paths: list[str]) -> None:
     logging.getLogger(__name__)
     print(f"[LSP] _warmup_lsp_for_files called with: {file_paths}")
 
-    try:
-        lsp_manager = state.get_or_create_lsp_manager()
-        print("[LSP] Got LSP manager successfully")
-    except RuntimeError as e:
-        # No execution environment available for LSP
-        print(f"[LSP] No LSP manager: {e}")
-        return
+    lsp_manager = state.lsp_manager
 
     async def warmup_files() -> None:
         """Start LSP servers for each file path."""
@@ -245,7 +239,7 @@ async def _process_message(  # noqa: PLR0915
     status_event = SessionStatusEvent.create(session_id, SessionStatus(type="busy"))
     await state.broadcast_event(status_event)
     # Extract user prompt text
-    fs = state.agent.env.get_fs() if state.agent.env else None
+    fs = state.fs
     user_prompt = extract_user_prompt_from_parts([p.model_dump() for p in request.parts], fs=fs)
     # Create assistant message with sortable ID (must come after user message)
     assistant_msg_id = identifier.ascending("message")
