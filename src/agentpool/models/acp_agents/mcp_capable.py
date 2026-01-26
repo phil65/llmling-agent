@@ -25,7 +25,6 @@ class FastAgentACPAgentConfig(BaseACPAgentConfig):
           coder:
             type: acp
             provider: fast-agent
-            cwd: /path/to/project
             model: claude-3.5-sonnet-20241022
             tools:
               - type: subagent
@@ -105,7 +104,6 @@ class AuggieACPAgentConfig(BaseACPAgentConfig):
           auggie:
             type: acp
             provider: auggie
-            cwd: /path/to/project
             model: auggie-sonnet
             workspace_root: /path/to/workspace
             rules: [rules.md]
@@ -257,7 +255,6 @@ class KimiACPAgentConfig(BaseACPAgentConfig):
           kimi:
             type: acp
             provider: kimi
-            cwd: /path/to/project
             model: kimi-v1
             work_dir: /path/to/work
             yolo: true

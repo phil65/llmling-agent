@@ -52,7 +52,6 @@ class ClaudeACPAgentConfig(BaseACPAgentConfig):
           claude_coder:
             type: acp
             provider: claude
-            cwd: /path/to/project
             env:
               ANTHROPIC_API_KEY: ""  # Use subscription instead of API key
 
@@ -102,7 +101,6 @@ class CodexACPAgentConfig(BaseACPAgentConfig):
           coder:
             type: acp
             provider: codex
-            cwd: /path/to/project
             model: o3
             sandbox_permissions:
               - disk-full-read-access
@@ -176,7 +174,6 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
           coder:
             type: acp
             provider: opencode
-            cwd: /path/to/project
             log_level: INFO
         ```
     """
@@ -192,11 +189,7 @@ class OpenCodeACPAgentConfig(BaseACPAgentConfig):
 
     def get_args(self) -> list[str]:
         """Build command arguments from settings."""
-        args: list[str] = ["acp"]
-
-        if self.cwd:
-            args.extend(["--cwd", self.cwd])
-        return args
+        return ["acp"]
 
 
 class GooseACPAgentConfig(BaseACPAgentConfig):
@@ -210,7 +203,6 @@ class GooseACPAgentConfig(BaseACPAgentConfig):
           coder:
             type: acp
             provider: goose
-            cwd: /path/to/project
         ```
     """
 
@@ -237,7 +229,6 @@ class MistralACPAgentConfig(BaseACPAgentConfig):
           coder:
             type: acp
             provider: mistral
-            cwd: /path/to/project
         ```
     """
 
@@ -266,7 +257,6 @@ class OpenHandsACPAgentConfig(BaseACPAgentConfig):
           coder:
             type: acp
             provider: openhands
-            cwd: /path/to/project
         ```
     """
 
@@ -307,7 +297,6 @@ class AmpACPAgentConfig(BaseACPAgentConfig):
           amp:
             type: acp
             provider: amp
-            cwd: /path/to/project
             env:
               AMP_EXECUTABLE: /usr/local/bin/amp
               AMP_PREFER_SYSTEM_PATH: "1"
@@ -340,7 +329,6 @@ class CagentACPAgentConfig(BaseACPAgentConfig):
           cagent:
             type: acp
             provider: cagent
-            cwd: /path/to/project
             agent_file: ./agent.yaml
             code_mode_tools: true
             working_dir: /path/to/work
@@ -436,7 +424,6 @@ class StakpakACPAgentConfig(BaseACPAgentConfig):
           stakpak:
             type: acp
             provider: stakpak
-            cwd: /path/to/project
             model: smart
             workdir: /path/to/work
             verbose: true
@@ -571,7 +558,6 @@ class VTCodeACPAgentConfig(BaseACPAgentConfig):
           vtcode:
             type: acp
             provider: vtcode
-            cwd: /path/to/project
             model: gemini-2.5-flash-preview-05-20
             model_provider: gemini
             workspace: /path/to/workspace
@@ -720,7 +706,6 @@ class CursorACPAgentConfig(BaseACPAgentConfig):
           coder:
             type: acp
             provider: cursor
-            cwd: /path/to/project
             session_dir: ~/.cursor-sessions
             timeout: 30000
         ```
@@ -832,7 +817,6 @@ class GeminiACPAgentConfig(BaseACPAgentConfig):
           coder:
             type: acp
             provider: gemini
-            cwd: /path/to/project
             model: gemini-2.5-pro
             approval_mode: auto_edit
             allowed_tools:
