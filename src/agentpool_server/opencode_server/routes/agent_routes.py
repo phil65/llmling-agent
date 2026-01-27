@@ -53,20 +53,16 @@ async def list_agents(state: StateDep) -> list[Agent]:
         ]
 
     pool = state.agent.agent_pool
-    agents: list[Agent] = []
-    default_agent_name = pool.main_agent.name
-
-    for name, agent in pool.all_agents.items():
-        # Get description from agent
-        agents.append(
-            Agent(
-                name=name,
-                description=agent.description or f"Agent: {name}",
-                # model=AgentModel(model_id=agent.model_name or "unknown", provider_id=""),
-                mode="primary",  # All agents visible for now; add hidden config later
-                default=(name == default_agent_name),  # Default agent from pool
-            )
+    agents = [
+        Agent(
+            name=name,
+            description=agent.description or f"Agent: {name}",
+            # model=AgentModel(model_id=agent.model_name or "unknown", provider_id=""),
+            mode="primary",  # All agents visible for now; add hidden config later
+            default=(name == pool.main_agent.name),  # Default agent from pool
         )
+        for name, agent in pool.all_agents.items()
+    ]
 
     return (
         agents
@@ -99,11 +95,7 @@ async def get_mcp_status(state: StateDep) -> dict[str, MCPStatus]:
 
     # Convert MCPServerStatus dataclass to MCPStatus response model
     return {
-        name: MCPStatus(
-            name=status.name,
-            status=status.status,
-            error=status.error,
-        )
+        name: MCPStatus(name=status.name, status=status.status, error=status.error)
         for name, status in server_info.items()
     }
 
