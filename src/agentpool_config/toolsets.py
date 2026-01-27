@@ -646,7 +646,14 @@ class CustomToolsetConfig(BaseToolsetConfig):
             raise ValueError(f"{self.import_path} must be a ResourceProvider subclass")  # noqa: TRY004
         kwargs = self.parameters.copy()
         name = kwargs.pop("name", provider_cls.__name__)
-        return provider_cls(name=name, **kwargs)
+        try:
+            return provider_cls(name=name, **kwargs)
+        except TypeError as e:
+            # Provide a more helpful error message about parameter mismatch
+            raise TypeError(
+                f"Failed to initialize provider '{self.import_path}' with parameters: {self.parameters}\n"
+                f"Original error: {e}"
+            ) from e
 
 
 class AggregatingToolsetConfig(BaseToolsetConfig):

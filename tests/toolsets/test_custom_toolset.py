@@ -50,13 +50,20 @@ async def test_custom_toolset_name_collision():
 
 
 async def test_custom_toolset_invalid_parameters():
-    """Test that invalid parameters raise appropriate errors."""
+    """Test that invalid parameters raise appropriate errors with helpful messages."""
     import pytest
 
-    # Missing required_arg should raise TypeError
+    # Missing required_arg should raise TypeError with helpful message
     config = CustomToolsetConfig(
         import_path="tests.toolsets.test_custom_toolset.StrictProvider",
         parameters={"unknown_param": "value"},  # Missing required_arg
     )
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError) as exc_info:
         config.get_provider()
+
+    # Verify the error message includes useful context
+    error_msg = str(exc_info.value)
+    assert "tests.toolsets.test_custom_toolset.StrictProvider" in error_msg
+    assert "unknown_param" in error_msg
+    assert "value" in error_msg
+    assert "Original error:" in error_msg
