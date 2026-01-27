@@ -288,7 +288,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.delegation.teamrun import TeamRun
 
         if agents is None:
-            agents = list(self.get_agents(Agent).keys())
+            agents = list(self.all_agents.keys())
         team = TeamRun(
             [self.get_agent(i) if isinstance(i, str) else i for i in agents],
             name=name,
@@ -342,7 +342,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.delegation.team import Team
 
         if agents is None:
-            agents = list(self.get_agents(Agent).keys())
+            agents = list(self.all_agents.keys())
         resolved = [self.get_agent(i) if isinstance(i, str) else i for i in agents]
         team = Team(resolved, name=name, description=description, shared_prompt=shared_prompt)
         if name:
@@ -502,7 +502,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         for name, config in self.manifest.teams.items():
             team = empty_teams[name]
             members: list[MessageNode[Any, Any]] = []
-            agents = self.get_agents(Agent)
+            agents = self.all_agents
             for member in config.members:
                 if member in agents:
                     members.append(agents[member])
@@ -592,10 +592,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         Raises:
             KeyError: If agent name not found
             ValueError: If configuration is invalid
-
-        Note:
-            To change the model, call `await agent.set_model(model_id)` after
-            getting the agent.
         """
         from agentpool.agents import Agent
 
