@@ -11,6 +11,7 @@ from exxec_config import (
 )
 from pydantic import ConfigDict, Field
 
+from agentpool.models.fields import EnvVarsField  # noqa: TC001
 from agentpool_config import AnyToolConfig, BaseToolConfig  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.toolsets import BaseToolsetConfig
@@ -45,11 +46,7 @@ class BaseACPAgentConfig(BaseAgentConfig):
     )
     """Working directory for the session."""
 
-    env_vars: dict[str, str] = Field(
-        default_factory=dict,
-        title="Environment Variables",
-        examples=[{"PATH": "/usr/local/bin:/usr/bin", "DEBUG": "1"}],
-    )
+    env_vars: EnvVarsField = Field(default_factory=dict)
     """Environment variables to set."""
 
     tools: list[AnyToolConfig | str] = Field(

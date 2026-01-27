@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence  # noqa: TC003
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Literal, assert_never
 from uuid import UUID
@@ -17,7 +16,7 @@ from toprompt import render_prompt
 
 from agentpool import log
 from agentpool.common_types import EndStrategy  # noqa: TC001
-from agentpool.models.fields import OutputTypeField  # noqa: TC001
+from agentpool.models.fields import OutputTypeField, SystemPromptField  # noqa: TC001
 from agentpool.prompts.prompts import PromptMessage, StaticPrompt
 from agentpool.resource_providers import StaticResourceProvider
 from agentpool_config import BaseToolConfig, NativeAgentToolConfig
@@ -25,7 +24,6 @@ from agentpool_config.builtin_tools import BaseBuiltinToolConfig
 from agentpool_config.knowledge import Knowledge  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
 from agentpool_config.session import MemoryConfig, SessionQuery
-from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
 from agentpool_config.toolsets import BaseToolsetConfig, ToolsetConfig
 from agentpool_config.workers import WorkerConfig  # noqa: TC001
 
@@ -146,17 +144,7 @@ class NativeAgentConfig(BaseAgentConfig):
     )
     """URL or path to agent's avatar image"""
 
-    system_prompt: str | Sequence[str | PromptConfig] | None = Field(
-        default=None,
-        title="System Prompt",
-        examples=[
-            "You are a helpful assistant.",
-            ["You are an AI assistant.", "Always be concise."],
-        ],
-        json_schema_extra={
-            "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/"
-        },
-    )
+    system_prompt: SystemPromptField = None
     """System prompt for the agent. Can be a string or list of strings/prompt configs.
 
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/

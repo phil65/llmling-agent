@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence  # noqa: TC003
 from typing import TYPE_CHECKING, Literal
 
 from pydantic import ConfigDict, Field
@@ -10,14 +9,13 @@ from schemez import Schema
 from tokonomics.model_names import AnthropicMaxModelName  # noqa: TC002
 
 from agentpool import log
-from agentpool.models.fields import OutputTypeField  # noqa: TC001
+from agentpool.models.fields import OutputTypeField, SystemPromptField  # noqa: TC001
 from agentpool.resource_providers import StaticResourceProvider
 from agentpool_config import (
     AnyToolConfig,  # noqa: TC001
     BaseToolConfig,
 )
 from agentpool_config.nodes import BaseAgentConfig
-from agentpool_config.system_prompts import PromptConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
@@ -133,17 +131,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     Takes precedence over allowed_tools if both are specified.
     """
 
-    system_prompt: str | Sequence[str | PromptConfig] | None = Field(
-        default=None,
-        title="System Prompt",
-        examples=[
-            "You are a helpful coding assistant.",
-            ["Always write tests.", "Focus on Python."],
-        ],
-        json_schema_extra={
-            "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/"
-        },
-    )
+    system_prompt: SystemPromptField = None
     """System prompt for the agent. Can be a string or list of strings/prompt configs.
 
     By default, this is appended to Claude Code's builtin system prompt.
