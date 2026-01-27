@@ -630,7 +630,11 @@ class CustomToolsetConfig(BaseToolsetConfig):
     """Dotted import path to the custom toolset implementation class."""
 
     parameters: dict[str, Any] = Field(default_factory=dict, title="Provider parameters")
-    """Additional parameters to pass to the provider constructor."""
+    """Additional parameters to pass to the provider constructor.
+
+    These are unpacked as keyword arguments. If "name" is present, it will
+    be used to override the default provider name.
+    """
 
     def get_provider(self) -> ResourceProvider:
         """Create custom provider from import path."""
