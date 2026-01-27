@@ -25,23 +25,23 @@ class StrictProvider(ResourceProvider):
 
 
 async def test_custom_toolset_parameters():
-    """Test that CustomToolsetConfig passes parameters to provider constructor."""
+    """Test that CustomToolsetConfig passes kw_args to provider constructor."""
     config = CustomToolsetConfig(
         import_path="tests.toolsets.test_custom_toolset.MockProvider",
-        parameters={"key": "value", "another": 123},
+        kw_args={"key": "value", "another": 123},
     )
     provider = config.get_provider()
 
-    # Provider should have received the custom parameters
+    # Provider should have received custom parameters
     assert hasattr(provider, "custom_params")
     assert provider.custom_params == {"key": "value", "another": 123}
 
 
 async def test_custom_toolset_name_collision():
-    """Test that parameters can override the default name."""
+    """Test that kw_args can override default name."""
     config = CustomToolsetConfig(
         import_path="tests.toolsets.test_custom_toolset.MockProvider",
-        parameters={"name": "new_name"},
+        kw_args={"name": "new_name"},
     )
     provider = config.get_provider()
 
@@ -56,12 +56,12 @@ async def test_custom_toolset_invalid_parameters():
     # Missing required_arg should raise TypeError with helpful message
     config = CustomToolsetConfig(
         import_path="tests.toolsets.test_custom_toolset.StrictProvider",
-        parameters={"unknown_param": "value"},  # Missing required_arg
+        kw_args={"unknown_param": "value"},  # Missing required_arg
     )
     with pytest.raises(TypeError) as exc_info:
         config.get_provider()
 
-    # Verify the error message includes useful context
+    # Verify error message includes useful context
     error_msg = str(exc_info.value)
     assert "tests.toolsets.test_custom_toolset.StrictProvider" in error_msg
     assert "unknown_param" in error_msg

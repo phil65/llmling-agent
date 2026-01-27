@@ -629,8 +629,8 @@ class CustomToolsetConfig(BaseToolsetConfig):
     )
     """Dotted import path to the custom toolset implementation class."""
 
-    parameters: dict[str, Any] = Field(default_factory=dict, title="Provider parameters")
-    """Additional parameters to pass to the provider constructor.
+    kw_args: dict[str, Any] = Field(default_factory=dict, title="Provider parameters")
+    """Additional parameters to pass to provider constructor.
 
     These are unpacked as keyword arguments. If "name" is present, it will
     be used to override the default provider name.
@@ -644,14 +644,14 @@ class CustomToolsetConfig(BaseToolsetConfig):
         provider_cls = import_class(self.import_path)
         if not issubclass(provider_cls, ResourceProvider):
             raise ValueError(f"{self.import_path} must be a ResourceProvider subclass")  # noqa: TRY004
-        kwargs = self.parameters.copy()
+        kwargs = self.kw_args.copy()
         name = kwargs.pop("name", provider_cls.__name__)
         try:
             return provider_cls(name=name, **kwargs)
         except TypeError as e:
             # Provide a more helpful error message about parameter mismatch
             raise TypeError(
-                f"Failed to initialize provider '{self.import_path}' with parameters: {self.parameters}\n"
+                f"Failed to initialize provider '{self.import_path}' with parameters: {self.kw_args}\n"
                 f"Original error: {e}"
             ) from e
 
