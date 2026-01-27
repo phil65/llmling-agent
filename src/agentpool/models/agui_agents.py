@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import ConfigDict, Field
 
 from agentpool_config import ToolConfig  # noqa: TC001
 from agentpool_config.nodes import BaseAgentConfig
+
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from agentpool.agents.agui_agent import AGUIAgent
+    from agentpool.common_types import AnyEventHandlerType
+    from agentpool.delegation import AgentPool
+    from agentpool.ui.base import InputProvider
 
 
 class AGUIAgentConfig(BaseAgentConfig):
@@ -87,3 +96,20 @@ class AGUIAgentConfig(BaseAgentConfig):
     locally and the result is sent back. This enables human-in-the-loop workflows
     and local capability exposure to remote agents.
     """
+
+    def get_agent[TDeps](
+        self,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
+        input_provider: InputProvider | None = None,
+        pool: AgentPool[Any] | None = None,
+        deps_type: type[TDeps] | None = None,  # type: ignore[valid-type]
+    ) -> AGUIAgent[TDeps]:
+        from agentpool.agents.agui_agent import AGUIAgent
+
+        return AGUIAgent.from_config(
+            self,
+            event_handlers=event_handlers,
+            input_provider=input_provider,
+            agent_pool=pool,
+            deps_type=deps_type,
+        )

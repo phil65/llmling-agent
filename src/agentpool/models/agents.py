@@ -29,9 +29,15 @@ from agentpool_config.workers import WorkerConfig  # noqa: TC001
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from agentpool.agents.native_agent import Agent
+    from agentpool.common_types import AnyEventHandlerType
+    from agentpool.delegation import AgentPool
     from agentpool.prompts.prompts import BasePrompt
     from agentpool.resource_providers import ResourceProvider
     from agentpool.tools.base import Tool
+    from agentpool.ui.base import InputProvider
 
 ToolMode = Literal["codemode"]
 
@@ -87,12 +93,6 @@ class NativeAgentConfig(BaseAgentConfig):
                 {
                     "type": "bash",
                     "timeout": 30.0,
-                },
-                {
-                    "type": "file_access",
-                },
-                {
-                    "type": "process_management",
                 },
             ],
         ],
@@ -239,6 +239,23 @@ class NativeAgentConfig(BaseAgentConfig):
         if isinstance((model := data.get("model")), str):
             data["model"] = {"type": "string", "identifier": model}
         return data
+
+    def get_agent[TDeps](
+        self,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
+        input_provider: InputProvider | None = None,
+        pool: AgentPool[Any] | None = None,
+        deps_type: type[TDeps] | None = None,  # type: ignore[valid-type]
+    ) -> Agent[TDeps, Any]:
+        from agentpool.agents.native_agent import Agent
+
+        return Agent[TDeps].from_config(
+            self,
+            event_handlers=event_handlers,
+            input_provider=input_provider,
+            agent_pool=pool,
+            deps_type=deps_type,
+        )
 
     def get_tool_providers(self) -> list[ResourceProvider]:
         """Get all resource providers for this agent's tools.

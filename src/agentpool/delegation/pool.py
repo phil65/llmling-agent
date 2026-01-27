@@ -7,7 +7,7 @@ from asyncio import Lock
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self, Unpack, assert_never, overload
+from typing import TYPE_CHECKING, Any, Self, Unpack, overload
 
 from anyenv import ProcessManager
 import anyio
@@ -47,7 +47,6 @@ if TYPE_CHECKING:
     from agentpool.delegation.base_team import BaseTeam
     from agentpool.messaging import ChatMessage
     from agentpool.messaging.compaction import CompactionPipeline
-    from agentpool.models import AnyAgentConfig
     from agentpool.models.manifest import AgentsManifest
     from agentpool.ui.base import InputProvider
     from agentpool_config.task import Job
@@ -152,8 +151,14 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self.todos = TodoTracker()
         # Create all agents from unified manifest.agents dict
         for name, config in self.manifest.agents.items():
-            agent = self._create_agent_from_config(name, config, deps_type=shared_deps_type)
-            agent.agent_pool = self
+            # Ensure name is set on config
+            cfg = config.model_copy(update={"name": name}) if config.name is None else config
+            agent: BaseAgent[TPoolDeps] = cfg.get_agent(
+                event_handlers=self.event_handlers,
+                input_provider=self._input_provider,
+                pool=self,
+                deps_type=shared_deps_type,
+            )
             self.register(name, agent)
 
         self._create_teams()
@@ -443,7 +448,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """Get agents dict (backward compatibility)."""
         from agentpool import MessageNode
 
-        return {i.name: i for i in self._items.values() if isinstance(i, MessageNode)}
+        return {i.name: i for i in self._items.values()}
 
     @property
     def compaction_pipeline(self) -> CompactionPipeline | None:
@@ -690,87 +695,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.messaging.message_utils import build_message_index
 
         return build_message_index(self.get_agents())
-
-    def _create_agent_from_config[TAgentDeps](
-        self,
-        name: str,
-        config: AnyAgentConfig,
-        deps_type: type[TAgentDeps] | None = None,
-    ) -> BaseAgent[TAgentDeps, Any]:
-        """Create an agent from a unified config, dispatching by type.
-
-        Args:
-            name: Agent name
-            config: Agent configuration (any type)
-            deps_type: Optional dependency type
-
-        Returns:
-            Configured agent instance
-        """
-        from agentpool.models.acp_agents import BaseACPAgentConfig
-        from agentpool.models.agents import NativeAgentConfig
-        from agentpool.models.agui_agents import AGUIAgentConfig
-        from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
-        from agentpool.models.codex_agents import CodexAgentConfig
-
-        # Ensure name is set on config
-        if config.name is None:
-            config = config.model_copy(update={"name": name})
-
-        match config:
-            case NativeAgentConfig():
-                from agentpool import Agent
-
-                return Agent.from_config(
-                    config,
-                    name=name,  # Pass dict key for manifest lookups
-                    event_handlers=self.event_handlers,
-                    input_provider=self._input_provider,
-                    agent_pool=self,
-                    deps_type=deps_type,
-                )
-            case AGUIAgentConfig():
-                from agentpool.agents.agui_agent import AGUIAgent
-
-                return AGUIAgent.from_config(
-                    config,
-                    event_handlers=self.event_handlers,
-                    input_provider=self._input_provider,
-                    agent_pool=self,
-                    deps_type=deps_type,
-                )
-            case ClaudeCodeAgentConfig():
-                from agentpool.agents.claude_code_agent import ClaudeCodeAgent
-
-                return ClaudeCodeAgent.from_config(
-                    config,
-                    event_handlers=self.event_handlers,
-                    input_provider=self._input_provider,
-                    agent_pool=self,
-                    deps_type=deps_type,
-                )
-            case CodexAgentConfig():
-                from agentpool.agents.codex_agent import CodexAgent
-
-                return CodexAgent.from_config(
-                    config,
-                    event_handlers=self.event_handlers,
-                    input_provider=self._input_provider,
-                    agent_pool=self,
-                    deps_type=deps_type,
-                )
-            case BaseACPAgentConfig():
-                from agentpool.agents.acp_agent import ACPAgent
-
-                return ACPAgent.from_config(
-                    config,
-                    event_handlers=self.event_handlers,
-                    input_provider=self._input_provider,
-                    agent_pool=self,
-                    deps_type=deps_type,
-                )
-            case _ as unreachable:
-                assert_never(unreachable)
 
     def create_agent[TAgentDeps](  # noqa: PLR0915
         self,

@@ -307,7 +307,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         cls,
         config: NativeAgentConfig,
         *,
-        name: str | None = None,
         event_handlers: Sequence[AnyEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
@@ -339,10 +338,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         )
         from agentpool_toolsets.builtin.workers import WorkersTools
 
+        name = config.name or "native_agent"
         # Get manifest from pool or create empty one
         manifest = agent_pool.manifest if agent_pool is not None else AgentsManifest()
-        # Use provided name, fall back to config.name, then default
-        name = name or config.name or "agent"
         # Normalize system_prompt to a list for iteration
         sys_prompts: list[str] = []
         if (sys_prompt := config.system_prompt) is not None:
@@ -372,7 +370,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                             content = agent_pool.prompt_manager.get.sync(reference)
                             sys_prompts.append(content)
                         except Exception as e:
-                            msg = f"Failed to load library prompt {reference!r} for agent {name}"
+                            msg = f"Failed to load library prompt {reference!r} for {name!r}"
                             logger.exception(msg)
                             raise ValueError(msg) from e
                     case FunctionPromptConfig(function=function, arguments=arguments):

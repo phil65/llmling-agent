@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from exxec_config import (
     E2bExecutionEnvironmentConfig,
@@ -18,9 +18,15 @@ from agentpool_config.toolsets import BaseToolsetConfig
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from exxec import ExecutionEnvironment
 
+    from agentpool.agents.acp_agent import ACPAgent
+    from agentpool.common_types import AnyEventHandlerType
+    from agentpool.delegation import AgentPool
     from agentpool.resource_providers import ResourceProvider
+    from agentpool.ui.base import InputProvider
 
 
 class BaseACPAgentConfig(BaseAgentConfig):
@@ -134,6 +140,23 @@ class BaseACPAgentConfig(BaseAgentConfig):
             providers.append(StaticResourceProvider(name="tools", tools=static_tools))
 
         return providers
+
+    def get_agent[TDeps](
+        self,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
+        input_provider: InputProvider | None = None,
+        pool: AgentPool[Any] | None = None,
+        deps_type: type[TDeps] | None = None,  # type: ignore[valid-type]
+    ) -> ACPAgent[TDeps]:
+        from agentpool.agents.acp_agent import ACPAgent
+
+        return ACPAgent.from_config(
+            self,
+            event_handlers=event_handlers,
+            input_provider=input_provider,
+            agent_pool=pool,
+            deps_type=deps_type,
+        )
 
     def get_client_execution_environment(self) -> ExecutionEnvironment | None:
         """Create client execution environment from config.

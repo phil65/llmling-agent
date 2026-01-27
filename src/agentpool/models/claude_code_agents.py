@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import ConfigDict, Field
 from schemez import Schema
@@ -19,7 +19,13 @@ from agentpool_config.nodes import BaseAgentConfig
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+    from agentpool.common_types import AnyEventHandlerType
+    from agentpool.delegation import AgentPool
     from agentpool.resource_providers import ResourceProvider
+    from agentpool.ui.base import InputProvider
 
 logger = log.get_logger(__name__)
 
@@ -304,6 +310,23 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
 
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/tool_configuration/
     """
+
+    def get_agent[TDeps](
+        self,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
+        input_provider: InputProvider | None = None,
+        pool: AgentPool[Any] | None = None,
+        deps_type: type[TDeps] | None = None,  # type: ignore[valid-type]
+    ) -> ClaudeCodeAgent[TDeps, Any]:
+        from agentpool.agents.claude_code_agent import ClaudeCodeAgent
+
+        return ClaudeCodeAgent.from_config(
+            self,
+            event_handlers=event_handlers,
+            input_provider=input_provider,
+            agent_pool=pool,
+            deps_type=deps_type,
+        )
 
     def get_tool_providers(self) -> list[ResourceProvider]:
         """Get all resource providers for this agent's tools.
