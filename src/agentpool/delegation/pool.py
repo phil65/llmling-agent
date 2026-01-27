@@ -114,7 +114,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             case AgentsManifest():
                 self.manifest = manifest
             case _:
-                raise ValueError(f"Invalid config path: {manifest}")
+                raise ValueError(f"Invalid config type: {type(manifest)}")
         registry.configure_observability(self.manifest.observability)
         self._memory_log_handler = install_memory_handler()
         self.shared_deps_type = shared_deps_type
