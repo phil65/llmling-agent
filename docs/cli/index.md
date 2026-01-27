@@ -186,7 +186,7 @@ Example:
 ```yaml
 agents:
   analyzer:
-    name: "Text Analyzer"
+    display_name: "Text Analyzer"
     model: openai:gpt-4o
     description: "Analyzes text and provides structured output"
     tools:

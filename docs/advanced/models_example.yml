@@ -18,7 +18,7 @@ agents:
   ### Example with Provider and Model Settings
 
   advanced_agent:
-    name: "Advanced GPT-5"
+    display_name: "Advanced GPT-5"
     end_strategy: early
     model:
       type: string
@@ -29,7 +29,7 @@ agents:
       timeout: 60.0
 
   cautious_agent:
-    name: "Careful Claude"
+    display_name: "Careful Claude"
     model:
       identifier: anthropic:claude-sonnet-4-0
       temperature: 0.3 # More deterministic

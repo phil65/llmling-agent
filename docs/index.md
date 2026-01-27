@@ -59,7 +59,7 @@ MIT License - see [LICENSE](https://github.com/phil65/agentpool/blob/main/LICENS
 # agents.yml
 agents:
   assistant:
-    name: "Technical Assistant"
+    display_name: "Technical Assistant"
     model: openai:gpt-4
     system_prompt: You are a helpful technical assistant.
     tools:
