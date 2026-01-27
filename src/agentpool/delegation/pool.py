@@ -446,8 +446,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     @property
     def nodes(self) -> dict[str, MessageNode[Any, Any]]:
         """Get agents dict (backward compatibility)."""
-        from agentpool import MessageNode
-
         return {i.name: i for i in self._items.values()}
 
     @property
