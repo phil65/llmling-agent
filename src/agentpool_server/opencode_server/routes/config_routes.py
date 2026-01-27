@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
+import os
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter
 
+from agentpool_server.opencode_server.converters import convert_toko_model_to_opencode
 from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.models import (
     Config,
@@ -47,61 +49,6 @@ PROVIDER_INFO: dict[str, tuple[str, list[str]]] = {
 }
 
 
-def _convert_toko_model_to_opencode(model: TokoModelInfo) -> Model:
-    """Convert a tokonomics ModelInfo to an OpenCode Model."""
-    # Convert pricing (tokonomics uses per-token, OpenCode uses per-million-token)
-    input_cost = 0.0
-    output_cost = 0.0
-    cache_read = None
-    cache_write = None
-
-    if model.pricing:
-        # tokonomics pricing is per-token, convert to per-million-tokens
-        if model.pricing.prompt is not None:
-            input_cost = model.pricing.prompt * 1_000_000
-        if model.pricing.completion is not None:
-            output_cost = model.pricing.completion * 1_000_000
-        if model.pricing.input_cache_read is not None:
-            cache_read = model.pricing.input_cache_read * 1_000_000
-        if model.pricing.input_cache_write is not None:
-            cache_write = model.pricing.input_cache_write * 1_000_000
-
-    cost = ModelCost(
-        input=input_cost,
-        output=output_cost,
-        cache_read=cache_read,
-        cache_write=cache_write,
-    )
-
-    # Convert limits
-    context = float(model.context_window) if model.context_window else 128000.0
-    output = float(model.max_output_tokens) if model.max_output_tokens else 4096.0
-    limit = ModelLimit(context=context, output=output)
-
-    # Determine capabilities from modalities and metadata
-    has_vision = "image" in model.input_modalities
-    has_reasoning = "reasoning" in model.output_modalities or "thinking" in model.name.lower()
-
-    # Format release date if available
-    release_date = ""
-    if model.created_at:
-        release_date = model.created_at.strftime("%Y-%m-%d")
-
-    # Use id_override if available (e.g., "opus" for Claude Code SDK)
-    model_id = model.id_override or model.id
-    return Model(
-        id=model_id,
-        name=model.name,
-        attachment=has_vision,
-        cost=cost,
-        limit=limit,
-        reasoning=has_reasoning,
-        release_date=release_date,
-        temperature=True,
-        tool_call=True,  # Assume most models support tool calling
-    )
-
-
 def _group_models_by_provider(
     models: list[TokoModelInfo],
 ) -> dict[str, list[TokoModelInfo]]:
@@ -129,7 +76,7 @@ def _build_providers(models: list[TokoModelInfo]) -> list[Provider]:
         # Convert models to OpenCode format
         models_dict: dict[str, Model] = {}
         for toko_model in provider_models:
-            opencode_model = _convert_toko_model_to_opencode(toko_model)
+            opencode_model = convert_toko_model_to_opencode(toko_model)
             # Use id_override if available (e.g., "opus" for Claude Code SDK)
             model_key = toko_model.id_override or toko_model.id
             models_dict[model_key] = opencode_model
@@ -156,8 +103,6 @@ async def _get_available_models() -> list[TokoModelInfo]:
 @router.get("/config")
 async def get_config(state: StateDep) -> Config:
     """Get server configuration."""
-    import os
-
     from agentpool_server.opencode_server.models.config import Keybinds, WatcherConfig
 
     # Initialize config if not yet set
@@ -289,10 +234,7 @@ def _get_dummy_providers() -> list[Provider]:
 @router.get("/config/providers")
 async def get_providers(state: StateDep) -> ProvidersResponse:
     """Get available providers and models from agent."""
-    import os
-
     providers: list[Provider] = []
-
     # Try to get models from the agent
     try:
         toko_models = await state.agent.get_available_models()

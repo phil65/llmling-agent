@@ -11,14 +11,7 @@ TimeZoneMode = Literal["utc", "local"]
 
 
 def get_now(tz_mode: TimeZoneMode = "utc") -> datetime:
-    """Get current datetime in UTC or local timezone.
-
-    Args:
-        tz_mode: "utc" or "local" (default: "utc")
-
-    Returns:
-        Timezone-aware datetime object
-    """
+    """Get current datetime in UTC or local timezone."""
     now = datetime.now(UTC)
     return now.astimezone() if tz_mode == "local" else now
 
@@ -29,15 +22,13 @@ def now_ms() -> int:
 
 
 def ms_to_datetime(ms: int) -> datetime:
-    """Convert milliseconds timestamp to datetime.
-
-    Args:
-        ms: Milliseconds since epoch
-
-    Returns:
-        Datetime object in UTC
-    """
+    """Convert milliseconds timestamp to datetime (UTC)."""
     return datetime.fromtimestamp(ms / 1000, tz=UTC)
+
+
+def datetime_to_ms(dt: datetime) -> int:
+    """Convert datetime to milliseconds timestamp."""
+    return int(dt.timestamp() * 1000)
 
 
 def parse_iso_timestamp(value: str, *, fallback: datetime | None = None) -> datetime:

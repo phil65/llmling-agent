@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 import uuid
 
 import anyenv
+from pydantic import TypeAdapter
 from pydantic_ai import (
     AudioUrl,
     BinaryContent,
@@ -14,6 +15,7 @@ from pydantic_ai import (
     ImageUrl,
     ModelRequest,
     ModelResponse,
+    RequestUsage,
     RetryPromptPart,
     TextPart as PydanticTextPart,
     ToolCallPart as PydanticToolCallPart,
@@ -21,16 +23,23 @@ from pydantic_ai import (
     UserPromptPart,
     VideoUrl,
 )
+from pydantic_ai.messages import ModelMessage
 
 from agentpool.common_types import PathReference
+from agentpool.messaging.messages import ChatMessage
 from agentpool.sessions.models import SessionData
-from agentpool.utils.time_utils import ms_to_datetime, now_ms
+from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
+from agentpool.utils.time_utils import datetime_to_ms, ms_to_datetime
 from agentpool_server.opencode_server.models import (
     AssistantMessage,
     MessagePath,
     MessageTime,
     MessageWithParts,
+    Session,
+    SessionRevert,
+    SessionShare,
     TextPart,
+    TimeCreatedUpdated,
     TimeStart,
     TimeStartEnd,
     TimeStartEndCompacted,
@@ -39,7 +48,6 @@ from agentpool_server.opencode_server.models import (
     ToolPart,
     ToolStateCompleted,
     ToolStateError,
-    ToolStatePending,
     ToolStateRunning,
     UserMessage,
 )
@@ -53,6 +61,7 @@ from agentpool_server.opencode_server.models.parts import (
     TimeStartEndOptional,
     TokenCache,
 )
+from agentpool_server.opencode_server.models.provider import Model, ModelCost, ModelLimit
 
 
 if TYPE_CHECKING:
@@ -60,14 +69,9 @@ if TYPE_CHECKING:
 
     from fsspec.asyn import AsyncFileSystem
     from pydantic_ai import UserContent
+    from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
-    from agentpool.agents.events import (
-        ToolCallCompleteEvent,
-        ToolCallProgressEvent,
-        ToolCallStartEvent,
-    )
-    from agentpool.messaging.messages import ChatMessage
-    from agentpool_server.opencode_server.models import Part, Session
+    from agentpool_server.opencode_server.models import Part, ToolStatePending
 
 
 logger = logging.getLogger(__name__)
@@ -97,42 +101,6 @@ def generate_part_id() -> str:
     return str(uuid.uuid4())
 
 
-# =============================================================================
-# Pydantic-AI to OpenCode Converters
-# =============================================================================
-
-
-def convert_pydantic_text_part(
-    part: PydanticTextPart,
-    session_id: str,
-    message_id: str,
-) -> TextPart:
-    """Convert a pydantic-ai TextPart to OpenCode TextPart."""
-    return TextPart(
-        id=part.id or generate_part_id(),
-        session_id=session_id,
-        message_id=message_id,
-        text=part.content,
-    )
-
-
-def convert_pydantic_tool_call_part(
-    part: PydanticToolCallPart,
-    session_id: str,
-    message_id: str,
-) -> ToolPart:
-    """Convert a pydantic-ai ToolCallPart to OpenCode ToolPart (pending state)."""
-    # Tool call started - create pending state
-    return ToolPart(
-        id=generate_part_id(),
-        session_id=session_id,
-        message_id=message_id,
-        tool=part.tool_name,
-        call_id=part.tool_call_id,
-        state=ToolStatePending(status="pending"),
-    )
-
-
 def _get_input_from_state(
     state: ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError,
     *,
@@ -147,174 +115,6 @@ def _get_input_from_state(
     if hasattr(state, "input") and state.input is not None:
         return _convert_params_for_ui(state.input) if convert_params else state.input
     return {}
-
-
-def convert_pydantic_tool_return_part(
-    part: PydanticToolReturnPart,
-    session_id: str,
-    message_id: str,
-    existing_tool_part: ToolPart | None = None,
-) -> ToolPart:
-    """Convert a pydantic-ai ToolReturnPart to OpenCode ToolPart (completed state)."""
-    # Determine if it's an error or success based on content
-    content = part.content
-    is_error = isinstance(content, dict) and content.get("error")
-
-    existing_input = _get_input_from_state(existing_tool_part.state) if existing_tool_part else {}
-
-    if is_error:
-        state: ToolStateCompleted | ToolStateError = ToolStateError(
-            status="error",
-            error=str(content.get("error", "Unknown error")),
-            input=existing_input,
-            time=TimeStartEnd(start=now_ms() - 1000, end=now_ms()),
-        )
-    else:
-        # Format output for display
-        if isinstance(content, str):
-            output = content
-        elif isinstance(content, dict):
-            import json
-
-            output = json.dumps(content, indent=2)
-        else:
-            output = str(content)
-
-        state = ToolStateCompleted(
-            status="completed",
-            title=f"Completed {part.tool_name}",
-            input=existing_input,
-            output=output,
-            metadata=part.metadata or {},  # Extract metadata from ToolReturnPart
-            time=TimeStartEndCompacted(start=now_ms() - 1000, end=now_ms()),
-        )
-
-    return ToolPart(
-        id=existing_tool_part.id if existing_tool_part else generate_part_id(),
-        session_id=session_id,
-        message_id=message_id,
-        tool=part.tool_name,
-        call_id=part.tool_call_id,
-        state=state,
-    )
-
-
-def convert_model_response_to_parts(
-    response: ModelResponse,
-    session_id: str,
-    message_id: str,
-) -> list[Part]:
-    """Convert a pydantic-ai ModelResponse to OpenCode Parts."""
-    parts: list[Part] = []
-
-    for part in response.parts:
-        if isinstance(part, PydanticTextPart):
-            parts.append(convert_pydantic_text_part(part, session_id, message_id))
-        elif isinstance(part, PydanticToolCallPart):
-            parts.append(convert_pydantic_tool_call_part(part, session_id, message_id))
-        # Other part types (ThinkingPart, FilePart) can be added as needed
-
-    return parts
-
-
-# =============================================================================
-# AgentPool Event to OpenCode State Converters
-# =============================================================================
-
-
-def convert_tool_start_event(
-    event: ToolCallStartEvent,
-    session_id: str,
-    message_id: str,
-) -> ToolPart:
-    """Convert AgentPool ToolCallStartEvent to OpenCode ToolPart."""
-    return ToolPart(
-        id=generate_part_id(),
-        session_id=session_id,
-        message_id=message_id,
-        tool=event.tool_name,
-        call_id=event.tool_call_id,
-        state=ToolStatePending(status="pending"),
-    )
-
-
-def _get_title_from_state(
-    state: ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError,
-) -> str:
-    """Extract title from any tool state type."""
-    return getattr(state, "title", "")
-
-
-def convert_tool_progress_event(
-    event: ToolCallProgressEvent,
-    existing_part: ToolPart,
-) -> ToolPart:
-    """Update ToolPart with progress from AgentPool ToolCallProgressEvent."""
-    # ToolStateRunning doesn't have output field, progress is indicated by title
-    return ToolPart(
-        id=existing_part.id,
-        session_id=existing_part.session_id,
-        message_id=existing_part.message_id,
-        tool=existing_part.tool,
-        call_id=existing_part.call_id,
-        state=ToolStateRunning(
-            status="running",
-            time=TimeStart(start=now_ms()),
-            title=event.title or _get_title_from_state(existing_part.state),
-            input=_get_input_from_state(existing_part.state),
-        ),
-    )
-
-
-def convert_tool_complete_event(
-    event: ToolCallCompleteEvent,
-    existing_part: ToolPart,
-) -> ToolPart:
-    """Update ToolPart with completion from AgentPool ToolCallCompleteEvent."""
-    # Format the result
-    result = event.tool_result
-    if isinstance(result, str):
-        output = result
-    elif isinstance(result, dict):
-        import json
-
-        output = json.dumps(result, indent=2)
-    else:
-        output = str(result) if result is not None else ""
-
-    existing_input = _get_input_from_state(existing_part.state)
-
-    # ToolCallCompleteEvent doesn't have error field - check result for error indication
-    if isinstance(result, dict) and result.get("error"):
-        state: ToolStateCompleted | ToolStateError = ToolStateError(
-            status="error",
-            error=str(result.get("error", "Unknown error")),
-            input=existing_input,
-            time=TimeStartEnd(start=now_ms() - 1000, end=now_ms()),
-        )
-    else:
-        state = ToolStateCompleted(
-            status="completed",
-            title=f"Completed {existing_part.tool}",
-            input=existing_input,
-            output=output,
-            metadata=event.metadata or {},
-            time=TimeStartEndCompacted(start=now_ms() - 1000, end=now_ms()),
-        )
-
-    return ToolPart(
-        id=existing_part.id,
-        session_id=existing_part.session_id,
-        message_id=existing_part.message_id,
-        tool=existing_part.tool,
-        call_id=existing_part.call_id,
-        state=state,
-    )
-
-
-# =============================================================================
-# OpenCode to Pydantic-AI Converters (for input)
-# =============================================================================
 
 
 def _convert_file_part_to_user_content(  # noqa: PLR0911
@@ -507,15 +307,6 @@ def extract_user_prompt_from_parts(
 # =============================================================================
 
 
-def _datetime_to_ms(dt: Any) -> int:
-    """Convert datetime to milliseconds timestamp."""
-    from datetime import datetime
-
-    if isinstance(dt, datetime):
-        return int(dt.timestamp() * 1000)
-    return now_ms()
-
-
 def chat_message_to_opencode(  # noqa: PLR0915
     msg: ChatMessage[Any],
     session_id: str,
@@ -538,13 +329,10 @@ def chat_message_to_opencode(  # noqa: PLR0915
         OpenCode MessageWithParts with appropriate info and parts
     """
     message_id = msg.message_id
-    created_ms = _datetime_to_ms(msg.timestamp)
-
+    created_ms = datetime_to_ms(msg.timestamp)
     parts: list[Part] = []
-
     # Track tool calls by ID for pairing with returns
     tool_calls: dict[str, ToolPart] = {}
-
     if msg.role == "user":
         # User message - don't set model (users don't use models)
         info: UserMessage | AssistantMessage = UserMessage(
@@ -650,27 +438,15 @@ def chat_message_to_opencode(  # noqa: PLR0915
 
         # Add step start
         parts.append(
-            StepStartPart(
-                id=generate_part_id(),
-                message_id=message_id,
-                session_id=session_id,
-            )
+            StepStartPart(id=generate_part_id(), message_id=message_id, session_id=session_id)
         )
 
         # Process all model messages to extract parts
         # Deserialize dicts to proper pydantic-ai objects if needed
-        from pydantic import TypeAdapter
-        from pydantic_ai.messages import ModelMessage
-
-        model_message_adapter: TypeAdapter[ModelMessage] = TypeAdapter(ModelMessage)
-
+        adapter: TypeAdapter[ModelMessage] = TypeAdapter(ModelMessage)
         for raw_msg in msg.messages:
             # Deserialize dict to proper ModelRequest/ModelResponse if needed
-            if isinstance(raw_msg, dict):
-                model_msg = model_message_adapter.validate_python(raw_msg)
-            else:
-                model_msg = raw_msg
-
+            model_msg = adapter.validate_python(raw_msg) if isinstance(raw_msg, dict) else raw_msg
             if isinstance(model_msg, ModelResponse):
                 for p in model_msg.parts:
                     if isinstance(p, PydanticTextPart):
@@ -685,8 +461,6 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         )
                     elif isinstance(p, PydanticToolCallPart):
                         # Create tool part in pending/running state
-                        from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
-
                         tool_input = _convert_params_for_ui(safe_args_as_dict(p))
                         tool_part = ToolPart(
                             id=generate_part_id(),
@@ -719,7 +493,6 @@ def chat_message_to_opencode(  # noqa: PLR0915
 
                         # Create error info from retry content
                         error_message = part.model_response()
-
                         # Try to extract more info if we have structured error details
                         is_retryable = True
                         if isinstance(part.content, list):
@@ -842,15 +615,9 @@ def opencode_to_chat_message(
     Returns:
         ChatMessage with pydantic-ai model messages
     """
-    from pydantic_ai.messages import ModelRequest, ModelResponse
-    from pydantic_ai.usage import RequestUsage
-
-    from agentpool.messaging.messages import ChatMessage
-
     info = msg.info
     message_id = info.id
     session_id = info.session_id
-
     # Determine role and extract timing
     if isinstance(info, UserMessage):
         role = "user"
@@ -873,25 +640,17 @@ def opencode_to_chat_message(
         finish_reason = info.finish
 
     timestamp = ms_to_datetime(created_ms)
-
     # Build model messages from parts
     model_messages: list[ModelRequest | ModelResponse] = []
-
     if role == "user":
         # Collect text parts into a user prompt
         text_content = [part.text for part in msg.parts if isinstance(part, TextPart)]
         content = "\n".join(text_content) if text_content else ""
-        model_messages.append(
-            ModelRequest(
-                parts=[UserPromptPart(content=content)],
-                instructions=None,
-            )
-        )
+        model_messages.append(ModelRequest(parts=[UserPromptPart(content=content)]))
     else:
         # Assistant message - collect response parts and tool interactions
         response_parts: list[Any] = []
         tool_returns: list[PydanticToolReturnPart] = []
-
         for part in msg.parts:
             if isinstance(part, TextPart):
                 response_parts.append(PydanticTextPart(content=part.text, id=part.id))
@@ -938,12 +697,7 @@ def opencode_to_chat_message(
 
         # Add tool returns as a follow-up request if any
         if tool_returns:
-            model_messages.append(
-                ModelRequest(
-                    parts=tool_returns,
-                    instructions=None,
-                )
-            )
+            model_messages.append(ModelRequest(parts=tool_returns, instructions=None))
 
     # Extract content for the ChatMessage
     content = ""
@@ -966,54 +720,55 @@ def opencode_to_chat_message(
     )
 
 
-def chat_messages_to_opencode(
-    messages: list[ChatMessage[Any]],
-    session_id: str,
-    working_dir: str = "",
-    agent_name: str = "default",
-    model_id: str = "unknown",
-    provider_id: str = "agentpool",
-) -> list[MessageWithParts]:
-    """Convert a list of ChatMessages to OpenCode format.
+def convert_toko_model_to_opencode(model: TokoModelInfo) -> Model:
+    """Convert a tokonomics ModelInfo to an OpenCode Model."""
+    # Convert pricing (tokonomics uses per-token, OpenCode uses per-million-token)
+    input_cost = 0.0
+    output_cost = 0.0
+    cache_read = None
+    cache_write = None
 
-    Args:
-        messages: List of ChatMessages to convert
-        session_id: OpenCode session ID
-        working_dir: Working directory for path context
-        agent_name: Name of the agent
-        model_id: Model identifier
-        provider_id: Provider identifier
+    if model.pricing:
+        # tokonomics pricing is per-token, convert to per-million-tokens
+        if model.pricing.prompt is not None:
+            input_cost = model.pricing.prompt * 1_000_000
+        if model.pricing.completion is not None:
+            output_cost = model.pricing.completion * 1_000_000
+        if model.pricing.input_cache_read is not None:
+            cache_read = model.pricing.input_cache_read * 1_000_000
+        if model.pricing.input_cache_write is not None:
+            cache_write = model.pricing.input_cache_write * 1_000_000
 
-    Returns:
-        List of OpenCode MessageWithParts
-    """
-    return [
-        chat_message_to_opencode(
-            msg,
-            session_id=session_id,
-            working_dir=working_dir,
-            agent_name=agent_name,
-            model_id=model_id,
-            provider_id=provider_id,
-        )
-        for msg in messages
-    ]
-
-
-def opencode_to_chat_messages(
-    messages: list[MessageWithParts],
-    session_id: str | None = None,
-) -> list[ChatMessage[str]]:
-    """Convert a list of OpenCode messages to ChatMessages.
-
-    Args:
-        messages: List of OpenCode MessageWithParts
-        session_id: Optional conversation ID override
-
-    Returns:
-        List of ChatMessages
-    """
-    return [opencode_to_chat_message(msg, session_id=session_id) for msg in messages]
+    cost = ModelCost(
+        input=input_cost,
+        output=output_cost,
+        cache_read=cache_read,
+        cache_write=cache_write,
+    )
+    # Convert limits
+    context = float(model.context_window) if model.context_window else 128000.0
+    output = float(model.max_output_tokens) if model.max_output_tokens else 4096.0
+    limit = ModelLimit(context=context, output=output)
+    # Determine capabilities from modalities and metadata
+    has_vision = "image" in model.input_modalities
+    has_reasoning = "reasoning" in model.output_modalities or "thinking" in model.name.lower()
+    # Format release date if available
+    release_date = ""
+    if model.created_at:
+        release_date = model.created_at.strftime("%Y-%m-%d")
+    # Use id_override if available (e.g., "opus" for Claude Code SDK)
+    model_id = model.id_override or model.id
+    return Model(
+        id=model_id,
+        name=model.name,
+        attachment=has_vision,
+        cost=cost,
+        limit=limit,
+        reasoning=has_reasoning,
+        release_date=release_date,
+        temperature=True,
+        tool_call=True,  # Assume most models support tool calling
+    )
 
 
 # =============================================================================
@@ -1027,17 +782,9 @@ def session_data_to_opencode(data: SessionData) -> Session:
     Args:
         data: SessionData to convert (title comes from data.title property)
     """
-    from agentpool_server.opencode_server.models import (
-        Session,
-        SessionRevert,
-        SessionShare,
-        TimeCreatedUpdated,
-    )
-
     # Convert datetime to milliseconds timestamp
-    created_ms = int(data.created_at.timestamp() * 1000)
-    updated_ms = int(data.last_active.timestamp() * 1000)
-
+    created_ms = datetime_to_ms(data.created_at)
+    updated_ms = datetime_to_ms(data.last_active)
     # Extract revert/share from metadata if present
     revert = None
     share = None
@@ -1066,11 +813,6 @@ def opencode_to_session_data(
     pool_id: str | None = None,
 ) -> SessionData:
     """Convert OpenCode Session to SessionData for persistence."""
-    from datetime import UTC, datetime
-
-    # Convert milliseconds timestamp to datetime
-    created_at = datetime.fromtimestamp(session.time.created / 1000, tz=UTC)
-    last_active = datetime.fromtimestamp(session.time.updated / 1000, tz=UTC)
     # Store revert/share in metadata
     metadata: dict[str, Any] = {}
     if session.revert:
@@ -1085,8 +827,8 @@ def opencode_to_session_data(
         parent_id=session.parent_id,
         version=session.version,
         cwd=session.directory,
-        created_at=created_at,
-        last_active=last_active,
+        created_at=ms_to_datetime(session.time.created),
+        last_active=ms_to_datetime(session.time.updated),
         metadata=metadata,
     )
 

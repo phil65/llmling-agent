@@ -42,17 +42,8 @@ async def list_agents(state: StateDep) -> list[Agent]:
     switcher UI. Agents are marked as primary (visible in switcher) or
     subagent (hidden, used internally).
     """
-    if state.agent.agent_pool is None:
-        return [
-            Agent(
-                name="default",
-                description="Default AgentPool agent",
-                mode="primary",
-                default=True,
-            )
-        ]
-
     pool = state.agent.agent_pool
+    assert pool is not None, "AgentPool is not initialized"
     agents = [
         Agent(
             name=name,
@@ -63,7 +54,6 @@ async def list_agents(state: StateDep) -> list[Agent]:
         )
         for name, agent in pool.all_agents.items()
     ]
-
     return (
         agents
         if agents
@@ -179,16 +169,12 @@ async def list_mcp_resources(state: StateDep) -> dict[str, McpResource]:
     Keys are formatted as "{client}:{resource_name}" for uniqueness.
     """
     try:
-        resources = await state.agent.tools.list_resources()
         result: dict[str, McpResource] = {}
-
-        for resource in resources:
+        for resource in await state.agent.tools.list_resources():
             # Create unique key: sanitize client and resource names
             client_name = (resource.client or "unknown").replace("/", "_")
             resource_name = resource.name.replace("/", "_")
-            key = f"{client_name}:{resource_name}"
-
-            result[key] = McpResource(
+            result[f"{client_name}:{resource_name}"] = McpResource(
                 name=resource.name,
                 uri=resource.uri,
                 description=resource.description,
@@ -243,9 +229,8 @@ async def list_tools_with_schemas(  # noqa: D417
     _ = provider, model  # Currently unused, for future filtering
 
     try:
-        tools = await state.agent.tools.get_tools()
         result = []
-        for tool in tools:
+        for tool in await state.agent.tools.get_tools():
             # Extract parameters schema from the OpenAI function schema
             schema = tool.schema
             params = schema.get("function", {}).get("parameters", {})
@@ -327,10 +312,8 @@ async def oauth_authorize(provider_id: str, state: StateDep) -> dict[str, Any]:
     if provider_id == "anthropic":
         verifier, challenge = generate_pkce()
         auth_url = build_authorization_url(verifier, challenge)
-
         # Store verifier for callback
         _oauth_flows[f"anthropic:{verifier}"] = {"verifier": verifier}
-
         return {
             "url": auth_url,
             "instructions": "Sign in with your Anthropic account and copy the authorization code",
@@ -357,7 +340,6 @@ async def oauth_authorize(provider_id: str, state: StateDep) -> dict[str, Any]:
         device_code = data["device_code"]
         user_code = data["user_code"]
         verification_uri = data["verification_uri"]
-
         # Store device_code for callback
         _oauth_flows[f"copilot:{device_code}"] = {"device_code": device_code}
 
@@ -395,10 +377,8 @@ async def oauth_callback(
 
         try:
             token = exchange_code_for_token(code, verifier)
-            # Save token
             store = AnthropicTokenStore()
             store.save(token)
-
             # Clean up flow state
             _oauth_flows.pop(f"anthropic:{verifier}", None)
         except Exception as e:
@@ -413,11 +393,7 @@ async def oauth_callback(
 
     if provider_id == "copilot":
         if not device_code:
-            raise HTTPException(
-                status_code=400,
-                detail="Missing device_code for Copilot OAuth",
-            )
-
+            raise HTTPException(status_code=400, detail="Missing device_code for Copilot OAuth")
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 "https://github.com/login/oauth/access_token",
@@ -439,16 +415,12 @@ async def oauth_callback(
         if "error" in data:
             if data["error"] == "authorization_pending":
                 return {"type": "pending", "message": "Waiting for user authorization"}
-            raise HTTPException(
-                status_code=400,
-                detail=data.get("error_description", data["error"]),
-            )
+            detail = data.get("error_description", data["error"])
+            raise HTTPException(status_code=400, detail=detail)
 
-        access_token = data.get("access_token")
-        if access_token:
+        if access_token := data.get("access_token"):
             # Clean up flow state
             _oauth_flows.pop(f"copilot:{device_code}", None)
-
             return {
                 "type": "success",
                 "access": access_token,
