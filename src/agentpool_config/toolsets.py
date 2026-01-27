@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Annotated, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from exxec_config import ExecutionEnvironmentConfig
 from llmling_models_config import AnyModelConfig
@@ -629,6 +629,13 @@ class CustomToolsetConfig(BaseToolsetConfig):
     )
     """Dotted import path to the custom toolset implementation class."""
 
+    kw_args: dict[str, Any] = Field(default_factory=dict, title="Provider parameters")
+    """Additional parameters to pass to provider constructor.
+
+    These are unpacked as keyword arguments. If "name" is present, it will
+    be used to override the default provider name.
+    """
+
     def get_provider(self) -> ResourceProvider:
         """Create custom provider from import path."""
         from agentpool.resource_providers import ResourceProvider
@@ -637,7 +644,16 @@ class CustomToolsetConfig(BaseToolsetConfig):
         provider_cls = import_class(self.import_path)
         if not issubclass(provider_cls, ResourceProvider):
             raise ValueError(f"{self.import_path} must be a ResourceProvider subclass")  # noqa: TRY004
-        return provider_cls(name=provider_cls.__name__)
+        kwargs = self.kw_args.copy()
+        name = kwargs.pop("name", provider_cls.__name__)
+        try:
+            return provider_cls(name=name, **kwargs)
+        except TypeError as e:
+            # Provide a more helpful error message about parameter mismatch
+            raise TypeError(
+                f"Failed to initialize provider '{self.import_path}' with parameters: {self.kw_args}\n"
+                f"Original error: {e}"
+            ) from e
 
 
 class AggregatingToolsetConfig(BaseToolsetConfig):
