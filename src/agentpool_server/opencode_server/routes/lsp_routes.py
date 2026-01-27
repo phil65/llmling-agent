@@ -133,7 +133,7 @@ async def start_lsp_server(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
     # Emit lsp.updated event to notify clients of server status change
-    await state.broadcast_event(LspUpdatedEvent.create())
+    await state.broadcast_event(LspUpdatedEvent())
 
     # Get relative root path for response
     root_path = root_uri
@@ -167,7 +167,7 @@ async def stop_lsp_server(
     await state.lsp_manager.stop_server(server_id)
 
     # Emit lsp.updated event to notify clients of server status change
-    await state.broadcast_event(LspUpdatedEvent.create())
+    await state.broadcast_event(LspUpdatedEvent())
 
     return {"status": "ok", "message": f"Server {server_id} stopped"}
 

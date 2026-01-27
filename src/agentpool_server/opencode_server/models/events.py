@@ -13,10 +13,7 @@ from agentpool_server.opencode_server.models.message import (  # noqa: TC001
     UserMessage,
 )
 from agentpool_server.opencode_server.models.parts import Part  # noqa: TC001
-from agentpool_server.opencode_server.models.session import (  # noqa: TC001
-    Session,
-    SessionStatus,
-)
+from agentpool_server.opencode_server.models.session import Session, SessionStatus  # noqa: TC001
 
 
 class EmptyProperties(OpenCodeBaseModel):
@@ -113,7 +110,7 @@ class SessionIdleEvent(OpenCodeBaseModel):
 class SessionCompactedProperties(OpenCodeBaseModel):
     """Properties for session compacted event."""
 
-    session_id: str = Field(alias="sessionID")
+    session_id: str
 
 
 class SessionCompactedEvent(OpenCodeBaseModel):
@@ -124,7 +121,7 @@ class SessionCompactedEvent(OpenCodeBaseModel):
 
     @classmethod
     def create(cls, session_id: str) -> Self:
-        return cls(properties=SessionCompactedProperties(sessionID=session_id))
+        return cls(properties=SessionCompactedProperties(session_id=session_id))
 
 
 class SessionErrorInfo(OpenCodeBaseModel):
@@ -143,7 +140,7 @@ class SessionErrorInfo(OpenCodeBaseModel):
 class SessionErrorProperties(OpenCodeBaseModel):
     """Properties for session error event."""
 
-    session_id: str | None = Field(default=None, alias="sessionID")
+    session_id: str | None = Field(default=None)
     error: SessionErrorInfo | None = None
 
 
@@ -161,12 +158,9 @@ class SessionErrorEvent(OpenCodeBaseModel):
         error_message: str | None = None,
     ) -> Self:
         error_data = {"message": error_message} if error_message else None
-        return cls(
-            properties=SessionErrorProperties(
-                session_id=session_id,
-                error=SessionErrorInfo(name=error_name, data=error_data),
-            )
-        )
+        error = SessionErrorInfo(name=error_name, data=error_data)
+        props = SessionErrorProperties(session_id=session_id, error=error)
+        return cls(properties=props)
 
 
 class MessageUpdatedEventProperties(OpenCodeBaseModel):
@@ -207,8 +201,8 @@ class PartUpdatedEvent(OpenCodeBaseModel):
 class MessageRemovedProperties(OpenCodeBaseModel):
     """Properties for message removed event."""
 
-    session_id: str = Field(alias="sessionID")
-    message_id: str = Field(alias="messageID")
+    session_id: str
+    message_id: str
 
 
 class MessageRemovedEvent(OpenCodeBaseModel):
@@ -219,24 +213,17 @@ class MessageRemovedEvent(OpenCodeBaseModel):
 
     @classmethod
     def create(cls, session_id: str, message_id: str) -> Self:
-        """Create message removed event.
-
-        Args:
-            session_id: Session identifier
-            message_id: Message identifier
-
-        Returns:
-            MessageRemovedEvent instance
-        """
-        return cls(properties=MessageRemovedProperties(sessionID=session_id, messageID=message_id))
+        """Create message removed event."""
+        props = MessageRemovedProperties(session_id=session_id, message_id=message_id)
+        return cls(properties=props)
 
 
 class PartRemovedProperties(OpenCodeBaseModel):
     """Properties for part removed event."""
 
-    session_id: str = Field(alias="sessionID")
-    message_id: str = Field(alias="messageID")
-    part_id: str = Field(alias="partID")
+    session_id: str
+    message_id: str
+    part_id: str
 
 
 class PartRemovedEvent(OpenCodeBaseModel):
@@ -247,21 +234,9 @@ class PartRemovedEvent(OpenCodeBaseModel):
 
     @classmethod
     def create(cls, session_id: str, message_id: str, part_id: str) -> Self:
-        """Create part removed event.
-
-        Args:
-            session_id: Session identifier
-            message_id: Message identifier
-            part_id: Part identifier
-
-        Returns:
-            PartRemovedEvent instance
-        """
-        return cls(
-            properties=PartRemovedProperties(
-                sessionID=session_id, messageID=message_id, partID=part_id
-            )
-        )
+        """Create part removed event."""
+        props = PartRemovedProperties(session_id=session_id, message_id=message_id, part_id=part_id)
+        return cls(properties=props)
 
 
 class PermissionToolInfo(OpenCodeBaseModel):
@@ -447,14 +422,13 @@ class TuiToastShowEvent(OpenCodeBaseModel):
         title: str | None = None,
         duration: int = 5000,
     ) -> Self:
-        return cls(
-            properties=TuiToastShowProperties(
-                title=title,
-                message=message,
-                variant=variant,
-                duration=duration,
-            )
+        props = TuiToastShowProperties(
+            title=title,
+            message=message,
+            variant=variant,
+            duration=duration,
         )
+        return cls(properties=props)
 
 
 # =============================================================================
@@ -629,15 +603,11 @@ class LspUpdatedEvent(OpenCodeBaseModel):
     type: Literal["lsp.updated"] = "lsp.updated"
     properties: EmptyProperties = Field(default_factory=EmptyProperties)
 
-    @classmethod
-    def create(cls) -> Self:
-        return cls()
-
 
 class LspClientDiagnosticsProperties(OpenCodeBaseModel):
     """Properties for LSP client diagnostics event."""
 
-    server_id: str = Field(alias="serverID")
+    server_id: str
     """LSP server ID that produced the diagnostics."""
 
     path: str
@@ -652,7 +622,7 @@ class LspClientDiagnosticsEvent(OpenCodeBaseModel):
 
     @classmethod
     def create(cls, server_id: str, path: str) -> Self:
-        return cls(properties=LspClientDiagnosticsProperties(serverID=server_id, path=path))
+        return cls(properties=LspClientDiagnosticsProperties(server_id=server_id, path=path))
 
 
 # =============================================================================
@@ -668,14 +638,7 @@ class ProjectUpdatedEvent(OpenCodeBaseModel):
 
     @classmethod
     def create(cls, project: Project) -> Self:
-        """Create project updated event.
-
-        Args:
-            project: The updated project data
-
-        Returns:
-            ProjectUpdatedEvent instance
-        """
+        """Create project updated event."""
         return cls(properties=project)
 
 
@@ -720,14 +683,13 @@ class QuestionAskedEvent(OpenCodeBaseModel):
         questions: list[dict[str, Any]],
         tool: dict[str, str] | None = None,
     ) -> Self:
-        return cls(
-            properties=QuestionAskedProperties(
-                id=request_id,
-                sessionID=session_id,
-                questions=questions,
-                tool=tool,
-            )
+        props = QuestionAskedProperties(
+            id=request_id,
+            session_id=session_id,
+            questions=questions,
+            tool=tool,
         )
+        return cls(properties=props)
 
 
 class QuestionRepliedProperties(OpenCodeBaseModel):
@@ -751,13 +713,12 @@ class QuestionRepliedEvent(OpenCodeBaseModel):
         request_id: str,
         answers: list[list[str]],
     ) -> Self:
-        return cls(
-            properties=QuestionRepliedProperties(
-                sessionID=session_id,
-                requestID=request_id,
-                answers=answers,
-            )
+        props = QuestionRepliedProperties(
+            session_id=session_id,
+            request_id=request_id,
+            answers=answers,
         )
+        return cls(properties=props)
 
 
 class QuestionRejectedProperties(OpenCodeBaseModel):
@@ -779,12 +740,8 @@ class QuestionRejectedEvent(OpenCodeBaseModel):
         session_id: str,
         request_id: str,
     ) -> Self:
-        return cls(
-            properties=QuestionRejectedProperties(
-                sessionID=session_id,
-                requestID=request_id,
-            )
-        )
+        props = QuestionRejectedProperties(session_id=session_id, request_id=request_id)
+        return cls(properties=props)
 
 
 Event = (

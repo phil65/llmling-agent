@@ -28,6 +28,7 @@ from agentpool.agents.events import (
     ToolCallStartEvent,
 )
 from agentpool.agents.events.infer_info import derive_rich_tool_info
+from agentpool.log import get_logger
 from agentpool.utils import identifiers as identifier
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool.utils.time_utils import now_ms
@@ -64,6 +65,7 @@ from agentpool_server.opencode_server.models import (
     ToolStateRunning,
     UserMessage,
 )
+from agentpool_server.opencode_server.models.events import LspUpdatedEvent
 from agentpool_server.opencode_server.models.message import UserMessageModel
 from agentpool_server.opencode_server.models.parts import (
     StepFinishTokens,
@@ -76,10 +78,11 @@ from agentpool_server.opencode_server.routes.session_routes import get_or_load_s
 
 
 if TYPE_CHECKING:
-    from agentpool_server.opencode_server.models import (
-        Part,
-    )
+    from agentpool_server.opencode_server.models import Part
     from agentpool_server.opencode_server.state import ServerState
+
+
+logger = get_logger(__name__)
 
 
 def _warmup_lsp_for_files(state: ServerState, file_paths: list[str]) -> None:
@@ -92,50 +95,43 @@ def _warmup_lsp_for_files(state: ServerState, file_paths: list[str]) -> None:
         state: Server state with LSP manager
         file_paths: List of file paths that were accessed
     """
-    import logging
-
-    logging.getLogger(__name__)
-    print(f"[LSP] _warmup_lsp_for_files called with: {file_paths}")
-
+    logger.info("_warmup_lsp_for_files called with", file_paths=file_paths)
     lsp_manager = state.lsp_manager
 
     async def warmup_files() -> None:
         """Start LSP servers for each file path."""
-        print("[LSP] warmup_files task started")
-        from agentpool_server.opencode_server.models.events import LspUpdatedEvent
+        logger.info("warmup_files task started")
 
         servers_started = False
         for path in file_paths:
             # Find appropriate server for this file
             server_info = lsp_manager.get_server_for_file(path)
-            print(f"[LSP] Server for {path}: {server_info.id if server_info else None}")
             if server_info is None:
                 continue
-
             server_id = server_info.id
             if lsp_manager.is_running(server_id):
-                print(f"[LSP] Server {server_id} already running")
+                logger.info("Server with same id already running", server_id=server_id)
                 continue
 
             # Start server for workspace root
             root_uri = f"file://{state.working_dir}"
+            logger.info("Starting server...", server_id=server_id)
             try:
-                print(f"[LSP] Starting server {server_id}...")
                 await lsp_manager.start_server(server_id, root_uri)
                 servers_started = True
-                print(f"[LSP] Server {server_id} started successfully")
+                logger.info("Server started successfully", server_id=server_id)
             except Exception as e:  # noqa: BLE001
                 # Don't fail on LSP startup errors
-                print(f"[LSP] Failed to start server {server_id}: {e}")
+                logger.info("Failed to start server", error=e, server_id=server_id)
 
         # Emit lsp.updated event if any servers started
         if servers_started:
-            print("[LSP] Broadcasting LspUpdatedEvent")
-            await state.broadcast_event(LspUpdatedEvent.create())
-        print("[LSP] warmup_files task completed")
+            logger.info("Broadcasting LspUpdatedEvent")
+            await state.broadcast_event(LspUpdatedEvent())
+        logger.info("warmup_files task completed")
 
     # Run warmup in background (don't block the event handler)
-    print("[LSP] Creating background task for warmup")
+    logger.info("Creating background task for warmup")
     state.create_background_task(warmup_files(), name="lsp-warmup")
 
 
