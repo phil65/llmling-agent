@@ -62,11 +62,7 @@ class StaticResourceProvider(ResourceProvider):
         return self._resources
 
     def add_tool(self, tool: ToolType) -> None:
-        """Add a tool to this provider.
-
-        Args:
-            tool: Tool to add
-        """
+        """Add a tool to this provider."""
         match tool:
             case Tool():
                 instance = tool
@@ -90,11 +86,7 @@ class StaticResourceProvider(ResourceProvider):
         return False
 
     def add_prompt(self, prompt: BasePrompt) -> None:
-        """Add a prompt to this provider.
-
-        Args:
-            prompt: Prompt to add
-        """
+        """Add a prompt to this provider."""
         self._prompts.append(prompt)
 
     def remove_prompt(self, name: str) -> bool:
@@ -113,11 +105,7 @@ class StaticResourceProvider(ResourceProvider):
         return False
 
     def add_resource(self, resource: ResourceInfo) -> None:
-        """Add a resource to this provider.
-
-        Args:
-            resource: Resource to add
-        """
+        """Add a resource to this provider."""
         self._resources.append(resource)
 
     def remove_resource(self, name: str) -> bool:
@@ -289,8 +277,4 @@ class StaticResourceProvider(ResourceProvider):
             self.add_tool(tool)
             return f
 
-        if func is None:
-            # Called with arguments: @provider.tool(...)
-            return decorator
-        # Called without arguments: @provider.tool
-        return decorator(func)
+        return decorator if func is None else decorator(func)
