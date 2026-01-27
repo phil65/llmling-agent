@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Annotated, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from exxec_config import ExecutionEnvironmentConfig
 from llmling_models_config import AnyModelConfig
@@ -629,6 +629,9 @@ class CustomToolsetConfig(BaseToolsetConfig):
     )
     """Dotted import path to the custom toolset implementation class."""
 
+    parameters: dict[str, Any] = Field(default_factory=dict, title="Provider parameters")
+    """Additional parameters to pass to the provider constructor."""
+
     def get_provider(self) -> ResourceProvider:
         """Create custom provider from import path."""
         from agentpool.resource_providers import ResourceProvider
@@ -637,7 +640,9 @@ class CustomToolsetConfig(BaseToolsetConfig):
         provider_cls = import_class(self.import_path)
         if not issubclass(provider_cls, ResourceProvider):
             raise ValueError(f"{self.import_path} must be a ResourceProvider subclass")  # noqa: TRY004
-        return provider_cls(name=provider_cls.__name__)
+        kwargs = self.parameters.copy()
+        name = kwargs.pop("name", provider_cls.__name__)
+        return provider_cls(name=name, **kwargs)
 
 
 class AggregatingToolsetConfig(BaseToolsetConfig):
