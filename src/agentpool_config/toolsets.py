@@ -651,7 +651,7 @@ class CustomToolsetConfig(BaseToolsetConfig):
         except TypeError as e:
             # Provide a more helpful error message about parameter mismatch
             raise TypeError(
-                f"Failed to initialize provider '{self.import_path}' with parameters: {self.kw_args}\n"
+                f"Failed to initialize provider '{self.import_path}' with params: {self.kw_args}\n"
                 f"Original error: {e}"
             ) from e
 
