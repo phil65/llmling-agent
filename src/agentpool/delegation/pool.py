@@ -36,8 +36,6 @@ if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
     from types import TracebackType
 
-    from pydantic_ai import ModelSettings
-    from pydantic_ai.models import Model
     from pydantic_ai.output import OutputSpec
     from upathtools import JoinablePathLike
 
@@ -667,125 +665,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.messaging.message_utils import build_message_index
 
         return build_message_index(self.get_agents())
-
-    def create_agent[TAgentDeps](  # noqa: PLR0915
-        self,
-        name: str,
-        deps_type: type[TAgentDeps] | None = None,
-        input_provider: InputProvider | None = None,
-        event_handlers: list[AnyEventHandlerType] | None = None,
-    ) -> Agent[TAgentDeps, Any]:
-        from jinja2 import Template
-
-        from agentpool import Agent
-        from agentpool.models.agents import NativeAgentConfig
-        from agentpool.utils.result_utils import to_type
-        from agentpool_config.system_prompts import (
-            FilePromptConfig,
-            FunctionPromptConfig,
-            LibraryPromptConfig,
-            StaticPromptConfig,
-        )
-        from agentpool_toolsets.builtin.workers import WorkersTools
-
-        manifest = self.manifest
-        # Get config from inline agents or file agents
-        if name in manifest.agents:
-            config = manifest.agents[name]
-            if not isinstance(config, NativeAgentConfig):
-                msg = f"Agent {name!r} is not a native agent, use appropriate create method"
-                raise TypeError(msg)
-        elif name in manifest.file_agents:
-            config = manifest._loaded_file_agents[name]
-        else:
-            msg = f"Agent {name!r} not found in agents or file_agents"
-            raise KeyError(msg)
-        # Normalize system_prompt to a list for iteration
-        sys_prompts: list[str] = []
-        prompt_source = config.system_prompt
-        if prompt_source is not None:
-            prompts_to_process = (
-                [prompt_source] if isinstance(prompt_source, str) else prompt_source
-            )
-            for prompt in prompts_to_process:
-                match prompt:
-                    case (str() as sys_prompt) | StaticPromptConfig(content=sys_prompt):
-                        sys_prompts.append(sys_prompt)
-                    case FilePromptConfig(path=path, variables=variables):
-                        template_path = Path(path)  # Load template from file
-                        if not template_path.is_absolute() and config.config_file_path:
-                            template_path = Path(config.config_file_path).parent / path
-
-                        template_content = template_path.read_text("utf-8")
-                        if variables:  # Apply variables if any
-                            template = Template(template_content)
-                            content = template.render(**variables)
-                        else:
-                            content = template_content
-                        sys_prompts.append(content)
-                    case LibraryPromptConfig(reference=reference):
-                        try:  # Load from library
-                            content = self.prompt_manager.get.sync(reference)
-                            sys_prompts.append(content)
-                        except Exception as e:
-                            msg = f"Failed to load library prompt {reference!r} for agent {name}"
-                            logger.exception(msg)
-                            raise ValueError(msg) from e
-                    case FunctionPromptConfig(function=function, arguments=arguments):
-                        content = function(**arguments)  # Call function to get prompt content
-                        sys_prompts.append(content)
-        # Prepare toolsets list with config's tool provider
-        toolsets_list = config.get_toolsets()
-        if config_tool_provider := config.get_tool_provider():
-            toolsets_list.append(config_tool_provider)
-        # Convert workers config to a toolset (backwards compatibility)
-        if config.workers:
-            workers_provider = WorkersTools(workers=list(config.workers), name="workers")
-            toolsets_list.append(workers_provider)
-        # Step 1: Get agent-specific output type (same as before)
-        agent_output_type = manifest.get_output_type(name) or str
-        # Step 2: Resolve it fully with to_type (same as before)
-        resolved_output_type = to_type(agent_output_type, manifest.responses)
-        # Merge pool-level handlers with config-level handlers
-        config_handlers = config.get_event_handlers()
-        merged_handlers: list[AnyEventHandlerType] = [
-            *config_handlers,
-            *(event_handlers or []),
-        ]
-        # Resolve model (handles variants and wraps strings)
-        resolved_model = self.manifest.resolve_model(config.model)
-        model: Model | str = resolved_model.get_model()
-        model_settings: ModelSettings | None = resolved_model.get_model_settings()
-        # Extract pydantic-ai builtin tools from config
-        builtin_tools = config.get_builtin_tools()
-
-        return Agent(
-            model=model,
-            model_settings=model_settings,
-            system_prompt=sys_prompts,
-            name=name,
-            display_name=config.display_name,
-            deps_type=deps_type,
-            env=config.get_execution_environment(),
-            description=config.description,
-            retries=config.retries,
-            session=config.get_session_config(),
-            output_retries=config.output_retries,
-            end_strategy=config.end_strategy,
-            agent_config=config,
-            input_provider=input_provider,
-            output_type=resolved_output_type,
-            event_handlers=merged_handlers or None,
-            agent_pool=self,
-            tool_mode=config.tool_mode,
-            knowledge=config.knowledge,
-            toolsets=toolsets_list,
-            hooks=config.hooks.get_agent_hooks() if config.hooks else None,
-            tool_confirmation_mode=config.requires_tool_confirmation,
-            builtin_tools=builtin_tools or None,
-            usage_limits=config.usage_limits,
-            providers=config.model_providers,
-        )
 
 
 if __name__ == "__main__":
