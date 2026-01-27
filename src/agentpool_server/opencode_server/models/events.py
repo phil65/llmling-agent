@@ -151,6 +151,12 @@ class SessionErrorEvent(OpenCodeBaseModel):
     properties: SessionErrorProperties
 
     @classmethod
+    def from_exception(cls, exception: Exception, session_id: str | None = None) -> Self:
+        error_name = type(exception).__name__
+        error_message = str(exception)
+        return cls.create(session_id=session_id, error_name=error_name, error_message=error_message)
+
+    @classmethod
     def create(
         cls,
         session_id: str | None = None,
