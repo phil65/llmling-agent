@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from evented_config import EventConfig
 
     from agentpool.agents.acp_agent import ACPAgent
-    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
+    from agentpool.common_types import AnyEventHandlerType
 
 
 @asynccontextmanager
@@ -52,7 +52,7 @@ async def acp_test_session(
     load_skills: bool = False,
     cwd: str | Path | None = None,
     event_configs: Sequence[EventConfig] | None = None,
-    event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+    event_handlers: Sequence[AnyEventHandlerType] | None = None,
 ) -> AsyncIterator[ACPAgent[Any]]:
     """Create an end-to-end ACP test session using agentpool as server.
 

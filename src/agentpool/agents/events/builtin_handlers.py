@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
     from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
-    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
+    from agentpool.common_types import AnyEventHandlerType, IndividualEventHandler
 
 
 async def simple_print_handler(ctx: AgentContext[Any], event: RichAgentStreamEvent[Any]) -> None:
@@ -185,7 +185,7 @@ def create_file_stream_handler(
 
 
 def resolve_event_handlers(
-    event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None,
+    event_handlers: Sequence[AnyEventHandlerType] | None,
 ) -> list[IndividualEventHandler]:
     """Resolve event handlers, converting builtin handler names to actual handlers."""
     if not event_handlers:

@@ -35,12 +35,7 @@ if TYPE_CHECKING:
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
-    from agentpool.common_types import (
-        BuiltinEventHandlerType,
-        IndividualEventHandler,
-        MCPServerStatus,
-        StrPath,
-    )
+    from agentpool.common_types import AnyEventHandlerType, MCPServerStatus, StrPath
     from agentpool.delegation import AgentPool
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
@@ -78,7 +73,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         input_provider: InputProvider | None = None,
         env_vars: dict[str, str] | None = None,
         output_type: type[OutputDataT] = str,  # type: ignore[assignment]
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         hooks: AgentHooks | None = None,
         session_id: str | None = None,
         toolsets: list[ResourceProvider] | None = None,
@@ -169,7 +164,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         cls,
         config: CodexAgentConfig,
         *,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         deps_type: type[TDeps] | None = None,
@@ -191,7 +186,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+        merged_handlers: list[AnyEventHandlerType] = [
             *config_handlers,
             *(event_handlers or []),
         ]

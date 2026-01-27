@@ -96,6 +96,7 @@ AnyFilterFn = Callable[..., bool | Awaitable[bool]]
 # Individual event handler for composability - takes single events
 type IndividualEventHandler = Callable[[AgentContext[Any], AgentStreamEvent], Awaitable[None]]
 BuiltinEventHandlerType = Literal["simple", "detailed"]
+AnyEventHandlerType = IndividualEventHandler | BuiltinEventHandlerType
 
 
 @dataclass(frozen=True, slots=True)

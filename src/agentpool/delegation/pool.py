@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.native_agent import AgentKwargs
-    from agentpool.common_types import AgentName, BuiltinEventHandlerType, IndividualEventHandler
+    from agentpool.common_types import AgentName, AnyEventHandlerType
     from agentpool.delegation.base_team import BaseTeam
     from agentpool.messaging import ChatMessage
     from agentpool.messaging.compaction import CompactionPipeline
@@ -79,7 +79,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         connect_nodes: bool = True,
         input_provider: InputProvider | None = None,
         parallel_load: bool = True,
-        event_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: list[AnyEventHandlerType] | None = None,
         main_agent_name: str | None = None,
     ):
         """Initialize agent pool with immediate agent creation.
@@ -777,7 +777,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         name: str,
         deps_type: type[TAgentDeps] | None = None,
         input_provider: InputProvider | None = None,
-        event_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: list[AnyEventHandlerType] | None = None,
     ) -> Agent[TAgentDeps, Any]:
         from jinja2 import Template
 
@@ -852,7 +852,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         resolved_output_type = to_type(agent_output_type, manifest.responses)
         # Merge pool-level handlers with config-level handlers
         config_handlers = config.get_event_handlers()
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+        merged_handlers: list[AnyEventHandlerType] = [
             *config_handlers,
             *(event_handlers or []),
         ]

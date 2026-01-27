@@ -87,13 +87,7 @@ class CodexAgentConfig(BaseAgentConfig):
     tools: list[AnyToolConfig | str] = Field(
         default_factory=list,
         title="Tools",
-        examples=[
-            [
-                {"type": "subagent"},
-                {"type": "agent_management"},
-                "webbrowser:open",
-            ],
-        ],
+        examples=[[{"type": "agent_management"}, "webbrowser:open"]],
     )
     """Tools and toolsets to expose to Codex via MCP bridge.
 

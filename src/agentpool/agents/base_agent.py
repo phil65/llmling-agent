@@ -49,7 +49,7 @@ if TYPE_CHECKING:
     from agentpool.agents.native_agent import Agent
     from agentpool.common_types import (
         AgentName,
-        BuiltinEventHandlerType,
+        AnyEventHandlerType,
         IndividualEventHandler,
         MCPServerStatus,
         ProcessorCallback,
@@ -142,7 +142,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         env: ExecutionEnvironment | StrPath | None = None,
         input_provider: InputProvider | None = None,
         output_type: type[TResult] = str,  # type: ignore[assignment]
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         commands: Sequence[BaseCommand] | None = None,
         hooks: AgentHooks | None = None,
     ) -> None:
@@ -523,7 +523,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
         deps: TDeps | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Run agent with streaming output.
 
@@ -604,7 +604,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         input_provider: InputProvider | None = None,
         wait_for_connections: bool | None = None,
         deps: TDeps | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
     ) -> AsyncIterator[RichAgentStreamEvent[TResult]]:
         """Process a single prompt group with streaming output.
 
@@ -1033,7 +1033,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         message_history: MessageHistory | None = None,
         deps: TDeps | None = None,
         input_provider: InputProvider | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         wait_for_connections: bool | None = None,
     ) -> ChatMessage[TResult]:
         """Run agent with prompt and get response.

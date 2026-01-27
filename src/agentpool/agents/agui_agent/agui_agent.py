@@ -56,12 +56,7 @@ if TYPE_CHECKING:
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
-    from agentpool.common_types import (
-        BuiltinEventHandlerType,
-        IndividualEventHandler,
-        StrPath,
-        ToolType,
-    )
+    from agentpool.common_types import AnyEventHandlerType, StrPath, ToolType
     from agentpool.delegation import AgentPool
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
@@ -125,7 +120,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
         input_provider: InputProvider | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         tool_confirmation_mode: ToolConfirmationMode = "per_tool",
         commands: Sequence[BaseCommand] | None = None,
         hooks: AgentHooks | None = None,
@@ -192,7 +187,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         cls,
         config: AGUIAgentConfig,
         *,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         deps_type: type[TDeps] | None = None,
@@ -200,7 +195,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Create an AGUIAgent from a config object."""
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+        merged_handlers: list[AnyEventHandlerType] = [
             *config_handlers,
             *(event_handlers or []),
         ]

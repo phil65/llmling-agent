@@ -38,12 +38,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self
 import uuid
 
 import anyio
-from pydantic_ai import (
-    ModelRequest,
-    ModelResponse,
-    TextPart,
-    UserPromptPart,
-)
+from pydantic_ai import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from acp import InitializeRequest
 from agentpool.agents.acp_agent.acp_converters import event_to_part
@@ -88,7 +83,7 @@ if TYPE_CHECKING:
     from agentpool.agents.acp_agent.client_handler import ACPClientHandler
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
-    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler
+    from agentpool.common_types import AnyEventHandlerType
     from agentpool.delegation import AgentPool
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
@@ -147,7 +142,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         auto_approve: bool = False,
         commands: Sequence[BaseCommand] | None = None,
         hooks: AgentHooks | None = None,
@@ -227,7 +222,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         cls,
         config: BaseACPAgentConfig,
         *,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         deps_type: type[TDeps] | None = None,
         agent_pool: AgentPool[Any] | None = None,
@@ -235,7 +230,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Create an ACPAgent from a config object."""
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+        merged_handlers: list[AnyEventHandlerType] = [
             *config_handlers,
             *(event_handlers or []),
         ]

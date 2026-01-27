@@ -147,7 +147,7 @@ if TYPE_CHECKING:
     )
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
-    from agentpool.common_types import BuiltinEventHandlerType, IndividualEventHandler, StrPath
+    from agentpool.common_types import AnyEventHandlerType, StrPath
     from agentpool.delegation import AgentPool
     from agentpool.hooks import AgentHooks
     from agentpool.messaging import MessageHistory
@@ -240,7 +240,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         agent_pool: AgentPool[Any] | None = None,
         enable_logging: bool = True,
         event_configs: Sequence[EventConfig] | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         output_type: type[TResult] | None = None,
         builtin_subagents: dict[str, AgentDefinition] | None = None,
         commands: Sequence[BaseCommand] | None = None,
@@ -360,7 +360,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         cls,
         config: ClaudeCodeAgentConfig,
         *,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         deps_type: type[TDeps] | None = None,
@@ -379,7 +379,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if config.output_type:
             resolved_output_type = to_type(config.output_type, manifest.responses)
         # Merge config-level handlers with provided handlers
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+        merged_handlers: list[AnyEventHandlerType] = [
             *config.get_event_handlers(),
             *(event_handlers or []),
         ]

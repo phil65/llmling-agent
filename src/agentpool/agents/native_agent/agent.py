@@ -49,9 +49,8 @@ if TYPE_CHECKING:
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
-        BuiltinEventHandlerType,
+        AnyEventHandlerType,
         EndStrategy,
-        IndividualEventHandler,
         ModelType,
         ProcessorCallback,
         SessionIdType,
@@ -97,7 +96,7 @@ class AgentKwargs(TypedDict, total=False):
     # context: AgentContext[Any] | None  # x
     session: SessionIdType | SessionQuery | MemoryConfig | bool | int
     input_provider: InputProvider | None
-    event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None
+    event_handlers: Sequence[AnyEventHandlerType] | None
     env: ExecutionEnvironment | None
 
     hooks: AgentHooks | None
@@ -138,7 +137,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         input_provider: InputProvider | None = None,
         parallel_init: bool = True,
         model_settings: ModelSettings | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         agent_pool: AgentPool[Any] | None = None,
         tool_mode: ToolMode | None = None,
         knowledge: Knowledge | None = None,
@@ -309,7 +308,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         config: NativeAgentConfig,
         *,
         name: str | None = None,
-        event_handlers: Sequence[IndividualEventHandler | BuiltinEventHandlerType] | None = None,
+        event_handlers: Sequence[AnyEventHandlerType] | None = None,
         input_provider: InputProvider | None = None,
         agent_pool: AgentPool[Any] | None = None,
         deps_type: type[TDeps] | None = None,
@@ -393,7 +392,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         if config.output_type:
             resolved_output_type = to_type(config.output_type, manifest.responses)
         # Merge event handlers
-        merged_handlers: list[IndividualEventHandler | BuiltinEventHandlerType] = [
+        merged_handlers: list[AnyEventHandlerType] = [
             *config.get_event_handlers(),
             *(event_handlers or []),
         ]
