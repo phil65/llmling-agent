@@ -98,7 +98,7 @@ def create_client_config_file(
         "config_path": str(server_config_path),
         "agent": "test_agent",
         "tools": [t.model_dump(mode="json") for t in tools],
-        "execution_environment": mock_env.model_dump(mode="json"),
+        "environment": mock_env.model_dump(mode="json"),
     }
 
     config = {"agents": {"test_client": agent_config}}

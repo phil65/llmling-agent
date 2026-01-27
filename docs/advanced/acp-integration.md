@@ -343,26 +343,25 @@ agents:
   claude_local:
     type: acp
     provider: claude
-    execution_environment: local  # Default
     
   claude_docker:
     type: acp
     provider: claude
-    execution_environment:
+    environment:
       type: docker
       image: python:3.13-slim
       
   claude_e2b:
     type: acp
     provider: claude
-    execution_environment:
+    environment:
       type: e2b
       template: python-sandbox
       
   claude_remote:
     type: acp
     provider: claude
-    execution_environment:
+    environment:
       type: srt  # Secure Remote Terminal
       host: remote-server.com
 ```
@@ -412,7 +411,7 @@ agents:
     type: acp
     provider: claude
     # Agent's toolsets use this environment
-    execution_environment: local
+    environment: path/to/cwd
     # Subprocess file/terminal requests go here instead
     client_execution_environment:
       type: docker

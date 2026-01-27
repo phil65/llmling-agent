@@ -152,14 +152,14 @@ agents:
   claude_docker:
     type: acp
     provider: claude
-    execution_environment:
+    environment:
       type: docker
       image: python:3.13-slim
       
   claude_e2b:
     type: acp
     provider: claude
-    execution_environment:
+    environment:
       type: e2b
       template: python-sandbox
 ```
