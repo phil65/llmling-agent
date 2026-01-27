@@ -15,9 +15,17 @@ class MockProvider(ResourceProvider):
         self.custom_params = kwargs
 
 
+class StrictProvider(ResourceProvider):
+    """Mock provider with strict parameter requirements."""
+
+    def __init__(self, name: str, required_arg: int):
+        """Initialize strict provider with required argument."""
+        super().__init__(name=name)
+        self.required_arg = required_arg
+
+
 async def test_custom_toolset_parameters():
     """Test that CustomToolsetConfig passes parameters to provider constructor."""
-    # This should fail until we implement the 'parameters' field
     config = CustomToolsetConfig(
         import_path="tests.toolsets.test_custom_toolset.MockProvider",
         parameters={"key": "value", "another": 123},
@@ -31,7 +39,6 @@ async def test_custom_toolset_parameters():
 
 async def test_custom_toolset_name_collision():
     """Test that parameters can override the default name."""
-    # This should fail until we implement the 'parameters' field
     config = CustomToolsetConfig(
         import_path="tests.toolsets.test_custom_toolset.MockProvider",
         parameters={"name": "new_name"},
@@ -40,3 +47,16 @@ async def test_custom_toolset_name_collision():
 
     # Provider should use the overridden name, not the class name
     assert provider.name == "new_name"
+
+
+async def test_custom_toolset_invalid_parameters():
+    """Test that invalid parameters raise appropriate errors."""
+    import pytest
+
+    # Missing required_arg should raise TypeError
+    config = CustomToolsetConfig(
+        import_path="tests.toolsets.test_custom_toolset.StrictProvider",
+        parameters={"unknown_param": "value"},  # Missing required_arg
+    )
+    with pytest.raises(TypeError):
+        config.get_provider()
