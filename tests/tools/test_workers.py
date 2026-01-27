@@ -25,7 +25,7 @@ agents:
   main:
     type: native
     model: test
-    name: Main Agent
+    display_name: Main Agent
     workers:
       - worker
       - specialist
@@ -34,13 +34,13 @@ agents:
   worker:
     type: native
     model: test
-    name: Basic Worker
+    display_name: Basic Worker
     system_prompt: "You are a helpful worker agent."
 
   specialist:
     type: native
     model: test
-    name: Domain Specialist
+    display_name: Domain Specialist
     system_prompt: "You are a specialist with deep domain knowledge."
 """
 
@@ -49,7 +49,7 @@ agents:
   main:
     type: native
     model: test
-    name: Main Agent
+    display_name: Main Agent
     workers:
       - name: worker
         pass_message_history: true
@@ -58,13 +58,13 @@ agents:
   worker:
     type: native
     model: test
-    name: History Worker
+    display_name: History Worker
     system_prompt: "You are a worker with conversation history."
 
   specialist:
     type: native
     model: test
-    name: Context Worker
+    display_name: Context Worker
     system_prompt: "You are a worker with context access."
 """
 
@@ -73,7 +73,7 @@ agents:
   main:
     type: native
     model: test
-    name: Main Agent
+    display_name: Main Agent
     workers:
       - nonexistent
 """
@@ -83,13 +83,13 @@ agents:
   main:
     type: native
     model: test
-    name: Main Agent
+    display_name: Main Agent
     workers:
       - structured_worker
 
   structured_worker:
     model: test
-    name: Structured Worker
+    display_name: Structured Worker
     system_prompt: "You are a worker that returns structured data."
 """
 

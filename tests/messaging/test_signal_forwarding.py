@@ -16,7 +16,7 @@ agents:
     agent1:
         type: native
         model: test
-        name: TestAgent 1
+        display_name: TestAgent 1
         connections:
             - type: node
               name: agent2
@@ -24,7 +24,7 @@ agents:
     agent2:
         type: native
         model: test
-        name: TestAgent 2
+        display_name: TestAgent 2
         connections:
             - type: node
               name: agent3
@@ -32,7 +32,7 @@ agents:
     agent3:
         type: native
         model: test
-        name: TestAgent 3
+        display_name: TestAgent 3
 """
 
 
@@ -41,7 +41,7 @@ agents:
     agent1:
         type: native
         model: test
-        name: TestAgent
+        display_name: TestAgent
         connections:
             - type: node
               name: nonexistent
@@ -53,7 +53,7 @@ agents:
     agent1:
         type: native
         model: test
-        name: TestAgent 1
+        display_name: TestAgent 1
         connections:
             - type: node
               name: agent2
@@ -61,7 +61,7 @@ agents:
     agent2:
         type: native
         model: test
-        name: TestAgent 2
+        display_name: TestAgent 2
 """
 
 

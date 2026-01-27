@@ -48,7 +48,7 @@ responses:
 agents:
   test_agent:
     type: native
-    name: Test Agent
+    display_name: Test Agent
     description: Agent for testing conversation flow
     model:
       type: function
@@ -57,7 +57,7 @@ agents:
     system_prompt: You are a test agent
 
   error_agent:
-    name: Error Agent
+    display_name: Error Agent
     description: Agent that always raises errors
     model: test
     system_prompt: You are an error agent

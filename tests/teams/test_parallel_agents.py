@@ -39,7 +39,7 @@ responses:
 agents:
   agent_1:
     type: native
-    name: First Agent
+    display_name: First Agent
     description: First test agent
     model:
       type: function
@@ -48,7 +48,7 @@ agents:
     system_prompt: You are the first agent
 
   agent_2:
-    name: Second Agent
+    display_name: Second Agent
     description: Second test agent
     model:
       type: function
