@@ -108,7 +108,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool_toolsets.builtin.debug import install_memory_handler
 
         super().__init__()
-
         match manifest:
             case None:
                 self.manifest = AgentsManifest()
@@ -118,7 +117,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 self.manifest = manifest
             case _:
                 raise ValueError(f"Invalid config path: {manifest}")
-
         registry.configure_observability(self.manifest.observability)
         self._memory_log_handler = install_memory_handler()
         self.shared_deps_type = shared_deps_type
@@ -141,7 +139,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self.prompt_manager = PromptManager(self.manifest.prompts)
         # Main agent name: explicit param > manifest.default_agent > None (will use first)
         self._main_agent_name = main_agent_name or self.manifest.default_agent
-
         # Register tasks from manifest
         for name, task in self.manifest.jobs.items():
             self._tasks.register(name, task)
@@ -186,7 +183,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                 # Initialize storage and sessions sequentially (they share the same DB)
                 await self.exit_stack.enter_async_context(self.storage)
                 await self.exit_stack.enter_async_context(self.sessions)
-
                 # Initialize agents and teams (can be parallel)
                 comps: list[AbstractAsyncContextManager[Any]] = [*agents, *teams]
                 node_inits = [self.exit_stack.enter_async_context(c) for c in comps]
@@ -388,17 +384,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
         Returns:
             Dictionary mapping agent names to agent instances.
-
-        Examples:
-            # Get all agents
-            all_agents = pool.get_agents()
-
-            # Get only native agents
-            native = pool.get_agents(Agent)
-
-            # Get only ACP agents
-            from agentpool.agents.acp_agent import ACPAgent
-            acp = pool.get_agents(ACPAgent)
         """
         from agentpool.agents.base_agent import BaseAgent
 
@@ -460,12 +445,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     def _validate_item(self, item: MessageNode[Any, Any] | Any) -> MessageNode[Any, Any]:
         """Validate and convert items before registration.
 
-        Args:
-            item: Item to validate
-
-        Returns:
-            Validated Node
-
         Raises:
             AgentPoolError: If item is not a valid node
         """
@@ -477,7 +456,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     def _create_teams(self) -> None:
         """Create all teams in two phases to allow nesting."""
         # Phase 1: Create empty teams
-
         empty_teams: dict[str, BaseTeam[Any, Any]] = {}
         for name, config in self.manifest.teams.items():
             mcp_servers = config.get_mcp_servers() or None
