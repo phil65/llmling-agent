@@ -565,14 +565,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self._tasks.register(name, task)
 
     async def add_agent(self, agent: BaseAgent[Any, Any]) -> None:
-        """Add a new permanent agent to the pool.
-
-        Args:
-            agent: Agent instance
-
-        Returns:
-            An agent instance
-        """
+        """Add a new permanent agent to the pool."""
         from agentpool.agents.events import resolve_event_handlers
 
         if agent.agent_pool is not None:
