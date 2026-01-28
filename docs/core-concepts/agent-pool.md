@@ -43,13 +43,9 @@ async def main():
     async with AgentPool[AppConfig]("agents.yml", shared_deps=app_config) as pool:
         # Get existing agent
         analyzer = pool.get_agent("analyzer")
-
         # Create new agent dynamically
-        planner = await pool.add_agent(
-            "dynamic_planner",
-            model="openai:gpt-5",
-            system_prompt="You plan next steps.",
-        )
+        planner = Agent(name="dynamic_planner", model="openai:gpt-5", system_prompt="You plan next steps.")
+        await pool.add_agent(planner)
         # Use agents
         result = await analyzer.run("Analyze this text...")
         # create teams

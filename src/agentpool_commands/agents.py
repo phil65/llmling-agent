@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from slashed import CommandContext, CommandError  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
+from agentpool.agents.native_agent import Agent
 from agentpool.messaging.context import NodeContext  # noqa: TC001
 from agentpool_commands.base import NodeCommand
 from agentpool_commands.completers import get_available_agents, get_available_nodes
@@ -73,14 +74,15 @@ class CreateAgentCommand(NodeCommand):
             # Get model from args or current agent
             current_agent = ctx.context.agent
             tool_list = [t.strip() for t in tools.split("|")] if tools else None
-            # Create and register the new agent
-            await ctx.context.pool.add_agent(
+            agent = Agent(
                 name=agent_name,
                 model=model or current_agent.model_name or "openai:gpt-4o-mini",
                 system_prompt=system_prompt or (),
                 description=description,
                 tools=tool_list,
             )
+            # Create and register the new agent
+            await ctx.context.pool.add_agent(agent)
 
             msg = f"✅ **Created agent** `{agent_name}`"
             if tool_list:

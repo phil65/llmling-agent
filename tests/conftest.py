@@ -28,6 +28,11 @@ def vision_model() -> str:
 
 
 @pytest.fixture(scope="session", autouse=True)
+def unset_anthropic_api_key():
+    os.environ["ANTHROPIC_API_KEY"] = ""
+
+
+@pytest.fixture(scope="session", autouse=True)
 def disable_logfire(tmp_path_factory):
     """Disable logfire for all tests and set up test directories."""
     from pathlib import Path
@@ -36,7 +41,6 @@ def disable_logfire(tmp_path_factory):
     os.environ["LOGFIRE_DISABLE"] = "true"
     # Also disable observability entirely
     os.environ["OBSERVABILITY_ENABLED"] = "false"
-
     # Skip config dir override in CI - not needed and credentials aren't available anyway
     is_ci = os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS")
     if not is_ci:

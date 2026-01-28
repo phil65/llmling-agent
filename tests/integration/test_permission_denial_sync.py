@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-import os
 import shutil
 from typing import Any
 
@@ -24,10 +23,6 @@ import pytest
 from acp.schema import ToolCallStart
 from agentpool.agents.claude_code_agent import ClaudeCodeAgent
 from agentpool_server.acp_server.event_converter import ACPEventConverter
-
-
-# Force OAuth instead of API key for Claude Code
-os.environ["ANTHROPIC_API_KEY"] = ""
 
 
 @dataclass

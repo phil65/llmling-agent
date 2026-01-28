@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import shutil
 from typing import TYPE_CHECKING
 
@@ -13,6 +12,7 @@ import pytest
 
 from agentpool import AgentPool
 from agentpool.agents.acp_agent import ACPAgent
+from agentpool.agents.native_agent import Agent
 from agentpool.mcp_server.tool_bridge import ToolManagerBridge
 from agentpool.models.acp_agents.non_mcp import ClaudeACPAgentConfig
 from agentpool_config.toolsets import SkillsToolsetConfig, SubagentToolsetConfig
@@ -39,7 +39,8 @@ async def list_pool_agents(ctx: AgentContext) -> str:
 async def test_bridge_lifecycle():
     """Test bridge start/stop lifecycle."""
     async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
+        agent = Agent(name="test", model="test", system_prompt="Test")
+        await pool.add_agent(agent)
         agent.tools.register_tool(simple_add)
         bridge = ToolManagerBridge(node=agent)
         # Not started yet
@@ -58,7 +59,8 @@ async def test_bridge_lifecycle():
 async def test_bridge_context_manager():
     """Test bridge as async context manager."""
     async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
+        agent = Agent(name="test", model="test", system_prompt="Test")
+        await pool.add_agent(agent)
         agent.tools.register_tool(simple_add)
         async with ToolManagerBridge(node=agent) as bridge:
             assert bridge.port > 0
@@ -70,7 +72,8 @@ async def test_bridge_context_manager():
 async def test_bridge_registers_tools():
     """Test that tools are registered with FastMCP."""
     async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
+        agent = Agent(name="test", model="test", system_prompt="Test")
+        await pool.add_agent(agent)
         agent.tools.register_tool(simple_add)
         async with ToolManagerBridge(node=agent) as bridge:
             assert bridge._mcp is not None  # The MCP server should have our tool registered
@@ -83,8 +86,9 @@ async def test_bridge_registers_tools():
 async def test_bridge_with_context_tools():
     """Test that tools requiring AgentContext work through bridge."""
     async with AgentPool() as pool:
-        # Add an agent so there's something in the pool
-        agent = await pool.add_agent(name="helper", model="test", system_prompt="Helper")
+        # Add an agent so there's somethin
+        agent = Agent(name="helper", model="test", system_prompt="Helper")
+        await pool.add_agent(agent)
         agent.tools.register_tool(simple_add)
         agent.tools.register_tool(list_pool_agents)
 
@@ -100,7 +104,8 @@ async def test_bridge_with_context_tools():
 async def test_proxy_context_creation():
     """Test that context is created correctly via dataclasses.replace."""
     async with AgentPool() as pool:
-        agent = await pool.add_agent(name="owner", model="test", system_prompt="Test")
+        agent = Agent(name="owner", model="test", system_prompt="Test")
+        await pool.add_agent(agent)
         agent.tools.register_tool(simple_add)
         ToolManagerBridge(node=agent)
         # The bridge uses node.get_context() and replaces tool fields
@@ -144,7 +149,8 @@ async def test_tool_call_via_mcp_client():
         return f"Got message: {message}"
 
     async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
+        agent = Agent(name="test", model="test", system_prompt="Test")
+        await pool.add_agent(agent)
         agent.tools.register_tool(capture_id_tool)
 
         async with (
@@ -179,7 +185,8 @@ async def test_tool_call_with_meta_tool_use_id():
         return f"value={value}"
 
     async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
+        agent = Agent(name="test", model="test")
+        await pool.add_agent(agent)
         agent.tools.register_tool(capture_id_tool)
 
         async with (
@@ -244,7 +251,6 @@ async def test_claude_code_mcp_bridge_integration():
     4. Verifies the tool_call_id was extracted from meta
     """
     # Force SDK to use Claude Code CLI subscription instead of API
-    os.environ["ANTHROPIC_API_KEY"] = ""
     captured_ids: list[str] = []
 
     async def capture_context_tool(ctx: AgentContext, number: int) -> str:
@@ -253,7 +259,8 @@ async def test_claude_code_mcp_bridge_integration():
         return f"Got number: {number}"
 
     async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model="test", system_prompt="Test")
+        agent = Agent(name="test", model="test")
+        await pool.add_agent(agent)
         agent.tools.register_tool(capture_context_tool)
 
         async with ToolManagerBridge(node=agent) as bridge:

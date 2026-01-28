@@ -112,10 +112,12 @@ class TestParentIdForwarding:
         """When a message is forwarded, it should preserve its original parent_id."""
         async with AgentPool() as pool:
             model1 = TestModel(custom_output_text="Main response")
-            main_agent = await pool.add_agent("main-agent", model=model1)
+            main_agent = Agent("main-agent", model=model1)
+            await pool.add_agent(main_agent)
 
             model2 = TestModel(custom_output_text="Helper response")
-            helper_agent = await pool.add_agent("helper-agent", model=model2)
+            helper_agent = Agent("helper-agent", model=model2)
+            await pool.add_agent(helper_agent)
 
             # Set up forwarding
             main_agent.connect_to(helper_agent)
@@ -146,10 +148,12 @@ class TestParentIdForwarding:
         """Forwarded messages should track their forwarding path."""
         async with AgentPool() as pool:
             model1 = TestModel(custom_output_text="Agent 1 response")
-            agent1 = await pool.add_agent("agent-1", model=model1)
+            agent1 = Agent("agent-1", model=model1)
+            await pool.add_agent(agent1)
 
             model2 = TestModel(custom_output_text="Agent 2 response")
-            agent2 = await pool.add_agent("agent-2", model=model2)
+            agent2 = Agent("agent-2", model=model2)
+            await pool.add_agent(agent2)
 
             # Set up forwarding: agent1 -> agent2
             agent1.connect_to(agent2)

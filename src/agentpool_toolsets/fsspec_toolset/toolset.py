@@ -1712,12 +1712,13 @@ if __name__ == "__main__":
         from pydantic_ai import RunContext as PyAiContext, RunUsage
         from pydantic_ai.models.test import TestModel
 
-        from agentpool import AgentPool
+        from agentpool import Agent, AgentPool
 
         fs = fsspec.filesystem("file")
         tools = FSSpecTools(fs, name="local_fs")
         async with AgentPool() as pool:
-            agent = await pool.add_agent("test", model="anthropic-max:claude-haiku-4-5")
+            agent = Agent(name="test", model="anthropic-max:claude-haiku-4-5")
+            await pool.add_agent(agent)
             agent_ctx = agent.get_context()
             result = await tools.agentic_edit(
                 PyAiContext(deps=None, model=TestModel(), usage=RunUsage()),

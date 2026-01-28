@@ -92,19 +92,12 @@ from agentpool import AgentPool
 async def main():
     async with AgentPool() as pool:
         # Create three agents with different roles
-        agent1 = await pool.add_agent(
-            "analyzer",
-            system_prompt="You analyze text and find key points."
-        )
-        agent2 = await pool.add_agent(
-            "summarizer",
-            system_prompt="You create concise summaries."
-        )
-        agent3 = await pool.add_agent(
-            "critic",
-            system_prompt="You evaluate and critique summaries."
-        )
-
+        analyzer = Agent(model="xy", name="analyzer", system_prompt="You analyze text and find key points.")
+        await pool.add_agent(analyzer)
+        summarizer = ClaudeCodeAgent(name="summarizer", system_prompt="You create concise summaries.")
+        await pool.add_agent(summarizer)
+        critic = CodexAgent(name="critic", system_prompt="You evaluate and critique summaries.")
+        await pool.add_agent(critic)
         # Create execution pipeline
         run = agent1 | agent2 | agent3
 

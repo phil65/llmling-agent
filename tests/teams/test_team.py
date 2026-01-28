@@ -11,9 +11,12 @@ async def test_team_parallel_execution():
     """Test that team runs all agents in parallel and collects responses."""
     async with AgentPool() as pool:
         # Create three agents that append their name to input
-        a1 = await pool.add_agent("a1", system_prompt="Append 'a1'", model="test")
-        a2 = await pool.add_agent("a2", system_prompt="Append 'a2'", model="test")
-        a3 = await pool.add_agent("a3", system_prompt="Append 'a3'", model="test")
+        a1 = Agent("a1", system_prompt="Append 'a1'", model="test")
+        await pool.add_agent(a1)
+        a2 = Agent("a2", system_prompt="Append 'a2'", model="test")
+        await pool.add_agent(a2)
+        a3 = Agent("a3", system_prompt="Append 'a3'", model="test")
+        await pool.add_agent(a3)
 
         team = pool.create_team([a1, a2, a3])
         result = await team.execute("test")
@@ -54,9 +57,12 @@ async def test_nested_teams():
     """Test nesting Teams and TeamRuns inside each other."""
     async with AgentPool() as pool:
         # Create basic agents
-        a1 = await pool.add_agent("a1", model="test")
-        a2 = await pool.add_agent("a2", model="test")
-        a3 = await pool.add_agent("a3", model="test")
+        a1 = Agent("a1", model="test")
+        await pool.add_agent(a1)
+        a2 = Agent("a2", model="test")
+        await pool.add_agent(a2)
+        a3 = Agent("a3", model="test")
+        await pool.add_agent(a3)
 
         # Case 1: Team inside TeamRun
         team = a1 & a2  # Team of two agents
@@ -71,10 +77,14 @@ async def test_nested_team_run():
     """Test nesting Teams and TeamRuns inside each other."""
     async with AgentPool() as pool:
         # Create basic agents
-        a1 = await pool.add_agent("a1", model="test")
-        a2 = await pool.add_agent("a2", model="test")
-        a3 = await pool.add_agent("a3", model="test")
-        a4 = await pool.add_agent("a4", model="test")
+        a1 = Agent("a1", model="test")
+        await pool.add_agent(a1)
+        a2 = Agent("a2", model="test")
+        await pool.add_agent(a2)
+        a3 = Agent("a3", model="test")
+        await pool.add_agent(a3)
+        a4 = Agent("a4", model="test")
+        await pool.add_agent(a4)
 
         # Case 2: TeamRun inside Team
         sequential = a1 | a2  # TeamRun
@@ -99,8 +109,10 @@ async def test_simple_team_run_iter():
     """Test run_iter with a simple team of agents."""
     async with AgentPool() as pool:
         # Create basic agents
-        a1 = await pool.add_agent("a1", model="test")
-        a2 = await pool.add_agent("a2", model="test")
+        a1 = Agent("a1", model="test")
+        await pool.add_agent(a1)
+        a2 = Agent("a2", model="test")
+        await pool.add_agent(a2)
 
         # Simple parallel team
         team = pool.create_team([a1, a2])
@@ -114,8 +126,10 @@ async def test_simple_team_run_iter():
 async def test_sequential_run_iter():
     """Test run_iter with a sequential execution (TeamRun)."""
     async with AgentPool() as pool:
-        a1 = await pool.add_agent("a1", model="test")
-        a2 = await pool.add_agent("a2", model="test")
+        a1 = Agent("a1", model="test")
+        await pool.add_agent(a1)
+        a2 = Agent("a2", model="test")
+        await pool.add_agent(a2)
 
         # Sequential execution
         sequential = a1 | a2
@@ -129,9 +143,12 @@ async def test_sequential_run_iter():
 async def test_simple_team_with_teamrun_iter():
     """Test run_iter with a team containing a simple TeamRun."""
     async with AgentPool() as pool:
-        a1 = await pool.add_agent("a1", model="test")
-        a2 = await pool.add_agent("a2", model="test")
-        a3 = await pool.add_agent("a3", model="test")
+        a1 = Agent("a1", model="test")
+        await pool.add_agent(a1)
+        a2 = Agent("a2", model="test")
+        await pool.add_agent(a2)
+        a3 = Agent("a3", model="test")
+        await pool.add_agent(a3)
 
         # Sequential execution as team member
         sequential = a1 | a2  # This is one unit
@@ -155,9 +172,12 @@ async def test_simple_team_with_teamrun_iter():
 async def test_team_run_iter_execution_order():
     """Test that run_iter preserves execution order within sequential parts."""
     async with AgentPool() as pool:
-        a1 = await pool.add_agent("a1", model="test")
-        a2 = await pool.add_agent("a2", model="test")
-        a3 = await pool.add_agent("a3", model="test")
+        a1 = Agent("a1", model="test")
+        await pool.add_agent(a1)
+        a2 = Agent("a2", model="test")
+        await pool.add_agent(a2)
+        a3 = Agent("a3", model="test")
+        await pool.add_agent(a3)
 
         # Sequential execution
         sequential: TeamRun[None, str] = pool.create_team_run([a1, a2], name="sequential")
@@ -176,10 +196,14 @@ async def test_team_operators():
     """Test team combination operators (& and |)."""
     async with AgentPool() as pool:
         # Create basic agents
-        a1 = await pool.add_agent("a1", model="test")
-        a2 = await pool.add_agent("a2", model="test")
-        a3 = await pool.add_agent("a3", model="test")
-        a4 = await pool.add_agent("a4", model="test")
+        a1 = Agent("a1", model="test")
+        await pool.add_agent(a1)
+        a2 = Agent("a2", model="test")
+        await pool.add_agent(a2)
+        a3 = Agent("a3", model="test")
+        await pool.add_agent(a3)
+        a4 = Agent("a4", model="test")
+        await pool.add_agent(a4)
 
         # Test parallel combinations (&)
         # Simple agent combinations

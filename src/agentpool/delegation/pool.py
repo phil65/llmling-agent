@@ -7,7 +7,7 @@ from asyncio import Lock
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self, Unpack, overload
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from anyenv import ProcessManager
 import anyio
@@ -36,11 +36,9 @@ if TYPE_CHECKING:
     from contextlib import AbstractAsyncContextManager
     from types import TracebackType
 
-    from pydantic_ai.output import OutputSpec
     from upathtools import JoinablePathLike
 
     from agentpool.agents.base_agent import BaseAgent
-    from agentpool.agents.native_agent import AgentKwargs
     from agentpool.common_types import AgentName, AnyEventHandlerType
     from agentpool.delegation.base_team import BaseTeam
     from agentpool.messaging import ChatMessage
@@ -566,38 +564,25 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     def register_task(self, name: str, task: Job[Any, Any]) -> None:
         self._tasks.register(name, task)
 
-    async def add_agent[TResult = str](
-        self,
-        name: AgentName,
-        *,
-        output_type: OutputSpec[TResult] = str,  # type: ignore[assignment]
-        **kwargs: Unpack[AgentKwargs],
-    ) -> Agent[Any, TResult]:
+    async def add_agent(self, agent: BaseAgent[Any, Any]) -> None:
         """Add a new permanent agent to the pool.
 
         Args:
-            name: Name for the new agent
-            output_type: Optional type for structured responses:
-            **kwargs: Additional agent configuration
+            agent: Agent instance
 
         Returns:
             An agent instance
         """
-        from agentpool.agents import Agent
+        from agentpool.agents.events import resolve_event_handlers
 
-        if not kwargs.get("event_handlers"):
-            kwargs["event_handlers"] = self.event_handlers
-        agent: Agent[Any, TResult] = Agent(
-            name=name,
-            **kwargs,
-            output_type=output_type,
-            agent_pool=self,
-        )
+        if agent.agent_pool is not None:
+            raise ValueError("Agent is already part of a pool")
+        for handler in resolve_event_handlers(self.event_handlers):
+            agent.event_handler.add_handler(handler)
         # Add MCP aggregating provider from manager
         agent.tools.add_provider(self.mcp.get_aggregating_provider())
         agent = await self.exit_stack.enter_async_context(agent)
-        self.register(name, agent)
-        return agent
+        self.register(agent.name, agent)
 
     def get_mermaid_diagram(self, include_details: bool = True) -> str:
         """Generate mermaid flowchart of all agents and their connections.

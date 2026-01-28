@@ -178,7 +178,7 @@ if __name__ == "__main__":
     import anyio
     import httpx
 
-    from agentpool import AgentPool
+    from agentpool import Agent, AgentPool
 
     async def test_completions() -> None:
         """Test the chat completions API."""
@@ -228,7 +228,8 @@ if __name__ == "__main__":
     async def main() -> None:
         """Run server and test both endpoints."""
         pool = AgentPool()
-        await pool.add_agent("gpt-5-mini", model="openai:gpt-5-mini")
+        agent = Agent(name="gpt-5-mini", model="openai:gpt-5-mini")
+        await pool.add_agent(agent)
         async with (
             OpenAIAPIServer(pool, host="0.0.0.0", port=8000) as server,
             server.run_context(),

@@ -3,16 +3,19 @@ from __future__ import annotations
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from agentpool import AgentPool
+from agentpool import Agent, AgentPool
 from agentpool.messaging.message_utils import get_message_chain
 
 
 async def test_message_chain():
     """Test that message chain tracks transformations correctly via parent_id."""
     async with AgentPool() as pool:
-        agent_a = await pool.add_agent("agent-a", model="test")
-        agent_b = await pool.add_agent("agent-b", model="test")
-        agent_c = await pool.add_agent("agent-c", model="test")
+        agent_a = Agent("agent-a", model="test")
+        await pool.add_agent(agent_a)
+        agent_b = Agent("agent-b", model="test")
+        await pool.add_agent(agent_b)
+        agent_c = Agent("agent-c", model="test")
+        await pool.add_agent(agent_c)
 
         # Connect chain
         agent_a.connect_to(agent_b)
@@ -42,22 +45,19 @@ async def test_run_result_has_parent_id():
     """Test that the message returned by run() has proper parent_id."""
     async with AgentPool() as pool:
         model = TestModel(custom_output_text="Response from A")
-        agent_a = await pool.add_agent("agent-a", model=model)
-        agent_b = await pool.add_agent("agent-b", model=model)
-
+        agent_a = Agent("agent-a", model=model)
+        await pool.add_agent(agent_a)
+        agent_b = Agent("agent-b", model=model)
+        await pool.add_agent(agent_b)
         # Connect A to B
         agent_a.connect_to(agent_b)
-
         # When A runs
         result = await agent_a.run("Test message")
-
         # The returned message should have parent_id pointing to user message
         assert result.parent_id is not None
-
         # Wait for forwarding to complete
         await agent_a.task_manager.complete_tasks()
         await agent_b.task_manager.complete_tasks()
-
         # B's messages should have parent_id tracking the chain
         if agent_b.conversation.chat_messages:
             b_user_msg = next(
@@ -76,22 +76,21 @@ async def test_message_chain_through_routing():
         model_b = TestModel(custom_output_text="Response from B")
         model_c = TestModel(custom_output_text="Response from C")
 
-        agent_a = await pool.add_agent("agent-a", model=model_a)
-        agent_b = await pool.add_agent("agent-b", model=model_b)
-        agent_c = await pool.add_agent("agent-c", model=model_c)
-
+        agent_a = Agent("agent-a", model=model_a)
+        await pool.add_agent(agent_a)
+        agent_b = Agent("agent-b", model=model_b)
+        await pool.add_agent(agent_b)
+        agent_c = Agent("agent-c", model=model_c)
+        await pool.add_agent(agent_c)
         # Connect the chain
         agent_a.connect_to(agent_b)
         agent_b.connect_to(agent_c)
-
         # When A starts the chain
         await agent_a.run("Start message")
-
         # Wait for all routing to complete
         await agent_a.task_manager.complete_tasks()
         await agent_b.task_manager.complete_tasks()
         await agent_c.task_manager.complete_tasks()
-
         # All agents should share the same session_id
         assert (
             agent_a.conversation.chat_messages[0].session_id
@@ -117,8 +116,10 @@ async def test_message_chain_through_routing():
 async def test_build_message_index():
     """Test that pool.build_message_index works across agents."""
     async with AgentPool() as pool:
-        agent_a = await pool.add_agent("agent-a", model="test")
-        agent_b = await pool.add_agent("agent-b", model="test")
+        agent_a = Agent("agent-a", model="test")
+        await pool.add_agent(agent_a)
+        agent_b = Agent("agent-b", model="test")
+        await pool.add_agent(agent_b)
 
         result_a = await agent_a.run("Hello from A")
         result_b = await agent_b.run("Hello from B")
