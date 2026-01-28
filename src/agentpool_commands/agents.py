@@ -241,21 +241,21 @@ class CreateTeamCommand(NodeCommand):
             raise CommandError("At least 2 members are required to create a team")
 
         # Verify all nodes exist
-        node_list = list(nodes)
-        for node_name in node_list:
+        node_names = list(nodes)
+        for node_name in node_names:
             if node_name not in ctx.context.pool.nodes:
                 available = ", ".join(ctx.context.pool.nodes.keys())
                 raise CommandError(f"Node '{node_name}' not found. Available: {available}")
-
+        node_instances = [ctx.context.pool.nodes[name] for name in node_names]
         # Create the team
         if mode == "sequential":
-            team: BaseTeam[Any, Any] = ctx.context.pool.create_team_run(node_list, name=name)
+            team: BaseTeam[Any, Any] = ctx.context.pool.create_team_run(node_instances, name=name)
         else:
-            team = ctx.context.pool.create_team(node_list, name=name)
+            team = ctx.context.pool.create_team(node_instances, name=name)
 
         mode_str = "pipeline" if mode == "sequential" else "parallel"
         await ctx.print(
-            f"**Created {mode_str} team** `{team.name}` with nodes: `{', '.join(node_list)}`"
+            f"**Created {mode_str} team** `{team.name}` with nodes: `{', '.join(node_names)}`"
         )
 
     def get_completer(self) -> CallbackCompleter:

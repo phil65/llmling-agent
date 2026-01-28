@@ -142,7 +142,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             self._tasks.register(name, task)
         self.process_manager = ProcessManager()
         self.file_ops = FileOpsTracker()
-        # Todo/plan tracker for task management
         self.todos = TodoTracker()
         # Create all agents from unified manifest.agents dict
         for name, config in self.manifest.agents.items():
@@ -229,17 +228,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self.clear()
 
     @overload
-    def create_team_run[TResult](
-        self,
-        agents: Sequence[str],
-        validator: MessageNode[Any, TResult] | None = None,
-        *,
-        name: str | None = None,
-        description: str | None = None,
-        shared_prompt: str | None = None,
-    ) -> TeamRun[TPoolDeps, TResult]: ...
-
-    @overload
     def create_team_run[TDeps, TResult](
         self,
         agents: Sequence[MessageNode[TDeps, Any]],
@@ -253,7 +241,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     @overload
     def create_team_run[TResult](
         self,
-        agents: Sequence[AgentName | MessageNode[Any, Any]],
+        agents: Sequence[MessageNode[Any, Any]],
         validator: MessageNode[Any, TResult] | None = None,
         *,
         name: str | None = None,
@@ -263,7 +251,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
     def create_team_run[TResult](
         self,
-        agents: Sequence[AgentName | MessageNode[Any, Any]] | None = None,
+        agents: Sequence[MessageNode[Any, Any]],
         validator: MessageNode[Any, TResult] | None = None,
         *,
         name: str | None = None,
@@ -281,8 +269,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         from agentpool.delegation.teamrun import TeamRun
 
-        if agents is None:
-            agents = list(self.all_agents.keys())
         team = TeamRun(
             [self.get_agent(i) if isinstance(i, str) else i for i in agents],
             name=name,
@@ -293,9 +279,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         if name:
             self[name] = team
         return team
-
-    @overload
-    def create_team(self, agents: Sequence[str]) -> Team[TPoolDeps]: ...
 
     @overload
     def create_team[TDeps](
@@ -310,7 +293,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     @overload
     def create_team(
         self,
-        agents: Sequence[AgentName | MessageNode[Any, Any]],
+        agents: Sequence[MessageNode[Any, Any]],
         *,
         name: str | None = None,
         description: str | None = None,
@@ -319,7 +302,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
     def create_team(
         self,
-        agents: Sequence[AgentName | MessageNode[Any, Any]] | None = None,
+        agents: Sequence[MessageNode[Any, Any]],
         *,
         name: str | None = None,
         description: str | None = None,
@@ -335,8 +318,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         from agentpool.delegation.team import Team
 
-        if agents is None:
-            agents = list(self.all_agents.keys())
         resolved = [self.get_agent(i) if isinstance(i, str) else i for i in agents]
         team = Team(resolved, name=name, description=description, shared_prompt=shared_prompt)
         if name:
