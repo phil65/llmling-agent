@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import ConfigDict, Field, SecretStr  # noqa: TC002
 from pydantic.networks import HttpUrl
 from schemez.schema import Schema
+
+
+if TYPE_CHECKING:
+    from agentpool_prompts.braintrust_hub import BraintrustPromptHub
+    from agentpool_prompts.fabric import FabricPromptHub
+    from agentpool_prompts.langfuse_hub import LangfusePromptHub
+    from agentpool_prompts.promptlayer_provider import PromptLayerProvider
 
 
 class BasePromptHubConfig(Schema):
@@ -28,6 +35,11 @@ class PromptLayerConfig(BasePromptHubConfig):
 
     api_key: SecretStr = Field(title="PromptLayer API key")
     """API key for the PromptLayer API."""
+
+    def get_provider(self) -> PromptLayerProvider:
+        from agentpool_prompts.promptlayer_provider import PromptLayerProvider
+
+        return PromptLayerProvider(self)
 
 
 class LangfuseConfig(BasePromptHubConfig):
@@ -70,6 +82,11 @@ class LangfuseConfig(BasePromptHubConfig):
     )
     """Timeout for fetching responses in seconds."""
 
+    def get_provider(self) -> LangfusePromptHub:
+        from agentpool_prompts.langfuse_hub import LangfusePromptHub
+
+        return LangfusePromptHub(self)
+
 
 class BraintrustConfig(BasePromptHubConfig):
     """Configuration for Braintrust prompt provider."""
@@ -89,6 +106,11 @@ class BraintrustConfig(BasePromptHubConfig):
     )
     """Braintrust Project name."""
 
+    def get_provider(self) -> BraintrustPromptHub:
+        from agentpool_prompts.braintrust_hub import BraintrustPromptHub
+
+        return BraintrustPromptHub(self)
+
 
 class FabricConfig(BasePromptHubConfig):
     """Configuration for Fabric GitHub prompt provider."""
@@ -97,6 +119,11 @@ class FabricConfig(BasePromptHubConfig):
 
     type: Literal["fabric"] = Field("fabric", init=False)
     """Configuration for Fabric GitHub prompt provider."""
+
+    def get_provider(self) -> FabricPromptHub:
+        from agentpool_prompts.fabric import FabricPromptHub
+
+        return FabricPromptHub(self)
 
 
 PromptHubConfig = Annotated[

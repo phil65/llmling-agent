@@ -41,12 +41,7 @@ def to_mcp_messages(
     part: ModelRequestPart | ModelResponsePart,
 ) -> list[PromptMessage]:
     """Convert internal PromptMessage to MCP PromptMessage."""
-    from mcp.types import (
-        AudioContent,
-        ImageContent,
-        PromptMessage,
-        TextContent,
-    )
+    from mcp.types import AudioContent, ImageContent, PromptMessage, TextContent
 
     messages = []
     match part:
@@ -181,7 +176,6 @@ async def from_mcp_content(
 
 
 def content_block_as_text(content: ContentBlock) -> str:
-
     from mcp.types import (
         AudioContent,
         BlobResourceContents,

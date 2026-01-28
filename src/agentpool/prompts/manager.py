@@ -10,12 +10,6 @@ from anyenv import method_spawner
 from agentpool.log import get_logger
 from agentpool.prompts.builtin_provider import BuiltinPromptProvider
 from agentpool.utils.tasks import TaskManager
-from agentpool_config.prompt_hubs import (
-    BraintrustConfig,
-    FabricConfig,
-    LangfuseConfig,
-    PromptLayerConfig,
-)
 
 
 if TYPE_CHECKING:
@@ -71,43 +65,17 @@ class PromptManager:
     """
 
     def __init__(self, config: PromptLibraryConfig) -> None:
-        """Initialize prompt manager.
-
-        Args:
-            config: Prompt configuration including providers
-        """
+        """Initialize prompt manager."""
         super().__init__()
         self.config = config
         self.task_manager = TaskManager()
         self.providers: dict[str, BasePromptProvider] = {}
-
         # Always register builtin provider
         self.providers["builtin"] = BuiltinPromptProvider(config.system_prompts)
-
         # Register configured providers
         for provider_config in config.providers:
-            match provider_config:
-                case LangfuseConfig():
-                    from agentpool_prompts.langfuse_hub import LangfusePromptHub
-
-                    self.providers["langfuse"] = LangfusePromptHub(provider_config)
-
-                case FabricConfig():
-                    from agentpool_prompts.fabric import FabricPromptHub
-
-                    self.providers["fabric"] = FabricPromptHub(provider_config)
-
-                case BraintrustConfig():
-                    from agentpool_prompts.braintrust_hub import BraintrustPromptHub
-
-                    self.providers["braintrust"] = BraintrustPromptHub(provider_config)
-
-                case PromptLayerConfig():
-                    from agentpool_prompts.promptlayer_provider import (
-                        PromptLayerProvider,
-                    )
-
-                    self.providers["promptlayer"] = PromptLayerProvider(provider_config)
+            provider = provider_config.get_provider()
+            self.providers[provider.name] = provider
 
     async def get_from(
         self,
@@ -139,13 +107,12 @@ class PromptManager:
             raise KeyError(f"Unknown prompt provider: {provider_name}")
 
         provider_instance = self.providers[provider_name]
+        kwargs: dict[str, Any] = {}
+        if provider_instance.supports_versions and version:
+            kwargs["version"] = version
+        if provider_instance.supports_variables and variables:
+            kwargs["variables"] = variables
         try:
-            kwargs: dict[str, Any] = {}
-            if provider_instance.supports_versions and version:
-                kwargs["version"] = version
-            if provider_instance.supports_variables and variables:
-                kwargs["variables"] = variables
-
             return await provider_instance.get_prompt(identifier, **kwargs)
         except Exception as e:
             raise RuntimeError(f"Failed to get prompt {identifier!r} from {provider_name}") from e
