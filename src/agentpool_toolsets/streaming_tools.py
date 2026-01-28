@@ -42,9 +42,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import functools
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel
 from pydantic_ai import PartDeltaEvent, TextPartDelta
 
 
@@ -56,10 +55,6 @@ if TYPE_CHECKING:
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.context import AgentContext
     from agentpool.messaging import MessageHistory
-
-
-T = TypeVar("T", bound=BaseModel)
-R = TypeVar("R")
 
 
 @dataclass
@@ -121,12 +116,7 @@ class StreamingToolBase(ABC):
         agent = ctx.native_agent
         fork_history = _create_forked_history(agent)
         prompt = self.build_prompt(description, **kwargs)
-
-        stream = agent.run_stream(
-            prompt,
-            message_history=fork_history,
-            store_history=False,
-        )
+        stream = agent.run_stream(prompt, message_history=fork_history, store_history=False)
         chunk_stream = _create_chunk_stream(stream)
         return await self.process_stream(ctx, chunk_stream, **kwargs)
 
@@ -165,26 +155,19 @@ def streaming_tool(
         async def wrapper(ctx: AgentContext, description: str, **kwargs: Any) -> str:
             agent = ctx.native_agent
             fork_history = _create_forked_history(agent)
-
             # Build prompt
             if prompt_template:
                 prompt = prompt_template.format(description=description, **kwargs)
             else:
                 prompt = _build_default_prompt(description, **kwargs)
-
             # Stream using the same agent with forked history
-            stream = agent.run_stream(
-                prompt,
-                message_history=fork_history,
-                store_history=False,
-            )
+            stream = agent.run_stream(prompt, message_history=fork_history, store_history=False)
             chunk_stream = _create_chunk_stream(stream)
             return await fn(ctx, chunk_stream, **kwargs)  # type: ignore[no-any-return]
 
         # Mark as streaming tool for introspection
         wrapper._streaming_tool = True  # type: ignore[attr-defined]
         wrapper._prompt_template = prompt_template  # type: ignore[attr-defined]
-
         return wrapper
 
     return decorator
@@ -198,18 +181,14 @@ def _create_forked_history(agent: BaseAgent) -> MessageHistory:
     """
     from agentpool.messaging import ChatMessage, MessageHistory
 
-    current_history = agent.conversation.get_history()
-
-    if current_history:
+    if current_history := agent.conversation.get_history():
         # Get pydantic-ai messages and inject cache point
         all_messages: list[ModelRequest | ModelResponse] = []
         for msg in current_history:
             all_messages.extend(msg.to_pydantic_ai())
-
         # Wrap in a single ChatMessage for the forked history
-        return MessageHistory(
-            messages=[ChatMessage(messages=all_messages, role="user", content="")]
-        )
+        msg = ChatMessage(messages=all_messages, role="user", content="")
+        return MessageHistory(messages=[msg])
 
     return MessageHistory()
 
@@ -230,7 +209,6 @@ async def _create_chunk_stream(stream: Any) -> AsyncIterator[StreamChunk]:
 def _build_default_prompt(description: str, **kwargs: Any) -> str:
     """Build a default prompt from description and kwargs."""
     parts = [description]
-
     # Add context from kwargs if relevant
     for key, value in kwargs.items():
         if value is not None:
