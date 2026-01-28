@@ -72,7 +72,7 @@ def test_allowed_metadata_fields_succeed():
     assert "test_agent" in manifest.agents
     agent = manifest.agents["test_agent"]
     assert isinstance(agent, NativeAgentConfig)
-    assert agent.model == "openai:gpt-4o"
+    assert agent.model.identifier == "openai:gpt-4o"
 
 
 def test_unknown_field_generates_warning():
@@ -91,7 +91,7 @@ def test_unknown_field_generates_warning():
     assert "test_agent" in manifest.agents
     agent = manifest.agents["test_agent"]
     assert isinstance(agent, NativeAgentConfig)
-    assert agent.model == "openai:gpt-4o"
+    assert agent.model.identifier == "openai:gpt-4o"
 
 
 def test_mixed_allowed_and_unknown_fields():
@@ -109,4 +109,4 @@ def test_mixed_allowed_and_unknown_fields():
     assert "test_agent" in manifest.agents
     agent = manifest.agents["test_agent"]
     assert isinstance(agent, NativeAgentConfig)
-    assert agent.model == "openai:gpt-4o"
+    assert agent.model.identifier == "openai:gpt-4o"
