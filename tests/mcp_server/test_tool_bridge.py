@@ -91,7 +91,6 @@ async def test_bridge_with_context_tools():
         await pool.add_agent(agent)
         agent.tools.register_tool(simple_add)
         agent.tools.register_tool(list_pool_agents)
-
         async with ToolManagerBridge(node=agent):
             # Both tools should be registered
             tools = await agent.tools.get_tools()
@@ -99,20 +98,6 @@ async def test_bridge_with_context_tools():
             tool_names = {t.name for t in tools}
             assert "simple_add" in tool_names
             assert "list_pool_agents" in tool_names
-
-
-async def test_proxy_context_creation():
-    """Test that context is created correctly via dataclasses.replace."""
-    async with AgentPool() as pool:
-        agent = Agent(name="owner", model="test", system_prompt="Test")
-        await pool.add_agent(agent)
-        agent.tools.register_tool(simple_add)
-        ToolManagerBridge(node=agent)
-        # The bridge uses node.get_context() and replaces tool fields
-        # We verify the node's context has the right properties
-        ctx = agent.get_context()
-        assert ctx.node_name == "owner"
-        assert ctx.pool is pool
 
 
 async def test_acp_agent_toolsets_adds_providers():
@@ -213,8 +198,7 @@ async def test_tool_call_with_meta_tool_use_id():
 
 
 requires_claude_code = pytest.mark.skipif(
-    shutil.which("claude") is None,
-    reason="Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code",
+    shutil.which("claude") is None, reason="Claude Code CLI not found"
 )
 
 

@@ -434,7 +434,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # Phase 1: Create empty teams
         empty_teams: dict[str, BaseTeam[Any, Any]] = {}
         for name, config in self.manifest.teams.items():
-            mcp_servers = config.get_mcp_servers() or None
+            mcp_servers = config.get_mcp_servers()
             if config.mode == "parallel":
                 empty_teams[name] = Team(
                     [],

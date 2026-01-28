@@ -303,7 +303,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._providers = list(providers) if providers else None  # model discovery
 
     @classmethod
-    def from_config(
+    def from_config(  # noqa: PLR0915
         cls,
         config: NativeAgentConfig,
         *,
