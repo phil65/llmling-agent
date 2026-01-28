@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
@@ -13,6 +14,7 @@ from uuid import uuid4
 import logfire
 from pydantic_ai import Agent as PydanticAgent, CallToolsNode, ModelRequestNode, RunContext
 from pydantic_ai.models import Model
+from pydantic_ai.tools import ToolDefinition
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
@@ -637,10 +639,32 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         for tool in tools:
             wrapped = wrap_tool(tool, context_for_tools, hooks=self._hook_manager)
+
+            prepare_fn = None
+            if tool.schema_override:
+
+                def create_prepare(
+                    t: Tool,
+                ) -> Callable[[RunContext[Any], ToolDefinition], Awaitable[ToolDefinition | None]]:
+                    async def prepare_schema(
+                        ctx: RunContext[Any], tool_def: ToolDefinition
+                    ) -> ToolDefinition | None:
+                        if not t.schema_override:
+                            return None
+                        return ToolDefinition(
+                            name=t.schema_override.get("name") or t.name,
+                            description=t.schema_override.get("description") or t.description,
+                            parameters_json_schema=t.schema_override.get("parameters"),
+                        )
+
+                    return prepare_schema
+
+                prepare_fn = create_prepare(tool)
+
             if get_argument_key(wrapped, RunContext):
-                agent.tool(wrapped)
+                agent.tool(wrapped, prepare=prepare_fn)  # type: ignore
             else:
-                agent.tool_plain(wrapped)
+                agent.tool_plain(wrapped, prepare=prepare_fn)  # type: ignore
         return agent  # type: ignore[return-value]
 
     async def _process_node_stream(
