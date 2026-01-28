@@ -14,7 +14,7 @@ import anyio
 from upathtools import UPath
 
 from agentpool.agents import Agent
-from agentpool.common_types import NodeName
+from agentpool.common_types import NodeName, SupportsStructuredOutput
 from agentpool.delegation.message_flow_tracker import MessageFlowTracker
 from agentpool.delegation.team import Team
 from agentpool.delegation.teamrun import TeamRun
@@ -511,7 +511,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         agent: AgentName | Agent[Any, str],
         *,
         output_type: type[TResult] = str,  # type: ignore
-    ) -> Agent[TPoolDeps, TResult]: ...
+    ) -> BaseAgent[TPoolDeps, TResult]: ...
 
     @overload
     def get_agent[TCustomDeps, TResult = str](
@@ -520,7 +520,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         *,
         deps_type: type[TCustomDeps],
         output_type: type[TResult] = str,  # type: ignore
-    ) -> Agent[TCustomDeps, TResult]: ...
+    ) -> BaseAgent[TCustomDeps, TResult]: ...
 
     def get_agent(
         self,
@@ -528,7 +528,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         *,
         deps_type: Any | None = None,
         output_type: Any = str,
-    ) -> Agent[Any, Any]:
+    ) -> BaseAgent[Any, Any]:
         """Get or configure an agent from the pool.
 
         This method provides flexible agent configuration with dependency injection:
@@ -549,14 +549,14 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             KeyError: If agent name not found
             ValueError: If configuration is invalid
         """
-        from agentpool.agents import Agent
+        from agentpool.agents.base_agent import BaseAgent
 
-        base = agent if isinstance(agent, Agent) else self.get_agents(Agent)[agent]
+        base = agent if isinstance(agent, BaseAgent) else self.get_agents()[agent]
         # Use custom deps if provided, otherwise use shared deps
         # base.context.data = deps if deps is not None else self.shared_deps
         base.deps_type = deps_type
         base.agent_pool = self
-        if output_type not in {str, None}:
+        if isinstance(base, SupportsStructuredOutput):
             base.to_structured(output_type)
         return base
 
