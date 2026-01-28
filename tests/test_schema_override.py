@@ -1,11 +1,17 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from pydantic_ai.tools import ToolDefinition
-from typing import Any
 import pytest
+
 from agentpool.agents.native_agent.agent import Agent
 from agentpool.tools.base import Tool
-from pydantic_ai import Agent as PydanticAgent
-from pydantic_ai.tools import ToolDefinition
-from schemez import OpenAIFunctionDefinition
+
+
+if TYPE_CHECKING:
+    from pydantic_ai import Agent as PydanticAgent
+    from schemez import OpenAIFunctionDefinition
 
 
 def my_tool(arg1: str):
