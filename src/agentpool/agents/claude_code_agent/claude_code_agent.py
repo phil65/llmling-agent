@@ -880,6 +880,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Handle ephemeral execution (fork session if store_history=False)
         fork_client = None
         client = self._client
+        result_message: ResultMessage | None = None
 
         if not store_history and self._sdk_session_id:
             # Create fork client that shares parent's context but has separate session ID
@@ -1139,8 +1140,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     # naturally terminate the stream via the isinstance(message, ResultMessage)
                     # check above. The _cancelled flag is checked in process_prompt() to
                     # return the correct stop reason.
-                else:
-                    result_message = None
 
         except asyncio.CancelledError:
             self.log.info("Stream cancelled via CancelledError")

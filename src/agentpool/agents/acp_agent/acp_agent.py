@@ -750,17 +750,15 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if not self._state:
             self.log.error("Cannot load session: state not initialized")
             return None
-
+        all_servers = self._extra_mcp_servers[:]
+        if self.mcp.servers:
+            all_servers.extend([mcp_config_to_acp(config) for config in self.mcp.servers])
+        mcp_servers = filter_servers_by_capabilities(all_servers, self._caps, logger=self.log)
+        cwd = self._cwd or str(Path.cwd())
+        load_request = LoadSessionRequest(
+            session_id=session_id, cwd=cwd, mcp_servers=mcp_servers or None
+        )
         try:
-            all_servers = self._extra_mcp_servers[:]
-            if self.mcp.servers:
-                all_servers.extend([mcp_config_to_acp(config) for config in self.mcp.servers])
-            mcp_servers = filter_servers_by_capabilities(all_servers, self._caps, logger=self.log)
-            cwd = self._cwd or str(Path.cwd())
-            load_request = LoadSessionRequest(
-                session_id=session_id, cwd=cwd, mcp_servers=mcp_servers or None
-            )
-
             self._state.start_load()
             response = await self._connection.load_session(load_request)
             raw_updates = self._state.finish_load()
@@ -777,19 +775,15 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 self._state.modes = response.modes
 
             if raw_updates:
-                chat_messages = acp_notifications_to_messages(
+                messages = acp_notifications_to_messages(
                     raw_updates,
                     session_id=session_id,
                     agent_name=self.name,
                     model_name=self.model_name,
                 )
                 self.conversation.chat_messages.clear()
-                self.conversation.chat_messages.extend(chat_messages)
-                self.log.info(
-                    "Restored conversation history",
-                    session_id=session_id,
-                    message_count=len(chat_messages),
-                )
+                self.conversation.chat_messages.extend(messages)
+                self.log.info("Restored session", session_id=session_id, msg_count=len(messages))
             else:
                 self.log.debug("No conversation history to restore", session_id=session_id)
 
@@ -809,13 +803,13 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                     return session_info
             except Exception:  # noqa: BLE001
                 self.log.debug("Could not fetch session metadata", session_id=session_id)
-
+            now = get_now()
             return SessionData(
                 session_id=session_id,
                 agent_name=self.name,
                 cwd=cwd,
-                last_active=get_now(),
-                created_at=get_now(),
+                last_active=now,
+                created_at=now,
             )
 
         except Exception:
