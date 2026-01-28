@@ -118,7 +118,7 @@ class ACPServer(BaseServer):
         agent_names = list(server.pool.all_agents.keys())
 
         # Validate specified agent exists if provided
-        if agent and agent not in agent_names:
+        if agent and agent not in pool.manifest.agents:
             msg = f"Specified agent {agent!r} not found in config. Available agents: {agent_names}"
             raise ValueError(msg)
 
@@ -140,8 +140,7 @@ class ACPServer(BaseServer):
         # Use specified agent name or fall back to pool's default agent
         if self.agent:
             if self.agent not in self.pool.all_agents:
-                msg = f"Agent '{self.agent}' not found in pool"
-                raise ValueError(msg)
+                raise ValueError(f"Agent {self.agent!r} not found in pool")
             return self.pool.all_agents[self.agent]
         return self.pool.main_agent
 
@@ -151,11 +150,9 @@ class ACPServer(BaseServer):
             type(self.transport).__name__ if not isinstance(self.transport, str) else self.transport
         )
         self.log.info("Starting ACP server", transport=transport_name)
-
         # Resolve agent instance from name
         default_agent = self._resolve_default_agent()
         self.log.info("Using default agent", agent=default_agent.name)
-
         create_acp_agent = functools.partial(
             AgentPoolACPAgent,
             default_agent=default_agent,
@@ -163,10 +160,8 @@ class ACPServer(BaseServer):
             load_skills=self.load_skills,
             server=self,
         )
-
         debug_file = self.debug_file if self.debug_messages else None
         self.log.info("ACP server started")
-
         try:
             await serve(
                 create_acp_agent,

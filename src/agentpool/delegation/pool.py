@@ -392,7 +392,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         if self._main_agent_name:
             if self._main_agent_name not in agents:
                 available = list(agents.keys())
-                msg = f"Main agent '{self._main_agent_name}' not found. Available: {available}"
+                msg = f"Main agent {self._main_agent_name!r} not found. Available: {available}"
                 raise ValueError(msg)
             return agents[self._main_agent_name]
 
