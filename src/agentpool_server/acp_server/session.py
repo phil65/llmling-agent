@@ -15,14 +15,14 @@ import anyio
 from exxec.acp_provider import ACPExecutionEnvironment
 import logfire
 from pydantic_ai import UsageLimitExceeded
-from slashed import Command, CommandStore
+from slashed import CommandStore
 from tokonomics.model_discovery.model_info import ModelInfo
 
 from acp.acp_requests import ACPRequests
 from acp.filesystem import ACPFileSystem
 from acp.notifications import ACPNotifications
 from acp.schema import AvailableCommand, ClientCapabilities
-from agentpool import Agent, AgentContext, AgentPool  # noqa: TC001
+from agentpool import Agent, AgentPool  # noqa: TC001
 from agentpool.agents.acp_agent import ACPAgent
 from agentpool.agents.modes import ModeInfo
 from agentpool.log import get_logger
@@ -40,7 +40,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from pydantic_ai import UserContent
-    from slashed import CommandContext
 
     from acp import Client, RequestPermissionRequest, RequestPermissionResponse
     from acp.schema import (
@@ -53,7 +52,6 @@ if TYPE_CHECKING:
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.modes import ConfigOptionChanged
     from agentpool.common_types import PathReference
-    from agentpool.prompts.prompts import MCPClientPrompt
     from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
     from agentpool_server.acp_server.session_manager import ACPSessionManager
 
@@ -383,7 +381,7 @@ class ACPSession:
             Stop reason
         """
         self._cancelled = False
-        fs = self.agent.env.get_fs() if self.agent.env else None
+        fs = self.agent.env.get_fs()
         contents = from_acp_content(content_blocks, fs=fs)
         self.log.debug("Converted content", content=contents)
         if not contents:
@@ -517,7 +515,7 @@ class ACPSession:
         try:  # Get all prompts from the agent's ToolManager
             if all_prompts := await self.agent.tools.list_prompts():
                 for prompt in all_prompts:
-                    command = self.create_mcp_command(prompt)
+                    command = prompt.create_mcp_command(self.agent.staged_content)
                     self.command_store.register_command(command)
                 self._notify_command_update()
                 self.log.info("Registered MCP prompts as commands", prompt_count=len(all_prompts))
@@ -624,45 +622,3 @@ class ACPSession:
     def register_update_callback(self, callback: Callable[[], None]) -> None:
         """Register callback for command updates."""
         self._update_callbacks.append(callback)
-
-    def create_mcp_command(self, prompt: MCPClientPrompt) -> Command:
-        """Convert MCP prompt to slashed Command.
-
-        Args:
-            prompt: MCP prompt to wrap
-            session: ACP session for execution context
-
-        Returns:
-            Slashed Command that executes the prompt
-        """
-
-        async def execute_prompt(
-            ctx: CommandContext[AgentContext],
-            args: list[str],
-            kwargs: dict[str, str],
-        ) -> None:
-            """Execute the MCP prompt with parsed arguments."""
-            # Map parsed args to prompt parameters
-            # Map positional args to prompt parameter names
-            result = {
-                prompt.arguments[i]["name"]: arg_value
-                for i, arg_value in enumerate(args)
-                if i < len(prompt.arguments)
-            } | kwargs
-            try:
-                components = await prompt.get_components(result or None)
-                self.agent.staged_content.add(components)
-                staged_count = len(self.agent.staged_content)
-                await ctx.print(f"✅ Prompt {prompt.name!r} staged ({staged_count} total parts)")
-            except Exception as e:
-                logger.exception("MCP prompt execution failed", prompt=prompt.name)
-                await ctx.print(f"❌ Prompt error: {e}")
-
-        usage = " ".join(f"<{i['name']}>" for i in args) if (args := prompt.arguments) else None
-        return Command.from_raw(
-            execute_prompt,
-            name=prompt.name,
-            description=prompt.description or f"MCP prompt: {prompt.name}",
-            category="mcp",
-            usage=usage,
-        )

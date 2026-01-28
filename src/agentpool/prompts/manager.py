@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from anyenv import method_spawner
 from pydantic_ai import UserPromptPart
-from slashed import Command
+from slashed import Command, CommandContext  # noqa: TC002
 
 from agentpool.log import get_logger
 from agentpool.prompts.builtin_provider import BuiltinPromptProvider
@@ -15,8 +15,6 @@ from agentpool.utils.tasks import TaskManager
 
 
 if TYPE_CHECKING:
-    from slashed import CommandContext
-
     from agentpool.agents.staged_content import StagedContent
     from agentpool.prompts.base import BasePromptProvider
     from agentpool_config.system_prompts import PromptLibraryConfig, StaticPromptConfig
