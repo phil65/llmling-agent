@@ -14270,6 +14270,12 @@
           ],
           "title": "Import path",
           "type": "string"
+        },
+        "kw_args": {
+          "additionalProperties": true,
+          "description": "Additional parameters to pass to provider constructor.\n\nThese are unpacked as keyword arguments. If \"name\" is present, it will\nbe used to override the default provider name.",
+          "title": "Provider parameters",
+          "type": "object"
         }
       },
       "required": [
@@ -49630,9 +49636,20 @@
       "type": "object"
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "description": "Complete agent configuration manifest defining all available agents.\n\nThis is the root configuration that:\n- Defines available response types (both inline and imported)\n- Configures all agent instances and their settings\n- Sets up custom role definitions and capabilities\n- Manages environment configurations\n\nA single manifest can define multiple agents that can work independently\nor collaborate through the orchestrator.",
   "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/manifest_configuration/",
+  "patternProperties": {
+    "^\\.": {
+      "description": "YAML anchor or hidden field"
+    },
+    "^_": {
+      "description": "Internal metadata field"
+    },
+    "^x-": {
+      "description": "Custom extension field"
+    }
+  },
   "properties": {
     "INHERIT": {
       "anyOf": [

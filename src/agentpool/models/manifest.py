@@ -380,6 +380,20 @@ class AgentsManifest(Schema):
             "x-icon": "octicon:file-code-16",
             "x-doc-title": "Manifest Overview",
             "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/manifest_configuration/",
+            "patternProperties": {
+                # Allow YAML anchors (dot prefix)
+                r"^\.": {
+                    "description": "YAML anchor or hidden field",
+                },
+                # Allow internal metadata (underscore prefix)
+                r"^_": {
+                    "description": "Internal metadata field",
+                },
+                # Allow custom extensions (x- prefix)
+                r"^x-": {
+                    "description": "Custom extension field",
+                },
+            },
         },
     )
 
