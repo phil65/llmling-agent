@@ -797,7 +797,8 @@ class AgentsManifest(Schema):
 
                 # Warn about unknown fields
                 logger.warning(
-                    f"Unknown field '{key}' in manifest. This field will be IGNORED.",
+                    "Unknown field '%s' in manifest. This field will be IGNORED.",
+                    key,
                     stacklevel=2,
                 )
         return self

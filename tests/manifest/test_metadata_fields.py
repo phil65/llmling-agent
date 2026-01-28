@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import ValidationError
-import pytest
+from llmling_models_config import StringModelConfig
 import yamling
 
 from agentpool import AgentsManifest
@@ -72,6 +71,7 @@ def test_allowed_metadata_fields_succeed():
     assert "test_agent" in manifest.agents
     agent = manifest.agents["test_agent"]
     assert isinstance(agent, NativeAgentConfig)
+    assert isinstance(agent.model, StringModelConfig)
     assert agent.model.identifier == "openai:gpt-4o"
 
 
@@ -91,6 +91,7 @@ def test_unknown_field_generates_warning():
     assert "test_agent" in manifest.agents
     agent = manifest.agents["test_agent"]
     assert isinstance(agent, NativeAgentConfig)
+    assert isinstance(agent.model, StringModelConfig)
     assert agent.model.identifier == "openai:gpt-4o"
 
 
@@ -109,4 +110,5 @@ def test_mixed_allowed_and_unknown_fields():
     assert "test_agent" in manifest.agents
     agent = manifest.agents["test_agent"]
     assert isinstance(agent, NativeAgentConfig)
+    assert isinstance(agent.model, StringModelConfig)
     assert agent.model.identifier == "openai:gpt-4o"
