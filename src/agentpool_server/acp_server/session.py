@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import anyio
 from exxec.acp_provider import ACPExecutionEnvironment
 import logfire
-from pydantic_ai import UsageLimitExceeded, UserPromptPart
+from pydantic_ai import UsageLimitExceeded
 from slashed import Command, CommandStore
 from tokonomics.model_discovery.model_info import ModelInfo
 
@@ -53,7 +53,6 @@ if TYPE_CHECKING:
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.modes import ConfigOptionChanged
     from agentpool.common_types import PathReference
-    from agentpool.prompts.manager import PromptManager
     from agentpool.prompts.prompts import MCPClientPrompt
     from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
     from agentpool_server.acp_server.session_manager import ACPSessionManager
@@ -536,7 +535,11 @@ class ACPSession:
                 if not prompt_names:  # Skip empty providers
                     continue
                 for prompt_name in prompt_names:
-                    command = self.create_prompt_hub_command(provider_name, prompt_name, manager)
+                    command = manager.create_prompt_hub_command(
+                        provider_name,
+                        prompt_name,
+                        self.agent.staged_content,
+                    )
                     self.command_store.register_command(command)
                     cmd_count += 1
 
@@ -646,13 +649,11 @@ class ACPSession:
                 for i, arg_value in enumerate(args)
                 if i < len(prompt.arguments)
             } | kwargs
-            try:  # Get prompt components
+            try:
                 components = await prompt.get_components(result or None)
                 self.agent.staged_content.add(components)
-                # Send confirmation
                 staged_count = len(self.agent.staged_content)
                 await ctx.print(f"✅ Prompt {prompt.name!r} staged ({staged_count} total parts)")
-
             except Exception as e:
                 logger.exception("MCP prompt execution failed", prompt=prompt.name)
                 await ctx.print(f"❌ Prompt error: {e}")
@@ -664,51 +665,4 @@ class ACPSession:
             description=prompt.description or f"MCP prompt: {prompt.name}",
             category="mcp",
             usage=usage,
-        )
-
-    def create_prompt_hub_command(
-        self, provider: str, name: str, manager: PromptManager
-    ) -> Command:
-        """Convert prompt hub prompt to slash command.
-
-        Args:
-            provider: Provider name (e.g., 'langfuse', 'builtin')
-            name: Prompt name
-            manager: PromptManager instance
-
-        Returns:
-            Command that executes the prompt hub prompt
-        """
-
-        async def execute_prompt(
-            ctx: CommandContext[Any],
-            args: list[str],
-            kwargs: dict[str, str],
-        ) -> None:
-            """Execute the prompt hub prompt with parsed arguments."""
-            try:
-                # Build reference string
-                reference = f"{provider}:{name}" if provider != "builtin" else name
-                # Add variables as query parameters if provided
-                if kwargs:
-                    params = "&".join(f"{k}={v}" for k, v in kwargs.items())
-                    reference = f"{reference}?{params}"
-                # Get the rendered prompt
-                result = await manager.get(reference)
-                self.agent.staged_content.add([UserPromptPart(content=result)])
-                # Send confirmation
-                staged_count = len(self.agent.staged_content)
-                msg = f"✅ Prompt {name!r} from {provider} staged ({staged_count} total parts)"
-                await ctx.print(msg)
-
-            except Exception as e:
-                logger.exception("Prompt hub execution failed", prompt=name, provider=provider)
-                await ctx.print(f"❌ Prompt error: {e}")
-
-        return Command.from_raw(
-            execute_prompt,
-            name=f"{provider}_{name}" if provider != "builtin" else name,
-            description=f"Prompt hub: {provider}:{name}",
-            category="prompts",
-            usage="[key=value ...]",  # Generic since we don't have parameter schemas
         )

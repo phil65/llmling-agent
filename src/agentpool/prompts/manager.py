@@ -6,6 +6,8 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from anyenv import method_spawner
+from pydantic_ai import UserPromptPart
+from slashed import Command
 
 from agentpool.log import get_logger
 from agentpool.prompts.builtin_provider import BuiltinPromptProvider
@@ -13,6 +15,9 @@ from agentpool.utils.tasks import TaskManager
 
 
 if TYPE_CHECKING:
+    from slashed import CommandContext
+
+    from agentpool.agents.staged_content import StagedContent
     from agentpool.prompts.base import BasePromptProvider
     from agentpool_config.system_prompts import PromptLibraryConfig, StaticPromptConfig
 
@@ -178,3 +183,52 @@ class PromptManager:
         if isinstance(builtin, BuiltinPromptProvider):
             return builtin.prompts
         return {}
+
+    def create_prompt_hub_command(
+        self,
+        provider: str,
+        name: str,
+        staged_content: StagedContent,
+    ) -> Command:
+        """Convert prompt hub prompt to slash command.
+
+        Args:
+            provider: Provider name (e.g., 'langfuse', 'builtin')
+            name: Prompt name
+            staged_content: StagedContent object to add the prompt to
+
+        Returns:
+            Command that executes the prompt hub prompt
+        """
+
+        async def execute_prompt(
+            ctx: CommandContext[Any],
+            args: list[str],
+            kwargs: dict[str, str],
+        ) -> None:
+            """Execute the prompt hub prompt with parsed arguments."""
+            # Build reference string
+            reference = f"{provider}:{name}" if provider != "builtin" else name
+            # Add variables as query parameters if provided
+            if kwargs:
+                params = "&".join(f"{k}={v}" for k, v in kwargs.items())
+                reference = f"{reference}?{params}"
+            try:
+                # Get the rendered prompt
+                result = await self.get(reference)
+                staged_content.add([UserPromptPart(content=result)])
+                # Send confirmation
+                staged_count = len(staged_content)
+                msg = f"✅ Prompt {name!r} from {provider} staged ({staged_count} total parts)"
+                await ctx.print(msg)
+            except Exception as e:
+                logger.exception("Prompt hub execution failed", prompt=name, provider=provider)
+                await ctx.print(f"❌ Prompt error: {e}")
+
+        return Command.from_raw(
+            execute_prompt,
+            name=f"{provider}_{name}" if provider != "builtin" else name,
+            description=f"Prompt hub: {provider}:{name}",
+            category="prompts",
+            usage="[key=value ...]",  # Generic since we don't have parameter schemas
+        )
