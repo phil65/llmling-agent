@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from tokonomics.model_discovery.model_info import ModelInfo, ModelPricing
 
-from agentpool.agents.modes import ModeInfo
+from agentpool.agents.modes import ModeCategory, ModeInfo
 
 
 if TYPE_CHECKING:
@@ -143,3 +143,23 @@ THINKING_MODES = [
         category_id="thought_level",
     ),
 ]
+
+
+def models_to_category(models: list[ModelInfo], current_mode: str | None) -> ModeCategory:
+
+    # Use id_override if available (e.g., "opus" for Claude Code SDK)
+    def get_id(m: ModelInfo) -> str:
+        return m.id_override or m.id
+
+    modes = [
+        ModeInfo(id=get_id(m), name=m.name, description=m.description or "", category_id="model")
+        for m in models
+    ]
+
+    return ModeCategory(
+        id="model",
+        name="Model",
+        available_modes=modes,
+        current_mode_id=current_mode or get_id(models[0]),
+        category="model",
+    )
