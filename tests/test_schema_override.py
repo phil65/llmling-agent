@@ -1,8 +1,11 @@
 from pydantic_ai.tools import ToolDefinition
+from typing import Any
 import pytest
-
 from agentpool.agents.native_agent.agent import Agent
 from agentpool.tools.base import Tool
+from pydantic_ai import Agent as PydanticAgent
+from pydantic_ai.tools import ToolDefinition
+from schemez import OpenAIFunctionDefinition
 
 
 def my_tool(arg1: str):
@@ -14,7 +17,7 @@ def my_tool(arg1: str):
 async def test_schema_override_propagation():
     """Test that schema overrides are propagated to the PydanticAI agent via prepare."""
     # Define a schema override
-    override = {
+    override: OpenAIFunctionDefinition = {
         "name": "my_tool",
         "description": "Overridden description",
         "parameters": {
@@ -30,7 +33,7 @@ async def test_schema_override_propagation():
 
     agent = Agent(name="test-agent", model="openai:gpt-4o", tools=[tool])
 
-    pydantic_agent = await agent.get_agentlet(None, None)
+    pydantic_agent: PydanticAgent[Any, Any] = await agent.get_agentlet(None, None)
 
     found_tool_def = None
 
@@ -38,11 +41,11 @@ async def test_schema_override_propagation():
     # Note: This relies on pydantic-ai internals, which might change.
     # But it's the only way to inspect without running the agent against an LLM.
 
-    toolsets = []
+    toolsets: list[Any] = []
     if hasattr(pydantic_agent, "_function_toolset"):
         toolsets.append(pydantic_agent._function_toolset)
     if hasattr(pydantic_agent, "_user_toolsets"):
-        toolsets.extend(pydantic_agent._user_toolsets)
+        toolsets.extend(pydantic_agent._user_toolsets)  # type: ignore
 
     for ts in toolsets:
         tools = getattr(ts, "tools", {})

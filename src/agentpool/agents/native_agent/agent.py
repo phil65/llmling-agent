@@ -662,9 +662,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 prepare_fn = create_prepare(tool)
 
             if get_argument_key(wrapped, RunContext):
-                agent.tool(wrapped, prepare=prepare_fn)  # type: ignore
+                agent.tool(wrapped, prepare=prepare_fn)
             else:
-                agent.tool_plain(wrapped, prepare=prepare_fn)  # type: ignore
+                agent.tool_plain(wrapped, prepare=prepare_fn)
         return agent  # type: ignore[return-value]
 
     async def _process_node_stream(
