@@ -112,7 +112,7 @@ async def test_agent_pool_team_errors():
     async with AgentPool(manifest) as pool:
         # Test with non-existent team member
         with pytest.raises(KeyError, match="nonexistent"):
-            pool.create_team(["test_agent", "nonexistent"])
+            pool.create_team([pool.get_agent("test_agent"), pool.get_agent("nonexistent")])
 
 
 async def test_agent_pool_cleanup():

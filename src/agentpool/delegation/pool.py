@@ -270,7 +270,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.delegation.teamrun import TeamRun
 
         team = TeamRun(
-            [self.get_agent(i) if isinstance(i, str) else i for i in agents],
+            agents,
             name=name,
             description=description,
             validator=validator,
@@ -318,8 +318,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         from agentpool.delegation.team import Team
 
-        resolved = [self.get_agent(i) if isinstance(i, str) else i for i in agents]
-        team = Team(resolved, name=name, description=description, shared_prompt=shared_prompt)
+        team = Team(agents, name=name, description=description, shared_prompt=shared_prompt)
         if name:
             self[name] = team
         return team
