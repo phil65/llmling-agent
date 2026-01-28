@@ -379,10 +379,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if config.output_type:
             resolved_output_type = to_type(config.output_type, manifest.responses)
         # Merge config-level handlers with provided handlers
-        merged_handlers: list[AnyEventHandlerType] = [
-            *config.get_event_handlers(),
-            *(event_handlers or []),
-        ]
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[AnyEventHandlerType] = [*config_handlers, *(event_handlers or [])]
         return cls(
             # Identity
             name=config.name,

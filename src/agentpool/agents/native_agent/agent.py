@@ -390,10 +390,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         if config.output_type:
             resolved_output_type = to_type(config.output_type, manifest.responses)
         # Merge event handlers
-        merged_handlers: list[AnyEventHandlerType] = [
-            *config.get_event_handlers(),
-            *(event_handlers or []),
-        ]
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[AnyEventHandlerType] = [*config_handlers, *(event_handlers or [])]
         resolved_model = manifest.resolve_model(config.model)
         return cls(
             model=resolved_model.get_model(),
