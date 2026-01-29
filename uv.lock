@@ -1013,15 +1013,16 @@ wheels = [
 
 [[package]]
 name = "clawd-code-sdk"
-version = "0.1.24"
+version = "0.1.25"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "anyenv" },
     { name = "anyio" },
     { name = "mcp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/29/47/131a17119d088fea09a0172f3671fae840c4e34f36b6757895471a94bec7/clawd_code_sdk-0.1.24.tar.gz", hash = "sha256:dc62aed92ec4e3d19601eee051d2e88edfd3995a67ea3d0ef5634bcd478c1efa", size = 61383, upload-time = "2026-01-25T17:31:47.817Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/be/7c32041311b03b1ae110ba78966f40b40ad0ba773639b631282b4ec6215d/clawd_code_sdk-0.1.25.tar.gz", hash = "sha256:9764609c322e9418b8513d52bed7d2ffff809e22b0f68895225a1f26725530db", size = 61828, upload-time = "2026-01-29T04:03:47.613Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/ee/cbcdc2e90edf678ea9d501bb0487d3cd87e3a49572ef1d952b3ffbe85375/clawd_code_sdk-0.1.24-py3-none-any.whl", hash = "sha256:b33d5a8c4a6ef672ef31660198858cf80f6c303bdfad9bd73c5378d7b8d4aee2", size = 44229, upload-time = "2026-01-25T17:31:44.218Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/85/3d29d03ee02f103aae43b36c3bbe57b31e916d70c632334e0e43db2a5296/clawd_code_sdk-0.1.25-py3-none-any.whl", hash = "sha256:ab8551f926897b7459cfd60861dcbbe95ce88c293a92bb62f001b2fc36f3c09e", size = 44661, upload-time = "2026-01-29T04:03:44.599Z" },
 ]
 
 [[package]]
@@ -6511,7 +6512,7 @@ wheels = [
 
 [[package]]
 name = "xai-sdk"
-version = "1.6.0"
+version = "1.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -6523,9 +6524,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8b/38/751421b0b40050582ab5f5ed56f0074d322668cf72b0374b1b6f898388ac/xai_sdk-1.6.0.tar.gz", hash = "sha256:e0fc9df3a1cab1ec744a9c962d6802f0b27cfd91b4ca8c18f74dd5f4f944f7f7", size = 371793, upload-time = "2026-01-27T12:31:18.526Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/66/1e0163eac090733d0ed0836a0cd3c14f5b59abeaa6fdba71c7b56b1916e4/xai_sdk-1.6.1.tar.gz", hash = "sha256:b55528df188f8c8448484021d735f75b0e7d71719ddeb432c5f187ac67e3c983", size = 388223, upload-time = "2026-01-29T03:13:07.373Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7b/ca/9924cf64c1289ff7725572ca17fb2dea7573233d3cc964a16287260145cf/xai_sdk-1.6.0-py3-none-any.whl", hash = "sha256:b1e828dfb631233bfb3dfc3173ee4e37432710de76094b695f2a89f6cd659ba4", size = 224130, upload-time = "2026-01-27T12:31:17.222Z" },
+    { url = "https://files.pythonhosted.org/packages/94/98/8b4019b35f2200295c5eec8176da4b779ec3a0fd60eba7196b618f437e1f/xai_sdk-1.6.1-py3-none-any.whl", hash = "sha256:f478dee9bd8839b8d341bd075277d0432aff5cd7120a4284547d25c6c9e7ab3b", size = 240917, upload-time = "2026-01-29T03:13:05.626Z" },
 ]
 
 [[package]]
