@@ -16,6 +16,8 @@ import re
 import time
 from typing import TYPE_CHECKING, Literal, Protocol
 
+import anyenv
+
 from agentpool.log import get_logger
 
 
@@ -177,12 +179,9 @@ class TyServer(DiagnosticServer):
 
     def parse_output(self, stdout: str, stderr: str) -> list[Diagnostic]:
         """Parse ty GitLab JSON output."""
-        import json
-
         diagnostics: list[Diagnostic] = []
         try:
-            data = json.loads(stdout)
-            for item in data:
+            for item in anyenv.load_json(stdout):
                 location = item.get("location", {})
                 positions = location.get("positions", {})
                 begin = positions.get("begin", {})
@@ -201,7 +200,7 @@ class TyServer(DiagnosticServer):
                         source=self.id,
                     )
                 )
-        except json.JSONDecodeError:
+        except anyenv.JsonLoadError:
             pass
         return diagnostics
 
@@ -212,15 +211,13 @@ class PyrightServer(DiagnosticServer):
 
     def parse_output(self, stdout: str, stderr: str) -> list[Diagnostic]:
         """Parse pyright JSON output."""
-        import json
-
         diagnostics: list[Diagnostic] = []
         try:
             # Find JSON object in output (may have warnings before it)
             json_start = stdout.find("{")
             if json_start == -1:
                 return diagnostics
-            data = json.loads(stdout[json_start:])
+            data = anyenv.load_json(stdout[json_start:])
 
             for diag in data.get("generalDiagnostics", []):
                 range_info = diag.get("range", {})
@@ -240,7 +237,7 @@ class PyrightServer(DiagnosticServer):
                         source=self.id,
                     )
                 )
-        except json.JSONDecodeError:
+        except anyenv.JsonLoadError:
             pass
         return diagnostics
 
@@ -251,15 +248,13 @@ class MypyServer(DiagnosticServer):
 
     def parse_output(self, stdout: str, stderr: str) -> list[Diagnostic]:
         """Parse mypy JSON output (one JSON object per line)."""
-        import json
-
         diagnostics: list[Diagnostic] = []
         for raw_line in stdout.strip().splitlines():
             line = raw_line.strip()
             if not line or not line.startswith("{"):
                 continue
             try:
-                data = json.loads(line)
+                data = anyenv.load_json(line)
                 diagnostics.append(
                     Diagnostic(
                         file=data.get("file", ""),
@@ -271,7 +266,7 @@ class MypyServer(DiagnosticServer):
                         source=self.id,
                     )
                 )
-            except json.JSONDecodeError:
+            except anyenv.JsonLoadError:
                 continue
         return diagnostics
 
@@ -312,8 +307,6 @@ class PyreflyServer(DiagnosticServer):
 
     def parse_output(self, stdout: str, stderr: str) -> list[Diagnostic]:
         """Parse pyrefly JSON output."""
-        import json
-
         diagnostics: list[Diagnostic] = []
         try:
             json_start = stdout.find("{")
@@ -321,7 +314,7 @@ class PyreflyServer(DiagnosticServer):
             if json_start == -1 or json_end == 0:
                 return diagnostics
 
-            data = json.loads(stdout[json_start:json_end])
+            data = anyenv.load_json(stdout[json_start:json_end])
             diagnostics.extend(
                 Diagnostic(
                     file=error.get("path", ""),
@@ -336,7 +329,7 @@ class PyreflyServer(DiagnosticServer):
                 )
                 for error in data.get("errors", [])
             )
-        except json.JSONDecodeError:
+        except anyenv.JsonLoadError:
             pass
         return diagnostics
 
@@ -352,11 +345,9 @@ class OxlintServer(DiagnosticServer):
 
     def parse_output(self, stdout: str, stderr: str) -> list[Diagnostic]:
         """Parse oxlint JSON output."""
-        import json
-
         diagnostics: list[Diagnostic] = []
         try:
-            data = json.loads(stdout)
+            data = anyenv.load_json(stdout)
             for diag in data.get("diagnostics", []):
                 labels = diag.get("labels", [])
                 if labels:
@@ -377,7 +368,7 @@ class OxlintServer(DiagnosticServer):
                         source=self.id,
                     )
                 )
-        except json.JSONDecodeError:
+        except anyenv.JsonLoadError:
             pass
         return diagnostics
 
@@ -388,15 +379,13 @@ class BiomeServer(DiagnosticServer):
 
     def parse_output(self, stdout: str, stderr: str) -> list[Diagnostic]:
         """Parse biome JSON output."""
-        import json
-
         diagnostics: list[Diagnostic] = []
         try:
             json_start = stdout.find("{")
             if json_start == -1:
                 return diagnostics
 
-            data = json.loads(stdout[json_start:])
+            data = anyenv.load_json(stdout[json_start:])
             for diag in data.get("diagnostics", []):
                 location = diag.get("location", {})
                 span = location.get("span", [0, 0])
@@ -414,7 +403,7 @@ class BiomeServer(DiagnosticServer):
                         source=self.id,
                     )
                 )
-        except json.JSONDecodeError:
+        except anyenv.JsonLoadError:
             pass
         return diagnostics
 

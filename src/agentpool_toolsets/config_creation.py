@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Any, Literal
 
 import anyenv
@@ -167,8 +166,6 @@ class ConfigCreationTools(StaticResourceProvider):
         Returns:
             JSON schema content at the path
         """
-        import anyenv
-
         fs = self._get_schema_fs()
         try:
             content = fs.cat(path)
@@ -177,5 +174,5 @@ class ConfigCreationTools(StaticResourceProvider):
             return anyenv.dump_json(schema_data, indent=True)
         except FileNotFoundError:
             return f"Path not found: {path}"
-        except json.JSONDecodeError as e:
+        except anyenv.JsonLoadError as e:
             return f"Failed to parse schema at {path}: {e}"
