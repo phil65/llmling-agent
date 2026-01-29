@@ -17,12 +17,7 @@ if TYPE_CHECKING:
     import asyncio
     from collections.abc import Callable
 
-    from clawd_code_sdk.types import (
-        HookContext,
-        HookInput,
-        HookMatcher,
-        SyncHookJSONOutput,
-    )
+    from clawd_code_sdk.types import HookContext, HookInput, HookMatcher, SyncHookJSONOutput
 
     from agentpool.agents.prompt_injection import PromptInjectionManager
     from agentpool.hooks import AgentHooks
@@ -93,13 +88,10 @@ class ClaudeCodeHookManager:
         from agentpool.agents.claude_code_agent.converters import build_sdk_hooks_from_agent_hooks
 
         result: dict[str, list[Any]] = {}
-
         # Add PreCompact hook for compaction events
         result["PreCompact"] = [HookMatcher(matcher=None, hooks=[self._on_pre_compact])]
-
         # Add PostToolUse hook for injection
         result["PostToolUse"] = [HookMatcher(matcher="*", hooks=[self._on_post_tool_use])]
-
         # Merge AgentHooks if present
         if self.agent_hooks:
             agent_hooks = build_sdk_hooks_from_agent_hooks(self.agent_hooks, self.agent_name)
@@ -122,14 +114,8 @@ class ClaudeCodeHookManager:
 
         trigger_value = input_data.get("trigger", "auto")
         trigger: Literal["auto", "manual"] = "manual" if trigger_value == "manual" else "auto"
-
         session_id = self._get_session_id() or "unknown"
-        compaction_event = CompactionEvent(
-            session_id=session_id,
-            trigger=trigger,
-            phase="starting",
-        )
-
+        compaction_event = CompactionEvent(session_id=session_id, trigger=trigger, phase="starting")
         if self._event_queue:
             await self._event_queue.put(compaction_event)
 
@@ -147,22 +133,19 @@ class ClaudeCodeHookManager:
         and adds it as additionalContext in the response.
         """
         result: SyncHookJSONOutput = {"continue_": True}
-
         # Consume pending injection from shared manager
-        if self._injection_manager:
-            injection = await self._injection_manager.consume()
-            if injection:
-                tool_name = input_data.get("tool_name", "unknown")
-                logger.debug(
-                    "Injecting context after tool use",
-                    agent=self.agent_name,
-                    tool=tool_name,
-                    injection_len=len(injection),
-                )
+        if self._injection_manager and (injection := await self._injection_manager.consume()):
+            tool_name = input_data.get("tool_name", "unknown")
+            logger.debug(
+                "Injecting context after tool use",
+                agent=self.agent_name,
+                tool=tool_name,
+                injection_len=len(injection),
+            )
 
-                result["hookSpecificOutput"] = {
-                    "hookEventName": "PostToolUse",
-                    "additionalContext": injection,
-                }
+            result["hookSpecificOutput"] = {
+                "hookEventName": "PostToolUse",
+                "additionalContext": injection,
+            }
 
         return result

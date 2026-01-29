@@ -90,14 +90,10 @@ class WorkersTools(ResourceProvider):
                 if old_history is not None:
                     worker.conversation.set_history(old_history)
 
-        tool_name = f"ask_{agent_name}"
         normalized_name = agent_name.replace("_", " ").title()
-        docstring = f"Get expert answer from specialized agent: {normalized_name}"
-
-        run.__name__ = tool_name
-        run.__doc__ = docstring
-
-        return self.create_tool(run, name_override=tool_name, description_override=docstring)
+        run.__name__ = f"ask_{agent_name}"
+        run.__doc__ = f"Get expert answer from specialized agent: {normalized_name}"
+        return self.create_tool(run)
 
     def _create_node_tool(self, node_name: str) -> Tool:
         """Create tool for non-agent nodes (teams, ACP agents, AGUI agents)."""
@@ -113,19 +109,13 @@ class WorkersTools(ResourceProvider):
 
             worker = ctx.pool.nodes[node_name]
             result = await worker.run(prompt)
-
             # Teams get formatted output
             if isinstance(worker, BaseTeam):
                 return result.format(style="detailed", show_costs=True)
-
             # Other nodes (ACP, AGUI) just return data as string
             return str(result.data)
 
-        tool_name = f"ask_{node_name}"
         normalized_name = node_name.replace("_", " ").title()
-        docstring = f"Delegate task to worker: {normalized_name}"
-
-        run.__name__ = tool_name
-        run.__doc__ = docstring
-
-        return self.create_tool(run, name_override=tool_name, description_override=docstring)
+        run.__name__ = f"ask_{node_name}"
+        run.__doc__ = f"Delegate task to worker: {normalized_name}"
+        return self.create_tool(run)

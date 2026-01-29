@@ -31,16 +31,14 @@ async def load_skill(ctx: AgentContext, skill_name: str) -> str:
     skills = ctx.pool.skills.list_skills()
     if not skills:
         return "No skills available."
-    skill = next((s for s in skills if s.name == skill_name), None)
-    if not skill:
-        available = ", ".join(s.name for s in skills)
-        return f"Skill {skill_name!r} not found. Available skills: {available}"
-
-    try:
-        instructions = ctx.pool.skills.get_skill_instructions(skill_name)
-    except Exception as e:  # noqa: BLE001
-        return f"Failed to load skill {skill_name!r}: {e}"
-    return f"# {skill.name}\n{instructions}\nSkill directory: {skill.skill_path}"
+    if skill := next((s for s in skills if s.name == skill_name), None):
+        try:
+            instructions = ctx.pool.skills.get_skill_instructions(skill_name)
+        except Exception as e:  # noqa: BLE001
+            return f"Failed to load skill {skill_name!r}: {e}"
+        return f"# {skill.name}\n{instructions}\nSkill directory: {skill.skill_path}"
+    available = ", ".join(s.name for s in skills)
+    return f"Skill {skill_name!r} not found. Available skills: {available}"
 
 
 async def list_skills(ctx: AgentContext) -> str:
@@ -51,12 +49,11 @@ async def list_skills(ctx: AgentContext) -> str:
     """
     if ctx.pool is None:
         return "No agent pool available - skills require pool context"
-    skills = ctx.pool.skills.list_skills()
-    if not skills:
-        return "No skills available"
-    lines = ["Available skills:", ""]
-    lines.extend(f"- **{skill.name}**: {skill.description}" for skill in skills)
-    return "\n".join(lines)
+    if skills := ctx.pool.skills.list_skills():
+        lines = ["Available skills:", ""]
+        lines.extend(f"- **{skill.name}**: {skill.description}" for skill in skills)
+        return "\n".join(lines)
+    return "No skills available"
 
 
 class SkillsTools(StaticResourceProvider):
