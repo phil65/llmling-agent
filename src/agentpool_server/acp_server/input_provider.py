@@ -371,7 +371,9 @@ def _handle_enum_elicitation_response(
                     enum_values = schema.get("enum", [])
                     if 0 <= enum_index < len(enum_values):
                         selected_value = enum_values[enum_index]
-                        return types.ElicitResult(action="accept", content=selected_value)
+                        return types.ElicitResult(
+                            action="accept", content={"value": selected_value}
+                        )
             except (ValueError, IndexError):
                 pass
 
