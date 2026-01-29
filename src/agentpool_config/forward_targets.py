@@ -20,8 +20,7 @@ if TYPE_CHECKING:
     from pydantic_ai.models.function import FunctionModel
     from upathtools import UPath
 
-    from agentpool.agents.base_agent import BaseAgent
-    from agentpool.messaging import ChatMessage
+    from agentpool.messaging import ChatMessage, MessageNode
 
 
 ConnectionType = Literal["run", "context", "forward"]
@@ -85,6 +84,21 @@ class ConnectionConfig(Schema):
     )
     """Optional function to transform messages before forwarding."""
 
+    def connect_nodes(self, source: MessageNode[Any], target: MessageNode[Any], name: str):
+        source.connect_to(
+            target,
+            connection_type=target.connection_type,
+            name=name,
+            priority=target.priority,
+            delay=target.delay,
+            queued=target.queued,
+            queue_strategy=target.queue_strategy,
+            transform=target.transform,
+            filter_condition=target.filter_condition.check if target.filter_condition else None,
+            stop_condition=target.stop_condition.check if target.stop_condition else None,
+            exit_condition=target.exit_condition.check if target.exit_condition else None,
+        )
+
 
 class NodeConnectionConfig(ConnectionConfig):
     """Forward messages to another node.
@@ -119,11 +133,11 @@ class NodeConnectionConfig(ConnectionConfig):
     - forward: Forward message to agent's outbox
     """
 
-    def get_node(self, agents: Sequence[BaseAgent]) -> BaseAgent:
-        agent_dict = {i.name: i for i in agents}
-        if self.name not in agent_dict:
+    def get_node(self, nodes: Sequence[MessageNode[Any]]) -> MessageNode[Any]:
+        node_dict = {i.name: i for i in nodes}
+        if self.name not in node_dict:
             raise ValueError(f"Forward target {self.name} not found")
-        return agent_dict[self.name]
+        return node_dict[self.name]
 
 
 DEFAULT_MESSAGE_TEMPLATE = """
@@ -177,7 +191,7 @@ class FileConnectionConfig(ConnectionConfig):
     )
     """File encoding to use."""
 
-    def get_node(self, agents: Sequence[BaseAgent]) -> BaseAgent:
+    def get_node(self, agents: Sequence[MessageNode[Any]]) -> MessageNode[Any]:
         from agentpool import Agent
 
         agent_name = f"file_writer_{Path(self.path).stem}"
@@ -242,7 +256,7 @@ class CallableConnectionConfig(ConnectionConfig):
     kw_args: dict[str, Any] = Field(default_factory=dict, title="Additional arguments")
     """Additional kwargs to pass to the callable."""
 
-    def get_node(self, agents: Sequence[BaseAgent]) -> BaseAgent:
+    def get_node(self, agents: Sequence[MessageNode[Any]]) -> MessageNode[Any]:
         from agentpool import Agent
 
         return Agent(model=self.get_model(), name=self.callable.__name__)

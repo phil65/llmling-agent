@@ -446,21 +446,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
             source = self[name]
             for target in config.connections or []:
                 target_node = target.get_node(list(self.all_agents.values()))
-                source.connect_to(
-                    target_node,
-                    connection_type=target.connection_type,
-                    name=name,
-                    priority=target.priority,
-                    delay=target.delay,
-                    queued=target.queued,
-                    queue_strategy=target.queue_strategy,
-                    transform=target.transform,
-                    filter_condition=target.filter_condition.check
-                    if target.filter_condition
-                    else None,
-                    stop_condition=target.stop_condition.check if target.stop_condition else None,
-                    exit_condition=target.exit_condition.check if target.exit_condition else None,
-                )
+                target.connect_nodes(source, target_node, name)
                 source.connections.set_wait_state(target_node, wait=target.wait_for_completion)
 
     @overload
