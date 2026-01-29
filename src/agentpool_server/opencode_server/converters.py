@@ -469,7 +469,6 @@ def chat_message_to_opencode(  # noqa: PLR0915
                             tool=p.tool_name,
                             call_id=p.tool_call_id or generate_part_id(),
                             state=ToolStateRunning(
-                                status="running",
                                 time=TimeStart(start=created_ms),
                                 input=tool_input,
                                 title=f"Running {p.tool_name}",
@@ -540,14 +539,12 @@ def chat_message_to_opencode(  # noqa: PLR0915
                             existing_input = _get_input_from_state(existing.state)
                             if isinstance(content, dict) and "error" in content:
                                 existing.state = ToolStateError(
-                                    status="error",
                                     error=str(content.get("error", "Unknown error")),
                                     input=existing_input,
                                     time=TimeStartEnd(start=created_ms, end=completed_ms),
                                 )
                             else:
                                 existing.state = ToolStateCompleted(
-                                    status="completed",
                                     title=f"Completed {part.tool_name}",
                                     input=existing_input,
                                     output=output,
@@ -558,14 +555,12 @@ def chat_message_to_opencode(  # noqa: PLR0915
                             state: ToolStateCompleted | ToolStateError
                             if isinstance(content, dict) and "error" in content:
                                 state = ToolStateError(
-                                    status="error",
                                     error=str(content.get("error", "Unknown error")),
                                     input={},
                                     time=TimeStartEnd(start=created_ms, end=completed_ms),
                                 )
                             else:
                                 state = ToolStateCompleted(
-                                    status="completed",
                                     title=f"Completed {part.tool_name}",
                                     input={},
                                     output=output,

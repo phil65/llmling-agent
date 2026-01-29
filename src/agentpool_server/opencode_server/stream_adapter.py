@@ -68,6 +68,7 @@ if TYPE_CHECKING:
     from agentpool.agents.events.events import RichAgentStreamEvent
     from agentpool_server.opencode_server.models import MessageWithParts
     from agentpool_server.opencode_server.models.events import Event
+    from agentpool_server.opencode_server.models.parts import ToolState
 
 logger = get_logger(__name__)
 
@@ -453,7 +454,7 @@ class OpenCodeStreamAdapter:
 
         if tool_call_id in self._tool_parts:
             existing = self._tool_parts[tool_call_id]
-            existing_title = self._extract_title_from_tool_state(existing.state)
+            existing_title = _extract_title_from_tool_state(existing.state)
             tool_input = self._tool_inputs.get(tool_call_id, {})
             accumulated_output = self._tool_outputs.get(tool_call_id, "")
             tool_state = ToolStateRunning(
@@ -512,11 +513,9 @@ class OpenCodeStreamAdapter:
 
         new_state: ToolStateCompleted | ToolStateError
         if is_error:
-            new_state = ToolStateError(
-                error=str(result.get("error", "Unknown error")),
-                input=tool_input,
-                time=TimeStartEnd(start=start, end=now_ms()),
-            )
+            t = TimeStartEnd(start=start, end=now_ms())
+            error_string = str(result.get("error", "Unknown error"))
+            new_state = ToolStateError(error=error_string, input=tool_input, time=t)
         else:
             new_state = ToolStateCompleted(
                 title=f"Completed {existing.tool}",
@@ -604,8 +603,6 @@ class OpenCodeStreamAdapter:
                 self.assistant_msg_with_parts.parts.append(summary_part)
                 yield PartUpdatedEvent.create(summary_part)
 
-    # --- helpers ---
-
     def _update_part_in_list(
         self,
         part_id: str,
@@ -618,15 +615,13 @@ class OpenCodeStreamAdapter:
                 self.assistant_msg_with_parts.parts[i] = updated
                 break
 
-    @staticmethod
-    def _extract_title_from_tool_state(
-        state: ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError,
-    ) -> str:
-        """Extract the title from a tool state without getattr."""
-        match state:
-            case ToolStateRunning(title=title):
-                return title or ""
-            case ToolStateCompleted(title=title):
-                return title or ""
-            case ToolStatePending() | ToolStateError():
-                return ""
+
+def _extract_title_from_tool_state(state: ToolState) -> str:
+    """Extract the title from a tool state without getattr."""
+    match state:
+        case ToolStateRunning(title=title):
+            return title or ""
+        case ToolStateCompleted(title=title):
+            return title or ""
+        case ToolStatePending() | ToolStateError():
+            return ""
