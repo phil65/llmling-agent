@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: TC001
 from agentpool_server.opencode_server.models.parts import Part  # noqa: TC001
+
+
+if TYPE_CHECKING:
+    from agentpool_server.opencode_server.models.parts import ReasoningPart, TextPart, ToolPart
 
 
 class MessageSummary(OpenCodeBaseModel):
@@ -96,6 +100,18 @@ class MessageWithParts(OpenCodeBaseModel):
 
     info: UserMessage | AssistantMessage
     parts: list[Part] = Field(default_factory=list)
+
+    def update_part(
+        self,
+        part_id: str,
+        updated: TextPart | ToolPart | ReasoningPart,
+        part_type: type[TextPart | ToolPart | ReasoningPart],
+    ) -> None:
+        """Replace a part in the assistant message's parts list by ID."""
+        for i, p in enumerate(self.parts):
+            if isinstance(p, part_type) and p.id == part_id:
+                self.parts[i] = updated
+                break
 
 
 class TextPartInput(OpenCodeBaseModel):
