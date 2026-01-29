@@ -63,9 +63,11 @@ from agentpool_server.opencode_server.models.parts import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable, Iterator
+    from collections.abc import AsyncIterator, Callable, Iterator, Sequence
 
+    from agentpool.agents.events import ToolCallContentItem
     from agentpool.agents.events.events import RichAgentStreamEvent
+    from agentpool.messaging import ChatMessage
     from agentpool_server.opencode_server.models import MessageWithParts
     from agentpool_server.opencode_server.models.events import Event
     from agentpool_server.opencode_server.models.parts import ToolState
@@ -379,11 +381,8 @@ class OpenCodeStreamAdapter:
             # Create new tool part
             self._tool_inputs[tool_call_id] = ui_input
             self._tool_outputs[tool_call_id] = ""
-            tool_state = ToolStateRunning(
-                time=TimeStart(start=now_ms()),
-                input=ui_input,
-                title=title,
-            )
+            ts = TimeStart(start=now_ms())
+            tool_state = ToolStateRunning(time=ts, input=ui_input, title=title)
             tool_part = ToolPart(
                 id=identifier.ascending("part"),
                 message_id=self.assistant_msg_id,
@@ -408,11 +407,8 @@ class OpenCodeStreamAdapter:
         self._tool_outputs[tool_call_id] = ""
 
         rich_info = derive_rich_tool_info(tool_name, raw_input)
-        tool_state = ToolStateRunning(
-            time=TimeStart(start=now_ms()),
-            input=ui_input,
-            title=rich_info.title,
-        )
+        ts = TimeStart(start=now_ms())
+        tool_state = ToolStateRunning(time=ts, input=ui_input, title=rich_info.title)
         tool_part = ToolPart(
             id=identifier.ascending("part"),
             message_id=self.assistant_msg_id,
@@ -431,7 +427,7 @@ class OpenCodeStreamAdapter:
         self,
         tool_call_id: str,
         title: str | None,
-        items: Any,
+        items: Sequence[ToolCallContentItem],
         tool_name: str | None,
         event_tool_input: dict[str, Any] | None,
     ) -> Iterator[Event]:
@@ -539,7 +535,7 @@ class OpenCodeStreamAdapter:
 
     # --- stream complete ---
 
-    def _on_stream_complete(self, msg: Any) -> None:
+    def _on_stream_complete(self, msg: ChatMessage[Any]) -> None:
         """Extract token usage and cost from the completed stream message."""
         if msg.usage:
             self._input_tokens = msg.usage.input_tokens or 0
