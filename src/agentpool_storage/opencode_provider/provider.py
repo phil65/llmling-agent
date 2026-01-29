@@ -35,7 +35,7 @@ from pydantic_ai.messages import (
 
 from agentpool.log import get_logger
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
-from agentpool.utils.time_utils import get_now, ms_to_datetime
+from agentpool.utils.time_utils import datetime_to_ms, get_now, ms_to_datetime
 from agentpool_server.opencode_server.models import (
     AssistantMessage,
     MessageInfo as OpenCodeMessage,
@@ -370,7 +370,6 @@ class OpenCodeStorageProvider(StorageProvider):
                             id=part_id,
                             session_id=session_id,
                             message_id=message_id,
-                            type="text",
                             text=part.content,
                             time=TimeStartEndOptional(start=now_ms),
                         )
@@ -383,7 +382,6 @@ class OpenCodeStorageProvider(StorageProvider):
                             id=part_id,
                             session_id=session_id,
                             message_id=message_id,
-                            type="reasoning",
                             text=part.content,
                             time=TimeStartEndOptional(start=now_ms),
                         )
@@ -397,10 +395,9 @@ class OpenCodeStorageProvider(StorageProvider):
                             id=part_id,
                             session_id=session_id,
                             message_id=message_id,
-                            type="tool",
                             call_id=part.tool_call_id,
                             tool=part.tool_name,
-                            state=ToolStatePending(status="pending", input=safe_args_as_dict(part)),
+                            state=ToolStatePending(input=safe_args_as_dict(part)),
                         )
                         part_file = parts_dir / f"{part_id}.json"
                         dct = tool_part.model_dump(by_alias=True)
@@ -788,16 +785,14 @@ class OpenCodeStorageProvider(StorageProvider):
         # Create empty session file (will be populated when messages added)
         # Create new session metadata
         fork_title = f"{source_session.title} (fork)" if source_session.title else "Forked Session"
+        now = datetime_to_ms(get_now())
         new_session = Session(
             id=new_session_id,
             project_id=project_id,
             directory=source_session.directory,  # Same project directory as source
             title=fork_title,
             version=OPENCODE_VERSION,
-            time=TimeCreatedUpdated(
-                created=int(get_now().timestamp() * 1000),
-                updated=int(get_now().timestamp() * 1000),
-            ),
+            time=TimeCreatedUpdated(created=now, updated=now),
             summary=SessionSummary(files=0, additions=0, deletions=0),
         )
         # Write session file
