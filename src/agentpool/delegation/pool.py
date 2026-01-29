@@ -462,7 +462,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         for name, config in self.manifest.nodes.items():
             source = self[name]
             for target in config.connections or []:
-                target_node = target.get_node(self.all_agents)
+                target_node = target.get_node(self.all_agents.values())
                 source.connect_to(
                     target_node,
                     connection_type=target.connection_type,
