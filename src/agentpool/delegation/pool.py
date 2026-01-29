@@ -560,14 +560,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         Args:
             include_details: Whether to show connection details (types, queues, etc)
         """
-        lines = ["flowchart LR"]
-
-        # Add all agents as nodes
-        for agent in self.all_agents.values():
-            lines.append(f"    {agent.name}[{agent.name}]")  # noqa: PERF401
-
+        declare_lines = []
+        connect_lines = []
         # Add all connections as edges
         for agent in self.all_agents.values():
+            declare_lines.append(f"    {agent.name}[{agent.name}]")
             for talk in agent.connections.get_connections():
                 source = talk.source.name
                 for target in talk.targets:
@@ -584,11 +581,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                             details.append(f"exit:{fn.__name__}")
 
                         label = f"|{' '.join(details)}|" if details else ""
-                        lines.append(f"    {source}--{label}-->{target.name}")
+                        connect_lines.append(f"    {source}--{label}-->{target.name}")
                     else:
-                        lines.append(f"    {source}-->{target.name}")
-
-        return "\n".join(lines)
+                        connect_lines.append(f"    {source}-->{target.name}")
+        all_lines = ["flowchart LR", *declare_lines, *connect_lines]
+        return "\n".join(all_lines)
 
 
 if __name__ == "__main__":

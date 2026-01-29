@@ -89,9 +89,8 @@ class NotificationsTools(ResourceProvider):
 
         channel_names = sorted(self.channels.keys())
         schema = get_schema(channel_names)
-        self._tools = [
-            self.create_tool(self.send_notification, schema_override=schema, open_world=True)
-        ]
+        tool = self.create_tool(self.send_notification, schema_override=schema, open_world=True)
+        self._tools = [tool]
         return self._tools
 
     async def send_notification(

@@ -105,7 +105,6 @@ class SearchTools(ResourceProvider):
         from agentpool.agents.events import TextContentItem
 
         assert self._web_provider is not None
-
         await agent_ctx.events.tool_call_progress(
             title=f"Searching: {query}",
             items=[TextContentItem(text=f"Searching web for: {query}")],
@@ -185,20 +184,10 @@ class SearchTools(ResourceProvider):
         tools: list[Tool] = []
         if self._web_provider:
             tools.append(
-                self.create_tool(
-                    self.web_search,
-                    read_only=True,
-                    idempotent=True,
-                    open_world=True,
-                )
+                self.create_tool(self.web_search, read_only=True, idempotent=True, open_world=True)
             )
         if self._news_provider:
             tools.append(
-                self.create_tool(
-                    self.news_search,
-                    read_only=True,
-                    idempotent=True,
-                    open_world=True,
-                )
+                self.create_tool(self.news_search, read_only=True, idempotent=True, open_world=True)
             )
         return tools
