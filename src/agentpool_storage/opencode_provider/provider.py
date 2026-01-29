@@ -634,12 +634,14 @@ class OpenCodeStorageProvider(StorageProvider):
         """Get counts of conversations and messages."""
         conv_count = 0
         msg_count = 0
-        for session_id, session_path in self._list_sessions():
-            if not session_path.exists():
+        for session_id, _session_path in self._list_sessions():
+            msg_dir = self.messages_path / session_id
+            if not msg_dir.exists():
                 continue
-            if oc_messages := self._read_messages(session_id):
+            # Count JSON files directly instead of parsing them
+            if message_files := list(msg_dir.glob("*.json")):
                 conv_count += 1
-                msg_count += len(oc_messages)
+                msg_count += len(message_files)
 
         return conv_count, msg_count
 
