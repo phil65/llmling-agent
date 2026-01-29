@@ -535,6 +535,7 @@ class OpenCodeStorageProvider(StorageProvider):
             # Build MessageData list
             msg_data_list: list[MessageData] = []
             for chat_msg in chat_messages:
+                cost = chat_msg.cost_info
                 msg_data: MessageData = {
                     "role": chat_msg.role,
                     "content": chat_msg.content,
@@ -543,33 +544,25 @@ class OpenCodeStorageProvider(StorageProvider):
                     "model": chat_msg.model_name,
                     "name": chat_msg.name,
                     "token_usage": TokenUsage(
-                        total=chat_msg.cost_info.token_usage.total_tokens
-                        if chat_msg.cost_info
-                        else 0,
-                        prompt=chat_msg.cost_info.token_usage.input_tokens
-                        if chat_msg.cost_info
-                        else 0,
-                        completion=chat_msg.cost_info.token_usage.output_tokens
-                        if chat_msg.cost_info
-                        else 0,
+                        total=cost.token_usage.total_tokens if cost else 0,
+                        prompt=cost.token_usage.input_tokens if cost else 0,
+                        completion=cost.token_usage.output_tokens if cost else 0,
                     )
-                    if chat_msg.cost_info
+                    if cost
                     else None,
-                    "cost": float(chat_msg.cost_info.total_cost) if chat_msg.cost_info else None,
+                    "cost": float(cost.total_cost) if cost else None,
                     "response_time": chat_msg.response_time,
                 }
                 msg_data_list.append(msg_data)
 
-            token_usage_data: TokenUsage | None = (
-                {"total": total_tokens, "prompt": 0, "completion": 0} if total_tokens else None
-            )
+            usage = TokenUsage(total=total_tokens, prompt=0, completion=0) if total_tokens else None
             conv_data = ConvData(
                 id=session_id,
                 agent=chat_messages[0].name or "opencode",
                 title=session.title,
                 start_time=first_timestamp.isoformat(),
                 messages=msg_data_list,
-                token_usage=token_usage_data,
+                token_usage=usage,
             )
             result.append((conv_data, chat_messages))
             if filters.limit and len(result) >= filters.limit:
