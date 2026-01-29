@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from decimal import Decimal
-import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Self
 from uuid import uuid4
 
+import anyenv
 from pydantic import TypeAdapter
 from pydantic_ai import TextPartDelta
 from pydantic_ai.usage import RequestUsage, RunUsage
@@ -458,9 +458,9 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         final_content: OutputDataT
         if self._output_type is not str and self._output_type is not None:
             try:
-                parsed = json.loads(final_text)
+                parsed = anyenv.load_json(final_text)
                 final_content = TypeAdapter(self._output_type).validate_python(parsed)
-            except (json.JSONDecodeError, ValueError) as e:
+            except (anyenv.JsonLoadError, ValueError) as e:
                 msg = "Failed to parse structured output, returning raw text"
                 self.log.warning(msg, error=str(e), output_type=self._output_type)
                 final_content = final_text  # type: ignore[assignment]

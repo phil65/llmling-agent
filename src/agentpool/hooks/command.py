@@ -8,6 +8,8 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import anyenv
+
 from agentpool.hooks.base import Hook, HookResult
 from agentpool.log import get_logger
 
@@ -125,9 +127,9 @@ def _parse_success_output(stdout: str) -> HookResult:
         return HookResult(decision="allow")
 
     try:
-        data = json.loads(stdout)
+        data = anyenv.load_json(stdout)
         return _normalize_result(data)
-    except json.JSONDecodeError:
+    except anyenv.JsonLoadError:
         # Plain text output treated as additional context
         return HookResult(decision="allow", additional_context=stdout)
 
