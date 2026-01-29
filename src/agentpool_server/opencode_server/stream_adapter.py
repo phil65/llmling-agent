@@ -16,6 +16,8 @@ from pydantic_ai.messages import (
     PartStartEvent,
     TextPart as PydanticTextPart,
     TextPartDelta,
+    ThinkingPart,
+    ThinkingPartDelta,
     ToolCallPart as PydanticToolCallPart,
 )
 
@@ -43,6 +45,7 @@ from agentpool_server.opencode_server.models import (
     SessionErrorEvent,
 )
 from agentpool_server.opencode_server.models.parts import (
+    ReasoningPart,
     StepFinishPart,
     StepFinishTokens,
     TextPart,
@@ -109,6 +112,7 @@ class OpenCodeStreamAdapter:
     _tool_inputs: dict[str, dict[str, Any]] = field(default_factory=dict, init=False)
 
     _text_part: TextPart | None = field(default=None, init=False)
+    _reasoning_part: ReasoningPart | None = field(default=None, init=False)
     _stream_start_ms: int = field(default=0, init=False)
 
     def __post_init__(self) -> None:
@@ -216,6 +220,12 @@ class OpenCodeStreamAdapter:
             case PartDeltaEvent(delta=TextPartDelta(content_delta=delta)) if delta:
                 yield from self._on_text_delta(delta)
 
+            case PartStartEvent(part=ThinkingPart(content=delta)):
+                yield from self._on_thinking_start(delta)
+
+            case PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta)):
+                yield from self._on_thinking_delta(delta)
+
             case ToolCallStartEvent(
                 tool_name=tool_name,
                 tool_call_id=tool_call_id,
@@ -295,6 +305,43 @@ class OpenCodeStreamAdapter:
             )
             self._update_part_in_list(self._text_part.id, updated, TextPart)
             self._text_part = updated
+            yield PartUpdatedEvent.create(updated, delta=delta)
+
+    # --- thinking / reasoning ---
+
+    def _on_thinking_start(self, delta: str) -> Iterator[Event]:
+        """Handle initial thinking part - create ReasoningPart and emit update."""
+        # Skip empty reasoning content
+        if not delta or not delta.strip():
+            return
+
+        reasoning_part_id = identifier.ascending("part")
+        self._reasoning_part = ReasoningPart(
+            id=reasoning_part_id,
+            message_id=self.assistant_msg_id,
+            session_id=self.session_id,
+            text=delta,
+            time=TimeStartEndOptional(start=now_ms()),
+        )
+        self.assistant_msg_with_parts.parts.append(self._reasoning_part)
+        yield PartUpdatedEvent.create(self._reasoning_part)
+
+    def _on_thinking_delta(self, delta: str | None) -> Iterator[Event]:
+        """Handle incremental thinking updates - update existing ReasoningPart."""
+        # Skip empty reasoning content
+        if not delta or not delta.strip():
+            return
+
+        if self._reasoning_part is not None:
+            updated = ReasoningPart(
+                id=self._reasoning_part.id,
+                message_id=self.assistant_msg_id,
+                session_id=self.session_id,
+                text=self._reasoning_part.text + delta,
+                time=self._reasoning_part.time,
+            )
+            self._update_part_in_list(self._reasoning_part.id, updated, ReasoningPart)
+            self._reasoning_part = updated
             yield PartUpdatedEvent.create(updated, delta=delta)
 
     # --- tool call start (rich events from toolsets / Claude Code) ---
@@ -562,8 +609,8 @@ class OpenCodeStreamAdapter:
     def _update_part_in_list(
         self,
         part_id: str,
-        updated: TextPart | ToolPart,
-        part_type: type[TextPart | ToolPart],
+        updated: TextPart | ToolPart | ReasoningPart,
+        part_type: type[TextPart | ToolPart | ReasoningPart],
     ) -> None:
         """Replace a part in the assistant message's parts list by ID."""
         for i, p in enumerate(self.assistant_msg_with_parts.parts):
