@@ -533,7 +533,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         connect_lines = []
         # Add all connections as edges
         for agent in self.all_agents.values():
-            declare_lines.append(f"    {agent.name}[{agent.name}]")
+            declare_lines.append(f"    {agent.name}[{agent.display_name}]")
             for talk in agent.connections.get_connections():
                 source = talk.source.name
                 for target in talk.targets:
