@@ -6,19 +6,16 @@ import asyncio
 from typing import TYPE_CHECKING, Any
 
 from anyenv import method_spawner
+from pydantic_ai import UserPromptPart
+from slashed import Command, CommandContext  # noqa: TC002
 
 from agentpool.log import get_logger
 from agentpool.prompts.builtin_provider import BuiltinPromptProvider
 from agentpool.utils.tasks import TaskManager
-from agentpool_config.prompt_hubs import (
-    BraintrustConfig,
-    FabricConfig,
-    LangfuseConfig,
-    PromptLayerConfig,
-)
 
 
 if TYPE_CHECKING:
+    from agentpool.agents.staged_content import StagedContent
     from agentpool.prompts.base import BasePromptProvider
     from agentpool_config.system_prompts import PromptLibraryConfig, StaticPromptConfig
 
@@ -71,43 +68,17 @@ class PromptManager:
     """
 
     def __init__(self, config: PromptLibraryConfig) -> None:
-        """Initialize prompt manager.
-
-        Args:
-            config: Prompt configuration including providers
-        """
+        """Initialize prompt manager."""
         super().__init__()
         self.config = config
         self.task_manager = TaskManager()
         self.providers: dict[str, BasePromptProvider] = {}
-
         # Always register builtin provider
         self.providers["builtin"] = BuiltinPromptProvider(config.system_prompts)
-
         # Register configured providers
         for provider_config in config.providers:
-            match provider_config:
-                case LangfuseConfig():
-                    from agentpool_prompts.langfuse_hub import LangfusePromptHub
-
-                    self.providers["langfuse"] = LangfusePromptHub(provider_config)
-
-                case FabricConfig():
-                    from agentpool_prompts.fabric import FabricPromptHub
-
-                    self.providers["fabric"] = FabricPromptHub(provider_config)
-
-                case BraintrustConfig():
-                    from agentpool_prompts.braintrust_hub import BraintrustPromptHub
-
-                    self.providers["braintrust"] = BraintrustPromptHub(provider_config)
-
-                case PromptLayerConfig():
-                    from agentpool_prompts.promptlayer_provider import (
-                        PromptLayerProvider,
-                    )
-
-                    self.providers["promptlayer"] = PromptLayerProvider(provider_config)
+            provider = provider_config.get_provider()
+            self.providers[provider.name] = provider
 
     async def get_from(
         self,
@@ -139,13 +110,12 @@ class PromptManager:
             raise KeyError(f"Unknown prompt provider: {provider_name}")
 
         provider_instance = self.providers[provider_name]
+        kwargs: dict[str, Any] = {}
+        if provider_instance.supports_versions and version:
+            kwargs["version"] = version
+        if provider_instance.supports_variables and variables:
+            kwargs["variables"] = variables
         try:
-            kwargs: dict[str, Any] = {}
-            if provider_instance.supports_versions and version:
-                kwargs["version"] = version
-            if provider_instance.supports_variables and variables:
-                kwargs["variables"] = variables
-
             return await provider_instance.get_prompt(identifier, **kwargs)
         except Exception as e:
             raise RuntimeError(f"Failed to get prompt {identifier!r} from {provider_name}") from e
@@ -211,3 +181,52 @@ class PromptManager:
         if isinstance(builtin, BuiltinPromptProvider):
             return builtin.prompts
         return {}
+
+    def create_prompt_hub_command(
+        self,
+        provider: str,
+        name: str,
+        staged_content: StagedContent,
+    ) -> Command:
+        """Convert prompt hub prompt to slash command.
+
+        Args:
+            provider: Provider name (e.g., 'langfuse', 'builtin')
+            name: Prompt name
+            staged_content: StagedContent object to add the prompt to
+
+        Returns:
+            Command that executes the prompt hub prompt
+        """
+
+        async def execute_prompt(
+            ctx: CommandContext[Any],
+            args: list[str],
+            kwargs: dict[str, str],
+        ) -> None:
+            """Execute the prompt hub prompt with parsed arguments."""
+            # Build reference string
+            reference = f"{provider}:{name}" if provider != "builtin" else name
+            # Add variables as query parameters if provided
+            if kwargs:
+                params = "&".join(f"{k}={v}" for k, v in kwargs.items())
+                reference = f"{reference}?{params}"
+            try:
+                # Get the rendered prompt
+                result = await self.get(reference)
+                staged_content.add([UserPromptPart(content=result)])
+                # Send confirmation
+                staged_count = len(staged_content)
+                msg = f"✅ Prompt {name!r} from {provider} staged ({staged_count} total parts)"
+                await ctx.print(msg)
+            except Exception as e:
+                logger.exception("Prompt hub execution failed", prompt=name, provider=provider)
+                await ctx.print(f"❌ Prompt error: {e}")
+
+        return Command.from_raw(
+            execute_prompt,
+            name=f"{provider}_{name}" if provider != "builtin" else name,
+            description=f"Prompt hub: {provider}:{name}",
+            category="prompts",
+            usage="[key=value ...]",  # Generic since we don't have parameter schemas
+        )

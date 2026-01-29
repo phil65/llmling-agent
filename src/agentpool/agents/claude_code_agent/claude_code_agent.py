@@ -91,6 +91,7 @@ from agentpool.agents.claude_code_agent.converters import (
     to_output_format,
 )
 from agentpool.agents.claude_code_agent.exceptions import raise_if_usage_limit_reached
+from agentpool.agents.claude_code_agent.static_info import models_to_category
 from agentpool.agents.events import (
     PartDeltaEvent,
     PartStartEvent,
@@ -108,7 +109,6 @@ from agentpool.agents.exceptions import (
     UnknownCategoryError,
     UnknownModeError,
 )
-from agentpool.agents.modes import ModeInfo
 from agentpool.agents.tool_call_accumulator import ToolCallAccumulator
 from agentpool.common_types import MCPServerStatus
 from agentpool.log import get_logger
@@ -379,10 +379,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if config.output_type:
             resolved_output_type = to_type(config.output_type, manifest.responses)
         # Merge config-level handlers with provided handlers
-        merged_handlers: list[AnyEventHandlerType] = [
-            *config.get_event_handlers(),
-            *(event_handlers or []),
-        ]
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[AnyEventHandlerType] = [*config_handlers, *(event_handlers or [])]
         return cls(
             # Identity
             name=config.name,
@@ -882,6 +880,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Handle ephemeral execution (fork session if store_history=False)
         fork_client = None
         client = self._client
+        result_message: ResultMessage | None = None
 
         if not store_history and self._sdk_session_id:
             # Create fork client that shares parent's context but has separate session ID
@@ -1141,8 +1140,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                     # naturally terminate the stream via the isinstance(message, ResultMessage)
                     # check above. The _cancelled flag is checked in process_prompt() to
                     # return the correct stop reason.
-                else:
-                    result_message = None
 
         except asyncio.CancelledError:
             self.log.info("Stream cancelled via CancelledError")
@@ -1262,7 +1259,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         if self._client:
             await self._client.set_permission_mode(mode)
 
-    async def get_available_models(self) -> list[ModelInfo] | None:
+    async def get_available_models(self) -> list[ModelInfo]:
         """Get available models for Claude Code agent (defined as static list)."""
         from agentpool.agents.claude_code_agent.static_info import MODELS
 
@@ -1299,30 +1296,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             )
         ]
         # Model selection
-        if models := await self.get_available_models():
-            # Use id_override if available (e.g., "opus" for Claude Code SDK)
-            def get_model_id(m: ModelInfo) -> str:
-                return m.id_override if m.id_override else m.id
-
-            modes = [
-                ModeInfo(
-                    id=get_model_id(m),
-                    name=m.name or get_model_id(m),
-                    description=m.description or "",
-                    category_id="model",
-                )
-                for m in models
-            ]
-            categories.append(
-                ModeCategory(
-                    id="model",
-                    name="Model",
-                    available_modes=modes,
-                    current_mode_id=self.model_name or get_model_id(models[0]),
-                    category="model",
-                )
-            )
-
+        models = await self.get_available_models()
+        categories.append(models_to_category(models, current_mode=self.model_name))
         # Thinking level selection
         categories.append(
             ModeCategory(

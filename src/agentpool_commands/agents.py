@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from slashed import CommandContext, CommandError  # noqa: TC002
 from slashed.completers import CallbackCompleter
 
+from agentpool.agents.native_agent import Agent
 from agentpool.messaging.context import NodeContext  # noqa: TC001
 from agentpool_commands.base import NodeCommand
 from agentpool_commands.completers import get_available_agents, get_available_nodes
@@ -73,14 +74,15 @@ class CreateAgentCommand(NodeCommand):
             # Get model from args or current agent
             current_agent = ctx.context.agent
             tool_list = [t.strip() for t in tools.split("|")] if tools else None
-            # Create and register the new agent
-            await ctx.context.pool.add_agent(
+            agent = Agent(
                 name=agent_name,
                 model=model or current_agent.model_name or "openai:gpt-4o-mini",
                 system_prompt=system_prompt or (),
                 description=description,
                 tools=tool_list,
             )
+            # Create and register the new agent
+            await ctx.context.pool.add_agent(agent)
 
             msg = f"✅ **Created agent** `{agent_name}`"
             if tool_list:
@@ -241,21 +243,21 @@ class CreateTeamCommand(NodeCommand):
             raise CommandError("At least 2 members are required to create a team")
 
         # Verify all nodes exist
-        node_list = list(nodes)
-        for node_name in node_list:
+        node_names = list(nodes)
+        for node_name in node_names:
             if node_name not in ctx.context.pool.nodes:
                 available = ", ".join(ctx.context.pool.nodes.keys())
                 raise CommandError(f"Node '{node_name}' not found. Available: {available}")
-
+        node_instances = [ctx.context.pool.nodes[name] for name in node_names]
         # Create the team
         if mode == "sequential":
-            team: BaseTeam[Any, Any] = ctx.context.pool.create_team_run(node_list, name=name)
+            team: BaseTeam[Any, Any] = ctx.context.pool.create_team_run(node_instances, name=name)
         else:
-            team = ctx.context.pool.create_team(node_list, name=name)
+            team = ctx.context.pool.create_team(node_instances, name=name)
 
         mode_str = "pipeline" if mode == "sequential" else "parallel"
         await ctx.print(
-            f"**Created {mode_str} team** `{team.name}` with nodes: `{', '.join(node_list)}`"
+            f"**Created {mode_str} team** `{team.name}` with nodes: `{', '.join(node_names)}`"
         )
 
     def get_completer(self) -> CallbackCompleter:

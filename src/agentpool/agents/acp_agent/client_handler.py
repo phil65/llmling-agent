@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import anyio
+from pydantic_ai import PartDeltaEvent, TextPartDelta
 
 from acp.client.protocol import Client
 from acp.schema import (
@@ -138,9 +139,9 @@ class ACPClientHandler(Client):
                 if self.state.modes:
                     self.state.modes.current_mode_id = mode_id
                     # Find ModeInfo and emit signal
-                    for acp_mode in self.state.modes.available_modes:
-                        if acp_mode.id != mode_id:
-                            continue
+                    if acp_mode := next(
+                        (m for m in self.state.modes.available_modes if m.id == mode_id), None
+                    ):
                         mode_info = ModeInfo(
                             id=acp_mode.id,
                             name=acp_mode.name,
@@ -148,7 +149,6 @@ class ACPClientHandler(Client):
                             category_id="mode",  # Old modes API is for operational modes
                         )
                         await self._agent.state_updated.emit(mode_info)
-                        break
                 self.state.current_mode_id = mode_id
                 logger.debug("Mode updated", mode_id=mode_id)
                 self._update_event.set()
@@ -156,18 +156,14 @@ class ACPClientHandler(Client):
 
             case CurrentModelUpdate(current_model_id=model_id):
                 self.state.current_model_id = model_id
-                if self.state.models:
-                    self.state.models.current_model_id = model_id
+                if state := self.state.models:
+                    state.current_model_id = model_id
                     # Find ModelInfo and emit signal
-                    for acp_model in self.state.models.available_models:
-                        if acp_model.model_id == model_id:
-                            model_info = ModelInfo(
-                                id=acp_model.model_id,
-                                name=acp_model.name,
-                                description=acp_model.description,
-                            )
-                            await self._agent.state_updated.emit(model_info)
-                            break
+                    if m := next(
+                        (m for m in state.available_models if m.model_id == model_id), None
+                    ):
+                        info = ModelInfo(id=m.model_id, name=m.name, description=m.description)
+                        await self._agent.state_updated.emit(info)
                 logger.debug("Model updated", model_id=model_id)
                 self._update_event.set()
                 return
@@ -438,24 +434,17 @@ class ACPClientHandler(Client):
         Returns:
             A slashed Command that sends the command to the remote agent
         """
-        from pydantic_ai import PartDeltaEvent, TextPartDelta
         from slashed import Command
 
-        name = cmd.name
-        description = cmd.description
-        input_hint = cmd.input.root.hint if cmd.input else None
-
-        async def execute_command(ctx: Any, args: list[str], kwargs: dict[str, str]) -> None:
+        async def run_cmd(ctx: Any, args: list[str], kwargs: dict[str, str]) -> None:
             """Execute the remote ACP slash command."""
             # Build command string
             args_str = " ".join(args) if args else ""
             if kwargs:
                 kwargs_str = " ".join(f"{k}={v}" for k, v in kwargs.items())
                 args_str = f"{args_str} {kwargs_str}".strip()
-
-            full_command = f"/{name} {args_str}".strip()
             # Execute via agent run_stream - the slash command goes as a prompt
-            async for event in self._agent.run_stream(full_command):
+            async for event in self._agent.run_stream(f"/{cmd.name} {args_str}".strip()):
                 # Extract text from PartDeltaEvent with TextPartDelta
                 if isinstance(event, PartDeltaEvent):
                     delta = event.delta
@@ -463,11 +452,11 @@ class ACPClientHandler(Client):
                         await ctx.print(delta.content_delta)
 
         return Command.from_raw(
-            execute_command,
-            name=name,
-            description=description,
+            run_cmd,
+            name=cmd.name,
+            description=cmd.description,
             category="remote",
-            usage=input_hint,
+            usage=cmd.input.root.hint if cmd.input else None,
         )
 
 

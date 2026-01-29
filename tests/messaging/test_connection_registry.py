@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from agentpool import AgentPool
+from agentpool import Agent, AgentPool
 
 
 @pytest.fixture
@@ -12,9 +12,12 @@ async def pool():
     pool = AgentPool()
 
     async with pool:
-        await pool.add_agent("agent1", model=TestModel())
-        await pool.add_agent("agent2", model=TestModel())
-        await pool.add_agent("agent3", model=TestModel())
+        agent = Agent("agent1", model=TestModel())
+        await pool.add_agent(agent)
+        agent = Agent("agent2", model=TestModel())
+        await pool.add_agent(agent)
+        agent = Agent("agent3", model=TestModel())
+        await pool.add_agent(agent)
 
         yield pool
 

@@ -40,7 +40,7 @@ from agentpool_server.openai_api_server import OpenAIAPIServer
 
 async def main():
     pool = AgentPool()
-    await pool.add_agent("gpt-4-custom", model="openai:gpt-4")
+    await pool.add_agent(Agent("gpt-4-custom", model="openai:gpt-4"))
     
     server = OpenAIAPIServer(
         pool,

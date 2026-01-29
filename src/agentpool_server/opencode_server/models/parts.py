@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 from pydantic import Field
 
+from agentpool.utils.time_utils import now_ms
 from agentpool_server.opencode_server.models.agent import AgentModel  # noqa: TC001
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: TC001
@@ -18,6 +19,10 @@ class TimeStart(OpenCodeBaseModel):
     """
 
     start: int
+
+    @classmethod
+    def now(cls) -> Self:
+        return cls(start=now_ms())
 
 
 class TimeStartEnd(OpenCodeBaseModel):

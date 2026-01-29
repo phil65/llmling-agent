@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 
 class ClaudeCodeBasemodel(BaseModel):
     """Base model."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
 class ClaudeCodeModelInfo(ClaudeCodeBasemodel):
@@ -17,7 +18,7 @@ class ClaudeCodeModelInfo(ClaudeCodeBasemodel):
     value: str
     """Model identifier used in API calls (e.g., "default", "opus", "haiku")."""
 
-    display_name: str = Field(..., alias="displayName")
+    display_name: str
     """Human-readable display name (e.g., "Opus", "Default (recommended)")."""
 
     description: str
@@ -33,7 +34,7 @@ class ClaudeCodeCommandInfo(ClaudeCodeBasemodel):
     description: str
     """Full description of what the command does."""
 
-    argument_hint: str = Field(..., alias="argumentHint")
+    argument_hint: str
     """Usage hint for command arguments (may be empty string)."""
 
 
@@ -43,13 +44,13 @@ class ClaudeCodeAccountInfo(ClaudeCodeBasemodel):
     email: str | None = None
     """User email address."""
 
-    subscription_type: str | None = Field(default=None, alias="subscriptionType")
+    subscription_type: str | None = None
     """Subscription type (e.g., "Claude API")."""
 
-    token_source: str | None = Field(default=None, alias="tokenSource")
+    token_source: str | None = None
     """Where tokens come from (e.g., "claude.ai")."""
 
-    api_key_source: str | None = Field(default=None, alias="apiKeySource")
+    api_key_source: str | None = None
     """Where API key comes from (e.g., "ANTHROPIC_API_KEY")."""
 
 

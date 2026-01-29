@@ -21,14 +21,12 @@ async def test_single_execution():
     """Test single background execution."""
     async with AgentPool() as pool:
         # Create agents with delayed processors
-        agent1 = await pool.add_agent(
-            "agent1",
-            model=function_to_model(functools.partial(delayed_processor, delay=0.1)),
-        )
-        agent2 = await pool.add_agent(
-            "agent2",
-            model=function_to_model(functools.partial(delayed_processor, delay=0.2)),
-        )
+        model = function_to_model(functools.partial(delayed_processor, delay=0.1))
+        agent1 = Agent("agent1", model=model)
+        await pool.add_agent(agent1)
+        model = function_to_model(functools.partial(delayed_processor, delay=0.2))
+        agent2 = Agent("agent2", model=model)
+        await pool.add_agent(agent2)
 
         run = agent1 | agent2
         input_text = "test message"
@@ -100,24 +98,16 @@ async def test_error_handling(caplog: pytest.LogCaptureFixture):
 async def test_cancellation():
     """Test cancellation of background execution."""
     async with AgentPool() as pool:
-        agent = await pool.add_agent(
-            "agent",
-            model=function_to_model(functools.partial(delayed_processor, delay=0.5)),
-        )
-
+        model = function_to_model(functools.partial(delayed_processor, delay=0.5))
+        agent = Agent("agent", model=model)
+        await pool.add_agent(agent)
         run = agent
-        _stats = await run.run_in_background(
-            "test",
-            max_count=None,  # Run indefinitely
-        )
-
+        _stats = await run.run_in_background("test", max_count=None)  # Run indefinitely
         # Let it run briefly
         await anyio.sleep(0.1)
-
         # Cancel execution
         await run.stop()
         assert not run.is_busy()
-
         # Should not be able to wait() after cancellation
         with pytest.raises(RuntimeError):
             await run.wait()
@@ -126,15 +116,12 @@ async def test_cancellation():
 async def test_timing_accuracy():
     """Test that timing information is accurate."""
     async with AgentPool() as pool:
-        agent = await pool.add_agent(
-            "agent",
-            model=function_to_model(functools.partial(delayed_processor, delay=0.2)),
-        )
-
+        model = function_to_model(functools.partial(delayed_processor, delay=0.2))
+        agent = Agent("agent", model=model)
+        await pool.add_agent(agent)
         run = agent
         start = get_now()
         _stats = await run.run_in_background("test", max_count=1)
-
         # Wait should return message
         result = await run.wait()
         assert isinstance(result, ChatMessage)

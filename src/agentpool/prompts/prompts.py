@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Self, assert_never
 from pydantic import ConfigDict, Field
 from pydantic_ai import BinaryContent, ImageUrl, SystemPromptPart, UserPromptPart
 from schemez import Schema
+from slashed import Command
 from upathtools import UPath, to_upath
 
 from agentpool.log import get_logger
@@ -25,6 +26,9 @@ if TYPE_CHECKING:
     from fastmcp.prompts.prompt import FunctionPrompt, Prompt as FastMCPPrompt
     from mcp.types import Prompt as MCPPrompt, PromptArgument
     from pydantic_ai import ModelRequestPart
+    from slashed import CommandContext
+
+    from agentpool.agents.staged_content import StagedContent
 
 logger = get_logger(__name__)
 
@@ -491,6 +495,47 @@ class MCPClientPrompt(BasePrompt):
             raise ValueError(msg)
 
         return parts
+
+    def create_mcp_command(self, staged_content: StagedContent) -> Command:
+        """Convert MCP prompt to slashed Command.
+
+        Args:
+            staged_content: Staged content to add components to
+
+        Returns:
+            Slashed Command that executes the prompt
+        """
+
+        async def execute_prompt(
+            ctx: CommandContext[Any],
+            args: list[str],
+            kwargs: dict[str, str],
+        ) -> None:
+            """Execute the MCP prompt with parsed arguments."""
+            # Map parsed args to prompt parameters
+            # Map positional args to prompt parameter names
+            result = {
+                self.arguments[i]["name"]: arg_value
+                for i, arg_value in enumerate(args)
+                if i < len(self.arguments)
+            } | kwargs
+            try:
+                components = await self.get_components(result or None)
+                staged_content.add(components)
+                staged_count = len(staged_content)
+                await ctx.print(f"✅ Prompt {self.name!r} staged ({staged_count} total parts)")
+            except Exception as e:
+                logger.exception("MCP prompt execution failed", prompt=self.name)
+                await ctx.print(f"❌ Prompt error: {e}")
+
+        usage = " ".join(f"<{i['name']}>" for i in args) if (args := self.arguments) else None
+        return Command.from_raw(
+            execute_prompt,
+            name=self.name,
+            description=self.description or f"MCP prompt: {self.name}",
+            category="mcp",
+            usage=usage,
+        )
 
 
 class FilePrompt(BasePrompt):

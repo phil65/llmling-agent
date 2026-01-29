@@ -109,9 +109,11 @@ async def test_agent_forwarding():
     """Test message forwarding between agents."""
     async with AgentPool() as pool:
         model = TestModel(custom_output_text="Main response")
-        main_agent = await pool.add_agent("main-agent", model=model)
+        main_agent = Agent("main-agent", model=model)
+        await pool.add_agent(main_agent)
         model = TestModel(custom_output_text="Helper response")
-        helper_agent = await pool.add_agent("helper-agent", model=model)
+        helper_agent = Agent("helper-agent", model=model)
+        await pool.add_agent(helper_agent)
         main_agent.connect_to(helper_agent)  # Set up forwarding
         messages: list[ChatMessage[Any]] = []  # Track messages from both agents
         main_agent.message_sent.connect(messages.append)

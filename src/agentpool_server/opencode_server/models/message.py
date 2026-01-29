@@ -98,9 +98,6 @@ class MessageWithParts(OpenCodeBaseModel):
     parts: list[Part] = Field(default_factory=list)
 
 
-# Request models
-
-
 class TextPartInput(OpenCodeBaseModel):
     """Text part for input."""
 

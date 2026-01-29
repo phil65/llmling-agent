@@ -186,10 +186,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
-        merged_handlers: list[AnyEventHandlerType] = [
-            *config_handlers,
-            *(event_handlers or []),
-        ]
+        merged_handlers: list[AnyEventHandlerType] = [*config_handlers, *(event_handlers or [])]
         # Extract toolsets from config
         return cls(
             # Identity

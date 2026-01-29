@@ -7,9 +7,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from fsspec import AbstractFileSystem
 from fsspec.asyn import AsyncFileSystem
-from fsspec.implementations.asyn_wrapper import (
-    AsyncFileSystemWrapper,
-)
+from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
 from upathtools import is_directory
 from upathtools.helpers import to_upath, upath_to_fs
 

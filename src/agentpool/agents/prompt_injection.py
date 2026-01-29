@@ -30,24 +30,6 @@ class PromptInjectionManager:
 
     2. **Queued prompts** (`queue`): Prompts to be processed after the current
        run completes. The run_stream loop continues with these.
-
-    Example:
-        manager = PromptInjectionManager()
-
-        # During a run, inject guidance
-        manager.inject("Also check the test coverage")
-
-        # If a tool hook fires, it calls consume()
-        if msg := await manager.consume():
-            # Inject into tool result
-
-        # At end of run iteration, flush unconsumed to queue
-        manager.flush_pending_to_queue()
-
-        # run_stream loop checks for queued prompts
-        while manager.has_queued():
-            prompts = manager.pop_queued()
-            # Process prompts...
     """
 
     def __init__(self) -> None:
@@ -99,9 +81,7 @@ class PromptInjectionManager:
         Returns:
             List of all pending injection messages wrapped in XML tags (may be empty)
         """
-        result = [
-            f"<injected-context>\n{msg}\n</injected-context>" for msg in self._pending_injections
-        ]
+        result = [f"<injected-context>\n{i}\n</injected-context>" for i in self._pending_injections]
         self._pending_injections.clear()
         if result:
             logger.debug("Consumed all injections", count=len(result))
@@ -114,14 +94,12 @@ class PromptInjectionManager:
         consumed by tool hooks become regular queued prompts, ensuring they
         still get processed.
         """
-        if self._pending_injections:
-            logger.debug(
-                "Flushing unconsumed injections to queue",
-                count=len(self._pending_injections),
-            )
-            for msg in self._pending_injections:
-                self._queued_prompts.append((msg,))
-            self._pending_injections.clear()
+        if not self._pending_injections:
+            return
+        logger.debug("Flushing unconsumed injections to queue", count=len(self._pending_injections))
+        for msg in self._pending_injections:
+            self._queued_prompts.append((msg,))
+        self._pending_injections.clear()
 
     def pop_queued(self) -> tuple[PromptCompatible, ...] | None:
         """Get the next queued prompt group.
@@ -129,9 +107,7 @@ class PromptInjectionManager:
         Returns:
             Tuple of prompts, or None if queue is empty
         """
-        if self._queued_prompts:
-            return self._queued_prompts.pop(0)
-        return None
+        return self._queued_prompts.pop(0) if self._queued_prompts else None
 
     def insert_queued(self, prompts: tuple[PromptCompatible, ...]) -> None:
         """Insert prompts at the front of the queue.

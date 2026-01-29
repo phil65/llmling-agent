@@ -40,7 +40,7 @@ from agentpool_server.agui_server import AGUIServer
 
 async def main():
     pool = AgentPool()
-    await pool.add_agent("assistant", model="openai:gpt-4")
+    await pool.add_agent(Agent("assistant", model="openai:gpt-4"))
     
     server = AGUIServer(pool, host="localhost", port=8002)
     

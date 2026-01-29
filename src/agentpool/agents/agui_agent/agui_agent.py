@@ -195,10 +195,7 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Create an AGUIAgent from a config object."""
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
-        merged_handlers: list[AnyEventHandlerType] = [
-            *config_handlers,
-            *(event_handlers or []),
-        ]
+        merged_handlers: list[AnyEventHandlerType] = [*config_handlers, *(event_handlers or [])]
         return cls(
             endpoint=config.endpoint,
             name=config.name or "agui-agent",

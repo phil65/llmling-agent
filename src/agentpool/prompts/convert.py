@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pydantic_ai import AudioUrl, BinaryContent, BinaryImage, DocumentUrl, ImageUrl, VideoUrl
@@ -20,9 +21,7 @@ if TYPE_CHECKING:
     from agentpool.common_types import PromptCompatible
 
 
-async def convert_prompts(
-    prompts: Sequence[PromptCompatible],
-) -> list[UserContent]:
+async def convert_prompts(prompts: Sequence[PromptCompatible]) -> list[UserContent]:
     """Convert prompts to pydantic-ai UserContent format.
 
     Handles:
@@ -35,8 +34,6 @@ async def convert_prompts(
     for p in prompts:
         match p:
             case PathReference(path=path, fs=fs, mime_type=mime_type, display_name=display_name):
-                from pathlib import Path
-
                 from agentpool.repomap import get_resource_context
 
                 # Add display link if available

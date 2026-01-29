@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
@@ -13,6 +14,7 @@ from uuid import uuid4
 import logfire
 from pydantic_ai import Agent as PydanticAgent, CallToolsNode, ModelRequestNode, RunContext
 from pydantic_ai.models import Model
+from pydantic_ai.tools import ToolDefinition
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
@@ -303,7 +305,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         self._providers = list(providers) if providers else None  # model discovery
 
     @classmethod
-    def from_config(
+    def from_config(  # noqa: PLR0915
         cls,
         config: NativeAgentConfig,
         *,
@@ -390,10 +392,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         if config.output_type:
             resolved_output_type = to_type(config.output_type, manifest.responses)
         # Merge event handlers
-        merged_handlers: list[AnyEventHandlerType] = [
-            *config.get_event_handlers(),
-            *(event_handlers or []),
-        ]
+        config_handlers = config.get_event_handlers()
+        merged_handlers: list[AnyEventHandlerType] = [*config_handlers, *(event_handlers or [])]
         resolved_model = manifest.resolve_model(config.model)
         return cls(
             model=resolved_model.get_model(),
@@ -639,8 +639,35 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
         for tool in tools:
             wrapped = wrap_tool(tool, context_for_tools, hooks=self._hook_manager)
+
+            prepare_fn = None
+            if tool.schema_override:
+
+                def create_prepare(
+                    t: Tool,
+                ) -> Callable[[RunContext[Any], ToolDefinition], Awaitable[ToolDefinition | None]]:
+                    async def prepare_schema(
+                        ctx: RunContext[Any], tool_def: ToolDefinition
+                    ) -> ToolDefinition | None:
+                        if not t.schema_override:
+                            return None
+                        return ToolDefinition(
+                            name=t.schema_override.get("name") or t.name,
+                            description=t.schema_override.get("description") or t.description,
+                            parameters_json_schema=t.schema_override.get("parameters"),
+                        )
+
+                    return prepare_schema
+
+                prepare_fn = create_prepare(tool)
+
             if get_argument_key(wrapped, RunContext):
-                agent.tool(wrapped)
+                if prepare_fn is not None:
+                    agent.tool(prepare=prepare_fn)(wrapped)
+                else:
+                    agent.tool(wrapped)
+            elif prepare_fn is not None:
+                agent.tool_plain(prepare=prepare_fn)(wrapped)
             else:
                 agent.tool_plain(wrapped)
         return agent  # type: ignore[return-value]

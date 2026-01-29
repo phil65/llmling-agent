@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
+from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field, ImportString
@@ -14,9 +15,12 @@ from agentpool_config.conditions import Condition
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pydantic_ai.models.function import FunctionModel
     from upathtools import UPath
 
+    from agentpool.agents.base_agent import BaseAgent
     from agentpool.messaging import ChatMessage
 
 
@@ -115,6 +119,12 @@ class NodeConnectionConfig(ConnectionConfig):
     - forward: Forward message to agent's outbox
     """
 
+    def get_node(self, agents: Sequence[BaseAgent]) -> BaseAgent:
+        agent_dict = {i.name: i for i in agents}
+        if self.name not in agent_dict:
+            raise ValueError(f"Forward target {self.name} not found")
+        return agent_dict[self.name]
+
 
 DEFAULT_MESSAGE_TEMPLATE = """
 [{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}] {{ message.name }}: {{ message.content }}
@@ -166,6 +176,12 @@ class FileConnectionConfig(ConnectionConfig):
         title="File encoding",
     )
     """File encoding to use."""
+
+    def get_node(self, agents: Sequence[BaseAgent]) -> BaseAgent:
+        from agentpool import Agent
+
+        agent_name = f"file_writer_{Path(self.path).stem}"
+        return Agent(model=self.get_model(), name=agent_name)
 
     def format_message(self, message: ChatMessage[Any]) -> str:
         """Format a message using the template."""
@@ -225,6 +241,11 @@ class CallableConnectionConfig(ConnectionConfig):
 
     kw_args: dict[str, Any] = Field(default_factory=dict, title="Additional arguments")
     """Additional kwargs to pass to the callable."""
+
+    def get_node(self, agents: Sequence[BaseAgent]) -> BaseAgent:
+        from agentpool import Agent
+
+        return Agent(model=self.get_model(), name=self.callable.__name__)
 
     async def process_message(self, message: ChatMessage[Any]) -> Any:
         """Process a message through the callable.

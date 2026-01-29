@@ -89,15 +89,16 @@ async def test_capability_tools(default_model: str):
     """Test that capability tools work with AgentContext."""
     async with AgentPool() as pool:
         subagent = SubagentToolsetConfig()
-        toolset_providers = [subagent.get_provider()]
-        agent = await pool.add_agent(name="test", model=default_model, toolsets=toolset_providers)
+        providers = [subagent.get_provider()]
+        agent = Agent(name="test", model=default_model, toolsets=providers)
+        await pool.add_agent(agent)
         prompt = "Get available agents using the list_available_nodes tool and return all names."
         result = await agent.run(prompt)
         assert agent.name in str(result.content)
-        agent_2 = await pool.add_agent(
-            name="test_2", model=default_model, toolsets=toolset_providers
-        )
-        await pool.add_agent("helper", system_prompt="You help with tasks", model=default_model)
+        agent_2 = Agent(name="test_2", model=default_model, toolsets=providers)
+        await pool.add_agent(agent_2)
+        agent_3 = Agent(name="helper", system_prompt="You help with tasks", model=default_model)
+        await pool.add_agent(agent_3)
         result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
         assert result.get_tool_calls()
         assert result.get_tool_calls()[0].tool_name == "delegate_to"
@@ -113,7 +114,8 @@ async def test_team_creation(default_model: str):
 
         tools = [AgentCliToolConfig()]
         tool_instances = [config.get_tool() for config in tools]
-        creator = await pool.add_agent(name="creator", model=default_model, tools=tool_instances)
+        creator = Agent(name="creator", model=default_model, tools=tool_instances)
+        await pool.add_agent(creator)
         # Ask it to create agents and form a team
         result = await creator.run("""
             Use the run_agent_cli_command tool to:

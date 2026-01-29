@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from pydantic_ai.models.test import TestModel
 import pytest
 
-from agentpool import AgentPool
+from agentpool import Agent, AgentPool
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.agents.events import ToolCallProgressEvent
 from agentpool_config.mcp_server import StdioMCPServerConfig
@@ -46,13 +46,14 @@ async def _test_progress_events_common(agent_name: str, run_method: str) -> None
     """Common test logic for progress events."""
     progress_capture = ProgressCapture()
     async with AgentPool() as pool:
-        agent = await pool.add_agent(
+        agent = Agent(
             name=agent_name,
             model=TestModel(call_tools=["test_progress"]),
             system_prompt="You are a test assistant that calls tools.",
             mcp_servers=[mcp_server],
             event_handlers=[progress_capture],
         )
+        await pool.add_agent(agent)
         tools = await agent.tools.get_tools()
         tool_names = [tool.name for tool in tools]
 
@@ -120,7 +121,8 @@ async def test_agent_stream_progress_events():
     """Test that ToolCallProgressEvent appears in agent stream."""
     model = TestModel(call_tools=["test_progress"])
     async with AgentPool() as pool:
-        agent = await pool.add_agent(name="test", model=model, mcp_servers=[mcp_server])
+        agent = Agent(name="test", model=model, mcp_servers=[mcp_server])
+        await pool.add_agent(agent)
         events = [event async for event in agent.run_stream("")]
         progress_events = [e for e in events if isinstance(e, ToolCallProgressEvent)]
         assert len(progress_events) > 0, (
