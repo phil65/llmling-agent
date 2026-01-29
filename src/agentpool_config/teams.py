@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import ConfigDict, Field
 
 from agentpool_config.nodes import NodeConfig
+
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from agentpool import Team, TeamRun
+    from agentpool.messaging import MessageNode
 
 
 ExecutionMode = Literal["parallel", "sequential"]
@@ -50,3 +57,23 @@ class TeamConfig(NodeConfig):
 
     # knowledge: Knowledge | None = None
     # """Knowledge sources shared by all team members."""
+
+    def get_team(self, nodes: Sequence[MessageNode[Any]], name: str) -> Team | TeamRun:
+        """Create a team based on config."""
+        from agentpool import Team, TeamRun
+
+        if self.mode == "parallel":
+            return Team(
+                nodes,
+                name=name,
+                display_name=self.display_name,
+                shared_prompt=self.shared_prompt,
+                mcp_servers=self.get_mcp_servers(),
+            )
+        return TeamRun(
+            nodes,
+            name=name,
+            display_name=self.display_name,
+            shared_prompt=self.shared_prompt,
+            mcp_servers=self.get_mcp_servers(),
+        )

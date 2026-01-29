@@ -14,8 +14,6 @@ from upathtools import UPath
 
 from agentpool.common_types import NodeName, SupportsStructuredOutput
 from agentpool.delegation.message_flow_tracker import MessageFlowTracker
-from agentpool.delegation.team import Team
-from agentpool.delegation.teamrun import TeamRun
 from agentpool.log import get_logger
 from agentpool.messaging import MessageNode
 from agentpool.talk import TeamTalk
@@ -35,6 +33,8 @@ if TYPE_CHECKING:
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.common_types import AgentName, AnyEventHandlerType
     from agentpool.delegation.base_team import BaseTeam
+    from agentpool.delegation.team import Team
+    from agentpool.delegation.teamrun import TeamRun
     from agentpool.messaging.compaction import CompactionPipeline
     from agentpool.models.manifest import AgentsManifest
     from agentpool.ui.base import InputProvider
@@ -423,24 +423,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         # Phase 1: Create empty teams
         empty_teams: dict[str, BaseTeam[Any, Any]] = {}
         for name, config in self.manifest.teams.items():
-            mcp_servers = config.get_mcp_servers()
-            if config.mode == "parallel":
-                empty_teams[name] = Team(
-                    [],
-                    name=name,
-                    display_name=config.display_name,
-                    shared_prompt=config.shared_prompt,
-                    mcp_servers=mcp_servers,
-                )
-            else:
-                empty_teams[name] = TeamRun(
-                    [],
-                    name=name,
-                    display_name=config.display_name,
-                    shared_prompt=config.shared_prompt,
-                    mcp_servers=mcp_servers,
-                )
-
+            empty_teams[name] = config.get_team([], name=name)
         # Phase 2: Resolve members
         for name, config in self.manifest.teams.items():
             team = empty_teams[name]
