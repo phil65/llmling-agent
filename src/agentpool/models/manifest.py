@@ -13,7 +13,7 @@ from upathtools_config.base import URIFileSystemConfig
 
 from agentpool import log
 from agentpool.models.acp_agents import ACPAgentConfigTypes
-from agentpool.models.agents import AnyToolConfig, NativeAgentConfig  # noqa: F401
+from agentpool.models.agents import NativeAgentConfig
 from agentpool.models.agui_agents import AGUIAgentConfig
 from agentpool.models.claude_code_agents import ClaudeCodeAgentConfig
 from agentpool.models.codex_agents import CodexAgentConfig
@@ -43,6 +43,7 @@ if TYPE_CHECKING:
 
     from agentpool.messaging.compaction import CompactionPipeline
     from agentpool.models.acp_agents import BaseACPAgentConfig
+    from agentpool_config.nodes import NodeConfig
 
 logger = log.get_logger(__name__)
 
@@ -572,7 +573,7 @@ class AgentsManifest(Schema):
         return list(self.agents.keys()) + list(self.file_agents.keys()) + list(self.teams.keys())
 
     @property
-    def nodes(self) -> dict[str, Any]:
+    def nodes(self) -> dict[str, NodeConfig]:
         """Get all agent and team configurations."""
         return {**self.agents, **self._loaded_file_agents, **self.teams}
 
