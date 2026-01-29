@@ -36,6 +36,8 @@ def resolve_config(project: ProjectData | None = None, cwd: str | None = None) -
     Returns:
         Path to config file, or None if no config found
     """
+    from agentpool_cli.store import ConfigStore
+
     # 1. Project-specific explicit config
     if project and project.config_path:
         config_path = Path(project.config_path)
@@ -44,28 +46,21 @@ def resolve_config(project: ProjectData | None = None, cwd: str | None = None) -
         logger.warning("Project config not found", path=project.config_path)
 
     # 2. Auto-discover in project worktree
-    worktree = project.worktree if project else cwd
-    if worktree:
+    if worktree := (project.worktree if project else cwd):
         local_config = discover_config_path(worktree)
         if local_config:
             return local_config
 
     # 3. Global default from ConfigStore
     try:
-        from agentpool_cli.store import ConfigStore
-
         config_store = ConfigStore()
         if active := config_store.get_active():
             config_path = Path(active.path)
             if config_path.is_file():
                 return str(config_path)
             logger.warning("Active config not found", path=active.path)
-    except ImportError:
-        # CLI not installed, skip fallback
-        pass
     except Exception:
         logger.exception("Error loading ConfigStore")
-
     # 4. No config found
     return None
 
@@ -134,11 +129,7 @@ class ProjectStore:
     """
 
     def __init__(self, storage: StorageManager) -> None:
-        """Initialize project store.
-
-        Args:
-            storage: Storage manager for persistence
-        """
+        """Initialize project store."""
         self.storage = storage
 
     async def get_or_create(self, cwd: str) -> ProjectData:
@@ -157,8 +148,7 @@ class ProjectStore:
         worktree, vcs = detect_project_root(cwd)
 
         # Check if project already exists
-        existing = await self.storage.get_project_by_worktree(worktree)
-        if existing:
+        if existing := await self.storage.get_project_by_worktree(worktree):
             # Update last_active and return
             await self.storage.touch_project(existing.project_id)
             return existing.touch()

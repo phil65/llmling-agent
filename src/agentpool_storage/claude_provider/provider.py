@@ -310,10 +310,7 @@ class ClaudeStorageProvider(StorageProvider):
                         sessions.append((session_id, f))
         return sessions
 
-    def list_session_metadata(
-        self,
-        project_path: str | None = None,
-    ) -> list[SessionMetadata]:
+    def list_session_metadata(self, project_path: str | None = None) -> list[SessionMetadata]:
         """List all sessions with lightweight metadata (no full message parsing).
 
         This is much faster than get_sessions() as it only reads timestamps
@@ -327,8 +324,7 @@ class ClaudeStorageProvider(StorageProvider):
         """
         result: list[SessionMetadata] = []
         for _, session_path in self._list_sessions(project_path=project_path):
-            metadata = _read_session_metadata(session_path)
-            if metadata is not None:
+            if metadata := _read_session_metadata(session_path):
                 result.append(metadata)
         return result
 
@@ -600,8 +596,7 @@ class ClaudeStorageProvider(StorageProvider):
         conv_count = 0
         msg_count = 0
         for _session_id, session_path in self._list_sessions():
-            count = _count_session_messages(session_path)
-            if count:
+            if count := _count_session_messages(session_path):
                 conv_count += 1
                 msg_count += count
         return conv_count, msg_count
