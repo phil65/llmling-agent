@@ -353,11 +353,7 @@ class McpContentBlock(CodexBaseModel):
     We allow extra fields since this comes from an external library.
     """
 
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-        alias_generator=to_camel,
-    )
+    model_config = ConfigDict(extra="allow", populate_by_name=True, alias_generator=to_camel)
 
 
 class McpToolCallResult(CodexBaseModel):

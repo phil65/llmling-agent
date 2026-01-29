@@ -276,6 +276,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 base_instructions=self._base_instructions,
                 developer_instructions=self._developer_instructions,
                 sandbox=self._current_sandbox,
+                approval_policy=self._approval_policy,
             )
             self._sdk_session_id = response.thread.id
             self.log.info("Codex thread started", sdk_session_id=self._sdk_session_id, cwd=cwd)
