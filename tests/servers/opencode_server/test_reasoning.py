@@ -1,11 +1,12 @@
 from typing import cast
 from unittest.mock import MagicMock
 
-from pydantic_ai.messages import PartStartEvent, PartDeltaEvent, ThinkingPart, ThinkingPartDelta
-from agentpool_server.opencode_server.stream_adapter import OpenCodeStreamAdapter
-from agentpool_server.opencode_server.models.parts import ReasoningPart
+from pydantic_ai.messages import PartDeltaEvent, PartStartEvent, ThinkingPart, ThinkingPartDelta
+
 from agentpool_server.opencode_server.models import PartUpdatedEvent
 from agentpool_server.opencode_server.models.events import PartUpdatedEventProperties
+from agentpool_server.opencode_server.models.parts import ReasoningPart
+from agentpool_server.opencode_server.stream_adapter import OpenCodeStreamAdapter
 
 
 def test_thinking_events_create_reasoning_part():
