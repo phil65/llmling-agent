@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-import tomllib
 from typing import TYPE_CHECKING, Any, Literal
 
 import anyenv
@@ -20,19 +18,6 @@ if TYPE_CHECKING:
 
 
 MarkupType = Literal["yaml", "json", "toml"]
-
-
-def _parse_content(content: str, markup: MarkupType) -> dict[str, Any]:
-    """Parse content based on markup type."""
-    import yamling
-
-    match markup:
-        case "yaml":
-            return yamling.load_yaml(content, verify_type=dict)
-        case "json":
-            return anyenv.load_json(content, return_type=dict)
-        case "toml":
-            return tomllib.loads(content)
 
 
 def _format_validation_error(error: jsonschema.ValidationError) -> str:
@@ -109,10 +94,11 @@ class ConfigCreationTools(StaticResourceProvider):
             Validation result message
         """
         import jsonschema
+        import yamling
 
         schema = self._load_schema()
         try:
-            data = _parse_content(content, self._markup)
+            data = yamling.load(content, self._markup, verify_type=dict)
         except Exception as e:  # noqa: BLE001
             return f"Failed to parse {self._markup.upper()}: {e}"
 
@@ -184,9 +170,9 @@ class ConfigCreationTools(StaticResourceProvider):
         try:
             content = fs.cat(path)
             # Parse and re-format for readability
-            schema_data = json.loads(content)
-            return json.dumps(schema_data, indent=2)
+            schema_data = anyenv.load_json(content)
+            return anyenv.dump_json(schema_data, indent=True)
         except FileNotFoundError:
             return f"Path not found: {path}"
-        except json.JSONDecodeError as e:
+        except anyenv.JsonLoadError as e:
             return f"Failed to parse schema at {path}: {e}"

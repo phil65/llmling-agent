@@ -8,6 +8,7 @@ Provides converters for:
 from __future__ import annotations
 
 import base64
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, overload
 
 from pydantic_ai import (
@@ -27,12 +28,14 @@ from pydantic_ai import (
 )
 
 from agentpool.messaging import ChatMessage
+from agentpool.sessions import SessionData
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
     from pydantic_ai import UserContent
+    from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool_config.mcp_server import (
@@ -41,6 +44,7 @@ if TYPE_CHECKING:
         StdioMCPServerConfig,
         StreamableHTTPMCPServerConfig,
     )
+    from codex_adapter import ModelData, ThreadData
     from codex_adapter.codex_types import HttpMcpServer, McpServerConfig, StdioMcpServer
     from codex_adapter.events import CodexEvent
     from codex_adapter.models import (
@@ -118,6 +122,32 @@ def mcp_config_to_codex(config: MCPServerConfig) -> tuple[str, McpServerConfig]:
         case _:
             msg = f"Unsupported MCP server config type: {type(config)}"
             raise TypeError(msg)
+
+
+def to_model_info(model_data: ModelData) -> TokoModelInfo:
+    from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
+
+    model_id = model_data.model or model_data.id
+    # Use display_name and description from API if available
+    return TokoModelInfo(
+        id=model_id,
+        name=model_data.display_name or model_data.id,
+        provider="openai",
+        description=model_data.description or f"Model: {model_id}",
+        id_override=model_id,
+    )
+
+
+def to_session_data(thread_data: ThreadData, agent_name: str, cwd: str | None) -> SessionData:
+    created_at = datetime.fromtimestamp(thread_data.created_at, tz=UTC)
+    return SessionData(
+        session_id=thread_data.id,
+        agent_name=agent_name,
+        cwd=thread_data.cwd or cwd,
+        created_at=created_at,
+        last_active=created_at,  # Codex doesn't track separate last_active
+        metadata={"title": thread_data.preview} if thread_data.preview else {},
+    )
 
 
 def user_content_to_codex(

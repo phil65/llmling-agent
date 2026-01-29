@@ -15,10 +15,10 @@ Configuration is resolved from multiple layers (in precedence order):
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 from typing import TYPE_CHECKING, Annotated, Literal
 
+import anyenv
 from platformdirs import user_log_path
 import typer as t
 
@@ -182,8 +182,8 @@ def acp_command(  # noqa: PLR0915
         from agentpool_config.mcp_server import parse_mcp_servers_json
 
         try:
-            mcp_data = json.loads(mcp_config)
-        except json.JSONDecodeError as e:
+            mcp_data = anyenv.load_json(mcp_config)
+        except anyenv.JsonLoadError as e:
             raise t.BadParameter(f"Invalid JSON in --mcp-config: {e}") from e
 
         try:
