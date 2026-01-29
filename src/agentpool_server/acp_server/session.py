@@ -283,9 +283,9 @@ class ACPSession:
         if not self.mcp_servers:
             return
         self.log.info("Initializing MCP servers", server_count=len(self.mcp_servers))
-        cfgs = [convert_acp_mcp_server_to_config(s) for s in self.mcp_servers]
         # Add each MCP server to the current agent's MCP manager dynamically
-        for cfg in cfgs:
+        for server in self.mcp_servers:
+            cfg = convert_acp_mcp_server_to_config(server)
             try:
                 await self.agent.mcp.setup_server(cfg)
                 self.log.info("Added MCP server", server_name=cfg.name, agent=self.agent.name)

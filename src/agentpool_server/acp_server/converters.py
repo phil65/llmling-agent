@@ -20,6 +20,8 @@ from acp.schema import (
     HttpMcpServer,
     ImageContentBlock,
     ResourceContentBlock,
+    SessionConfigSelectOption,
+    SessionInfo,
     SessionMode,
     SseMcpServer,
     StdioMcpServer,
@@ -42,7 +44,9 @@ if TYPE_CHECKING:
     from pydantic_ai import UserContent
 
     from acp.schema import ContentBlock, McpServer
+    from agentpool.agents.modes import ModeInfo
     from agentpool.messaging import MessageNode
+    from agentpool.sessions import SessionData
     from agentpool_config.mcp_server import MCPServerConfig
     from agentpool_config.nodes import ToolConfirmationMode
 
@@ -147,15 +151,11 @@ def _uri_to_path_reference(
     path = _uri_to_path(uri)
     if path is None:
         return None
-    return PathReference(
-        path=path,
-        fs=fs,
-        mime_type=mime_type,
-        display_name=format_uri_as_link(uri),
-    )
+    name = format_uri_as_link(uri)
+    return PathReference(path=path, fs=fs, mime_type=mime_type, display_name=name)
 
 
-def from_acp_content(  # noqa: PLR0915
+def from_acp_content(
     blocks: Sequence[ContentBlock],
     fs: AsyncFileSystem | None = None,
 ) -> Sequence[UserContent | PathReference]:
@@ -198,20 +198,16 @@ def from_acp_content(  # noqa: PLR0915
                         content.append(VideoUrl(url=uri))
                     elif mime_type == "application/pdf":
                         content.append(DocumentUrl(url=uri))
-                    else:
-                        # Try to create a PathReference for file:// URIs
-                        ref = _uri_to_path_reference(uri, mime_type, fs)
-                        if ref:
-                            content.append(ref)
-                        else:
-                            content.append(format_uri_as_link(uri))
-                else:
-                    # No MIME type - try to create PathReference for file:// URIs
-                    ref = _uri_to_path_reference(uri, mime_type, fs)
-                    if ref:
+                    # Try to create a PathReference for file:// URIs
+                    elif ref := _uri_to_path_reference(uri, mime_type, fs):
                         content.append(ref)
                     else:
                         content.append(format_uri_as_link(uri))
+                # No MIME type - try to create PathReference for file:// URIs
+                elif ref := _uri_to_path_reference(uri, mime_type, fs):
+                    content.append(ref)
+                else:
+                    content.append(format_uri_as_link(uri))
 
             case EmbeddedResourceContentBlock(resource=resource):
                 match resource:
@@ -233,6 +229,19 @@ def from_acp_content(  # noqa: PLR0915
                             content.append(f"Binary Resource: {formatted_uri}")
 
     return content
+
+
+def to_session_select_option(mode: ModeInfo) -> SessionConfigSelectOption:
+    return SessionConfigSelectOption(value=mode.id, name=mode.name, description=mode.description)
+
+
+def to_session_info(session_data: SessionData) -> SessionInfo:
+    return SessionInfo(
+        session_id=session_data.session_id,
+        cwd=session_data.cwd or "",
+        title=session_data.title,
+        updated_at=session_data.updated_at,
+    )
 
 
 def agent_to_mode(agent: MessageNode[Any, Any]) -> SessionMode:

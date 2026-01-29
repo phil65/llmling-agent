@@ -17,8 +17,6 @@ from acp.schema import (
     PromptResponse,
     ResumeSessionResponse,
     SessionConfigOption,
-    SessionConfigSelectOption,
-    SessionInfo,
     SessionMode,
     SessionModelState,
     SessionModeState,
@@ -30,11 +28,12 @@ from acp.schema import (
 )
 from agentpool.log import get_logger
 from agentpool.utils.tasks import TaskManager
+from agentpool_server.acp_server.converters import to_session_info, to_session_select_option
 from agentpool_server.acp_server.session_manager import ACPSessionManager
 
 
 if TYPE_CHECKING:
-    from pydantic_ai import ModelRequest, ModelResponse
+    from pydantic_ai import ModelMessage
 
     from acp import Client
     from acp.schema import (
@@ -55,17 +54,13 @@ if TYPE_CHECKING:
     )
     from agentpool import AgentPool
     from agentpool.agents.base_agent import BaseAgent
-    from agentpool.agents.modes import ModeInfo
-    from agentpool.sessions import SessionData
     from agentpool.storage.manager import TitleGeneratedEvent
     from agentpool_server.acp_server.server import ACPServer
 
 logger = get_logger(__name__)
 
 
-async def get_session_model_state(
-    agent: BaseAgent, current_model: str | None = None
-) -> SessionModelState | None:
+async def get_session_model_state(agent: BaseAgent) -> SessionModelState | None:
     """Get SessionModelState from an agent using its get_available_models() method.
 
     Converts tokonomics ModelInfo to ACP ModelInfo format.
@@ -77,32 +72,26 @@ async def get_session_model_state(
     Returns:
         SessionModelState with all available models, None if no models available
     """
-    from agentpool.agents.base_agent import BaseAgent
-
-    if not isinstance(agent, BaseAgent):
-        return None
-
     try:
         toko_models = await agent.get_available_models()
     except Exception:
         logger.exception("Failed to get available models from agent")
         return None
 
-    if not toko_models:
-        return None
-
     # Convert tokonomics ModelInfo to ACP ModelInfo
-    acp_models: list[ACPModelInfo] = []
-    for toko in toko_models:
-        # Use id_override if set (e.g., "opus" for Claude Code), otherwise use id
-        model_id = toko.id_override if toko.id_override else toko.id
-        info = ACPModelInfo(model_id=model_id, name=toko.name, description=toko.description or "")
-        acp_models.append(info)
+    acp_models = [
+        ACPModelInfo(
+            model_id=toko.id_override if toko.id_override else toko.id,
+            name=toko.name,
+            description=toko.description or "",
+        )
+        for toko in toko_models or []
+    ]
     if not acp_models:
         return None
-
     # Ensure current model is in the list
     all_ids = [model.model_id for model in acp_models]
+    current_model = agent.model_name
     if current_model and current_model not in all_ids:
         # Add current model to the list so the UI shows it
         desc = "Currently configured model"
@@ -132,20 +121,14 @@ async def get_session_mode_state(agent: BaseAgent) -> SessionModeState | None:
     except Exception:
         logger.exception("Failed to get modes from agent")
         return None
-
     if not mode_categories:
         return None
-
     # Find the permissions category (not model)
     category = next((c for c in mode_categories if c.id != "model"), None)
     if not category:
         return None
     acp_modes = [  # Convert ModeInfo to ACP SessionMode
-        SessionMode(
-            id=mode.id,
-            name=mode.name,
-            description=mode.description,
-        )
+        SessionMode(id=mode.id, name=mode.name, description=mode.description)
         for mode in category.available_modes
     ]
     return SessionModeState(available_modes=acp_modes, current_mode_id=category.current_mode_id)
@@ -179,19 +162,10 @@ async def get_session_config_options(agent: BaseAgent) -> list[SessionConfigOpti
         )
         for category in mode_categories
     ]
-
-
-def to_session_select_option(mode: ModeInfo) -> SessionConfigSelectOption:
-    return SessionConfigSelectOption(value=mode.id, name=mode.name, description=mode.description)
-
-
-def to_session_info(session_data: SessionData) -> SessionInfo:
-    return SessionInfo(
-        session_id=session_data.session_id,
-        cwd=session_data.cwd or "",
-        title=session_data.title,
-        updated_at=session_data.updated_at,
-    )
+    # for opt in options:
+    #     if opt.id == config_id:
+    #         opt.current_value = value_id
+    #         break
 
 
 @dataclass
@@ -320,7 +294,7 @@ class AgentPoolACPAgent(ACPAgent):
                     config_options = await get_session_config_options(session.agent)
                 else:
                     # Use unified helpers for all other agents
-                    models = await get_session_model_state(session.agent, session.agent.model_name)
+                    models = await get_session_model_state(session.agent)
                     state = await get_session_mode_state(session.agent)
                     config_options = await get_session_config_options(session.agent)
         except Exception:
@@ -383,18 +357,16 @@ class AgentPoolACPAgent(ACPAgent):
 
             # Replay loaded conversation to client via ACP notifications
             if msgs := self.default_agent.conversation.chat_messages:
-                model_messages: list[ModelRequest | ModelResponse] = []
+                model_messages: list[ModelMessage] = []
                 for chat_msg in msgs:
                     if chat_msg.messages:
                         model_messages.extend(chat_msg.messages)
-
-                if model_messages:
-                    await session.notifications.replay(model_messages)
-                    logger.info(
-                        "Conversation replayed",
-                        session_id=params.session_id,
-                        message_count=len(model_messages),
-                    )
+                await session.notifications.replay(model_messages)
+                logger.info(
+                    "Conversation replayed",
+                    session_id=params.session_id,
+                    message_count=len(model_messages),
+                )
             mode_state: SessionModeState | None = None
             models: SessionModelState | None = None
             if isinstance(self.default_agent, ACPAgentClient) and self.default_agent._state:
@@ -534,18 +506,16 @@ class AgentPoolACPAgent(ACPAgent):
         # Auto-recreate session if not found (e.g., after pool swap)
         if not session:
             logger.info("Session not found, recreating", session_id=params.session_id)
+            # Try to get cwd from stored session data
+            cwd = "."
             try:
-                # Try to get cwd from stored session data
-                cwd = "."
-                try:
-                    stored = await self.session_manager.session_manager.store.load(
-                        params.session_id
-                    )
-                    if stored and stored.cwd:
-                        cwd = stored.cwd
-                except Exception:  # noqa: BLE001
-                    pass  # Use default cwd
+                stored = await self.session_manager.session_manager.store.load(params.session_id)
+                if stored and stored.cwd:
+                    cwd = stored.cwd
+            except Exception:  # noqa: BLE001
+                pass  # Use default cwd
 
+            try:
                 # Recreate session with same ID using default agent
                 await self.session_manager.create_session(
                     agent=self.default_agent,
