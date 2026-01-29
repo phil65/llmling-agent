@@ -295,19 +295,14 @@ class ClaudeStorageProvider(StorageProvider):
         Returns:
             List of (session_id, file_path) tuples
         """
+        if project_path and (project_dir := self._get_project_dir(project_path)).exists():
+            return [(f.stem, f) for f in project_dir.glob("*.jsonl")]
         sessions = []
-        if project_path:
-            project_dir = self._get_project_dir(project_path)
-            if project_dir.exists():
+        for project_dir in self.projects_path.iterdir():
+            if project_dir.is_dir():
                 for f in project_dir.glob("*.jsonl"):
                     session_id = f.stem
                     sessions.append((session_id, f))
-        else:
-            for project_dir in self.projects_path.iterdir():
-                if project_dir.is_dir():
-                    for f in project_dir.glob("*.jsonl"):
-                        session_id = f.stem
-                        sessions.append((session_id, f))
         return sessions
 
     def list_session_metadata(self, project_path: str | None = None) -> list[SessionMetadata]:
@@ -322,6 +317,11 @@ class ClaudeStorageProvider(StorageProvider):
         Returns:
             List of SessionMetadata objects with timestamps and counts
         """
+        # return [
+        #     m
+        #     for _, session_path in self._list_sessions(project_path=project_path)
+        #     if (m := _read_session_metadata(session_path))
+        # ]
         result: list[SessionMetadata] = []
         for _, session_path in self._list_sessions(project_path=project_path):
             if metadata := _read_session_metadata(session_path):

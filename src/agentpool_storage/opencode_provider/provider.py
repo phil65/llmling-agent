@@ -763,10 +763,8 @@ class OpenCodeStorageProvider(StorageProvider):
         fork_point_id: str | None = None
         if fork_from_message_id:
             # Verify message exists
-            found = any(m.id == fork_from_message_id for m in oc_messages)
-            if not found:
-                err = f"Message {fork_from_message_id} not found in conversation"
-                raise ValueError(err)
+            if not any(m.id == fork_from_message_id for m in oc_messages):
+                raise ValueError(f"Message {fork_from_message_id} not found in conversation")
             fork_point_id = fork_from_message_id
         # Fork from last message
         elif oc_messages:
