@@ -75,14 +75,7 @@ def opencode_command(
     from agentpool_config.resolution import resolve_config
     from agentpool_server.opencode_server.server import OpenCodeServer
 
-    # Always log to file with rollover
-    log_dir = user_log_path("agentpool", appauthor=False)
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / "opencode.log"
-    ap_log.configure_logging(force=True, log_file=str(log_file))
-    logger.info("Configured file logging with rollover", log_file=str(log_file))
-
-    # Resolve configuration from all layers
+    # Resolve configuration from all layers FIRST (before logging)
     # fallback_config is only used if no agents are defined in any layer
     try:
         resolved = resolve_config(
@@ -92,13 +85,6 @@ def opencode_command(
     except ValueError as e:
         raise t.BadParameter(str(e)) from e
 
-    # Log which config layers were used
-    if resolved.layers:
-        sources = [f"{layer.source}:{layer.path}" for layer in resolved.layers if layer.path]
-        logger.info("Config layers loaded", sources=sources, host=host, port=port)
-    else:
-        logger.info("Starting OpenCode server with built-in defaults only", host=host, port=port)
-
     # Load manifest from merged config data
     try:
         manifest = AgentsManifest.model_validate(resolved.data)
@@ -106,6 +92,26 @@ def opencode_command(
             manifest = manifest.model_copy(update={"config_file_path": resolved.primary_path})
     except Exception as e:
         raise t.BadParameter(f"Invalid merged configuration: {e}") from e
+
+    # Initialize observability BEFORE configuring logging
+    # This ensures logfire is configured before StructlogProcessor is added
+    from agentpool.observability import registry
+
+    registry.configure_observability(manifest.observability)
+
+    # Always log to file with rollover
+    log_dir = user_log_path("agentpool", appauthor=False)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "opencode.log"
+    ap_log.configure_logging(force=True, log_file=str(log_file))
+    logger.info("Configured file logging with rollover", log_file=str(log_file))
+
+    # Log which config layers were used
+    if resolved.layers:
+        sources = [f"{layer.source}:{layer.path}" for layer in resolved.layers if layer.path]
+        logger.info("Config layers loaded", sources=sources, host=host, port=port)
+    else:
+        logger.info("Starting OpenCode server with built-in defaults only", host=host, port=port)
 
     # Load agent from merged manifest
     pool = AgentPool(manifest, main_agent_name=agent)
