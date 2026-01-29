@@ -18,7 +18,7 @@ def test_thinking_events_create_reasoning_part():
     adapter = OpenCodeStreamAdapter(
         session_id="test-session",
         assistant_msg_id="msg-1",
-        assistant_msg_with_parts=mock_msg,
+        assistant_msg=mock_msg,
         working_dir=".",
     )
 
