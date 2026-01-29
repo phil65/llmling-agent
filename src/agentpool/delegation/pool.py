@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.common_types import AgentName, AnyEventHandlerType
     from agentpool.delegation.base_team import BaseTeam
-    from agentpool.messaging import ChatMessage
     from agentpool.messaging.compaction import CompactionPipeline
     from agentpool.models.manifest import AgentsManifest
     from agentpool.ui.base import InputProvider
@@ -590,16 +589,6 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                         lines.append(f"    {source}-->{target.name}")
 
         return "\n".join(lines)
-
-    def build_message_index(self) -> dict[str, tuple[ChatMessage[Any], str]]:
-        """Build an index mapping message IDs to (message, agent_name) tuples.
-
-        Returns:
-            Dictionary mapping message_id -> (ChatMessage, agent_name).
-        """
-        from agentpool.messaging.message_utils import build_message_index
-
-        return build_message_index(self.get_agents())
 
 
 if __name__ == "__main__":

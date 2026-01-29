@@ -4,7 +4,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from agentpool import Agent, AgentPool
-from agentpool.messaging.message_utils import get_message_chain
+from agentpool.messaging.message_utils import build_message_index, get_message_chain
 
 
 async def test_message_chain():
@@ -123,8 +123,7 @@ async def test_build_message_index():
 
         result_a = await agent_a.run("Hello from A")
         result_b = await agent_b.run("Hello from B")
-
-        index = pool.build_message_index()
+        index = build_message_index(pool.get_agents())
 
         # Should find messages from both agents
         assert result_a.message_id in index
