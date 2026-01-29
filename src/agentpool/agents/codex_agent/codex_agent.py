@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Self
@@ -14,6 +13,14 @@ from pydantic_ai import TextPartDelta
 from pydantic_ai.usage import RequestUsage, RunUsage
 
 from agentpool.agents.base_agent import BaseAgent
+from agentpool.agents.codex_agent.codex_converters import (
+    convert_codex_stream,
+    mcp_config_to_codex,
+    to_model_info,
+    to_session_data,
+    turns_to_chat_messages,
+    user_content_to_codex,
+)
 from agentpool.agents.events import PartDeltaEvent, RunStartedEvent, StreamCompleteEvent
 from agentpool.agents.exceptions import (
     AgentNotInitializedError,
@@ -22,7 +29,6 @@ from agentpool.agents.exceptions import (
 )
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
-from agentpool.sessions.models import SessionData
 
 
 if TYPE_CHECKING:
@@ -41,6 +47,7 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageHistory
     from agentpool.models.codex_agents import CodexAgentConfig
     from agentpool.resource_providers import ResourceProvider
+    from agentpool.sessions.models import SessionData
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from codex_adapter import ApprovalPolicy, CodexClient, ReasoningEffort, SandboxMode
@@ -230,10 +237,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
     async def __aenter__(self) -> Self:
         """Start Codex client and create or resume thread."""
-        from agentpool.agents.codex_agent.codex_converters import (
-            mcp_config_to_codex,
-            turns_to_chat_messages,
-        )
         from codex_adapter import CodexClient
 
         await super().__aenter__()
@@ -346,10 +349,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
         """Stream events from Codex turn execution."""
-        from agentpool.agents.codex_agent.codex_converters import (
-            convert_codex_stream,
-            user_content_to_codex,
-        )
         from agentpool.agents.events import PlanUpdateEvent
         from agentpool.messaging.messages import TokenCost
         from codex_adapter import TurnStartedData
@@ -539,27 +538,12 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         Returns:
             List of tokonomics ModelInfo for available models, or None if not connected
         """
-        from tokonomics.model_discovery.model_info import ModelInfo as TokModelInfo
-
         if not self._client:
             self.log.warning("Cannot get models: client not connected")
             return None
 
         try:
-            models = []
-            for model_data in await self._client.model_list():
-                # Infer provider from model name
-                model_id = model_data.model or model_data.id
-                # Use display_name and description from API if available
-                info = TokModelInfo(
-                    id=model_id,
-                    name=model_data.display_name or model_data.id,
-                    provider="openai",
-                    description=model_data.description or f"Model: {model_id}",
-                    id_override=model_id,
-                )
-                models.append(info)
-
+            models = [to_model_info(i) for i in await self._client.model_list()]
         except Exception:
             self.log.exception("Failed to fetch models from Codex")
             return None
@@ -666,20 +650,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self.log.exception("Failed to list Codex threads")
             return []
         else:
-            result: list[SessionData] = []
-            for thread_data in response.data:
-                created_at = datetime.fromtimestamp(thread_data.created_at, tz=UTC)
-                session_data = SessionData(
-                    session_id=thread_data.id,
-                    agent_name=self.name,
-                    cwd=thread_data.cwd or str(self.env.cwd or Path.cwd()),
-                    created_at=created_at,
-                    last_active=created_at,  # Codex doesn't track separate last_active
-                    metadata={"title": thread_data.preview} if thread_data.preview else {},
-                )
-
-                result.append(session_data)
-
+            cwd = self.env.cwd or str(Path.cwd())
+            result = [to_session_data(i, agent_name=self.name, cwd=cwd) for i in response.data]
             # Apply cwd filter (Codex doesn't support cwd filter in request)
             if cwd is not None:
                 result = [s for s in result if s.cwd == cwd]
@@ -697,8 +669,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         Returns:
             SessionData if thread was resumed successfully, None otherwise
         """
-        from agentpool.agents.codex_agent.codex_converters import turns_to_chat_messages
-
         if not self._client:
             self.log.error("Cannot load session: Codex client not initialized")
             return None
@@ -723,13 +693,5 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                 turn_count=len(thread.turns),
                 message_count=len(chat_messages),
             )
-        # Build SessionData from the resumed thread
-        created_at = datetime.fromtimestamp(thread.created_at, tz=UTC)
-        return SessionData(
-            session_id=thread.id,
-            agent_name=self.name,
-            cwd=thread.cwd or str(self.env.cwd or Path.cwd()),
-            created_at=created_at,
-            last_active=created_at,  # Codex doesn't track separate last_active
-            metadata={"title": thread.preview} if thread.preview else {},
-        )
+        cwd = self.env.cwd or str(Path.cwd())
+        return to_session_data(thread, agent_name=self.name, cwd=cwd)
