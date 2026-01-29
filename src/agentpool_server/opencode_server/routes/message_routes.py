@@ -225,7 +225,7 @@ async def _process_message(
     adapter = OpenCodeStreamAdapter(
         session_id=session_id,
         assistant_msg_id=assistant_msg_id,
-        assistant_msg_with_parts=assistant_msg_with_parts,
+        assistant_msg=assistant_msg_with_parts,
         working_dir=state.working_dir,
         on_file_paths=lambda paths: _warmup_lsp_for_files(state, paths),
     )
