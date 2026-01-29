@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
-import subprocess
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException
@@ -136,6 +136,24 @@ async def get_path(state: StateDep) -> PathInfo:
     return PathInfo(config="", cwd=state.working_dir, data="", root=state.working_dir, state="")
 
 
+async def _run_git_command(args: list[str], cwd: str) -> str | None:
+    """Run a git command asynchronously and return stdout, or None on error."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "git",
+            *args,
+            cwd=cwd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        if proc.returncode != 0:
+            return None
+        return stdout.decode().strip()
+    except OSError:
+        return None
+
+
 @router.get("/vcs")
 async def get_vcs(state: StateDep) -> VcsInfo:
     """Get VCS info.
@@ -148,30 +166,10 @@ async def get_vcs(state: StateDep) -> VcsInfo:
     if not git_dir.is_dir():
         return VcsInfo(branch=None, dirty=False, commit=None)
 
-    try:
-        branch = subprocess.run(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=state.working_dir,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-        commit = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=state.working_dir,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-        dirty = bool(
-            subprocess.run(
-                ["git", "status", "--porcelain"],
-                cwd=state.working_dir,
-                capture_output=True,
-                text=True,
-                check=True,
-            ).stdout.strip()
-        )
-        return VcsInfo(branch=branch, dirty=dirty, commit=commit)
-    except subprocess.CalledProcessError:
-        return VcsInfo(branch=None, dirty=False, commit=None)
+    branch, commit, status = await asyncio.gather(
+        _run_git_command(["rev-parse", "--abbrev-ref", "HEAD"], state.working_dir),
+        _run_git_command(["rev-parse", "HEAD"], state.working_dir),
+        _run_git_command(["status", "--porcelain"], state.working_dir),
+    )
+
+    return VcsInfo(branch=branch, dirty=bool(status), commit=commit)
