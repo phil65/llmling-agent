@@ -19,6 +19,7 @@ from agentpool_server.opencode_server.models import (
     ProjectUpdateRequest,
     VcsInfo,
 )
+from agentpool_storage.project_store import ProjectStore
 
 
 if TYPE_CHECKING:
@@ -66,8 +67,6 @@ def _project_data_to_response(data: ProjectData) -> Project:
 
 async def _get_current_project(state: StateDep) -> ProjectData:
     """Get or create the current project from storage."""
-    from agentpool_storage.project_store import ProjectStore
-
     storage = state.pool.storage
     project_store = ProjectStore(storage)
     return await project_store.get_or_create(state.working_dir)
@@ -76,8 +75,6 @@ async def _get_current_project(state: StateDep) -> ProjectData:
 @router.get("/project")
 async def list_projects(state: StateDep) -> list[Project]:
     """List all projects."""
-    from agentpool_storage.project_store import ProjectStore
-
     storage = state.pool.storage
     project_store = ProjectStore(storage)
     projects = await project_store.list_recent(limit=50)
@@ -92,11 +89,7 @@ async def get_project_current(state: StateDep) -> Project:
 
 
 @router.patch("/project/{project_id}")
-async def update_project(
-    project_id: str,
-    update: ProjectUpdateRequest,
-    state: StateDep,
-) -> Project:
+async def update_project(project_id: str, update: ProjectUpdateRequest, state: StateDep) -> Project:
     """Update project metadata (name, settings).
 
     Emits a project.updated event when successful.
@@ -112,28 +105,18 @@ async def update_project(
     Raises:
         HTTPException: If project not found
     """
-    from agentpool_storage.project_store import ProjectStore
-
     store = ProjectStore(state.pool.storage)
     project_data = None
-
     # Update name if provided
     if update.name is not None:
         project_data = await store.set_name(project_id, update.name)
         if not project_data:
             raise HTTPException(status_code=404, detail="Project not found")
-
     # Update settings if provided
     if update.settings:
-        if project_data:
-            # Already fetched from set_name, update with settings
-            project_data = await store.update_settings(project_id, **update.settings)
-        else:
-            project_data = await store.update_settings(project_id, **update.settings)
-
+        project_data = await store.update_settings(project_id, **update.settings)
         if not project_data:
             raise HTTPException(status_code=404, detail="Project not found")
-
     # If neither name nor settings provided, just fetch the project
     if not project_data:
         project_data = await store.get_by_id(project_id)
@@ -142,23 +125,15 @@ async def update_project(
 
     # Convert to OpenCode Project model
     project = _project_data_to_response(project_data)
-
     # Broadcast event
     await state.broadcast_event(ProjectUpdatedEvent.create(project))
-
     return project
 
 
 @router.get("/path")
 async def get_path(state: StateDep) -> PathInfo:
     """Get current path info."""
-    return PathInfo(
-        config="",
-        cwd=state.working_dir,
-        data="",
-        root=state.working_dir,
-        state="",
-    )
+    return PathInfo(config="", cwd=state.working_dir, data="", root=state.working_dir, state="")
 
 
 @router.get("/vcs")

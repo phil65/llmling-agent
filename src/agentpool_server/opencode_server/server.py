@@ -7,6 +7,7 @@ to interact with AgentPool agents.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -41,6 +42,7 @@ if TYPE_CHECKING:
 
 
 VERSION = "0.1.0"
+log = logging.getLogger(__name__)
 
 
 class OpenCodeJSONResponse(JSONResponse):
@@ -139,16 +141,13 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
         from agentpool_server.opencode_server.converters import opencode_to_session_data
         from agentpool_server.opencode_server.models.events import SessionUpdatedEvent
 
-        log = logging.getLogger(__name__)
         log.info("on_title_generated called: %s, title=%s", event.session_id, event.title)
-
         session_id = event.session_id
         if session_id in state.sessions:
             # Update in-memory session
             session = state.sessions[session_id]
             updated_session = session.model_copy(update={"title": event.title})
             state.sessions[session_id] = updated_session
-
             # Persist to storage
             session_data = opencode_to_session_data(
                 updated_session,
@@ -180,8 +179,6 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
             FileWatcherUpdatedEvent,
             VcsBranchUpdatedEvent,
         )
-
-        log = logging.getLogger(__name__)
 
         # --- Git branch watcher ---
         async def on_branch_change(branch: str | None) -> None:
@@ -297,10 +294,8 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
         print(f"Validation error for {request.url}")
         print(f"Body: {body.decode()}")
         print(f"Errors: {exc.errors()}")
-        return JSONResponse(
-            status_code=422,
-            content={"detail": exc.errors(), "body": body.decode()},
-        )
+        content = {"detail": exc.errors(), "body": body.decode()}
+        return JSONResponse(status_code=422, content=content)
 
     # Register routers
     app.include_router(global_router)
@@ -370,42 +365,28 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
     return app
 
 
+@dataclass
 class OpenCodeServer:
     """OpenCode-compatible server wrapper.
 
     Provides a convenient interface for running the server.
     """
 
-    def __init__(
-        self,
-        agent: BaseAgent[Any, Any],
-        *,
-        host: str = "127.0.0.1",
-        port: int = 4096,
-        working_dir: str | None = None,
-    ) -> None:
-        """Initialize the server.
-
-        Args:
-            agent: The agent to use for handling messages. Must have agent_pool set.
-            host: Host to bind to.
-            port: Port to listen on.
-            working_dir: Working directory for file operations.
-        """
-        self.host = host
-        self.port = port
-        self.agent = agent
-        self.working_dir = working_dir
-        self._app: FastAPI | None = None
+    agent: BaseAgent[Any, Any]
+    """The agent to use for handling messages. Must have agent_pool set."""
+    host: str = "127.0.0.1"
+    """Host to bind to."""
+    port: int = 4096
+    """Port to listen on."""
+    working_dir: str | None = None
+    """Working directory for file operations."""
+    _app: FastAPI | None = field(default=None, init=False, repr=False)
 
     @property
     def app(self) -> FastAPI:
         """Get or create the FastAPI application."""
         if self._app is None:
-            self._app = create_app(
-                agent=self.agent,
-                working_dir=self.working_dir,
-            )
+            self._app = create_app(agent=self.agent, working_dir=self.working_dir)
         return self._app
 
     def run(self) -> None:

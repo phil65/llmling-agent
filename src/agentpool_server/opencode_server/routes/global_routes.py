@@ -6,6 +6,7 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
+import anyenv
 from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse
 
@@ -37,12 +38,10 @@ async def get_health() -> HealthResponse:
 
 def _serialize_event(event: Event, wrap_payload: bool = False) -> str:
     """Serialize event, optionally wrapping in payload structure."""
-    import json
-
     event_data = event.model_dump(by_alias=True, exclude_none=True)
     if wrap_payload:
-        return json.dumps({"payload": event_data})
-    return json.dumps(event_data)
+        return anyenv.dump_json({"payload": event_data})
+    return anyenv.dump_json(event_data)
 
 
 async def _event_generator(
