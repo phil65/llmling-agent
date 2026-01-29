@@ -6,14 +6,12 @@ import asyncio
 from asyncio import Lock
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, overload
 
 from anyenv import ProcessManager
 import anyio
 from upathtools import UPath
 
-from agentpool.agents import Agent
 from agentpool.common_types import NodeName, SupportsStructuredOutput
 from agentpool.delegation.message_flow_tracker import MessageFlowTracker
 from agentpool.delegation.team import Team
@@ -24,11 +22,6 @@ from agentpool.talk import TeamTalk
 from agentpool.talk.registry import ConnectionRegistry
 from agentpool.tasks import TaskRegistry
 from agentpool.utils.baseregistry import BaseRegistry
-from agentpool_config.forward_targets import (
-    CallableConnectionConfig,
-    FileConnectionConfig,
-    NodeConnectionConfig,
-)
 
 
 if TYPE_CHECKING:
@@ -38,6 +31,7 @@ if TYPE_CHECKING:
 
     from upathtools import JoinablePathLike
 
+    from agentpool.agents import Agent
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.common_types import AgentName, AnyEventHandlerType
     from agentpool.delegation.base_team import BaseTeam
@@ -411,11 +405,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
     @property
     def compaction_pipeline(self) -> CompactionPipeline | None:
-        """Get the configured compaction pipeline for message history management.
-
-        Returns:
-            CompactionPipeline instance or None if not configured
-        """
+        """Get the configured compaction pipeline or None if not configured."""
         return self.manifest.get_compaction_pipeline()
 
     def _validate_item(self, item: MessageNode[Any, Any] | Any) -> MessageNode[Any, Any]:
@@ -473,19 +463,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         for name, config in self.manifest.nodes.items():
             source = self[name]
             for target in config.connections or []:
-                match target:
-                    case NodeConnectionConfig(name=name_):
-                        if name_ not in self:
-                            raise ValueError(f"Forward target {name_} not found for {name}")
-                        target_node = self[name_]
-                    case FileConnectionConfig(path=path_obj):
-                        agent_name = f"file_writer_{Path(path_obj).stem}"
-                        target_node = Agent(model=target.get_model(), name=agent_name)
-                    case CallableConnectionConfig(callable=fn):
-                        target_node = Agent(model=target.get_model(), name=fn.__name__)
-                    case _:
-                        raise ValueError(f"Invalid connection config: {target}")
-
+                target_node = target.get_node(self.all_agents)
                 source.connect_to(
                     target_node,
                     connection_type=target.connection_type,

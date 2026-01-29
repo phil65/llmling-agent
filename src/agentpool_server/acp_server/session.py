@@ -503,9 +503,9 @@ class ACPSession:
         Merges local commands from command_store with any remote commands
         from nested ACP agents.
         """
+        commands = self.get_acp_commands()  # Local commands
+        commands.extend(self._remote_commands)  # Merge remote commands
         try:
-            commands = self.get_acp_commands()  # Local commands
-            commands.extend(self._remote_commands)  # Merge remote commands
             await self.notifications.update_commands(commands)
         except Exception:
             self.log.exception("Failed to send available commands update")
