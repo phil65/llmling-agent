@@ -115,9 +115,7 @@ def _get_input_from_state(state: ToolState, *, convert_params: bool = False) -> 
         state: Tool state to extract input from
         convert_params: If True, convert param names to camelCase for UI display
     """
-    if hasattr(state, "input") and state.input is not None:
-        return _convert_params_for_ui(state.input) if convert_params else state.input
-    return {}
+    return _convert_params_for_ui(state.input) if convert_params else state.input
 
 
 def _convert_file_part_to_user_content(
