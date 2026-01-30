@@ -272,6 +272,7 @@ class ElicitationHandler(Protocol):
         Returns:
             ElicitResult with string value
         """
+        raise NotImplementedError
 
     async def elicit_number(
         self,
@@ -287,6 +288,7 @@ class ElicitationHandler(Protocol):
         Returns:
             ElicitResult with numeric value
         """
+        raise NotImplementedError
 
     async def elicit_boolean(
         self,
@@ -302,6 +304,7 @@ class ElicitationHandler(Protocol):
         Returns:
             ElicitResult with boolean value
         """
+        raise NotImplementedError
 
     async def elicit_choice(
         self,
@@ -317,6 +320,7 @@ class ElicitationHandler(Protocol):
         Returns:
             ElicitResult with ChoiceValue (selected options + optional custom input)
         """
+        raise NotImplementedError
 
     async def elicit_url(
         self,
@@ -335,6 +339,7 @@ class ElicitationHandler(Protocol):
         Returns:
             User's action: accept (consented), decline (refused), cancel (dismissed)
         """
+        raise NotImplementedError
 
     async def elicit_form(
         self,
@@ -355,6 +360,7 @@ class ElicitationHandler(Protocol):
         Returns:
             ElicitResult with dict mapping field names to values
         """
+        raise NotImplementedError
 
 
 async def dispatch_elicitation[T](
