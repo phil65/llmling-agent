@@ -6,14 +6,16 @@ import asyncio
 from collections.abc import Awaitable, Callable, Set as AbstractSet
 import contextlib
 from dataclasses import dataclass, field
-import logging
 from pathlib import Path
 from typing import Self
 
+import anyenv
 from watchfiles import Change, awatch
 
+from agentpool import log
 
-logger = logging.getLogger(__name__)
+
+logger = log.get_logger(__name__)
 
 
 # Callback type for file change notifications
@@ -81,21 +83,19 @@ class FileWatcher:
     async def _watch_loop(self) -> None:
         """Internal watch loop."""
         str_paths = [str(p) for p in self.paths]
-
         # Filter to only existing paths
         existing_paths = [p for p in str_paths if Path(p).exists()]
         if not existing_paths:
-            logger.warning("FileWatcher: no existing paths to watch from %s", str_paths)
+            logger.warning("FileWatcher: no existing paths", source=str_paths)
             return
-
-        logger.info("FileWatcher: starting watch loop for %s", existing_paths)
+        logger.info("FileWatcher: starting watch loop", source=existing_paths)
         try:
             async for changes in awatch(
                 *existing_paths,
                 debounce=self.debounce,
                 stop_event=self._stop_event,
             ):
-                logger.info("FileWatcher detected changes: %s", changes)
+                logger.info("FileWatcher detected changes", changes=changes)
                 # Don't let callback errors kill the watcher
                 try:
                     await self.callback(changes)
@@ -128,15 +128,8 @@ async def get_git_branch(repo_path: str | Path) -> str | None:
     to run on the client side where the repository lives.
     """
     try:
-        proc = await asyncio.create_subprocess_exec(
-            "git",
-            "rev-parse",
-            "--abbrev-ref",
-            "HEAD",
-            cwd=str(repo_path),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
+        cmd = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+        proc = await anyenv.create_process(*cmd, cwd=str(repo_path), stdout="pipe", stderr="pipe")
         stdout, _ = await proc.communicate()
         if proc.returncode != 0:
             return None
@@ -206,13 +199,13 @@ class GitBranchWatcher:
                 git_dir = Path(content[7:].strip())
 
         if not git_dir.exists():
-            logger.warning("Git directory not found: %s", git_dir)
+            logger.warning("Git directory not found", git_dir=git_dir)
             return
 
         # Get initial branch
         self._current_branch = await get_git_branch(self.repo_path)
-        msg = "GitBranchWatcher started (polling), repo: %s, initial branch: %s"
-        logger.info(msg, self.repo_path, self._current_branch)
+        msg = "GitBranchWatcher started (polling)"
+        logger.info(msg, repo=self.repo_path, initial_branch=self._current_branch)
         self._stop_event.clear()
         self._task = asyncio.create_task(self._poll_loop())
 
@@ -229,7 +222,7 @@ class GitBranchWatcher:
             try:
                 new_branch = await get_git_branch(self.repo_path)
                 if new_branch != self._current_branch:
-                    logger.info("Branch changed: %s -> %s", self._current_branch, new_branch)
+                    logger.info("Branch changed", before=self._current_branch, after=new_branch)
                     self._current_branch = new_branch
                     await self.callback(new_branch)
             except Exception:

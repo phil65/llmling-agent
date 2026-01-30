@@ -6,6 +6,7 @@ import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import anyenv
 from fastapi import APIRouter, HTTPException
 
 from agentpool_server.opencode_server.dependencies import StateDep
@@ -33,18 +34,16 @@ router = APIRouter(tags=["app"])
 async def get_app(state: StateDep) -> App:
     """Get app information."""
     working_path = Path(state.working_dir)
-    return App(
-        git=(working_path / ".git").is_dir(),
-        hostname="localhost",
-        path=PathInfo(
-            config="",
-            cwd=state.working_dir,
-            data="",
-            root=state.working_dir,
-            state="",
-        ),
-        time=AppTimeInfo(initialized=state.start_time),
+    is_git = (working_path / ".git").is_dir()
+    path_info = PathInfo(
+        config="",
+        cwd=state.working_dir,
+        data="",
+        root=state.working_dir,
+        state="",
     )
+    time_info = AppTimeInfo(initialized=state.start_time)
+    return App(git=is_git, hostname="localhost", path=path_info, time=time_info)
 
 
 def _project_data_to_response(data: ProjectData) -> Project:
@@ -139,13 +138,7 @@ async def get_path(state: StateDep) -> PathInfo:
 async def _run_git_command(args: list[str], cwd: str) -> str | None:
     """Run a git command asynchronously and return stdout, or None on error."""
     try:
-        proc = await asyncio.create_subprocess_exec(
-            "git",
-            *args,
-            cwd=cwd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
+        proc = await anyenv.create_process("git", *args, cwd=cwd, stdout="pipe", stderr="pipe")
         stdout, _ = await proc.communicate()
         if proc.returncode != 0:
             return None

@@ -189,14 +189,12 @@ class CodexClient:
             cmd.extend(["--config", config_str])
 
         logger.info("Starting Codex app-server: %s", " ".join(cmd))
-
         try:
-            self._process = await asyncio.create_subprocess_exec(
+            self._process = await anyenv.create_process(
                 *cmd,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                limit=10 * 1024 * 1024,
+                stdin="pipe",
+                stdout="pipe",
+                stderr="pipe",
                 env={**os.environ, **self._env_vars},
             )
         except FileNotFoundError as exc:

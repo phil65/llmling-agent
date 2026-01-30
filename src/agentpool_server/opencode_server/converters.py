@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Any
 import uuid
 
@@ -13,6 +12,7 @@ from pydantic_ai import (
     BinaryContent,
     DocumentUrl,
     ImageUrl,
+    ModelMessage,
     ModelRequest,
     ModelResponse,
     RequestUsage,
@@ -23,8 +23,8 @@ from pydantic_ai import (
     UserPromptPart,
     VideoUrl,
 )
-from pydantic_ai.messages import ModelMessage
 
+from agentpool import log
 from agentpool.common_types import PathReference
 from agentpool.messaging.messages import ChatMessage
 from agentpool.sessions.models import SessionData
@@ -68,13 +68,16 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from fsspec.asyn import AsyncFileSystem
-    from pydantic_ai import UserContent
+    from pydantic_ai import (
+        MultiModalContent,
+        UserContent,
+    )
     from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
-    from agentpool_server.opencode_server.models import Part, ToolStatePending
+    from agentpool_server.opencode_server.models import Part, ToolState
 
 
-logger = logging.getLogger(__name__)
+logger = log.get_logger(__name__)
 
 # Parameter name mapping from snake_case to camelCase for OpenCode TUI compatibility
 _PARAM_NAME_MAP: dict[str, str] = {
@@ -101,11 +104,7 @@ def generate_part_id() -> str:
     return str(uuid.uuid4())
 
 
-def _get_input_from_state(
-    state: ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError,
-    *,
-    convert_params: bool = False,
-) -> dict[str, Any]:
+def _get_input_from_state(state: ToolState, *, convert_params: bool = False) -> dict[str, Any]:
     """Extract input from any tool state type.
 
     Args:
@@ -117,7 +116,7 @@ def _get_input_from_state(
     return {}
 
 
-def _convert_file_part_to_user_content(  # noqa: PLR0911
+def _convert_file_part_to_user_content(
     part: dict[str, Any],
     fs: AsyncFileSystem | None = None,
 ) -> UserContent | PathReference:
@@ -143,7 +142,6 @@ def _convert_file_part_to_user_content(  # noqa: PLR0911
     mime = part.get("mime", "")
     url = part.get("url", "")
     filename = part.get("filename", "")
-
     # Handle data: URIs - convert to BinaryContent
     if url.startswith("data:"):
         return BinaryContent.from_data_uri(url)
@@ -152,48 +150,39 @@ def _convert_file_part_to_user_content(  # noqa: PLR0911
     if url.startswith("file://"):
         parsed = urlparse(url)
         path = unquote(parsed.path)
-
         # Text files and directories get deferred context resolution
         if mime.startswith("text/") or mime == "application/x-directory" or not mime:
-            display_name = f"@{filename}" if filename else None
             return PathReference(
                 path=path,
                 fs=fs,
                 mime_type=mime or None,
-                display_name=display_name,
+                display_name=f"@{filename}" if filename else None,
             )
 
         # Media files from local filesystem - use URL types
-        if mime.startswith("image/"):
-            return ImageUrl(url=url)
-        if mime.startswith("audio/"):
-            return AudioUrl(url=url)
-        if mime.startswith("video/"):
-            return VideoUrl(url=url)
-        if mime == "application/pdf":
-            return DocumentUrl(url=url)
-
+        if content := get_file_url_obj(url, mime):
+            return content
         # Unknown MIME for file:// - defer to PathReference
-        display_name = f"@{filename}" if filename else None
         return PathReference(
             path=path,
             fs=fs,
             mime_type=mime or None,
-            display_name=display_name,
+            display_name=f"@{filename}" if filename else None,
         )
+    # Handle regular URLs based on mime type. Fallback: treat as document
+    return content if (content := get_file_url_obj(url, mime)) else DocumentUrl(url=url)
 
-    # Handle regular URLs based on mime type
+
+def get_file_url_obj(url: str, mime: str) -> MultiModalContent | None:
     if mime.startswith("image/"):
         return ImageUrl(url=url)
     if mime.startswith("audio/"):
         return AudioUrl(url=url)
     if mime.startswith("video/"):
         return VideoUrl(url=url)
-    if mime.startswith(("application/pdf", "text/")):
+    if mime == "application/pdf":
         return DocumentUrl(url=url)
-
-    # Fallback: treat as document
-    return DocumentUrl(url=url)
+    return None
 
 
 def extract_user_prompt_from_parts(
@@ -215,25 +204,17 @@ def extract_user_prompt_from_parts(
         Either a simple string (text-only) or a list of UserContent/PathReference items
     """
     result: list[UserContent | PathReference] = []
-
     for part in parts:
-        part_type = part.get("type")
-
-        if part_type == "text":
-            text = part.get("text", "")
-            if text:
+        match part.get("type"):
+            case "text" if text := part.get("text", ""):
                 result.append(text)
-
-        elif part_type == "file":
-            content = _convert_file_part_to_user_content(part, fs=fs)
-            result.append(content)
-
-        elif part_type == "agent":
-            # Agent mention - inject instruction to delegate to sub-agent
-            # This mirrors OpenCode's server-side behavior: inject a synthetic
-            # text instruction telling the LLM to call the task tool
-            agent_name = part.get("name", "")
-            if agent_name:
+            case "file":
+                content = _convert_file_part_to_user_content(part, fs=fs)
+                result.append(content)
+            case "agent" if agent_name := part.get("name", ""):
+                # Agent mention - inject instruction to delegate to sub-agent
+                # This mirrors OpenCode's server-side behavior: inject a synthetic
+                # text instruction telling the LLM to call the task tool
                 # TODO: Implement proper agent delegation via task tool
                 # For now, we add the instruction as text that the LLM will see
                 instruction = (
@@ -241,59 +222,46 @@ def extract_user_prompt_from_parts(
                     f"and call the task tool with subagent: {agent_name}"
                 )
                 result.append(instruction)
-
-        elif part_type == "snapshot":
-            # File system snapshot reference
-            # TODO: Implement snapshot restoration/reference
-            snapshot_id = part.get("snapshot", "")
-            logger.debug("Ignoring snapshot part: %s", snapshot_id)
-
-        elif part_type == "patch":
-            # Diff/patch content
-            # TODO: Implement patch application
-            patch_hash = part.get("hash", "")
-            files = part.get("files", [])
-            logger.debug("Ignoring patch part: hash=%s, files=%s", patch_hash, files)
-
-        elif part_type == "reasoning":
-            # Extended thinking/reasoning content from the model
-            # Include as text context since it contains useful reasoning
-            reasoning_text = part.get("text", "")
-            if reasoning_text:
+            case "snapshot":
+                # File system snapshot reference
+                # TODO: Implement snapshot restoration/reference
+                snapshot_id = part.get("snapshot", "")
+                logger.debug("Ignoring snapshot part", snapshot_id=snapshot_id)
+            case "patch":
+                # Diff/patch content
+                # TODO: Implement patch application
+                patch_hash = part.get("hash", "")
+                files = part.get("files", [])
+                logger.debug("Ignoring patch part", patch_hash=patch_hash, files=files)
+            case "reasoning" if reasoning_text := part.get("text", ""):
+                # Extended thinking/reasoning content from the model
+                # Include as text context since it contains useful reasoning
                 result.append(f"[Reasoning]: {reasoning_text}")
-
-        elif part_type == "compaction":
-            # Marks where conversation was compacted
-            # TODO: Handle compaction markers for context management
-            auto = part.get("auto", False)
-            logger.debug("Ignoring compaction part: auto=%s", auto)
-
-        elif part_type == "subtask":
-            # References a spawned subtask
-            # TODO: Implement subtask tracking/results
-            subtask_agent = part.get("agent", "")
-            subtask_desc = part.get("description", "")
-            logger.debug(
-                "Ignoring subtask part: agent=%s, description=%s", subtask_agent, subtask_desc
-            )
-
-        elif part_type == "retry":
-            # Marks a retry of a failed operation
-            # TODO: Handle retry tracking
-            attempt = part.get("attempt", 0)
-            logger.debug("Ignoring retry part: attempt=%s", attempt)
-
-        elif part_type == "step-start":
-            # Step start marker - informational only
-            logger.debug("Ignoring step-start part")
-
-        elif part_type == "step-finish":
-            # Step finish marker - informational only
-            logger.debug("Ignoring step-finish part")
-
-        else:
-            # Unknown part type
-            logger.warning("Unknown part type: %s", part_type)
+            case "compaction":
+                # Marks where conversation was compacted
+                # TODO: Handle compaction markers for context management
+                auto = part.get("auto", False)
+                logger.debug("Ignoring compaction part", auto=auto)
+            case "subtask":
+                # References a spawned subtask
+                # TODO: Implement subtask tracking/results
+                agent = part.get("agent", "")
+                desc = part.get("description", "")
+                logger.debug("Ignoring subtask part", agent=agent, description=desc)
+            case "retry":
+                # Marks a retry of a failed operation
+                # TODO: Handle retry tracking
+                attempt = part.get("attempt", 0)
+                logger.debug("Ignoring retry part", attempt=attempt)
+            case "step-start":
+                # Step start marker - informational only
+                logger.debug("Ignoring step-start part")
+            case "step-finish":
+                # Step finish marker - informational only
+                logger.debug("Ignoring step-finish part")
+            case _ as part_type:
+                # Unknown part type
+                logger.warning("Unknown part type", part_type=part_type)
 
     # If only text parts, join them as a single string for simplicity
     if all(isinstance(item, str) for item in result):

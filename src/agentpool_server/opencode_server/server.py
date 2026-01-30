@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -17,6 +16,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 
+from agentpool import log
 from agentpool_server.opencode_server.routes import (
     agent_router,
     app_router,
@@ -37,12 +37,19 @@ from agentpool_server.opencode_server.state import ServerState
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Set as AbstractSet
 
+    from httpx import Headers
+
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.storage.manager import TitleGeneratedEvent
 
 
 VERSION = "0.1.0"
-log = logging.getLogger(__name__)
+logger = log.get_logger(__name__)
+
+
+def filter_headers(headers: Headers) -> dict[str, str]:
+    excluded_headers = {"content-encoding", "content-length", "transfer-encoding", "connection"}
+    return {k: v for k, v in headers.items() if k.lower() not in excluded_headers}
 
 
 class OpenCodeJSONResponse(JSONResponse):
@@ -133,7 +140,6 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
             await state.broadcast_event(event)
 
     state.pool.todos.on_change = on_todo_change
-
     # Set up title generation callback to update OpenCode sessions
 
     async def on_title_generated(event: TitleGeneratedEvent) -> None:
@@ -141,7 +147,7 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
         from agentpool_server.opencode_server.converters import opencode_to_session_data
         from agentpool_server.opencode_server.models.events import SessionUpdatedEvent
 
-        log.info("on_title_generated called: %s, title=%s", event.session_id, event.title)
+        logger.info("on_title_generated called", session_id=event.session_id, title=event.title)
         session_id = event.session_id
         if session_id in state.sessions:
             # Update in-memory session
@@ -158,7 +164,7 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
             # Broadcast session update to UI
             await state.broadcast_event(SessionUpdatedEvent.create(updated_session))
         else:
-            log.warning("Session %s not found in state.sessions", session_id)
+            logger.warning("Session not found in state.sessions", session_id=session_id)
 
     # Connect to storage manager's title_generated signal
     if state.pool.storage:
@@ -183,14 +189,14 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
         # --- Git branch watcher ---
         async def on_branch_change(branch: str | None) -> None:
             """Broadcast branch change to all subscribers."""
-            log.info("Broadcasting vcs.branch.updated event: %s", branch)
+            logger.info("Broadcasting vcs.branch.updated event", branch=branch)
             event = VcsBranchUpdatedEvent.create(branch=branch)
             await state.broadcast_event(event)
 
-        log.info("Setting up GitBranchWatcher for: %s", state.working_dir)
+        logger.info("Setting up GitBranchWatcher", working_dir=state.working_dir)
         branch_watcher = GitBranchWatcher(repo_path=state.working_dir, callback=on_branch_change)
         await branch_watcher.start()
-        log.info("GitBranchWatcher started, current branch: %s", branch_watcher.current_branch)
+        logger.info("GitBranchWatcher started", current_branch=branch_watcher.current_branch)
         # --- Project file watcher ---
         # Map watchfiles Change types to OpenCode event types
         change_type_map: dict[Change, str] = {
@@ -223,18 +229,20 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
                 if should_ignore(file_path):
                     continue
                 event_type = change_type_map.get(change_type, "change")
-                log.info("Broadcasting file.watcher.updated: %s %s", event_type, file_path)
+                logger.info(
+                    "Broadcasting file.watcher.updated", event_type=event_type, path=file_path
+                )
                 event = FileWatcherUpdatedEvent.create(file=file_path, event=event_type)  # type: ignore[arg-type]
                 await state.broadcast_event(event)
 
-        log.info("Setting up project FileWatcher for: %s", state.working_dir)
+        logger.info("Setting up project FileWatcher", working_dir=state.working_dir)
         project_file_watcher = FileWatcher(
             paths=[state.working_dir],
             callback=on_file_change,
             debounce=500,  # 500ms debounce to batch rapid changes
         )
         await project_file_watcher.start()
-        log.info("Project FileWatcher started")
+        logger.info("Project FileWatcher started")
 
         # --- Version update check (triggered when first client connects) ---
         async def check_for_updates() -> None:
@@ -244,7 +252,7 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
 
             latest = await check_pypi_version("agentpool")
             if latest and compare_versions(current_version, latest):
-                log.info("Update available: %s -> %s", current_version, latest)
+                logger.info("Update available", current_version=current_version, latest=latest)
                 event = TuiToastShowEvent.create(
                     title="Update Available",
                     message=f"agentpool {latest} is available (current: {current_version})",
@@ -342,22 +350,11 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
                 headers={"host": "app.opencode.ai"},
                 follow_redirects=True,
             )
-
             # Filter out hop-by-hop headers that shouldn't be forwarded
-            excluded_headers = {
-                "content-encoding",
-                "content-length",
-                "transfer-encoding",
-                "connection",
-            }
-            headers = {
-                k: v for k, v in response.headers.items() if k.lower() not in excluded_headers
-            }
-
             return Response(
                 content=response.content,
                 status_code=response.status_code,
-                headers=headers,
+                headers=filter_headers(response.headers),
                 media_type=response.headers.get("content-type"),
             )
 

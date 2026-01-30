@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING, Any
 
 import anyenv
 from fastapi import APIRouter
 from sse_starlette.sse import EventSourceResponse
 
+from agentpool import log
 from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.models import (  # noqa: TC001
     Event,
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from agentpool_server.opencode_server.state import ServerState
 
 
-logger = logging.getLogger(__name__)
+logger = log.get_logger(__name__)
 router = APIRouter(tags=["global"])
 
 VERSION = "0.1.0"
@@ -66,19 +66,17 @@ async def _event_generator(
         # Send initial connected event
         connected = ServerConnectedEvent()
         data = _serialize_event(connected, wrap_payload=wrap_payload)
-        logger.info("SSE: Sending connected event: %s", data)
+        logger.info("SSE: Sending connected event", data=data)
         yield {"data": data}
         # Stream events
         while True:
             event = await queue.get()
             data = _serialize_event(event, wrap_payload=wrap_payload)
-            logger.info("SSE: Sending event: %s", event.type)
+            logger.info("SSE: Sending event", event_type=event.type)
             yield {"data": data}
     finally:
         state.event_subscribers.remove(queue)
-        logger.info(
-            "SSE: Client disconnected (remaining subscribers: %s)", len(state.event_subscribers)
-        )
+        logger.info("SSE: Client disconnected", remaining_subscribers=len(state.event_subscribers))
 
 
 @router.get("/global/event")
