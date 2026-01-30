@@ -147,7 +147,49 @@ class FilePartInput(OpenCodeBaseModel):
     source: FilePartSource | None = None
 
 
-PartInput = TextPartInput | FilePartInput
+class AgentPartSourceInput(OpenCodeBaseModel):
+    """Agent part source location in original text."""
+
+    value: str
+    start: int
+    end: int
+
+
+class AgentPartInput(OpenCodeBaseModel):
+    """Agent mention part for input - references a sub-agent to delegate to.
+
+    When a user types @agent-name in the prompt, this part is created.
+    """
+
+    type: Literal["agent"] = "agent"
+    name: str
+    """Name of the agent to delegate to."""
+    source: AgentPartSourceInput | None = None
+    """Source location in the original prompt text."""
+
+
+class SubtaskModelInput(OpenCodeBaseModel):
+    """Model info for subtask input."""
+
+    provider_id: str
+    model_id: str
+
+
+class SubtaskPartInput(OpenCodeBaseModel):
+    """Subtask part for input - spawns a subtask to another agent."""
+
+    type: Literal["subtask"] = "subtask"
+    prompt: str
+    """The prompt for the subtask."""
+    description: str
+    """Description of what the subtask does."""
+    agent: str
+    """The agent to handle this subtask."""
+    model: SubtaskModelInput | None = None
+    """Optional model to use for the subtask."""
+
+
+PartInput = TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput
 
 
 class MessageModelInfo(OpenCodeBaseModel):
