@@ -553,9 +553,9 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         else:
                             # Orphan return - create completed tool part
                             state: ToolStateCompleted | ToolStateError
-                            if isinstance(content, dict) and "error" in content:
+                            if isinstance(tool_content, dict) and "error" in tool_content:
                                 state = ToolStateError(
-                                    error=str(content.get("error", "Unknown error")),
+                                    error=str(tool_content.get("error", "Unknown error")),
                                     input={},
                                     time=TimeStartEnd(start=created_ms, end=completed_ms),
                                 )
