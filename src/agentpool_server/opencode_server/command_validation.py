@@ -76,10 +76,7 @@ def validate_command(command: str, working_dir: str) -> None:
     # Check for dangerous patterns
     for pattern, description in DANGEROUS_PATTERNS:
         if pattern.search(command):
-            raise HTTPException(
-                status_code=403,
-                detail=f"Command restricted: {description}",
-            )
+            raise HTTPException(status_code=403, detail=f"Command restricted: {description}")
 
     # Check for sensitive path access
     command_lower = command.lower()
@@ -87,10 +84,8 @@ def validate_command(command: str, working_dir: str) -> None:
         # Normalize ~ to actual pattern
         path_pattern = sensitive_path.replace("~", "(/home/[^/]+|~)")
         if re.search(path_pattern, command_lower):
-            raise HTTPException(
-                status_code=403,
-                detail=f"Command restricted: access to sensitive path {sensitive_path}",
-            )
+            detail = f"Command restricted: access to sensitive path {sensitive_path}"
+            raise HTTPException(status_code=403, detail=detail)
 
     # Check for path traversal in the command
     if PATH_TRAVERSAL_PATTERN.search(command):
@@ -109,7 +104,6 @@ def _check_path_traversal(command: str, working_dir: str) -> None:
         HTTPException: If path traversal escapes the working directory.
     """
     working_path = Path(working_dir).resolve()
-
     # Try to extract paths from the command
     try:
         tokens = shlex.split(command)
@@ -135,16 +129,12 @@ def _check_path_traversal(command: str, working_dir: str) -> None:
                 try:
                     resolved.relative_to(working_path)
                 except ValueError:
-                    raise HTTPException(
-                        status_code=403,
-                        detail="Command restricted: path escapes project directory",
-                    ) from None
+                    detail = "Command restricted: path escapes project directory"
+                    raise HTTPException(status_code=403, detail=detail) from None
             except (OSError, RuntimeError):
                 # Path resolution failed, be conservative and block
-                raise HTTPException(
-                    status_code=403,
-                    detail="Command restricted: invalid path in command",
-                ) from None
+                detail = "Command restricted: invalid path in command"
+                raise HTTPException(status_code=403, detail=detail) from None
 
 
 def validate_workdir(workdir: str | None, project_dir: str) -> None:

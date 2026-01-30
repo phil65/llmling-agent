@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
-from exxec import PtyInfo as ExxecPtyInfo
+from typing import TYPE_CHECKING, Literal
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
+
+
+if TYPE_CHECKING:
+    from exxec import PtyInfo as ExxecPtyInfo
 
 
 class PtyInfo(OpenCodeBaseModel):

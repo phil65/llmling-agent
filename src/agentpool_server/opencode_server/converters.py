@@ -693,14 +693,8 @@ def opencode_to_chat_message(
         # Add tool returns as a follow-up request if any
         if tool_returns:
             model_messages.append(ModelRequest(parts=tool_returns, instructions=None))
-
     # Extract content for the ChatMessage
-    content = ""
-    for part in msg.parts:
-        if isinstance(part, TextPart):
-            content = part.text
-            break
-
+    content = next((p.text for p in msg.parts if isinstance(p, TextPart)), "")
     return ChatMessage(
         content=content,
         role=role,  # type: ignore[arg-type]
