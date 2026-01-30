@@ -127,16 +127,16 @@ async def from_mcp_content(
                 mime = "application/octet-stream"
                 content = BinaryContent(data=decoded_data, media_type=mime)
                 contents.append(content)
+            case ResourceLink(uri=uri, mimeType=mime_type) if client:
+                try:
+                    res = await client.read_resource(uri)
+                    nested = await from_mcp_content(res, client)
+                    contents.extend(nested)
+                    continue
+                except Exception:  # noqa: BLE001
+                    # Fallback to URL if reading fails
+                    logger.warning("Failed to read resource", uri=uri)
             case ResourceLink(uri=uri, mimeType=mime_type):
-                if client:
-                    try:
-                        res = await client.read_resource(uri)
-                        nested = await from_mcp_content(res, client)
-                        contents.extend(nested)
-                        continue
-                    except Exception:  # noqa: BLE001
-                        # Fallback to URL if reading fails
-                        logger.warning("Failed to read resource", uri=uri)
                 # Convert to appropriate URL type based on MIME type
                 contents.append(url_from_mime_type(str(uri), mime_type))
             # mypy doesnt understand exhaustivness check for "nested typing", so we nest match-case
