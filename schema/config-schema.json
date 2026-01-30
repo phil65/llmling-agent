@@ -339,8 +339,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -598,101 +613,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -1271,8 +1191,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "agui",
@@ -2010,8 +1945,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -2269,101 +2219,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -3093,8 +2948,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -3352,101 +3222,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -4634,8 +4409,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -4893,101 +4683,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -7518,8 +7213,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -7777,101 +7487,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -8203,6 +7818,13 @@
           "title": "Type",
           "type": "string"
         },
+        "connection_type": {
+          "const": "run",
+          "default": "run",
+          "description": "Connection type (fixed to \"run\")",
+          "title": "Connection Type",
+          "type": "string"
+        },
         "wait_for_completion": {
           "default": true,
           "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
@@ -8461,13 +8083,6 @@
             "handlers.notifications:send_email"
           ],
           "title": "Callable import path",
-          "type": "string"
-        },
-        "connection_type": {
-          "const": "run",
-          "default": "run",
-          "description": "Connection type (fixed to \"run\")",
-          "title": "Connection Type",
           "type": "string"
         },
         "kw_args": {
@@ -8929,8 +8544,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -9188,101 +8818,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -9751,8 +9286,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "claude_code",
@@ -9946,13 +9496,13 @@
             }
           ],
           "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nBy default, this is appended to Claude Code's builtin system prompt.\nSet `include_builtin_system_prompt: false` to use only your custom prompt.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "description": "System prompt for the agent.\n        Can be a string or list of strings/prompt configs",
           "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
           "examples": [
-            "You are a helpful coding assistant.",
+            "You are a helpful assistant.",
             [
-              "Always write tests.",
-              "Focus on Python."
+              "You are an AI assistant.",
+              "Always be concise."
             ]
           ],
           "title": "System Prompt"
@@ -11406,8 +10956,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -11665,101 +11230,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -12287,8 +11757,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "codex",
@@ -12392,9 +11877,6 @@
           "description": "Tools and toolsets to expose to Codex via MCP bridge.\n\nThese will be started as an in-process MCP server and made available\nto the Codex agent.",
           "examples": [
             [
-              {
-                "type": "subagent"
-              },
               {
                 "type": "agent_management"
               },
@@ -13533,8 +13015,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -13792,101 +13289,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -14270,6 +13672,12 @@
           ],
           "title": "Import path",
           "type": "string"
+        },
+        "kw_args": {
+          "additionalProperties": true,
+          "description": "Additional parameters to pass to provider constructor.\n\nThese are unpacked as keyword arguments. If \"name\" is present, it will\nbe used to override the default provider name.",
+          "title": "Provider parameters",
+          "type": "object"
         }
       },
       "required": [
@@ -20792,8 +20200,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -21051,101 +20474,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -21411,6 +20739,13 @@
           "title": "Type",
           "type": "string"
         },
+        "connection_type": {
+          "const": "run",
+          "default": "run",
+          "description": "Connection type (fixed to \"run\")",
+          "title": "Connection Type",
+          "type": "string"
+        },
         "wait_for_completion": {
           "default": true,
           "description": "Whether to wait for the result before continuing.\n\nIf True, message processing will wait for the target to complete.\nIf False, message will be forwarded asynchronously.",
@@ -21661,13 +20996,6 @@
             "string",
             "null"
           ]
-        },
-        "connection_type": {
-          "const": "run",
-          "default": "run",
-          "description": "Connection type (fixed to \"run\")",
-          "title": "Connection Type",
-          "type": "string"
         },
         "path": {
           "description": "Path to output file. Supports variables: {date}, {time}, {agent}",
@@ -22879,8 +22207,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -23138,101 +22481,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -24680,8 +23928,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -24939,101 +24202,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -27272,8 +26440,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -27531,101 +26714,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -30681,8 +29769,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -30940,101 +30043,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -32077,8 +31085,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "native",
@@ -32962,12 +31985,6 @@
               {
                 "timeout": 30.0,
                 "type": "bash"
-              },
-              {
-                "type": "file_access"
-              },
-              {
-                "type": "process_management"
               }
             ]
           ],
@@ -33320,7 +32337,7 @@
             }
           ],
           "default": null,
-          "description": "System prompt for the agent. Can be a string or list of strings/prompt configs.\n\nDocs: https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
+          "description": "System prompt for the agent.\n        Can be a string or list of strings/prompt configs",
           "documentation_url": "https://phil65.github.io/agentpool/YAML%20Configuration/system_prompts_configuration/",
           "examples": [
             "You are a helpful assistant.",
@@ -33516,6 +32533,22 @@
           "default": "node",
           "description": "Connection to another node.",
           "title": "Type",
+          "type": "string"
+        },
+        "connection_type": {
+          "default": "run",
+          "description": "How messages should be handled by the target agent:\n- run: Execute message as a new run\n- context: Add message to agent's context\n- forward: Forward message to agent's outbox",
+          "enum": [
+            "run",
+            "context",
+            "forward"
+          ],
+          "examples": [
+            "run",
+            "context",
+            "forward"
+          ],
+          "title": "Connection type",
           "type": "string"
         },
         "wait_for_completion": {
@@ -33777,22 +32810,6 @@
             "notification_handler"
           ],
           "title": "Target node name",
-          "type": "string"
-        },
-        "connection_type": {
-          "default": "run",
-          "description": "How messages should be handled by the target agent:\n- run: Execute message as a new run\n- context: Add message to agent's context\n- forward: Forward message to agent's outbox",
-          "enum": [
-            "run",
-            "context",
-            "forward"
-          ],
-          "examples": [
-            "run",
-            "context",
-            "forward"
-          ],
-          "title": "Connection type",
           "type": "string"
         }
       },
@@ -35032,8 +34049,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -35291,101 +34323,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -35940,8 +34877,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -36199,101 +35151,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -41614,8 +40471,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -41873,101 +40745,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
@@ -44849,7 +43626,7 @@
         "type": {
           "const": "subagent",
           "default": "subagent",
-          "description": "Subagent interaction toolset (delegate_to, ask_agent, list_available_agents/teams).",
+          "description": "Subagent interaction toolset (task, list_available_nodes).",
           "title": "Type",
           "type": "string"
         },
@@ -44862,8 +43639,7 @@
               "propertyNames": {
                 "enum": [
                   "list_available_nodes",
-                  "delegate_to",
-                  "ask_agent"
+                  "task"
                 ]
               },
               "type": "object"
@@ -47492,8 +46268,23 @@
             }
           ],
           "default": null,
-          "description": "Execution environment configuration for this agent.",
-          "title": "Execution environment"
+          "description": "Execution environment config for the agent's own toolsets.",
+          "examples": [
+            "docker",
+            {
+              "cwd": null,
+              "default_command_timeout": null,
+              "dependencies": null,
+              "env_vars": null,
+              "inherit_env": false,
+              "keep_alive": false,
+              "language": "python",
+              "sandbox_timeout": 300.0,
+              "template": "python-sandbox",
+              "type": "e2b"
+            }
+          ],
+          "title": "Execution Environment"
         },
         "type": {
           "const": "acp",
@@ -47751,101 +46542,6 @@
           },
           "title": "Tools",
           "type": "array"
-        },
-        "execution_environment": {
-          "anyOf": [
-            {
-              "enum": [
-                "local",
-                "docker",
-                "ssh",
-                "daytona",
-                "e2b",
-                "beam",
-                "vercel",
-                "microsandbox",
-                "modal",
-                "srt",
-                "pyodide"
-              ],
-              "type": "string"
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "beam": "#/$defs/BeamExecutionEnvironmentConfig",
-                  "daytona": "#/$defs/DaytonaExecutionEnvironmentConfig",
-                  "docker": "#/$defs/DockerExecutionEnvironmentConfig",
-                  "e2b": "#/$defs/E2bExecutionEnvironmentConfig",
-                  "local": "#/$defs/LocalExecutionEnvironmentConfig",
-                  "microsandbox": "#/$defs/MicrosandboxExecutionEnvironmentConfig",
-                  "mock": "#/$defs/MockExecutionEnvironmentConfig",
-                  "modal": "#/$defs/ModalExecutionEnvironmentConfig",
-                  "pyodide": "#/$defs/PyodideExecutionEnvironmentConfig",
-                  "srt": "#/$defs/SRTExecutionEnvironmentConfig",
-                  "ssh": "#/$defs/SshExecutionEnvironmentConfig",
-                  "vercel": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                "propertyName": "type"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/LocalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DockerExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/E2bExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/BeamExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/DaytonaExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SRTExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MicrosandboxExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/MockExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/ModalExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/SshExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/VercelExecutionEnvironmentConfig"
-                },
-                {
-                  "$ref": "#/$defs/PyodideExecutionEnvironmentConfig"
-                }
-              ]
-            }
-          ],
-          "default": "local",
-          "description": "Execution environment config for the agent's own toolsets.",
-          "examples": [
-            "docker",
-            {
-              "cwd": null,
-              "default_command_timeout": null,
-              "dependencies": null,
-              "env_vars": null,
-              "inherit_env": false,
-              "keep_alive": false,
-              "language": "python",
-              "sandbox_timeout": 300.0,
-              "template": "python-sandbox",
-              "type": "e2b"
-            }
-          ],
-          "title": "Execution Environment"
         },
         "client_execution_environment": {
           "anyOf": [
