@@ -7,11 +7,15 @@ from pydantic import Field
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 
 
+MCPConnectionStatus = Literal["connected", "disconnected", "error"]
+LogLevel = Literal["debug", "info", "warn", "error"]
+
+
 class LogRequest(OpenCodeBaseModel):
     """Log entry request."""
 
     service: str
-    level: Literal["debug", "info", "warn", "error"]
+    level: LogLevel
     message: str
     extra: dict[str, Any] | None = None
 
@@ -20,7 +24,7 @@ class MCPStatus(OpenCodeBaseModel):
     """MCP server status."""
 
     name: str
-    status: Literal["connected", "disconnected", "error"]
+    status: MCPConnectionStatus
     tools: list[str] = Field(default_factory=list)
     error: str | None = None
 

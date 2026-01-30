@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException
 import httpx
@@ -14,6 +14,7 @@ from llmling_models.auth.anthropic_auth import (
 )
 from pydantic import BaseModel, HttpUrl
 
+from agentpool.common_types import MCPConnectionStatus
 from agentpool.mcp_server.manager import MCPManager
 from agentpool.resource_providers import AggregatingResourceProvider
 from agentpool_config.mcp_server import (
@@ -29,6 +30,12 @@ from agentpool_server.opencode_server.models import (
     McpResource,
     MCPStatus,
 )
+
+
+if TYPE_CHECKING:
+    from agentpool_server.opencode_server.models.mcp import (
+        MCPConnectionStatus as OpenCodeMCPConnectionStatus,
+    )
 
 
 router = APIRouter(tags=["agent"])
@@ -85,9 +92,26 @@ async def get_mcp_status(state: StateDep) -> dict[str, MCPStatus]:
 
     # Convert MCPServerStatus dataclass to MCPStatus response model
     return {
-        name: MCPStatus(name=status.name, status=status.status, error=status.error)
+        name: MCPStatus(
+            name=status.name,
+            status=to_opencode_mcp_status(status.status),
+            error=status.error,
+        )
         for name, status in server_info.items()
     }
+
+
+def to_opencode_mcp_status(status: MCPConnectionStatus) -> OpenCodeMCPConnectionStatus:
+    mapping: dict[MCPConnectionStatus, OpenCodeMCPConnectionStatus] = {
+        "connected": "connected",
+        "disconnected": "disconnected",
+        "error": "error",
+        "pending": "disconnected",
+        "failed": "error",
+        "needs-auth": "disconnected",
+        "disabled": "disconnected",
+    }
+    return mapping[status]
 
 
 class AddMCPServerRequest(BaseModel):
