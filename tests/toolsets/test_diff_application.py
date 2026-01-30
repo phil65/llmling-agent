@@ -75,8 +75,8 @@ def greet(name):
             "</diff>\n"
         )
         result = apply_diff_hunks(original, diff)
-        assert 'print(f"Hello, {name}!")' in result
-        assert 'print("Hello")' not in result
+        assert 'print(f"Hello, {name}!")' in result.content
+        assert 'print("Hello")' not in result.content
 
     async def test_multiple_edits(self):
         original = """\
@@ -200,7 +200,7 @@ def hello():
         result1 = apply_diff_hunks(original, diff)
         result2 = apply_diff_hunks_streaming(original, diff)
 
-        assert 'print("universe")' in result1
+        assert 'print("universe")' in result1.content
         assert 'print("universe")' in result2
 
     async def test_both_handle_multiline(self):
@@ -224,7 +224,7 @@ impl Display for User {
         result1 = apply_diff_hunks(original, diff)
         result2 = apply_diff_hunks_streaming(original, diff)
 
-        assert "self.email" in result1
+        assert "self.email" in result1.content
         assert "self.email" in result2
 
 

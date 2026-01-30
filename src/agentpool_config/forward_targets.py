@@ -39,6 +39,8 @@ class ConnectionConfig(Schema):
     type: str = Field(init=False)
     """Connection type."""
 
+    connection_type: ConnectionType
+
     wait_for_completion: bool = Field(default=True, title="Wait for completion")
     """Whether to wait for the result before continuing.
 
@@ -89,6 +91,31 @@ class ConnectionConfig(Schema):
     )
     """Optional function to transform messages before forwarding."""
 
+    def connect_nodes(
+        self,
+        source: MessageNode[Any, Any],
+        agents: Sequence[MessageNode[Any, Any]],
+        name: str,
+    ) -> None:
+        target = self.get_node(agents)
+        source.connect_to(
+            target,
+            connection_type=self.connection_type,
+            name=name,
+            priority=self.priority,
+            delay=self.delay,
+            queued=self.queued,
+            queue_strategy=self.queue_strategy,
+            transform=self.transform,
+            filter_condition=self.filter_condition.check if self.filter_condition else None,
+            stop_condition=self.stop_condition.check if self.stop_condition else None,
+            exit_condition=self.exit_condition.check if self.exit_condition else None,
+        )
+        source.connections.set_wait_state(target, wait=self.wait_for_completion)
+
+    def get_node(self, agents: Sequence[MessageNode[Any, Any]]) -> MessageNode[Any, Any]:
+        raise NotImplementedError
+
 
 class NodeConnectionConfig(ConnectionConfig):
     """Forward messages to another node.
@@ -128,26 +155,6 @@ class NodeConnectionConfig(ConnectionConfig):
         if self.name not in node_dict:
             raise ValueError(f"Forward target {self.name} not found")
         return node_dict[self.name]
-
-    def connect_nodes(
-        self,
-        source: MessageNode[Any, Any],
-        target: MessageNode[Any, Any],
-        name: str,
-    ) -> None:
-        source.connect_to(
-            target,
-            connection_type=self.connection_type,
-            name=name,
-            priority=self.priority,
-            delay=self.delay,
-            queued=self.queued,
-            queue_strategy=self.queue_strategy,
-            transform=self.transform,
-            filter_condition=self.filter_condition.check if self.filter_condition else None,
-            stop_condition=self.stop_condition.check if self.stop_condition else None,
-            exit_condition=self.exit_condition.check if self.exit_condition else None,
-        )
 
 
 class FileConnectionConfig(ConnectionConfig):
