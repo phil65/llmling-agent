@@ -261,8 +261,7 @@ async def connect_pty(websocket: WebSocket, pty_id: str) -> None:
             # Receive input from client
             data = await websocket.receive_text()
             # Write to PTY stdin
-            info = await manager.get_info(pty_id)
-            if info and info.status == "running":
+            if (info := await manager.get_info(pty_id)) and info.status == "running":
                 try:
                     await manager.write(pty_id, data.encode())
                 except Exception:  # noqa: BLE001

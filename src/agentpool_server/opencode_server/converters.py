@@ -31,18 +31,29 @@ from agentpool.sessions.models import SessionData
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool.utils.time_utils import datetime_to_ms, ms_to_datetime
 from agentpool_server.opencode_server.models import (
+    APIErrorInfo,
     AssistantMessage,
     MessagePath,
     MessageTime,
     MessageWithParts,
+    Model,
+    ModelCost,
+    ModelLimit,
+    RetryPart,
     Session,
     SessionRevert,
     SessionShare,
+    StepFinishPart,
+    StepFinishTokens,
+    StepStartPart,
     TextPart,
+    TimeCreated,
     TimeCreatedUpdated,
     TimeStart,
     TimeStartEnd,
     TimeStartEndCompacted,
+    TimeStartEndOptional,
+    TokenCache,
     Tokens,
     TokensCache,
     ToolPart,
@@ -51,17 +62,6 @@ from agentpool_server.opencode_server.models import (
     ToolStateRunning,
     UserMessage,
 )
-from agentpool_server.opencode_server.models.common import TimeCreated
-from agentpool_server.opencode_server.models.parts import (
-    APIErrorInfo,
-    RetryPart,
-    StepFinishPart,
-    StepFinishTokens,
-    StepStartPart,
-    TimeStartEndOptional,
-    TokenCache,
-)
-from agentpool_server.opencode_server.models.provider import Model, ModelCost, ModelLimit
 
 
 if TYPE_CHECKING:
@@ -413,14 +413,8 @@ def chat_message_to_opencode(  # noqa: PLR0915
                 cache_write = usage.cache_write_tokens or 0
         else:
             input_tokens = output_tokens = cache_read = cache_write = 0
-
-        tokens = Tokens(
-            input=input_tokens,
-            output=output_tokens,
-            reasoning=0,
-            cache=TokensCache(read=cache_read, write=cache_write),
-        )
-
+        cache = TokensCache(read=cache_read, write=cache_write)
+        tokens = Tokens(input=input_tokens, output=output_tokens, reasoning=0, cache=cache)
         info = AssistantMessage(
             id=message_id,
             session_id=session_id,
@@ -437,10 +431,8 @@ def chat_message_to_opencode(  # noqa: PLR0915
         )
 
         # Add step start
-        parts.append(
-            StepStartPart(id=generate_part_id(), message_id=message_id, session_id=session_id)
-        )
-
+        part_id = generate_part_id()
+        parts.append(StepStartPart(id=part_id, message_id=message_id, session_id=session_id))
         # Process all model messages to extract parts
         # Deserialize dicts to proper pydantic-ai objects if needed
         adapter: TypeAdapter[ModelMessage] = TypeAdapter(ModelMessage)

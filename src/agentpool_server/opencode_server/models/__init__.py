@@ -63,10 +63,13 @@ from agentpool_server.opencode_server.models.message import (
 )
 from agentpool_server.opencode_server.models.parts import (
     AgentPart,
+    APIErrorInfo,
     CompactionPart,
     FilePart,
     Part,
     PatchPart,
+    TokenCache,
+    StepFinishTokens,
     ReasoningPart,
     RetryPart,
     SnapshotPart,
@@ -137,6 +140,7 @@ from agentpool_server.opencode_server.models.question import (
 )
 
 __all__ = [
+    "APIErrorInfo",
     "Agent",
     "AgentPart",
     "App",
@@ -223,6 +227,7 @@ __all__ = [
     "ShellRequest",
     "SnapshotPart",
     "StepFinishPart",
+    "StepFinishTokens",
     "StepStartPart",
     "SubtaskPart",
     "SummarizeRequest",
@@ -236,6 +241,7 @@ __all__ = [
     "TimeStartEndCompacted",
     "TimeStartEndOptional",
     "Todo",
+    "TokenCache",
     "Tokens",
     "TokensCache",
     "ToolPart",

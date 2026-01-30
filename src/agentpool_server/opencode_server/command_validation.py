@@ -124,7 +124,6 @@ def _check_path_traversal(command: str, working_dir: str) -> None:
                     resolved = Path(token).resolve()
                 else:
                     resolved = (working_path / token).resolve()
-
                 # Check if resolved path is within working_dir
                 try:
                     resolved.relative_to(working_path)
@@ -152,11 +151,8 @@ def validate_workdir(workdir: str | None, project_dir: str) -> None:
 
     project_path = Path(project_dir).resolve()
     work_path = Path(workdir).resolve()
-
     try:
         work_path.relative_to(project_path)
     except ValueError:
-        raise HTTPException(
-            status_code=403,
-            detail="Command restricted: working directory outside project",
-        ) from None
+        detail = "Command restricted: working directory outside project"
+        raise HTTPException(status_code=403, detail=detail) from None

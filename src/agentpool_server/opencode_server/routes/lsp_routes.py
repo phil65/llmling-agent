@@ -86,16 +86,8 @@ async def list_lsp_servers(state: StateDep) -> list[LspStatus]:
                 root_path = os.path.relpath(root_path, state.working_dir)
         else:
             root_path = root_uri
-
-        servers.append(
-            LspStatus(
-                id=server_id,
-                name=server_id,
-                root=root_path,
-                status="connected" if server_state.initialized else "error",
-            )
-        )
-
+        status = "connected" if server_state.initialized else "error"
+        servers.append(LspStatus(id=server_id, name=server_id, root=root_path, status=status))
     return servers
 
 
@@ -134,20 +126,14 @@ async def start_lsp_server(
 
     # Emit lsp.updated event to notify clients of server status change
     await state.broadcast_event(LspUpdatedEvent())
-
     # Get relative root path for response
     root_path = root_uri
     if root_uri.startswith("file://"):
         root_path = root_uri[7:]
         with suppress(ValueError):
             root_path = os.path.relpath(root_path, state.working_dir)
-
-    return LspStatus(
-        id=server_id,
-        name=server_id,
-        root=root_path,
-        status="connected" if server_state.initialized else "error",
-    )
+    status = "connected" if server_state.initialized else "error"
+    return LspStatus(id=server_id, name=server_id, root=root_path, status=status)
 
 
 @router.post("/lsp/stop")
@@ -165,10 +151,8 @@ async def stop_lsp_server(
         Success message.
     """
     await state.lsp_manager.stop_server(server_id)
-
     # Emit lsp.updated event to notify clients of server status change
     await state.broadcast_event(LspUpdatedEvent())
-
     return {"status": "ok", "message": f"Server {server_id} stopped"}
 
 
