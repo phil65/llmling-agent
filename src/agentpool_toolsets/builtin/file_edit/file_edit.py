@@ -90,19 +90,16 @@ async def edit_file_tool(
         )
     )
     diff_text = "".join(diff_lines)
-    trimmed_diff = trim_diff(diff_text) if diff_text else ""
-
     # Write new content
     try:
         path.write_text(new_content, encoding="utf-8")
     except Exception as e:
-        msg = f"Failed to write file: {e}"
-        raise RuntimeError(msg) from e
+        raise RuntimeError(f"Failed to write file: {e}") from e
 
     return {
         "success": True,
         "file_path": str(path),
-        "diff": trimmed_diff,
+        "diff": trim_diff(diff_text) if diff_text else "",
         "message": f"Successfully edited {path.name}",
         "lines_changed": len([line for line in diff_lines if line.startswith(("+", "-"))]),
     }

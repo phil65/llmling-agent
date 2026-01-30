@@ -56,32 +56,22 @@ def parse_locationless_diff(diff_text: str) -> list[DiffHunk]:
         List of DiffHunk objects with old_text/new_text pairs
     """
     hunks: list[DiffHunk] = []
-
     # Extract content between <diff> tags if present
-    diff_match = re.search(r"<diff>(.*?)</diff>", diff_text, re.DOTALL)
-    if diff_match:
+    if diff_match := re.search(r"<diff>(.*?)</diff>", diff_text, re.DOTALL):
         diff_text = diff_match.group(1)
-
     # Also handle ```diff ... ``` code blocks
     # Use \n? instead of \s* to avoid consuming leading spaces on first diff line
-    code_block_match = re.search(r"```diff\n?(.*?)```", diff_text, re.DOTALL)
-    if code_block_match:
+    if code_block_match := re.search(r"```diff\n?(.*?)```", diff_text, re.DOTALL):
         diff_text = code_block_match.group(1)
-
     # Strip only leading/trailing newlines, not spaces (which are meaningful in diffs)
     diff_text = diff_text.strip("\n\r")
-    lines = diff_text.split("\n")
-
     current_hunk_lines: list[str] = []
-
-    for line in lines:
+    for line in diff_text.split("\n"):
         # Skip standard diff headers
         if line.startswith(("---", "+++", "@@", "diff --git", "index ")):
             continue
-
         # Check if this is a diff line (starts with +, -, or space for context)
         is_diff_line = line.startswith(("+", "-", " "))
-
         # Empty line (not starting with space) = hunk separator
         if line == "" or (not is_diff_line and not line.strip()):
             if current_hunk_lines:
@@ -191,12 +181,7 @@ async def apply_diff_edits(
 
         try:
             # Use the existing smart replace with fuzzy matching
-            new_content = replace_content(
-                content,
-                hunk.old_text,
-                hunk.new_text,
-                replace_all=False,
-            )
+            new_content = replace_content(content, hunk.old_text, hunk.new_text, replace_all=False)
             content = new_content
             applied_edits += 1
         except ValueError as e:
@@ -213,11 +198,7 @@ async def apply_diff_edits(
         raise ModelRetry(msg)
 
     if failed_hunks:
-        logger.warning(
-            "Some hunks failed",
-            applied=applied_edits,
-            failed=len(failed_hunks),
-        )
+        logger.warning("Some hunks failed", applied=applied_edits, failed=len(failed_hunks))
 
     logger.info("Applied diff edits", applied=applied_edits, total=len(hunks))
     return content
@@ -252,7 +233,6 @@ async def apply_diff_edits_streaming(
     from sublime_search import StreamingFuzzyMatcher
 
     hunks = parse_locationless_diff(diff_response)
-
     if not hunks:
         logger.warning("No diff hunks found in response (streaming)")
         # Try falling back to structured edits format
@@ -262,7 +242,6 @@ async def apply_diff_edits_streaming(
     applied_edits = 0
     failed_hunks: list[str] = []
     ambiguous_hunks: list[str] = []
-
     for hunk in hunks:
         if not hunk.old_text.strip():
             # Pure insertion - skip for now (needs anchor point)
@@ -271,7 +250,6 @@ async def apply_diff_edits_streaming(
 
         # Use streaming fuzzy matcher to find where old_text matches
         matcher = StreamingFuzzyMatcher(content)
-
         # Feed the old_text lines to the matcher
         # Simulate streaming by pushing line by line
         old_lines = hunk.old_text.split("\n")
@@ -282,7 +260,6 @@ async def apply_diff_edits_streaming(
 
         # Get final matches
         matches = matcher.finish()
-
         if not matches:
             logger.warning("No match found for hunk", hunk=hunk.old_text[:50])
             failed_hunks.append(hunk.old_text[:50])
@@ -290,7 +267,6 @@ async def apply_diff_edits_streaming(
 
         # Try to select best match
         best_match = matcher.select_best_match()
-
         if best_match is None and len(matches) > 1:
             # Multiple ambiguous matches
             logger.warning(
@@ -303,24 +279,19 @@ async def apply_diff_edits_streaming(
 
         # Use best match or first match
         match_range = best_match or matches[0]
-
         # Extract the matched text and replace with new_text
         matched_text = content[match_range.start : match_range.end]
-
         # Apply the replacement
         # We need to be careful about indentation - the matcher finds the range,
         # but we should preserve the original indentation structure
         old_indent = _get_leading_indent(matched_text)
         new_indent = _get_leading_indent(hunk.old_text)
-
         # Calculate indent delta
         indent_delta = len(old_indent) - len(new_indent)
-
         # Reindent new_text to match the file's indentation
         if indent_delta != 0:
-            reindented_new = _reindent_text(
-                hunk.new_text, indent_delta, old_indent[0] if old_indent else " "
-            )
+            indent = old_indent[0] if old_indent else " "
+            reindented_new = _reindent_text(hunk.new_text, indent_delta, indent)
         else:
             reindented_new = hunk.new_text
 
@@ -385,17 +356,14 @@ def _reindent_text(text: str, delta: int, indent_char: str = " ") -> str:
     if delta == 0:
         return text
 
-    lines = text.split("\n")
     result_lines = []
-
-    for line in lines:
+    for line in text.split("\n"):
         if not line.strip():
             # Empty or whitespace-only line - keep as is
             result_lines.append(line)
             continue
 
         current_indent = len(line) - len(line.lstrip())
-
         if delta > 0:
             # Add indentation
             new_line = (indent_char * delta) + line
@@ -418,13 +386,9 @@ async def apply_structured_edits(original_content: str, edits_response: str) -> 
         return original_content
 
     edits_content = edits_match.group(1)
-
     # Find all old_text/new_text pairs
-    old_text_pattern = r"<old_text[^>]*>(.*?)</old_text>"
-    new_text_pattern = r"<new_text>(.*?)</new_text>"
-
-    old_texts = re.findall(old_text_pattern, edits_content, re.DOTALL)
-    new_texts = re.findall(new_text_pattern, edits_content, re.DOTALL)
+    old_texts = re.findall(r"<old_text[^>]*>(.*?)</old_text>", edits_content, re.DOTALL)
+    new_texts = re.findall(r"<new_text>(.*?)</new_text>", edits_content, re.DOTALL)
 
     if len(old_texts) != len(new_texts):
         logger.warning("Mismatch between old_text and new_text blocks")
@@ -433,10 +397,8 @@ async def apply_structured_edits(original_content: str, edits_response: str) -> 
     # Apply edits sequentially
     content = original_content
     applied_edits = 0
-
     failed_matches = []
     multiple_matches = []
-
     for old_text, new_text in zip(old_texts, new_texts, strict=False):
         old_cleaned = old_text.strip()
         new_cleaned = new_text.strip()
