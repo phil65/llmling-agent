@@ -49,7 +49,7 @@ async def list_agents(state: StateDep) -> list[Agent]:
             name=name,
             description=agent.description or f"Agent: {name}",
             # model=AgentModel(model_id=agent.model_name or "unknown", provider_id=""),
-            mode="primary",  # All agents visible for now; add hidden config later
+            mode="primary" if agent == state.agent else "subagent",
             default=(name == pool.main_agent.name),  # Default agent from pool
         )
         for name, agent in pool.all_agents.items()
