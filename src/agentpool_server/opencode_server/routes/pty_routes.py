@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect  # noqa: TC002
 
+from agentpool import log
 from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.models import PtyCreateRequest, PtyInfo, PtyUpdateRequest
 
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
 
     from agentpool_server.opencode_server.state import ServerState
 
-
+logger = log.get_logger(__name__)
 router = APIRouter(prefix="/pty", tags=["pty"])
 
 
@@ -59,33 +60,11 @@ def _get_pty_manager(state: StateDep) -> PtyManagerProtocol:
         ) from e
 
 
-def _convert_pty_info(info: Any, title: str | None = None) -> PtyInfo:
-    """Convert exxec PtyInfo to OpenCode PtyInfo model.
-
-    Args:
-        info: PtyInfo from exxec
-        title: Optional title override
-
-    Returns:
-        OpenCode PtyInfo model
-    """
-    return PtyInfo(
-        id=info.id,
-        title=title or f"Terminal {info.id[-4:]}",
-        command=info.command,
-        args=info.args,
-        cwd=info.cwd or "",
-        status=info.status,
-        pid=info.pid,
-    )
-
-
 @router.get("")
 async def list_ptys(state: StateDep) -> list[PtyInfo]:
     """List all PTY sessions."""
     manager = _get_pty_manager(state)
-    sessions = await manager.list_sessions()
-    return [_convert_pty_info(s) for s in sessions]
+    return [PtyInfo.from_exxec(s) for s in await manager.list_sessions()]
 
 
 @router.post("")
@@ -102,7 +81,7 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
 
     # Use working dir from state if not specified
     cwd = request.cwd or state.working_dir
-    print(f"Creating PTY: command={request.command}, args={request.args}, cwd={cwd}")
+    logger.info("Creating PTY", command=request.command, args=request.args, cwd=cwd)
     try:
         info = await manager.create(
             command=request.command,
@@ -110,7 +89,7 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
             cwd=cwd,
             env=request.env,
         )
-        print(f"PTY created successfully: {info.id}, status={info.status}")
+        logger.info("PTY created successfully", id=info.id, status=info.status)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to create PTY: {e}") from e
 
@@ -119,10 +98,10 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
     # Create session tracker for WebSocket subscribers
     session = PtySession(pty_id=pty_id)
     _pty_sessions[pty_id] = session
-    print(f"PTY session registered: {pty_id}, total sessions: {len(_pty_sessions)}")
+    logger.info("PTY session registered", pty_id=pty_id, total_sessions=len(_pty_sessions))
     # Start background task to read output and distribute to subscribers
     session.read_task = asyncio.create_task(_read_pty_output(manager, pty_id, state))
-    pty_info = _convert_pty_info(info, title=title)
+    pty_info = PtyInfo.from_exxec(info, title=title)
     # Broadcast PTY created event
     event = PtyCreatedEvent.create(info=pty_info.model_dump(by_alias=True))
     await state.broadcast_event(event)
@@ -175,7 +154,7 @@ async def get_pty(pty_id: str, state: StateDep) -> PtyInfo:
     info = await manager.get_info(pty_id)
     if not info:
         raise HTTPException(status_code=404, detail="PTY session not found")
-    return _convert_pty_info(info)
+    return PtyInfo.from_exxec(info)
 
 
 @router.put("/{pty_id}")
@@ -201,7 +180,7 @@ async def update_pty(pty_id: str, request: PtyUpdateRequest, state: StateDep) ->
 
     # Title is handled at the API level, not in the PTY manager
     title = request.title if request.title else f"Terminal {pty_id[-4:]}"
-    pty_info = _convert_pty_info(info, title=title)
+    pty_info = PtyInfo.from_exxec(info, title=title)
     # Broadcast PTY updated event
     event = PtyUpdatedEvent.create(info=pty_info.model_dump(by_alias=True))
     await state.broadcast_event(event)
@@ -219,8 +198,7 @@ async def remove_pty(pty_id: str, state: StateDep) -> dict[str, bool]:
     if not success:
         raise HTTPException(status_code=404, detail="PTY session not found")
     # Cleanup session tracker
-    session = _pty_sessions.pop(pty_id, None)
-    if session:
+    if session := _pty_sessions.pop(pty_id, None):
         # Cancel read task
         if session.read_task and not session.read_task.done():
             session.read_task.cancel()
@@ -235,7 +213,6 @@ async def remove_pty(pty_id: str, state: StateDep) -> dict[str, bool]:
     # Broadcast PTY deleted event
     event = PtyDeletedEvent.create(pty_id=pty_id)
     await state.broadcast_event(event)
-
     return {"success": True}
 
 

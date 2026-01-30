@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
+from exxec import PtyInfo as ExxecPtyInfo
+
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 
 
@@ -17,6 +19,27 @@ class PtyInfo(OpenCodeBaseModel):
     cwd: str
     status: Literal["running", "exited"]
     pid: int
+
+    @classmethod
+    def from_exxec(cls, info: ExxecPtyInfo, title: str | None = None) -> PtyInfo:
+        """Convert exxec PtyInfo to OpenCode PtyInfo model.
+
+        Args:
+            info: PtyInfo from exxec
+            title: Optional title override
+
+        Returns:
+            OpenCode PtyInfo model
+        """
+        return cls(
+            id=info.id,
+            title=title or f"Terminal {info.id[-4:]}",
+            command=info.command,
+            args=info.args,
+            cwd=info.cwd or "",
+            status=info.status,
+            pid=info.pid,
+        )
 
 
 class PtyCreateRequest(OpenCodeBaseModel):

@@ -22,17 +22,10 @@ async def list_questions(state: StateDep) -> list[QuestionRequest]:
 
     Returns a list of all pending questions awaiting user response.
     """
-    questions = []
-    for question_id, pending in state.pending_questions.items():
-        questions.append(
-            QuestionRequest(
-                id=question_id,
-                session_id=pending.session_id,
-                questions=pending.questions,
-                tool=pending.tool,
-            )
-        )
-    return questions
+    return [
+        QuestionRequest(id=question_id, session_id=i.session_id, questions=i.questions, tool=i.tool)
+        for question_id, i in state.pending_questions.items()
+    ]
 
 
 @router.post("/{requestID}/reply")
@@ -69,9 +62,7 @@ async def reply_to_question(
         raise HTTPException(status_code=500, detail="Invalid provider for session")
 
     # Resolve via provider
-    success = provider.resolve_question(requestID, reply.answers)
-
-    if not success:
+    if not provider.resolve_question(requestID, reply.answers):
         raise HTTPException(status_code=404, detail="Question already resolved")
 
     # Broadcast replied event
@@ -86,10 +77,7 @@ async def reply_to_question(
 
 
 @router.post("/{requestID}/reject")
-async def reject_question(
-    requestID: str,  # noqa: N803
-    state: StateDep,
-) -> bool:
+async def reject_question(requestID: str, state: StateDep) -> bool:  # noqa: N803
     """Reject a question request.
 
     Called when the user dismisses the question without providing an answer.
@@ -110,19 +98,12 @@ async def reject_question(
 
     session_id = pending.session_id
     future = pending.future
-
     # Cancel the future
     if not future.done():
         future.cancel()
-
     # Remove from pending
     del state.pending_questions[requestID]
-
     # Broadcast rejected event
-    event = QuestionRejectedEvent.create(
-        session_id=session_id,
-        request_id=requestID,
-    )
+    event = QuestionRejectedEvent.create(session_id=session_id, request_id=requestID)
     await state.broadcast_event(event)
-
     return True

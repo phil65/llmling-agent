@@ -31,72 +31,6 @@ class DiffHunk:
     """The raw diff text for this hunk."""
 
 
-async def apply_diff_hunks(
-    original_content: str,
-    diff_response: str,
-    *,
-    use_fuzzy: bool = True,
-) -> str:
-    """Apply locationless diff edits to content.
-
-    Parses diff format and applies each hunk using content matching.
-
-    Args:
-        original_content: The original file content
-        diff_response: The agent's response containing diffs
-        use_fuzzy: Whether to use fuzzy matching for finding locations
-
-    Returns:
-        The modified content
-
-    Raises:
-        ModelRetry: If edits cannot be applied (for agent retry)
-    """
-    from sublime_search import parse_locationless_diff, replace_content
-
-    hunks = parse_locationless_diff(diff_response)
-
-    if not hunks:
-        logger.warning("No diff hunks found in response")
-        # Try falling back to structured edits format
-        return apply_structured_edits(original_content, diff_response)
-
-    content = original_content
-    applied_edits = 0
-    failed_hunks: list[str] = []
-
-    for hunk in hunks:
-        if not hunk.old_text.strip():
-            # Pure insertion - would need line context to place
-            # For now, skip pure insertions without context
-            logger.warning("Skipping pure insertion hunk (no context)")
-            continue
-
-        try:
-            # Use the existing smart replace with fuzzy matching
-            new_content = replace_content(content, hunk.old_text, hunk.new_text, replace_all=False)
-            content = new_content.content
-            applied_edits += 1
-        except ValueError as e:
-            # Match failed
-            logger.warning("Failed to apply hunk", error=str(e), hunk=hunk.raw[:100])
-            failed_hunks.append(hunk.old_text[:50])
-
-    if applied_edits == 0 and hunks:
-        msg = (
-            f"None of the {len(hunks)} diff hunks could be applied. "
-            "The context lines don't match the current file content. "
-            "Please read the file again and provide accurate diff context."
-        )
-        raise ModelRetry(msg)
-
-    if failed_hunks:
-        logger.warning("Some hunks failed", applied=applied_edits, failed=len(failed_hunks))
-
-    logger.info("Applied diff edits", applied=applied_edits, total=len(hunks))
-    return content
-
-
 def apply_diff_hunks_streaming(
     original_content: str,
     diff_response: str,
@@ -411,20 +345,14 @@ def truncate_lines(
     """
     # Apply offset (supports negative indexing like Python lists)
     start_idx = max(0, len(lines) + offset) if offset < 0 else min(offset, len(lines))
-
     if start_idx >= len(lines):
         return [], False
-
     # Apply line limit
     end_idx = min(len(lines), start_idx + limit) if limit is not None else len(lines)
-
-    selected_lines = lines[start_idx:end_idx]
-
     # Apply byte limit
     result_lines: list[str] = []
     total_bytes = 0
-
-    for line in selected_lines:
+    for line in lines[start_idx:end_idx]:
         line_bytes = len(line.encode("utf-8"))
         if total_bytes + line_bytes > max_bytes:
             # Would exceed limit - this is actual truncation
