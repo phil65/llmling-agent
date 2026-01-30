@@ -235,8 +235,7 @@ async def connect_pty(websocket: WebSocket, pty_id: str) -> None:
         return
 
     # Check if PTY exists - if not, immediately reject like OpenCode does
-    info = await manager.get_info(pty_id)
-    if not info:
+    if not await manager.get_info(pty_id):
         await websocket.accept()
         await websocket.close(code=1003, reason="PTY session not found")
         return
