@@ -13,7 +13,11 @@ from agentpool_server.opencode_server.models.message import (  # noqa: TC001
     UserMessage,
 )
 from agentpool_server.opencode_server.models.parts import Part  # noqa: TC001
-from agentpool_server.opencode_server.models.session import Session, SessionStatus  # noqa: TC001
+from agentpool_server.opencode_server.models.session import (  # noqa: TC001
+    Session,
+    SessionStatus,
+    SessionStatusType,
+)
 
 
 class EmptyProperties(OpenCodeBaseModel):
@@ -86,7 +90,8 @@ class SessionStatusEvent(OpenCodeBaseModel):
     properties: SessionStatusProperties
 
     @classmethod
-    def create(cls, session_id: str, status: SessionStatus) -> Self:
+    def create(cls, session_id: str, status_type: SessionStatusType | SessionStatus) -> Self:
+        status = SessionStatus(type=status_type) if isinstance(status_type, str) else status_type
         return cls(properties=SessionStatusProperties(session_id=session_id, status=status))
 
 

@@ -183,8 +183,9 @@ async def _process_message(
     for part in user_parts:
         await state.broadcast_event(PartUpdatedEvent.create(part))
     # --- Mark session busy ---
-    state.session_status[session_id] = SessionStatus(type="busy")
-    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="busy")))
+    busy = SessionStatus(type="busy")
+    state.session_status[session_id] = busy)
+    await state.broadcast_event(SessionStatusEvent.create(session_id, busy)))
     # --- Extract user prompt ---
     part_data = [p.model_dump() for p in request.parts]
     user_prompt = extract_user_prompt_from_parts(part_data, fs=state.fs)
@@ -192,7 +193,7 @@ async def _process_message(
     assistant_msg_id = identifier.ascending("message")
     now = now_ms()
     tokens = Tokens(cache=TokensCache(read=0, write=0))
-    assistant_message = AssistantMessage(
+    assistant_msg = AssistantMessage(
         id=assistant_msg_id,
         session_id=session_id,
         parent_id=user_msg_id,
@@ -205,9 +206,9 @@ async def _process_message(
         tokens=tokens,
         cost=0.0,
     )
-    assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
+    assistant_msg_with_parts = MessageWithParts(info=assistant_msg, parts=[])
     state.messages[session_id].append(assistant_msg_with_parts)
-    await state.broadcast_event(MessageUpdatedEvent.create(assistant_message))
+    await state.broadcast_event(MessageUpdatedEvent.create(assistant_msg))
     # Step-start part
     part_id = identifier.ascending("part")
     step_start = StepStartPart(id=part_id, message_id=assistant_msg_id, session_id=session_id)
@@ -240,23 +241,18 @@ async def _process_message(
     response_time = now_ms()
     preview = adapter.response_text[:100] if adapter.response_text else "EMPTY"
     logger.info("Response text", text_preview=preview)
-    updated_assistant = assistant_message.model_copy(
-        update={
-            "time": MessageTime(created=now, completed=response_time),
-            "tokens": Tokens(
-                cache=TokensCache(read=0, write=0),
-                input=adapter.input_tokens,
-                output=adapter.output_tokens,
-            ),
-            "cost": adapter.total_cost,
-        }
-    )
+    token_cache = TokensCache(read=0, write=0)
+    tokens = Tokens(cache=token_cache, input=adapter.input_tokens, output=adapter.output_tokens)
+    msg_time = MessageTime(created=now, completed=response_time)
+    update = {"time": msg_time, "tokens": tokens, "cost": adapter.total_cost}
+    updated_assistant = assistant_msg.model_copy(update=update)
     assistant_msg_with_parts.info = updated_assistant
     await state.broadcast_event(MessageUpdatedEvent.create(updated_assistant))
     await persist_message_to_storage(state, assistant_msg_with_parts, session_id)
     # --- Mark session idle ---
-    state.session_status[session_id] = SessionStatus(type="idle")
-    await state.broadcast_event(SessionStatusEvent.create(session_id, SessionStatus(type="idle")))
+    status = SessionStatus(type="idle")
+    state.session_status[session_id] = status
+    await state.broadcast_event(SessionStatusEvent.create(session_id, status))
     await state.broadcast_event(SessionIdleEvent.create(session_id))
     # --- Update session timestamp ---
     session = state.sessions[session_id]

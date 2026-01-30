@@ -204,8 +204,7 @@ async def delete_session(session_id: str, state: StateDep) -> bool:
         raise HTTPException(status_code=404, detail="Session not found")
 
     # Cancel any pending permissions and clean up input provider
-    input_provider = state.input_providers.pop(session_id, None)
-    if input_provider is not None:
+    if input_provider := state.input_providers.pop(session_id, None):
         input_provider.cancel_all_pending()
 
     # Remove from cache
@@ -216,7 +215,6 @@ async def delete_session(session_id: str, state: StateDep) -> bool:
     # Delete from storage
     await state.pool.sessions.store.delete(session_id)
     await state.broadcast_event(SessionDeletedEvent.create(session_id))
-
     return True
 
 

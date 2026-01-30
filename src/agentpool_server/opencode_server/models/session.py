@@ -10,6 +10,10 @@ from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import TimeCreatedUpdated  # noqa: TC001
 
 
+SessionStatusType = Literal["idle", "busy", "retry"]
+TodoStatus = Literal["pending", "in_progress", "completed"]
+
+
 class SessionSummary(OpenCodeBaseModel):
     """Summary information for a session."""
 
@@ -100,7 +104,7 @@ class SummarizeRequest(OpenCodeBaseModel):
 class SessionStatus(OpenCodeBaseModel):
     """Status of a session."""
 
-    type: Literal["idle", "busy", "retry"] = "idle"
+    type: SessionStatusType = "idle"
 
 
 class Todo(OpenCodeBaseModel):
@@ -108,4 +112,4 @@ class Todo(OpenCodeBaseModel):
 
     id: str
     content: str
-    status: Literal["pending", "in_progress", "completed"] = "pending"
+    status: TodoStatus = "pending"

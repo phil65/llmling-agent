@@ -68,10 +68,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from fsspec.asyn import AsyncFileSystem
-    from pydantic_ai import (
-        MultiModalContent,
-        UserContent,
-    )
+    from pydantic_ai import MultiModalContent, UserContent
     from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
     from agentpool_server.opencode_server.models import Part, ToolState
