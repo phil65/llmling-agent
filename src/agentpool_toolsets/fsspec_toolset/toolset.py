@@ -1557,12 +1557,13 @@ class FSSpecTools(ResourceProvider):
                                     new_text = "".join(pending_new_text)
 
                                     try:
-                                        edited_content = replace_content(
+                                        result = replace_content(
                                             edited_content,
                                             old_text,
                                             new_text,
                                             replace_all=False,
                                         )
+                                        edited_content = result.content
                                         # Emit progress update
                                         await agent_ctx.events.file_edit_progress(
                                             path=path,
@@ -1593,12 +1594,13 @@ class FSSpecTools(ResourceProvider):
                     old_text = "".join(pending_old_text)
                     new_text = "".join(pending_new_text)
                     with contextlib.suppress(ValueError):
-                        edited_content = replace_content(
+                        result = replace_content(
                             edited_content,
                             old_text,
                             new_text,
                             replace_all=False,
                         )
+                        edited_content = result.content
 
         return edited_content
 
