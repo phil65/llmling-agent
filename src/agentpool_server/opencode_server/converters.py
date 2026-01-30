@@ -527,19 +527,19 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         existing = tool_calls.get(call_id)
 
                         # Format output
-                        content = part.content
-                        if isinstance(content, str):
-                            output = content
-                        elif isinstance(content, dict):
-                            output = anyenv.dump_json(content, indent=True)
+                        tool_content = part.content
+                        if isinstance(tool_content, str):
+                            output = tool_content
+                        elif isinstance(tool_content, dict):
+                            output = anyenv.dump_json(tool_content, indent=True)
                         else:
-                            output = str(content) if content is not None else ""
+                            output = str(tool_content) if tool_content is not None else ""
                         if existing:
                             # Update existing tool part with completion
                             existing_input = _get_input_from_state(existing.state)
-                            if isinstance(content, dict) and "error" in content:
+                            if isinstance(tool_content, dict) and "error" in tool_content:
                                 existing.state = ToolStateError(
-                                    error=str(content.get("error", "Unknown error")),
+                                    error=str(tool_content.get("error", "Unknown error")),
                                     input=existing_input,
                                     time=TimeStartEnd(start=created_ms, end=completed_ms),
                                 )

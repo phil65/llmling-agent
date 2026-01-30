@@ -5,7 +5,8 @@ from __future__ import annotations
 import base64
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import BinaryContent, FileUrl, ToolReturn
+from pydantic_ai import BinaryContent, ToolReturn
+from pydantic_ai.messages import AudioUrl, DocumentUrl, ImageUrl, VideoUrl
 
 from acp.schema import (
     AudioContentBlock,
@@ -19,9 +20,10 @@ from acp.schema import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
     from pydantic_ai import UserContent
+    from pydantic_ai.messages import ToolReturnContent
 
     from acp.schema import ContentBlock, ToolCallKind
 
@@ -35,7 +37,15 @@ DEFAULT_PERMISSION_OPTIONS = [
 
 
 def to_acp_content_blocks(  # noqa: PLR0911
-    tool_output: (ToolReturn | list[ToolReturn] | UserContent | Sequence[UserContent] | None),
+    tool_output: (
+        ToolReturn
+        | list[ToolReturn]
+        | ToolReturnContent
+        | UserContent
+        | Sequence[UserContent]
+        | Mapping[str, Any]
+        | None
+    ),
 ) -> list[ContentBlock]:
     """Convert pydantic-ai tool output to raw ACP content blocks.
 
@@ -85,20 +95,20 @@ def to_acp_content_blocks(  # noqa: PLR0911
             )
             return [EmbeddedResourceContentBlock(resource=blob_resource)]  # ty: ignore[invalid-return-type]
 
-        case FileUrl(url=url, kind=kind, media_type=media_type):
+        case ImageUrl() | AudioUrl() | VideoUrl() | DocumentUrl() as file_url:
             from urllib.parse import urlparse
 
-            parsed = urlparse(str(url))
-            resource_type = kind.replace("-url", "")
+            parsed = urlparse(str(file_url.url))
+            resource_type = file_url.kind.replace("-url", "")
             name = parsed.path.split("/")[-1] if parsed.path else resource_type
             if not name or name == "/":
                 name = f"{resource_type}_{parsed.netloc}" if parsed.netloc else resource_type
             return [
                 ResourceContentBlock(
-                    uri=str(url),
+                    uri=str(file_url.url),
                     name=name,
                     description=f"{resource_type.title()} resource",
-                    mime_type=media_type,
+                    mime_type=file_url.media_type,
                 )
             ]
 
