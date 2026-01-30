@@ -108,8 +108,6 @@ async def _search_with_ripgrep(
     proc = await anyenv.create_process(*cmd, stdout="pipe", stderr="pipe")
     stdout, _ = await proc.communicate()
     matches: list[FindMatch] = []
-    # base_path is already resolved by state.base_path
-    base_path_prefix = base_path.rstrip("/") + "/"
     for line in stdout.decode("utf-8", errors="replace").splitlines():
         if not line.strip():
             continue
@@ -123,8 +121,8 @@ async def _search_with_ripgrep(
             line_number = match_data.get("line_number", 0)
             line_text = match_data.get("lines", {}).get("text", "").rstrip("\n")
             absolute_offset = match_data.get("absolute_offset", 0)
-            # Convert to relative path
-            rel_path = path[len(base_path_prefix) :] if path.startswith(base_path_prefix) else path
+            # Convert to relative path using os.path.relpath for cross-platform support
+            rel_path = os.path.relpath(path, base_path)
             # Extract submatches
             submatches = []
             for sm in match_data.get("submatches", []):
@@ -179,13 +177,11 @@ async def _find_files_with_ripgrep(query: str, base_path: str, max_results: int 
     proc = await anyenv.create_process(*cmd, stdout="pipe", stderr="pipe")
     stdout, _ = await proc.communicate()
     results: list[str] = []
-    # base_path is already resolved by state.base_path
-    base_path_prefix = base_path.rstrip("/") + "/"
     for line in stdout.decode("utf-8", errors="replace").splitlines():
         if not line.strip():
             continue
-        # Convert to relative path
-        rel_path = line[len(base_path_prefix) :] if line.startswith(base_path_prefix) else line
+        # Convert to relative path using os.path.relpath for cross-platform support
+        rel_path = os.path.relpath(line, base_path)
         results.append(rel_path)
         if len(results) >= max_results:
             break
@@ -270,8 +266,8 @@ async def find_text(state: StateDep, pattern: str = Query()) -> list[FindMatch]:
             # Skip directories we don't want to search
             if any(part in SKIP_DIRS for part in path.split("/")):
                 continue
-            # Get relative path
-            rel_path = path[len(base_path) :].lstrip("/") if path.startswith(base_path) else path
+            # Get relative path using os.path.relpath for cross-platform support
+            rel_path = os.path.relpath(path, base_path)
             try:
                 content = await state.fs._cat_file(path)
                 if isinstance(content, bytes):
@@ -325,8 +321,8 @@ async def find_files(
                 continue
             name = parts[-1] if parts else path
             if fnmatch.fnmatch(name, query):
-                # Get relative path
-                rel_p = path[len(base_path) :].lstrip("/") if path.startswith(base_path) else path
+                # Get relative path using os.path.relpath for cross-platform support
+                rel_p = os.path.relpath(path, base_path)
                 results.append(rel_p)
     except Exception:  # noqa: BLE001
         pass
