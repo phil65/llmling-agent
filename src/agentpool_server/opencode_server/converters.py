@@ -175,13 +175,13 @@ def _convert_file_part_to_user_content(
 
 def get_file_url_obj(url: str, mime: str) -> MultiModalContent | None:
     if mime.startswith("image/"):
-        return ImageUrl(url=url)
+        return ImageUrl(url=url, media_type=mime)
     if mime.startswith("audio/"):
-        return AudioUrl(url=url)
+        return AudioUrl(url=url, media_type=mime)
     if mime.startswith("video/"):
-        return VideoUrl(url=url)
+        return VideoUrl(url=url, media_type=mime)
     if mime == "application/pdf":
-        return DocumentUrl(url=url)
+        return DocumentUrl(url=url, media_type=mime)
     return None
 
 
