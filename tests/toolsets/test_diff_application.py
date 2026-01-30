@@ -1,19 +1,16 @@
 """Tests comparing diff application strategies.
 
 This module tests both:
-1. apply_diff_edits - Uses replace_content with multiple fallback strategies
-2. apply_diff_edits_streaming - Uses Zed-style streaming fuzzy matcher with DP
+1. apply_diff_hunks - Uses replace_content with multiple fallback strategies
+2. apply_diff_hunks_streaming - Uses Zed-style streaming fuzzy matcher with DP
 """
 
 from __future__ import annotations
 
 import pytest
+from sublime_search import apply_diff_hunks, parse_locationless_diff
 
-from agentpool_toolsets.fsspec_toolset.helpers import (
-    apply_diff_edits,
-    apply_diff_edits_streaming,
-    parse_locationless_diff,
-)
+from agentpool_toolsets.fsspec_toolset.helpers import apply_diff_hunks_streaming
 
 
 class TestParseDiff:
@@ -61,7 +58,7 @@ class TestParseDiff:
 
 
 class TestApplyDiffEdits:
-    """Tests for the standard apply_diff_edits function."""
+    """Tests for the standard apply_diff_hunks function."""
 
     async def test_simple_replacement(self):
         original = """\
@@ -77,7 +74,7 @@ def greet(name):
             "     return True\n"
             "</diff>\n"
         )
-        result = await apply_diff_edits(original, diff)
+        result = apply_diff_hunks(original, diff)
         assert 'print(f"Hello, {name}!")' in result
         assert 'print("Hello")' not in result
 
@@ -100,9 +97,9 @@ def bar():
             "+    return 4\n"
             "</diff>\n"
         )
-        result = await apply_diff_edits(original, diff)
-        assert "return 2" in result
-        assert "return 4" in result
+        result = apply_diff_hunks(original, diff)
+        assert "return 2" in result.content
+        assert "return 4" in result.content
 
     async def test_indentation_tolerance(self):
         """Test that small indentation differences are handled."""
@@ -112,8 +109,8 @@ def bar():
 """
         # Diff has different indentation
         diff = "<diff>\n def deeply_nested():\n-    return 42\n+    return 100\n</diff>\n"
-        result = await apply_diff_edits(original, diff)
-        assert "return 100" in result
+        result = apply_diff_hunks(original, diff)
+        assert "return 100" in result.content
 
 
 class TestApplyDiffEditsStreaming:
@@ -133,7 +130,7 @@ def greet(name):
             "     return True\n"
             "</diff>\n"
         )
-        result = await apply_diff_edits_streaming(original, diff)
+        result = apply_diff_hunks_streaming(original, diff)
         assert 'print(f"Hello, {name}!")' in result
         assert 'print("Hello")' not in result
 
@@ -150,7 +147,7 @@ fn foo2(b: usize) -> usize {
 """
         # Diff has slight typo in return type
         diff = "<diff>\n fn foo1(a: usize) -> u32 {\n-    40\n+    41\n }\n</diff>\n"
-        result = await apply_diff_edits_streaming(original, diff)
+        result = apply_diff_hunks_streaming(original, diff)
         # Should still match foo1 despite the type difference
         assert "41" in result
         assert "42" in result  # foo2 unchanged
@@ -164,7 +161,7 @@ class Example:
 """
         # Diff without the class indentation
         diff = "<diff>\n def method(self):\n-    return 42\n+    return 100\n</diff>\n"
-        result = await apply_diff_edits_streaming(original, diff)
+        result = apply_diff_hunks_streaming(original, diff)
         # Should preserve the original indentation
         assert "return 100" in result
 
@@ -182,7 +179,7 @@ def third():
 """
         diff = "<diff>\n-    return 42\n+    return 100\n</diff>\n"
         # With line hint pointing to second function (around line 5)
-        result = await apply_diff_edits_streaming(original, diff, line_hint=5)
+        result = apply_diff_hunks_streaming(original, diff, line_hint=5)
         # Should modify one occurrence
         lines = result.split("\n")
         count_42 = sum(1 for line in lines if "return 42" in line)
@@ -200,8 +197,8 @@ def hello():
     print("world")
 """
         diff = '<diff>\n def hello():\n-    print("world")\n+    print("universe")\n</diff>\n'
-        result1 = await apply_diff_edits(original, diff)
-        result2 = await apply_diff_edits_streaming(original, diff)
+        result1 = apply_diff_hunks(original, diff)
+        result2 = apply_diff_hunks_streaming(original, diff)
 
         assert 'print("universe")' in result1
         assert 'print("universe")' in result2
@@ -224,8 +221,8 @@ impl Display for User {
             " }\n"
             "</diff>\n"
         )
-        result1 = await apply_diff_edits(original, diff)
-        result2 = await apply_diff_edits_streaming(original, diff)
+        result1 = apply_diff_hunks(original, diff)
+        result2 = apply_diff_hunks_streaming(original, diff)
 
         assert "self.email" in result1
         assert "self.email" in result2

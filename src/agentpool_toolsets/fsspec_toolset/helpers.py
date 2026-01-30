@@ -31,114 +31,7 @@ class DiffHunk:
     """The raw diff text for this hunk."""
 
 
-def parse_locationless_diff(diff_text: str) -> list[DiffHunk]:
-    """Parse a locationless unified diff into old/new text pairs.
-
-    Handles diff format without line numbers - the location is inferred
-    by matching context in the file.
-
-    Format expected:
-    ```
-     context line (unchanged)
-    -removed line
-    +added line
-     more context
-    ```
-
-    Multiple hunks are separated by:
-    - Blank lines (empty line not starting with space)
-    - Non-diff content lines
-
-    Args:
-        diff_text: The diff text (may contain multiple hunks)
-
-    Returns:
-        List of DiffHunk objects with old_text/new_text pairs
-    """
-    hunks: list[DiffHunk] = []
-    # Extract content between <diff> tags if present
-    if diff_match := re.search(r"<diff>(.*?)</diff>", diff_text, re.DOTALL):
-        diff_text = diff_match.group(1)
-    # Also handle ```diff ... ``` code blocks
-    # Use \n? instead of \s* to avoid consuming leading spaces on first diff line
-    if code_block_match := re.search(r"```diff\n?(.*?)```", diff_text, re.DOTALL):
-        diff_text = code_block_match.group(1)
-    # Strip only leading/trailing newlines, not spaces (which are meaningful in diffs)
-    diff_text = diff_text.strip("\n\r")
-    current_hunk_lines: list[str] = []
-    for line in diff_text.split("\n"):
-        # Skip standard diff headers
-        if line.startswith(("---", "+++", "@@", "diff --git", "index ")):
-            continue
-        # Check if this is a diff line (starts with +, -, or space for context)
-        is_diff_line = line.startswith(("+", "-", " "))
-        # Empty line (not starting with space) = hunk separator
-        if line == "" or (not is_diff_line and not line.strip()):
-            if current_hunk_lines:
-                hunk = _parse_single_hunk(current_hunk_lines)
-                if hunk:
-                    hunks.append(hunk)
-                current_hunk_lines = []
-            continue
-
-        # Non-diff content line = hunk separator
-        if not is_diff_line and line.strip():
-            if current_hunk_lines:
-                hunk = _parse_single_hunk(current_hunk_lines)
-                if hunk:
-                    hunks.append(hunk)
-                current_hunk_lines = []
-            continue
-
-        # Accumulate diff lines
-        current_hunk_lines.append(line)
-
-    # Don't forget the last hunk
-    if current_hunk_lines:
-        hunk = _parse_single_hunk(current_hunk_lines)
-        if hunk:
-            hunks.append(hunk)
-
-    return hunks
-
-
-def _parse_single_hunk(lines: list[str]) -> DiffHunk | None:
-    """Parse a single diff hunk into old/new text.
-
-    Args:
-        lines: Lines of the hunk (each starting with +, -, or space)
-
-    Returns:
-        DiffHunk or None if the hunk is empty/invalid
-    """
-    old_lines: list[str] = []
-    new_lines: list[str] = []
-
-    for line in lines:
-        if line.startswith("-"):
-            # Removed line - only in old
-            old_lines.append(line[1:])
-        elif line.startswith("+"):
-            # Added line - only in new
-            new_lines.append(line[1:])
-        elif line.startswith(" "):
-            # Context line - in both
-            content = line[1:] if len(line) > 1 else ""
-            old_lines.append(content)
-            new_lines.append(content)
-        # Skip lines that don't match the pattern
-
-    if not old_lines and not new_lines:
-        return None
-
-    old_text = "\n".join(old_lines)
-    new_text = "\n".join(new_lines)
-    raw = "\n".join(lines)
-
-    return DiffHunk(old_text=old_text, new_text=new_text, raw=raw)
-
-
-async def apply_diff_edits(
+async def apply_diff_hunks(
     original_content: str,
     diff_response: str,
     *,
@@ -159,14 +52,14 @@ async def apply_diff_edits(
     Raises:
         ModelRetry: If edits cannot be applied (for agent retry)
     """
-    from sublime_search import replace_content
+    from sublime_search import parse_locationless_diff, replace_content
 
     hunks = parse_locationless_diff(diff_response)
 
     if not hunks:
         logger.warning("No diff hunks found in response")
         # Try falling back to structured edits format
-        return await apply_structured_edits(original_content, diff_response)
+        return apply_structured_edits(original_content, diff_response)
 
     content = original_content
     applied_edits = 0
@@ -182,7 +75,7 @@ async def apply_diff_edits(
         try:
             # Use the existing smart replace with fuzzy matching
             new_content = replace_content(content, hunk.old_text, hunk.new_text, replace_all=False)
-            content = new_content
+            content = new_content.content
             applied_edits += 1
         except ValueError as e:
             # Match failed
@@ -204,7 +97,7 @@ async def apply_diff_edits(
     return content
 
 
-async def apply_diff_edits_streaming(
+def apply_diff_hunks_streaming(
     original_content: str,
     diff_response: str,
     *,
@@ -212,7 +105,7 @@ async def apply_diff_edits_streaming(
 ) -> str:
     """Apply locationless diff edits using streaming fuzzy matcher (Zed-style).
 
-    Alternative to `apply_diff_edits` that uses a dynamic programming based
+    Alternative to `apply_diff_hunks` that uses a dynamic programming based
     fuzzy matcher to locate where edits should be applied. This approach:
     - Uses line-by-line fuzzy matching with Levenshtein distance
     - Handles indentation differences gracefully
@@ -230,13 +123,13 @@ async def apply_diff_edits_streaming(
     Raises:
         ModelRetry: If edits cannot be applied (for agent retry)
     """
-    from sublime_search import StreamingFuzzyMatcher
+    from sublime_search import StreamingFuzzyMatcher, parse_locationless_diff
 
     hunks = parse_locationless_diff(diff_response)
     if not hunks:
         logger.warning("No diff hunks found in response (streaming)")
         # Try falling back to structured edits format
-        return await apply_structured_edits(original_content, diff_response)
+        return apply_structured_edits(original_content, diff_response)
 
     content = original_content
     applied_edits = 0
@@ -377,7 +270,7 @@ def _reindent_text(text: str, delta: int, indent_char: str = " ") -> str:
     return "\n".join(result_lines)
 
 
-async def apply_structured_edits(original_content: str, edits_response: str) -> str:
+def apply_structured_edits(original_content: str, edits_response: str) -> str:
     """Apply structured edits from the agent response."""
     # Parse the edits from the response
     edits_match = re.search(r"<edits>(.*?)</edits>", edits_response, re.DOTALL)
