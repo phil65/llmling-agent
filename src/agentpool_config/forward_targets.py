@@ -84,7 +84,9 @@ class ConnectionConfig(Schema):
     )
     """Optional function to transform messages before forwarding."""
 
-    def connect_nodes(self, source: MessageNode[Any], target: MessageNode[Any], name: str):
+    def connect_nodes(
+        self, source: MessageNode[Any, Any], target: MessageNode[Any, Any], name: str
+    ):
         source.connect_to(
             target,
             connection_type=target.connection_type,
@@ -133,7 +135,7 @@ class NodeConnectionConfig(ConnectionConfig):
     - forward: Forward message to agent's outbox
     """
 
-    def get_node(self, nodes: Sequence[MessageNode[Any]]) -> MessageNode[Any]:
+    def get_node(self, nodes: Sequence[MessageNode[Any, Any]]) -> MessageNode[Any, Any]:
         node_dict = {i.name: i for i in nodes}
         if self.name not in node_dict:
             raise ValueError(f"Forward target {self.name} not found")
@@ -191,7 +193,7 @@ class FileConnectionConfig(ConnectionConfig):
     )
     """File encoding to use."""
 
-    def get_node(self, agents: Sequence[MessageNode[Any]]) -> MessageNode[Any]:
+    def get_node(self, agents: Sequence[MessageNode[Any, Any]]) -> MessageNode[Any, Any]:
         from agentpool import Agent
 
         agent_name = f"file_writer_{Path(self.path).stem}"
@@ -256,7 +258,7 @@ class CallableConnectionConfig(ConnectionConfig):
     kw_args: dict[str, Any] = Field(default_factory=dict, title="Additional arguments")
     """Additional kwargs to pass to the callable."""
 
-    def get_node(self, agents: Sequence[MessageNode[Any]]) -> MessageNode[Any]:
+    def get_node(self, agents: Sequence[MessageNode[Any, Any]]) -> MessageNode[Any, Any]:
         from agentpool import Agent
 
         return Agent(model=self.get_model(), name=self.callable.__name__)
