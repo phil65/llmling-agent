@@ -31,8 +31,10 @@ from agentpool.sessions.models import SessionData
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool.utils.time_utils import datetime_to_ms, ms_to_datetime
 from agentpool_server.opencode_server.models import (
+    AgentPartInput,
     APIErrorInfo,
     AssistantMessage,
+    FilePartInput,
     MessagePath,
     MessageTime,
     MessageWithParts,
@@ -46,7 +48,9 @@ from agentpool_server.opencode_server.models import (
     StepFinishPart,
     StepFinishTokens,
     StepStartPart,
+    SubtaskPartInput,
     TextPart,
+    TextPartInput,
     TimeCreated,
     TimeCreatedUpdated,
     TimeStart,
@@ -61,12 +65,6 @@ from agentpool_server.opencode_server.models import (
     ToolStateError,
     ToolStateRunning,
     UserMessage,
-)
-from agentpool_server.opencode_server.models.message import (
-    AgentPartInput,
-    FilePartInput,
-    SubtaskPartInput,
-    TextPartInput,
 )
 
 

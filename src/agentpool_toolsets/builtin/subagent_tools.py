@@ -192,7 +192,6 @@ class SubagentTools(StaticResourceProvider):
             raise ToolError(msg)
 
         logger.info("Executing task", agent_or_team=agent_or_team, description=description)
-
         # Stream with SubAgentEvent wrapping
         return await _stream_task(
             ctx,

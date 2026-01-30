@@ -215,6 +215,7 @@ class SpawnCommand(NodeCommand):
             task_prompt: Task prompt for the subagent
         """
         from agentpool.agents.events import SubAgentEvent
+        from agentpool.common_types import SupportsRunStream
 
         pool = ctx.context.pool
         if pool is None:
@@ -228,11 +229,7 @@ class SpawnCommand(NodeCommand):
                 f"Available agents: {', '.join(available)}"
             )
             return
-
-        from agentpool.common_types import SupportsRunStream
-
         agent = pool.nodes[agent_name]
-
         # Check if node supports streaming
         if not isinstance(agent, SupportsRunStream):
             await ctx.output.print(f"❌ **Agent** `{agent_name}` **does not support streaming**")
