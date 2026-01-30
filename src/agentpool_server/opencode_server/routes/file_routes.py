@@ -25,7 +25,22 @@ from agentpool_server.opencode_server.models.file import SubmatchInfo
 router = APIRouter(tags=["file"])
 
 
-SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", ".tox", "dist", "build"}
+SKIP_DIRS = {
+    ".git",
+    "node_modules",
+    "__pycache__",
+    ".venv",
+    "venv",
+    ".tox",
+    "dist",
+    "build",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".coverage",
+    "htmlcov",
+    "*.egg-info",
+}
 """Directories to skip when searching."""
 
 BLOCKED_FILES = {".env", ".env.local", ".env.production", ".env.development", ".env.test"}
@@ -190,6 +205,9 @@ async def list_files(state: StateDep, path: str = Query(default="")) -> list[Fil
             full_name = entry.get("name", "")
             name = full_name.split("/")[-1]
             if not name or name in BLOCKED_FILES:
+                continue
+            # Skip directories that should be hidden (caches, build artifacts, etc.)
+            if name in SKIP_DIRS or any(fnmatch.fnmatch(name, pat) for pat in SKIP_DIRS):
                 continue
             node_type = "directory" if entry.get("type") == "directory" else "file"
             size = entry.get("size") if node_type == "file" else None
