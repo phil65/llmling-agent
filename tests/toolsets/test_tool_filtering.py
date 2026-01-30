@@ -7,14 +7,13 @@ from agentpool_config.toolsets import CodeToolsetConfig, SkillsToolsetConfig, Su
 
 async def test_subagent_tool_filtering():
     """Test filtering tools in subagent toolset."""
-    config = SubagentToolsetConfig(tools={"delegate_to": True, "ask_agent": False})
+    config = SubagentToolsetConfig(tools={"task": True, "list_available_nodes": False})
     provider = config.get_provider()
     tools = await provider.get_tools()
     tool_names = {t.name for t in tools}
 
-    assert "delegate_to" in tool_names
-    assert "list_available_nodes" in tool_names  # not in filter, defaults to True
-    assert "ask_agent" not in tool_names
+    assert "task" in tool_names
+    assert "list_available_nodes" not in tool_names
 
 
 async def test_skills_tool_filtering():
@@ -41,7 +40,7 @@ async def test_code_toolset_filtering():
 
 async def test_filtering_provider_delegates_attributes():
     """Test that FilteringResourceProvider delegates attributes correctly."""
-    config = SubagentToolsetConfig(tools={"delegate_to": True})
+    config = SubagentToolsetConfig(tools={"task": True})
     provider = config.get_provider()
 
     # Should delegate name attribute

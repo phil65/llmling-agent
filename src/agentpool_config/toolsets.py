@@ -35,8 +35,7 @@ MarkupType = Literal["yaml", "json", "toml"]
 # Tool name literals for statically-defined toolsets
 SubagentToolName = Literal[
     "list_available_nodes",
-    "delegate_to",
-    "ask_agent",
+    "task",
 ]
 ExecutionEnvironmentToolName = Literal[
     "execute_code",
@@ -178,7 +177,7 @@ class SubagentToolsetConfig(BaseToolsetConfig):
     )
 
     type: Literal["subagent"] = Field("subagent", init=False)
-    """Subagent interaction toolset (delegate_to, ask_agent, list_available_agents/teams)."""
+    """Subagent interaction toolset (task, list_available_nodes)."""
 
     tools: dict[SubagentToolName, bool] | None = Field(
         default=None,

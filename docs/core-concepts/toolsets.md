@@ -27,8 +27,7 @@ agents:
 
 - `list_available_agents` - Discover other agents in the pool
 - `list_available_teams` - Discover available teams
-- `delegate_to` - Assign tasks to other agents
-- `ask_agent` - Ask other agents directly
+- `task` - Execute tasks on other agents or teams
 - `add_agent` - Add new agents to the pool
 - `add_team` - Create new teams
 - `connect_nodes` - Connect agents/teams in workflows

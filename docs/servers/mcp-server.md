@@ -70,7 +70,7 @@ agents:
     system_prompt: "Expert in API design"
     
 tools:
-  - type: subagent  # Exposes delegate_to, ask_agent
+  - type: subagent  # Exposes task, list_available_nodes
 ```
 
 External agents can now delegate to your experts via MCP.
@@ -107,7 +107,7 @@ tools:
   - type: file_access    # read, write, list_directory
   - type: process_management      # run_command, run_python
   - type: search         # web_search, news_search
-  - type: subagent       # delegate_to, ask_agent, list_nodes
+  - type: subagent       # task, list_available_nodes
 ```
 
 ### Resources

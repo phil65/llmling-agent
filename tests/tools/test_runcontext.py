@@ -99,9 +99,9 @@ async def test_capability_tools(default_model: str):
         await pool.add_agent(agent_2)
         agent_3 = Agent(name="helper", system_prompt="You help with tasks", model=default_model)
         await pool.add_agent(agent_3)
-        result = await agent_2.run("Delegate 'say hello' to agent with name `helper`")
+        result = await agent_2.run("Execute task 'say hello' on agent with name `helper`")
         assert result.get_tool_calls()
-        assert result.get_tool_calls()[0].tool_name == "delegate_to"
+        assert result.get_tool_calls()[0].tool_name == "task"
 
 
 @pytest.mark.flaky(reruns=2)

@@ -62,6 +62,12 @@ from agentpool_server.opencode_server.models import (
     ToolStateRunning,
     UserMessage,
 )
+from agentpool_server.opencode_server.models.message import (
+    AgentPartInput,
+    FilePartInput,
+    SubtaskPartInput,
+    TextPartInput,
+)
 
 
 if TYPE_CHECKING:
@@ -72,6 +78,7 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
     from agentpool_server.opencode_server.models import Part, ToolState
+    from agentpool_server.opencode_server.models.message import PartInput
 
 
 logger = log.get_logger(__name__)
@@ -114,7 +121,7 @@ def _get_input_from_state(state: ToolState, *, convert_params: bool = False) -> 
 
 
 def _convert_file_part_to_user_content(
-    part: dict[str, Any],
+    part: FilePartInput,
     fs: AsyncFileSystem | None = None,
 ) -> UserContent | PathReference:
     """Convert an OpenCode FilePartInput to pydantic-ai content or PathReference.
@@ -136,9 +143,9 @@ def _convert_file_part_to_user_content(
     """
     from urllib.parse import unquote, urlparse
 
-    mime = part.get("mime", "")
-    url = part.get("url", "")
-    filename = part.get("filename", "")
+    mime = part.mime
+    url = part.url
+    filename = part.filename or ""
     # Handle data: URIs - convert to BinaryContent
     if url.startswith("data:"):
         return BinaryContent.from_data_uri(url)
@@ -183,18 +190,20 @@ def get_file_url_obj(url: str, mime: str) -> MultiModalContent | None:
 
 
 def extract_user_prompt_from_parts(
-    parts: list[dict[str, Any]],
+    parts: list[PartInput],
     fs: AsyncFileSystem | None = None,
 ) -> str | Sequence[UserContent | PathReference]:
-    """Extract user prompt from OpenCode message parts.
+    """Extract user prompt from OpenCode message input parts.
 
-    Converts OpenCode parts to pydantic-ai UserContent or PathReference format:
+    Converts OpenCode input parts to pydantic-ai UserContent or PathReference format:
     - Text parts become strings
     - File parts with file:// URLs become PathReference (deferred resolution)
     - Other file parts become ImageUrl, DocumentUrl, AudioUrl, VideoUrl, or BinaryContent
+    - Agent parts inject instructions to delegate to sub-agents
+    - Subtask parts inject instructions for spawning subtasks
 
     Args:
-        parts: List of OpenCode message parts
+        parts: List of OpenCode message input parts
         fs: Optional async filesystem for PathReference resolution
 
     Returns:
@@ -202,63 +211,31 @@ def extract_user_prompt_from_parts(
     """
     result: list[UserContent | PathReference] = []
     for part in parts:
-        match part.get("type"):
-            case "text" if text := part.get("text", ""):
+        match part:
+            case TextPartInput(text=text) if text:
                 result.append(text)
-            case "file":
+            case FilePartInput():
                 content = _convert_file_part_to_user_content(part, fs=fs)
                 result.append(content)
-            case "agent" if agent_name := part.get("name", ""):
-                # Agent mention - inject instruction to delegate to sub-agent
+            case AgentPartInput(name=agent_name):
+                # Agent mention (@agent-name in prompt) - inject instruction to execute task
                 # This mirrors OpenCode's server-side behavior: inject a synthetic
                 # text instruction telling the LLM to call the task tool
-                # TODO: Implement proper agent delegation via task tool
-                # For now, we add the instruction as text that the LLM will see
                 instruction = (
                     f"Use the above message and context to generate a prompt "
-                    f"and call the task tool with subagent: {agent_name}"
+                    f"and call the task tool with agent_or_team='{agent_name}'"
                 )
                 result.append(instruction)
-            case "snapshot":
-                # File system snapshot reference
-                # TODO: Implement snapshot restoration/reference
-                snapshot_id = part.get("snapshot", "")
-                logger.debug("Ignoring snapshot part", snapshot_id=snapshot_id)
-            case "patch":
-                # Diff/patch content
-                # TODO: Implement patch application
-                patch_hash = part.get("hash", "")
-                files = part.get("files", [])
-                logger.debug("Ignoring patch part", patch_hash=patch_hash, files=files)
-            case "reasoning" if reasoning_text := part.get("text", ""):
-                # Extended thinking/reasoning content from the model
-                # Include as text context since it contains useful reasoning
-                result.append(f"[Reasoning]: {reasoning_text}")
-            case "compaction":
-                # Marks where conversation was compacted
-                # TODO: Handle compaction markers for context management
-                auto = part.get("auto", False)
-                logger.debug("Ignoring compaction part", auto=auto)
-            case "subtask":
-                # References a spawned subtask
-                # TODO: Implement subtask tracking/results
-                agent = part.get("agent", "")
-                desc = part.get("description", "")
-                logger.debug("Ignoring subtask part", agent=agent, description=desc)
-            case "retry":
-                # Marks a retry of a failed operation
-                # TODO: Handle retry tracking
-                attempt = part.get("attempt", 0)
-                logger.debug("Ignoring retry part", attempt=attempt)
-            case "step-start":
-                # Step start marker - informational only
-                logger.debug("Ignoring step-start part")
-            case "step-finish":
-                # Step finish marker - informational only
-                logger.debug("Ignoring step-finish part")
-            case _ as part_type:
-                # Unknown part type
-                logger.warning("Unknown part type", part_type=part_type)
+            case SubtaskPartInput(agent=agent, prompt=subtask_prompt, description=desc):
+                # Subtask - explicit task execution with pre-defined prompt
+                # Inject instruction to call task with the provided parameters
+                instruction = (
+                    f"Call the task tool with:\n"
+                    f"  agent_or_team: '{agent}'\n"
+                    f"  prompt: '{subtask_prompt}'\n"
+                    f"  description: '{desc}'"
+                )
+                result.append(instruction)
 
     # If only text parts, join them as a single string for simplicity
     if all(isinstance(item, str) for item in result):

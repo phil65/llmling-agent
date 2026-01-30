@@ -111,9 +111,9 @@ async def test_acp_agent_toolsets_adds_providers():
         # The tools should now include tools from both toolsets
         tools = await agent.tools.get_tools()
         tool_names = {t.name for t in tools}
-        # SubagentTools provides: list_available_nodes, delegate_to, ask_agent
+        # SubagentTools provides: list_available_nodes, task
         assert "list_available_nodes" in tool_names
-        assert "delegate_to" in tool_names
+        assert "task" in tool_names
         # SkillsTools provides: list_skills, load_skill, run_command
         assert "list_skills" in tool_names
         await agent._cleanup()

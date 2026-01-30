@@ -16,7 +16,9 @@ from agentpool_server.opencode_server.converters import (
 )
 from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.models import (
+    AgentPart,
     AssistantMessage,
+    FilePart,
     MessagePath,
     MessageRequest,
     MessageTime,
@@ -27,6 +29,7 @@ from agentpool_server.opencode_server.models import (
     SessionStatus,
     SessionStatusEvent,
     StepStartPart,
+    SubtaskPart,
     TextPart,
     TimeCreated,
     TimeCreatedUpdated,
@@ -35,7 +38,13 @@ from agentpool_server.opencode_server.models import (
     UserMessage,
 )
 from agentpool_server.opencode_server.models.events import LspUpdatedEvent
-from agentpool_server.opencode_server.models.message import UserMessageModel
+from agentpool_server.opencode_server.models.message import (
+    AgentPartInput,
+    FilePartInput,
+    SubtaskPartInput,
+    TextPartInput,
+    UserMessageModel,
+)
 from agentpool_server.opencode_server.routes.session_routes import get_or_load_session
 from agentpool_server.opencode_server.stream_adapter import OpenCodeStreamAdapter
 
@@ -138,7 +147,7 @@ async def list_messages(
     return messages[-limit:] if limit else messages
 
 
-async def _process_message(
+async def _process_message(  # noqa: PLR0915
     session_id: str,
     request: MessageRequest,
     state: StateDep,
@@ -166,29 +175,66 @@ async def _process_message(
         variant=request.variant,
     )
 
-    user_parts: list[Part] = [
-        TextPart(
-            id=identifier.ascending("part"),
-            message_id=user_msg_id,
-            session_id=session_id,
-            text=part.text,
-        )
-        for part in request.parts
-        if part.type == "text"
-    ]
+    user_parts: list[Part] = []
+    for part in request.parts:
+        match part:
+            case TextPartInput(text=text):
+                user_parts.append(
+                    TextPart(
+                        id=identifier.ascending("part"),
+                        message_id=user_msg_id,
+                        session_id=session_id,
+                        text=text,
+                    )
+                )
+            case FilePartInput(mime=mime, url=url, filename=filename, source=source):
+                user_parts.append(
+                    FilePart(
+                        id=identifier.ascending("part"),
+                        message_id=user_msg_id,
+                        session_id=session_id,
+                        mime=mime,
+                        url=url,
+                        filename=filename,
+                        source=source,
+                    )
+                )
+            case AgentPartInput(name=name, source=source):
+                user_parts.append(
+                    AgentPart(
+                        id=identifier.ascending("part"),
+                        message_id=user_msg_id,
+                        session_id=session_id,
+                        name=name,
+                        source=source,
+                    )
+                )
+            case SubtaskPartInput(
+                prompt=subtask_prompt, description=desc, agent=subtask_agent, model=subtask_model
+            ):
+                user_parts.append(
+                    SubtaskPart(
+                        id=identifier.ascending("part"),
+                        message_id=user_msg_id,
+                        session_id=session_id,
+                        prompt=subtask_prompt,
+                        description=desc,
+                        agent=subtask_agent,
+                        model=subtask_model,
+                    )
+                )
     user_msg_with_parts = MessageWithParts(info=user_message, parts=user_parts)
     state.messages[session_id].append(user_msg_with_parts)
     await persist_message_to_storage(state, user_msg_with_parts, session_id)
     await state.broadcast_event(MessageUpdatedEvent.create(user_message))
-    for part in user_parts:
-        await state.broadcast_event(PartUpdatedEvent.create(part))
+    for user_part in user_parts:
+        await state.broadcast_event(PartUpdatedEvent.create(user_part))
     # --- Mark session busy ---
     busy = SessionStatus(type="busy")
-    state.session_status[session_id] = busy)
-    await state.broadcast_event(SessionStatusEvent.create(session_id, busy)))
+    state.session_status[session_id] = busy
+    await state.broadcast_event(SessionStatusEvent.create(session_id, busy))
     # --- Extract user prompt ---
-    part_data = [p.model_dump() for p in request.parts]
-    user_prompt = extract_user_prompt_from_parts(part_data, fs=state.fs)
+    user_prompt = extract_user_prompt_from_parts(request.parts, fs=state.fs)
     # --- Create assistant message ---
     assistant_msg_id = identifier.ascending("message")
     now = now_ms()

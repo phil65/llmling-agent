@@ -64,8 +64,8 @@ async def test_claude_code_with_subagent_toolset_setup(
         tools = await agent.tools.get_tools()
         assert len(tools) > 0
         tool_names = {t.name for t in tools}
-        # SubagentTools provides: list_available_nodes, delegate_to, ask_agent
-        assert "list_available_nodes" in tool_names or "delegate_to" in tool_names
+        # SubagentTools provides: list_available_nodes, task
+        assert "list_available_nodes" in tool_names or "task" in tool_names
 
 
 async def test_claude_code_subagent_tool_invocation(
@@ -106,8 +106,8 @@ async def test_claude_code_multiple_toolsets():
         tools = await agent.tools.get_tools()
         tool_names = {t.name for t in tools}
         # Should have tools from both toolsets
-        # SubagentToolset provides: list_available_nodes, delegate_to, ask_agent
-        assert "list_available_nodes" in tool_names or "delegate_to" in tool_names
+        # SubagentToolset provides: list_available_nodes, task
+        assert "list_available_nodes" in tool_names or "task" in tool_names
         # SkillsToolset provides: list_skills, load_skill, run_command
         assert "list_skills" in tool_names or "load_skill" in tool_names
 

@@ -57,8 +57,8 @@ async def test_claude_acp_with_subagent_toolset_setup(manifest_with_claude: Agen
         tools = await agent.tools.get_tools()
         assert len(tools) > 0
         tool_names = {t.name for t in tools}
-        # SubagentTools provides: list_available_nodes, delegate_to, ask_agent
-        assert "list_available_nodes" in tool_names or "delegate_to" in tool_names
+        # SubagentTools provides: list_available_nodes, task
+        assert "list_available_nodes" in tool_names or "task" in tool_names
 
 
 async def test_claude_acp_subagent_invocation(manifest_with_claude: AgentsManifest):
@@ -102,9 +102,9 @@ async def test_claude_acp_multiple_toolsets():
         assert agent._tool_bridge is not None
         tool_names = {t.name for t in await agent.tools.get_tools()}
         # Should have tools from both toolsets
-        # SubagentToolset provides: list_available_nodes, delegate_to, ask_agent
+        # SubagentToolset provides: list_available_nodes, task
         assert "list_available_nodes" in tool_names
-        assert "delegate_to" in tool_names
+        assert "task" in tool_names
         assert "execute_introspection" in tool_names
 
 

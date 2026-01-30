@@ -1,4 +1,4 @@
-"""Provider for subagent interaction tools with streaming support."""
+"""Provider for subagent/task tools with streaming support."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-async def _stream_subagent(
+async def _stream_task(
     ctx: AgentContext,
     source_name: str,
     source_type: Literal["agent", "team_parallel", "team_sequential"],
@@ -32,15 +32,15 @@ async def _stream_subagent(
     batch_deltas: bool = False,
     depth: int = 1,
 ) -> str:
-    """Stream a subagent's execution, emitting SubAgentEvents into parent stream.
+    """Stream a task's execution, emitting SubAgentEvents into parent stream.
 
     Args:
         ctx: Agent context for emitting events
-        source_name: Name of the subagent/team
+        source_name: Name of the agent/team executing the task
         source_type: Whether source is "agent" or "team"
         stream: Async iterator of stream events from agent.run_stream()
         batch_deltas: If True, batch consecutive text/thinking deltas for fewer UI updates
-        depth: Nesting depth for nested delegation
+        depth: Nesting depth for nested task delegation
 
     Returns:
         Final text content from the stream
@@ -78,7 +78,7 @@ async def _stream_subagent(
 
 
 class SubagentTools(StaticResourceProvider):
-    """Provider for subagent interaction tools with streaming progress."""
+    """Provider for task delegation tools with streaming progress."""
 
     def __init__(
         self,
@@ -92,8 +92,7 @@ class SubagentTools(StaticResourceProvider):
             self.create_tool(
                 self.list_available_nodes, category="search", read_only=True, idempotent=True
             ),
-            self.create_tool(self.delegate_to, category="other"),
-            self.create_tool(self.ask_agent, category="other"),
+            self.create_tool(self.task, category="other"),
         ]:
             self.add_tool(tool)
 
@@ -110,7 +109,7 @@ class SubagentTools(StaticResourceProvider):
             only_idle: If True, only returns nodes that aren't currently busy
 
         Returns:
-            List of node names that you can use with delegate_to or ask_agent
+            List of node names that can be used with the task tool
         """
         if ctx.pool is None:
             msg = "No agent pool available"
@@ -141,39 +140,45 @@ class SubagentTools(StaticResourceProvider):
 
         return "\n".join(lines) if lines else "No nodes available"
 
-    async def delegate_to(  # noqa: D417
+    async def task(  # noqa: D417
         self,
         ctx: AgentContext,
-        agent_or_team_name: str,
+        agent_or_team: str,
         prompt: str,
+        description: str,
     ) -> str:
-        """Delegate a task to an agent or team.
+        """Execute a task on an agent or team.
 
-        If an action requires you to delegate a task, this tool can be used to assign and
-        execute a task. Instructions can be passed via the prompt parameter.
+        Launch a task to be executed by a specialized agent or team. The task runs
+        synchronously, streaming progress events, and returns the result when complete.
 
         Args:
-            agent_or_team_name: The agent or team to delegate the task to
-            prompt: Instructions for the agent or team to delegate to.
+            agent_or_team: The agent or team to execute the task
+            prompt: The task instructions for the agent or team
+            description: A short (3-5 words) description of the task
 
         Returns:
-            The result of the delegated task
+            The result of the task execution
         """
         from agentpool import Team, TeamRun
         from agentpool.agents.base_agent import BaseAgent
         from agentpool.common_types import SupportsRunStream
 
+        _ = description  # Used for logging/tracking in future
+
         if ctx.pool is None:
-            msg = "Agent needs to be in a pool to delegate tasks"
+            msg = "Agent needs to be in a pool to execute tasks"
             raise ToolError(msg)
-        if agent_or_team_name not in ctx.pool.nodes:
+
+        if agent_or_team not in ctx.pool.nodes:
             msg = (
-                f"No agent or team found with name: {agent_or_team_name}. "
+                f"No agent or team found with name: {agent_or_team}. "
                 f"Available nodes: {', '.join(ctx.pool.nodes.keys())}"
             )
             raise ModelRetry(msg)
+
         # Determine source type and get node
-        node = ctx.pool.nodes[agent_or_team_name]
+        node = ctx.pool.nodes[agent_or_team]
         match node:
             case Team():
                 source_type: Literal["team_parallel", "team_sequential", "agent"] = "team_parallel"
@@ -181,52 +186,18 @@ class SubagentTools(StaticResourceProvider):
                 source_type = "team_sequential"
             case BaseAgent():
                 source_type = "agent"
+
         if not isinstance(node, SupportsRunStream):
-            msg = f"Node {agent_or_team_name} does not support streaming"
+            msg = f"Node {agent_or_team} does not support streaming"
             raise ToolError(msg)
 
+        logger.info("Executing task", agent_or_team=agent_or_team, description=description)
+
         # Stream with SubAgentEvent wrapping
-        return await _stream_subagent(
+        return await _stream_task(
             ctx,
-            source_name=agent_or_team_name,
+            source_name=agent_or_team,
             source_type=source_type,
             stream=node.run_stream(prompt),
             batch_deltas=self._batch_stream_deltas,
         )
-
-    async def ask_agent(  # noqa: D417
-        self,
-        ctx: AgentContext,
-        agent_name: str,
-        message: str,
-    ) -> str:
-        """Send a message to a specific agent and get their response.
-
-        Args:
-            agent_name: Name of the agent to interact with
-            message: Message to send to the agent
-
-        Returns:
-            The agent's response
-        """
-        if ctx.pool is None:
-            msg = "No agent pool available"
-            raise ToolError(msg)
-
-        if agent_name not in ctx.pool.all_agents:
-            available = list(ctx.pool.all_agents.keys())
-            names = ", ".join(available)
-            raise ModelRetry(f"Agent not found: {agent_name}. Available agents: {names}")
-
-        agent = ctx.pool.all_agents[agent_name]
-        try:
-            return await _stream_subagent(
-                ctx,
-                source_name=agent_name,
-                source_type="agent",
-                stream=agent.run_stream(message),
-                batch_deltas=self._batch_stream_deltas,
-            )
-        except Exception as e:
-            msg = f"Failed to ask agent {agent_name}: {e}"
-            raise ModelRetry(msg) from e

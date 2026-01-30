@@ -6,9 +6,13 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field
 
+from agentpool_server.opencode_server.models.agent import AgentModel  # noqa: TC001
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: TC001
-from agentpool_server.opencode_server.models.parts import Part  # noqa: TC001
+from agentpool_server.opencode_server.models.parts import (  # noqa: TC001
+    AgentPartSource,
+    Part,
+)
 
 
 if TYPE_CHECKING:
@@ -136,6 +140,17 @@ class FilePartSource(OpenCodeBaseModel):
     type: str | None = None
     path: str | None = None
 
+    @classmethod
+    def create(
+        cls,
+        value: str,
+        start: int,
+        end: int,
+        typ: str | None = None,
+        path: str | None = None,
+    ) -> FilePartSource:
+        return cls(text=FilePartSourceText(value=value, start=start, end=end), type=typ, path=path)
+
 
 class FilePartInput(OpenCodeBaseModel):
     """File part for input (image, document, etc.)."""
@@ -147,14 +162,6 @@ class FilePartInput(OpenCodeBaseModel):
     source: FilePartSource | None = None
 
 
-class AgentPartSourceInput(OpenCodeBaseModel):
-    """Agent part source location in original text."""
-
-    value: str
-    start: int
-    end: int
-
-
 class AgentPartInput(OpenCodeBaseModel):
     """Agent mention part for input - references a sub-agent to delegate to.
 
@@ -164,15 +171,8 @@ class AgentPartInput(OpenCodeBaseModel):
     type: Literal["agent"] = "agent"
     name: str
     """Name of the agent to delegate to."""
-    source: AgentPartSourceInput | None = None
+    source: AgentPartSource | None = None
     """Source location in the original prompt text."""
-
-
-class SubtaskModelInput(OpenCodeBaseModel):
-    """Model info for subtask input."""
-
-    provider_id: str
-    model_id: str
 
 
 class SubtaskPartInput(OpenCodeBaseModel):
@@ -185,7 +185,7 @@ class SubtaskPartInput(OpenCodeBaseModel):
     """Description of what the subtask does."""
     agent: str
     """The agent to handle this subtask."""
-    model: SubtaskModelInput | None = None
+    model: AgentModel | None = None
     """Optional model to use for the subtask."""
 
 
