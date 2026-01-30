@@ -59,7 +59,7 @@ dependencies = [
   "pydocket>=0.16.1",
   "python-dotenv>=1.0.1",
   "rich",
-  "ripgrep-rs>=0.3.0; sys_platform != 'win32'",  # Supports free-threaded Python 3.13+ (Linux only for now)
+  "ripgrep-rs>=0.3.0",  # Supports free-threaded Python 3.13+ (Linux only for now)
   "schemez[codegen]",
   # "schemez @ file:///home/phil65/dev/oss/schemez",
   "searchly[all]>=2.0.1",
