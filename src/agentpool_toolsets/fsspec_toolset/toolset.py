@@ -23,6 +23,7 @@ from pydantic_ai import (
     TextPartDelta,
     ToolCallPart,
 )
+from sublime_search import replace_content
 from upathtools import is_directory
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
@@ -35,7 +36,6 @@ from agentpool.tool_impls.grep import create_grep_tool
 from agentpool.tool_impls.list_directory import create_list_directory_tool
 from agentpool.tool_impls.read import create_read_tool
 from agentpool.tools.base import ToolResult  # noqa: TC001
-from agentpool_toolsets.builtin.file_edit import replace_content
 from agentpool_toolsets.fsspec_toolset.diagnostics import (
     DiagnosticsConfig,
     DiagnosticsManager,

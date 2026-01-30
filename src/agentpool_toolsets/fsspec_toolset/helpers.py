@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import difflib
 import re
 from typing import Any
 
@@ -170,7 +169,7 @@ async def apply_diff_edits(
     Raises:
         ModelRetry: If edits cannot be applied (for agent retry)
     """
-    from agentpool_toolsets.builtin.file_edit import replace_content
+    from sublime_search import replace_content
 
     hunks = parse_locationless_diff(diff_response)
 
@@ -475,6 +474,8 @@ async def apply_structured_edits(original_content: str, edits_response: str) -> 
 
 
 def get_changed_lines(original_content: str, new_content: str, path: str) -> list[str]:
+    import difflib
+
     old = original_content.splitlines(keepends=True)
     new = new_content.splitlines(keepends=True)
     diff = list(difflib.unified_diff(old, new, fromfile=path, tofile=path, lineterm=""))
@@ -494,6 +495,8 @@ def get_changed_line_numbers(original_content: str, new_content: str) -> list[in
     Returns:
         List of line numbers (1-based) where changes occurred in new content
     """
+    import difflib
+
     old_lines = original_content.splitlines(keepends=True)
     new_lines = new_content.splitlines(keepends=True)
     # Use SequenceMatcher to find changed blocks
