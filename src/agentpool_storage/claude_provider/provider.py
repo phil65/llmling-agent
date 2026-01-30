@@ -26,6 +26,7 @@ from pydantic import TypeAdapter
 from agentpool.common_types import MessageRole
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
+from agentpool.utils.thread_helpers import parallel_map
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.claude_provider.converters import (
@@ -145,6 +146,19 @@ class SessionMetadata:
     title: str | None
 
 
+@dataclass(slots=True)
+class ParsedSession:
+    """Fully parsed session with entries, messages, and metadata."""
+
+    session_id: str
+    path: Path
+    entries: list[ClaudeJSONLEntry]
+    tool_mapping: dict[str, str]
+    messages: list[ChatMessage[str]]
+    first_timestamp: datetime | None
+    total_tokens: int
+
+
 def _read_session_metadata(
     session_path: Path,
     max_title_chars: int = 60,
@@ -222,6 +236,56 @@ def _read_session_metadata(
         cwd=cwd,
         message_count=message_count,
         title=title,
+    )
+
+
+def _parse_session_full(session_id: str, session_path: Path) -> ParsedSession | None:
+    """Parse a session file fully, including message conversion.
+
+    This is the CPU-intensive operation that benefits from parallelization
+    on free-threaded Python. It combines:
+    - File I/O (reading JSONL)
+    - JSON parsing
+    - Pydantic validation
+    - Message conversion
+
+    Args:
+        session_id: Session identifier
+        session_path: Path to the JSONL session file
+
+    Returns:
+        ParsedSession with all data, or None if session is empty
+    """
+    entries = _read_session(session_path)
+    if not entries:
+        return None
+
+    tool_mapping = _build_tool_id_mapping(entries)
+    messages: list[ChatMessage[str]] = []
+    first_timestamp: datetime | None = None
+    total_tokens = 0
+
+    for entry in entries:
+        msg = entry_to_chat_message(entry, session_id, tool_mapping)
+        if msg is None:
+            continue
+        messages.append(msg)
+        if first_timestamp is None and msg.timestamp:
+            first_timestamp = msg.timestamp
+        if msg.cost_info:
+            total_tokens += msg.cost_info.token_usage.total_tokens
+
+    if not messages:
+        return None
+
+    return ParsedSession(
+        session_id=session_id,
+        path=session_path,
+        entries=entries,
+        tool_mapping=tool_mapping,
+        messages=messages,
+        first_timestamp=first_timestamp,
+        total_tokens=total_tokens,
     )
 
 
@@ -330,35 +394,46 @@ class ClaudeStorageProvider(StorageProvider):
         return result
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
-        """Filter messages based on query."""
-        messages: list[ChatMessage[str]] = []
+        """Filter messages based on query.
+
+        Uses parallel parsing on free-threaded Python when querying
+        across multiple sessions.
+        """
         # Narrow session list when a specific session is requested
         if query.name:
             path = self._find_session_path(query.name)
             sessions = [(query.name, path)] if path else []
         else:
             sessions = self._list_sessions()
-        for session_id, session_path in sessions:
-            entries = _read_session(session_path)
-            tool_mapping = _build_tool_id_mapping(entries)
 
-            for entry in entries:
-                msg = entry_to_chat_message(entry, session_id, tool_mapping)
-                if msg is None:
-                    continue
+        if not sessions:
+            return []
 
+        # Parse sessions in parallel (CPU-intensive)
+        parsed_sessions = parallel_map(
+            lambda item: _parse_session_full(item[0], item[1]),
+            sessions,
+        )
+
+        # Filter messages (fast, sequential)
+        messages: list[ChatMessage[str]] = []
+        cutoff = query.get_time_cutoff()
+        until_dt = datetime.fromisoformat(query.until) if query.until else None
+
+        for parsed in parsed_sessions:
+            if parsed is None:
+                continue
+
+            for msg in parsed.messages:
                 # Apply filters
                 if query.agents and msg.name not in query.agents:
                     continue
 
-                cutoff = query.get_time_cutoff()
                 if query.since and cutoff and msg.timestamp and msg.timestamp < cutoff:
                     continue
 
-                if query.until and msg.timestamp:
-                    until_dt = datetime.fromisoformat(query.until)
-                    if msg.timestamp > until_dt:
-                        continue
+                if until_dt and msg.timestamp and msg.timestamp > until_dt:
+                    continue
 
                 if query.contains and query.contains not in msg.content:
                     continue
@@ -443,44 +518,44 @@ class ClaudeStorageProvider(StorageProvider):
         self,
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
-        """Get filtered conversations with their messages."""
+        """Get filtered conversations with their messages.
+
+        Uses parallel parsing on free-threaded Python for better performance
+        when processing many session files.
+        """
         from agentpool_storage.models import ConversationData
 
+        # Collect session list (lightweight - no parsing)
+        sessions = self._list_sessions(project_path=filters.cwd)
+        if not sessions:
+            return []
+
+        # Parse sessions in parallel (CPU-intensive Pydantic validation)
+        # parallel_map automatically falls back to sequential on GIL-enabled Python
+        parsed_sessions = parallel_map(
+            lambda item: _parse_session_full(item[0], item[1]),
+            sessions,
+        )
+
+        # Filter and build results (fast, sequential)
         result: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
-        # Use cwd filter at filesystem level for efficiency
-        for session_id, session_path in self._list_sessions(project_path=filters.cwd):
-            entries = _read_session(session_path)
-            if not entries:
-                continue
-
-            tool_mapping = _build_tool_id_mapping(entries)
-            # Build messages
-            messages: list[ChatMessage[str]] = []
-            first_timestamp: datetime | None = None
-            total_tokens = 0
-            for entry in entries:
-                msg = entry_to_chat_message(entry, session_id, tool_mapping)
-                if msg is None:
-                    continue
-                messages.append(msg)
-                if first_timestamp is None and msg.timestamp:
-                    first_timestamp = msg.timestamp
-                if msg.cost_info:
-                    total_tokens += msg.cost_info.token_usage.total_tokens
-
-            if not messages:
+        for parsed in parsed_sessions:
+            if parsed is None:
                 continue
 
             # Apply filters
-            if filters.agent_name and not any(m.name == filters.agent_name for m in messages):
+            if filters.agent_name and not any(
+                m.name == filters.agent_name for m in parsed.messages
+            ):
                 continue
-            if filters.since and first_timestamp and first_timestamp < filters.since:
+            if filters.since and parsed.first_timestamp and parsed.first_timestamp < filters.since:
                 continue
-            if filters.query and not any(filters.query in m.content for m in messages):
+            if filters.query and not any(filters.query in m.content for m in parsed.messages):
                 continue
+
             # Build MessageData list
             msg_data_list: list[MessageData] = []
-            for msg in messages:
+            for msg in parsed.messages:
                 msg_data: MessageData = {
                     "role": msg.role,
                     "content": msg.content,
@@ -501,18 +576,20 @@ class ClaudeStorageProvider(StorageProvider):
                 msg_data_list.append(msg_data)
 
             token_usage_data: TokenUsage | None = (
-                {"total": total_tokens, "prompt": 0, "completion": 0} if total_tokens else None
+                {"total": parsed.total_tokens, "prompt": 0, "completion": 0}
+                if parsed.total_tokens
+                else None
             )
             conv_data = ConversationData(
-                id=session_id,
-                agent=messages[0].name or "claude",
-                title=extract_title(session_path),
-                start_time=(first_timestamp or get_now()).isoformat(),
+                id=parsed.session_id,
+                agent=parsed.messages[0].name or "claude",
+                title=extract_title(parsed.path),
+                start_time=(parsed.first_timestamp or get_now()).isoformat(),
                 messages=msg_data_list,
                 token_usage=token_usage_data,
             )
 
-            result.append((conv_data, messages))
+            result.append((conv_data, parsed.messages))
             if filters.limit and len(result) >= filters.limit:
                 break
 
