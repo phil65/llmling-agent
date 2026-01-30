@@ -37,6 +37,7 @@ from agentpool_storage.claude_provider.converters import (
 )
 from agentpool_storage.claude_provider.models import (
     ClaudeAssistantEntry,
+    ClaudeEntry,
     ClaudeJSONLEntry,
     ClaudeUserEntry,
 )
@@ -758,23 +759,16 @@ class ClaudeStorageProvider(StorageProvider):
             # Verify message exists
             found = False
             for entry in entries:
-                if (
-                    isinstance(entry, (ClaudeUserEntry, ClaudeAssistantEntry))
-                    and entry.uuid == fork_from_message_id
-                ):
+                if isinstance(entry, ClaudeEntry) and entry.uuid == fork_from_message_id:
                     found = True
                     fork_point_id = fork_from_message_id
                     break
             if not found:
                 err = f"Message {fork_from_message_id} not found in conversation"
                 raise ValueError(err)
-        else:
-            # Find last message
-            msg_entries = [
-                e for e in entries if isinstance(e, (ClaudeUserEntry, ClaudeAssistantEntry))
-            ]
-            if msg_entries:
-                fork_point_id = msg_entries[-1].uuid
+        # Find last message
+        elif msg_entries := [e for e in entries if isinstance(e, ClaudeEntry)]:
+            fork_point_id = msg_entries[-1].uuid
 
         # Create new session file (empty for now - will be populated when messages added)
         # Determine project from source path structure

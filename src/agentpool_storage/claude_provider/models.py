@@ -127,6 +127,9 @@ class ClaudeAssistantEntry(ClaudeMessageEntryBase):
     is_api_error_message: bool | None = None
 
 
+ClaudeEntry = ClaudeUserEntry | ClaudeAssistantEntry
+
+
 # Queue operation content types
 class ClaudeTextContent(ClaudeBaseModel):
     """Text content block."""
