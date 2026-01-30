@@ -544,6 +544,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             tools=self._builtin_tools,
             fallback_model=self._fallback_model,
             can_use_tool=can_use_tool,
+            max_buffer_size=10 * 1024 * 1024,
             output_format=to_output_format(self._output_type),
             mcp_servers=self._mcp_servers or {},
             include_partial_messages=True,
