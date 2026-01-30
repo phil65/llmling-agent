@@ -15,7 +15,7 @@ from agentpool.utils import identifiers as identifier
 from agentpool.utils.time_utils import now_ms
 from agentpool_server.opencode_server.command_validation import validate_command
 from agentpool_server.opencode_server.converters import (
-    agent_messages_to_opencode,
+    chat_message_to_opencode,
     opencode_to_session_data,
     session_data_to_opencode,
 )
@@ -84,13 +84,17 @@ async def get_or_load_session(state: ServerState, session_id: str) -> Session | 
     if session_id not in state.session_status:
         state.session_status[session_id] = SessionStatus(type="idle")
     # Convert agent's conversation history to OpenCode format
-    state.messages[session_id] = agent_messages_to_opencode(
-        list(state.agent.conversation.chat_messages),
-        session_id=session_id,
-        working_dir=state.working_dir,
-        agent_name=state.agent.name,
-    )
-
+    state.messages[session_id] = [
+        chat_message_to_opencode(
+            chat_msg,
+            session_id=session_id,
+            working_dir=state.working_dir,
+            agent_name=state.agent.name,
+            model_id=chat_msg.model_name or "sonnet",  # Normalized name from Claude storage
+            provider_id=chat_msg.provider_name or "claude-code",
+        )
+        for chat_msg in state.agent.conversation.chat_messages
+    ]
     return session
 
 

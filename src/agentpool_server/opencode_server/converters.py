@@ -739,34 +739,3 @@ def opencode_to_session_data(
         last_active=ms_to_datetime(session.time.updated),
         metadata=metadata,
     )
-
-
-def agent_messages_to_opencode(
-    chat_messages: list[ChatMessage[Any]],
-    session_id: str,
-    working_dir: str,
-    agent_name: str,
-) -> list[MessageWithParts]:
-    """Convert agent's chat messages to OpenCode format.
-
-    Args:
-        chat_messages: List of ChatMessage from agent.conversation
-        session_id: OpenCode session ID
-        working_dir: Working directory for path context
-        agent_name: Name of the agent
-
-    Returns:
-        List of OpenCode MessageWithParts
-    """
-    opencode_messages: list[MessageWithParts] = []
-    for chat_msg in chat_messages:
-        opencode_msg = chat_message_to_opencode(
-            chat_msg,
-            session_id=session_id,
-            working_dir=working_dir,
-            agent_name=agent_name,
-            model_id=chat_msg.model_name or "sonnet",  # Normalized name from Claude storage
-            provider_id=chat_msg.provider_name or "claude-code",
-        )
-        opencode_messages.append(opencode_msg)
-    return opencode_messages
