@@ -26,6 +26,11 @@ if TYPE_CHECKING:
 ConnectionType = Literal["run", "context", "forward"]
 
 
+DEFAULT_MESSAGE_TEMPLATE = """
+[{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}] {{ message.name }}: {{ message.content }}
+"""
+
+
 class ConnectionConfig(Schema):
     """Base model for message forwarding targets."""
 
@@ -84,23 +89,6 @@ class ConnectionConfig(Schema):
     )
     """Optional function to transform messages before forwarding."""
 
-    def connect_nodes(
-        self, source: MessageNode[Any, Any], target: MessageNode[Any, Any], name: str
-    ):
-        source.connect_to(
-            target,
-            connection_type=target.connection_type,
-            name=name,
-            priority=target.priority,
-            delay=target.delay,
-            queued=target.queued,
-            queue_strategy=target.queue_strategy,
-            transform=target.transform,
-            filter_condition=target.filter_condition.check if target.filter_condition else None,
-            stop_condition=target.stop_condition.check if target.stop_condition else None,
-            exit_condition=target.exit_condition.check if target.exit_condition else None,
-        )
-
 
 class NodeConnectionConfig(ConnectionConfig):
     """Forward messages to another node.
@@ -141,10 +129,25 @@ class NodeConnectionConfig(ConnectionConfig):
             raise ValueError(f"Forward target {self.name} not found")
         return node_dict[self.name]
 
-
-DEFAULT_MESSAGE_TEMPLATE = """
-[{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}] {{ message.name }}: {{ message.content }}
-"""
+    def connect_nodes(
+        self,
+        source: MessageNode[Any, Any],
+        target: MessageNode[Any, Any],
+        name: str,
+    ) -> None:
+        source.connect_to(
+            target,
+            connection_type=self.connection_type,
+            name=name,
+            priority=self.priority,
+            delay=self.delay,
+            queued=self.queued,
+            queue_strategy=self.queue_strategy,
+            transform=self.transform,
+            filter_condition=self.filter_condition.check if self.filter_condition else None,
+            stop_condition=self.stop_condition.check if self.stop_condition else None,
+            exit_condition=self.exit_condition.check if self.exit_condition else None,
+        )
 
 
 class FileConnectionConfig(ConnectionConfig):
