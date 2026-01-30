@@ -780,9 +780,10 @@ class FSSpecTools(ResourceProvider):
             hint = line_hint if len(replacements) == 1 else None
             for old_str, new_str in replacements:
                 try:
-                    new_content = replace_content(
+                    result = replace_content(
                         new_content, old_str, new_str, replace_all, line_hint=hint
                     )
+                    new_content = result.content
                 except ValueError as e:
                     error_msg = f"Edit failed on replacement {old_str!r}: {e}"
                     await agent_ctx.events.file_operation(

@@ -17,42 +17,6 @@ if TYPE_CHECKING:
     from agentpool.agents import AgentContext
 
 
-def _trim_diff(diff_text: str) -> str:
-    """Trim common indentation from diff output."""
-    lines = diff_text.split("\n")
-    content_lines = [
-        line
-        for line in lines
-        if line.startswith(("+", "-", " ")) and not line.startswith(("---", "+++"))
-    ]
-
-    if not content_lines:
-        return diff_text
-
-    # Find minimum indentation
-    min_indent = float("inf")
-    for line in content_lines:
-        content = line[1:]  # Remove +/- prefix
-        if content.strip():
-            indent = len(content) - len(content.lstrip())
-            min_indent = min(min_indent, indent)
-
-    if min_indent == float("inf") or min_indent == 0:
-        return diff_text
-
-    # Trim indentation
-    trimmed_lines = []
-    for line in lines:
-        if line.startswith(("+", "-", " ")) and not line.startswith(("---", "+++")):
-            prefix = line[0]
-            content = line[1:]
-            trimmed_lines.append(prefix + content[int(min_indent) :])
-        else:
-            trimmed_lines.append(line)
-
-    return "\n".join(trimmed_lines)
-
-
 async def edit_file_tool(
     file_path: str,
     old_string: str,
@@ -82,7 +46,7 @@ async def edit_file_tool(
     Returns:
         Dict with operation results including diff and any errors
     """
-    from sublime_search import replace_content
+    from sublime_search import replace_content, trim_diff
 
     if old_string == new_string:
         msg = "old_string and new_string must be different"
@@ -126,7 +90,7 @@ async def edit_file_tool(
         )
     )
     diff_text = "".join(diff_lines)
-    trimmed_diff = _trim_diff(diff_text) if diff_text else ""
+    trimmed_diff = trim_diff(diff_text) if diff_text else ""
 
     # Write new content
     try:
