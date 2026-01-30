@@ -58,7 +58,11 @@ class TeamConfig(NodeConfig):
     # knowledge: Knowledge | None = None
     # """Knowledge sources shared by all team members."""
 
-    def get_team(self, nodes: Sequence[MessageNode[Any, Any]], name: str) -> Team | TeamRun:
+    def get_team(
+        self,
+        nodes: Sequence[MessageNode[Any, Any]],
+        name: str,
+    ) -> Team | TeamRun[Any, Any]:
         """Create a team based on config."""
         from agentpool import Team, TeamRun
 
