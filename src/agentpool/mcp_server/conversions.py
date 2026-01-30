@@ -48,18 +48,13 @@ def to_mcp_messages(
         case UserPromptPart(content=content_items):
             for item in content_items:
                 match item:
-                    case BinaryContent():
-                        if item.is_audio:
-                            encoded = base64.b64encode(item.data).decode("utf-8")
-                            audio = AudioContent(
-                                type="audio", data=encoded, mimeType=item.media_type
-                            )
-                            messages.append(PromptMessage(role="user", content=audio))
-                        elif item.is_image:
-                            encoded = base64.b64encode(item.data).decode("utf-8")
-                            image = ImageContent(
-                                type="image", data=encoded, mimeType=item.media_type
-                            )
+                    case BinaryContent() if item.is_audio:
+                        encoded = base64.b64encode(item.data).decode("utf-8")
+                        audio = AudioContent(type="audio", data=encoded, mimeType=item.media_type)
+                        messages.append(PromptMessage(role="user", content=audio))
+                    case BinaryContent() if item.is_image:
+                        encoded = base64.b64encode(item.data).decode("utf-8")
+                        image = ImageContent(type="image", data=encoded, mimeType=item.media_type)
                         messages.append(PromptMessage(role="user", content=image))
                     case FileUrl(url=url):
                         content = TextContent(type="text", text=url)
