@@ -393,7 +393,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                 title=f"Running {p.tool_name}",
                             ),
                         )
-                        tool_calls[p.tool_call_id or ""] = tool_part
+                        tool_calls[p.tool_call_id] = tool_part
                         parts.append(tool_part)
 
             elif isinstance(model_msg, ModelRequest):
@@ -442,9 +442,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         )
 
                     elif isinstance(part, PydanticToolReturnPart):
-                        call_id = part.tool_call_id or ""
-                        existing = tool_calls.get(call_id)
-
+                        call_id = part.tool_call_id
                         # Format output
                         tool_content = part.content
                         if isinstance(tool_content, str):
@@ -453,7 +451,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                             output = anyenv.dump_json(tool_content, indent=True)
                         else:
                             output = str(tool_content) if tool_content is not None else ""
-                        if existing:
+                        if existing := tool_calls.get(call_id):
                             # Update existing tool part with completion
                             existing_input = _get_input_from_state(existing.state)
                             if isinstance(tool_content, dict) and "error" in tool_content:
