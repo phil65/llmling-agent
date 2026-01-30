@@ -55,9 +55,8 @@ def _get_pty_manager(state: StateDep) -> PtyManagerProtocol:
     try:
         return state.agent.env.get_pty_manager()
     except NotImplementedError as e:
-        raise HTTPException(
-            status_code=501, detail="PTY not supported by this execution environment"
-        ) from e
+        detail = "PTY not supported by this execution environment"
+        raise HTTPException(status_code=501, detail=detail) from e
 
 
 @router.get("")
