@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from pydantic_ai import AudioUrl, DocumentUrl, ImageUrl, VideoUrl
 from pydantic_ai.messages import BaseToolCallPart
 
 
 if TYPE_CHECKING:
+    from pydantic_ai import FileUrl
     from pydantic_ai.messages import ToolCallPartDelta
 
 
@@ -44,3 +46,17 @@ def safe_args_as_dict(
             return default
         # Preserve raw args for debugging/inspection
         return {"_raw_args": part.args} if part.args else {}
+
+
+def url_from_mime_type(uri: str, mime_type: str | None) -> FileUrl:
+    """Convert URI to appropriate pydantic-ai URL type based on MIME type."""
+    if not mime_type:
+        return DocumentUrl(url=uri)
+
+    if mime_type.startswith("image/"):
+        return ImageUrl(url=uri, media_type=mime_type)
+    if mime_type.startswith("audio/"):
+        return AudioUrl(url=uri, media_type=mime_type)
+    if mime_type.startswith("video/"):
+        return VideoUrl(url=uri, media_type=mime_type)
+    return DocumentUrl(url=uri, media_type=mime_type)

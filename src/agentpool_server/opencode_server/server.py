@@ -86,15 +86,7 @@ async def check_pypi_version(package: str = "agentpool") -> str | None:
 
 
 def compare_versions(current: str, latest: str) -> bool:
-    """Check if latest version is newer than current.
-
-    Args:
-        current: Current version string
-        latest: Latest version string
-
-    Returns:
-        True if latest is newer than current
-    """
+    """Check if latest version is newer than current."""
     from packaging.version import Version
 
     try:

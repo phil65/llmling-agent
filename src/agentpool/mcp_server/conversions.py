@@ -6,19 +6,16 @@ import base64
 from typing import TYPE_CHECKING, Any, assert_never
 
 from pydantic_ai import (
-    AudioUrl,
     BinaryContent,
     BinaryImage,
-    DocumentUrl,
     FileUrl,
-    ImageUrl,
     SystemPromptPart,
     TextPart,
     UserPromptPart,
-    VideoUrl,
 )
 
 from agentpool.log import get_logger
+from agentpool.utils.pydantic_ai_helpers import url_from_mime_type
 
 
 if TYPE_CHECKING:
@@ -75,20 +72,6 @@ def to_mcp_messages(
                 PromptMessage(role="assistant", content=TextContent(type="text", text=msg))
             )
     return messages
-
-
-def _url_from_mime_type(uri: str, mime_type: str | None) -> FileUrl:
-    """Convert URI to appropriate pydantic-ai URL type based on MIME type."""
-    if not mime_type:
-        return DocumentUrl(url=uri)
-
-    if mime_type.startswith("image/"):
-        return ImageUrl(url=uri)
-    if mime_type.startswith("audio/"):
-        return AudioUrl(url=uri)
-    if mime_type.startswith("video/"):
-        return VideoUrl(url=uri)
-    return DocumentUrl(url=uri)
 
 
 def sampling_messages_to_user_content(msgs: list[SamplingMessage]) -> list[UserContent]:
@@ -160,7 +143,7 @@ async def from_mcp_content(
                         # Fallback to URL if reading fails
                         logger.warning("Failed to read resource", uri=uri)
                 # Convert to appropriate URL type based on MIME type
-                contents.append(_url_from_mime_type(str(uri), mime_type))
+                contents.append(url_from_mime_type(str(uri), mime_type))
             # mypy doesnt understand exhaustivness check for "nested typing", so we nest match-case
             case EmbeddedResource(resource=resource):
                 match resource:
