@@ -11,8 +11,8 @@ from agentpool.messaging.context import NodeContext
 
 
 if TYPE_CHECKING:
-    from fsspec.implementations.memory import MemoryFileSystem
     from mcp import types
+    from upathtools.filesystems import IsolatedMemoryFileSystem
 
     from agentpool import Agent
     from agentpool.agents.events import StreamEventEmitter
@@ -111,7 +111,7 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         )
 
     @property
-    def internal_fs(self) -> MemoryFileSystem:
+    def internal_fs(self) -> IsolatedMemoryFileSystem:
         """Access agent's internal filesystem for tool state.
 
         Tools can use this to store logs, history, temporary files, etc.

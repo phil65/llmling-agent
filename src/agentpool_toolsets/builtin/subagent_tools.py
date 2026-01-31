@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
+import datetime
+import re
 from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic_ai import ModelRetry
+from pydantic_ai.messages import TextPartDelta, ThinkingPartDelta
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
-from agentpool.agents.events import StreamCompleteEvent, SubAgentEvent
+from agentpool.agents.events import PartDeltaEvent, StreamCompleteEvent, SubAgentEvent
 from agentpool.agents.events.processors import batch_stream_deltas
 from agentpool.log import get_logger
 from agentpool.resource_providers import StaticResourceProvider
@@ -17,10 +21,30 @@ from agentpool.tools.exceptions import ToolError
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    from fsspec.implementations.memory import MemoryFileSystem
+
     from agentpool.agents.events import RichAgentStreamEvent
 
 
 logger = get_logger(__name__)
+
+# Set to hold references to background tasks, preventing GC while running
+_background_tasks: set[asyncio.Task[Any]] = set()
+
+
+def _generate_task_id(description: str) -> str:
+    """Generate a unique, sortable task ID from timestamp and description.
+
+    Args:
+        description: Short task description to include in the ID
+
+    Returns:
+        Task ID in format: YYYYMMDD-HHMMSS-description
+    """
+    timestamp = datetime.datetime.now(tz=datetime.UTC).strftime("%Y%m%d-%H%M%S")
+    # Sanitize description: lowercase, replace spaces/special chars with dashes
+    slug = re.sub(r"[^a-z0-9]+", "-", description.lower()).strip("-")[:30]
+    return f"{timestamp}-{slug}"
 
 
 async def _stream_task(
@@ -75,6 +99,59 @@ async def _stream_task(
                 final_content = str(content) if content else ""
 
     return final_content
+
+
+async def _stream_task_to_fs(
+    fs: MemoryFileSystem,
+    task_id: str,
+    source_name: str,
+    stream: AsyncIterator[RichAgentStreamEvent[Any]],
+) -> None:
+    """Stream a task's output to internal filesystem.
+
+    Writes streaming output to /tasks/{task_id}/output.md as content arrives.
+    Does not emit any events - runs silently in background.
+
+    Args:
+        fs: The internal filesystem to write to
+        task_id: Unique identifier for this task
+        source_name: Name of the agent/team executing the task
+        stream: Async iterator of stream events from agent.run_stream()
+    """
+    output_path = f"/tasks/{task_id}/output.md"
+    content_parts: list[str] = []
+
+    try:
+        async for event in stream:
+            # Handle nested SubAgentEvents - unwrap inner event
+            inner_event = event.event if isinstance(event, SubAgentEvent) else event
+
+            # Collect text deltas
+            if isinstance(inner_event, PartDeltaEvent) and inner_event.delta:
+                delta = inner_event.delta
+                if isinstance(delta, (TextPartDelta, ThinkingPartDelta)) and delta.content_delta:
+                    content_parts.append(delta.content_delta)
+                # Write incrementally (overwrite with accumulated content)
+                fs.pipe(output_path, "".join(content_parts).encode("utf-8"))
+
+            # Final content from StreamCompleteEvent
+            elif isinstance(inner_event, StreamCompleteEvent):
+                content = inner_event.message.content
+                if content:
+                    final_content = str(content)
+                    fs.pipe(output_path, final_content.encode("utf-8"))
+
+        logger.info(
+            "Async task completed",
+            task_id=task_id,
+            source_name=source_name,
+            output_path=output_path,
+        )
+    except Exception:
+        logger.exception("Async task failed", task_id=task_id, source_name=source_name)
+        # Write error to output file
+        error_content = f"# Task Failed\n\nTask {task_id} ({source_name}) failed with an error."
+        fs.pipe(output_path, error_content.encode("utf-8"))
 
 
 class SubagentTools(StaticResourceProvider):
@@ -146,19 +223,28 @@ class SubagentTools(StaticResourceProvider):
         agent_or_team: str,
         prompt: str,
         description: str,
+        async_mode: bool = False,
     ) -> str:
         """Execute a task on an agent or team.
 
-        Launch a task to be executed by a specialized agent or team. The task runs
-        synchronously, streaming progress events, and returns the result when complete.
+        Launch a task to be executed by a specialized agent or team.
+
+        In synchronous mode (default), the task runs with streaming progress events
+        and returns the result when complete.
+
+        In async mode, the task starts in the background and returns immediately
+        with a task ID. The output is streamed to /tasks/{task_id}/output.md in
+        the internal filesystem, which can be read later.
 
         Args:
             agent_or_team: The agent or team to execute the task
             prompt: The task instructions for the agent or team
             description: A short (3-5 words) description of the task
+            async_mode: If True, run in background and return task ID immediately
 
         Returns:
-            The result of the task execution
+            In sync mode: The result of the task execution
+            In async mode: Task ID and output file path
         """
         from agentpool import Team, TeamRun
         from agentpool.agents.base_agent import BaseAgent
@@ -191,8 +277,45 @@ class SubagentTools(StaticResourceProvider):
             msg = f"Node {agent_or_team} does not support streaming"
             raise ToolError(msg)
 
-        logger.info("Executing task", agent_or_team=agent_or_team, description=description)
-        # Stream with SubAgentEvent wrapping
+        logger.info(
+            "Executing task",
+            agent_or_team=agent_or_team,
+            description=description,
+            async_mode=async_mode,
+        )
+
+        if async_mode:
+            # Generate task ID and start background task
+            task_id = _generate_task_id(description)
+            output_path = f"/tasks/{task_id}/output.md"
+
+            # Create the task directory
+            fs = ctx.internal_fs
+            fs.mkdirs(f"/tasks/{task_id}", exist_ok=True)
+
+            # Start streaming to filesystem in background
+            # Store task reference to prevent garbage collection
+            task = asyncio.create_task(
+                _stream_task_to_fs(
+                    fs=fs,
+                    task_id=task_id,
+                    source_name=agent_or_team,
+                    stream=node.run_stream(prompt),
+                ),
+                name=f"async_task_{task_id}",
+            )
+            # Add task to a set to prevent GC while running
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
+
+            return (
+                f"Task started in background.\n"
+                f"Task ID: {task_id}\n"
+                f"Output will be written to: {output_path}\n"
+                f"Use the read tool to check the output file for results."
+            )
+
+        # Synchronous mode - stream with SubAgentEvent wrapping
         return await _stream_task(
             ctx,
             source_name=agent_or_team,

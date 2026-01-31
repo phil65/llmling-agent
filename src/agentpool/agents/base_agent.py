@@ -32,10 +32,10 @@ if TYPE_CHECKING:
 
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
-    from fsspec.implementations.memory import MemoryFileSystem
     from pydantic_ai import UserContent
     from slashed import BaseCommand, CommandStore
     from tokonomics.model_discovery.model_info import ModelInfo
+    from upathtools.filesystems import IsolatedMemoryFileSystem
 
     from acp.schema import AvailableCommandsUpdate
     from agentpool.agents.context import AgentContext
@@ -166,8 +166,8 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             hooks: Agent hooks for intercepting agent behavior at run and tool events
         """
         from exxec import LocalExecutionEnvironment
-        from fsspec.implementations.memory import MemoryFileSystem
         from slashed import CommandStore
+        from upathtools.filesystems import IsolatedMemoryFileSystem
 
         from agentpool.agents.prompt_injection import PromptInjectionManager
         from agentpool.agents.staged_content import StagedContent
@@ -211,7 +211,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Initialize store (registers builtin help/exit commands)
         self._command_store._initialize_sync()
         # Internal filesystem for tool/session state (can get written to via AgentContext)
-        self._internal_fs: MemoryFileSystem = MemoryFileSystem()
+        self._internal_fs = IsolatedMemoryFileSystem()
         self.staged_content = StagedContent()
 
     def __repr__(self) -> str:
@@ -284,7 +284,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         return self._command_store
 
     @property
-    def internal_fs(self) -> MemoryFileSystem:
+    def internal_fs(self) -> IsolatedMemoryFileSystem:
         """Get the internal filesystem for tool/session state.
 
         Tools can use this to store logs, history, temporary files, etc.
