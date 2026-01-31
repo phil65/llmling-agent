@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -10,7 +10,12 @@ from agentpool.agents import Agent
 from agentpool.running import NodeInjectionError, with_nodes
 
 
-async def test_basic_injection(pool):
+if TYPE_CHECKING:
+    from agentpool import AgentPool
+    from agentpool.agents.base_agent import BaseAgent
+
+
+async def test_basic_injection(pool: AgentPool):
     """Test basic agent injection."""
 
     @with_nodes(pool)
@@ -29,7 +34,7 @@ async def test_basic_injection(pool):
     assert result == "test"
 
 
-async def test_missing_agent(pool):
+async def test_missing_agent(pool: AgentPool):
     """Test error when agent not in pool."""
 
     @with_nodes(pool)
@@ -42,11 +47,11 @@ async def test_missing_agent(pool):
     assert "Available nodes: agent1, agent2" in str(exc.value)
 
 
-async def test_duplicate_parameter(pool):
+async def test_duplicate_parameter(pool: AgentPool):
     """Test error when agent parameter provided explicitly."""
 
     @with_nodes(pool)
-    async def test_func(agent1: Agent[None] | None = None) -> str:
+    async def test_func(agent1: BaseAgent[None] | None = None) -> str:
         return "unreachable"
 
     dummy_agent = pool.get_agent("agent1")
@@ -55,7 +60,7 @@ async def test_duplicate_parameter(pool):
     assert "Parameter already provided" in str(exc.value)
 
 
-async def test_non_agent_parameter(pool):
+async def test_non_agent_parameter(pool: AgentPool):
     """Test regular parameters are ignored."""
 
     @with_nodes(pool)
@@ -76,7 +81,7 @@ async def test_non_agent_parameter(pool):
     assert result == "ok"
 
 
-async def test_wrapper_usage(pool):
+async def test_wrapper_usage(pool: AgentPool):
     """Test using as wrapper instead of decorator."""
 
     async def test_func(agent1: Agent[None] | None = None, arg: str = "test") -> str:
@@ -88,7 +93,7 @@ async def test_wrapper_usage(pool):
     assert result == "test"
 
 
-async def test_agent_functionality(pool):
+async def test_agent_functionality(pool: AgentPool):
     """Test injected agents are fully functional."""
 
     @with_nodes(pool)
