@@ -12,7 +12,7 @@ from agentpool.messaging.context import NodeContext
 
 if TYPE_CHECKING:
     from mcp import types
-    from upathtools.filesystems import IsolatedMemoryFileSystem
+    from upathtools.filesystems import IsolatedMemoryFileSystem, OverlayFileSystem
 
     from agentpool import Agent
     from agentpool.agents.events import StreamEventEmitter
@@ -121,3 +121,15 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
             In-memory filesystem for this agent
         """
         return self.agent.internal_fs
+
+    @property
+    def overlay_fs(self) -> OverlayFileSystem:
+        """Access unified filesystem combining agent storage and VFS resources.
+
+        Provides a layered view where writes go to agent's internal filesystem
+        and reads fall through to VFS resources.
+
+        Returns:
+            OverlayFileSystem for this agent
+        """
+        return self.agent.overlay_fs

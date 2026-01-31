@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, overload
 from anyenv import MultiEventHandler, method_spawner
 from anyenv.signals import Signal
 import anyio
+from upathtools.filesystems import IsolatedMemoryFileSystem
 
 from agentpool.agents.events import StreamCompleteEvent, resolve_event_handlers
 from agentpool.agents.modes import ModeInfo
@@ -32,10 +33,11 @@ if TYPE_CHECKING:
 
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
+    from fsspec import AbstractFileSystem
     from pydantic_ai import UserContent
     from slashed import BaseCommand, CommandStore
     from tokonomics.model_discovery.model_info import ModelInfo
-    from upathtools.filesystems import IsolatedMemoryFileSystem
+    from upathtools.filesystems import OverlayFileSystem
 
     from acp.schema import AvailableCommandsUpdate
     from agentpool.agents.context import AgentContext
@@ -167,7 +169,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         """
         from exxec import LocalExecutionEnvironment
         from slashed import CommandStore
-        from upathtools.filesystems import IsolatedMemoryFileSystem
 
         from agentpool.agents.prompt_injection import PromptInjectionManager
         from agentpool.agents.staged_content import StagedContent
@@ -294,6 +295,25 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             In-memory filesystem scoped to this agent
         """
         return self._internal_fs
+
+    @property
+    def overlay_fs(self) -> OverlayFileSystem:
+        """Get unified filesystem view combining agent storage and VFS resources.
+
+        Provides a layered filesystem where:
+        - Writes go to the agent's internal filesystem (upper layer)
+        - Reads fall through to VFS resources if not found locally
+
+        Returns:
+            OverlayFileSystem combining internal_fs and pool's VFS registry
+        """
+        from upathtools.filesystems import OverlayFileSystem
+
+        # Build layers: internal_fs on top, VFS resources below
+        layers: list[AbstractFileSystem] = [self._internal_fs]
+        if self.agent_pool is not None and not self.agent_pool.vfs_registry.is_empty:
+            layers.append(self.agent_pool.vfs_registry.get_fs())
+        return OverlayFileSystem(filesystems=layers)
 
     async def reset(self) -> None:
         """Reset agent state (conversation history and tool states)."""

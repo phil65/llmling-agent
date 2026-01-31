@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from upathtools import list_files, read_folder, read_path
+
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.resource_providers import StaticResourceProvider
 
 
 async def vfs_list(  # noqa: D417
     ctx: AgentContext,
-    path: str = "",
+    path: str = "/",
     *,
     pattern: str = "**/*",
     recursive: bool = True,
@@ -16,10 +18,14 @@ async def vfs_list(  # noqa: D417
     exclude: list[str] | None = None,
     max_depth: int | None = None,
 ) -> str:
-    """List contents of a resource path.
+    """List contents of a filesystem path.
+
+    Lists files from the agent's unified filesystem, which includes:
+    - Agent's internal storage (execute_code/, tasks/, etc.)
+    - Configured VFS resources
 
     Args:
-        path: Resource path to query (e.g., "docs", "docs://guides", "data://files")
+        path: Path to query (e.g., "/", "/docs", "/tasks")
         pattern: Glob pattern to match files against
         recursive: Whether to search subdirectories
         include_dirs: Whether to include directories in results
@@ -29,25 +35,33 @@ async def vfs_list(  # noqa: D417
     Returns:
         Formatted list of matching files and directories
     """
-    if not ctx.pool:
-        raise RuntimeError("No pool available")
-    registry = ctx.pool.vfs_registry
-    # If no path given, list all resources
-    if not path:
-        resources = list(registry)
-        return "Available resources:\n" + "\n".join(f"- {name}" for name in resources)
+    fs = ctx.overlay_fs
 
     try:
-        files = await registry.query(
-            path,
+        # List root to show available top-level directories
+        if path in ("/", ""):
+            items = await fs._ls(fs.root_marker, detail=True)
+            lines = ["Available paths:"]
+            for item in items:
+                item_type = "📁" if item.get("type") == "directory" else "📄"
+                name = item.get("name", "").strip("/")
+                lines.append(f"  {item_type} /{name}")
+            return "\n".join(lines)
+
+        # Query specific path
+        upath = fs.get_upath(path)
+        files = await list_files(
+            upath,
             pattern=pattern,
             recursive=recursive,
             include_dirs=include_dirs,
             exclude=exclude,
             max_depth=max_depth,
         )
-        return "\n".join(files) if files else f"No files found in {path}"
-    except (OSError, ValueError, KeyError) as e:
+        return "\n".join(str(f) for f in files) if files else f"No files found in {path}"
+    except FileNotFoundError:
+        return f"Path not found: {path}"
+    except (OSError, ValueError) as e:
         return f"Error listing {path}: {e}"
 
 
@@ -60,10 +74,14 @@ async def vfs_read(  # noqa: D417
     exclude: list[str] | None = None,
     max_depth: int | None = None,
 ) -> str:
-    """Read content from a resource path.
+    """Read content from a filesystem path.
+
+    Reads from the agent's unified filesystem, which includes:
+    - Agent's internal storage (execute_code/, tasks/, etc.)
+    - Configured VFS resources
 
     Args:
-        path: Resource path to read (e.g., "docs://file.md", "data://folder")
+        path: Path to read (e.g., "/docs/readme.md", "/tasks/task_123/output.md")
         encoding: Text encoding for binary content
         recursive: For directories, whether to read recursively
         exclude: For directories, patterns to exclude
@@ -72,50 +90,70 @@ async def vfs_read(  # noqa: D417
     Returns:
         File content or concatenated directory contents
     """
-    if not ctx.pool:
-        raise RuntimeError("No pool available")
-    registry = ctx.pool.vfs_registry
+    fs = ctx.overlay_fs
+
     try:
-        return await registry.get_content(
-            path,
-            encoding=encoding,
-            recursive=recursive,
-            exclude=exclude,
-            max_depth=max_depth,
-        )
-    except (OSError, ValueError, KeyError) as e:
+        upath = fs.get_upath(path)
+
+        if await fs._isdir(path):
+            content_dict = await read_folder(
+                upath,
+                encoding=encoding,
+                recursive=recursive,
+                exclude=exclude,
+                max_depth=max_depth,
+            )
+            # Combine all files with headers
+            sections = []
+            for rel_path, content in sorted(content_dict.items()):
+                sections.extend([f"--- {rel_path} ---", content, ""])
+            return "\n".join(sections)
+
+        return await read_path(upath, encoding=encoding)
+    except FileNotFoundError:
+        return f"Path not found: {path}"
+    except (OSError, ValueError) as e:
         return f"Error reading {path}: {e}"
 
 
 async def vfs_info(ctx: AgentContext) -> str:
-    """Get information about all configured resources.
+    """Get information about the agent's unified filesystem.
 
     Returns:
-        Formatted information about available resources
+        Formatted information about available filesystem layers
     """
-    if not ctx.pool:
-        raise RuntimeError("No pool available")
-    registry = ctx.pool.vfs_registry
-    if registry.is_empty:
-        return "No resources configured"
+    fs = ctx.overlay_fs
 
-    sections = ["## Configured Resources\n"]
+    sections = ["## Agent Filesystem\n"]
+    sections.append("Unified view combining agent storage and configured resources.\n")
 
-    sections.extend(f"- **{name}**: VFS Resource" for name in registry)
+    # List layers
+    sections.append("### Layers")
+    for i, layer in enumerate(fs.layers):
+        layer_type = "writable" if i == 0 else "read-only"
+        sections.append(f"- Layer {i} ({layer_type}): {type(layer).__name__}")
 
-    # Add union filesystem info
+    # List top-level contents
+    sections.append("\n### Contents")
     try:
-        union_fs = registry.get_fs()
-        sections.append(f"\n**Union filesystem**: {union_fs.__class__.__name__}")
-        sections.append(f"**Total resources**: {len(registry)}")
-    except (OSError, AttributeError) as e:
-        sections.append(f"\n**Union filesystem error**: {e}")
+        items = await fs._ls(fs.root_marker, detail=True)
+        for item in items:
+            item_type = "dir" if item.get("type") == "directory" else "file"
+            name = item.get("name", "").strip("/")
+            layer = item.get("layer", "?")
+            sections.append(f"- /{name} ({item_type}, layer {layer})")
+    except (OSError, FileNotFoundError) as e:
+        sections.append(f"Error listing contents: {e}")
 
     return "\n".join(sections)
 
 
 class VFSTools(StaticResourceProvider):
-    """Provider for VFS registry filesystem tools."""
+    """Provider for unified filesystem tools.
+
+    Provides tools for listing and reading from the agent's overlay filesystem,
+    which combines the agent's internal storage with configured VFS resources.
+    """
 
     def __init__(self, name: str = "vfs") -> None:
         super().__init__(name=name, tools=[])
