@@ -6,6 +6,7 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, Self
 
 import logfire
+import structlog
 
 from acp.agent.protocol import Agent
 from acp.client.protocol import Client
@@ -68,6 +69,8 @@ if TYPE_CHECKING:
         WriteTextFileRequest,
     )
 
+log = structlog.get_logger(__name__)
+
 
 class AgentSideConnection(Client):
     """Agent-side connection.
@@ -112,7 +115,17 @@ class AgentSideConnection(Client):
     # client-bound methods (agent -> client)
     async def session_update(self, params: SessionNotification) -> None:
         """Send session update notification."""
-        dct = params.model_dump(by_alias=True, exclude_none=True)
+        try:
+            dct = params.model_dump(by_alias=True, exclude_none=True)
+        except TypeError as e:
+            log.exception(
+                "Failed to serialize SessionNotification",
+                error=str(e),
+                params_type=type(params).__name__,
+                update_type=type(getattr(params, "update", None)).__name__,
+                update_repr=repr(getattr(params, "update", None))[:500],
+            )
+            raise
         await self._conn.send_notification("session/update", dct)
 
     async def request_permission(

@@ -14,7 +14,6 @@ from llmling_models.auth.anthropic_auth import (
 )
 from pydantic import BaseModel, HttpUrl
 
-from agentpool.common_types import MCPConnectionStatus
 from agentpool.mcp_server.manager import MCPManager
 from agentpool.resource_providers import AggregatingResourceProvider
 from agentpool_config.mcp_server import (
@@ -33,6 +32,7 @@ from agentpool_server.opencode_server.models import (
 
 
 if TYPE_CHECKING:
+    from agentpool.common_types import MCPConnectionStatus
     from agentpool_server.opencode_server.models.mcp import (
         MCPConnectionStatus as OpenCodeMCPConnectionStatus,
     )

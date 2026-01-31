@@ -117,7 +117,7 @@ class ACPBridge:
 
     async def _dispatch_to_agent(  # noqa: PLR0911
         self,
-        method: AgentMethod,
+        method: AgentMethod | str,
         params: dict[str, Any] | None,
         is_notification: bool,
     ) -> Any:

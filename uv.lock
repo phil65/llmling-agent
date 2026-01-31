@@ -198,7 +198,7 @@ requires-dist = [
     { name = "ast-grep-py", marker = "extra == 'coding'", specifier = ">=0.40.0" },
     { name = "autoevals", marker = "extra == 'braintrust'" },
     { name = "braintrust", marker = "extra == 'braintrust'" },
-    { name = "clawd-code-sdk", specifier = "==0.1.27" },
+    { name = "clawd-code-sdk", specifier = ">=0.1.36" },
     { name = "composio", marker = "extra == 'composio'" },
     { name = "copykitten", marker = "extra == 'clipboard'" },
     { name = "docler", specifier = ">=1.0.3" },
@@ -795,7 +795,7 @@ wheels = [
 
 [[package]]
 name = "braintrust"
-version = "0.5.2"
+version = "0.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "chevron" },
@@ -809,9 +809,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "wrapt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/59/00/822410b70b3ad09fbc9543c40f0f2f07b5fb6f7e326416ae3284968caa50/braintrust-0.5.2.tar.gz", hash = "sha256:39346114a121de2c7520c2b0ac9fd9bb9cca4f89f6274bedbea0ffb53f2fbd05", size = 320721, upload-time = "2026-01-29T15:41:54.814Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/19/f6a19880db866bbf863c5948f2c9b39f708c17fc2106c996ee89687a6a27/braintrust-0.5.3.tar.gz", hash = "sha256:e74d1570752fec088b605df99706c64b840dc0ff17c9b6c2864a0a4eb1d1de36", size = 329703, upload-time = "2026-01-31T00:47:09.315Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/69/21/72d61267d88be10ff8c14a13f0d840a563877ecbcf44e266c63fd7288e99/braintrust-0.5.2-py3-none-any.whl", hash = "sha256:20aef4b80f192ffcec304a7a36f7edb314358f52b811cae8e6894b1a96c09032", size = 372458, upload-time = "2026-01-29T15:41:51.795Z" },
+    { url = "https://files.pythonhosted.org/packages/55/9c/b2fcc6457a94fbeff749073d8cc08c699de01e084bd6dff199a31103c06e/braintrust-0.5.3-py3-none-any.whl", hash = "sha256:7e07e61b7adfaf64229d092fa2a7ab3ec6cc308c95f4c6f63ff46f4d6b0664ba", size = 382128, upload-time = "2026-01-31T00:47:07.591Z" },
 ]
 
 [[package]]
@@ -1013,16 +1013,17 @@ wheels = [
 
 [[package]]
 name = "clawd-code-sdk"
-version = "0.1.27"
+version = "0.1.36"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "anthropic" },
     { name = "anyenv" },
     { name = "anyio" },
     { name = "mcp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8f/c2/3159a6fc3049e5f61ee082344211ab51e0e21512414ea06efd3efe334700/clawd_code_sdk-0.1.27.tar.gz", hash = "sha256:65063d25fa19dc72c4199878e262b5549a772e69c5b204b2e225bd5126a30a19", size = 64851, upload-time = "2026-01-29T17:47:43.652Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/85/7e/7dc37b318c1d20482f9b20079d56333c63e90ada2317076f07316a131941/clawd_code_sdk-0.1.36.tar.gz", hash = "sha256:553ad9dca4798254e66cf3a86d2d5251617134d07e8edcf4b9e5615d3a006cc3", size = 67256, upload-time = "2026-01-31T01:47:18.053Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7c/b5/f97060b120437ef69a055a3486179417001355703e26d55203b771f5a6d0/clawd_code_sdk-0.1.27-py3-none-any.whl", hash = "sha256:ec136278144160d0f13ff64f58d5a2b1ac721acd83364bbaff898b0063a01846", size = 46723, upload-time = "2026-01-29T17:47:41.508Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/96/cb169d99f38cde8f29a41a83d9126338ba20b0f7f4452c62dd78c37e0e7f/clawd_code_sdk-0.1.36-py3-none-any.whl", hash = "sha256:8668ba02d9d17165466f048fb7cc2bbb20c630dd1f3f1a30792996332f942afe", size = 48772, upload-time = "2026-01-31T01:47:16.359Z" },
 ]
 
 [[package]]
@@ -3990,11 +3991,11 @@ wheels = [
 
 [[package]]
 name = "pip"
-version = "25.3"
+version = "26.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fe/6e/74a3f0179a4a73a53d66ce57fdb4de0080a8baa1de0063de206d6167acc2/pip-25.3.tar.gz", hash = "sha256:8d0538dbbd7babbd207f261ed969c65de439f6bc9e5dbd3b3b9a77f25d95f343", size = 1803014, upload-time = "2025-10-25T00:55:41.394Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/c2/65686a7783a7c27a329706207147e82f23c41221ee9ae33128fc331670a0/pip-26.0.tar.gz", hash = "sha256:3ce220a0a17915972fbf1ab451baae1521c4539e778b28127efa79b974aff0fa", size = 1812654, upload-time = "2026-01-31T01:40:54.361Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/3c/d717024885424591d5376220b5e836c2d5293ce2011523c9de23ff7bf068/pip-25.3-py3-none-any.whl", hash = "sha256:9655943313a94722b7774661c21049070f6bbb0a1516bf02f7c8d5d9201514cd", size = 1778622, upload-time = "2025-10-25T00:55:39.247Z" },
+    { url = "https://files.pythonhosted.org/packages/69/00/5ac7aa77688ec4d34148b423d34dc0c9bc4febe0d872a9a1ad9860b2f6f1/pip-26.0-py3-none-any.whl", hash = "sha256:98436feffb9e31bc9339cf369fd55d3331b1580b6a6f1173bacacddcf9c34754", size = 1787564, upload-time = "2026-01-31T01:40:52.252Z" },
 ]
 
 [[package]]
@@ -5910,14 +5911,14 @@ wheels = [
 
 [[package]]
 name = "tqdm"
-version = "4.67.1"
+version = "4.67.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/4b/29b4ef32e036bb34e4ab51796dd745cdba7ed47ad142a9f4a1eb8e0c744d/tqdm-4.67.1.tar.gz", hash = "sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2", size = 169737, upload-time = "2024-11-24T20:12:22.481Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/89/4b0001b2dab8df0a5ee2787dcbe771de75ded01f18f1f8d53dedeea2882b/tqdm-4.67.2.tar.gz", hash = "sha256:649aac53964b2cb8dec76a14b405a4c0d13612cb8933aae547dd144eacc99653", size = 169514, upload-time = "2026-01-30T23:12:06.555Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/30/dc54f88dd4a2b5dc8a0279bdd7270e735851848b762aeb1c1184ed1f6b14/tqdm-4.67.1-py3-none-any.whl", hash = "sha256:26445eca388f82e72884e0d580d5464cd801a3ea01e63e5601bdff9ba6a48de2", size = 78540, upload-time = "2024-11-24T20:12:19.698Z" },
+    { url = "https://files.pythonhosted.org/packages/f5/e2/31eac96de2915cf20ccaed0225035db149dfb9165a9ed28d4b252ef3f7f7/tqdm-4.67.2-py3-none-any.whl", hash = "sha256:9a12abcbbff58b6036b2167d9d3853042b9d436fe7330f06ae047867f2f8e0a7", size = 78354, upload-time = "2026-01-30T23:12:04.368Z" },
 ]
 
 [[package]]

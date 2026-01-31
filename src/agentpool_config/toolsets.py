@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, Literal, assert_never, cast
 
 from exxec_config import ExecutionEnvironmentConfig
 from llmling_models_config import AnyModelConfig
@@ -478,17 +478,17 @@ class FSSpecToolsetConfig(BaseToolsetConfig):
             if isinstance(self.model, str) or self.model is None
             else self.model.get_model()
         )
-        # Create filesystem from config
-        if self.fs is None:
-            fs = None
-        elif isinstance(self.fs, str):
-            # URI string - use fsspec directly
-            fs, _url_path = core.url_to_fs(self.fs, **self.storage_options)
-        elif isinstance(self.fs, FileSystemConfig):
-            # Full config object - use create_fs()
-            fs = self.fs.create_fs()
-        else:
-            fs = None
+        match self.fs:
+            case None:
+                fs = None
+            case str():
+                # URI string - use fsspec directly
+                fs, _url_path = core.url_to_fs(self.fs, **self.storage_options)
+            case FileSystemConfig():
+                # Full config object - use create_fs()
+                fs = self.fs.create_fs()
+            case _ as unreachable:
+                assert_never(unreachable)
         converter = ConversionManager(self.conversion) if self.conversion else None
         return FSSpecTools(
             fs,
