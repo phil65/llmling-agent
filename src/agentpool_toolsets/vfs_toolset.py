@@ -58,7 +58,7 @@ async def vfs_list(  # noqa: D417
         # Filter results
         results: list[str] = []
         for item in items:
-            name = item.get("name", "").strip("/")
+            name = item.get("name", "").strip("/")  # pyright: ignore[reportAttributeAccessIssue]
             item_type = item.get("type", "file")
 
             # Apply exclude patterns
@@ -128,7 +128,7 @@ async def vfs_read(  # noqa: D417
             if isinstance(glob_result, dict):
                 files = list(glob_result.items())
             else:
-                files = [(str(f), {}) for f in glob_result]
+                files = [(str(f), {}) for f in glob_result]  # pyright: ignore[reportGeneralTypeIssues]
 
             for file_path, info in sorted(files):
                 # Skip directories
