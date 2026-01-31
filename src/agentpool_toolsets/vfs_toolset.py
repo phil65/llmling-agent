@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from upathtools import list_files, read_folder, read_path
+from fnmatch import fnmatch
 
 from agentpool.agents.context import AgentContext  # noqa: TC001
 from agentpool.resource_providers import StaticResourceProvider
@@ -38,27 +38,46 @@ async def vfs_list(  # noqa: D417
     fs = ctx.overlay_fs
 
     try:
-        # List root to show available top-level directories
-        if path in ("/", ""):
-            items = await fs._ls(fs.root_marker, detail=True)
-            lines = ["Available paths:"]
-            for item in items:
-                item_type = "📁" if item.get("type") == "directory" else "📄"
-                name = item.get("name", "").strip("/")
-                lines.append(f"  {item_type} /{name}")
-            return "\n".join(lines)
+        # Normalize path
+        norm_path = path.strip("/") if path not in ("/", "") else fs.root_marker
 
-        # Query specific path
-        upath = fs.get_upath(path)
-        files = await list_files(
-            upath,
-            pattern=pattern,
-            recursive=recursive,
-            include_dirs=include_dirs,
-            exclude=exclude,
-            max_depth=max_depth,
-        )
-        return "\n".join(str(f) for f in files) if files else f"No files found in {path}"
+        # List using filesystem directly (not via UPath helpers that lose fs context)
+        if norm_path == fs.root_marker:
+            items = await fs._ls(fs.root_marker, detail=True)
+        else:
+            # Use glob for pattern matching
+            if recursive and pattern != "*":
+                glob_pattern = f"{norm_path}/{pattern}"
+            else:
+                glob_pattern = f"{norm_path}/{pattern}" if pattern != "**/*" else f"{norm_path}/*"
+            items = await fs._glob(glob_pattern, maxdepth=max_depth, detail=True)
+            # _glob returns a dict, convert to list
+            if isinstance(items, dict):
+                items = [dict(info, name=name) for name, info in items.items()]
+
+        # Filter results
+        results: list[str] = []
+        for item in items:
+            name = item.get("name", "").strip("/")
+            item_type = item.get("type", "file")
+
+            # Apply exclude patterns
+            if exclude and any(fnmatch(name, pat) for pat in exclude):
+                continue
+
+            # Filter directories unless include_dirs
+            if item_type == "directory" and not include_dirs:
+                continue
+
+            icon = "📁" if item_type == "directory" else "📄"
+            results.append(f"  {icon} /{name}")
+
+        if not results:
+            return f"No files found in {path}"
+
+        lines = ["Available paths:"]
+        lines.extend(sorted(results))
+        return "\n".join(lines)
     except FileNotFoundError:
         return f"Path not found: {path}"
     except (OSError, ValueError) as e:
@@ -93,23 +112,46 @@ async def vfs_read(  # noqa: D417
     fs = ctx.overlay_fs
 
     try:
-        upath = fs.get_upath(path)
+        # Normalize path for filesystem operations
+        norm_path = path.strip("/") if path not in ("/", "") else fs.root_marker
 
-        if await fs._isdir(path):
-            content_dict = await read_folder(
-                upath,
-                encoding=encoding,
-                recursive=recursive,
-                exclude=exclude,
-                max_depth=max_depth,
+        if await fs._isdir(norm_path):
+            # Read directory contents
+            sections: list[str] = []
+
+            # Get files via glob
+            glob_pattern = "**/*" if recursive else "*"
+            glob_result = await fs._glob(
+                f"{norm_path}/{glob_pattern}", maxdepth=max_depth, detail=True
             )
-            # Combine all files with headers
-            sections = []
-            for rel_path, content in sorted(content_dict.items()):
-                sections.extend([f"--- {rel_path} ---", content, ""])
-            return "\n".join(sections)
 
-        return await read_path(upath, encoding=encoding)
+            if isinstance(glob_result, dict):
+                files = list(glob_result.items())
+            else:
+                files = [(str(f), {}) for f in glob_result]
+
+            for file_path, info in sorted(files):
+                # Skip directories
+                if info.get("type") == "directory":
+                    continue
+
+                # Apply exclude patterns
+                rel_path = file_path.removeprefix(norm_path).strip("/")
+                if exclude and any(fnmatch(rel_path, pat) for pat in exclude):
+                    continue
+
+                try:
+                    content_bytes = await fs._cat_file(file_path)
+                    content = content_bytes.decode(encoding)
+                    sections.extend([f"--- {rel_path} ---", content, ""])
+                except (UnicodeDecodeError, OSError):
+                    sections.extend([f"--- {rel_path} ---", "[Binary or unreadable file]", ""])
+
+            return "\n".join(sections) if sections else f"No readable files in {path}"
+
+        # Single file read
+        content_bytes = await fs._cat_file(norm_path)
+        return content_bytes.decode(encoding)
     except FileNotFoundError:
         return f"Path not found: {path}"
     except (OSError, ValueError) as e:
