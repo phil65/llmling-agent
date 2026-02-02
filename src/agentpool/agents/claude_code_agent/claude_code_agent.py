@@ -353,6 +353,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             event_queue=self._event_queue,
             get_session_id=lambda: self.session_id,
             injection_manager=self._injection_manager,
+            set_mode=self._set_mode,
         )
 
     @classmethod

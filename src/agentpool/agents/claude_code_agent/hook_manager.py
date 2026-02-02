@@ -15,7 +15,7 @@ from agentpool.log import get_logger
 
 if TYPE_CHECKING:
     import asyncio
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable
 
     from clawd_code_sdk.types import HookContext, HookInput, HookMatcher, SyncHookJSONOutput
 
@@ -40,6 +40,7 @@ class ClaudeCodeHookManager:
             event_queue=queue,
             get_session_id=lambda: agent.session_id,
             injection_manager=agent._injection_manager,
+            set_mode=agent._set_mode,
         )
 
         # Injections are queued via agent.inject_prompt()
@@ -57,6 +58,7 @@ class ClaudeCodeHookManager:
         event_queue: asyncio.Queue[Any] | None = None,
         get_session_id: Callable[[], str | None] | None = None,
         injection_manager: PromptInjectionManager | None = None,
+        set_mode: Callable[[str, str], Awaitable[None]] | None = None,
     ) -> None:
         """Initialize hook manager.
 
@@ -66,12 +68,14 @@ class ClaudeCodeHookManager:
             event_queue: Queue for emitting events (CompactionEvent, etc.)
             get_session_id: Callable to get current session ID
             injection_manager: Shared injection manager from BaseAgent
+            set_mode: Callback to set agent mode (mode_id, category_id)
         """
         self.agent_name = agent_name
         self.agent_hooks = agent_hooks
         self._event_queue = event_queue
         self._get_session_id = get_session_id or (lambda: None)
         self._injection_manager = injection_manager
+        self._set_mode = set_mode
 
     def build_hooks(self) -> dict[str, list[HookMatcher]]:
         """Build complete SDK hooks configuration.
@@ -136,16 +140,12 @@ class ClaudeCodeHookManager:
         # Consume pending injection from shared manager
         if self._injection_manager and (injection := await self._injection_manager.consume()):
             tool_name = input_data.get("tool_name", "unknown")
-            logger.debug(
-                "Injecting context after tool use",
-                agent=self.agent_name,
-                tool=tool_name,
-                injection_len=len(injection),
-            )
-
+            logger.debug("Injecting context after tool use", agent=self.agent_name, tool=tool_name)
             result["hookSpecificOutput"] = {
                 "hookEventName": "PostToolUse",
                 "additionalContext": injection,
             }
+        if input_data.get("tool_name") == "EnterPlanMode" and self._set_mode:
+            await self._set_mode("plan", "mode")
 
         return result
