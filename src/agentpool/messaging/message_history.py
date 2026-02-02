@@ -473,19 +473,8 @@ class MessageHistory:
         except Exception as e:
             raise ValueError(f"Failed to format prompt: {e}") from e
 
-    def get_history_tokens(self) -> int:
-        """Get token count for current history."""
-        # Use cost_info if available
-        return self.chat_messages.get_history_tokens()
-
     def get_last_message_id(self) -> str | None:
-        """Get the message_id of the last message in history.
-
-        Used for setting parent_id on new messages to build the message tree.
-
-        Returns:
-            The message_id of the last message, or None if history is empty.
-        """
+        """Get the message_id of the last message in history."""
         if not self.chat_messages:
             return None
         return self.chat_messages[-1].message_id

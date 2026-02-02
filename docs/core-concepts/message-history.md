@@ -53,17 +53,6 @@ history_text = await history.format_history(
 )
 ```
 
-### Token Management
-
-```python
-# Get token counts
-total = history.get_history_tokens()
-# Format with token limit
-context = await history.format_history(
-    max_tokens=2000,
-    num_messages=None  # All messages within token limit
-)
-```
 
 ## Session Management
 
