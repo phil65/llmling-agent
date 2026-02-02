@@ -8,15 +8,15 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
 import time
-from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict, TypeVar, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict, TypeVar, cast, overload
 from uuid import uuid4
 
 import logfire
-from pydantic_ai import Agent as PydanticAgent, CallToolsNode, ModelRequestNode, RunContext
+from pydantic_ai import Agent as PydanticAgent, CallToolsNode, ModelRequestNode
 from pydantic_ai.models import Model
-from pydantic_ai.tools import ToolDefinition
 
 from agentpool.agents.base_agent import BaseAgent
+from agentpool.agents.context import AgentContext
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
 from agentpool.agents.events.processors import FileTracker
 from agentpool.agents.exceptions import UnknownCategoryError, UnknownModeError
@@ -26,7 +26,6 @@ from agentpool.messaging import ChatMessage, MessageHistory
 from agentpool.storage import StorageManager
 from agentpool.tools import Tool, ToolManager
 from agentpool.tools.exceptions import ToolError
-from agentpool.utils.inspection import get_argument_key
 from agentpool.utils.result_utils import to_type
 from agentpool.utils.streams import merge_queue_into_iterator
 
@@ -47,7 +46,6 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
     from upathtools import JoinablePathLike
 
-    from agentpool.agents.context import AgentContext
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool.agents.modes import ModeCategory
     from agentpool.common_types import (
@@ -606,7 +604,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         model: ModelType | None,
         output_type: type[AgentOutputType] | None,
         input_provider: InputProvider | None = None,
-    ) -> PydanticAgent[TDeps, AgentOutputType]:
+    ) -> PydanticAgent[AgentContext[TDeps], AgentOutputType]:
         """Create pydantic-ai agent from current state."""
         from agentpool.agents.native_agent.tool_wrapping import wrap_tool
 
@@ -617,7 +615,17 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             model_, _settings = self._resolve_model_string(actual_model)
         else:
             model_ = actual_model
-        agent = PydanticAgent(
+
+        context_for_tools = self.get_context(input_provider=input_provider)
+
+        # Collect pydantic_ai.tools.Tool instances using Tool.to_pydantic_ai()
+        pydantic_ai_tools = []
+        for tool in tools:
+            wrapped = wrap_tool(tool, context_for_tools, hooks=self._hook_manager)
+            pydantic_ai_tool = tool.to_pydantic_ai(function_override=wrapped)
+            pydantic_ai_tools.append(pydantic_ai_tool)
+
+        return PydanticAgent(
             name=self.name,
             model=model_,
             model_settings=self.model_settings,
@@ -625,8 +633,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             retries=self._retries,
             end_strategy=self._end_strategy,
             output_retries=self._output_retries,
-            deps_type=self.deps_type or NoneType,
-            output_type=final_type,
+            deps_type=AgentContext[TDeps],
+            output_type=cast(Any, final_type),
+            tools=pydantic_ai_tools,
             builtin_tools=self._builtin_tools,
         )
 
@@ -662,6 +671,33 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 agent.tool_plain(prepare=prepare_fn)(wrapped)
         return agent  # type: ignore[return-value]
 
+    async def _process_node_stream(
+        self,
+        node_stream: AsyncIterator[Any],
+        *,
+        file_tracker: FileTracker,
+        pending_tcs: dict[str, BaseToolCallPart],
+        message_id: str,
+    ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
+        """Process events from a node stream (ModelRequest or CallTools).
+
+        Args:
+            node_stream: Stream of events from the node
+            file_tracker: Tracker for file operations
+            pending_tcs: Dictionary of pending tool calls
+            message_id: Current message ID
+
+        Yields:
+            Processed stream events
+        """
+        async with merge_queue_into_iterator(node_stream, self._event_queue) as merged:
+            async for event in file_tracker(merged):
+                if self._cancelled:
+                    break
+                yield event
+                if combined := process_tool_event(self.name, event, pending_tcs, message_id):
+                    yield combined
+
     async def _stream_events(
         self,
         prompts: list[UserContent],
@@ -692,9 +728,13 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         # Prepend pending context parts (prompts are already pydantic-ai UserContent format)
         # Track tool call starts to combine with results later
         file_tracker = FileTracker()
+        # Create AgentContext with user deps stored in .data
+        agent_deps = self.get_context(input_provider=input_provider)
+        if deps is not None:
+            agent_deps.data = deps
         async with agentlet.iter(
             prompts,
-            deps=deps,  # type: ignore[arg-type]
+            deps=agent_deps,
             message_history=[m for run in history_list for m in run.to_pydantic_ai()],
             usage_limits=self._default_usage_limits,
         ) as agent_run:

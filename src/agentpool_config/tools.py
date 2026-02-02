@@ -62,6 +62,25 @@ class BaseToolConfig(Schema):
     instructions: str | None = Field(default=None, title="Tool instructions")
     """Instructions for how to use this tool effectively."""
 
+    prepare: ImportString[str] | None = Field(
+        default=None,
+        examples=["mymodule:my_prepare_function"],
+        title="Prepare function",
+    )
+    """Prepare function for tool schema customization (pydantic-ai style)."""
+
+    function_schema: Any | None = Field(
+        default=None,
+        title="Function schema override",
+    )
+    """Function schema override for pydantic-ai tools."""
+
+    schema_override: Any | None = Field(
+        default=None,
+        title="Schema override",
+    )
+    """Schema override for tool function definition."""
+
     model_config = ConfigDict(frozen=True)
 
     def get_tool(self) -> Tool:
@@ -94,6 +113,19 @@ class ImportToolConfig(BaseToolConfig):
         """Import and create tool from configuration."""
         from agentpool.tools.base import Tool
 
+        # Load prepare callable from import string if provided
+        prepare_callable = None
+        if self.prepare:
+            # ImportString is like "mymodule:my_function"
+            # Load it as a callable
+            try:
+                module_path, func_name = str(self.prepare).split(":")
+                module = __import__(module_path, fromlist=[func_name])
+                prepare_callable = getattr(module, func_name)
+            except (ValueError, ImportError, AttributeError):
+                # If import fails, pass None (prepare is optional)
+                pass
+
         return Tool.from_callable(
             self.import_path,
             name_override=self.name,
@@ -102,4 +134,7 @@ class ImportToolConfig(BaseToolConfig):
             requires_confirmation=self.requires_confirmation,
             metadata=self.metadata,
             instructions=self.instructions,
+            prepare=prepare_callable,
+            function_schema=self.function_schema,
+            schema_override=self.schema_override,
         )
