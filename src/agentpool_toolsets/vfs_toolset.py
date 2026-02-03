@@ -48,7 +48,7 @@ async def vfs_list(  # noqa: D417
             else:
                 glob_pattern = f"{norm_path}/{pattern}" if pattern != "**/*" else f"{norm_path}/*"
             glob_result = await fs._glob(glob_pattern, maxdepth=max_depth, detail=True)
-            items = [dict(info, name=name) for name, info in glob_result.items()]
+            items = list(glob_result.values())
 
         # Filter results
         results: list[str] = []
