@@ -1,5 +1,6 @@
 """Core messsaging classes for AgentPool."""
 
+from agentpool.messaging.chat_filesystem import ChatMessageFileSystem
 from agentpool.messaging.messages import ChatMessage, TokenCost, AgentResponse, TeamResponse
 from agentpool.messaging.message_container import ChatMessageList
 from agentpool.messaging.event_manager import EventManager
@@ -29,6 +30,7 @@ from agentpool.messaging.compaction import (
 __all__ = [
     "AgentResponse",
     "ChatMessage",
+    "ChatMessageFileSystem",
     "ChatMessageList",
     "CompactionPipeline",
     "CompactionStep",

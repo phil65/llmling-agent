@@ -6,7 +6,6 @@ import asyncio
 from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-import json
 from typing import TYPE_CHECKING, Any, Self, assert_never
 from uuid import UUID, uuid4
 
@@ -14,6 +13,7 @@ from anyenv.signals import Signal
 from upathtools import read_path, to_upath
 
 from agentpool.log import get_logger
+from agentpool.messaging.chat_filesystem import ChatMessageFileSystem
 from agentpool.storage import StorageManager
 from agentpool.utils.time_utils import get_now
 from agentpool_config.session import SessionQuery
@@ -24,12 +24,10 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
-    from fsspec.asyn import AsyncFileSystem
     from pydantic_ai import UserContent
     from toprompt import AnyPromptType
     from upathtools import JoinablePathLike
 
-    from agentpool.agents.native_agent import Agent
     from agentpool.common_types import MessageRole, SessionIdType
     from agentpool.messaging import ChatMessage
     from agentpool.prompts.conversion_manager import ConversionManager
@@ -92,13 +90,8 @@ class MessageHistory:
             if session_config.session.name:
                 self.id = session_config.session.name
 
-        # Filesystem for message history
-        from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
-        from fsspec.implementations.memory import MemoryFileSystem
-
-        self._memory_fs = MemoryFileSystem()
-        self._fs = AsyncFileSystemWrapper(self._memory_fs)
-        self._fs_initialized = False
+        # Filesystem view of message history (lazy initialized)
+        self._fs: ChatMessageFileSystem | None = None
 
     @property
     def storage(self) -> StorageManager:
@@ -268,11 +261,7 @@ class MessageHistory:
         self.chat_messages.extend(self.storage.filter_messages.sync(query))
 
     def get_history(self) -> list[ChatMessage[Any]]:
-        """Get conversation history.
-
-        Returns:
-            List of messages in chronological order
-        """
+        """Get conversation history in chronological order."""
         return list(self.chat_messages)
 
     def get_pending_parts(self) -> list[UserContent]:
@@ -323,8 +312,8 @@ class MessageHistory:
         from agentpool.messaging import ChatMessage, ChatMessageList
 
         old_history = self.chat_messages.copy()
+        messages: Sequence[ChatMessage[Any]] = ChatMessageList()
         try:
-            messages: Sequence[ChatMessage[Any]] = ChatMessageList()
             if history is not None:
                 if isinstance(history, SessionQuery):
                     messages = await self.storage.filter_messages(history)
@@ -417,11 +406,9 @@ class MessageHistory:
             kwargs: Optional kwargs for prompt formatting
         """
         try:
-            # Format the prompt using AgentPool's prompt system
             messages = await prompt.format(kwargs)
             # Extract text content from all messages
             content = "\n\n".join(msg.get_text_content() for msg in messages)
-
             self.add_context_message(
                 content,
                 source=f"prompt:{prompt.name or prompt.type}",
@@ -433,74 +420,24 @@ class MessageHistory:
 
     def get_last_message_id(self) -> str | None:
         """Get the message_id of the last message in history."""
-        if not self.chat_messages:
-            return None
-        return self.chat_messages[-1].message_id
+        return msgs[-1].message_id if (msgs := self.chat_messages) else None
 
-    def _update_filesystem(self) -> None:
-        """Update filesystem with current message history."""
-        # Clear existing files
-        self._memory_fs.store.clear()
-        self._memory_fs.pseudo_dirs.clear()
-
-        # Create directory structure
-        self._memory_fs.makedirs("messages", exist_ok=True)
-        self._memory_fs.makedirs("by_role", exist_ok=True)
-
-        for msg in self.chat_messages:
-            # Format: {timestamp}_{role}_{message_id}
-            timestamp = msg.timestamp.strftime("%Y%m%d_%H%M%S_%f")
-            base_name = f"{timestamp}_{msg.role}_{msg.message_id}"
-
-            # Write message content
-            content_path = f"messages/{base_name}.txt"
-            content = str(msg.content)
-            self._memory_fs.pipe(content_path, content.encode("utf-8"))
-
-            # Write metadata
-            metadata = {
-                "message_id": msg.message_id,
-                "role": msg.role,
-                "timestamp": msg.timestamp.isoformat(),
-                "parent_id": msg.parent_id,
-                "model_name": msg.model_name,
-                "tokens": msg.usage.total_tokens if msg.usage else None,
-                "cost": float(msg.cost_info.total_cost) if msg.cost_info else None,
-            }
-            metadata_path = f"messages/{base_name}.json"
-            self._memory_fs.pipe(metadata_path, json.dumps(metadata, indent=2).encode("utf-8"))
-
-            # Create role-based directory symlinks (by storing paths)
-            role_dir = f"by_role/{msg.role}"
-            self._memory_fs.makedirs(role_dir, exist_ok=True)
-
-        # Write summary
-        summary = {
-            "session_id": self.id,
-            "total_messages": len(self.chat_messages),
-            "total_tokens": self.chat_messages.get_history_tokens(),
-            "total_cost": self.chat_messages.get_total_cost(),
-            "roles": {
-                "user": len([m for m in self.chat_messages if m.role == "user"]),
-                "assistant": len([m for m in self.chat_messages if m.role == "assistant"]),
-            },
-        }
-        self._memory_fs.pipe("summary.json", json.dumps(summary, indent=2).encode("utf-8"))
-
-        self._fs_initialized = True
-
-    def get_fs(self) -> AsyncFileSystem:
+    def get_fs(self) -> ChatMessageFileSystem:
         """Get filesystem view of message history.
 
+        The filesystem reads directly from the ChatMessageList reference,
+        so it always reflects the current state.
+
         Returns:
-            AsyncFileSystem containing:
-            - messages/{timestamp}_{role}_{message_id}.txt - Message content
-            - messages/{timestamp}_{role}_{message_id}.json - Message metadata
-            - by_role/{role}/ - Messages organized by role
-            - summary.json - Conversation statistics
+            ChatMessageFileSystem containing:
+            - /messages/{timestamp}_{role}_{message_id}.txt - Message content
+            - /messages/{timestamp}_{role}_{message_id}.json - Message metadata
+            - /by_role/user/ - User messages
+            - /by_role/assistant/ - Assistant messages
+            - /summary.json - Conversation statistics
         """
-        # Update filesystem on access
-        self._update_filesystem()
+        if self._fs is None:
+            self._fs = ChatMessageFileSystem(self.chat_messages)
         return self._fs
 
 
