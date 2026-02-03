@@ -22,20 +22,6 @@ class MemoryConfig(Schema):
     enable: bool = Field(default=True, title="Enable memory")
     """Whether to enable history tracking."""
 
-    max_tokens: int | None = Field(
-        default=None,
-        examples=[1000, 4000, 8000],
-        title="Maximum context tokens",
-    )
-    """Maximum number of tokens to keep in context window."""
-
-    max_messages: int | None = Field(
-        default=None,
-        examples=[10, 50, 100],
-        title="Maximum message count",
-    )
-    """Maximum number of messages to keep in context window."""
-
     session: SessionQuery | None = Field(default=None, title="Session query")
     """Query configuration for loading previous session."""
 
@@ -50,13 +36,11 @@ class MemoryConfig(Schema):
     model_config = ConfigDict(frozen=True)
 
     @classmethod
-    def from_value(cls, value: bool | int | str | SessionQuery | UUID | None) -> Self:
+    def from_value(cls, value: bool | str | SessionQuery | UUID | None) -> Self:
         """Create MemoryConfig from any value."""
         match value:
             case False:
-                return cls(max_messages=0)
-            case int():
-                return cls(max_tokens=value)
+                return cls(enable=False)
             case str() | UUID():
                 return cls(session=SessionQuery(name=str(value)))
             case SessionQuery():
@@ -64,7 +48,7 @@ class MemoryConfig(Schema):
             case None | True:
                 return cls()
             case _:
-                raise ValueError(f"Invalid memory configuration: type: {value}")
+                raise ValueError(f"Invalid memory configuration: {value}")
 
 
 class SessionQuery(Schema):

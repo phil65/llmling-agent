@@ -96,7 +96,7 @@ class AgentKwargs(TypedDict, total=False):
     output_retries: int | None
     end_strategy: EndStrategy
     # context: AgentContext[Any] | None  # x
-    session: SessionIdType | SessionQuery | MemoryConfig | bool | int
+    session: SessionIdType | SessionQuery | MemoryConfig | bool
     input_provider: InputProvider | None
     event_handlers: Sequence[AnyEventHandlerType] | None
     env: ExecutionEnvironment | None
@@ -124,7 +124,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         model: ModelType,
         output_type: OutputSpec[OutputDataT] = str,  # type: ignore[assignment]
         # context: AgentContext[TDeps] | None = None,
-        session: SessionIdType | SessionQuery | MemoryConfig | bool | int = None,
+        session: SessionIdType | SessionQuery | MemoryConfig | bool = None,
         system_prompt: AnyPromptType | Sequence[AnyPromptType] = (),
         description: str | None = None,
         display_name: str | None = None,

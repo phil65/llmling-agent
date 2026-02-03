@@ -92,9 +92,6 @@ class MessageHistory:
             if session_config.session.name:
                 self.id = session_config.session.name
 
-        # Note: max_messages and max_tokens will be handled in add_message/get_history
-        # to maintain the rolling window during conversation
-
         # Filesystem for message history
         from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
         from fsspec.implementations.memory import MemoryFileSystem
@@ -270,41 +267,13 @@ class MessageHistory:
         self.chat_messages.clear()
         self.chat_messages.extend(self.storage.filter_messages.sync(query))
 
-    def get_history(
-        self,
-        do_filter: bool = True,
-    ) -> list[ChatMessage[Any]]:
+    def get_history(self) -> list[ChatMessage[Any]]:
         """Get conversation history.
 
-        Args:
-            do_filter: Whether to apply memory config limits (max_tokens, max_messages)
-
         Returns:
-            Filtered list of messages in chronological order
+            List of messages in chronological order
         """
-        # Start with original history
-        history: Sequence[ChatMessage[Any]] = self.chat_messages
-
-        # 3. Only filter if needed
-        if do_filter and self._config:
-            # First filter by message count (simple slice)
-            if self._config.max_messages:
-                history = history[-self._config.max_messages :]
-
-            # Then filter by tokens if needed
-            if self._config.max_tokens:
-                token_count = 0
-                filtered = []
-                # Collect messages from newest to oldest until we hit the limit
-                for msg in reversed(history):
-                    msg_tokens = msg.get_token_count()
-                    if token_count + msg_tokens > self._config.max_tokens:
-                        break
-                    token_count += msg_tokens
-                    filtered.append(msg)
-                history = list(reversed(filtered))
-
-        return list(history)
+        return list(self.chat_messages)
 
     def get_pending_parts(self) -> list[UserContent]:
         """Get and clear pending content parts for the next interaction.
