@@ -3,10 +3,6 @@
 This module provides a client for communicating with MCP servers using FastMCP.
 It includes support for contextual progress handlers that extend FastMCP's
 standard progress callbacks with tool execution context (tool name, call ID, and input).
-
-The key innovation is the signature injection system that allows MCP tools to work
-seamlessly with PydanticAI's RunContext while providing rich progress information.
-
 Elicitation is handled via a forwarding callback pattern: a stable callback is
 registered at connection time, but it delegates to a mutable handler that can
 be swapped per tool call (allowing AgentContext.handle_elicitation to be used).
@@ -241,10 +237,7 @@ class MCPClient:
         )
 
     async def list_tools(self) -> list[MCPTool]:
-        """Get available tools directly from the server.
-
-        Tools are filtered based on the server config's enabled_tools/disabled_tools settings.
-        """
+        """Get available enabled tools directly from the server."""
         self._ensure_connected()
         try:
             tools = await self._client.list_tools()
@@ -367,6 +360,8 @@ class MCPClient:
         agent_ctx: AgentContext[Any] | None = None,
     ) -> ToolReturn | str | Any:
         """Call an MCP tool with full PydanticAI return type support."""
+        from agentpool.mcp_server.conversions import from_mcp_content
+
         self._ensure_connected()
         # Create progress handler that bridges to AgentContext if available
         progress_handler = None
@@ -421,7 +416,7 @@ class MCPClient:
             result = await self._client.call_tool(
                 name, arguments, progress_handler=progress_handler, meta=meta
             )
-            content = await self._from_mcp_content(result.content)
+            content = await from_mcp_content(result.content)
             # Decision logic for return type
             match (result.data is not None, bool(content)):
                 case (True, True):  # Both structured data and rich content -> ToolReturn
@@ -440,15 +435,6 @@ class MCPClient:
         finally:
             # Clear per-call handler
             self._current_elicitation_handler = None
-
-    async def _from_mcp_content(
-        self,
-        mcp_content: Sequence[ContentBlock | TextResourceContents | BlobResourceContents],
-    ) -> list[str | BinaryContent]:
-        """Convert MCP content blocks to PydanticAI content types."""
-        from agentpool.mcp_server.conversions import from_mcp_content
-
-        return await from_mcp_content(mcp_content)
 
 
 if __name__ == "__main__":
