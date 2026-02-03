@@ -21,18 +21,6 @@ class ResourceInfo:
 
     This class provides essential information about a resource and can read
     its content when a reader is available.
-
-    Example:
-        ```python
-        # List resources from tool manager
-        resources = await agent.tools.list_resources()
-
-        # Read a specific resource
-        for resource in resources:
-            if resource.name == "config.json":
-                content = await resource.read()
-                print(content)
-        ```
     """
 
     name: str
@@ -68,11 +56,6 @@ class ResourceInfo:
         if self._reader is None:
             raise RuntimeError(f"No reader available for resource: {self.uri}")
         return await self._reader(self.uri)
-
-    @property
-    def can_read(self) -> bool:
-        """Check if this resource can be read."""
-        return self._reader is not None
 
     @classmethod
     async def from_mcp_resource(

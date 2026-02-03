@@ -217,22 +217,15 @@ class MCPResourceProvider(ResourceProvider):
         Raises:
             RuntimeError: If resource cannot be read
         """
+        from mcp.types import BlobResourceContents, TextResourceContents
+
         result: list[str] = []
         for content in await self.client.read_resource(uri):
-            if hasattr(content, "text") and content.text is not None:
-                result.append(str(content.text))
-            elif hasattr(content, "blob") and content.blob is not None:
-                # Binary content - return placeholder or base64
-                import base64
-
-                blob_data = content.blob
-                if isinstance(blob_data, str):
+            match content:
+                case TextResourceContents(text=text):
+                    result.append(text)
+                case BlobResourceContents(blob=blob_data):
                     result.append(f"[Binary data: {len(blob_data)} bytes]")
-                elif isinstance(blob_data, bytes):
-                    encoded = base64.b64encode(blob_data).decode("utf-8")
-                    result.append(encoded)
-                else:
-                    result.append("[Binary data: unknown format]")
         return result
 
     async def list_resource_templates(self) -> list[ResourceTemplate]:
