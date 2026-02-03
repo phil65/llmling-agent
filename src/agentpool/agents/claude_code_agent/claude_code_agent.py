@@ -894,10 +894,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Set deps/input_provider on tool bridge (ContextVar doesn't work - separate task)
         try:
             await client.query(prompt_text)
+            # Capture SDK session ID from init message
+            stream = client.receive_response()
+            first_msg = await anext(stream)
+            assert isinstance(first_msg, SystemMessage)
+            assert first_msg.subtype == "init"
+            self._sdk_session_id = first_msg.data["session_id"]
             # Merge SDK messages with event queue for real-time tool event streaming
             async with (
                 self._tool_bridge.set_run_context(deps, input_provider, prompt=prompts),
-                merge_queue_into_iterator(client.receive_response(), self._event_queue) as events,
+                merge_queue_into_iterator(stream, self._event_queue) as events,
             ):
                 async for event_or_message in events:
                     # Check if it's a queued event (from tools via EventEmitter)
@@ -912,12 +918,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                         continue
 
                     message = event_or_message
-                    # Capture SDK session ID from init message
-                    if isinstance(message, SystemMessage):
-                        if message.subtype == "init" and "session_id" in message.data:
-                            self._sdk_session_id = message.data["session_id"]
-                        continue
-
                     # Process assistant messages - extract parts incrementally
                     if isinstance(message, AssistantMessage):
                         # Track resolved model from provider response
