@@ -161,8 +161,7 @@ class MCPManager:
             except RuntimeError as e:
                 if "different task" in str(e):
                     # Handle task context mismatch
-                    current_task = asyncio.current_task()
-                    if current_task:
+                    if asyncio.current_task():
                         loop = asyncio.get_running_loop()
                         await loop.create_task(self.exit_stack.aclose())
                 else:

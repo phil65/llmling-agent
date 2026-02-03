@@ -864,7 +864,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         #
         prompt_text = " ".join(str(p) for p in prompts)
         run_id = str(uuid.uuid4())
-        # Emit run started
         assert self.session_id is not None  # Initialized by BaseAgent.run_stream()
         yield RunStartedEvent(session_id=self.session_id, run_id=run_id, agent_name=self.name)
         request = ModelRequest(parts=[UserPromptPart(content=prompt_text)])
