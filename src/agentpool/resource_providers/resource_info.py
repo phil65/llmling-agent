@@ -91,20 +91,13 @@ class ResourceInfo:
         Returns:
             ResourceInfo instance
         """
-        annotations: dict[str, Any] = {}
-        if resource.annotations:
-            # Convert annotations to simple dict
-            if hasattr(resource.annotations, "model_dump"):
-                annotations = resource.annotations.model_dump(exclude_none=True)
-            elif isinstance(resource.annotations, dict):
-                annotations = resource.annotations
-
+        annots = resource.annotations.model_dump(exclude_none=True) if resource.annotations else {}
         return cls(
             name=resource.name,
             uri=str(resource.uri),
             description=resource.description,
             mime_type=resource.mimeType,
             client=client_name,
-            annotations=annotations,
+            annotations=annots,
             _reader=reader,
         )

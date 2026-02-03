@@ -170,11 +170,11 @@ async def vfs_info(ctx: AgentContext) -> str:
     for i, layer in enumerate(fs.layers):
         layer_type = "writable" if i == 0 else "read-only"
         sections.append(f"- Layer {i} ({layer_type}): {type(layer).__name__}")
+
     # List top-level contents
     sections.append("\n### Contents")
     try:
-        items = await fs._ls(fs.root_marker, detail=True)
-        for item in items:
+        for item in await fs._ls(fs.root_marker, detail=True):
             item_type = "dir" if item.get("type") == "directory" else "file"
             name = item.get("name", "").strip("/")
             layer = item.get("layer", "?")

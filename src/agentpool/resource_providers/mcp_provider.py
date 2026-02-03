@@ -121,12 +121,9 @@ class MCPResourceProvider(ResourceProvider):
 
     async def refresh_tools_cache(self) -> None:
         """Refresh the tools cache by fetching from client."""
+        all_tools: list[FunctionTool] = []
         try:
-            # Get fresh tools from client
-            mcp_tools = await self.client.list_tools()
-            all_tools: list[FunctionTool] = []
-
-            for tool in mcp_tools:
+            for tool in await self.client.list_tools():
                 try:
                     tool_info = self.client.convert_tool(tool)
                     all_tools.append(tool_info)
@@ -156,11 +153,9 @@ class MCPResourceProvider(ResourceProvider):
         """Refresh the prompts cache by fetching from client."""
         from agentpool.prompts.prompts import MCPClientPrompt
 
+        all_prompts: list[MCPClientPrompt] = []
         try:
-            result = await self.client.list_prompts()
-            all_prompts: list[MCPClientPrompt] = []
-
-            for prompt in result:
+            for prompt in await self.client.list_prompts():
                 try:
                     converted = MCPClientPrompt.from_fastmcp(self.client, prompt)
                     all_prompts.append(converted)
@@ -183,11 +178,9 @@ class MCPResourceProvider(ResourceProvider):
 
     async def refresh_resources_cache(self) -> None:
         """Refresh the resources cache by fetching from client."""
+        all_resources: list[ResourceInfo] = []
         try:
-            result = await self.client.list_resources()
-            all_resources: list[ResourceInfo] = []
-
-            for resource in result:
+            for resource in await self.client.list_resources():
                 try:
                     converted = await ResourceInfo.from_mcp_resource(
                         resource,
@@ -224,9 +217,8 @@ class MCPResourceProvider(ResourceProvider):
         Raises:
             RuntimeError: If resource cannot be read
         """
-        contents = await self.client.read_resource(uri)
         result: list[str] = []
-        for content in contents:
+        for content in await self.client.read_resource(uri):
             if hasattr(content, "text") and content.text is not None:
                 result.append(str(content.text))
             elif hasattr(content, "blob") and content.blob is not None:
