@@ -520,7 +520,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             extra_args["chrome"] = None
         # Build environment variables
         env = dict(self._env_vars or {})
-        env["clawd_code_sdk_SKIP_VERSION_CHECK"] = "1"
+        env["CLAUDE_AGENT_SDK_SKIP_VERSION_CHECK"] = "1"
         env["CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC"] = "1"
         if "LSP" in builtin_tools:
             # Enable LSP tool support
