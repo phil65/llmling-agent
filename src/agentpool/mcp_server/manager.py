@@ -175,11 +175,6 @@ class MCPManager:
             logger.exception(msg, exc_info=e)
             raise RuntimeError(msg) from e
 
-    @property
-    def active_servers(self) -> list[str]:
-        """Get IDs of active servers."""
-        return [provider.server.client_id for provider in self.providers]
-
 
 if __name__ == "__main__":
     from agentpool_config.mcp_server import StdioMCPServerConfig
