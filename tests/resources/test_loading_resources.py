@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import fsspec
 import pytest
 from upathtools.filesystems import UnionFileSystem
 import yamling
@@ -9,7 +8,7 @@ from agentpool import AgentPool
 from agentpool.models import AgentsManifest
 
 
-fsspec.register_implementation("union", UnionFileSystem, clobber=True)
+UnionFileSystem.register_fs(clobber=True)
 
 MANIFEST_CONFIG = """
 resources:
@@ -63,7 +62,7 @@ async def test_resource_path():
     manifest = AgentsManifest.model_validate(yamling.load_yaml(MANIFEST_CONFIG))
     pool = AgentPool(manifest)
     path = pool.vfs_registry.get_upath("docs")
-    print(list(path.iterdir()))
+    _entries = list(path.iterdir())
     assert str(path) == "union://docs"  # UPath str includes protocol prefix
     assert path.fs == pool.vfs_registry.get_fs()
 

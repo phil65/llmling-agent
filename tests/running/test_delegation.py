@@ -7,12 +7,12 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from agentpool.agents import Agent
+from agentpool.agents.base_agent import BaseAgent  # noqa: TC001
 from agentpool.running import NodeInjectionError, with_nodes
 
 
 if TYPE_CHECKING:
     from agentpool import AgentPool
-    from agentpool.agents.base_agent import BaseAgent
 
 
 async def test_basic_injection(pool: AgentPool):
