@@ -15,7 +15,6 @@ from upathtools import read_path, to_upath
 
 from agentpool.log import get_logger
 from agentpool.storage import StorageManager
-from agentpool.utils.count_tokens import count_tokens
 from agentpool.utils.time_utils import get_now
 from agentpool_config.session import SessionQuery
 
@@ -151,11 +150,6 @@ class MessageHistory:
         """Get length of history."""
         return len(self.chat_messages)
 
-    def get_message_tokens(self, message: ChatMessage[Any]) -> int:
-        """Get token count for a single message."""
-        content = "\n".join(message.format())
-        return count_tokens(content, message.model_name)
-
     async def format_history(
         self,
         *,
@@ -193,12 +187,7 @@ class MessageHistory:
 
             if max_tokens:
                 # Count tokens in this message
-                if msg.cost_info:
-                    msg_tokens = msg.cost_info.token_usage.total_tokens
-                else:
-                    # Fallback to tiktoken if no cost info
-                    msg_tokens = self.get_message_tokens(msg)
-
+                msg_tokens = msg.get_token_count()
                 if token_count + msg_tokens > max_tokens:
                     break
                 token_count += msg_tokens
@@ -308,7 +297,7 @@ class MessageHistory:
                 filtered = []
                 # Collect messages from newest to oldest until we hit the limit
                 for msg in reversed(history):
-                    msg_tokens = self.get_message_tokens(msg)
+                    msg_tokens = msg.get_token_count()
                     if token_count + msg_tokens > self._config.max_tokens:
                         break
                     token_count += msg_tokens

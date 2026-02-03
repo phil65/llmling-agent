@@ -577,6 +577,14 @@ class ChatMessage[TContent]:
 
         return template_obj.render(**vars_)
 
+    def get_token_count(self) -> int:
+        """Get token count, either from token usage or cost data."""
+        from agentpool.utils.count_tokens import count_tokens
+
+        if info := self.cost_info:
+            return info.token_usage.total_tokens
+        return count_tokens(str(self.usage.total_tokens), self.model_name)
+
 
 @dataclass
 class AgentResponse[TResult = Any]:

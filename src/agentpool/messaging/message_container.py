@@ -8,7 +8,7 @@ from psygnal.containers import EventedList
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
-from agentpool.utils.count_tokens import batch_count_tokens, count_tokens
+from agentpool.utils.count_tokens import batch_count_tokens
 
 
 if TYPE_CHECKING:
@@ -32,21 +32,6 @@ class ChatMessageList(EventedList[ChatMessage[Any]]):
     - Token-aware context window management
     - Role-based filtering
     """
-
-    def get_message_tokens(self, message: ChatMessage[Any]) -> int:
-        """Get token count for a single message.
-
-        Uses cost_info if available, falls back to tiktoken estimation.
-
-        Args:
-            message: Message to count tokens for
-
-        Returns:
-            Token count for the message
-        """
-        if message.cost_info:
-            return message.cost_info.token_usage.total_tokens
-        return count_tokens(str(message.usage.total_tokens), message.model_name)
 
     def get_history_tokens(self, fallback_model: str | None = None) -> int:
         """Get total token count for all messages.
