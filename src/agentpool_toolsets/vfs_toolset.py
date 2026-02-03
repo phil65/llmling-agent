@@ -36,11 +36,8 @@ async def vfs_list(  # noqa: D417
         Formatted list of matching files and directories
     """
     fs = ctx.overlay_fs
-
+    norm_path = path.strip("/") if path not in ("/", "") else fs.root_marker
     try:
-        # Normalize path
-        norm_path = path.strip("/") if path not in ("/", "") else fs.root_marker
-
         # List using filesystem directly (not via UPath helpers that lose fs context)
         if norm_path == fs.root_marker:
             items = await fs._ls(fs.root_marker, detail=True)
@@ -50,10 +47,8 @@ async def vfs_list(  # noqa: D417
                 glob_pattern = f"{norm_path}/{pattern}"
             else:
                 glob_pattern = f"{norm_path}/{pattern}" if pattern != "**/*" else f"{norm_path}/*"
-            items = await fs._glob(glob_pattern, maxdepth=max_depth, detail=True)
-            # _glob returns a dict, convert to list
-            if isinstance(items, dict):
-                items = [dict(info, name=name) for name, info in items.items()]
+            glob_result = await fs._glob(glob_pattern, maxdepth=max_depth, detail=True)
+            items = [dict(info, name=name) for name, info in glob_result.items()]
 
         # Filter results
         results: list[str] = []

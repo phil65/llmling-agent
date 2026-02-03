@@ -34,7 +34,7 @@ from agentpool_config.mcp_server import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Sequence
+    from collections.abc import Awaitable, Callable
 
     import fastmcp
     from fastmcp.client import ClientTransport
@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     from mcp.shared.context import RequestContext
     from mcp.types import (
         BlobResourceContents,
-        ContentBlock,
         ElicitRequestParams,
         GetPromptResult,
         Icon,
@@ -56,7 +55,6 @@ if TYPE_CHECKING:
         TextResourceContents,
         Tool as MCPTool,
     )
-    from pydantic_ai import BinaryContent
     from upathtools.filesystems import MCPFileSystem, MCPToolsFileSystem
 
     from agentpool_config.mcp_server import MCPServerConfig

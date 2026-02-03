@@ -25,7 +25,7 @@ async def pool():
 async def test_registry_captures_agent_interaction(pool: AgentPool):
     """Test that registry captures real agent interactions."""
     messages = []
-    pool.connection_registry.message_flow.connect(lambda event: messages.append(event))
+    pool.connection_registry.message_flow.connect(messages.append)
 
     # Get agents and set up connection
     agent1 = pool.get_agent("agent1")
@@ -42,7 +42,7 @@ async def test_registry_captures_agent_interaction(pool: AgentPool):
 async def test_chained_communication(pool: AgentPool):
     """Test message flow through chain of agents."""
     messages = []
-    pool.connection_registry.message_flow.connect(lambda event: messages.append(event))
+    pool.connection_registry.message_flow.connect(messages.append)
 
     # Set up chain: agent1 -> agent2 -> agent3
     agent1 = pool.get_agent("agent1")
@@ -67,7 +67,7 @@ async def test_chained_communication(pool: AgentPool):
 async def test_broadcast_communication(pool: AgentPool):
     """Test broadcasting to multiple agents."""
     messages = []
-    pool.connection_registry.message_flow.connect(lambda event: messages.append(event))
+    pool.connection_registry.message_flow.connect(messages.append)
 
     # Set up broadcast: agent1 -> [agent2, agent3]
     agent1 = pool.get_agent("agent1")

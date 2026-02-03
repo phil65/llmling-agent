@@ -520,7 +520,7 @@ class MessageHistory:
         summary = {
             "session_id": self.id,
             "total_messages": len(self.chat_messages),
-            "total_tokens": self.get_history_tokens(),
+            "total_tokens": self.chat_messages.get_history_tokens(),
             "total_cost": self.chat_messages.get_total_cost(),
             "roles": {
                 "user": len([m for m in self.chat_messages if m.role == "user"]),
