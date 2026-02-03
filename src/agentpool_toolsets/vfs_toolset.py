@@ -110,11 +110,9 @@ async def vfs_read(  # noqa: D417
         File content or concatenated directory contents
     """
     fs = ctx.overlay_fs
-
     try:
         # Normalize path for filesystem operations
         norm_path = path.strip("/") if path not in ("/", "") else fs.root_marker
-
         if await fs._isdir(norm_path):
             # Read directory contents
             sections: list[str] = []
@@ -165,16 +163,13 @@ async def vfs_info(ctx: AgentContext) -> str:
         Formatted information about available filesystem layers
     """
     fs = ctx.overlay_fs
-
     sections = ["## Agent Filesystem\n"]
     sections.append("Unified view combining agent storage and configured resources.\n")
-
     # List layers
     sections.append("### Layers")
     for i, layer in enumerate(fs.layers):
         layer_type = "writable" if i == 0 else "read-only"
         sections.append(f"- Layer {i} ({layer_type}): {type(layer).__name__}")
-
     # List top-level contents
     sections.append("\n### Contents")
     try:

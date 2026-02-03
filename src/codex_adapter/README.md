@@ -78,7 +78,6 @@ async with CodexClient() as client:
     print(f"Found {result.total} files: {result.files}")
 ```
 
-**See [`STRUCTURED_RESPONSES.md`](./STRUCTURED_RESPONSES.md) for complete documentation.**
 
 ## API Overview
 

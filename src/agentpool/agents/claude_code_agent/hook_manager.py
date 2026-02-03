@@ -32,22 +32,6 @@ class ClaudeCodeHookManager:
     - Builds SDK hooks configuration from multiple sources
     - Consumes injections from PromptInjectionManager
     - Provides clean API for hook-related operations
-
-    Example:
-        hook_manager = ClaudeCodeHookManager(
-            agent_name="my-agent",
-            agent_hooks=hooks,
-            event_queue=queue,
-            get_session_id=lambda: agent.session_id,
-            injection_manager=agent._injection_manager,
-            set_mode=agent._set_mode,
-        )
-
-        # Injections are queued via agent.inject_prompt()
-        # Hook manager consumes them in PostToolUse hooks
-
-        # Get SDK hooks for ClaudeCode options
-        sdk_hooks = hook_manager.build_hooks()
     """
 
     def __init__(

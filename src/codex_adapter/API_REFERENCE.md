@@ -473,6 +473,5 @@ async for event in client.turn_stream(fork2.id, "Use unittest instead"):
 
 ## See Also
 
-- [README.md](README.md) - Quick start guide
-- [IMPLEMENTATION.md](IMPLEMENTATION.md) - Implementation notes
+- [README.md](./README.md) - Quick start guide
 - [Codex app-server docs](https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md)
