@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
+from agentpool.agents.exceptions import UnknownModeError
 from agentpool.agents.modes import ConfigOptionChanged, ModeCategoryProtocol, ModeInfo
 
 
@@ -48,8 +49,7 @@ class ACPModeCategory(ModeCategoryProtocol["ACPAgent"]):
         """Apply mode change - uses config_options if available, else legacy API."""
         valid_ids = {m.id for m in self.available_modes}
         if mode_id not in valid_ids:
-            msg = f"Invalid mode '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
-            raise ValueError(msg)
+            raise UnknownModeError(mode_id, list(valid_ids))
 
         if not agent._connection or not agent._sdk_session_id or not agent._state:
             raise RuntimeError("Not connected to ACP server")
@@ -189,8 +189,7 @@ class ACPModelCategory(ModeCategoryProtocol["ACPAgent"]):
         """Apply model change - uses config_options if available, else legacy API."""
         valid_ids = {m.id for m in self.available_modes}
         if mode_id not in valid_ids:
-            msg = f"Invalid model '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
-            raise ValueError(msg)
+            raise UnknownModeError(mode_id, list(valid_ids))
 
         if not agent._connection or not agent._sdk_session_id or not agent._state:
             raise RuntimeError("Not connected to ACP server")
@@ -330,8 +329,7 @@ class ACPGenericCategory(ModeCategoryProtocol["ACPAgent"]):
 
         valid_ids = {m.id for m in self.available_modes}
         if mode_id not in valid_ids:
-            msg = f"Invalid value '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
-            raise ValueError(msg)
+            raise UnknownModeError(mode_id, list(valid_ids))
 
         if not agent._connection or not agent._sdk_session_id or not agent._state:
             raise RuntimeError("Not connected to ACP server")
