@@ -184,17 +184,15 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
         All config values are extracted here and passed to the constructor.
         """
-        from agentpool.models.manifest import AgentsManifest
         from agentpool.utils.result_utils import to_type
 
         # Resolve output type from config
-        manifest = agent_pool.manifest if agent_pool else AgentsManifest()
+        responses = agent_pool.manifest.responses if agent_pool is not None else None
         agent_output_type = config.output_type or str
         if isinstance(agent_output_type, str) and agent_output_type != "str":
-            resolved_output_type = to_type(agent_output_type, manifest.responses)
+            resolved_output_type = to_type(agent_output_type, responses)
         else:
             resolved_output_type = to_type(agent_output_type)
-
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[AnyEventHandlerType] = [*config_handlers, *(event_handlers or [])]
