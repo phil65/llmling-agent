@@ -130,7 +130,7 @@ class ACPClientHandler(Client):
             CurrentModelUpdate,
             CurrentModeUpdate,
         )
-        from agentpool.agents.modes import ConfigOptionChanged, ModeInfo
+        from agentpool.agents.modes import ModeInfo
 
         # Handle state updates - these modify session state, not stream data
         match params.update:
@@ -173,9 +173,7 @@ class ACPClientHandler(Client):
                     if config_opt.id == config_id:
                         config_opt.current_value = value_id
                         break
-                change = ConfigOptionChanged(config_id=config_id, value_id=value_id)
-                await self._agent.state_updated.emit(change)
-                logger.debug("Config option updated", config_id=config_id, value_id=value_id)
+                await self._agent.update_state(config_id=config_id, value_id=value_id)
                 self._update_event.set()
                 return
 

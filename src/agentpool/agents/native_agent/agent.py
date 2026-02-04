@@ -938,16 +938,12 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
     async def _set_mode(self, mode_id: str, category_id: str) -> None:
         """Handle permissions and model mode switching."""
-        from agentpool.agents.modes import ConfigOptionChanged
-
         if category_id == "mode":
             # Use native ToolConfirmationMode values directly
             if mode_id not in VALID_MODES:
                 raise UnknownModeError(mode_id, VALID_MODES)
             self.tool_confirmation_mode = mode_id  # type: ignore[assignment]
-            self.log.info("Tool confirmation mode changed", mode=mode_id)
-            change = ConfigOptionChanged(config_id="mode", value_id=mode_id)
-            await self.state_updated.emit(change)
+            await self.update_state(config_id="mode", value_id=mode_id)
 
         elif category_id == "model":
             # Validate model exists
@@ -959,8 +955,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             self._model, settings = self._resolve_model_string(mode_id)
             if settings:
                 self.model_settings = settings
-            self.log.info("Model changed", model=mode_id)
-            await self.state_updated.emit(ConfigOptionChanged(config_id="model", value_id=mode_id))
+            await self.update_state(config_id="model", value_id=mode_id)
         else:
             raise UnknownCategoryError(category_id, ["mode", "model"])
 

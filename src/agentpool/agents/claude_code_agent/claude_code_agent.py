@@ -1315,7 +1315,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
     async def _set_mode(self, mode_id: str, category_id: str) -> None:
         """Handle permissions, model, and thinking_level mode switching."""
         from agentpool.agents.claude_code_agent.static_info import VALID_MODES
-        from agentpool.agents.modes import ConfigOptionChanged
 
         if category_id == "mode":
             # Map mode_id to PermissionMode
@@ -1349,9 +1348,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 await self._client.set_max_thinking_tokens(tokens)
         else:
             raise UnknownCategoryError(category_id)
-        change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
-        await self.state_updated.emit(change)
-        self.log.info("Config option changed", config_id=category_id, value=mode_id)
+        await self.update_state(config_id=category_id, value_id=mode_id)
 
     async def list_sessions(
         self,

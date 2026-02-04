@@ -609,8 +609,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _set_mode(self, mode_id: str, category_id: str) -> None:
         """Forward mode change to remote ACP server."""
-        from agentpool.agents.modes import ConfigOptionChanged
-
         if not self._api or not self._sdk_session_id or not self._state:
             raise RuntimeError("Not connected to ACP server")
         available_modes = await self.get_modes()
@@ -640,9 +638,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                 raise RuntimeError("Remote ACP agent does not support model changes.")
         else:
             raise UnknownCategoryError(category_id, ["mode", "model"])
-        self.log.info("Config option changed", config_id=category_id, value=mode_id)
-        change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
-        await self.state_updated.emit(change)
+        await self.update_state(config_id=category_id, value_id=mode_id)
 
     async def list_sessions(
         self,

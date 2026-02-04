@@ -606,8 +606,6 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
     async def _set_mode(self, mode_id: str, category_id: str) -> None:
         """Handle approval_policy, reasoning_effort, and model mode switching."""
-        from agentpool.agents.modes import ConfigOptionChanged
-
         if category_id == "mode":
             valid_policies = ["never", "on-request", "on-failure", "untrusted"]
             if mode_id not in valid_policies:
@@ -632,9 +630,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self._current_sandbox = mode_id  # type: ignore[assignment]
         else:
             raise UnknownCategoryError(category_id)
-        self.log.info("Config option changed", category=category_id, value=mode_id)
-        change = ConfigOptionChanged(config_id=category_id, value_id=mode_id)
-        await self.state_updated.emit(change)
+        await self.update_state(config_id=category_id, value_id=mode_id)
 
     async def list_sessions(
         self,

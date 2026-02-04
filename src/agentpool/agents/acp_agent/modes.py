@@ -60,8 +60,7 @@ class ACPModeCategory(ModeCategoryProtocol["ACPAgent"]):
         else:
             await self._apply_via_legacy(agent, mode_id)
 
-        change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
-        await agent.state_updated.emit(change)
+        await agent.update_state(config_id=self.id, value_id=mode_id)
 
     async def _apply_via_config_options(self, agent: ACPAgent, mode_id: str) -> None:
         """Apply using new config_options API."""
@@ -199,9 +198,7 @@ class ACPModelCategory(ModeCategoryProtocol["ACPAgent"]):
             await self._apply_via_config_options(agent, mode_id)
         else:
             await self._apply_via_legacy(agent, mode_id)
-
-        change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
-        await agent.state_updated.emit(change)
+        await agent.update_state(config_id=self.id, value_id=mode_id)
 
     async def _apply_via_config_options(self, agent: ACPAgent, mode_id: str) -> None:
         """Apply using new config_options API."""

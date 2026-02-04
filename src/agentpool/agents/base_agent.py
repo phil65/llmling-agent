@@ -279,6 +279,13 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         return TeamRun([self, other])
 
+    async def update_state(self, config_id: str, value_id: str):
+        from agentpool.agents.modes import ConfigOptionChanged
+
+        self.log.info("Config option changed", config_id=config_id, mode=value_id)
+        change = ConfigOptionChanged(config_id=config_id, value_id=value_id)
+        await self.state_updated.emit(change)
+
     @property
     def command_store(self) -> CommandStore:
         """Get the command store for slash commands."""

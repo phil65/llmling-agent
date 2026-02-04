@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, ClassVar
 
 from agentpool.agents.exceptions import UnknownModeError
-from agentpool.agents.modes import ConfigOptionChanged, ModeCategoryProtocol, ModeInfo
+from agentpool.agents.modes import ModeCategoryProtocol, ModeInfo
 
 
 if TYPE_CHECKING:
@@ -121,9 +121,7 @@ class CodexApprovalCategory(ModeCategoryProtocol["CodexAgent"]):
         if mode_id not in valid_ids:
             raise UnknownModeError(mode_id, list(valid_ids))
         agent._approval_policy = mode_id  # type: ignore[assignment]
-        agent.log.info("Approval policy changed", policy=mode_id)
-        change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
-        await agent.state_updated.emit(change)
+        await agent.update_state(config_id=self.id, value_id=mode_id)
 
 
 class CodexEffortCategory(ModeCategoryProtocol["CodexAgent"]):
@@ -144,9 +142,7 @@ class CodexEffortCategory(ModeCategoryProtocol["CodexAgent"]):
             raise UnknownModeError(mode_id, list(valid_ids))
         # Just store it - effort is passed per-turn, no restart needed
         agent._current_effort = mode_id  # type: ignore[assignment]
-        agent.log.info("Reasoning effort changed", effort=mode_id)
-        change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
-        await agent.state_updated.emit(change)
+        await agent.update_state(config_id=self.id, value_id=mode_id)
 
 
 class CodexSandboxCategory(ModeCategoryProtocol["CodexAgent"]):
@@ -167,9 +163,7 @@ class CodexSandboxCategory(ModeCategoryProtocol["CodexAgent"]):
         if mode_id not in valid_ids:
             raise UnknownModeError(mode_id, list(valid_ids))
         agent._current_sandbox = mode_id  # type: ignore[assignment]
-        agent.log.info("Sandbox mode changed", sandbox=mode_id)
-        change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
-        await agent.state_updated.emit(change)
+        await agent.update_state(config_id=self.id, value_id=mode_id)
 
 
 class CodexModelCategory(ModeCategoryProtocol["CodexAgent"]):
@@ -188,6 +182,4 @@ class CodexModelCategory(ModeCategoryProtocol["CodexAgent"]):
         """Apply model selection."""
         # Model validation is optional since models are dynamic
         agent._current_model = mode_id
-        agent.log.info("Model changed", model=mode_id)
-        change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
-        await agent.state_updated.emit(change)
+        await agent.update_state(config_id=self.id, value_id=mode_id)
