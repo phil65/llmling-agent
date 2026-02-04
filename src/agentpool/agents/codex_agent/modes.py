@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
+from agentpool.agents.exceptions import UnknownModeError
 from agentpool.agents.modes import ConfigOptionChanged, ModeCategoryProtocol, ModeInfo
 
 
@@ -118,9 +119,7 @@ class CodexApprovalCategory(ModeCategoryProtocol["CodexAgent"]):
         """Apply approval policy mode."""
         valid_ids = {m.id for m in self.available_modes}
         if mode_id not in valid_ids:
-            msg = f"Invalid mode '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
-            raise ValueError(msg)
-
+            raise UnknownModeError(mode_id, list(valid_ids))
         agent._approval_policy = mode_id  # type: ignore[assignment]
         agent.log.info("Approval policy changed", policy=mode_id)
         change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
@@ -142,8 +141,7 @@ class CodexEffortCategory(ModeCategoryProtocol["CodexAgent"]):
     async def apply(self, agent: CodexAgent, mode_id: str) -> None:
         """Apply reasoning effort mode."""
         if mode_id not in (valid_ids := {m.id for m in self.available_modes}):
-            msg = f"Invalid mode {mode_id!r} for category {self.id!r}. Valid: {valid_ids}"
-            raise ValueError(msg)
+            raise UnknownModeError(mode_id, list(valid_ids))
         # Just store it - effort is passed per-turn, no restart needed
         agent._current_effort = mode_id  # type: ignore[assignment]
         agent.log.info("Reasoning effort changed", effort=mode_id)
@@ -167,8 +165,7 @@ class CodexSandboxCategory(ModeCategoryProtocol["CodexAgent"]):
         """Apply sandbox mode."""
         valid_ids = {m.id for m in self.available_modes}
         if mode_id not in valid_ids:
-            msg = f"Invalid mode '{mode_id}' for category '{self.id}'. Valid: {valid_ids}"
-            raise ValueError(msg)
+            raise UnknownModeError(mode_id, list(valid_ids))
         agent._current_sandbox = mode_id  # type: ignore[assignment]
         agent.log.info("Sandbox mode changed", sandbox=mode_id)
         change = ConfigOptionChanged(config_id=self.id, value_id=mode_id)
