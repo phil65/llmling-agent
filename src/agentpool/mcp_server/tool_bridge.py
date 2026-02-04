@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from agentpool.agents.prompt_injection import PromptInjectionManager
     from agentpool.tools.base import Tool
     from agentpool.ui.base import InputProvider
+    from codex_adapter.codex_types import HttpMcpServer as CodexHttpMcpServer
 _ = ResourceChangeEvent  # Used at runtime in method signature
 
 
@@ -447,7 +448,7 @@ class ToolManagerBridge:
         url = f"http://127.0.0.1:{self.port}/mcp"
         return {self.resolved_server_name: {"type": "http", "url": url}}
 
-    def get_codex_mcp_server_config(self) -> tuple[str, Any]:
+    def get_codex_mcp_server_config(self) -> tuple[str, CodexHttpMcpServer]:
         """Get Codex app-server-compatible MCP server configuration.
 
         Returns:

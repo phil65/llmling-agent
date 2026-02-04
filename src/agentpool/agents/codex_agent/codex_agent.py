@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from codex_adapter import ApprovalPolicy, CodexClient, ReasoningEffort, SandboxMode
+    from codex_adapter.codex_types import HttpMcpServer as CodexHttpMcpServer
     from codex_adapter.events import CodexEvent
 
 
@@ -159,7 +160,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self._external_mcp_servers = []
 
         # Extra MCP servers in Codex format (e.g., tool bridge)
-        self._extra_mcp_servers: list[tuple[str, Any]] = []
+        self._extra_mcp_servers: list[tuple[str, CodexHttpMcpServer]] = []
         # Track current settings (for when they change mid-session)
         self._current_model: str | None = model
         self._current_effort: ReasoningEffort | None = reasoning_effort
@@ -317,9 +318,8 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
                     )
                 return result
         # Fallback: report from config
-        for name in self._extra_mcp_servers:
-            if isinstance(name, tuple):
-                result[name[0]] = MCPServerStatus(name=name[0], status="connected")
+        for name, _cfg in self._extra_mcp_servers:
+            result[name] = MCPServerStatus(name=name, status="connected")
         return result
 
     async def _cleanup(self) -> None:
