@@ -425,17 +425,17 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
     async def __aenter__(self) -> Self:
         """Enter async context and set up MCP servers."""
+        # Collect all coroutines that need to be run
+        coros: list[Coroutine[Any, Any, Any]] = [
+            super().__aenter__(),
+            self.conversation.get_initialization_tasks(),
+        ]
         try:
-            # Collect all coroutines that need to be run
-            coros: list[Coroutine[Any, Any, Any]] = []
-            coros.append(super().__aenter__())
-            coros.extend(self.conversation.get_initialization_tasks())
             if self.parallel_init and coros:
                 await asyncio.gather(*coros)
             else:
                 for coro in coros:
                     await coro
-
             # Format system prompt once at startup (enables caching)
             self._formatted_system_prompt = await self.sys_prompts.format_system_prompt(self)
         except Exception as e:
@@ -662,14 +662,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 prepare_fn = create_prepare(tool)
 
             if get_argument_key(wrapped, RunContext):
-                if prepare_fn is not None:
-                    agent.tool(prepare=prepare_fn)(wrapped)
-                else:
-                    agent.tool(wrapped)
-            elif prepare_fn is not None:
-                agent.tool_plain(prepare=prepare_fn)(wrapped)
+                agent.tool(prepare=prepare_fn)(wrapped)
             else:
-                agent.tool_plain(wrapped)
+                agent.tool_plain(prepare=prepare_fn)(wrapped)
         return agent  # type: ignore[return-value]
 
     async def _process_node_stream(
