@@ -70,48 +70,41 @@ def _kebab_to_camel(s: str) -> str:
 
 
 def _mcp_config_to_toml_inline(name: str, config: McpServerConfig) -> str:
-    """Convert MCP server config to TOML inline table format.
+    """Convert MCP server config to TOML inline table format."""
+    match config:
+        case StdioMcpServer(command=command, args=args, env=env, enabled=enabled):
+            # Build stdio config
+            parts = [f'command = "{command}"']
+            if args:
+                args_str = ", ".join(f'"{arg}"' for arg in args)
+                parts.append(f"args = [{args_str}]")
+            if env:
+                # env as inline table
+                env_items = ", ".join(f'{k} = "{v}"' for k, v in env.items())
+                parts.append(f"env = {{{env_items}}}")
+            if not enabled:
+                parts.append("enabled = false")
+            return f"mcp_servers.{name}={{{', '.join(parts)}}}"
 
-    Args:
-        name: Server name
-        config: MCP server configuration
-
-    Returns:
-        TOML inline table string suitable for --config flag
-
-    Example:
-        >>> config = HttpMcpServer(url="http://localhost:8000/mcp")
-        >>> _mcp_config_to_toml_inline("tools", config)
-        'mcp_servers.tools={url = "http://localhost:8000/mcp"}'
-    """
-    if isinstance(config, StdioMcpServer):
-        # Build stdio config
-        parts = [f'command = "{config.command}"']
-        if config.args:
-            args_str = ", ".join(f'"{arg}"' for arg in config.args)
-            parts.append(f"args = [{args_str}]")
-        if config.env:
-            # env as inline table
-            env_items = ", ".join(f'{k} = "{v}"' for k, v in config.env.items())
-            parts.append(f"env = {{{env_items}}}")
-        if not config.enabled:
-            parts.append("enabled = false")
-        return f"mcp_servers.{name}={{{', '.join(parts)}}}"
-
-    if isinstance(config, HttpMcpServer):
-        # Build HTTP config
-        parts = [f'url = "{config.url}"']
-        if config.bearer_token_env_var:
-            parts.append(f'bearer_token_env_var = "{config.bearer_token_env_var}"')
-        if config.http_headers:
-            # headers as inline table
-            headers_items = ", ".join(f'{k} = "{v}"' for k, v in config.http_headers.items())
-            parts.append(f"http_headers = {{{headers_items}}}")
-        if not config.enabled:
-            parts.append("enabled = false")
-        return f"mcp_servers.{name}={{{', '.join(parts)}}}"
-
-    raise ValueError(f"Unsupported MCP server config type: {type(config)}")
+        case HttpMcpServer(
+            url=url,
+            bearer_token_env_var=bearer_token_env_var,
+            http_headers=http_headers,
+            enabled=enabled,
+        ):
+            # Build HTTP config
+            parts = [f'url = "{url}"']
+            if bearer_token_env_var:
+                parts.append(f'bearer_token_env_var = "{bearer_token_env_var}"')
+            if http_headers:
+                # headers as inline table
+                headers_items = ", ".join(f'{k} = "{v}"' for k, v in http_headers.items())
+                parts.append(f"http_headers = {{{headers_items}}}")
+            if not enabled:
+                parts.append("enabled = false")
+            return f"mcp_servers.{name}={{{', '.join(parts)}}}"
+        case _:
+            raise ValueError(f"Unsupported MCP server config type: {type(config)}")
 
 
 class CodexClient:
