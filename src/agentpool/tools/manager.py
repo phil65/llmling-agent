@@ -15,7 +15,7 @@ from agentpool.utils.baseregistry import AgentPoolError
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from agentpool.common_types import ToolType
+    from agentpool.common_types import MCPServerStatus, ToolType
     from agentpool.prompts.prompts import MCPClientPrompt
     from agentpool.resource_providers import ResourceProvider
     from agentpool.resource_providers.codemode.provider import CodeModeResourceProvider
@@ -276,6 +276,45 @@ class ToolManager:
                 for name_, was_enabled in original_states.items():
                     t_ = await self.get_tool(name_)
                     t_.enabled = was_enabled
+
+    async def get_mcp_server_info(self) -> dict[str, MCPServerStatus]:
+        """Get information about configured MCP servers."""
+        from agentpool.common_types import MCPServerStatus
+        from agentpool.mcp_server.manager import MCPManager
+        from agentpool.resource_providers import AggregatingResourceProvider
+        from agentpool.resource_providers.mcp_provider import MCPResourceProvider
+
+        def add_status(provider: MCPResourceProvider, result: dict[str, MCPServerStatus]) -> None:
+            status_dict = provider.get_status()
+            status_type = status_dict.get("status", "disabled")
+            if status_type == "connected":
+                result[provider.name] = MCPServerStatus(
+                    name=provider.name, status="connected", server_type="stdio"
+                )
+            elif status_type == "failed":
+                error = status_dict.get("error", "Unknown error")
+                result[provider.name] = MCPServerStatus(
+                    name=provider.name, status="error", error=error
+                )
+            else:
+                result[provider.name] = MCPServerStatus(name=provider.name, status="disconnected")
+
+        result: dict[str, MCPServerStatus] = {}
+        try:
+            for provider in self.external_providers:
+                if isinstance(provider, MCPResourceProvider):
+                    add_status(provider, result)
+                elif isinstance(provider, AggregatingResourceProvider):
+                    for nested in provider.providers:
+                        if isinstance(nested, MCPResourceProvider):
+                            add_status(nested, result)
+                elif isinstance(provider, MCPManager):
+                    for mcp_provider in provider.get_mcp_providers():
+                        add_status(mcp_provider, result)
+        except Exception:  # noqa: BLE001
+            pass
+
+        return result
 
 
 if __name__ == "__main__":

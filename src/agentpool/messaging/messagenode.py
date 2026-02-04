@@ -189,7 +189,7 @@ class MessageNode[TDeps, TResult](ABC):
         Returns:
             Tool instance that can be registered
         """
-        from agentpool.tools.base import Tool
+        from agentpool.tools.base import FunctionTool
 
         async def wrapped(prompt: str) -> TResult:
             result = await self.run(prompt)
@@ -201,7 +201,7 @@ class MessageNode[TDeps, TResult](ABC):
             docstring = f"{docstring}\n\n{self.description}"
         wrapped.__doc__ = docstring
         wrapped.__name__ = tool_name
-        return Tool.from_callable(wrapped, name_override=tool_name, description_override=docstring)
+        return FunctionTool.from_callable(wrapped)
 
     @overload
     def __rshift__(
