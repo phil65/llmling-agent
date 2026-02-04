@@ -7,6 +7,18 @@ import sys
 from typing import TYPE_CHECKING, Any
 
 from codex_adapter import CodexClient
+from codex_adapter.events import (
+    AgentMessageDeltaEvent,
+    CommandExecutionOutputDeltaEvent,
+    ItemCompletedEvent,
+    RawResponseItemCompletedEvent,
+    TurnCompletedEvent,
+    TurnErrorEvent,
+    get_text_delta,
+    is_completed_event,
+    is_delta_event,
+    is_error_event,
+)
 
 
 if TYPE_CHECKING:
@@ -29,27 +41,22 @@ async def simple_chat() -> None:
 
         async for event in client.turn_stream(thread_id, message):
             # Print agent messages
-            if event.event_type == "item/agentMessage/delta":
-                print(event.get_text_delta(), end="", flush=True)
+            match event:
+                case AgentMessageDeltaEvent():
+                    print(get_text_delta(event), end="", flush=True)
 
-            # Print command outputs
-            elif event.event_type == "item/commandExecution/outputDelta":
-                delta = event.get_text_delta()
-                if delta:
-                    print(f"\n[Command output]\n{delta}", flush=True)
+                case CommandExecutionOutputDeltaEvent():
+                    delta = get_text_delta(event)
+                    if delta:
+                        print(f"\n[Command output]\n{delta}", flush=True)
 
-            # Handle completion
-            elif event.event_type == "turn/completed":
-                print("\n\n[Turn completed]")
-                break
+                case TurnCompletedEvent():
+                    print("\n\n[Turn completed]")
+                    break
 
-            # Handle errors
-            elif event.event_type == "turn/error":
-                from codex_adapter.models import TurnErrorData
-
-                if isinstance(event.data, TurnErrorData):
-                    print(f"\n\n[Error: {event.data.error}]", file=sys.stderr)
-                break
+                case TurnErrorEvent(data=data):
+                    print(f"\n\n[Error: {data.error}]", file=sys.stderr)
+                    break
 
 
 async def multi_turn_chat() -> None:
@@ -74,11 +81,12 @@ async def multi_turn_chat() -> None:
             print(f"> {message}\n")
 
             async for event in client.turn_stream(thread_id, message):
-                if event.event_type == "item/agentMessage/delta":
-                    print(event.get_text_delta(), end="", flush=True)
-                elif event.event_type == "turn/completed":
-                    print("\n")
-                    break
+                match event:
+                    case AgentMessageDeltaEvent():
+                        print(get_text_delta(event), end="", flush=True)
+                    case TurnCompletedEvent():
+                        print("\n")
+                        break
 
 
 async def model_override_example() -> None:
@@ -94,11 +102,12 @@ async def model_override_example() -> None:
         print("> Write a hello world function\n")
 
         async for event in client.turn_stream(thread_id, "Write a hello world function"):
-            if event.event_type == "item/agentMessage/delta":
-                print(event.get_text_delta(), end="", flush=True)
-            elif event.event_type == "turn/completed":
-                print("\n")
-                break
+            match event:
+                case AgentMessageDeltaEvent():
+                    print(get_text_delta(event), end="", flush=True)
+                case TurnCompletedEvent():
+                    print("\n")
+                    break
 
         # Second turn with different model
         print("\nTurn 2 (override to claude-opus-4, high effort)")
@@ -110,11 +119,12 @@ async def model_override_example() -> None:
             model="claude-opus-4",
             effort="high",
         ):
-            if event.event_type == "item/agentMessage/delta":
-                print(event.get_text_delta(), end="", flush=True)
-            elif event.event_type == "turn/completed":
-                print("\n")
-                break
+            match event:
+                case AgentMessageDeltaEvent():
+                    print(get_text_delta(event), end="", flush=True)
+                case TurnCompletedEvent():
+                    print("\n")
+                    break
 
 
 async def event_inspection_example() -> None:
@@ -130,32 +140,27 @@ async def event_inspection_example() -> None:
             print(f"[{event.event_type}]", end=" ")
 
             # Show event-specific details
-            if event.is_delta():
-                text = event.get_text_delta()
+            if is_delta_event(event):
+                text = get_text_delta(event)
                 if text:
                     print(f"text: {text[:50]}...")
                 else:
                     print(f"data: {event.data}")
-            elif event.is_completed():
+            elif is_completed_event(event):
                 # Get ID from different event types with proper type safety
-                from codex_adapter.models import (
-                    ItemCompletedData,
-                    RawResponseItemCompletedData,
-                    TurnCompletedData,
-                )
-
-                if isinstance(event.data, ItemCompletedData | RawResponseItemCompletedData):
-                    print("✓ item")
-                elif isinstance(event.data, TurnCompletedData):
-                    print(f"✓ turn:{event.data.turn.id}")
-                else:
-                    print("✓")
-            elif event.is_error():
+                match event:
+                    case ItemCompletedEvent() | RawResponseItemCompletedEvent():
+                        print("✓ item")
+                    case TurnCompletedEvent(data=data):
+                        print(f"✓ turn:{data.turn.id}")
+                    case _:
+                        print("✓")
+            elif is_error_event(event):
                 print(f"✗ {event.data}")
             else:
                 print(event.data)
 
-            if event.event_type == "turn/completed":
+            if isinstance(event, TurnCompletedEvent):
                 break
 
 

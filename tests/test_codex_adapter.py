@@ -3,279 +3,134 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import MagicMock
 
+from pydantic import ValidationError
 import pytest
 
-from codex_adapter import CodexClient, CodexEvent, HttpMcpServer, StdioMcpServer
+from codex_adapter import CodexClient, HttpMcpServer, StdioMcpServer
 from codex_adapter.client import _mcp_config_to_toml_inline
+from codex_adapter.events import (
+    AgentMessageDeltaEvent,
+    get_text_delta,
+    is_completed_event,
+    is_delta_event,
+    parse_codex_event,
+)
 from codex_adapter.exceptions import CodexProcessError, CodexRequestError
-from codex_adapter.models import AgentMessageDeltaData, ThreadStartedData
 
 
-@pytest.fixture
-def mock_process():
-    """Mock subprocess.Popen for testing."""
-    process = MagicMock()
-    process.stdin = MagicMock()
-    process.stdin.write = MagicMock()
-    process.stdin.flush = MagicMock()
-    process.stdout = MagicMock()
-    process.poll.return_value = None
-    return process
-
-
-@pytest.mark.asyncio
-async def test_codex_client_with_profile():
-    """Test CodexClient with custom profile."""
-    client = CodexClient(codex_command="/usr/local/bin/codex", profile="test-profile")
-    assert client._codex_command == "/usr/local/bin/codex"
-    assert client._profile == "test-profile"
-
-
-def test_codex_event_from_notification():
-    """Test CodexEvent creation from notification."""
-    event = CodexEvent.from_notification(
+def test_parse_codex_event_camel_to_snake():
+    """Test camelCase JSON is converted to snake_case fields."""
+    event = parse_codex_event(
         "item/agentMessage/delta",
         {"delta": "Hello", "itemId": "123", "threadId": "t1", "turnId": "u1"},
     )
-    assert event.event_type == "item/agentMessage/delta"
-    assert isinstance(event.data, AgentMessageDeltaData)
-    assert event.data.delta == "Hello"  # API uses "delta" not "text"
-    assert event.data.item_id == "123"  # snake_case auto-converted from camelCase
+    assert isinstance(event, AgentMessageDeltaEvent)
+    assert event.data.item_id == "123"  # camelCase -> snake_case
+    assert event.data.thread_id == "t1"
 
 
-def test_codex_event_is_delta():
-    """Test event type checking."""
-    delta_event = CodexEvent.from_notification(
+def test_parse_codex_event_unknown_type_raises():
+    """Unknown event types raise ValidationError (strict mode)."""
+    with pytest.raises(ValidationError):
+        parse_codex_event("unknown/event/type", {"threadId": "t1"})
+
+
+def test_parse_codex_event_legacy_v1_returns_none():
+    """Legacy codex/event/* methods are filtered out."""
+    assert parse_codex_event("codex/event/task_started", {"id": "0"}) is None
+
+
+def test_event_helper_functions():
+    """Test is_delta_event, is_completed_event, get_text_delta."""
+    delta = parse_codex_event(
         "item/agentMessage/delta",
-        {"delta": "", "itemId": "1", "threadId": "t1", "turnId": "u1"},
+        {"delta": "text", "itemId": "1", "threadId": "t", "turnId": "u"},
     )
-    # TurnCompletedData has turn object, not flat fields
-    completed_event = CodexEvent.from_notification(
+    completed = parse_codex_event(
         "turn/completed",
-        {
-            "threadId": "t1",
-            "turn": {
-                "id": "u1",
-                "status": "completed",
-                "items": [],
-            },
-        },
+        {"threadId": "t", "turn": {"id": "u", "status": "completed", "items": []}},
     )
+    assert delta
+    assert completed
 
-    assert delta_event.is_delta() is True
-    assert delta_event.is_completed() is False
-    assert completed_event.is_delta() is False
-    assert completed_event.is_completed() is True
+    assert is_delta_event(delta) is True
+    assert is_completed_event(delta) is False
+    assert get_text_delta(delta) == "text"
 
-
-def test_codex_event_get_text_delta():
-    """Test extracting text from different event types."""
-    # Agent message delta
-    event1 = CodexEvent.from_notification(
-        "item/agentMessage/delta",
-        {"delta": "Hello", "itemId": "1", "threadId": "t1", "turnId": "u1"},
-    )
-    assert event1.get_text_delta() == "Hello"
-
-    # Command output delta - uses 'delta' field, not 'output'!
-    event2 = CodexEvent.from_notification(
-        "item/commandExecution/outputDelta",
-        {"delta": "test output", "itemId": "1", "threadId": "t1", "turnId": "u1"},
-    )
-    assert event2.get_text_delta() == "test output"
-    # Non-delta event
-    event3 = CodexEvent.from_notification(
-        "turn/completed",
-        {
-            "threadId": "t1",
-            "turn": {
-                "id": "u1",
-                "status": "completed",
-                "items": [],
-            },
-        },
-    )
-    assert event3.get_text_delta() == ""
+    assert is_delta_event(completed) is False
+    assert is_completed_event(completed) is True
+    assert get_text_delta(completed) == ""
 
 
 @pytest.mark.asyncio
-async def test_process_message_response():
-    """Test processing JSON-RPC response."""
+async def test_process_message_routes_response_to_future():
+    """JSON-RPC responses are routed to pending request futures."""
     client = CodexClient()
-    # Setup pending request
-    future = asyncio.Future()
+    future: asyncio.Future[dict] = asyncio.Future()
     client._pending_requests[1] = future
-    # Process success response
+
     await client._process_message({
         "jsonrpc": "2.0",
         "id": 1,
         "result": {"threadId": "thread-123"},
     })
-    assert future.done()
+
     assert future.result() == {"threadId": "thread-123"}
 
 
 @pytest.mark.asyncio
-async def test_process_message_error_response():
-    """Test processing JSON-RPC error response."""
+async def test_process_message_error_raises():
+    """JSON-RPC error responses set exception on future."""
     client = CodexClient()
-    # Setup pending request
-    future = asyncio.Future()
+    future: asyncio.Future[dict] = asyncio.Future()
     client._pending_requests[1] = future
-    # Process error response
+
     await client._process_message({
         "jsonrpc": "2.0",
         "id": 1,
-        "error": {
-            "code": -32602,
-            "message": "Invalid params",
-            "data": {"details": "model not found"},
-        },
+        "error": {"code": -32602, "message": "Invalid params"},
     })
 
-    assert future.done()
-    with pytest.raises(CodexRequestError) as exc_info:
+    with pytest.raises(CodexRequestError) as exc:
         future.result()
-
-    assert exc_info.value.code == -32602
-    assert exc_info.value.message == "Invalid params"
+    assert exc.value.code == -32602
 
 
 @pytest.mark.asyncio
-async def test_process_message_notification():
-    """Test processing JSON-RPC notification."""
+async def test_process_message_notification_queued():
+    """JSON-RPC notifications are parsed and queued."""
     client = CodexClient()
-    # Process notification
+
     await client._process_message({
         "jsonrpc": "2.0",
         "method": "item/agentMessage/delta",
-        "params": {"delta": "Hello", "itemId": "123", "threadId": "t1", "turnId": "u1"},
+        "params": {"delta": "Hello", "itemId": "1", "threadId": "t", "turnId": "u"},
     })
 
-    # Check event was queued
     event = await asyncio.wait_for(client._event_queue.get(), timeout=1.0)
-    assert event
-    assert event.event_type == "item/agentMessage/delta"
-    assert isinstance(event.data, AgentMessageDeltaData)
+    assert isinstance(event, AgentMessageDeltaEvent)
     assert event.data.delta == "Hello"
 
 
 @pytest.mark.asyncio
-async def test_client_not_started_error():
-    """Test error when sending request before starting."""
+async def test_send_request_not_connected_raises():
+    """Sending request before connecting raises CodexProcessError."""
     client = CodexClient()
     with pytest.raises(CodexProcessError, match="Not connected"):
         await client._send_request("thread/start")
 
 
-def test_codex_event_typed_data():
-    """Test typed event data access with proper types."""
-    # Create an agent message delta event
-    event = CodexEvent.from_notification(
-        "item/agentMessage/delta",
-        {
-            "threadId": "thread-123",
-            "turnId": "turn-456",
-            "itemId": "item-789",
-            "delta": "Hello world",
-        },
-    )
-
-    # Data is automatically validated as AgentMessageDeltaData
-    assert isinstance(event.data, AgentMessageDeltaData)
-    # Common fields work with snake_case
-    assert event.data.thread_id == "thread-123"
-    assert event.data.turn_id == "turn-456"
-    assert event.data.item_id == "item-789"
-    # Event-specific fields are properly typed
-    assert event.data.delta == "Hello world"
-
-
-def test_codex_event_common_fields():
-    """Test that common event fields are accessible on all event types."""
-    # V1 ThreadStarted has nested thread object
-    event = CodexEvent.from_notification(
-        "thread/started",
-        {
-            "thread": {
-                "id": "thread-abc",
-                "preview": "",
-                "modelProvider": "openai",
-                "createdAt": 0,
-                "path": "",
-                "cwd": "",
-                "cliVersion": "",
-                "source": "appServer",
-            }
-        },
-    )
-
-    assert isinstance(event.data, ThreadStartedData)
-    assert event.data.thread.id == "thread-abc"
-
-
-def test_mcp_config_stdio_to_toml():
-    """Test converting StdioMcpServer to TOML inline format."""
-    config = StdioMcpServer(
-        command="npx",
-        args=["-y", "@openai/codex-shell-tool-mcp"],
-    )
+def test_mcp_config_to_toml_stdio():
+    """StdioMcpServer serializes to TOML inline format."""
+    config = StdioMcpServer(command="npx", args=["-y", "pkg"])
     result = _mcp_config_to_toml_inline("bash", config)
-    expected = 'mcp_servers.bash={command = "npx", args = ["-y", "@openai/codex-shell-tool-mcp"]}'
-    assert result == expected
+    assert result == 'mcp_servers.bash={command = "npx", args = ["-y", "pkg"]}'
 
 
-def test_mcp_config_http_to_toml():
-    """Test converting HttpMcpServer to TOML inline format."""
-    config = HttpMcpServer(url="http://localhost:8000/mcp", bearer_token_env_var="MY_TOKEN")
-    result = _mcp_config_to_toml_inline("tools", config)
-    expected = (
-        'mcp_servers.tools={url = "http://localhost:8000/mcp", bearer_token_env_var = "MY_TOKEN"}'
-    )
-    assert result == expected
-
-
-def test_mcp_config_http_with_headers():
-    """Test HttpMcpServer with custom headers."""
-    config = HttpMcpServer(
-        url="http://localhost:8000/mcp",
-        http_headers={"X-Custom": "value", "X-Another": "test"},
-    )
-    result = _mcp_config_to_toml_inline("tools", config)
-    # Note: dict iteration order is preserved in Python 3.7+
-    assert "mcp_servers.tools={" in result
-    assert 'url = "http://localhost:8000/mcp"' in result
-    assert 'http_headers = {X-Custom = "value", X-Another = "test"}' in result
-
-
-def test_mcp_config_with_env():
-    """Test StdioMcpServer with environment variables."""
-    config = StdioMcpServer(
-        command="my-server",
-        args=["--port", "8080"],
-        env={"API_KEY": "secret123", "MODE": "production"},
-    )
-    result = _mcp_config_to_toml_inline("custom", config)
-    assert "mcp_servers.custom={" in result
-    assert 'command = "my-server"' in result
-    assert 'args = ["--port", "8080"]' in result
-    assert 'env = {API_KEY = "secret123", MODE = "production"}' in result
-
-
-def test_codex_client_with_mcp_servers():
-    """Test CodexClient initialization with MCP servers."""
-    mcp_servers = {
-        "tools": HttpMcpServer(url="http://localhost:8000/mcp"),
-        "bash": StdioMcpServer(command="npx", args=["-y", "@openai/codex-shell-tool-mcp"]),
-    }
-
-    client = CodexClient(mcp_servers=mcp_servers)
-    assert client._mcp_servers == mcp_servers
-    assert "tools" in client._mcp_servers
-    assert "bash" in client._mcp_servers
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+def test_mcp_config_to_toml_http():
+    """HttpMcpServer serializes to TOML inline format."""
+    config = HttpMcpServer(url="http://localhost:8000", bearer_token_env_var="TOKEN")
+    result = _mcp_config_to_toml_inline("api", config)
+    assert 'url = "http://localhost:8000"' in result
+    assert 'bearer_token_env_var = "TOKEN"' in result

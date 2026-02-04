@@ -1054,23 +1054,6 @@ class ErrorEventData(CodexBaseModel):
     turn_id: str
 
 
-class GenericEventData(CodexBaseModel):
-    """Generic payload for events we don't have specific types for yet.
-
-    Allows any extra fields since we don't know the exact structure.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-        populate_by_name=True,
-        alias_generator=to_camel,
-    )
-
-    thread_id: str | None = None
-    turn_id: str | None = None
-    item_id: str | None = None
-
-
 # Union type of all event data
 EventData = (
     # Thread lifecycle
@@ -1114,6 +1097,4 @@ EventData = (
     | WindowsWorldWritableWarningData
     # Error events
     | ErrorEventData
-    # Fallback for unknown events
-    | GenericEventData
 )

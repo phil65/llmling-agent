@@ -14,7 +14,7 @@ import anyenv
 from pydantic import BaseModel, TypeAdapter
 
 from codex_adapter.codex_types import HttpMcpServer, StdioMcpServer
-from codex_adapter.events import CodexEvent
+from codex_adapter.events import get_text_delta, parse_codex_event
 from codex_adapter.exceptions import CodexProcessError, CodexRequestError
 from codex_adapter.models import (
     ClientInfo,
@@ -58,6 +58,7 @@ if TYPE_CHECKING:
         ReasoningEffort,
         SandboxMode,
     )
+    from codex_adapter.events import CodexEvent
     from codex_adapter.models import ModelData, SkillData, TurnInputItem
 
 logger = logging.getLogger(__name__)
@@ -116,10 +117,12 @@ class CodexClient:
     - Event streaming via notifications
 
     Example:
+        from codex_adapter.events import get_text_delta
+
         async with CodexClient() as client:
             thread = await client.thread_start(cwd="/path/to/project")
             async for event in client.turn_stream(thread.id, "Help me refactor"):
-                print(event.get_text_delta(), end="", flush=True)
+                print(get_text_delta(event), end="", flush=True)
     """
 
     def __init__(
@@ -590,7 +593,7 @@ class CodexClient:
             output_schema=result_type,  # Auto-generate schema from type
         ):
             if event.event_type == "item/agentMessage/delta":
-                response_text += event.get_text_delta()
+                response_text += get_text_delta(event)
             elif event.event_type == "turn/error":
                 if isinstance(event.data, TurnErrorData):
                     error_msg = event.data.error
@@ -794,7 +797,11 @@ class CodexClient:
         if "method" in message:
             method = message["method"]
             params = message.get("params") or {}
-            event = CodexEvent.from_notification(method, params)
+            event = parse_codex_event(method, params)
+
+            # Skip legacy V1 events (parse_codex_event returns None for these)
+            if event is None:
+                return
 
             # Route event to appropriate turn queue
             thread_id = params.get("threadId")
@@ -825,6 +832,6 @@ if __name__ == "__main__":
         async with CodexClient() as client:
             response = await client.thread_start()
             async for e in client.turn_stream(response.thread.id, "Show available tools"):
-                print(e.get_text_delta(), end="")
+                print(get_text_delta(e), end="")
 
     asyncio.run(main())
