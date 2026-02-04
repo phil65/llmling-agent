@@ -789,23 +789,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             # Direct Model instance assignment (no signal emission)
             self._model = model
 
-    async def set_tool_confirmation_mode(self, mode: str) -> None:
-        """Set the tool confirmation mode for this agent.
-
-        Args:
-            mode: Tool confirmation mode:
-                - "always": Always require confirmation for all tools
-                - "never": Never require confirmation
-                - "per_tool": Use individual tool settings
-
-        Raises:
-            UnknownModeError: If mode is not a valid ToolConfirmationMode
-        """
-        if mode not in VALID_MODES:
-            raise UnknownModeError(mode, VALID_MODES)
-        self.tool_confirmation_mode = mode  # type: ignore[assignment]
-        self.log.info("Tool confirmation mode changed", mode=mode)
-
     async def _interrupt(self) -> None:
         """Cancel the current stream task."""
         if self._current_stream_task and not self._current_stream_task.done():
