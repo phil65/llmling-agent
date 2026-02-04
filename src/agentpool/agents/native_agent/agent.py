@@ -740,20 +740,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                         break
 
                     # Stream events from model request or tool call nodes
-                    if isinstance(node, ModelRequestNode):
-                        async with node.stream(agent_run.ctx) as agent_stream:
+                    if isinstance(node, ModelRequestNode | CallToolsNode):
+                        async with node.stream(agent_run.ctx) as stream:
                             async for event in self._process_node_stream(
-                                agent_stream,  # type: ignore[arg-type]
-                                file_tracker=file_tracker,
-                                pending_tcs=pending_tcs,
-                                message_id=message_id,
-                            ):
-                                yield event
-
-                    elif isinstance(node, CallToolsNode):
-                        async with node.stream(agent_run.ctx) as tool_stream:
-                            async for event in self._process_node_stream(
-                                tool_stream,
+                                stream,  # type: ignore[arg-type]
                                 file_tracker=file_tracker,
                                 pending_tcs=pending_tcs,
                                 message_id=message_id,
