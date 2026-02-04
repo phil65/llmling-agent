@@ -64,6 +64,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self
 import uuid
 
 import anyio
+from pydantic import TypeAdapter
 from pydantic_ai import (
     FunctionToolResultEvent,
     ModelRequest,
@@ -1185,11 +1186,13 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
 
         # Determine final content - use structured output if available
         content = "".join(i.content for i in current_response_parts if isinstance(i, TextPart))
-        final_content: TResult = (
-            result_message.structured_output  # type: ignore[assignment]
-            if self._output_type is not str and result_message and result_message.structured_output
-            else content
-        )
+        final_content: TResult
+        if self._output_type is not str and result_message and result_message.structured_output:
+            # Validate structured output against expected type
+            adapter = TypeAdapter(self._output_type)
+            final_content = adapter.validate_python(result_message.structured_output)
+        else:
+            final_content = content  # type: ignore[assignment]
 
         # Build cost_info and usage from ResultMessage if available
         cost_info: TokenCost | None = None
