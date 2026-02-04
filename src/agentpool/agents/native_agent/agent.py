@@ -428,7 +428,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         # Collect all coroutines that need to be run
         coros: list[Coroutine[Any, Any, Any]] = [
             super().__aenter__(),
-            self.conversation.get_initialization_tasks(),
+            *self.conversation.get_initialization_tasks(),
         ]
         try:
             if self.parallel_init and coros:

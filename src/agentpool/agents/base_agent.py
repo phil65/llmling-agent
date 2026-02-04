@@ -19,6 +19,7 @@ from upathtools.filesystems import IsolatedMemoryFileSystem
 
 from agentpool.agents.events import StreamCompleteEvent, resolve_event_handlers
 from agentpool.agents.modes import ModeInfo
+from agentpool.common_types import IndividualEventHandler
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, MessageHistory, MessageNode
 from agentpool.prompts.convert import convert_prompts
@@ -52,7 +53,6 @@ if TYPE_CHECKING:
     from agentpool.common_types import (
         AgentName,
         AnyEventHandlerType,
-        IndividualEventHandler,
         MCPServerStatus,
         ProcessorCallback,
         PromptCompatible,
@@ -76,7 +76,7 @@ logger = get_logger(__name__)
 type AgentTypeLiteral = Literal["native", "acp", "agui", "claude", "codex"]
 
 
-_SLASH_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
+_SLASH_PATTERN: re.Pattern[str] = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
 
 
 def _parse_slash_command(command_text: str) -> tuple[str, str] | None:
@@ -303,7 +303,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         return TeamRun([self, other])
 
-    async def update_state(self, config_id: str, value_id: str):
+    async def update_state(self, config_id: str, value_id: str) -> None:
         from agentpool.agents.modes import ConfigOptionChanged
 
         self.log.info("Config option changed", config_id=config_id, mode=value_id)

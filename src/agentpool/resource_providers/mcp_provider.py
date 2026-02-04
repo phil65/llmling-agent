@@ -77,7 +77,7 @@ class MCPResourceProvider(ResourceProvider):
             StreamableHTTPMCPServerConfig,
         )
 
-        match self.server:
+        match self.client.config:
             case StdioMCPServerConfig():
                 return "stdio"
             case StreamableHTTPMCPServerConfig():
