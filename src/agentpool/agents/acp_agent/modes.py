@@ -317,10 +317,8 @@ class ACPGenericCategory(ModeCategoryProtocol["ACPAgent"]):
 
     def get_current(self, agent: ACPAgent) -> str:
         """Get current value from ACP state."""
-        if agent._state and agent._state.config_options:
-            for opt in agent._state.config_options:
-                if opt.id == self.id:
-                    return opt.current_value
+        if agent._state and (opts := agent._state.config_options):
+            return next((i.current_value for i in opts if i.id == self.id), "")
         return ""
 
     async def apply(self, agent: ACPAgent, mode_id: str) -> None:
