@@ -76,6 +76,30 @@ logger = get_logger(__name__)
 type AgentTypeLiteral = Literal["native", "acp", "agui", "claude", "codex"]
 
 
+_SLASH_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
+
+
+def _parse_slash_command(command_text: str) -> tuple[str, str] | None:
+    """Parse slash command into name and args.
+
+    Args:
+        command_text: Full command text
+
+    Returns:
+        Tuple of (cmd_name, args) or None if invalid
+    """
+    if match := _SLASH_PATTERN.match(command_text.strip()):
+        cmd_name = match.group(1)
+        args = match.group(2) or ""
+        return cmd_name, args.strip()
+    return None
+
+
+def _is_slash_command(text: str) -> bool:
+    """Check if text starts with a slash command."""
+    return bool(_SLASH_PATTERN.match(text.strip()))
+
+
 class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
     """Base class for Agent, ACPAgent, AGUIAgent, and ClaudeCodeAgent.
 
@@ -577,10 +601,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         # Initialize session_id once for the entire run (including queued prompts)
         if self.session_id is None:
-            if session_id:
-                self.session_id = session_id
-            else:
-                self.session_id = generate_session_id()
+            self.session_id = session_id or generate_session_id()
             user_prompts = [str(p) for p in prompts if isinstance(p, str)]
             initial_prompt = user_prompts[-1] if user_prompts else None
             await self.log_session(initial_prompt, model=self.model_name)
@@ -590,7 +611,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         # Reset cancellation state and track current task
         self._cancelled = False
         self._current_stream_task = asyncio.current_task()
-
         # Queue the initial prompts
         self._injection_manager.insert_queued(prompts)
 
@@ -677,7 +697,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         # Resolve event handlers
         if event_handlers is not None:
-            resolved_handler: MultiEventHandler[IndividualEventHandler] = MultiEventHandler(
+            resolved_handler = MultiEventHandler[IndividualEventHandler](
                 resolve_event_handlers(event_handlers)
             )
         else:
@@ -759,27 +779,6 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             # Route to connected agents (always - they decide what to do with it)
             await self.connections.route_message(final_message, wait=wait_for_connections)
 
-    _SLASH_PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^/([\w-]+)(?:\s+(.*))?$")
-
-    def _parse_slash_command(self, command_text: str) -> tuple[str, str] | None:
-        """Parse slash command into name and args.
-
-        Args:
-            command_text: Full command text
-
-        Returns:
-            Tuple of (cmd_name, args) or None if invalid
-        """
-        if match := self._SLASH_PATTERN.match(command_text.strip()):
-            cmd_name = match.group(1)
-            args = match.group(2) or ""
-            return cmd_name, args.strip()
-        return None
-
-    def _is_slash_command(self, text: str) -> bool:
-        """Check if text starts with a slash command."""
-        return bool(self._SLASH_PATTERN.match(text.strip()))
-
     async def _execute_slash_command_streaming(
         self, command_text: str
     ) -> AsyncIterator[CommandOutputEvent | CommandCompleteEvent]:
@@ -798,7 +797,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
 
         from agentpool.agents.events import CommandCompleteEvent, CommandOutputEvent
 
-        parsed = self._parse_slash_command(command_text)
+        parsed = _parse_slash_command(command_text)
         if not parsed:
             self.log.warning("Invalid slash command", command=command_text)
             yield CommandCompleteEvent(command="unknown", success=False)
@@ -876,7 +875,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         regular_prompts: list[Any] = []
 
         for prompt in prompts:
-            if isinstance(prompt, str) and self._is_slash_command(prompt):
+            if isinstance(prompt, str) and _is_slash_command(prompt):
                 self.log.debug("Found slash command", command=prompt)
                 commands.append(prompt.strip())
             else:
