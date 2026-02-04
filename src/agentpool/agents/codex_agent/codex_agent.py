@@ -56,6 +56,10 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+VALID_POLICIES = ["never", "on-request", "on-failure", "untrusted"]
+VALID_EFFORTS = ["low", "medium", "high", "xhigh"]
+VALID_SANDBOXES = ["read-only", "workspace-write", "danger-full-access", "external-sandbox"]
+
 
 class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     """MessageNode that wraps a Codex app-server instance."""
@@ -607,26 +611,18 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
     async def _set_mode(self, mode_id: str, category_id: str) -> None:
         """Handle approval_policy, reasoning_effort, and model mode switching."""
         if category_id == "mode":
-            valid_policies = ["never", "on-request", "on-failure", "untrusted"]
-            if mode_id not in valid_policies:
-                raise UnknownModeError(mode_id, valid_policies)
+            if mode_id not in VALID_POLICIES:
+                raise UnknownModeError(mode_id, VALID_POLICIES)
             self._approval_policy = mode_id  # type: ignore[assignment]
         elif category_id == "thought_level":
-            valid_efforts = ["low", "medium", "high", "xhigh"]
-            if mode_id not in valid_efforts:
-                raise UnknownModeError(mode_id, valid_efforts)
+            if mode_id not in VALID_EFFORTS:
+                raise UnknownModeError(mode_id, VALID_EFFORTS)
             self._current_effort = mode_id  # type: ignore[assignment]
         elif category_id == "model":
             self._current_model = mode_id
         elif category_id == "sandbox":
-            valid_sandboxes = [
-                "read-only",
-                "workspace-write",
-                "danger-full-access",
-                "external-sandbox",
-            ]
-            if mode_id not in valid_sandboxes:
-                raise UnknownModeError(mode_id, valid_sandboxes)
+            if mode_id not in VALID_SANDBOXES:
+                raise UnknownModeError(mode_id, VALID_SANDBOXES)
             self._current_sandbox = mode_id  # type: ignore[assignment]
         else:
             raise UnknownCategoryError(category_id)
