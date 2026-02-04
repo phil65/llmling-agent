@@ -183,7 +183,7 @@ class ACPAgentAPI:
         request = SetSessionConfigOptionRequest(
             session_id=session_id,
             config_id=config_id,
-            value=value,
+            value=value,  # pyright: ignore[reportCallIssue]
         )
         return await self.connection.set_session_config_option(request)
 
