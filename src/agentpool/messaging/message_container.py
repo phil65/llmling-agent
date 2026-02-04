@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal
 
 from psygnal.containers import EventedList
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
+from agentpool.messaging.chat_filesystem import ChatMessageFileSystem
 from agentpool.utils.count_tokens import batch_count_tokens
 
 
@@ -54,6 +56,10 @@ class ChatMessageList(EventedList[ChatMessage[Any]]):
             total += sum(batch_count_tokens(contents, model_name))
 
         return total
+
+    @cached_property
+    def fs(self) -> ChatMessageFileSystem:
+        return ChatMessageFileSystem(self)
 
     def get_total_cost(self) -> float:
         """Calculate total cost in USD across all messages.

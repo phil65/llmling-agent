@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING, Any, Self
 from upathtools import read_path, to_upath
 
 from agentpool.log import get_logger
-from agentpool.messaging.chat_filesystem import ChatMessageFileSystem
 from agentpool.storage import StorageManager
 from agentpool_config.session import SessionQuery
 
@@ -70,9 +69,6 @@ class MessageHistory:
         # Generate new ID if none provided
         if session_config and session_config.session:
             self._current_history = self.storage.filter_messages.sync(session_config.session)
-
-        # Filesystem view of message history (lazy initialized)
-        self._fs: ChatMessageFileSystem | None = None
 
     @property
     def storage(self) -> StorageManager:
@@ -329,12 +325,6 @@ class MessageHistory:
     def get_last_message_id(self) -> str | None:
         """Get the message_id of the last message in history."""
         return msgs[-1].message_id if (msgs := self.chat_messages) else None
-
-    def get_fs(self) -> ChatMessageFileSystem:
-        """Get filesystem view of message history."""
-        if self._fs is None:
-            self._fs = ChatMessageFileSystem(self.chat_messages)
-        return self._fs
 
 
 if __name__ == "__main__":
