@@ -794,18 +794,19 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
                 return
             await self._client.query(f"/{name} {args_str}".strip())
             async for msg in self._client.receive_response():
-                if isinstance(msg, AssistantMessage):
-                    for block in msg.content:
-                        if isinstance(block, TextBlock):
-                            await ctx.print(block.text)
-                elif isinstance(msg, UserMessage):
-                    if parsed := parse_command_output(msg):
-                        await ctx.print(parsed)
-                elif isinstance(msg, ResultMessage):
-                    if msg.result:
-                        await ctx.print(msg.result)
-                    if msg.is_error:
-                        await ctx.print(f"Error: {msg.subtype}")
+                match msg:
+                    case AssistantMessage():
+                        for block in msg.content:
+                            if isinstance(block, TextBlock):
+                                await ctx.print(block.text)
+                    case UserMessage():
+                        if parsed := parse_command_output(msg):
+                            await ctx.print(parsed)
+                    case ResultMessage():
+                        if msg.result:
+                            await ctx.print(msg.result)
+                        if msg.is_error:
+                            await ctx.print(f"Error: {msg.subtype}")
 
         return Command.from_raw(
             execute_command,

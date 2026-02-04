@@ -778,11 +778,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         )
 
     async def set_model(self, model: Model | str) -> None:
-        """Set the model for this agent.
-
-        Args:
-            model: New model to use (name or instance)
-        """
+        """Set the model for this agent."""
         if isinstance(model, str):
             await self._set_mode(model, "model")
         else:
@@ -791,8 +787,8 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
     async def _interrupt(self) -> None:
         """Cancel the current stream task."""
-        if self._current_stream_task and not self._current_stream_task.done():
-            self._current_stream_task.cancel()
+        if (task := self._current_stream_task) and not task.done():
+            task.cancel()
 
     @asynccontextmanager
     async def temporary_state[T](
@@ -869,13 +865,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         return await get_all_models(providers=self._providers or ["models.dev"], max_age=delta)
 
     async def get_modes(self) -> list[ModeCategory]:
-        """Get available mode categories for this agent.
-
-        Native agents expose permission modes and model selection.
-
-        Returns:
-            List of ModeCategory for permissions and models
-        """
+        """Get available mode categories for this agent."""
         from agentpool.agents.native_agent.helpers import (
             get_model_category,
             get_permission_category,
