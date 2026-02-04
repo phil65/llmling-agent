@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import AsyncExitStack
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, assert_never
 
+from agentpool.common_types import MCPServerStatus
 from agentpool.log import get_logger
 from agentpool.resource_providers import ResourceProvider
 from agentpool.resource_providers.resource_info import ResourceInfo
-from agentpool_config.mcp_server import BaseMCPServerConfig
 
 
 if TYPE_CHECKING:
@@ -42,6 +42,7 @@ class MCPResourceProvider(ResourceProvider):
         accessible_roots: list[str] | None = None,
     ) -> None:
         from agentpool.mcp_server import MCPClient
+        from agentpool_config.mcp_server import BaseMCPServerConfig
 
         super().__init__(name, owner=owner)
         self.server = BaseMCPServerConfig.from_string(server) if isinstance(server, str) else server
@@ -66,6 +67,25 @@ class MCPResourceProvider(ResourceProvider):
 
     def __repr__(self) -> str:
         return f"MCPResourceProvider({self.server!r}, source={self.source!r})"
+
+    @property
+    def transport_type(self) -> Literal["stdio", "http", "sse"]:
+        """Return the type of connection used by the MCP server."""
+        from agentpool_config import (
+            SSEMCPServerConfig,
+            StdioMCPServerConfig,
+            StreamableHTTPMCPServerConfig,
+        )
+
+        match self.server:
+            case StdioMCPServerConfig():
+                return "stdio"
+            case StreamableHTTPMCPServerConfig():
+                return "http"
+            case SSEMCPServerConfig():
+                return "sse"
+            case _ as unreachable:
+                assert_never(unreachable)
 
     async def __aenter__(self) -> Self:
         try:
@@ -249,7 +269,7 @@ class MCPResourceProvider(ResourceProvider):
             logger.exception("Failed to list resource templates")
             return []
 
-    def get_status(self) -> dict[str, str]:
+    def get_status(self) -> MCPServerStatus:
         """Get connection status for this MCP server.
 
         Returns:
@@ -258,22 +278,26 @@ class MCPResourceProvider(ResourceProvider):
         """
         try:
             if self.client.connected:
-                return {"status": "connected"}
+                return MCPServerStatus(
+                    name=self.name, status="connected", server_type=self.transport_type
+                )
         except Exception as e:  # noqa: BLE001
-            return {"status": "failed", "error": str(e)}
+            return MCPServerStatus(
+                name=self.name,
+                status="failed",
+                error=str(e),
+                server_type=self.transport_type,
+            )
         else:
-            return {"status": "disabled"}
+            return MCPServerStatus(
+                name=self.name, status="disabled", server_type=self.transport_type
+            )
 
 
 if __name__ == "__main__":
     import anyio
 
-    from agentpool_config.mcp_server import StdioMCPServerConfig
-
-    cfg = StdioMCPServerConfig(
-        command="uv",
-        args=["run", "/home/phil65/dev/oss/agentpool/tests/mcp_server/server.py"],
-    )
+    cfg = "uv run /home/phil65/dev/oss/agentpool/tests/mcp_server/server.py"
 
     async def main() -> None:
         manager = MCPResourceProvider(cfg)

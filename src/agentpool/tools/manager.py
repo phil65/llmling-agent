@@ -227,8 +227,7 @@ class ToolManager:
         Raises:
             ToolError: If resource not found
         """
-        resources = await self.list_resources()
-        resource: ResourceInfo | None = next((r for r in resources if r.name == name), None)
+        resource = next((r for r in await self.list_resources() if r.name == name), None)
         if not resource:
             raise ToolError(f"Resource not found: {name}")
         return resource
@@ -279,25 +278,12 @@ class ToolManager:
 
     async def get_mcp_server_info(self) -> dict[str, MCPServerStatus]:
         """Get information about configured MCP servers."""
-        from agentpool.common_types import MCPServerStatus
         from agentpool.mcp_server.manager import MCPManager
         from agentpool.resource_providers import AggregatingResourceProvider
         from agentpool.resource_providers.mcp_provider import MCPResourceProvider
 
         def add_status(provider: MCPResourceProvider, result: dict[str, MCPServerStatus]) -> None:
-            status_dict = provider.get_status()
-            status_type = status_dict.get("status", "disabled")
-            if status_type == "connected":
-                result[provider.name] = MCPServerStatus(
-                    name=provider.name, status="connected", server_type="stdio"
-                )
-            elif status_type == "failed":
-                error = status_dict.get("error", "Unknown error")
-                result[provider.name] = MCPServerStatus(
-                    name=provider.name, status="error", error=error
-                )
-            else:
-                result[provider.name] = MCPServerStatus(name=provider.name, status="disconnected")
+            result[provider.name] = provider.get_status()
 
         result: dict[str, MCPServerStatus] = {}
         try:
