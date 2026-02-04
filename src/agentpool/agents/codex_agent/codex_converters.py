@@ -309,15 +309,10 @@ def _thread_item_to_tool_call_part(
             return None
 
 
-async def convert_codex_stream(  # noqa: PLR0915
+async def convert_codex_stream(
     events: AsyncIterator[CodexEvent],
 ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
     """Convert Codex event stream to native events with stateful accumulation.
-
-    This async generator handles stateful conversion of Codex events, including:
-    - Accumulating command execution output deltas into ToolCallProgressEvents
-    - Accumulating file change output deltas into ToolCallProgressEvents
-    - Simple 1:1 conversion for other event types
 
     Args:
         events: Async iterator of Codex events from the app-server
@@ -335,34 +330,34 @@ async def convert_codex_stream(  # noqa: PLR0915
         ToolCallStartEvent,
     )
     from agentpool.resource_providers.plan_provider import PlanEntry
+    from codex_adapter.events import (
+        AgentMessageDeltaEvent,
+        CommandExecutionOutputDeltaEvent,
+        FileChangeOutputDeltaEvent,
+        ItemCompletedEvent,
+        ItemStartedEvent,
+        McpToolCallProgressEvent,
+        ReasoningTextDeltaEvent,
+        ThreadCompactedEvent,
+        TurnPlanUpdatedEvent,
+    )
     from codex_adapter.models import (
-        AgentMessageDeltaData,
-        CommandExecutionOutputDeltaData,
-        FileChangeOutputDeltaData,
-        ItemCompletedData,
-        ItemStartedData,
-        McpToolCallProgressData,
-        ReasoningTextDeltaData,
-        ThreadCompactedData,
         ThreadItemCommandExecution,
         ThreadItemFileChange,
         ThreadItemMcpToolCall,
-        TurnPlanUpdatedData,
     )
 
     # Accumulation state for streaming tool outputs
     tool_outputs: dict[str, list[str]] = {}
 
     async for event in events:
-        match event.event_type:
+        match event:
             # === Stateful: Accumulate command execution output ===
-            case "item/commandExecution/outputDelta" if isinstance(
-                event.data, CommandExecutionOutputDeltaData
-            ):
-                item_id = event.data.item_id
+            case CommandExecutionOutputDeltaEvent(data=data):
+                item_id = data.item_id
                 if item_id not in tool_outputs:
                     tool_outputs[item_id] = []
-                tool_outputs[item_id].append(event.data.delta)
+                tool_outputs[item_id].append(data.delta)
 
                 # Emit accumulated progress with replace semantics, wrapped in code block
                 output = "".join(tool_outputs[item_id])
@@ -370,24 +365,22 @@ async def convert_codex_stream(  # noqa: PLR0915
                 yield ToolCallProgressEvent(tool_call_id=item_id, items=items, replace_content=True)
 
             # === File change output delta - ignore the summary, we show diff from item/started ===
-            case "item/fileChange/outputDelta" if isinstance(event.data, FileChangeOutputDeltaData):
+            case FileChangeOutputDeltaEvent():
                 # The outputDelta is just "Success. Updated..." summary - not useful
                 # We already emitted the actual diff content in item/started
                 pass
 
             # === Stateless: Text deltas from agent messages ===
-            case "item/agentMessage/delta" if isinstance(event.data, AgentMessageDeltaData):
-                yield PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=event.data.delta))
+            case AgentMessageDeltaEvent(data=data):
+                yield PartDeltaEvent(index=0, delta=TextPartDelta(content_delta=data.delta))
 
             # === Stateless: Reasoning/thinking deltas ===
-            case "item/reasoning/textDelta" if isinstance(event.data, ReasoningTextDeltaData):
-                yield PartDeltaEvent(
-                    index=0, delta=ThinkingPartDelta(content_delta=event.data.delta)
-                )
+            case ReasoningTextDeltaEvent(data=data):
+                yield PartDeltaEvent(index=0, delta=ThinkingPartDelta(content_delta=data.delta))
 
             # === Stateless: Tool/command started ===
-            case "item/started" if isinstance(event.data, ItemStartedData):
-                item = event.data.item
+            case ItemStartedEvent(data=data):
+                item = data.item
                 if part := _thread_item_to_tool_call_part(item):
                     # Extract title based on tool type
                     match item:
@@ -428,8 +421,8 @@ async def convert_codex_stream(  # noqa: PLR0915
                             )
 
             # === Stateful: Tool/command completed - clean up accumulator ===
-            case "item/completed" if isinstance(event.data, ItemCompletedData):
-                item = event.data.item
+            case ItemCompletedEvent(data=data):
+                item = data.item
                 # Clean up accumulated output for this item
                 if item.id in tool_outputs:
                     del tool_outputs[item.id]
@@ -441,29 +434,29 @@ async def convert_codex_stream(  # noqa: PLR0915
                         tool_input=part.args_as_dict(),
                         tool_result=_format_tool_result(item),
                         agent_name="codex",  # Will be overridden by agent
-                        message_id=event.data.turn_id,
+                        message_id=data.turn_id,
                     )
 
             # === Stateless: MCP tool call progress ===
-            case "item/mcpToolCall/progress" if isinstance(event.data, McpToolCallProgressData):
+            case McpToolCallProgressEvent(data=data):
                 yield ToolCallProgressEvent(
-                    tool_call_id=event.data.item_id,
-                    message=event.data.message,
+                    tool_call_id=data.item_id,
+                    message=data.message,
                 )
 
             # === Stateless: Thread compacted ===
-            case "thread/compacted" if isinstance(event.data, ThreadCompactedData):
-                yield CompactionEvent(session_id=event.data.thread_id, phase="completed")
+            case ThreadCompactedEvent(data=data):
+                yield CompactionEvent(session_id=data.thread_id, phase="completed")
 
             # === Stateless: Turn plan updated ===
-            case "turn/plan/updated" if isinstance(event.data, TurnPlanUpdatedData):
+            case TurnPlanUpdatedEvent(data=data):
                 entries = [
                     PlanEntry(
                         content=step.step,
                         priority="medium",  # Codex doesn't provide priority
                         status="in_progress" if step.status == "inProgress" else step.status,
                     )
-                    for step in event.data.plan
+                    for step in data.plan
                 ]
                 yield PlanUpdateEvent(entries=entries)
 
@@ -495,23 +488,24 @@ def event_to_part(
     Returns:
         Part or None
     """
-    from codex_adapter.models import (
-        AgentMessageDeltaData,
-        ItemCompletedData,
-        ItemStartedData,
-        ReasoningTextDeltaData,
+    from codex_adapter.events import (
+        AgentMessageDeltaEvent,
+        ItemCompletedEvent,
+        ItemStartedEvent,
+        ReasoningTextDeltaEvent,
     )
 
-    match event.event_type:
-        case "item/agentMessage/delta" if isinstance(event.data, AgentMessageDeltaData):
-            return TextPart(content=event.data.delta)
-        case "item/reasoning/textDelta" if isinstance(event.data, ReasoningTextDeltaData):
-            return ThinkingPart(content=event.data.delta)
-        case "item/started" if isinstance(event.data, ItemStartedData):
-            return _thread_item_to_tool_call_part(event.data.item)
-        case "item/completed" if isinstance(event.data, ItemCompletedData):
-            return _thread_item_to_tool_return_part(event.data.item)
-    return None
+    match event:
+        case AgentMessageDeltaEvent(data=data):
+            return TextPart(content=data.delta)
+        case ReasoningTextDeltaEvent(data=data):
+            return ThinkingPart(content=data.delta)
+        case ItemStartedEvent(data=data):
+            return _thread_item_to_tool_call_part(data.item)
+        case ItemCompletedEvent(data=data):
+            return _thread_item_to_tool_return_part(data.item)
+        case _:
+            return None
 
 
 def _user_input_to_content(

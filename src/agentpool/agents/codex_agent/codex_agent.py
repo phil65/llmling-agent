@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
     from codex_adapter import ApprovalPolicy, CodexClient, ReasoningEffort, SandboxMode
-    from codex_adapter.codex_types import HttpMcpServer as CodexHttpMcpServer
+    from codex_adapter.codex_types import McpServerConfig
     from codex_adapter.events import CodexEvent
 
 
@@ -160,7 +160,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self._external_mcp_servers = []
 
         # Extra MCP servers in Codex format (e.g., tool bridge)
-        self._extra_mcp_servers: list[tuple[str, CodexHttpMcpServer]] = []
+        self._extra_mcp_servers: list[tuple[str, McpServerConfig]] = []
         # Track current settings (for when they change mid-session)
         self._current_model: str | None = model
         self._current_effort: ReasoningEffort | None = reasoning_effort
@@ -246,13 +246,9 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         await self._setup_toolsets()
         # Collect MCP servers: extra (bridge) + configured servers
         # Build dict mapping server name -> McpServerConfig (Codex type)
-        mcp_servers_dict = {}
-        # Add extra MCP servers (e.g., tool bridge) - already in Codex format
-        mcp_servers_dict.update(dict(self._extra_mcp_servers))
-        # Add configured/external MCP servers (convert native -> Codex format)
-        if self._external_mcp_servers:
-            servers = [mcp_config_to_codex(c) for c in self._external_mcp_servers]
-            mcp_servers_dict.update(dict(servers))
+        mcp_servers_dict = dict(self._extra_mcp_servers) | dict(
+            mcp_config_to_codex(c) for c in self._external_mcp_servers
+        )
         # Create and connect client with MCP servers
         self._client = CodexClient(mcp_servers=mcp_servers_dict)
         await self._client.__aenter__()
@@ -336,7 +332,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self._client = None
         self._sdk_session_id = None
 
-    async def _stream_events(  # noqa: PLR0915
+    async def _stream_events(
         self,
         prompts: list[UserContent],
         *,
@@ -354,8 +350,10 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         """Stream events from Codex turn execution."""
         from agentpool.agents.events import PlanUpdateEvent
         from agentpool.messaging.messages import TokenCost
-        from codex_adapter import TurnStartedData
-        from codex_adapter.models import ThreadTokenUsageUpdatedData
+        from codex_adapter.events import (
+            ThreadTokenUsageUpdatedEvent,
+            TurnStartedEvent,
+        )
 
         if not self._client or not self._sdk_session_id:
             raise AgentNotInitializedError
@@ -380,20 +378,17 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
         ) -> AsyncIterator[CodexEvent]:
             """Wrapper to capture token usage and turn_id before event conversion."""
             async for event in raw_events:
-                # Capture turn_id for interrupt support
-                if event.event_type == "turn/started" and isinstance(event.data, TurnStartedData):
-                    self._current_turn_id = event.data.turn.id
-                # Capture token usage
-                elif event.event_type == "thread/tokenUsage/updated" and isinstance(
-                    event.data, ThreadTokenUsageUpdatedData
-                ):
-                    usage = event.data.token_usage.last
-                    self._token_usage_data = {
-                        "input_tokens": usage.input_tokens,
-                        "output_tokens": usage.output_tokens,
-                        "cache_read_tokens": usage.cached_input_tokens,
-                        "reasoning_tokens": usage.reasoning_output_tokens,
-                    }
+                match event:
+                    case TurnStartedEvent(data=data):
+                        self._current_turn_id = data.turn.id
+                    case ThreadTokenUsageUpdatedEvent(data=data):
+                        usage = data.token_usage.last
+                        self._token_usage_data = {
+                            "input_tokens": usage.input_tokens,
+                            "output_tokens": usage.output_tokens,
+                            "cache_read_tokens": usage.cached_input_tokens,
+                            "reasoning_tokens": usage.reasoning_output_tokens,
+                        }
                 yield event
 
         try:
