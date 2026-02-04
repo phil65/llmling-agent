@@ -5,30 +5,24 @@ from __future__ import annotations
 import asyncio
 from collections import deque
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Self, assert_never
-from uuid import UUID, uuid4
+from typing import TYPE_CHECKING, Any, Self
 
-from anyenv.signals import Signal
 from upathtools import read_path, to_upath
 
 from agentpool.log import get_logger
 from agentpool.messaging.chat_filesystem import ChatMessageFileSystem
 from agentpool.storage import StorageManager
-from agentpool.utils.time_utils import get_now
 from agentpool_config.session import SessionQuery
 
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Coroutine, Sequence
-    from datetime import datetime
     from types import TracebackType
 
     from pydantic_ai import UserContent
     from toprompt import AnyPromptType
     from upathtools import JoinablePathLike
 
-    from agentpool.common_types import MessageRole, SessionIdType
     from agentpool.messaging import ChatMessage
     from agentpool.prompts.conversion_manager import ConversionManager
     from agentpool.prompts.prompts import PromptType
@@ -39,15 +33,6 @@ logger = get_logger(__name__)
 
 class MessageHistory:
     """Manages conversation state and system prompts."""
-
-    @dataclass(frozen=True)
-    class HistoryCleared:
-        """Emitted when chat history is cleared."""
-
-        session_id: str
-        timestamp: datetime = field(default_factory=get_now)
-
-    history_cleared = Signal[HistoryCleared]()
 
     def __init__(
         self,
@@ -83,12 +68,8 @@ class MessageHistory:
         self._config = session_config
         self._resources = list(resources)  # Store for async loading
         # Generate new ID if none provided
-        self.id = str(uuid4())
-
         if session_config and session_config.session:
             self._current_history = self.storage.filter_messages.sync(session_config.session)
-            if session_config.session.name:
-                self.id = session_config.session.name
 
         # Filesystem view of message history (lazy initialized)
         self._fs: ChatMessageFileSystem | None = None
@@ -116,12 +97,6 @@ class MessageHistory:
     ) -> None:
         """Clean up any pending parts."""
         self._pending_parts.clear()
-
-    def __bool__(self) -> bool:
-        return bool(self._pending_parts) or bool(self.chat_messages)
-
-    def __repr__(self) -> str:
-        return f"MessageHistory(id={self.id!r})"
 
     def __prompt__(self) -> str:
         if not self.chat_messages:
@@ -204,62 +179,6 @@ class MessageHistory:
                 source="file" if isinstance(source, str) else source.type,
             )
 
-    def load_history_from_database(
-        self,
-        session: SessionIdType | SessionQuery = None,
-        *,
-        since: datetime | None = None,
-        until: datetime | None = None,
-        roles: set[MessageRole] | None = None,
-        limit: int | None = None,
-    ) -> None:
-        """Load conversation history from database.
-
-        Args:
-            session: Session ID or query config
-            since: Only include messages after this time (override)
-            until: Only include messages before this time (override)
-            roles: Only include messages with these roles (override)
-            limit: Maximum number of messages to return (override)
-        """
-        from agentpool_config.session import SessionQuery
-
-        match session:
-            case SessionQuery() as query:
-                # Override query params if provided
-                if since is not None or until is not None or roles or limit:
-                    update = {
-                        "since": since.isoformat() if since else None,
-                        "until": until.isoformat() if until else None,
-                        "roles": roles,
-                        "limit": limit,
-                    }
-                    query = query.model_copy(update=update)
-                if query.name:
-                    self.id = query.name
-            case str() | UUID():
-                self.id = str(session)
-                query = SessionQuery(
-                    name=self.id,
-                    since=since.isoformat() if since else None,
-                    until=until.isoformat() if until else None,
-                    roles=roles,
-                    limit=limit,
-                )
-            case None:
-                # Use current session ID
-                query = SessionQuery(
-                    name=self.id,
-                    since=since.isoformat() if since else None,
-                    until=until.isoformat() if until else None,
-                    roles=roles,
-                    limit=limit,
-                )
-            case _ as unreachable:
-                assert_never(unreachable)
-        self.chat_messages.clear()
-        self.chat_messages.extend(self.storage.filter_messages.sync(query))
-
     def get_history(self) -> list[ChatMessage[Any]]:
         """Get conversation history in chronological order."""
         return list(self.chat_messages)
@@ -274,10 +193,6 @@ class MessageHistory:
         self._pending_parts.clear()
         return parts
 
-    def clear_pending(self) -> None:
-        """Clear pending parts without using them."""
-        self._pending_parts.clear()
-
     def set_history(self, history: list[ChatMessage[Any]]) -> None:
         """Update conversation history after run."""
         self.chat_messages.clear()
@@ -289,8 +204,6 @@ class MessageHistory:
 
         self.chat_messages = ChatMessageList()
         self._last_messages = []
-        event = self.HistoryCleared(session_id=str(self.id))
-        await self.history_cleared.emit(event)
 
     @asynccontextmanager
     async def temporary_state(
