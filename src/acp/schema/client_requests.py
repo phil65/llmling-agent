@@ -217,6 +217,27 @@ class InitializeRequest(Request):
         impl = Implementation(title=title, name=name, version=version)
         return cls(client_capabilities=caps, client_info=impl, protocol_version=protocol_version)
 
+    @classmethod
+    def create_for_package(
+        cls,
+        package_name: str,
+        allow_terminal: bool = True,
+        allow_file_operations: bool = True,
+    ) -> InitializeRequest:
+        """Create ACP initialize request for app with given name (based on pkg metadata)."""
+        from importlib.metadata import metadata
+
+        pkg_meta = metadata(package_name)
+        return cls.create(
+            title=pkg_meta["Name"],
+            version=pkg_meta["Version"],
+            name=package_name,
+            protocol_version=1,
+            terminal=allow_terminal,
+            read_text_file=allow_file_operations,
+            write_text_file=allow_file_operations,
+        )
+
 
 class AuthenticateRequest(Request):
     """Request parameters for the authenticate method.

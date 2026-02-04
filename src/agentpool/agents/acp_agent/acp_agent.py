@@ -41,6 +41,7 @@ import anyio
 from pydantic_ai import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from acp import InitializeRequest
+from acp.agent import ACPAgentAPI
 from agentpool.agents.acp_agent.acp_converters import event_to_part
 from agentpool.agents.acp_agent.session_state import ACPSessionState
 from agentpool.agents.base_agent import BaseAgent
@@ -74,9 +75,7 @@ if TYPE_CHECKING:
     from slashed import BaseCommand
     from tokonomics.model_discovery.model_info import ModelInfo
 
-    from acp.agent.protocol import Agent as ACPAgentProtocol
     from acp.client.connection import ClientSideConnection
-    from acp.client.protocol import Client
     from acp.schema import Implementation, RequestPermissionRequest, RequestPermissionResponse
     from acp.schema.capabilities import AgentCapabilities
     from acp.schema.mcp import McpServer
@@ -175,7 +174,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._env_vars = env_vars or {}
         self._client_env = client_execution_env
         # ACP initialization
-        self._init_request = init_request or self._create_default_init_request()
+        self._init_request = init_request or InitializeRequest.create_for_package("agentpool")
         # Tools
         self._tool_providers = tool_providers or []
         # Provider type for model messages
@@ -186,6 +185,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         ) = None
         self._process: Process | None = None
         self._connection: ClientSideConnection | None = None
+        self._api: ACPAgentAPI | None = None
         self._client_handler: ACPClientHandler | None = None
         self._agent_info: Implementation | None = None
         self._caps: AgentCapabilities | None = None
@@ -197,25 +197,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         self._tool_bridge = ToolManagerBridge(node=self, injection_manager=self._injection_manager)
         # Track the prompt task for cancellation
         self._prompt_task: asyncio.Task[Any] | None = None
-
-    @staticmethod
-    def _create_default_init_request(
-        allow_terminal: bool = True,
-        allow_file_operations: bool = True,
-    ) -> InitializeRequest:
-        """Create default ACP initialize request."""
-        from importlib.metadata import metadata
-
-        pkg_meta = metadata("agentpool")
-        return InitializeRequest.create(
-            title=pkg_meta["Name"],
-            version=pkg_meta["Version"],
-            name="agentpool",
-            protocol_version=1,
-            terminal=allow_terminal,
-            read_text_file=allow_file_operations,
-            write_text_file=allow_file_operations,
-        )
 
     @classmethod
     def from_config(
@@ -230,10 +211,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         """Create an ACPAgent from a config object."""
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
-        merged_handlers: list[AnyEventHandlerType] = [
-            *config_handlers,
-            *(event_handlers or []),
-        ]
+        merged_handlers: list[AnyEventHandlerType] = [*config_handlers, *(event_handlers or [])]
         return cls(
             command=config.get_command(),
             args=config.get_args(),
@@ -248,7 +226,8 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             execution_env=config.get_execution_environment(),
             client_execution_env=config.get_client_execution_environment(),
             # ACP initialization
-            init_request=cls._create_default_init_request(
+            init_request=InitializeRequest.create_for_package(
+                "agentpool",
                 allow_terminal=config.allow_terminal,
                 allow_file_operations=config.allow_file_operations,
             ),
@@ -349,15 +328,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
         self._state = ACPSessionState(session_id="")
         self._client_handler = ACPClientHandler(self, self._state, self._input_provider)
-
-        def client_factory(agent: ACPAgentProtocol) -> Client:
-            return self._client_handler  # type: ignore[return-value]
-
         self._connection = ClientSideConnection(
-            to_client=client_factory,
+            to_client=self._client_handler,
             input_stream=self._process.stdin,
             output_stream=self._process.stdout,
         )
+        self._api = ACPAgentAPI(self._connection)
         init_response = await self._connection.initialize(self._init_request)
         self._agent_info = init_response.agent_info
         self._caps = init_response.agent_capabilities
@@ -365,11 +341,10 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _create_session(self) -> None:
         """Create a new ACP session with configured MCP servers."""
-        from acp.schema import NewSessionRequest
         from agentpool.agents.acp_agent.acp_converters import mcp_config_to_acp
         from agentpool.agents.acp_agent.helpers import filter_servers_by_capabilities
 
-        if not self._connection:
+        if not self._api:
             raise AgentNotInitializedError
 
         # Collect all MCP servers (extra + from mcp_servers list)
@@ -378,9 +353,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         if self.mcp.servers:
             all_servers.extend([mcp_config_to_acp(config) for config in self.mcp.servers])
         mcp_servers = filter_servers_by_capabilities(all_servers, self._caps, logger=self.log)
-        cwd = self._cwd or str(Path.cwd())
-        session_request = NewSessionRequest(cwd=cwd, mcp_servers=mcp_servers)
-        response = await self._connection.new_session(session_request)
+        response = await self._api.new_session(self._cwd, mcp_servers=mcp_servers or None)
         self._sdk_session_id = response.session_id
         if self._state:
             self._state.session_id = self._sdk_session_id
@@ -407,6 +380,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             except Exception:
                 self.log.exception("Error closing ACP connection")
             self._connection = None
+            self._api = None
 
         if self._process:
             try:
@@ -434,7 +408,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         wait_for_connections: bool | None = None,
         store_history: bool = True,
     ) -> AsyncIterator[RichAgentStreamEvent[str]]:
-        from acp.schema import ForkSessionRequest, PromptRequest
         from agentpool.agents.acp_agent.acp_converters import (
             convert_to_acp_content,
             to_finish_reason,
@@ -443,7 +416,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         # Update input provider if provided
         if input_provider is not None and self._client_handler:
             self._client_handler._input_provider = input_provider
-        if not self._connection or not self._sdk_session_id or not self._state:
+        if not self._api or not self._sdk_session_id or not self._state:
             raise AgentNotInitializedError
 
         run_id = str(uuid.uuid4())
@@ -461,13 +434,11 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         session_id = self._sdk_session_id
         if not store_history and self._sdk_session_id:
             cwd = self._cwd or str(Path.cwd())
-            fork_request = ForkSessionRequest(session_id=self._sdk_session_id, cwd=cwd)
-            fork_response = await self._connection.fork_session(fork_request)
+            fork_response = await self._api.fork_session(self._sdk_session_id, cwd)
             session_id = fork_response.session_id
             self.log.debug("Forked session", parent=self._sdk_session_id, fork=session_id)
-        prompt_request = PromptRequest(session_id=session_id, prompt=final_blocks)
         self.log.debug("Starting streaming prompt", num_blocks=len(final_blocks))
-        prompt_task = asyncio.create_task(self._connection.prompt(prompt_request))
+        prompt_task = asyncio.create_task(self._api.prompt(session_id, final_blocks))
         self._prompt_task = prompt_task
 
         async def poll_acp_events() -> AsyncIterator[RichAgentStreamEvent[str]]:
@@ -601,12 +572,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _interrupt(self) -> None:
         """Send CancelNotification to remote ACP server and cancel local tasks."""
-        from acp.schema import CancelNotification
-
-        if self._connection and self._sdk_session_id:
+        if self._api and self._sdk_session_id:
             try:
-                cancel_notification = CancelNotification(session_id=self._sdk_session_id)
-                await self._connection.cancel(cancel_notification)
+                await self._api.cancel(self._sdk_session_id)
                 self.log.info("Sent cancel notification to ACP server")
             except Exception:
                 self.log.exception("Failed to send cancel notification to ACP server")
@@ -643,14 +611,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _set_mode(self, mode_id: str, category_id: str) -> None:
         """Forward mode change to remote ACP server."""
-        from acp.schema import (
-            SetSessionConfigOptionRequest,
-            SetSessionModelRequest,
-            SetSessionModeRequest,
-        )
         from agentpool.agents.modes import ConfigOptionChanged
 
-        if not self._connection or not self._sdk_session_id or not self._state:
+        if not self._api or not self._sdk_session_id or not self._state:
             raise RuntimeError("Not connected to ACP server")
         available_modes = await self.get_modes()
         if matching_category := next((c for c in available_modes if c.id == category_id), None):
@@ -662,22 +625,17 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             raise UnknownCategoryError(category_id, sorted(available_cats))
         if self._state.config_options:
             assert category_id
-            config_request = SetSessionConfigOptionRequest(
-                session_id=self._sdk_session_id,
-                config_id=category_id,
-                value=mode_id,
+            response = await self._api.set_session_config_option(
+                self._sdk_session_id, category_id, mode_id
             )
-            response = await self._connection.set_session_config_option(config_request)
-            if response.config_options:
+            if response and response.config_options:
                 self._state.config_options = list(response.config_options)
         elif category_id == "mode":
-            mode_request = SetSessionModeRequest(session_id=self._sdk_session_id, mode_id=mode_id)
-            await self._connection.set_session_mode(mode_request)
+            await self._api.set_session_mode(self._sdk_session_id, mode_id)
             if self._state.modes:
                 self._state.modes.current_mode_id = mode_id
         elif category_id == "model":
-            request = SetSessionModelRequest(session_id=self._sdk_session_id, model_id=mode_id)
-            if await self._connection.set_session_model(request):
+            if await self._api.set_session_model(self._sdk_session_id, mode_id):
                 self._state.current_model_id = mode_id
                 self.log.info("Model changed via legacy set_session_model")
             else:
@@ -695,14 +653,12 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         limit: int | None = None,
     ) -> list[SessionData]:
         """List sessions from the remote ACP server."""
-        from acp.schema import ListSessionsRequest
         from agentpool.sessions.models import SessionData
 
-        if not self._connection:
+        if not self._api:
             raise RuntimeError("Not connected to ACP server")
-        request = ListSessionsRequest(cwd=cwd)
         try:
-            response = await self._connection.list_sessions(request)
+            response = await self._api.list_sessions(cwd)
         except Exception:
             self.log.exception("Failed to list sessions from ACP server")
             return []
@@ -734,7 +690,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def load_session(self, session_id: str) -> SessionData | None:
         """Load and restore a session from the remote ACP server."""
-        from acp.schema import LoadSessionRequest
         from agentpool.agents.acp_agent.acp_converters import (
             acp_notifications_to_messages,
             mcp_config_to_acp,
@@ -743,7 +698,7 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
         from agentpool.sessions.models import SessionData
         from agentpool.utils.time_utils import get_now
 
-        if not self._connection:
+        if not self._api:
             self.log.error("Cannot load session: not connected to ACP server")
             return None
 
@@ -755,12 +710,9 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
             all_servers.extend([mcp_config_to_acp(config) for config in self.mcp.servers])
         mcp_servers = filter_servers_by_capabilities(all_servers, self._caps, logger=self.log)
         cwd = self._cwd or str(Path.cwd())
-        load_request = LoadSessionRequest(
-            session_id=session_id, cwd=cwd, mcp_servers=mcp_servers or None
-        )
         try:
             self._state.start_load()
-            response = await self._connection.load_session(load_request)
+            response = await self._api.load_session(session_id, cwd, mcp_servers or None)
             raw_updates = self._state.finish_load()
 
             self._sdk_session_id = session_id
