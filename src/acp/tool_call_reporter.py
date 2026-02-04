@@ -12,11 +12,7 @@ if TYPE_CHECKING:
     import types
 
     from acp.agent.notifications import ACPNotifications
-    from acp.schema.tool_call import (
-        ToolCallContent,
-        ToolCallKind,
-        ToolCallStatus,
-    )
+    from acp.schema.tool_call import ToolCallContent, ToolCallKind, ToolCallStatus
 
 
 class ToolCallReporter:
@@ -134,9 +130,7 @@ class ToolCallReporter:
 
         # Handle locations
         if locations is not None:
-            normalized = [
-                ToolCallLocation(path=loc) if isinstance(loc, str) else loc for loc in locations
-            ]
+            normalized = [ToolCallLocation(path=i) if isinstance(i, str) else i for i in locations]
             if replace:
                 self.locations = normalized
             else:

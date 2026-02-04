@@ -257,12 +257,7 @@ class MessageHistory:
         """Get messages from the last run converted to our format."""
         return self._last_messages
 
-    def add_context_message(
-        self,
-        content: str,
-        source: str | None = None,
-        **metadata: Any,
-    ) -> None:
+    def add_context_message(self, content: str, source: str | None = None, **metadata: Any) -> None:
         """Add a text context message.
 
         Args:
@@ -336,19 +331,7 @@ class MessageHistory:
         return msgs[-1].message_id if (msgs := self.chat_messages) else None
 
     def get_fs(self) -> ChatMessageFileSystem:
-        """Get filesystem view of message history.
-
-        The filesystem reads directly from the ChatMessageList reference,
-        so it always reflects the current state.
-
-        Returns:
-            ChatMessageFileSystem containing:
-            - /messages/{timestamp}_{role}_{message_id}.txt - Message content
-            - /messages/{timestamp}_{role}_{message_id}.json - Message metadata
-            - /by_role/user/ - User messages
-            - /by_role/assistant/ - Assistant messages
-            - /summary.json - Conversation statistics
-        """
+        """Get filesystem view of message history."""
         if self._fs is None:
             self._fs = ChatMessageFileSystem(self.chat_messages)
         return self._fs
