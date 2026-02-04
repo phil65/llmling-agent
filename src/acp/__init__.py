@@ -80,6 +80,7 @@ from acp.transports import (
     Transport,
 )
 from acp.exceptions import RequestError
+from acp.agent import acp_requests, notifications
 
 __version__ = "0.0.1"
 
@@ -87,6 +88,9 @@ __all__ = [  # noqa: RUF022
     # bridge
     "ACPBridge",
     "BridgeSettings",
+    # Temporary re-export these
+    "acp_requests",
+    "notifications",
     # client implementations
     "DefaultACPClient",
     "HeadlessACPClient",

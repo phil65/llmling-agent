@@ -18,9 +18,9 @@ from pydantic_ai import UsageLimitExceeded
 from slashed import CommandStore
 from tokonomics.model_discovery.model_info import ModelInfo
 
-from acp.acp_requests import ACPRequests
+from acp.agent.acp_requests import ACPRequests
+from acp.agent.notifications import ACPNotifications
 from acp.filesystem import ACPFileSystem
-from acp.notifications import ACPNotifications
 from acp.schema import AvailableCommand, ClientCapabilities
 from agentpool import Agent, AgentPool  # noqa: TC001
 from agentpool.agents.acp_agent import ACPAgent

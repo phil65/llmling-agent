@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     import types
 
-    from acp.notifications import ACPNotifications
+    from acp.agent.notifications import ACPNotifications
     from acp.schema.tool_call import (
         ToolCallContent,
         ToolCallKind,

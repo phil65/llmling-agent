@@ -105,14 +105,6 @@ agents:
 ### Programmatic Recovery
 
 ```python
-# Store session ID for later
-session = agent.conversation.id
-
-# Simple recovery by ID
-async with Agent(..., session=session) as agent:
-    # Conversation history is automatically loaded
-    ...
-
 # Advanced query-based recovery
 query = SessionQuery(
     name="my_session",

@@ -11,8 +11,8 @@ from fsspec.asyn import sync_wrapper
 from fsspec.spec import AbstractBufferedFile
 from upathtools.filesystems.base import BaseAsyncFileSystem, BaseUPath, FileInfo
 
-from acp.acp_requests import ACPRequests
-from acp.notifications import ACPNotifications
+from acp.agent.acp_requests import ACPRequests
+from acp.agent.notifications import ACPNotifications
 from agentpool.mime_utils import guess_type, is_text_mime
 
 
