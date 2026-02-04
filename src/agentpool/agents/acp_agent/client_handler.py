@@ -91,7 +91,6 @@ class ACPClientHandler(Client):
         # Map ACP terminal IDs to process manager IDs (for local execution only)
         self._terminal_to_process: dict[str, str] = {}
         # Copy auto_approve from agent (can be updated via set_auto_approve)
-        self.auto_approve: bool = agent.auto_approve
 
     @property
     def env(self) -> ExecutionEnvironment:
@@ -211,7 +210,7 @@ class ACPClientHandler(Client):
         logger.info("Permission requested", tool_name=name)
         # Check auto_approve FIRST, before any forwarding
         # This ensures "bypass permissions" mode works even for nested ACP agents
-        if self.auto_approve and params.options:
+        if self._agent.auto_approve and params.options:
             option_id = params.options[0].option_id
             logger.debug("Auto-granting permission (auto_approve=True)", tool_name=name)
             return RequestPermissionResponse.allowed(option_id)

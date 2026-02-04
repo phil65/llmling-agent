@@ -566,8 +566,6 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
                          If False, forward to callback/input_provider.
         """
         self.auto_approve = auto_approve
-        if self._client_handler:
-            self._client_handler.auto_approve = auto_approve
         self.log.info("Auto-approve mode changed", auto_approve=auto_approve)
 
     async def _interrupt(self) -> None:
