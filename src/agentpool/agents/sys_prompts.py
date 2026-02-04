@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import cache
 from typing import TYPE_CHECKING, Any, Literal
 
 from agentpool import text_templates
@@ -9,6 +10,7 @@ from agentpool.agents.exceptions import PromptResolutionError
 
 
 if TYPE_CHECKING:
+    from jinjarope import Environment
     from toprompt import AnyPromptType
 
     from agentpool.agents.base_agent import BaseAgent
@@ -17,6 +19,16 @@ if TYPE_CHECKING:
 
 ToolInjectionMode = Literal["off", "all"]
 ToolUsageStyle = Literal["suggestive", "strict"]
+
+
+@cache
+def get_jinja_env() -> Environment:
+    from jinjarope import Environment
+    from toprompt import to_prompt
+
+    env = Environment(enable_async=True)
+    env.filters["to_prompt"] = to_prompt
+    return env
 
 
 class SystemPrompts:
@@ -33,9 +45,6 @@ class SystemPrompts:
         tool_usage_style: ToolUsageStyle = "suggestive",
     ) -> None:
         """Initialize prompt manager."""
-        from jinjarope import Environment
-        from toprompt import to_prompt
-
         match prompts:
             case list():
                 self.prompts = prompts
@@ -50,8 +59,6 @@ class SystemPrompts:
         self.inject_tools = inject_tools
         self.tool_usage_style = tool_usage_style
         self._cached = False
-        self._env = Environment(enable_async=True)
-        self._env.filters["to_prompt"] = to_prompt
 
     def __repr__(self) -> str:
         return (
@@ -128,18 +135,15 @@ class SystemPrompts:
         """Force re-evaluation of prompts."""
         from toprompt import to_prompt
 
-        evaluated = []
-        for prompt in self.prompts:
-            result = await to_prompt(prompt)
-            evaluated.append(result)
-        self.prompts = evaluated
+        self.prompts = [await to_prompt(prompt) for prompt in self.prompts]
         self._cached = True
 
     async def format_system_prompt(self, agent: BaseAgent[Any, Any]) -> str:
         """Format complete system prompt."""
         if not self.dynamic and not self._cached:
             await self.refresh_cache()
-        template = self._env.from_string(self.template or text_templates.get_system_prompt())
+        env = get_jinja_env()
+        template = env.from_string(self.template or text_templates.get_system_prompt())
         result = await template.render_async(
             agent=agent,
             prompts=self.prompts,
