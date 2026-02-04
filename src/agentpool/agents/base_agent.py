@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 import os
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, assert_never, overload
 
 from anyenv import MultiEventHandler, method_spawner
 from anyenv.signals import Signal
@@ -191,7 +191,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             commands: Slash commands to register with this agent
             hooks: Agent hooks for intercepting agent behavior at run and tool events
         """
-        from exxec import LocalExecutionEnvironment
+        from exxec import ExecutionEnvironment, LocalExecutionEnvironment
         from slashed import CommandStore
 
         from agentpool.agents.prompt_injection import PromptInjectionManager
@@ -214,12 +214,12 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
         storage = agent_pool.storage if agent_pool else None
         self.conversation = MessageHistory(storage=storage)
         match env:
-            case None:
-                self.env: ExecutionEnvironment = LocalExecutionEnvironment()
-            case str() | os.PathLike():
-                self.env = LocalExecutionEnvironment(cwd=str(env))
-            case _:
+            case ExecutionEnvironment():
                 self.env = env
+            case str() | os.PathLike() | None:
+                self.env = LocalExecutionEnvironment(cwd=str(env) if env is not None else None)
+            case _ as unreachable:
+                assert_never(unreachable)
         self._input_provider = input_provider
         self._output_type: type[TResult] = output_type
         self.tools = ToolManager()
