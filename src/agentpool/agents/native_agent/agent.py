@@ -662,33 +662,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 agent.tool_plain(prepare=prepare_fn)(wrapped)
         return agent  # type: ignore[return-value]
 
-    async def _process_node_stream(
-        self,
-        node_stream: AsyncIterator[Any],
-        *,
-        file_tracker: FileTracker,
-        pending_tcs: dict[str, BaseToolCallPart],
-        message_id: str,
-    ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
-        """Process events from a node stream (ModelRequest or CallTools).
-
-        Args:
-            node_stream: Stream of events from the node
-            file_tracker: Tracker for file operations
-            pending_tcs: Dictionary of pending tool calls
-            message_id: Current message ID
-
-        Yields:
-            Processed stream events
-        """
-        async with merge_queue_into_iterator(node_stream, self._event_queue) as merged:
-            async for event in file_tracker(merged):
-                if self._cancelled:
-                    break
-                yield event
-                if combined := process_tool_event(self.name, event, pending_tcs, message_id):
-                    yield combined
-
     async def _stream_events(
         self,
         prompts: list[UserContent],
@@ -736,14 +709,18 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
 
                     # Stream events from model request or tool call nodes
                     if isinstance(node, ModelRequestNode | CallToolsNode):
-                        async with node.stream(agent_run.ctx) as stream:
-                            async for event in self._process_node_stream(
-                                stream,  # type: ignore[arg-type]
-                                file_tracker=file_tracker,
-                                pending_tcs=pending_tcs,
-                                message_id=message_id,
-                            ):
+                        async with (
+                            node.stream(agent_run.ctx) as stream,
+                            merge_queue_into_iterator(stream, self._event_queue) as merged,
+                        ):
+                            async for event in file_tracker(merged):
+                                if self._cancelled:
+                                    break
                                 yield event
+                                if combined := process_tool_event(
+                                    self.name, event, pending_tcs, message_id
+                                ):
+                                    yield combined
             except asyncio.CancelledError:
                 self.log.info("Stream cancelled via task cancellation")
                 self._cancelled = True
