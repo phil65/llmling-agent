@@ -599,12 +599,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         tool_name = name or f"ask_{self.name}"
         wrapped_tool.__doc__ = docstring
         wrapped_tool.__name__ = tool_name
-        return Tool.from_callable(
-            wrapped_tool,
-            name_override=tool_name,
-            description_override=docstring,
-            source="agent",
-        )
+        return Tool.from_callable(wrapped_tool, source="agent")
 
     async def get_agentlet[AgentOutputType](
         self,
