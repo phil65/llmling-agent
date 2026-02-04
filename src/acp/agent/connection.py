@@ -85,7 +85,7 @@ class AgentSideConnection(Client):
 
     def __init__(
         self,
-        to_agent: Callable[[AgentSideConnection], Agent],
+        to_agent: Callable[[AgentSideConnection], Agent] | Agent,
         input_stream: ByteSendStream,
         output_stream: ByteReceiveStream,
         observers: list[StreamObserver] | None = None,
@@ -101,7 +101,7 @@ class AgentSideConnection(Client):
             observers: list of StreamObserver instances to observe the connection
             debug_file: path to a file to write debug information to
         """
-        agent = to_agent(self)
+        agent = to_agent(self) if callable(to_agent) else to_agent
         handler = partial(_agent_handler, agent)
         store = DebuggingMessageStateStore(debug_file=debug_file) if debug_file else None
         self._conn = Connection(
