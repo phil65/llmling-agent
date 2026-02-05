@@ -6,7 +6,6 @@ Stateless conversion and utility functions for working with Zed format.
 from __future__ import annotations
 
 import base64
-from datetime import datetime
 import io
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -28,10 +27,9 @@ from agentpool.utils.time_utils import parse_iso_timestamp
 
 
 if TYPE_CHECKING:
-    from agentpool_storage.zed_provider.models import (
-        ZedThread,
-        ZedToolResult,
-    )
+    from datetime import datetime
+
+    from agentpool_storage.zed_provider.models import ZedThread, ZedToolResult
 
 
 logger = get_logger(__name__)
