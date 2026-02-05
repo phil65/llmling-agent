@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from agentpool.log import get_logger
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
+from agentpool_config.storage import ZedStorageConfig
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.zed_provider import helpers
 
@@ -21,7 +22,6 @@ if TYPE_CHECKING:
 
     from agentpool.messaging import ChatMessage, TokenCost
     from agentpool_config.session import SessionQuery
-    from agentpool_config.storage import ZedStorageConfig
     from agentpool_storage.models import (
         ConversationData,
         MessageData,
@@ -60,12 +60,13 @@ class ZedStorageProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, config: ZedStorageConfig) -> None:
+    def __init__(self, config: ZedStorageConfig | None = None) -> None:
         """Initialize Zed storage provider.
 
         Args:
             config: Configuration for the provider
         """
+        config = config or ZedStorageConfig()
         super().__init__(config)
         self.db_path = Path(config.path).expanduser()
         if not self.db_path.name.endswith(".db"):
@@ -420,12 +421,10 @@ if __name__ == "__main__":
     import asyncio
     import datetime as dt
 
-    from agentpool_config.storage import ZedStorageConfig
     from agentpool_storage.models import QueryFilters, StatsFilters
 
     async def main() -> None:
-        config = ZedStorageConfig()
-        provider = ZedStorageProvider(config)
+        provider = ZedStorageProvider()
         print(f"Database: {provider.db_path}")
         print(f"Exists: {provider.db_path.exists()}")
         # List conversations

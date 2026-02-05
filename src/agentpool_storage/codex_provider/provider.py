@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from agentpool.log import get_logger
+from agentpool_config.storage import CodexStorageConfig
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import ConversationData
 
@@ -14,7 +15,6 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from agentpool.messaging import ChatMessage
-    from agentpool_config.storage import CodexStorageConfig
     from agentpool_storage.models import QueryFilters
     from codex_adapter.client import CodexClient
 
@@ -34,7 +34,7 @@ class CodexStorageProvider(StorageProvider):
 
     def __init__(
         self,
-        config: CodexStorageConfig,
+        config: CodexStorageConfig | None = None,
         *,
         client: CodexClient | None = None,
         agent_name: str | None = None,
@@ -48,7 +48,7 @@ class CodexStorageProvider(StorageProvider):
             agent_name: Name of the agent using this provider
             cwd: Working directory for session operations
         """
-        super().__init__(config)
+        super().__init__(config or CodexStorageConfig())
         self._client = client
         self._agent_name = agent_name
         self._cwd = cwd

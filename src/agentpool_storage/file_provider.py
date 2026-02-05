@@ -14,6 +14,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.storage import deserialize_messages
 from agentpool.utils.time_utils import get_now
+from agentpool_config.storage import FileStorageConfig
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import TokenUsage
 
@@ -23,7 +24,6 @@ if TYPE_CHECKING:
 
     from agentpool.sessions.models import ProjectData
     from agentpool_config.session import SessionQuery
-    from agentpool_config.storage import FileStorageConfig
 
 logger = get_logger(__name__)
 
@@ -99,12 +99,13 @@ class FileProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, config: FileStorageConfig) -> None:
+    def __init__(self, config: FileStorageConfig | None = None) -> None:
         """Initialize file provider.
 
         Args:
             config: Configuration for provider
         """
+        config = config or FileStorageConfig()
         super().__init__(config)
         self.path = to_upath(config.path)
         self.format: FormatType = config.format

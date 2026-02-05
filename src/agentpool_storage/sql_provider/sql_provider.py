@@ -13,6 +13,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import TokenCost
 from agentpool.utils.parse_time import parse_time_period
 from agentpool.utils.time_utils import get_now
+from agentpool_config.storage import SQLStorageConfig
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import QueryFilters
 from agentpool_storage.sql_provider.models import (
@@ -38,7 +39,6 @@ if TYPE_CHECKING:
     from agentpool.messaging import ChatMessage
     from agentpool.sessions.models import ProjectData
     from agentpool_config.session import SessionQuery
-    from agentpool_config.storage import SQLStorageConfig
     from agentpool_storage.models import ConversationData, StatsFilters
 
 
@@ -54,12 +54,13 @@ class SQLModelProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, config: SQLStorageConfig) -> None:
+    def __init__(self, config: SQLStorageConfig | None = None) -> None:
         """Initialize provider with async database engine.
 
         Args:
             config: Configuration for provider
         """
+        config = config or SQLStorageConfig()
         super().__init__(config)
         self.engine = config.get_engine()
         self.auto_migrate = config.auto_migration

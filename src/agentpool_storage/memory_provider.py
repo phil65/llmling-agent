@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, cast
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.storage import deserialize_messages
 from agentpool.utils.time_utils import get_now
+from agentpool_config.storage import MemoryStorageConfig
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import ConversationData
 
@@ -18,7 +19,6 @@ if TYPE_CHECKING:
     from agentpool.common_types import JsonValue
     from agentpool.sessions.models import ProjectData
     from agentpool_config.session import SessionQuery
-    from agentpool_config.storage import MemoryStorageConfig
     from agentpool_storage.models import MessageData, QueryFilters, StatsFilters, TokenUsage
 
 
@@ -52,8 +52,8 @@ class MemoryStorageProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, config: MemoryStorageConfig) -> None:
-        super().__init__(config)
+    def __init__(self, config: MemoryStorageConfig | None = None) -> None:
+        super().__init__(config or MemoryStorageConfig())
         self.messages: list[dict[str, Any]] = []
         self.conversations: list[dict[str, Any]] = []
         self.commands: list[dict[str, Any]] = []

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from agentpool.log import get_logger
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
+from agentpool_config.storage import ACPStorageConfig
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.models import ConversationData
 
@@ -16,7 +17,6 @@ if TYPE_CHECKING:
 
     from acp.client.connection import ClientSideConnection
     from agentpool.messaging import ChatMessage
-    from agentpool_config.storage import ACPStorageConfig
     from agentpool_storage.models import QueryFilters
 
 
@@ -39,7 +39,7 @@ class ACPStorageProvider(StorageProvider):
 
     def __init__(
         self,
-        config: ACPStorageConfig,
+        config: ACPStorageConfig | None = None,
         *,
         connection: ClientSideConnection | None = None,
         agent_name: str | None = None,
@@ -53,7 +53,7 @@ class ACPStorageProvider(StorageProvider):
             agent_name: Name of the agent using this provider
             cwd: Working directory for session operations
         """
-        super().__init__(config)
+        super().__init__(config or ACPStorageConfig())
         self._connection = connection
         self._agent_name = agent_name
         self._cwd = cwd
