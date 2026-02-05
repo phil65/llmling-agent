@@ -367,8 +367,7 @@ class Talk[TTransmittedData = Any]:
                 results = []
                 # Get latest message for each agent
                 for target in self.targets:
-                    queue = self._pending_messages[target.name]
-                    if queue:
+                    if queue := self._pending_messages[target.name]:
                         latest = queue[-1]
                         if resp := await self._process_for_target(latest, target, prompt):
                             results.append(resp)

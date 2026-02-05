@@ -293,13 +293,8 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
         examples=[
             [
                 {"type": "subagent"},
-                {"type": "agent_management"},
                 "webbrowser:open",
-                {
-                    "type": "import",
-                    "import_path": "webbrowser:open",
-                    "name": "web_browser",
-                },
+                {"type": "import", "import_path": "webbrowser:open"},
             ],
         ],
     )
@@ -346,12 +341,13 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
 
         for tool_config in self.tools:
             try:
-                if isinstance(tool_config, BaseToolsetConfig):
-                    providers.append(tool_config.get_provider())
-                elif isinstance(tool_config, str):
-                    static_tools.append(Tool.from_callable(tool_config))
-                elif isinstance(tool_config, BaseToolConfig):
-                    static_tools.append(tool_config.get_tool())
+                match tool_config:
+                    case BaseToolsetConfig():
+                        providers.append(tool_config.get_provider())
+                    case str():
+                        static_tools.append(Tool.from_callable(tool_config))
+                    case BaseToolConfig():
+                        static_tools.append(tool_config.get_tool())
             except Exception:
                 logger.exception("Failed to load tool", config=tool_config)
                 continue

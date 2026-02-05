@@ -8,30 +8,9 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
-# Re-export FileTracker from new location for backwards compatibility
-from agentpool.agents.events.processors import (
-    FileTracker,
-    FileTrackingProcessor,
-    extract_file_path_from_tool_call,
-)
-
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-
-
-__all__ = [
-    "FileChange",
-    "FileOpsTracker",
-    "FileTracker",
-    "FileTrackingProcessor",
-    "TodoEntry",
-    "TodoPriority",
-    "TodoStatus",
-    "TodoTracker",
-    "extract_file_path_from_tool_call",
-    "merge_queue_into_iterator",
-]
 
 
 @asynccontextmanager
@@ -166,17 +145,11 @@ class FileChange:
         Returns:
             Unified diff string
         """
-        import difflib
+        from difflib import unified_diff
 
-        old_lines = (self.old_content or "").splitlines(keepends=True)
-        new_lines = (self.new_content or "").splitlines(keepends=True)
-
-        diff = difflib.unified_diff(
-            old_lines,
-            new_lines,
-            fromfile=f"a/{self.path}",
-            tofile=f"b/{self.path}",
-        )
+        old = (self.old_content or "").splitlines(keepends=True)
+        new = (self.new_content or "").splitlines(keepends=True)
+        diff = unified_diff(old, new, fromfile=f"a/{self.path}", tofile=f"b/{self.path}")
         return "".join(diff)
 
 
@@ -236,16 +209,15 @@ class FileOpsTracker:
             message_id: Optional message ID that triggered this change
             agent_name: Optional name of the agent that made this change
         """
-        self.changes.append(
-            FileChange(
-                path=path,
-                old_content=old_content,
-                new_content=new_content,
-                operation=operation,
-                message_id=message_id,
-                agent_name=agent_name,
-            )
+        change = FileChange(
+            path=path,
+            old_content=old_content,
+            new_content=new_content,
+            operation=operation,
+            message_id=message_id,
+            agent_name=agent_name,
         )
+        self.changes.append(change)
 
     def get_changes_for_path(self, path: str) -> list[FileChange]:
         """Get all changes for a specific file path.
@@ -293,10 +265,7 @@ class FileOpsTracker:
         Returns:
             Dict mapping path to current content (or None if deleted)
         """
-        state: dict[str, str | None] = {}
-        for change in self.changes:
-            state[change.path] = change.new_content
-        return state
+        return {change.path: change.new_content for change in self.changes}
 
     def get_original_state(self) -> dict[str, str | None]:
         """Get the original state of all modified files.
@@ -349,11 +318,7 @@ class FileOpsTracker:
         Returns:
             Combined diff string for all file changes
         """
-        diffs = []
-        for change in self.changes:
-            diff = change.to_unified_diff()
-            if diff:
-                diffs.append(diff)
+        diffs = [diff for change in self.changes if (diff := change.to_unified_diff())]
         return "\n".join(diffs)
 
     def clear(self) -> None:
@@ -495,25 +460,6 @@ class TodoTracker:
 
     Provides a central place to manage todos that persists across
     agent runs and is accessible from any toolset or endpoint.
-
-    Example:
-        ```python
-        tracker = TodoTracker()
-
-        # Add entries
-        tracker.add("Implement feature X", priority="high")
-        tracker.add("Write tests", priority="medium")
-
-        # Update status
-        tracker.update_status("todo_1", "in_progress")
-
-        # Get current entries
-        for entry in tracker.entries:
-            print(f"{entry.status}: {entry.content}")
-
-        # Subscribe to changes
-        tracker.on_change = lambda t: print(f"Todos changed: {len(t.entries)} items")
-        ```
     """
 
     entries: list[TodoEntry] = field(default_factory=list)
@@ -548,23 +494,9 @@ class TodoTracker:
         status: TodoStatus = "pending",
         index: int | None = None,
     ) -> TodoEntry:
-        """Add a new todo entry.
-
-        Args:
-            content: Description of the task
-            priority: Relative importance (high/medium/low)
-            status: Initial status (default: pending)
-            index: Optional position to insert at (default: append)
-
-        Returns:
-            The created TodoEntry
-        """
-        entry = TodoEntry(
-            id=self._next_id(),
-            content=content,
-            priority=priority,
-            status=status,
-        )
+        """Add a new todo entry. Appends if no index is given."""
+        id_ = self._next_id()
+        entry = TodoEntry(id=id_, content=content, priority=priority, status=status)
         if index is None or index >= len(self.entries):
             self.entries.append(entry)
         else:
@@ -573,31 +505,12 @@ class TodoTracker:
         return entry
 
     def get(self, entry_id: str) -> TodoEntry | None:
-        """Get entry by ID.
-
-        Args:
-            entry_id: The entry ID to find
-
-        Returns:
-            The entry if found, None otherwise
-        """
-        for entry in self.entries:
-            if entry.id == entry_id:
-                return entry
-        return None
+        """Get entry by ID, or None if not found."""
+        return next((entry for entry in self.entries if entry.id == entry_id), None)
 
     def get_by_index(self, index: int) -> TodoEntry | None:
-        """Get entry by index.
-
-        Args:
-            index: The 0-based index
-
-        Returns:
-            The entry if found, None otherwise
-        """
-        if 0 <= index < len(self.entries):
-            return self.entries[index]
-        return None
+        """Get entry by index (0-based), or None if not found."""
+        return self.entries[index] if 0 <= index < len(self.entries) else None
 
     def update(
         self,
@@ -674,14 +587,7 @@ class TodoTracker:
         return True
 
     def remove(self, entry_id: str) -> bool:
-        """Remove an entry by ID.
-
-        Args:
-            entry_id: The entry ID to remove
-
-        Returns:
-            True if entry was found and removed, False otherwise
-        """
+        """Remove an entry by ID. Returns True if entry was found + removed, False otherwise."""
         for i, entry in enumerate(self.entries):
             if entry.id == entry_id:
                 self.entries.pop(i)
@@ -690,14 +596,7 @@ class TodoTracker:
         return False
 
     def remove_by_index(self, index: int) -> TodoEntry | None:
-        """Remove an entry by index.
-
-        Args:
-            index: The 0-based index
-
-        Returns:
-            The removed entry if found, None otherwise
-        """
+        """Remove an entry by index (0-based) and return its entry if found."""
         if 0 <= index < len(self.entries):
             entry = self.entries.pop(index)
             self._notify_change()
@@ -724,24 +623,13 @@ class TodoTracker:
         """
         self.entries.clear()
         for content, priority, status in entries:
-            entry = TodoEntry(
-                id=self._next_id(),
-                content=content,
-                priority=priority,
-                status=status,
-            )
+            id_ = self._next_id()
+            entry = TodoEntry(id=id_, content=content, priority=priority, status=status)
             self.entries.append(entry)
         self._notify_change()
 
     def get_by_status(self, status: TodoStatus) -> list[TodoEntry]:
-        """Get all entries with a specific status.
-
-        Args:
-            status: The status to filter by
-
-        Returns:
-            List of matching entries
-        """
+        """Get all entries with a specific status."""
         return [e for e in self.entries if e.status == status]
 
     def to_list(self) -> list[dict[str, Any]]:

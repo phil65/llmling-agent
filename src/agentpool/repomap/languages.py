@@ -70,7 +70,6 @@ def get_supported_languages_md() -> str:
     from grep_ast.parsers import PARSERS
 
     supported = get_supported_languages()
-
     # Group by language
     lang_exts: dict[str, list[str]] = {}
     for ext, lang in PARSERS.items():
