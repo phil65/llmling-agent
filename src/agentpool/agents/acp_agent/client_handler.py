@@ -412,10 +412,7 @@ class ACPClientHandler(Client):
 
         for cmd in commands:
             command = self._create_acp_command(cmd)
-            # Unregister if already exists (in case of update)
-            if store.get_command(cmd.name):
-                store.unregister_command(cmd.name)
-            store.register_command(command)
+            store.register_command(command, replace=True)
 
         logger.debug("Populated command store", command_count=len(store.list_commands()))
 
