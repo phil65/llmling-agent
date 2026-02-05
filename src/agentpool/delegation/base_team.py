@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from toprompt import AnyPromptType
 
     from agentpool import Agent, AgentPool, Team
+    from agentpool.agents.base_agent import BaseAgent
     from agentpool.common_types import (
         ModelType,
         ProcessorCallback,
@@ -300,15 +301,15 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
         return "\n".join(lines)
 
-    def iter_agents(self) -> Iterator[Agent[Any, Any]]:
+    def iter_agents(self) -> Iterator[BaseAgent[Any, Any]]:
         """Recursively iterate over all child agents."""
-        from agentpool.agents import Agent
+        from agentpool.agents.base_agent import BaseAgent
 
         for node in self.nodes:
             match node:
                 case BaseTeam():
                     yield from node.iter_agents()
-                case Agent():
+                case BaseAgent():
                     yield node
                 case _:
                     raise ValueError(f"Invalid node type: {type(node)}")
