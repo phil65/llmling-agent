@@ -341,12 +341,10 @@ class ZedStorageProvider(StorageProvider):
         """
         threads = [(session_id, None, None)] if session_id else self._list_threads()
         for thread_id, _summary, _updated_at in threads:
-            thread = self._load_thread(thread_id)
-            if thread is None:
-                continue
-            for msg in helpers.thread_to_chat_messages(thread, thread_id):
-                if msg.message_id == message_id:
-                    return msg
+            if thread := self._load_thread(thread_id):
+                for msg in helpers.thread_to_chat_messages(thread, thread_id):
+                    if msg.message_id == message_id:
+                        return msg
         return None
 
     async def get_message_ancestry(

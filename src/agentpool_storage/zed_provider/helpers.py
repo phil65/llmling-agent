@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import base64
 import io
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import anyenv
 from pydantic_ai.messages import (
@@ -27,6 +27,10 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.utils.time_utils import parse_iso_timestamp
 from agentpool_storage.zed_provider.models import ZedThread
+
+
+if TYPE_CHECKING:
+    from agentpool_storage.zed_provider.models import ZedToolResult
 
 
 logger = get_logger(__name__)
@@ -203,7 +207,7 @@ def parse_agent_content(
     return display_text, pydantic_parts
 
 
-def parse_tool_results(tool_results: dict[str, Any]) -> list[ToolReturnPart]:
+def parse_tool_results(tool_results: dict[str, ZedToolResult]) -> list[ToolReturnPart]:
     """Parse tool results into ToolReturnParts.
 
     Args:
@@ -215,23 +219,25 @@ def parse_tool_results(tool_results: dict[str, Any]) -> list[ToolReturnPart]:
     parts: list[ToolReturnPart] = []
 
     for tool_id, result in tool_results.items():
-        if isinstance(result, dict):
-            tool_name = result.get("tool_name", "")
-            output = result.get("output", "")
-            content = result.get("content", {})
+        output = result.output
+        content = result.content
 
-            # Handle output being a dict like {"Text": "..."}
-            if isinstance(output, dict) and "Text" in output:
-                output = output["Text"]
-            # Extract text content if available
-            elif isinstance(content, dict) and "Text" in content:
-                output = content["Text"]
-            elif isinstance(content, str):
-                output = content
+        # Handle output being a dict like {"Text": "..."}
+        if isinstance(output, dict) and "Text" in output:
+            output_str = output["Text"]
+        # Extract text content if available
+        elif isinstance(content, dict) and "Text" in content:
+            output_str = content["Text"]
+        elif isinstance(content, str):
+            output_str = content
+        elif isinstance(output, str):
+            output_str = output
+        else:
+            output_str = ""
 
-            parts.append(
-                ToolReturnPart(tool_name=tool_name, content=output or "", tool_call_id=tool_id)
-            )
+        parts.append(
+            ToolReturnPart(tool_name=result.tool_name, content=output_str, tool_call_id=tool_id)
+        )
 
     return parts
 
