@@ -135,3 +135,29 @@ class ZedThread(ZedBaseModel):
     exceeded_window_error: Any | None = None
     tool_use_limit_reached: bool = False
     imported: bool = False  # Whether thread was imported from another source
+
+    @classmethod
+    def from_compressed(cls, data: bytes, data_type: Literal["zstd", "plain"]) -> ZedThread:
+        """Decompress and parse thread data.
+
+        Args:
+            data: Compressed thread data
+            data_type: Type of compression ("zstd" or "plain")
+
+        Returns:
+            Parsed ZedThread object
+        """
+        import io
+
+        import anyenv
+        import zstandard
+
+        if data_type == "zstd":
+            dctx = zstandard.ZstdDecompressor()
+            reader = dctx.stream_reader(io.BytesIO(data))
+            json_data = reader.read()
+        else:
+            json_data = data
+
+        thread_dict = anyenv.load_json(json_data)
+        return cls.model_validate(thread_dict)

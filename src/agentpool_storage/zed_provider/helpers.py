@@ -56,21 +56,6 @@ def _decompress(data: bytes, data_type: Literal["zstd", "plain"]) -> bytes:
     return data
 
 
-def decompress_thread(data: bytes, data_type: Literal["zstd", "plain"]) -> ZedThread:
-    """Decompress and parse thread data.
-
-    Args:
-        data: Compressed thread data
-        data_type: Type of compression ("zstd" or plain)
-
-    Returns:
-        Parsed ZedThread object
-    """
-    json_data = _decompress(data, data_type)
-    thread_dict = anyenv.load_json(json_data)
-    return ZedThread.model_validate(thread_dict)
-
-
 def decompress_thread_raw(data: bytes, data_type: Literal["zstd", "plain"]) -> dict[str, Any]:
     """Decompress thread data and return raw dict (skip model_validate).
 

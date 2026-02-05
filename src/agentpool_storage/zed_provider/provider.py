@@ -13,6 +13,7 @@ from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 from agentpool_config.storage import ZedStorageConfig
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.zed_provider import helpers
+from agentpool_storage.zed_provider.models import ZedThread
 
 
 if TYPE_CHECKING:
@@ -27,7 +28,6 @@ if TYPE_CHECKING:
         StatsFilters,
         TokenUsage,
     )
-    from agentpool_storage.zed_provider.models import ZedThread
 
 logger = get_logger(__name__)
 
@@ -110,7 +110,7 @@ class ZedStorageProvider(StorageProvider):
                 return None
 
             data_type, data = row
-            return helpers.decompress_thread(data, data_type)
+            return ZedThread.from_compressed(data, data_type)
         except FileNotFoundError:
             return None
         except (sqlite3.Error, Exception) as e:  # noqa: BLE001
