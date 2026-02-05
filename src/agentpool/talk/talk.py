@@ -302,7 +302,7 @@ class Talk[TTransmittedData = Any]:
         prompt: PromptCompatible | None = None,
     ) -> ChatMessage[Any] | None:
         """Process message for a single target."""
-        from agentpool.agents import Agent
+        from agentpool.agents.base_agent import BaseAgent
         from agentpool.delegation.base_team import BaseTeam
 
         match self.connection_type:
@@ -312,31 +312,15 @@ class Talk[TTransmittedData = Any]:
                 return await target.run_message(message)
 
             case "context":
-                meta = {
-                    "type": "forwarded_message",
-                    "role": message.role,
-                    "model": message.model_name,
-                    "cost_info": message.cost_info,
-                    "timestamp": message.timestamp.isoformat(),
-                    "prompt": prompt,
-                }
 
                 async def add_context() -> None:
                     match target:
                         case BaseTeam():
                             # Add context to all team members
                             for agent in target.iter_agents():
-                                agent.conversation.add_context_message(
-                                    str(message.content),
-                                    source=message.name,
-                                    metadata=meta,
-                                )
-                        case Agent():
-                            target.conversation.add_context_message(
-                                str(message.content),
-                                source=message.name,
-                                metadata=meta,
-                            )
+                                agent.staged_content.add_text(str(message.content))
+                        case BaseAgent():
+                            target.staged_content.add_text(str(message.content))
 
                 if self.delay is not None or self.priority != 0:
                     coro = add_context()
