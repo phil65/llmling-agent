@@ -441,6 +441,7 @@ python-platform = "all"
 
 [tool.ty.rules]
 unresolved-import = "ignore"
+unused-type-ignore-comment = "ignore"
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]
