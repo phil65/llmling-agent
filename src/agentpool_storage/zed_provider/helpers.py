@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import base64
 import io
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import anyenv
 from pydantic_ai.messages import (
@@ -40,7 +40,7 @@ logger = get_logger(__name__)
 _ZSTD_DECOMPRESSOR = zstandard.ZstdDecompressor()
 
 
-def _decompress(data: bytes, data_type: str) -> bytes:
+def _decompress(data: bytes, data_type: Literal["zstd", "plain"]) -> bytes:
     """Decompress thread data.
 
     Args:
@@ -56,7 +56,7 @@ def _decompress(data: bytes, data_type: str) -> bytes:
     return data
 
 
-def decompress_thread(data: bytes, data_type: str) -> ZedThread:
+def decompress_thread(data: bytes, data_type: Literal["zstd", "plain"]) -> ZedThread:
     """Decompress and parse thread data.
 
     Args:
@@ -71,7 +71,7 @@ def decompress_thread(data: bytes, data_type: str) -> ZedThread:
     return ZedThread.model_validate(thread_dict)
 
 
-def decompress_thread_raw(data: bytes, data_type: str) -> dict[str, Any]:
+def decompress_thread_raw(data: bytes, data_type: Literal["zstd", "plain"]) -> dict[str, Any]:
     """Decompress thread data and return raw dict (skip model_validate).
 
     Useful for lightweight operations like counting messages.
