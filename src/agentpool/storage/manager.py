@@ -631,7 +631,7 @@ class StorageManager:
             )
             logger.debug("Title generation prompt", prompt_text=prompt_text)
             result = await agent.run(prompt_text)
-            metadata = result.output
+            metadata = result.data
 
             # Store the title
             await self.update_session_title(session_id, metadata.title)
