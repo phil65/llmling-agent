@@ -14,7 +14,7 @@ from agentpool.log import get_logger
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 from agentpool_config.storage import ZedStorageConfig
 from agentpool_storage.base import StorageProvider
-from agentpool_storage.models import TokenUsage
+from agentpool_storage.models import ConversationData, TokenUsage
 from agentpool_storage.zed_provider import helpers
 from agentpool_storage.zed_provider.models import ZedThread
 
@@ -24,12 +24,7 @@ if TYPE_CHECKING:
 
     from agentpool.messaging import ChatMessage
     from agentpool_config.session import SessionQuery
-    from agentpool_storage.models import (
-        ConversationData,
-        MessageData,
-        QueryFilters,
-        StatsFilters,
-    )
+    from agentpool_storage.models import MessageData, QueryFilters, StatsFilters
 
 logger = get_logger(__name__)
 
@@ -189,9 +184,7 @@ class ZedStorageProvider(StorageProvider):
         filters: QueryFilters,
     ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
         """Get filtered conversations with their messages."""
-        from agentpool_storage.models import ConversationData as ConvData
-
-        result: list[tuple[ConvData, Sequence[ChatMessage[str]]]] = []
+        result: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
         # Use SQL-level filtering for efficiency
         for thread_id, summary, updated_at_str in self._list_threads(since=filters.since):
             updated_at = parse_iso_timestamp(updated_at_str)
@@ -232,7 +225,7 @@ class ZedStorageProvider(StorageProvider):
                 else None
             )
 
-            conv_data = ConvData(
+            conv_data = ConversationData(
                 id=thread_id,
                 agent="zed",
                 title=summary or thread.title,

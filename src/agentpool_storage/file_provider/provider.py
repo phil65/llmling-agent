@@ -228,12 +228,12 @@ class FileProvider(StorageProvider):
         model: str | None = None,
     ) -> None:
         """Log a new conversation."""
-        conversation: ConversationData = {
-            "id": session_id,
-            "agent_name": node_name,
-            "title": None,
-            "start_time": (start_time or get_now()).isoformat(),
-        }
+        conversation = ConversationData(
+            id=session_id,
+            agent_name=node_name,
+            title=None,
+            start_time=(start_time or get_now()).isoformat(),
+        )
         self._data["conversations"].append(conversation)
         self._save()
 
@@ -392,12 +392,12 @@ class FileProvider(StorageProvider):
             if source_conv.get("title")
             else None
         )
-        new_conv: ConversationData = {
-            "id": new_session_id,
-            "agent_name": agent_name,
-            "title": title,
-            "start_time": get_now().isoformat(),
-        }
+        new_conv = ConversationData(
+            id=new_session_id,
+            agent_name=agent_name,
+            title=title,
+            start_time=get_now().isoformat(),
+        )
         self._data["conversations"].append(new_conv)
         self._save()
         return fork_point_id
@@ -412,14 +412,14 @@ class FileProvider(StorageProvider):
         metadata: dict[str, JsonValue] | None = None,
     ) -> None:
         """Log a command execution."""
-        cmd: CommandData = {
-            "agent_name": agent_name,
-            "session_id": session_id,
-            "command": command,
-            "context_type": context_type.__name__ if context_type else None,
-            "metadata": metadata or {},
-            "timestamp": get_now().isoformat(),
-        }
+        cmd = CommandData(
+            agent_name=agent_name,
+            session_id=session_id,
+            command=command,
+            context_type=context_type.__name__ if context_type else None,
+            metadata=metadata or {},
+            timestamp=get_now().isoformat(),
+        )
         self._data["commands"].append(cmd)
         self._save()
 
