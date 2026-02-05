@@ -85,7 +85,7 @@ class MCPResourceProvider(ResourceProvider):
             case SSEMCPServerConfig():
                 return "sse"
             case _ as unreachable:
-                assert_never(unreachable)
+                assert_never(unreachable)  # ty: ignore[type-assertion-failure]
 
     async def __aenter__(self) -> Self:
         try:

@@ -231,6 +231,7 @@ class ChatMessageFileSystem(AsyncFileSystem):  # type: ignore[misc]
         self,
         lpath: str,
         rpath: str,
+        mode: str = "overwrite",
         **kwargs: Any,
     ) -> None:
         """Upload file - not supported."""

@@ -67,6 +67,10 @@ class BaseToolsetConfig(Schema):
     namespace: str | None = Field(default=None, examples=["web", "files"], title="Tool namespace")
     """Optional namespace prefix for tool names"""
 
+    def get_provider(self) -> ResourceProvider:
+        """Implemented by subclasses, should return a ResourceProvider instance."""
+        raise NotImplementedError("Subclasses must implement this method")
+
 
 class OpenAPIToolsetConfig(BaseToolsetConfig):
     """Configuration for OpenAPI toolsets."""

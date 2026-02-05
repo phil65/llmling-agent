@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING, Any, Self
 from anyenv import method_spawner
 from anyenv.signals import Signal
 from pydantic import BaseModel
-from pydantic_ai import Agent
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
@@ -622,10 +621,12 @@ class StorageManager:
         try:
             from llmling_models.models.helpers import infer_model
 
+            from agentpool import Agent
+
             model = infer_model(self.config.title_generation_model)
             agent = Agent(
                 model=model,
-                instructions=self.config.title_generation_prompt,
+                system_prompt=self.config.title_generation_prompt,
                 output_type=ConversationMetadata,
             )
             logger.debug("Title generation prompt", prompt_text=prompt_text)

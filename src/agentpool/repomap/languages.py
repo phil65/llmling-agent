@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 
@@ -20,7 +21,7 @@ def get_scm_fname(lang: str) -> Path | None:
     ref = resources.files("agentpool") / "queries" / "tree-sitter-language-pack" / fname
 
     # Try to get the path
-    if hasattr(ref, "__fspath__"):
+    if isinstance(ref, os.PathLike):
         path = Path(ref.__fspath__())
         return path if path.exists() else None
 
@@ -59,11 +60,9 @@ def is_language_supported(fname: str) -> bool:
     """
     from grep_ast import filename_to_lang  # type: ignore[import-untyped]
 
-    lang = filename_to_lang(fname)
-    if not lang:
-        return False
-    scm = get_scm_fname(lang)
-    return scm is not None and scm.exists()
+    if (lang := filename_to_lang(fname)) and (scm := get_scm_fname(lang)):
+        return scm.exists()
+    return False
 
 
 def get_supported_languages_md() -> str:

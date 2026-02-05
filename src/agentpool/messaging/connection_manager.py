@@ -11,6 +11,7 @@ from psygnal.containers import EventedList
 
 from agentpool.log import get_logger
 from agentpool.talk import AggregatedTalkStats, Talk, TeamTalk
+from agentpool.utils.inspection import get_fn_name
 
 
 if TYPE_CHECKING:
@@ -278,11 +279,11 @@ class ConnectionManager:
                 if talk.queued:
                     details.append(f"queued({talk.queue_strategy})")
                 if talk.filter_condition:
-                    details.append(f"filter:{talk.filter_condition.__name__}")
+                    details.append(f"filter:{get_fn_name(talk.filter_condition)}")
                 if talk.stop_condition:
-                    details.append(f"stop:{talk.stop_condition.__name__}")
+                    details.append(f"stop:{get_fn_name(talk.stop_condition)}")
                 if talk.exit_condition:
-                    details.append(f"exit:{talk.exit_condition.__name__}")
+                    details.append(f"exit:{get_fn_name(talk.exit_condition)}")
                 elif any([talk.filter_condition, talk.stop_condition, talk.exit_condition]):
                     details.append("conditions")
 
