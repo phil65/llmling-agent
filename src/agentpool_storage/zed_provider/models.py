@@ -4,10 +4,16 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import AliasChoices, BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
-class ZedMentionUri(BaseModel):
+class ZedBaseModel(BaseModel):
+    """Base model with Zed storage."""
+
+    model_config = ConfigDict(use_attribute_docstrings=True, extra="forbid")
+
+
+class ZedMentionUri(ZedBaseModel):
     """Mention URI - can be File, Directory, Symbol, etc."""
 
     File: dict[str, Any] | None = None
@@ -21,27 +27,27 @@ class ZedMentionUri(BaseModel):
     PastedImage: bool | None = None
 
 
-class ZedMention(BaseModel):
+class ZedMention(ZedBaseModel):
     """A file/symbol mention in Zed."""
 
     uri: ZedMentionUri
     content: str
 
 
-class ZedImage(BaseModel):
+class ZedImage(ZedBaseModel):
     """An image in Zed (base64 encoded)."""
 
     source: str  # base64 encoded
 
 
-class ZedThinking(BaseModel):
+class ZedThinking(ZedBaseModel):
     """Thinking block from model."""
 
     text: str
     signature: str | None = None
 
 
-class ZedToolUse(BaseModel):
+class ZedToolUse(ZedBaseModel):
     """Tool use block."""
 
     id: str
@@ -52,7 +58,7 @@ class ZedToolUse(BaseModel):
     thought_signature: str | None = None
 
 
-class ZedToolResult(BaseModel):
+class ZedToolResult(ZedBaseModel):
     """Tool result."""
 
     tool_use_id: str
@@ -62,14 +68,14 @@ class ZedToolResult(BaseModel):
     output: dict[str, Any] | str | None = None
 
 
-class ZedUserMessage(BaseModel):
+class ZedUserMessage(ZedBaseModel):
     """User message in Zed thread."""
 
     id: str
     content: list[dict[str, Any]]  # Can contain Text, Image, Mention
 
 
-class ZedAgentMessage(BaseModel):
+class ZedAgentMessage(ZedBaseModel):
     """Agent message in Zed thread."""
 
     content: list[dict[str, Any]]  # Can contain Text, Thinking, ToolUse
@@ -77,28 +83,28 @@ class ZedAgentMessage(BaseModel):
     reasoning_details: Any | None = None
 
 
-class ZedMessage(BaseModel):
+class ZedMessage(ZedBaseModel):
     """A message in Zed thread - either User or Agent."""
 
     User: ZedUserMessage | None = None
     Agent: ZedAgentMessage | None = None
 
 
-class ZedLanguageModel(BaseModel):
+class ZedLanguageModel(ZedBaseModel):
     """Model configuration."""
 
     provider: str
     model: str
 
 
-class ZedWorktreeSnapshot(BaseModel):
+class ZedWorktreeSnapshot(ZedBaseModel):
     """Git worktree snapshot."""
 
     worktree_path: str
     git_state: dict[str, Any] | None = None
 
 
-class ZedProjectSnapshot(BaseModel):
+class ZedProjectSnapshot(ZedBaseModel):
     """Project snapshot with git state."""
 
     worktree_snapshots: list[ZedWorktreeSnapshot] = Field(default_factory=list)
@@ -106,7 +112,7 @@ class ZedProjectSnapshot(BaseModel):
     timestamp: str | None = None
 
 
-class ZedThread(BaseModel):
+class ZedThread(ZedBaseModel):
     """A Zed conversation thread."""
 
     model_config = {"populate_by_name": True}
@@ -128,3 +134,4 @@ class ZedThread(BaseModel):
     profile: str | None = None
     exceeded_window_error: Any | None = None
     tool_use_limit_reached: bool = False
+    imported: bool = False  # Whether thread was imported from another source
