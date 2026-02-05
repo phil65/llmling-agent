@@ -20,6 +20,7 @@ from agentpool.talk import TeamTalk
 from agentpool.talk.registry import ConnectionRegistry
 from agentpool.tasks import TaskRegistry
 from agentpool.utils.baseregistry import BaseRegistry
+from agentpool.utils.inspection import get_fn_name
 
 
 if TYPE_CHECKING:
@@ -452,7 +453,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         self,
         agent: AgentName | Agent[Any, str],
         *,
-        output_type: type[TResult] = str,  # type: ignore
+        output_type: type[TResult] = str,  # type: ignore[assignment]
     ) -> BaseAgent[TPoolDeps, TResult]: ...
 
     @overload
@@ -461,7 +462,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         agent: AgentName | Agent[Any, str],
         *,
         deps_type: type[TCustomDeps],
-        output_type: type[TResult] = str,  # type: ignore
+        output_type: type[TResult] = str,  # type: ignore[assignment]
     ) -> BaseAgent[TCustomDeps, TResult]: ...
 
     def get_agent(
@@ -541,11 +542,11 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
                         if talk.queued:
                             details.append(f"queued({talk.queue_strategy})")
                         if fn := talk.filter_condition:
-                            details.append(f"filter:{fn.__name__}")
+                            details.append(f"filter:{get_fn_name(fn)}")
                         if fn := talk.stop_condition:
-                            details.append(f"stop:{fn.__name__}")
+                            details.append(f"stop:{get_fn_name(fn)}")
                         if fn := talk.exit_condition:
-                            details.append(f"exit:{fn.__name__}")
+                            details.append(f"exit:{get_fn_name(fn)}")
 
                         label = f"|{' '.join(details)}|" if details else ""
                         connect_lines.append(f"    {source}--{label}-->{target.name}")

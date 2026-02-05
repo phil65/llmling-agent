@@ -162,7 +162,7 @@ class EventManager:
             timezone=timezone,
             skip_missed=skip_missed,
         )
-        return await self.add_source(config)  # type: ignore
+        return await self.add_source(config)  # type: ignore[return-value]
 
     async def add_email_watch(
         self,

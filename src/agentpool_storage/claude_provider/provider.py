@@ -319,7 +319,8 @@ class ClaudeStorageProvider(StorageProvider):
         Args:
             config: Configuration for the provider
         """
-        super().__init__(config or ClaudeStorageConfig(path="~/.claude"))
+        config = config or ClaudeStorageConfig()
+        super().__init__(config)
         self.base_path = Path(config.path).expanduser()
         self.projects_path = self.base_path / "projects"
         self._ensure_dirs()

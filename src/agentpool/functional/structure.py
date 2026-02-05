@@ -116,7 +116,7 @@ async def pick_one[T](
     else:  # List
         choices = {str(i): (opt, repr(opt)) for i, opt in enumerate(options)}
 
-    async def select_option(option: Literal[tuple(choices.keys())]) -> str:  # type: ignore
+    async def select_option(option: Literal[tuple(choices.keys())]) -> str:  # type: ignore[valid-type]
         """Pick one of the available options.
 
         Args:

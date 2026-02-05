@@ -55,7 +55,7 @@ def run[T](coro: Awaitable[T]) -> T:
         return asyncio.get_event_loop().run_until_complete(coro)
     except RuntimeError:
         # No running event loop, create one
-        return asyncio.run(coro)  # type: ignore
+        return asyncio.run(coro)  # type: ignore[arg-type]
 
 
 @dataclass

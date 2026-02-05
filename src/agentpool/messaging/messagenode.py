@@ -341,7 +341,7 @@ class MessageNode[TDeps, TResult](ABC):
                     case _:
                         raise TypeError(f"Invalid node type: {type(t)}")
         else:
-            targets = target  # type: ignore
+            targets = target  # type: ignore[assignment]
         return self.connections.create_connection(
             self,
             targets,

@@ -81,6 +81,6 @@ def run_agent_sync(
     """Sync wrapper for run_agent."""
 
     async def _run() -> Any:
-        return await run_agent(prompt, image_url, output_type=output_type, **kwargs)  # type: ignore
+        return await run_agent(prompt, image_url, output_type=output_type, **kwargs)  # type: ignore[arg-type]
 
     return run_sync(_run())

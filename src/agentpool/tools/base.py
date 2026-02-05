@@ -163,8 +163,8 @@ class Tool[TOutputType = Any]:
     def parameters(self) -> list[ToolParameter]:
         """Get information about tool parameters."""
         schema = self.schema["function"]
-        properties: dict[str, Property] = schema.get("properties", {})  # type: ignore
-        required: list[str] = schema.get("required", [])  # type: ignore
+        properties: dict[str, Property] = schema.get("properties", {})  # type: ignore[assignment]
+        required: list[str] = schema.get("required", [])  # type: ignore[assignment]
 
         return [
             ToolParameter(

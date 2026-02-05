@@ -407,7 +407,7 @@ class Talk[TTransmittedData = Any]:
                         "queue_strategy": self.queue_strategy,
                     }
                     content = "\n\n".join(contents)
-                    merged = replace(base, content=content, metadata=meta)  # type: ignore
+                    merged = replace(base, content=content, metadata=meta)  # type: ignore[arg-type]
 
                     if response := await self._process_for_target(merged, target, prompt):
                         results.append(response)
@@ -464,9 +464,9 @@ class Talk[TTransmittedData = Any]:
                 intermediate = await execute(oldtransform_fn, data)
                 return await execute(transformer, intermediate)
 
-            new_talk.transform_fn = chainedtransform_fn  # type: ignore
+            new_talk.transform_fn = chainedtransform_fn  # type: ignore[assignment]
         else:
-            new_talk.transform_fn = transformer  # type: ignore
+            new_talk.transform_fn = transformer  # type: ignore[assignment]
 
         return new_talk
 

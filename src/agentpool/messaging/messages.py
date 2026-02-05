@@ -269,11 +269,11 @@ class ChatMessage[TContent]:
             return self.messages
         match self.kind:
             case "request":
-                return [ModelRequest(parts=self.parts, instructions=None, run_id=self.message_id)]  # type: ignore
+                return [ModelRequest(parts=self.parts, instructions=None, run_id=self.message_id)]  # type: ignore[arg-type]
             case "response":
                 return [
                     ModelResponse(
-                        parts=self.parts,  # type: ignore
+                        parts=self.parts,  # type: ignore[arg-type]
                         usage=self.usage,
                         model_name=self.model_name,
                         timestamp=self.timestamp,

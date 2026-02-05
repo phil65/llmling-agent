@@ -388,7 +388,7 @@ List your selections, one per line, followed by your reasoning."""
         final_prompt = prompt or f"Extract {as_type.__name__} from: {text}"
 
         class Extraction(Schema):
-            instance: item_model  # type: ignore
+            instance: item_model  # type: ignore[valid-type]
             # explanation: str | None = None
 
         # Use structured output via context manager
@@ -426,7 +426,7 @@ List your selections, one per line, followed by your reasoning."""
         # Create model for individual instance
 
         class Extraction(Schema):
-            instances: list[item_model]  # type: ignore
+            instances: list[item_model]  # type: ignore[valid-type]
             # explanation: str | None = None
 
         # Use structured output via context manager

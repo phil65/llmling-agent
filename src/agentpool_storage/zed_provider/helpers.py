@@ -152,6 +152,7 @@ def parse_agent_content(
                 pydantic_parts.append(TextPart(content=text))
             case {"Thinking": {"text": text, **rest}}:
                 signature = rest.get("signature")
+                assert signature is None or isinstance(signature, str)
                 display_parts.append(f"<thinking>\n{text}\n</thinking>")
                 pydantic_parts.append(ThinkingPart(content=text, signature=signature))
             case {"ToolUse": tool_use}:
@@ -240,7 +241,7 @@ def _convert_nested_message(
     idx: int,
     model_name: str | None,
     updated_at: datetime,
-) -> ChatMessage[str] | None:
+) -> ChatMessage[str]:
     """Convert a v0.2.0+ nested message to ChatMessage."""
     msg_id = f"{thread_id}_{idx}"
 
@@ -275,7 +276,7 @@ def _convert_nested_message(
             messages=pydantic_messages,
         )
 
-    return None
+    raise ValueError("Unexpected message type")
 
 
 def thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessage[str]]:

@@ -344,7 +344,7 @@ class MCPClient:
         annotations["ctx"] = RunContext
         annotations["agent_ctx"] = AgentContext
         # Update return annotation to support multiple types
-        annotations["return"] = str | Any | ToolReturn  # type: ignore
+        annotations["return"] = str | Any | ToolReturn  # type: ignore[assignment]
         tool_callable.__annotations__ = annotations
         tool_callable.__name__ = tool.name
         tool_callable.__doc__ = tool.description or "No description provided."
