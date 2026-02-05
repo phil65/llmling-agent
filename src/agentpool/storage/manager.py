@@ -14,7 +14,6 @@ from pydantic_ai import Agent
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
-from agentpool.storage.serialization import serialize_messages
 from agentpool.utils.tasks import TaskManager
 from agentpool_config.session import SessionQuery
 from agentpool_config.storage import StorageConfig
@@ -218,21 +217,7 @@ class StorageManager:
 
         for provider in self.providers:
             if provider.should_log_agent(message.name or "no name"):
-                await provider.log_message(
-                    session_id=message.session_id or "",
-                    message_id=message.message_id,
-                    content=str(message.content),
-                    role=message.role,
-                    name=message.name,
-                    parent_id=message.parent_id,
-                    cost_info=message.cost_info,
-                    model=message.model_name,
-                    response_time=message.response_time,
-                    provider_name=message.provider_name,
-                    provider_response_id=message.provider_response_id,
-                    messages=serialize_messages(message.messages),
-                    finish_reason=message.finish_reason,
-                )
+                await provider.log_message(message=message)
 
     @method_spawner
     async def log_session(

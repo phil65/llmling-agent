@@ -443,40 +443,22 @@ class OpenCodeStorageProvider(StorageProvider):
 
         return messages
 
-    async def log_message(
-        self,
-        *,
-        message_id: str,
-        session_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        parent_id: str | None = None,
-        cost_info: TokenCost | None = None,
-        model: str | None = None,
-        response_time: float | None = None,
-        provider_name: str | None = None,
-        provider_response_id: str | None = None,
-        messages: str | None = None,
-        finish_reason: Any | None = None,
-    ) -> None:
+    async def log_message(self, *, message: ChatMessage[Any]) -> None:
         """Log a message to OpenCode format."""
-        from agentpool.storage.serialization import messages_adapter
-
-        if not messages:
+        if not message.messages:
             logger.debug("No structured messages to log, skipping")
             return
 
         try:
             await self._write_message(
-                message_id=message_id,
-                session_id=session_id,
-                role=role,
-                model_messages=messages_adapter.validate_json(messages),
-                parent_id=parent_id,
-                model=model,
-                cost_info=cost_info,
-                finish_reason=finish_reason,
+                message_id=message.message_id,
+                session_id=message.session_id or "",
+                role=message.role,
+                model_messages=message.messages,
+                parent_id=message.parent_id,
+                model=message.model_name,
+                cost_info=message.cost_info,
+                finish_reason=message.finish_reason,
             )
         except Exception as e:
             logger.exception("Failed to write OpenCode message", error=str(e))

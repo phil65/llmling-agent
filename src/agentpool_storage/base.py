@@ -14,8 +14,6 @@ if TYPE_CHECKING:
     from datetime import datetime
     from types import TracebackType
 
-    from pydantic_ai import FinishReason
-
     from agentpool.common_types import JsonValue
     from agentpool.messaging import ChatMessage, TokenCost
     from agentpool.sessions.models import ProjectData
@@ -88,23 +86,7 @@ class StorageProvider:
         msg = f"{self.__class__.__name__} does not support loading history"
         raise NotImplementedError(msg)
 
-    async def log_message(
-        self,
-        *,
-        session_id: str,
-        message_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        parent_id: str | None = None,
-        cost_info: TokenCost | None = None,
-        model: str | None = None,
-        response_time: float | None = None,
-        provider_name: str | None = None,
-        provider_response_id: str | None = None,
-        messages: str | None = None,
-        finish_reason: FinishReason | None = None,
-    ) -> None:
+    async def log_message(self, *, message: ChatMessage[Any]) -> None:
         """Log a message (if supported)."""
 
     async def log_session(

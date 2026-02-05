@@ -113,48 +113,33 @@ class SQLModelProvider(StorageProvider):
             messages = result.scalars().all()
             return [to_chat_message(msg) for msg in messages]
 
-    async def log_message(
-        self,
-        *,
-        session_id: str,
-        message_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        parent_id: str | None = None,
-        cost_info: TokenCost | None = None,
-        model: str | None = None,
-        response_time: float | None = None,
-        provider_name: str | None = None,
-        provider_response_id: str | None = None,
-        messages: str | None = None,
-        finish_reason: str | None = None,
-    ) -> None:
+    async def log_message(self, *, message: ChatMessage[Any]) -> None:
         """Log message to database."""
-        from agentpool_storage.sql_provider.models import Message
+        from agentpool.storage.serialization import serialize_messages
 
-        provider, model_name = parse_model_info(model)
+        provider, model_name = parse_model_info(message.model_name)
+        cost_info = message.cost_info
 
         async with AsyncSession(self.engine) as session:
             msg = Message(
-                session_id=session_id,
-                id=message_id,
-                parent_id=parent_id,
-                content=content,
-                role=role,
-                name=name,
-                model=model,
+                session_id=message.session_id or "",
+                id=message.message_id,
+                parent_id=message.parent_id,
+                content=str(message.content),
+                role=message.role,
+                name=message.name,
+                model=message.model_name,
                 model_provider=provider,
                 model_name=model_name,
-                response_time=response_time,
+                response_time=message.response_time,
                 total_tokens=cost_info.token_usage.total_tokens if cost_info else None,
                 input_tokens=cost_info.token_usage.input_tokens if cost_info else None,
                 output_tokens=cost_info.token_usage.output_tokens if cost_info else None,
                 cost=float(cost_info.total_cost) if cost_info else None,
-                provider_name=provider_name,
-                provider_response_id=provider_response_id,
-                messages=messages,
-                finish_reason=finish_reason,
+                provider_name=message.provider_name,
+                provider_response_id=message.provider_response_id,
+                messages=serialize_messages(message.messages),
+                finish_reason=message.finish_reason,
                 timestamp=get_now(),
             )
             session.add(msg)

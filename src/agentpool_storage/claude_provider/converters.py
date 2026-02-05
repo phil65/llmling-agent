@@ -41,11 +41,11 @@ if TYPE_CHECKING:
 def chat_message_to_entry(
     message: ChatMessage[str],
     session_id: str,
-    parent_uuid: str | None = None,
     cwd: str | None = None,
 ) -> ClaudeUserEntry | ClaudeAssistantEntry:
     """Convert a ChatMessage to a Claude JSONL entry."""
     msg_uuid = message.message_id or str(uuid.uuid4())
+    parent_uuid = message.parent_id
     timestamp = (message.timestamp or get_now()).isoformat().replace("+00:00", "Z")
     # Build entry based on role
     if message.role == "user":

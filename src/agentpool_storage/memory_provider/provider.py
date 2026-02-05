@@ -5,8 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
-from agentpool.messaging import ChatMessage, TokenCost
-from agentpool.storage import deserialize_messages
+from agentpool.messaging import ChatMessage
 from agentpool.utils.time_utils import get_now
 from agentpool_config.storage import MemoryStorageConfig
 from agentpool_storage.base import StorageProvider
@@ -22,31 +21,6 @@ if TYPE_CHECKING:
     from agentpool_storage.models import MessageData, QueryFilters, StatsFilters, TokenUsage
 
 
-def _dict_to_chat_message(msg: dict[str, Any]) -> ChatMessage[str]:
-    """Convert a stored message dict to ChatMessage."""
-    cost_info = None
-    if msg.get("cost_info"):
-        cost_info = TokenCost(token_usage=msg["cost_info"], total_cost=msg.get("cost", 0.0))
-
-    # Build kwargs, only including timestamp/message_id if they exist
-    kwargs: dict[str, Any] = {
-        "content": msg["content"],
-        "role": msg["role"],
-        "name": msg.get("name"),
-        "model_name": msg.get("model"),
-        "cost_info": cost_info,
-        "response_time": msg.get("response_time"),
-        "parent_id": msg.get("parent_id"),
-        "session_id": msg.get("session_id"),
-    }
-    if msg.get("timestamp"):
-        kwargs["timestamp"] = msg["timestamp"]
-    if msg.get("message_id"):
-        kwargs["message_id"] = msg["message_id"]
-
-    return ChatMessage[str](**kwargs)
-
-
 class MemoryStorageProvider(StorageProvider):
     """In-memory storage provider for testing."""
 
@@ -54,7 +28,7 @@ class MemoryStorageProvider(StorageProvider):
 
     def __init__(self, config: MemoryStorageConfig | None = None) -> None:
         super().__init__(config or MemoryStorageConfig())
-        self.messages: list[dict[str, Any]] = []
+        self.messages: list[ChatMessage[str]] = []
         self.conversations: list[dict[str, Any]] = []
         self.commands: list[dict[str, Any]] = []
         self.projects: dict[str, ProjectData] = {}
@@ -68,56 +42,38 @@ class MemoryStorageProvider(StorageProvider):
 
     async def filter_messages(self, query: SessionQuery) -> list[ChatMessage[str]]:
         """Filter messages from memory."""
-        from agentpool.messaging import ChatMessage
-
         filtered = []
         for msg in self.messages:
             # Skip if conversation ID doesn't match
-            if query.name and msg["session_id"] != query.name:
+            if query.name and msg.session_id != query.name:
                 continue
 
             # Skip if agent name doesn't match
-            if query.agents and msg["name"] not in query.agents:
+            if query.agents and msg.name not in query.agents:
                 continue
 
             # Skip if before cutoff time
             if query.since and (cutoff := query.get_time_cutoff()):  # noqa: SIM102
-                if msg["timestamp"] < cutoff:
+                if msg.timestamp and msg.timestamp < cutoff:
                     continue
 
             # Skip if after until time
-            if query.until and msg["timestamp"] > datetime.fromisoformat(query.until):
+            if (
+                query.until
+                and msg.timestamp
+                and msg.timestamp > datetime.fromisoformat(query.until)
+            ):
                 continue
 
             # Skip if content doesn't match search
-            if query.contains and query.contains not in msg["content"]:
+            if query.contains and query.contains not in msg.content:
                 continue
 
             # Skip if role doesn't match
-            if query.roles and msg["role"] not in query.roles:
+            if query.roles and msg.role not in query.roles:
                 continue
 
-            # Convert cost info
-            cost_info = None
-            if msg["cost_info"]:
-                total = msg.get("cost", 0.0)
-                cost_info = TokenCost(token_usage=msg["cost_info"], total_cost=total)
-
-            # Create ChatMessage
-            chat_message = ChatMessage(
-                content=msg["content"],
-                role=msg["role"],
-                name=msg["name"],
-                model_name=msg["model"],
-                cost_info=cost_info,
-                response_time=msg["response_time"],
-                timestamp=msg["timestamp"],
-                provider_name=msg["provider_name"],
-                provider_response_id=msg["provider_response_id"],
-                messages=deserialize_messages(msg["messages"]),
-                finish_reason=msg["finish_reason"],
-            )
-            filtered.append(chat_message)
+            filtered.append(msg)
 
             # Apply limit if specified
             if query.limit and len(filtered) >= query.limit:
@@ -125,44 +81,12 @@ class MemoryStorageProvider(StorageProvider):
 
         return filtered
 
-    async def log_message(
-        self,
-        *,
-        session_id: str,
-        message_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        cost_info: TokenCost | None = None,
-        model: str | None = None,
-        response_time: float | None = None,
-        provider_name: str | None = None,
-        provider_response_id: str | None = None,
-        messages: str | None = None,
-        finish_reason: str | None = None,
-        parent_id: str | None = None,
-    ) -> None:
+    async def log_message(self, *, message: ChatMessage[str]) -> None:
         """Store message in memory."""
-        if next((i for i in self.messages if i["message_id"] == message_id), None):
-            msg = f"Duplicate message ID: {message_id}"
+        if any(m.message_id == message.message_id for m in self.messages):
+            msg = f"Duplicate message ID: {message.message_id}"
             raise ValueError(msg)
-
-        self.messages.append({
-            "session_id": session_id,
-            "message_id": message_id,
-            "parent_id": parent_id,
-            "content": content,
-            "role": role,
-            "name": name,
-            "cost_info": cost_info.token_usage if cost_info else None,
-            "model": model,
-            "response_time": response_time,
-            "provider_name": provider_name,
-            "provider_response_id": provider_response_id,
-            "messages": messages,
-            "finish_reason": finish_reason,
-            "timestamp": get_now(),
-        })
+        self.messages.append(message)
 
     async def log_session(
         self,
@@ -204,11 +128,7 @@ class MemoryStorageProvider(StorageProvider):
         include_ancestors: bool = False,
     ) -> list[ChatMessage[str]]:
         """Get all messages for a session."""
-        messages: list[ChatMessage[str]] = []
-        for msg in self.messages:
-            if msg.get("session_id") != session_id:
-                continue
-            messages.append(_dict_to_chat_message(msg))
+        messages = [msg for msg in self.messages if msg.session_id == session_id]
 
         # Sort by timestamp
         now = get_now()
@@ -232,10 +152,7 @@ class MemoryStorageProvider(StorageProvider):
         session_id: str | None = None,
     ) -> ChatMessage[str] | None:
         """Get a single message by ID."""
-        for msg in self.messages:
-            if msg.get("message_id") == message_id:
-                return _dict_to_chat_message(msg)
-        return None
+        return next((msg for msg in self.messages if msg.message_id == message_id), None)
 
     async def get_message_ancestry(
         self,
@@ -278,7 +195,7 @@ class MemoryStorageProvider(StorageProvider):
         if fork_from_message_id:
             # Verify message exists in source conversation
             msg_exists = any(
-                m.get("message_id") == fork_from_message_id and m["session_id"] == source_session_id
+                m.message_id == fork_from_message_id and m.session_id == source_session_id
                 for m in self.messages
             )
             if not msg_exists:
@@ -287,11 +204,11 @@ class MemoryStorageProvider(StorageProvider):
             fork_point_id = fork_from_message_id
         else:
             # Find last message in source conversation
-            conv_messages = [m for m in self.messages if m["session_id"] == source_session_id]
+            conv_messages = [m for m in self.messages if m.session_id == source_session_id]
             if conv_messages:
                 now = get_now()
-                conv_messages.sort(key=lambda m: m.get("timestamp") or now)
-                fork_point_id = conv_messages[-1].get("message_id")
+                conv_messages.sort(key=lambda m: m.timestamp or now)
+                fork_point_id = conv_messages[-1].message_id
 
         # Create new conversation
         agent_name = new_agent_name or source_conv["agent_name"]
@@ -366,30 +283,13 @@ class MemoryStorageProvider(StorageProvider):
 
         # Then get messages for each conversation
         for conv_id, conv in convs.items():
-            conv_messages: list[ChatMessage[str]] = []
-            for msg in self.messages:
-                if msg["session_id"] != conv_id:
-                    continue
-                if filters.query and filters.query not in msg["content"]:
-                    continue
-                if filters.model and msg["model"] != filters.model:
-                    continue
-
-                cost_info = None
-                if msg["cost_info"]:
-                    total = msg.get("cost", 0.0)
-                    cost_info = TokenCost(token_usage=msg["cost_info"], total_cost=total)
-
-                chat_msg = ChatMessage[str](
-                    content=msg["content"],
-                    role=msg["role"],
-                    name=msg["name"],
-                    model_name=msg["model"],
-                    cost_info=cost_info,
-                    response_time=msg["response_time"],
-                    timestamp=msg["timestamp"],
-                )
-                conv_messages.append(chat_msg)
+            conv_messages = [
+                msg
+                for msg in self.messages
+                if msg.session_id == conv_id
+                and (not filters.query or filters.query in msg.content)
+                and (not filters.model or msg.model_name == filters.model)
+            ]
 
             # Skip if no matching messages for content filter
             if filters.query and not conv_messages:
@@ -402,7 +302,7 @@ class MemoryStorageProvider(StorageProvider):
                     {
                         "role": msg.role,
                         "content": msg.content,
-                        "timestamp": msg.timestamp.isoformat(),
+                        "timestamp": msg.timestamp.isoformat() if msg.timestamp else None,
                         "model": msg.model_name,
                         "name": msg.name,
                         "token_usage": msg.cost_info.token_usage if msg.cost_info else None,
@@ -419,7 +319,7 @@ class MemoryStorageProvider(StorageProvider):
                 agent=conv["agent_name"],
                 title=conv.get("title"),
                 start_time=conv["start_time"].isoformat(),
-                messages=message_data,  # Now using properly typed MessageData
+                messages=message_data,
                 token_usage=self._aggregate_token_usage(conv_messages),
             )
             results.append((conv_data, conv_messages))
@@ -434,17 +334,11 @@ class MemoryStorageProvider(StorageProvider):
         # Collect raw data
         rows = []
         for msg in self.messages:
-            if msg["timestamp"] <= filters.cutoff:
+            if msg.timestamp and msg.timestamp <= filters.cutoff:
                 continue
-            if filters.agent_name and msg["name"] != filters.agent_name:
+            if filters.agent_name and msg.name != filters.agent_name:
                 continue
-
-            cost_info = None
-            if msg["cost_info"]:
-                total = msg.get("cost", 0.0)
-                cost_info = TokenCost(token_usage=msg["cost_info"], total_cost=total)
-
-            rows.append((msg["model"], msg["name"], msg["timestamp"], cost_info))
+            rows.append((msg.model_name, msg.name, msg.timestamp, msg.cost_info))
 
         # Use base class aggregation
         return self.aggregate_stats(rows, filters.group_by)
@@ -474,14 +368,11 @@ class MemoryStorageProvider(StorageProvider):
             return conv_count, msg_count
 
         if agent_name:
+            # Get conversation IDs for this agent
+            agent_conv_ids = {c["id"] for c in self.conversations if c["agent_name"] == agent_name}
             # Filter out data for specific agent
             self.conversations = [c for c in self.conversations if c["agent_name"] != agent_name]
-            self.messages = [
-                m
-                for m in self.messages
-                if m["session_id"]
-                not in {c["id"] for c in self.conversations if c["agent_name"] == agent_name}
-            ]
+            self.messages = [m for m in self.messages if m.session_id not in agent_conv_ids]
         else:
             # Clear all
             self.messages.clear()
@@ -493,15 +384,9 @@ class MemoryStorageProvider(StorageProvider):
     async def get_session_counts(self, *, agent_name: str | None = None) -> tuple[int, int]:
         """Get conversation and message counts."""
         if agent_name:
-            conv_count = sum(1 for c in self.conversations if c["agent_name"] == agent_name)
-            msg_count = sum(
-                1
-                for m in self.messages
-                if any(
-                    c["id"] == m["session_id"] and c["agent_name"] == agent_name
-                    for c in self.conversations
-                )
-            )
+            agent_conv_ids = {c["id"] for c in self.conversations if c["agent_name"] == agent_name}
+            conv_count = len(agent_conv_ids)
+            msg_count = sum(1 for m in self.messages if m.session_id in agent_conv_ids)
         else:
             conv_count = len(self.conversations)
             msg_count = len(self.messages)
@@ -511,7 +396,7 @@ class MemoryStorageProvider(StorageProvider):
     async def delete_session_messages(self, session_id: str) -> int:
         """Delete all messages for a session."""
         original_count = len(self.messages)
-        self.messages = [m for m in self.messages if m["session_id"] != session_id]
+        self.messages = [m for m in self.messages if m.session_id != session_id]
         return original_count - len(self.messages)
 
     # Project methods

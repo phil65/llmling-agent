@@ -18,12 +18,11 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 import anyenv
 from pydantic import TypeAdapter
 
-from agentpool.common_types import MessageRole
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.utils.thread_helpers import parallel_map
@@ -49,9 +48,6 @@ from agentpool_storage.models import TokenUsage
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai import FinishReason
-
-    from agentpool.messaging import TokenCost
     from agentpool_config.session import SessionQuery
     from agentpool_storage.models import ConversationData, MessageData, QueryFilters, StatsFilters
 
@@ -448,55 +444,22 @@ class ClaudeStorageProvider(StorageProvider):
 
         return messages
 
-    async def log_message(
-        self,
-        *,
-        message_id: str,
-        session_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        parent_id: str | None = None,
-        cost_info: TokenCost | None = None,
-        model: str | None = None,
-        response_time: float | None = None,
-        provider_name: str | None = None,
-        provider_response_id: str | None = None,
-        messages: str | None = None,
-        finish_reason: FinishReason | None = None,
-    ) -> None:
+    async def log_message(self, *, message: ChatMessage[Any]) -> None:
         """Log a message to Claude format.
 
         Note: session_id should be in format "project_path:session_id"
         or just "session_id" (will use default project).
         """
-        # Parse session_id
-        if ":" in session_id:
-            project_path, session_id = session_id.split(":", 1)
+        raw_session_id = message.session_id or ""
+        # Parse session_id to extract project path
+        if ":" in raw_session_id:
+            project_path, session_id = raw_session_id.split(":", 1)
         else:
             project_path = "/tmp"
-
-        # Build ChatMessage for conversion
-        chat_message = ChatMessage[str](
-            content=content,
-            session_id=session_id,
-            role=cast(MessageRole, role),
-            message_id=message_id,
-            name=name,
-            model_name=model,
-            cost_info=cost_info,
-            response_time=response_time,
-            parent_id=parent_id,
-        )
+            session_id = raw_session_id
 
         # Convert to entry and write
-        entry = chat_message_to_entry(
-            chat_message,
-            session_id=session_id,
-            parent_uuid=parent_id,
-            cwd=project_path,
-        )
-
+        entry = chat_message_to_entry(message, session_id=session_id, cwd=project_path)
         session_path = self._get_project_dir(project_path) / f"{session_id}.jsonl"
         write_entry(session_path, entry)
 

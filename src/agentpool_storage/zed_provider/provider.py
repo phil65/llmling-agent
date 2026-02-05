@@ -18,9 +18,7 @@ from agentpool_storage.zed_provider import helpers
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pydantic_ai import FinishReason
-
-    from agentpool.messaging import ChatMessage, TokenCost
+    from agentpool.messaging import ChatMessage
     from agentpool_config.session import SessionQuery
     from agentpool_storage.models import (
         ConversationData,
@@ -152,23 +150,7 @@ class ZedStorageProvider(StorageProvider):
 
         return messages
 
-    async def log_message(
-        self,
-        *,
-        message_id: str,
-        session_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        parent_id: str | None = None,
-        cost_info: TokenCost | None = None,
-        model: str | None = None,
-        response_time: float | None = None,
-        provider_name: str | None = None,
-        provider_response_id: str | None = None,
-        messages: str | None = None,
-        finish_reason: FinishReason | None = None,
-    ) -> None:
+    async def log_message(self, *, message: ChatMessage[Any]) -> None:
         """Log a message - NOT SUPPORTED (read-only provider)."""
         logger.warning("ZedStorageProvider is read-only, cannot log messages")
 

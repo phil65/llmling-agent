@@ -191,44 +191,31 @@ class FileProvider(StorageProvider):
 
         return messages
 
-    async def log_message(
-        self,
-        *,
-        message_id: str,
-        session_id: str,
-        content: str,
-        role: str,
-        name: str | None = None,
-        cost_info: TokenCost | None = None,
-        model: str | None = None,
-        response_time: float | None = None,
-        provider_name: str | None = None,
-        provider_response_id: str | None = None,
-        messages: str | None = None,
-        finish_reason: FinishReason | None = None,
-        parent_id: str | None = None,
-    ) -> None:
+    async def log_message(self, *, message: ChatMessage[Any]) -> None:
         """Log a new message."""
+        from agentpool.storage.serialization import serialize_messages
+
+        cost_info = message.cost_info
         self._data["messages"].append({
-            "session_id": session_id,
-            "message_id": message_id,
-            "content": content,
-            "role": cast(MessageRole, role),
+            "session_id": message.session_id or "",
+            "message_id": message.message_id,
+            "content": str(message.content),
+            "role": message.role,
             "timestamp": get_now().isoformat(),
-            "name": name,
-            "model": model,
+            "name": message.name,
+            "model": message.model_name,
             "cost": Decimal(cost_info.total_cost) if cost_info else None,
             "token_usage": TokenUsage(
                 prompt=cost_info.token_usage.input_tokens if cost_info else 0,
                 completion=cost_info.token_usage.output_tokens if cost_info else 0,
                 total=cost_info.token_usage.total_tokens if cost_info else 0,
             ),
-            "response_time": response_time,
-            "provider_name": provider_name,
-            "provider_response_id": provider_response_id,
-            "messages": messages,
-            "finish_reason": finish_reason,
-            "parent_id": parent_id,
+            "response_time": message.response_time,
+            "provider_name": message.provider_name,
+            "provider_response_id": message.provider_response_id,
+            "messages": serialize_messages(message.messages),
+            "finish_reason": message.finish_reason,
+            "parent_id": message.parent_id,
         })
         self._save()
 
