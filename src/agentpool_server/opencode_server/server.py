@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.storage.manager import SessionMetadataGeneratedEvent
+    from agentpool.utils.streams import TodoTracker
 
 
 VERSION = "0.1.0"
@@ -117,7 +118,7 @@ def create_app(*, agent: BaseAgent[Any, Any], working_dir: str | None = None) ->
     state = ServerState(working_dir=working_dir or str(Path.cwd()), agent=agent)
 
     # Set up todo change callback to broadcast events
-    async def on_todo_change(tracker: Any) -> None:
+    async def on_todo_change(tracker: TodoTracker) -> None:
         """Broadcast todo updates to all active sessions."""
         from agentpool_server.opencode_server.models.events import Todo, TodoUpdatedEvent
 
