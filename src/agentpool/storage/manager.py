@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class ConversationMetadata(BaseModel):
+class SessionMetadata(BaseModel):
     """Generated metadata for a conversation."""
 
     title: str
@@ -45,20 +45,16 @@ class ConversationMetadata(BaseModel):
 
 
 @dataclass(frozen=True, slots=True)
-class TitleGeneratedEvent:
-    """Event emitted when a conversation title is generated.
+class SessionMetadataGeneratedEvent:
+    """Event emitted when session metadata is generated.
 
     Attributes:
         session_id: ID of the conversation
-        title: Generated title text
-        emoji: Generated emoji representing the topic
-        icon: Generated iconify icon name
+        metadata: Generated metadata including title, emoji, and icon
     """
 
     session_id: str
-    title: str
-    emoji: str
-    icon: str
+    metadata: SessionMetadata
 
 
 class StorageManager:
@@ -71,16 +67,16 @@ class StorageManager:
     - Global logging filters
 
     Signals:
-    - title_generated: Emitted when a conversation title is generated.
-      Subscribers receive TitleGeneratedEvent with session_id, title, emoji, icon.
+    - metadata_generated: Emitted when session metadata is generated.
+      Subscribers receive SessionMetadataGeneratedEvent with session_id and metadata.
 
     Example:
-        manager.title_generated.connect(my_handler)
-        # Handler will be called with TitleGeneratedEvent when titles are generated
+        manager.metadata_generated.connect(my_handler)
+        # Handler will be called with SessionMetadataGeneratedEvent
     """
 
-    # Signal emitted when a conversation title is generated
-    title_generated: Signal[TitleGeneratedEvent] = Signal()
+    # Signal emitted when session metadata is generated
+    metadata_generated: Signal[SessionMetadataGeneratedEvent] = Signal()
 
     def __init__(self, config: StorageConfig | None = None) -> None:
         """Initialize storage manager.
@@ -603,7 +599,7 @@ class StorageManager:
         self,
         session_id: str,
         prompt_text: str,
-    ) -> ConversationMetadata | None:
+    ) -> SessionMetadata | None:
         """Core title generation logic using LLM with structured output.
 
         Args:
@@ -611,7 +607,7 @@ class StorageManager:
             prompt_text: Formatted prompt text to send to the LLM
 
         Returns:
-            ConversationMetadata with title, emoji, and icon, or None if generation fails.
+            SessionMetadata with title, emoji, and icon, or None if generation fails.
         """
         from llmling_models.models.helpers import infer_model
 
@@ -627,7 +623,7 @@ class StorageManager:
             agent = Agent(
                 model=model,
                 system_prompt=self.config.title_generation_prompt,
-                output_type=ConversationMetadata,
+                output_type=SessionMetadata,
             )
             logger.debug("Title generation prompt", prompt_text=prompt_text)
             result = await agent.run(prompt_text)
@@ -636,18 +632,13 @@ class StorageManager:
             await self.update_session_title(session_id, metadata.title)
             logger.debug("Generated session metadata", session_id=session_id, metadata=metadata)
             # Emit signal for subscribers (e.g., OpenCode UI updates)
-            event = TitleGeneratedEvent(
-                session_id=session_id,
-                title=metadata.title,
-                emoji=metadata.emoji,
-                icon=metadata.icon,
-            )
+            event = SessionMetadataGeneratedEvent(session_id=session_id, metadata=metadata)
             logger.info(
-                "Emitting title_generated signal",
+                "Emitting metadata_generated signal",
                 session_id=session_id,
                 title=metadata.title,
             )
-            await self.title_generated.emit(event)
+            await self.metadata_generated.emit(event)
         except Exception:
             logger.exception("Failed to generate session title", session_id=session_id)
             return None

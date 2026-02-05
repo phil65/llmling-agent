@@ -54,7 +54,7 @@ if TYPE_CHECKING:
     )
     from agentpool import AgentPool
     from agentpool.agents.base_agent import BaseAgent
-    from agentpool.storage.manager import TitleGeneratedEvent
+    from agentpool.storage.manager import SessionMetadataGeneratedEvent
     from agentpool_server.acp_server.server import ACPServer
 
 logger = get_logger(__name__)
@@ -213,23 +213,27 @@ class AgentPoolACPAgent(ACPAgent):
         self._sessions_cache: ListSessionsResponse | None = None
         self._sessions_cache_time: float = 0.0
         # Connect to title generation signal to notify clients of session updates
-        pool.storage.title_generated.connect(self._on_title_generated)
+        pool.storage.metadata_generated.connect(self._on_metadata_generated)
 
-    async def _on_title_generated(self, event: TitleGeneratedEvent) -> None:
-        """Handle title generation - notify active sessions of the update."""
+    async def _on_metadata_generated(self, event: SessionMetadataGeneratedEvent) -> None:
+        """Handle metadata generation - notify active sessions of the update."""
         from acp.schema import SessionInfoUpdate, SessionNotification
 
         session = self.session_manager.get_session(event.session_id)
         if session is None:
-            logger.debug("Title generated for inactive session", session_id=event.session_id)
+            logger.debug("Metadata generated for inactive session", session_id=event.session_id)
             return
 
         # Send session info update to client
-        update = SessionInfoUpdate(session_id=event.session_id, title=event.title)
+        update = SessionInfoUpdate(session_id=event.session_id, title=event.metadata.title)
         notification = SessionNotification(session_id=event.session_id, update=update)
         try:
             await session.client.session_update(notification)  # pyright: ignore[reportArgumentType]
-            logger.info("Sent session info update", session_id=event.session_id, title=event.title)
+            logger.info(
+                "Sent session info update",
+                session_id=event.session_id,
+                title=event.metadata.title,
+            )
         except Exception:
             logger.exception("Failed to send session info update", session_id=event.session_id)
 
