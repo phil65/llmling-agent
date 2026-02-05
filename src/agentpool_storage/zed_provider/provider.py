@@ -80,16 +80,33 @@ class ZedStorageProvider(StorageProvider):
             raise FileNotFoundError(msg)
         return sqlite3.connect(self.db_path)
 
-    def _list_threads(self) -> list[tuple[str, str, str]]:
-        """List all threads.
+    def _list_threads(
+        self,
+        *,
+        since: datetime | None = None,
+        limit: int | None = None,
+    ) -> list[tuple[str, str, str]]:
+        """List threads with optional filtering.
+
+        Args:
+            since: Only return threads updated after this time
+            limit: Maximum number of threads to return
 
         Returns:
             List of (id, summary, updated_at) tuples
         """
         try:
             conn = self._get_connection()
-            query = "SELECT id, summary, updated_at FROM threads ORDER BY updated_at DESC"
-            cursor = conn.execute(query)
+            query = "SELECT id, summary, updated_at FROM threads"
+            params: list[Any] = []
+            if since:
+                query += " WHERE updated_at >= ?"
+                params.append(since.isoformat())
+            query += " ORDER BY updated_at DESC"
+            if limit:
+                query += " LIMIT ?"
+                params.append(limit)
+            cursor = conn.execute(query, params)
             threads = cursor.fetchall()
             conn.close()
         except FileNotFoundError:
@@ -175,14 +192,11 @@ class ZedStorageProvider(StorageProvider):
         from agentpool_storage.models import ConversationData as ConvData
 
         result: list[tuple[ConvData, Sequence[ChatMessage[str]]]] = []
-        for thread_id, summary, updated_at_str in self._list_threads():
+        # Use SQL-level filtering for efficiency
+        for thread_id, summary, updated_at_str in self._list_threads(since=filters.since):
+            updated_at = parse_iso_timestamp(updated_at_str)
             thread = self._load_thread(thread_id)
             if thread is None:
-                continue
-            # Parse timestamp
-            updated_at = parse_iso_timestamp(updated_at_str)
-            # Apply filters
-            if filters.since and updated_at < filters.since:
                 continue
             messages = helpers.thread_to_chat_messages(thread, thread_id)
             if not messages:
@@ -238,11 +252,9 @@ class ZedStorageProvider(StorageProvider):
         stats: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"total_tokens": 0, "messages": 0, "models": set()}
         )
-        for thread_id, _summary, updated_at_str in self._list_threads():
+        # Use SQL-level filtering for efficiency
+        for thread_id, _summary, updated_at_str in self._list_threads(since=filters.cutoff):
             timestamp = parse_iso_timestamp(updated_at_str)
-            # Apply time filter
-            if timestamp < filters.cutoff:
-                continue
             thread = self._load_thread(thread_id)
             if thread is None:
                 continue
@@ -412,7 +424,7 @@ if __name__ == "__main__":
         print(f"Database: {provider.db_path}")
         print(f"Exists: {provider.db_path.exists()}")
         # List conversations
-        filters = QueryFilters(limit=10)
+        filters = QueryFilters()
         conversations = await provider.get_sessions(filters)
         print(f"\nFound {len(conversations)} conversations")
         for conv_data, messages in conversations[:5]:
