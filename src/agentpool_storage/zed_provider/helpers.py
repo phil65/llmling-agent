@@ -29,7 +29,12 @@ from agentpool.utils.time_utils import parse_iso_timestamp
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from agentpool_storage.zed_provider.models import ZedThread, ZedToolResult
+    from agentpool_storage.zed_provider.models import (
+        ZedFlatMessage,
+        ZedNestedMessage,
+        ZedThread,
+        ZedToolResult,
+    )
 
 
 logger = get_logger(__name__)

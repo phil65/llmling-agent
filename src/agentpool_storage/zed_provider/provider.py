@@ -135,10 +135,9 @@ class ZedStorageProvider(StorageProvider):
         """Filter messages based on query."""
         messages: list[ChatMessage[str]] = []
         # Narrow thread list when a specific name is requested
+        threads = self._list_threads()
         if query.name:
-            threads = [(tid, s, u) for tid, s, u in self._list_threads() if query.name in (tid, s)]
-        else:
-            threads = self._list_threads()
+            threads = [(tid, s, u) for tid, s, u in threads if query.name in (tid, s)]
         for thread_id, _summary, _updated_at in threads:
             thread = self._load_thread(thread_id)
             if thread is None:

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import io
 from typing import Any, Literal
 
+import anyenv
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
@@ -190,9 +192,6 @@ class ZedThread(ZedBaseModel):
         Returns:
             Parsed ZedThread object
         """
-        import io
-
-        import anyenv
         import zstandard
 
         if data_type == "zstd":
