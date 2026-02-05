@@ -14,7 +14,7 @@ from agentpool.log import get_logger
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 from agentpool_config.storage import ZedStorageConfig
 from agentpool_storage.base import StorageProvider
-from agentpool_storage.models import ConversationData, TokenUsage
+from agentpool_storage.models import ConversationData, MessageData, TokenUsage
 from agentpool_storage.zed_provider import helpers
 from agentpool_storage.zed_provider.models import ZedThread
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     from agentpool.messaging import ChatMessage
     from agentpool_config.session import SessionQuery
-    from agentpool_storage.models import MessageData, QueryFilters, StatsFilters
+    from agentpool_storage.models import QueryFilters, StatsFilters
 
 logger = get_logger(__name__)
 
@@ -198,21 +198,20 @@ class ZedStorageProvider(StorageProvider):
             if filters.query and not any(filters.query in m.content for m in messages):
                 continue
             # Build MessageData list
-            msg_data_list: list[MessageData] = []
-            for msg in messages:
-                msg_data: MessageData = {
-                    "role": msg.role,
-                    "content": msg.content,
-                    "timestamp": (msg.timestamp or get_now()).isoformat(),
-                    "parent_id": msg.parent_id,
-                    "model": msg.model_name,
-                    "name": msg.name,
-                    "token_usage": None,
-                    "cost": None,
-                    "response_time": None,
-                }
-                msg_data_list.append(msg_data)
-
+            msg_data_list = [
+                MessageData(
+                    role=msg.role,
+                    content=msg.content,
+                    timestamp=(msg.timestamp or get_now()).isoformat(),
+                    parent_id=msg.parent_id,
+                    model=msg.model_name,
+                    name=msg.name,
+                    token_usage=None,
+                    cost=None,
+                    response_time=None,
+                )
+                for msg in messages
+            ]
             # Get token usage from thread-level cumulative data
             usage = thread.cumulative_token_usage
             total_tokens = usage.input_tokens + usage.output_tokens

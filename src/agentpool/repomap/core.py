@@ -12,10 +12,7 @@ from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from agentpool.repomap.tags import Tag, get_tags_from_content
-from agentpool.repomap.utils import (
-    MIN_TOKEN_SAMPLE_SIZE,
-    get_rel_path,
-)
+from agentpool.repomap.utils import MIN_TOKEN_SAMPLE_SIZE, get_rel_path
 
 
 if TYPE_CHECKING:
