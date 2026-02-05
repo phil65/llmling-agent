@@ -208,9 +208,14 @@ class ZedStorageProvider(StorageProvider):
                 msg_data_list.append(msg_data)
 
             # Get token usage from thread-level cumulative data
-            total_tokens = sum(thread.cumulative_token_usage.values())
+            usage = thread.cumulative_token_usage
+            total_tokens = usage.input_tokens + usage.output_tokens
             token_usage_data = (
-                TokenUsage(total=total_tokens, prompt=0, completion=0) if total_tokens else None
+                TokenUsage(
+                    total=total_tokens, prompt=usage.input_tokens, completion=usage.output_tokens
+                )
+                if total_tokens
+                else None
             )
 
             conv_data = ConvData(
@@ -253,8 +258,9 @@ class ZedStorageProvider(StorageProvider):
                 case _:
                     key = "zed"  # Default agent grouping
 
+            usage = thread.cumulative_token_usage
             stats[key]["messages"] += len(thread.messages)
-            stats[key]["total_tokens"] += sum(thread.cumulative_token_usage.values())
+            stats[key]["total_tokens"] += usage.input_tokens + usage.output_tokens
             stats[key]["models"].add(model)
 
         # Convert sets to lists for JSON serialization

@@ -97,6 +97,15 @@ class ZedLanguageModel(ZedBaseModel):
     model: str
 
 
+class ZedTokenUsage(ZedBaseModel):
+    """Token usage for a request or cumulative."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_creation_input_tokens: int = 0
+    cache_read_input_tokens: int = 0
+
+
 class ZedWorktreeSnapshot(ZedBaseModel):
     """Git worktree snapshot."""
 
@@ -125,10 +134,12 @@ class ZedThread(ZedBaseModel):
     detailed_summary: str | None = None  # v0.3.0 field
     detailed_summary_state: str | dict[str, Any] | None = None  # v0.2.0 field
     initial_project_snapshot: ZedProjectSnapshot | None = None
-    cumulative_token_usage: dict[str, int] = Field(default_factory=dict)
-    request_token_usage: list[dict[str, int]] | dict[str, dict[str, int]] = Field(
+    cumulative_token_usage: ZedTokenUsage = Field(default_factory=ZedTokenUsage)
+    # v0.2.0: list of token usage per request
+    # v0.3.0+: dict keyed by message ID
+    request_token_usage: list[ZedTokenUsage] | dict[str, ZedTokenUsage] = Field(
         default_factory=list
-    )  # Can be list or dict depending on version
+    )
     model: ZedLanguageModel | None = None
     completion_mode: str | None = None
     profile: str | None = None
