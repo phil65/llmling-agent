@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from abc import abstractmethod
 import asyncio
-from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, overload
 
 import anyio
 from psygnal.containers import EventedList
@@ -18,26 +17,22 @@ from agentpool.talk.stats import AggregatedMessageStats
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Iterator, Sequence
+    from collections.abc import Iterator, Sequence
 
     from evented_config import EventConfig
     from psygnal.containers._evented_list import ListEvents
-    from toprompt import AnyPromptType
 
     from agentpool import Agent, AgentPool, Team
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.common_types import (
-        ModelType,
         ProcessorCallback,
         PromptCompatible,
-        ToolType,
     )
     from agentpool.delegation.teamrun import ExtendedTeamTalk, TeamRun
     from agentpool.messaging import ChatMessage, TeamResponse
     from agentpool.talk.stats import AggregatedTalkStats
     from agentpool.ui.base import InputProvider
     from agentpool_config.mcp_server import MCPServerConfig
-    from agentpool_config.session import SessionQuery
 
 logger = get_logger(__name__)
 
@@ -359,53 +354,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             input_provider=input_provider,
             data=data,
         )
-
-    @asynccontextmanager
-    async def temporary_state(
-        self,
-        *,
-        tools: list[ToolType] | None = None,
-        replace_tools: bool = False,
-        history: list[AnyPromptType] | SessionQuery | None = None,
-        replace_history: bool = False,
-        pause_routing: bool = False,
-        model: ModelType | None = None,
-    ) -> AsyncIterator[Self]:
-        """Temporarily modify state of all agents in the team.
-
-        All agents in the team will enter their temporary state simultaneously.
-
-        Args:
-            tools: Temporary tools to make available
-            replace_tools: Whether to replace existing tools
-            history: Conversation history (prompts or query)
-            replace_history: Whether to replace existing history
-            pause_routing: Whether to pause message routing
-            model: Temporary model override
-        """
-        # Get all agents (flattened) before entering context
-        agents = list(self.iter_agents())
-
-        async with AsyncExitStack() as stack:
-            if pause_routing:
-                await stack.enter_async_context(self.connections.paused_routing())
-            # Enter temporary state for all agents
-            for agent in agents:
-                await stack.enter_async_context(
-                    agent.temporary_state(
-                        tools=tools,
-                        replace_tools=replace_tools,
-                        history=history,
-                        replace_history=replace_history,
-                        pause_routing=pause_routing,
-                        model=model,
-                    )
-                )
-            try:
-                yield self
-            finally:
-                # AsyncExitStack will handle cleanup of all states
-                pass
 
     @abstractmethod
     async def execute(

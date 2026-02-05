@@ -623,7 +623,7 @@ class StorageManager:
             from llmling_models.models.helpers import infer_model
 
             model = infer_model(self.config.title_generation_model)
-            agent: Agent[None, ConversationMetadata] = Agent(
+            agent = Agent(
                 model=model,
                 instructions=self.config.title_generation_prompt,
                 output_type=ConversationMetadata,
@@ -680,19 +680,12 @@ class StorageManager:
             The generated title, or None if generation fails/disabled.
         """
         # Check if title already exists
-        existing = await self.get_session_title(session_id)
-        if existing:
+        if existing := await self.get_session_title(session_id):
             if on_title_generated:
                 on_title_generated(existing)
             return existing
-
         # Generate using core logic
-        metadata = await self._generate_title_core(
-            session_id,
-            f"user: {prompt[:500]}",
-        )
-
-        if metadata:
+        if metadata := await self._generate_title_core(session_id, f"user: {prompt[:500]}"):
             title = metadata.title
             if on_title_generated:
                 on_title_generated(title)

@@ -276,20 +276,15 @@ class NativeAgentConfig(BaseAgentConfig):
             # Skip builtin tools - they're handled via get_builtin_tools()
             if isinstance(tool_config, BaseBuiltinToolConfig):
                 continue
-
-            try:
-                if isinstance(tool_config, BaseToolsetConfig):
-                    # Toolset -> get its provider directly
-                    providers.append(tool_config.get_provider())
-                elif isinstance(tool_config, str):
-                    # String import path -> single tool
-                    static_tools.append(Tool.from_callable(tool_config))
-                elif isinstance(tool_config, BaseToolConfig):
-                    # Single tool config -> single tool
-                    static_tools.append(tool_config.get_tool())
-            except Exception:
-                logger.exception("Failed to load tool", config=tool_config)
-                continue
+            if isinstance(tool_config, BaseToolsetConfig):
+                # Toolset -> get its provider directly
+                providers.append(tool_config.get_provider())
+            elif isinstance(tool_config, str):
+                # String import path -> single tool
+                static_tools.append(Tool.from_callable(tool_config))
+            elif isinstance(tool_config, BaseToolConfig):
+                # Single tool config -> single tool
+                static_tools.append(tool_config.get_tool())
 
         # Wrap all single tools in one provider
         if static_tools:

@@ -7,6 +7,7 @@ import typing
 from typing import TYPE_CHECKING, Any
 
 from agentpool.log import get_logger
+from agentpool.utils.inspection import get_fn_qualname
 
 
 if TYPE_CHECKING:
@@ -49,7 +50,9 @@ def inject_nodes[T, **P](
     """Get nodes to inject based on function signature."""
     hints = typing.get_type_hints(func)
     params = inspect.signature(func).parameters
-    logger.debug("Injecting nodes", module=func.__module__, name=func.__qualname__, type_hint=hints)
+    logger.debug(
+        "Injecting nodes", module=func.__module__, name=get_fn_qualname(func), type_hint=hints
+    )
 
     nodes: dict[str, MessageNode[Any, Any]] = {}
     for name, param in params.items():
