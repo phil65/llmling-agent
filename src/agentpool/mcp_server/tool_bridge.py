@@ -53,58 +53,36 @@ _ = ResourceChangeEvent  # Used at runtime in method signature
 logger = get_logger(__name__)
 
 
-def _is_agent_context_type(annotation: Any) -> bool:
-    """Check if annotation is AgentContext."""
+def _is_annotation_of_type(annotation: Any, type_name: str) -> bool:
+    """Check if annotation matches the given type name.
+
+    Handles direct types, generics, forward references, and unions.
+    """
     if annotation is None or annotation is inspect.Parameter.empty:
         return False
     # Handle string annotations (forward references)
     if isinstance(annotation, str):
         base_name = annotation.split("[")[0].strip()
-        return base_name == "AgentContext"
+        return base_name == type_name
     # Check direct class match by name
-    if isinstance(annotation, type) and annotation.__name__ == "AgentContext":
+    if isinstance(annotation, type) and annotation.__name__ == type_name:
         return True
-    # Check generic origin (e.g., AgentContext[SomeDeps])
+    # Check generic origin (e.g., SomeType[T])
     origin = get_origin(annotation)
     if origin is not None:
-        if isinstance(origin, type) and origin.__name__ == "AgentContext":
+        if isinstance(origin, type) and origin.__name__ == type_name:
             return True
-        # Handle Union types (e.g., AgentContext | None)
+        # Handle Union types (e.g., SomeType | None)
         if origin is type(None) or str(origin) in ("typing.Union", "types.UnionType"):
-            return any(_is_agent_context_type(arg) for arg in get_args(annotation))
+            return any(_is_annotation_of_type(arg, type_name) for arg in get_args(annotation))
     return False
 
 
-def _get_context_param_names(fn: Callable[..., Any]) -> set[str]:
+def _get_context_param_names(fn: Callable[..., Any], type_name: str) -> set[str]:
     """Get parameter names that are AgentContext (to be auto-injected)."""
-    return get_params_matching_predicate(fn, lambda p: _is_agent_context_type(p.annotation))
-
-
-def _is_run_context_type(annotation: Any) -> bool:
-    """Check if annotation is pydantic-ai RunContext."""
-    if annotation is None or annotation is inspect.Parameter.empty:
-        return False
-    # Handle string annotations (forward references)
-    if isinstance(annotation, str):
-        base_name = annotation.split("[")[0].strip()
-        return base_name == "RunContext"
-    # Check direct class match by name
-    if isinstance(annotation, type) and annotation.__name__ == "RunContext":
-        return True
-    # Check generic origin (e.g., RunContext[SomeDeps])
-    origin = get_origin(annotation)
-    if origin is not None:
-        if isinstance(origin, type) and origin.__name__ == "RunContext":
-            return True
-        # Handle Union types (e.g., RunContext | None)
-        if origin is type(None) or str(origin) in ("typing.Union", "types.UnionType"):
-            return any(_is_run_context_type(arg) for arg in get_args(annotation))
-    return False
-
-
-def _get_run_context_param_names(fn: Callable[..., Any]) -> set[str]:
-    """Get parameter names that are RunContext (to be auto-injected)."""
-    return get_params_matching_predicate(fn, lambda p: _is_run_context_type(p.annotation))
+    return get_params_matching_predicate(
+        fn, lambda p: _is_annotation_of_type(p.annotation, type_name)
+    )
 
 
 def _create_stub_run_context(
@@ -493,8 +471,8 @@ class ToolManagerBridge:
                 schema = tool.schema["function"]
                 input_schema = schema.get("parameters", {"type": "object", "properties": {}})
                 # Filter out context parameters - they're auto-injected by the bridge
-                context_params = _get_context_param_names(tool.get_callable())
-                run_context_params = _get_run_context_param_names(tool.get_callable())
+                context_params = _get_context_param_names(tool.get_callable(), "AgentContext")
+                run_context_params = _get_context_param_names(tool.get_callable(), "RunContext")
                 all_context_params = context_params | run_context_params
                 filtered_schema = filter_schema_params(input_schema, all_context_params)
                 desc = tool.description or "No description"
@@ -503,21 +481,21 @@ class ToolManagerBridge:
                 self._tool = tool
                 self._bridge = bridge
 
-            async def run(self, arguments: dict[str, Any]) -> ToolResult:
+            async def run(self, args: dict[str, Any]) -> ToolResult:
                 """Execute the wrapped tool with context bridging."""
                 from fastmcp.server.dependencies import get_context
 
                 from agentpool.agents.events import ToolResultMetadataEvent
                 from agentpool.tools.base import ToolResult as AgentPoolToolResult
 
-                # Validate arguments against tool's schema
+                # Validate args against tool's schema
                 # try:
                 #     param_model = self._tool.schema_obj.create_parameter_model()
-                #     param_model.model_validate(arguments)
+                #     param_model.model_validate(args)
                 # except pydantic.ValidationError as e:
                 #     error_msg = (
-                #         f"Tool '{self._tool.name}' called with invalid arguments. "
-                #         f"Ensure arguments match the schema.\n\nValidation errors:\n{e}"
+                #         f"Tool '{self._tool.name}' called with invalid args. "
+                #         f"Ensure args match the schema.\n\nValidation errors:\n{e}"
                 #     )
                 #     return ToolResult(content=[TextContent(type="text", text=error_msg)])
 
@@ -529,23 +507,15 @@ class ToolManagerBridge:
                 # Try to get Claude's original tool_call_id from request metadata
                 tc_id = _extract_tool_call_id(mcp_context)
                 # Get deps and input_provider from bridge (set by run_stream on the agent)
-                current_deps = self._bridge._current_deps
-                current_input_provider = self._bridge._current_input_provider
                 # Create context with tool-specific metadata from node's context.
-                ctx = replace(
-                    self._bridge.node.get_context(
-                        data=current_deps,
-                        input_provider=current_input_provider,
-                    ),
-                    tool_name=self._tool.name,
-                    tool_call_id=tc_id,
-                    tool_input=arguments,
+                ctx = self._bridge.node.get_context(
+                    data=self._bridge._current_deps,
+                    input_provider=self._bridge._current_input_provider,
                 )
-                # Invoke with context - copy arguments since invoke_tool_with_context
+                ctx = replace(ctx, tool_name=self._tool.name, tool_call_id=tc_id, tool_input=args)
+                # Invoke with context - copy args since invoke_tool_with_context
                 # modifies kwargs in-place to inject context parameters
-                result = await self._bridge.invoke_tool_with_context(
-                    self._tool, ctx, arguments.copy()
-                )
+                result = await self._bridge.invoke_tool_with_context(self._tool, ctx, args.copy())
                 # Emit metadata event for ClaudeCodeAgent to correlate
                 # (works around Claude SDK stripping MCP _meta field)
                 if isinstance(result, AgentPoolToolResult) and result.metadata:
@@ -622,12 +592,12 @@ class ToolManagerBridge:
 
         fn = tool.get_callable()
         # Inject AgentContext parameters
-        context_param_names = _get_context_param_names(fn)
+        context_param_names = _get_context_param_names(fn, "AgentContext")
         for param_name in context_param_names:
             if param_name not in kwargs:
                 kwargs[param_name] = ctx
         # Inject RunContext parameters (as stub since we're outside pydantic-ai)
-        run_context_param_names = _get_run_context_param_names(fn)
+        run_context_param_names = _get_context_param_names(fn, "RunContext")
         if run_context_param_names:
             stub_run_ctx = _create_stub_run_context(ctx, prompt=self._current_prompt)
             for param_name in run_context_param_names:
