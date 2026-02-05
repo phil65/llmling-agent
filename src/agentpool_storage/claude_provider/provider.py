@@ -24,7 +24,6 @@ import anyenv
 from pydantic import TypeAdapter
 
 from agentpool.log import get_logger
-from agentpool.messaging import ChatMessage
 from agentpool.utils.thread_helpers import parallel_map
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 from agentpool_config.storage import ClaudeStorageConfig
@@ -48,6 +47,7 @@ from agentpool_storage.models import TokenUsage
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from agentpool.messaging import ChatMessage
     from agentpool_config.session import SessionQuery
     from agentpool_storage.models import ConversationData, MessageData, QueryFilters, StatsFilters
 

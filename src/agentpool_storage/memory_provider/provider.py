@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
-from agentpool.messaging import ChatMessage
 from agentpool.utils.time_utils import get_now
 from agentpool_config.storage import MemoryStorageConfig
 from agentpool_storage.base import StorageProvider
@@ -16,6 +15,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from agentpool.common_types import JsonValue
+    from agentpool.messaging import ChatMessage
     from agentpool.sessions.models import ProjectData
     from agentpool_config.session import SessionQuery
     from agentpool_storage.models import MessageData, QueryFilters, StatsFilters, TokenUsage

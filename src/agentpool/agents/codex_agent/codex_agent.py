@@ -332,7 +332,7 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
             self._client = None
         self._sdk_session_id = None
 
-    async def _stream_events(
+    async def _stream_events(  # noqa: PLR0915
         self,
         prompts: list[UserContent],
         *,

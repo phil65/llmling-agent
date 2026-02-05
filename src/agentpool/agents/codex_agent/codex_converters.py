@@ -309,7 +309,7 @@ def _thread_item_to_tool_call_part(
             return None
 
 
-async def convert_codex_stream(
+async def convert_codex_stream(  # noqa: PLR0915
     events: AsyncIterator[CodexEvent],
 ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
     """Convert Codex event stream to native events with stateful accumulation.

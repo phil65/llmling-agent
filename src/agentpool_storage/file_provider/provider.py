@@ -105,7 +105,7 @@ class FileProvider(StorageProvider):
         Args:
             config: Configuration for provider
         """
-        config = config or FileStorageConfig()
+        config = config or FileStorageConfig(path=".")
         super().__init__(config)
         self.path = to_upath(config.path)
         self.format: FormatType = config.format
