@@ -191,13 +191,9 @@ class StaticResourceProvider(ResourceProvider):
             parent: Optional parent agent for history/context sharing
         """
         from agentpool import Agent, BaseTeam
-        from agentpool.agents.acp_agent import ACPAgent
+        from agentpool.agents.base_agent import BaseAgent
 
         match worker:
-            case BaseTeam():
-                tool = worker.to_tool(name=name)
-            case ACPAgent():
-                tool = worker.to_tool(name=name, description=worker.description)
             case Agent():
                 tool = worker.to_tool(
                     parent=parent,
@@ -205,6 +201,8 @@ class StaticResourceProvider(ResourceProvider):
                     reset_history_on_run=reset_history_on_run,
                     pass_message_history=pass_message_history,
                 )
+            case BaseTeam() | BaseAgent():
+                tool = worker.to_tool(name=name, description=worker.description)
             case _:
                 raise ValueError(f"Unsupported worker type: {type(worker)}")
 
