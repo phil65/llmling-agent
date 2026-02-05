@@ -8,10 +8,13 @@ from pathlib import Path
 import sqlite3
 from typing import TYPE_CHECKING, Any
 
+import anyenv
+
 from agentpool.log import get_logger
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 from agentpool_config.storage import ZedStorageConfig
 from agentpool_storage.base import StorageProvider
+from agentpool_storage.models import TokenUsage
 from agentpool_storage.zed_provider import helpers
 from agentpool_storage.zed_provider.models import ZedThread
 
@@ -26,7 +29,6 @@ if TYPE_CHECKING:
         MessageData,
         QueryFilters,
         StatsFilters,
-        TokenUsage,
     )
 
 logger = get_logger(__name__)
@@ -207,8 +209,8 @@ class ZedStorageProvider(StorageProvider):
 
             # Get token usage from thread-level cumulative data
             total_tokens = sum(thread.cumulative_token_usage.values())
-            token_usage_data: TokenUsage | None = (
-                {"total": total_tokens, "prompt": 0, "completion": 0} if total_tokens else None
+            token_usage_data = (
+                TokenUsage(total=total_tokens, prompt=0, completion=0) if total_tokens else None
             )
 
             conv_data = ConvData(
@@ -239,15 +241,11 @@ class ZedStorageProvider(StorageProvider):
             thread = self._load_thread(thread_id)
             if thread is None:
                 continue
-            model_name = "unknown"
-            if thread.model:
-                model_name = f"{thread.model.provider}:{thread.model.model}"
-            total_tokens = sum(thread.cumulative_token_usage.values())
-            message_count = len(thread.messages)
+            model = f"{thread.model.provider}:{thread.model.model}" if thread.model else "unknown"
             # Group by specified criterion
             match filters.group_by:
                 case "model":
-                    key = model_name
+                    key = model
                 case "hour":
                     key = timestamp.strftime("%Y-%m-%d %H:00")
                 case "day":
@@ -255,9 +253,9 @@ class ZedStorageProvider(StorageProvider):
                 case _:
                     key = "zed"  # Default agent grouping
 
-            stats[key]["messages"] += message_count
-            stats[key]["total_tokens"] += total_tokens
-            stats[key]["models"].add(model_name)
+            stats[key]["messages"] += len(thread.messages)
+            stats[key]["total_tokens"] += sum(thread.cumulative_token_usage.values())
+            stats[key]["models"].add(model)
 
         # Convert sets to lists for JSON serialization
         for value in stats.values():
@@ -278,9 +276,9 @@ class ZedStorageProvider(StorageProvider):
             conn = self._get_connection()
             cursor = conn.execute("SELECT data_type, data FROM threads")
             for data_type, data in cursor:
-                thread_dict = helpers.decompress_thread_raw(data, data_type)
-                messages = thread_dict.get("messages")
-                if messages is not None:
+                json_data = helpers._decompress(data, data_type)
+                thread_dict = anyenv.load_json(json_data, return_type=dict)
+                if (messages := thread_dict.get("messages")) is not None:
                     conv_count += 1
                     msg_count += len(messages)
             conn.close()

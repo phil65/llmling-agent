@@ -9,7 +9,6 @@ import base64
 import io
 from typing import TYPE_CHECKING, Any, Literal
 
-import anyenv
 from pydantic_ai.messages import (
     BinaryContent,
     ModelRequest,
@@ -20,17 +19,15 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from pydantic_ai.usage import RequestUsage
 import zstandard
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.utils.time_utils import parse_iso_timestamp
-from agentpool_storage.zed_provider.models import ZedThread
 
 
 if TYPE_CHECKING:
-    from agentpool_storage.zed_provider.models import ZedToolResult
+    from agentpool_storage.zed_provider.models import ZedThread, ZedToolResult
 
 
 logger = get_logger(__name__)
@@ -56,29 +53,33 @@ def _decompress(data: bytes, data_type: Literal["zstd", "plain"]) -> bytes:
     return data
 
 
-def decompress_thread_raw(data: bytes, data_type: Literal["zstd", "plain"]) -> dict[str, Any]:
-    """Decompress thread data and return raw dict (skip model_validate).
-
-    Useful for lightweight operations like counting messages.
+def detect_image_media_type(data: bytes) -> str:
+    """Detect image media type from magic bytes.
 
     Args:
-        data: Compressed thread data
-        data_type: Type of compression ("zstd" or plain)
+        data: Raw image bytes (at least first 12 bytes needed)
 
     Returns:
-        Raw thread dict
+        Media type string (defaults to "image/png" if unknown)
     """
-    json_data = _decompress(data, data_type)
-    return anyenv.load_json(json_data)
+    match data[:12]:
+        case b if b[:3] == b"\xff\xd8\xff":
+            return "image/jpeg"
+        case b if b[:4] == b"\x89PNG":
+            return "image/png"
+        case b if b[:6] in (b"GIF87a", b"GIF89a"):
+            return "image/gif"
+        case b if b[:4] == b"RIFF" and b[8:12] == b"WEBP":
+            return "image/webp"
+        case _:
+            return "image/png"
 
 
-def parse_user_content(  # noqa: PLR0915
-    content_list: list[dict[str, Any]],
-) -> tuple[str, list[str | BinaryContent]]:
+def parse_user_content(items: list[dict[str, Any]]) -> tuple[str, list[str | BinaryContent]]:
     """Parse user message content blocks.
 
     Args:
-        content_list: List of content blocks from Zed user message
+        items: List of content blocks from Zed user message
 
     Returns:
         Tuple of (display_text, pydantic_ai_content_list)
@@ -86,66 +87,38 @@ def parse_user_content(  # noqa: PLR0915
     display_parts: list[str] = []
     pydantic_content: list[str | BinaryContent] = []
 
-    for item in content_list:
-        if "Text" in item:
-            text = item["Text"]
-            display_parts.append(text)
-            pydantic_content.append(text)
+    for item in items:
+        match item:
+            case {"Text": text}:
+                display_parts.append(text)
+                pydantic_content.append(text)
 
-        elif "Image" in item:
-            image_data = item["Image"]
-            source = image_data.get("source", "")
-            try:
-                binary_data = base64.b64decode(source)
-                # Try to detect image type from magic bytes
-                media_type = "image/png"  # default
-                if binary_data[:3] == b"\xff\xd8\xff":
-                    media_type = "image/jpeg"
-                elif binary_data[:4] == b"\x89PNG":
-                    media_type = "image/png"
-                elif binary_data[:6] in (b"GIF87a", b"GIF89a"):
-                    media_type = "image/gif"
-                elif binary_data[:4] == b"RIFF" and binary_data[8:12] == b"WEBP":
-                    media_type = "image/webp"
+            case {"Image": {"source": source}}:
+                try:
+                    binary_data = base64.b64decode(source)
+                    media_type = detect_image_media_type(binary_data)
+                    pydantic_content.append(BinaryContent(data=binary_data, media_type=media_type))
+                    display_parts.append("[image]")
+                except (ValueError, TypeError, IndexError) as e:
+                    logger.warning("Failed to decode image", error=str(e))
+                    display_parts.append("[image decode error]")
 
-                pydantic_content.append(BinaryContent(data=binary_data, media_type=media_type))
-                display_parts.append("[image]")
-            except (ValueError, TypeError, IndexError) as e:
-                logger.warning("Failed to decode image", error=str(e))
-                display_parts.append("[image decode error]")
-
-        elif "Mention" in item:
-            mention = item["Mention"]
-            uri = mention.get("uri", {})
-            content = mention.get("content", "")
-
-            # Format mention based on type
-            if "File" in uri:
-                file_info = uri["File"]
-                path = file_info.get("abs_path", "unknown")
-                formatted = f"[File: {path}]\n{content}"
-            elif "Directory" in uri:
-                dir_info = uri["Directory"]
-                path = dir_info.get("abs_path", "unknown")
-                formatted = f"[Directory: {path}]\n{content}"
-            elif "Symbol" in uri:
-                symbol_info = uri["Symbol"]
-                path = symbol_info.get("abs_path", "unknown")
-                name = symbol_info.get("name", "")
-                formatted = f"[Symbol: {name} in {path}]\n{content}"
-            elif "Selection" in uri:
-                sel_info = uri["Selection"]
-                path = sel_info.get("abs_path", "unknown")
-                formatted = f"[Selection: {path}]\n{content}"
-            elif "Fetch" in uri:
-                fetch_info = uri["Fetch"]
-                url = fetch_info.get("url", "unknown")
-                formatted = f"[Fetched: {url}]\n{content}"
-            else:
-                formatted = content
-
-            display_parts.append(formatted)
-            pydantic_content.append(formatted)
+            case {"Mention": {"uri": uri, "content": content}}:
+                match uri:
+                    case {"File": {"abs_path": path}}:
+                        formatted = f"[File: {path}]\n{content}"
+                    case {"Directory": {"abs_path": path}}:
+                        formatted = f"[Directory: {path}]\n{content}"
+                    case {"Symbol": {"abs_path": path, "name": name}}:
+                        formatted = f"[Symbol: {name} in {path}]\n{content}"
+                    case {"Selection": {"abs_path": path}}:
+                        formatted = f"[Selection: {path}]\n{content}"
+                    case {"Fetch": {"url": url}}:
+                        formatted = f"[Fetched: {url}]\n{content}"
+                    case _:
+                        formatted = content
+                display_parts.append(formatted)
+                pydantic_content.append(formatted)
 
     display_text = "\n".join(display_parts)
     return display_text, pydantic_content
@@ -166,27 +139,21 @@ def parse_agent_content(
     pydantic_parts: list[TextPart | ThinkingPart | ToolCallPart] = []
 
     for item in content_list:
-        if "Text" in item:
-            text = item["Text"]
-            display_parts.append(text)
-            pydantic_parts.append(TextPart(content=text))
-
-        elif "Thinking" in item:
-            thinking = item["Thinking"]
-            text = thinking.get("text", "")
-            signature = thinking.get("signature")
-            display_parts.append(f"<thinking>\n{text}\n</thinking>")
-            pydantic_parts.append(ThinkingPart(content=text, signature=signature))
-
-        elif "ToolUse" in item:
-            tool_use = item["ToolUse"]
-            tool_id = tool_use.get("id", "")
-            tool_name = tool_use.get("name", "")
-            tool_input = tool_use.get("input", {})
-            display_parts.append(f"[Tool: {tool_name}]")
-            pydantic_parts.append(
-                ToolCallPart(tool_name=tool_name, args=tool_input, tool_call_id=tool_id)
-            )
+        match item:
+            case {"Text": text}:
+                display_parts.append(text)
+                pydantic_parts.append(TextPart(content=text))
+            case {"Thinking": {"text": text, **rest}}:
+                signature = rest.get("signature")
+                display_parts.append(f"<thinking>\n{text}\n</thinking>")
+                pydantic_parts.append(ThinkingPart(content=text, signature=signature))
+            case {"ToolUse": tool_use}:
+                tool_id = tool_use.get("id", "")
+                tool_name = tool_use.get("name", "")
+                tool_input = tool_use.get("input", {})
+                display_parts.append(f"[Tool: {tool_name}]")
+                part = ToolCallPart(tool_name=tool_name, args=tool_input, tool_call_id=tool_id)
+                pydantic_parts.append(part)
 
     display_text = "\n".join(display_parts)
     return display_text, pydantic_parts
@@ -204,21 +171,17 @@ def parse_tool_results(tool_results: dict[str, ZedToolResult]) -> list[ToolRetur
     parts: list[ToolReturnPart] = []
 
     for tool_id, result in tool_results.items():
-        output = result.output
-        content = result.content
-
-        # Handle output being a dict like {"Text": "..."}
-        if isinstance(output, dict) and "Text" in output:
-            output_str = output["Text"]
-        # Extract text content if available
-        elif isinstance(content, dict) and "Text" in content:
-            output_str = content["Text"]
-        elif isinstance(content, str):
-            output_str = content
-        elif isinstance(output, str):
-            output_str = output
-        else:
-            output_str = ""
+        match result.output, result.content:
+            case {"Text": text}, _:
+                output_str = text
+            case _, {"Text": text}:
+                output_str = text
+            case _, str(text):
+                output_str = text
+            case str(text), _:
+                output_str = text
+            case _:
+                output_str = ""
 
         parts.append(
             ToolReturnPart(tool_name=result.tool_name, content=output_str, tool_call_id=tool_id)
@@ -240,9 +203,7 @@ def thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessa
     messages: list[ChatMessage[str]] = []
     updated_at = parse_iso_timestamp(thread.updated_at)
     # Get model info
-    model_name = None
-    if thread.model:
-        model_name = f"{thread.model.provider}:{thread.model.model}"
+    model_name = f"{thread.model.provider}:{thread.model.model}" if thread.model else None
     for idx, msg in enumerate(thread.messages):
         if msg == "Resume":
             continue  # Skip control messages
@@ -256,8 +217,6 @@ def thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessa
                 session_id=thread_id,
                 role="user",
                 message_id=user_msg.id or msg_id,
-                name=None,
-                model_name=None,
                 timestamp=updated_at,  # Zed doesn't store per-message timestamps
                 messages=[ModelRequest(parts=[part])],
             )
@@ -266,8 +225,7 @@ def thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessa
         elif msg.Agent is not None:
             agent_msg = msg.Agent
             display_text, pydantic_parts = parse_agent_content(agent_msg.content)
-            usage = RequestUsage()
-            model_response = ModelResponse(parts=pydantic_parts, usage=usage, model_name=model_name)
+            model_response = ModelResponse(parts=pydantic_parts, model_name=model_name)
             # Create the messages list - response, then optionally tool returns
             pydantic_messages: list[ModelResponse | ModelRequest] = [model_response]
             # Build tool return parts for next request if there are tool results
