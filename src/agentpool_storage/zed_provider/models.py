@@ -68,26 +68,58 @@ class ZedToolResult(ZedBaseModel):
     output: dict[str, Any] | str | None = None
 
 
+# v0.2.0+ nested message format
+
+
 class ZedUserMessage(ZedBaseModel):
-    """User message in Zed thread."""
+    """User message in Zed thread (v0.2.0+ format)."""
 
     id: str
     content: list[dict[str, Any]]  # Can contain Text, Image, Mention
 
 
 class ZedAgentMessage(ZedBaseModel):
-    """Agent message in Zed thread."""
+    """Agent message in Zed thread (v0.2.0+ format)."""
 
     content: list[dict[str, Any]]  # Can contain Text, Thinking, ToolUse
     tool_results: dict[str, ZedToolResult] = Field(default_factory=dict)
     reasoning_details: Any | None = None
 
 
-class ZedMessage(ZedBaseModel):
-    """A message in Zed thread - either User or Agent."""
+class ZedNestedMessage(ZedBaseModel):
+    """A message in Zed thread v0.2.0+ - nested under User or Agent key."""
 
     User: ZedUserMessage | None = None
     Agent: ZedAgentMessage | None = None
+
+
+# Flat message format (v0.1.0, v0.2.0)
+
+
+class ZedSegment(ZedBaseModel):
+    """A segment in a flat message."""
+
+    type: Literal["text", "thinking"]
+    text: str | None = None
+    signature: str | None = None  # For thinking segments
+
+
+class ZedFlatMessage(ZedBaseModel):
+    """A message in flat format (used in v0.1.0 and v0.2.0)."""
+
+    id: int
+    role: Literal["user", "assistant"]
+    segments: list[ZedSegment] = Field(default_factory=list)
+    tool_uses: list[dict[str, Any]] = Field(default_factory=list)
+    tool_results: list[dict[str, Any]] = Field(default_factory=list)
+    context: str = ""
+    creases: list[Any] = Field(default_factory=list)
+    is_hidden: bool = False
+
+
+# Union of all message formats - put ZedFlatMessage first since it's more specific
+# (has required 'id' and 'role' fields that ZedNestedMessage doesn't have)
+ZedMessage = ZedFlatMessage | ZedNestedMessage
 
 
 class ZedLanguageModel(ZedBaseModel):

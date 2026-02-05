@@ -6,6 +6,7 @@ Stateless conversion and utility functions for working with Zed format.
 from __future__ import annotations
 
 import base64
+from datetime import datetime
 import io
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -27,7 +28,10 @@ from agentpool.utils.time_utils import parse_iso_timestamp
 
 
 if TYPE_CHECKING:
-    from agentpool_storage.zed_provider.models import ZedThread, ZedToolResult
+    from agentpool_storage.zed_provider.models import (
+        ZedThread,
+        ZedToolResult,
+    )
 
 
 logger = get_logger(__name__)
@@ -190,8 +194,91 @@ def parse_tool_results(tool_results: dict[str, ZedToolResult]) -> list[ToolRetur
     return parts
 
 
+def _convert_flat_message(
+    msg: ZedFlatMessage,
+    thread_id: str,
+    model_name: str | None,
+    updated_at: datetime,
+) -> ChatMessage[str]:
+    """Convert a v0.1.0 flat message to ChatMessage."""
+    msg_id = f"{thread_id}_{msg.id}"
+    # Extract text from segments
+    text_parts = [seg.text for seg in msg.segments if seg.text]
+    display_text = "\n".join(text_parts)
+
+    if msg.role == "user":
+        part = UserPromptPart(content=display_text)
+        return ChatMessage[str](
+            content=display_text,
+            session_id=thread_id,
+            role="user",
+            message_id=msg_id,
+            timestamp=updated_at,
+            messages=[ModelRequest(parts=[part])],
+        )
+    # assistant
+    pydantic_parts: list[TextPart | ThinkingPart | ToolCallPart] = [TextPart(content=display_text)]
+    model_response = ModelResponse(parts=pydantic_parts, model_name=model_name)
+    return ChatMessage[str](
+        content=display_text,
+        session_id=thread_id,
+        role="assistant",
+        message_id=msg_id,
+        name="zed",
+        model_name=model_name,
+        timestamp=updated_at,
+        messages=[model_response],
+    )
+
+
+def _convert_nested_message(
+    msg: ZedNestedMessage,
+    thread_id: str,
+    idx: int,
+    model_name: str | None,
+    updated_at: datetime,
+) -> ChatMessage[str] | None:
+    """Convert a v0.2.0+ nested message to ChatMessage."""
+    msg_id = f"{thread_id}_{idx}"
+
+    if msg.User is not None:
+        user_msg = msg.User
+        display_text, pydantic_content = parse_user_content(user_msg.content)
+        part = UserPromptPart(content=pydantic_content)
+        return ChatMessage[str](
+            content=display_text,
+            session_id=thread_id,
+            role="user",
+            message_id=user_msg.id or msg_id,
+            timestamp=updated_at,
+            messages=[ModelRequest(parts=[part])],
+        )
+
+    if msg.Agent is not None:
+        agent_msg = msg.Agent
+        display_text, pydantic_parts = parse_agent_content(agent_msg.content)
+        model_response = ModelResponse(parts=pydantic_parts, model_name=model_name)
+        pydantic_messages: list[ModelResponse | ModelRequest] = [model_response]
+        if tool_return_parts := parse_tool_results(agent_msg.tool_results):
+            pydantic_messages.append(ModelRequest(parts=tool_return_parts))
+        return ChatMessage[str](
+            content=display_text,
+            session_id=thread_id,
+            role="assistant",
+            message_id=msg_id,
+            name="zed",
+            model_name=model_name,
+            timestamp=updated_at,
+            messages=pydantic_messages,
+        )
+
+    return None
+
+
 def thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessage[str]]:
     """Convert a Zed thread to ChatMessages.
+
+    Handles both v0.1.0 flat format and v0.2.0+ nested format.
 
     Args:
         thread: Zed thread object
@@ -200,47 +287,21 @@ def thread_to_chat_messages(thread: ZedThread, thread_id: str) -> list[ChatMessa
     Returns:
         List of ChatMessage objects
     """
+    from agentpool_storage.zed_provider.models import ZedFlatMessage, ZedNestedMessage
+
     messages: list[ChatMessage[str]] = []
     updated_at = parse_iso_timestamp(thread.updated_at)
-    # Get model info
     model_name = f"{thread.model.provider}:{thread.model.model}" if thread.model else None
-    for idx, msg in enumerate(thread.messages):
-        if msg == "Resume":
-            continue  # Skip control messages
-        msg_id = f"{thread_id}_{idx}"
-        if msg.User is not None:
-            user_msg = msg.User
-            display_text, pydantic_content = parse_user_content(user_msg.content)
-            part = UserPromptPart(content=pydantic_content)
-            chat_message = ChatMessage[str](
-                content=display_text,
-                session_id=thread_id,
-                role="user",
-                message_id=user_msg.id or msg_id,
-                timestamp=updated_at,  # Zed doesn't store per-message timestamps
-                messages=[ModelRequest(parts=[part])],
-            )
-            messages.append(chat_message)
 
-        elif msg.Agent is not None:
-            agent_msg = msg.Agent
-            display_text, pydantic_parts = parse_agent_content(agent_msg.content)
-            model_response = ModelResponse(parts=pydantic_parts, model_name=model_name)
-            # Create the messages list - response, then optionally tool returns
-            pydantic_messages: list[ModelResponse | ModelRequest] = [model_response]
-            # Build tool return parts for next request if there are tool results
-            if tool_return_parts := parse_tool_results(agent_msg.tool_results):
-                pydantic_messages.append(ModelRequest(parts=tool_return_parts))
-            chat_message = ChatMessage[str](
-                content=display_text,
-                session_id=thread_id,
-                role="assistant",
-                message_id=msg_id,
-                name="zed",
-                model_name=model_name,
-                timestamp=updated_at,
-                messages=pydantic_messages,
-            )
-            messages.append(chat_message)
+    for idx, msg in enumerate(thread.messages):
+        match msg:
+            case "Resume":
+                continue  # Skip control messages
+            case ZedFlatMessage():
+                chat_msg = _convert_flat_message(msg, thread_id, model_name, updated_at)
+                messages.append(chat_msg)
+            case ZedNestedMessage():
+                if chat_msg := _convert_nested_message(msg, thread_id, idx, model_name, updated_at):
+                    messages.append(chat_msg)
 
     return messages
