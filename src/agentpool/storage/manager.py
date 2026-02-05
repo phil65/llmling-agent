@@ -613,16 +613,16 @@ class StorageManager:
         Returns:
             ConversationMetadata with title, emoji, and icon, or None if generation fails.
         """
+        from llmling_models.models.helpers import infer_model
+
+        from agentpool import Agent
+
         logger.info("_generate_title_core called", session_id=session_id)
         if not self.config.title_generation_model:
             logger.info("No title_generation_model configured, skipping")
             return None
 
         try:
-            from llmling_models.models.helpers import infer_model
-
-            from agentpool import Agent
-
             model = infer_model(self.config.title_generation_model)
             agent = Agent(
                 model=model,
@@ -632,17 +632,9 @@ class StorageManager:
             logger.debug("Title generation prompt", prompt_text=prompt_text)
             result = await agent.run(prompt_text)
             metadata = result.data
-
             # Store the title
             await self.update_session_title(session_id, metadata.title)
-            logger.debug(
-                "Generated conversation metadata",
-                session_id=session_id,
-                title=metadata.title,
-                emoji=metadata.emoji,
-                icon=metadata.icon,
-            )
-
+            logger.debug("Generated session metadata", session_id=session_id, metadata=metadata)
             # Emit signal for subscribers (e.g., OpenCode UI updates)
             event = TitleGeneratedEvent(
                 session_id=session_id,
