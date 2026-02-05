@@ -28,6 +28,7 @@ from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
 from agentpool.utils.thread_helpers import parallel_map
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
+from agentpool_config.storage import ClaudeStorageConfig
 from agentpool_storage.base import StorageProvider
 from agentpool_storage.claude_provider.converters import (
     chat_message_to_entry,
@@ -52,7 +53,6 @@ if TYPE_CHECKING:
 
     from agentpool.messaging import TokenCost
     from agentpool_config.session import SessionQuery
-    from agentpool_config.storage import ClaudeStorageConfig
     from agentpool_storage.models import ConversationData, MessageData, QueryFilters, StatsFilters
 
 
@@ -317,13 +317,13 @@ class ClaudeStorageProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, config: ClaudeStorageConfig) -> None:
+    def __init__(self, config: ClaudeStorageConfig | None = None) -> None:
         """Initialize Claude storage provider.
 
         Args:
             config: Configuration for the provider
         """
-        super().__init__(config)
+        super().__init__(config or ClaudeStorageConfig(path="~/.claude"))
         self.base_path = Path(config.path).expanduser()
         self.projects_path = self.base_path / "projects"
         self._ensure_dirs()
@@ -857,8 +857,5 @@ class ClaudeStorageProvider(StorageProvider):
 
 
 if __name__ == "__main__":
-    from agentpool_config.storage import ClaudeStorageConfig
-
-    cfg = ClaudeStorageConfig()
-    provider = ClaudeStorageProvider(cfg)
+    provider = ClaudeStorageProvider()
     print(provider._list_sessions())

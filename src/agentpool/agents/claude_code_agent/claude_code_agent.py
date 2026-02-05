@@ -290,7 +290,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         from agentpool.agents.claude_code_agent.hook_manager import ClaudeCodeHookManager
         from agentpool.agents.sys_prompts import SystemPrompts
         from agentpool.mcp_server.tool_bridge import ToolManagerBridge
-        from agentpool_config.storage import ClaudeStorageConfig
         from agentpool_storage.claude_provider import ClaudeStorageProvider
 
         super().__init__(
@@ -346,8 +345,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Track pending tool call for permission matching
         self._pending_tool_call_ids: dict[str, str] = {}
         # Create Claude storage provider for session management
-        claude_config = ClaudeStorageConfig(path="~/.claude")
-        self._claude_storage = ClaudeStorageProvider(claude_config)
+        self._claude_storage = ClaudeStorageProvider()
         self._hook_manager = ClaudeCodeHookManager(
             agent_name=self.name,
             agent_hooks=hooks,

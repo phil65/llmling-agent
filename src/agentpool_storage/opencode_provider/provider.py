@@ -36,6 +36,7 @@ from pydantic_ai.messages import (
 from agentpool.log import get_logger
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool.utils.time_utils import datetime_to_ms, get_now, ms_to_datetime
+from agentpool_config.storage import OpenCodeStorageConfig
 from agentpool_server.opencode_server.models import (
     AssistantMessage,
     MessageInfo as OpenCodeMessage,
@@ -54,7 +55,6 @@ if TYPE_CHECKING:
 
     from agentpool.messaging import ChatMessage, TokenCost
     from agentpool_config.session import SessionQuery
-    from agentpool_config.storage import OpenCodeStorageConfig
     from agentpool_storage.models import ConversationData, MessageData, QueryFilters, StatsFilters
 
 logger = get_logger(__name__)
@@ -130,8 +130,9 @@ class OpenCodeStorageProvider(StorageProvider):
 
     can_load_history = True
 
-    def __init__(self, config: OpenCodeStorageConfig) -> None:
+    def __init__(self, config: OpenCodeStorageConfig | None = None) -> None:
         """Initialize OpenCode storage provider."""
+        config = config or OpenCodeStorageConfig()
         super().__init__(config)
         self.base_path = Path(config.path).expanduser()
         self.sessions_path = self.base_path / "session"
@@ -802,12 +803,10 @@ if __name__ == "__main__":
     import asyncio
     import datetime as dt
 
-    from agentpool_config.storage import OpenCodeStorageConfig
     from agentpool_storage.models import QueryFilters, StatsFilters
 
     async def main() -> None:
-        config = OpenCodeStorageConfig()
-        provider = OpenCodeStorageProvider(config)
+        provider = OpenCodeStorageProvider()
 
         print(f"Base path: {provider.base_path}")
         print(f"Exists: {provider.base_path.exists()}")
