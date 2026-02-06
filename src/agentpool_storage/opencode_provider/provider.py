@@ -289,10 +289,10 @@ class OpenCodeStorageProvider(StorageProvider):
                 # User prompt parts
                 for part in msg.parts:
                     match part:
-                        case UserPromptPart(content=content):
+                        case UserPromptPart(content=msg_content):
                             # Convert UserContent to OpenCode parts using helper
                             text_parts = helpers.convert_user_content_to_parts(
-                                content=content,
+                                content=msg_content,
                                 message_id=message_id,
                                 session_id=session_id,
                                 part_counter_start=part_counter,

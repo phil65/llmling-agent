@@ -741,8 +741,8 @@ def _extract_text_content(msg: ModelMessage) -> str:
                         | ToolReturnPart(content=content)
                     ):
                         if content is not None:
-                            parts_text.append(content)
-                    case UserPromptPart(content=list()):
+                            parts_text.append(str(content))
+                    case UserPromptPart(content=list() as content):
                         for item in content:
                             if isinstance(item, str):
                                 parts_text.append(item)  # noqa: PERF401

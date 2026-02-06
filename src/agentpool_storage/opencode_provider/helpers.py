@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from datetime import datetime
     from pathlib import Path
 
+    from pydantic_ai import MultiModalContent
     from pydantic_ai.messages import UserContent
 
     from agentpool_server.opencode_server.models import (
@@ -63,7 +64,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def to_user_content(url: str, mime: str):
+def to_user_content(url: str, mime: str) -> MultiModalContent:
     if mime.startswith("image/"):
         mime_typ = mime if mime != "image/*" else None
         return ImageUrl(url=url, media_type=mime_typ)
@@ -189,9 +190,7 @@ def extract_text_content(parts: list[OpenCodePart]) -> str:
 
 
 def user_message_to_pydantic(
-    msg: UserMessage,
-    parts: list[OpenCodePart],
-    timestamp: datetime,
+    msg: UserMessage, parts: list[OpenCodePart], ts: datetime
 ) -> ModelRequest | None:
     user_content: list[UserContent] = []
     for part in parts:
@@ -209,10 +208,11 @@ def user_message_to_pydantic(
                         user_content.append(BinaryContent(data=data, media_type=media_type))
                     continue
                 # Convert to appropriate URL type based on MIME
-                user_content.append(to_user_content(url, mime))
+                content_item = to_user_content(url, mime)
+                user_content.append(content_item)
     if user_content:
-        user_part = UserPromptPart(content=user_content, timestamp=timestamp)
-        return ModelRequest(parts=[user_part], timestamp=timestamp)
+        user_part = UserPromptPart(content=user_content, timestamp=ts)
+        return ModelRequest(parts=[user_part], timestamp=ts)
     return None
 
 
