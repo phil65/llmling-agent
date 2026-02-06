@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Literal, TypedDict
 if TYPE_CHECKING:
     from datetime import datetime
 
+    from agentpool.common_types import MessageRole
+
 
 GroupBy = Literal["agent", "model", "hour", "day"]
 
@@ -27,7 +29,7 @@ class TokenUsage(TypedDict):
 class MessageData(TypedDict):
     """Formatted message data."""
 
-    role: str
+    role: MessageRole
     """Role of the message sender (user/assistant/system)"""
 
     content: str

@@ -46,7 +46,7 @@ from agentpool_server.opencode_server.models import (
     TimeCreatedUpdated,
 )
 from agentpool_storage.base import StorageProvider
-from agentpool_storage.models import ConversationData as ConvData, TokenUsage
+from agentpool_storage.models import ConversationData as ConvData, MessageData, TokenUsage
 from agentpool_storage.opencode_provider import helpers
 
 
@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 
     from agentpool.messaging import ChatMessage, TokenCost
     from agentpool_config.session import SessionQuery
-    from agentpool_storage.models import ConversationData, MessageData, QueryFilters, StatsFilters
+    from agentpool_storage.models import ConversationData, QueryFilters, StatsFilters
 
 logger = get_logger(__name__)
 
@@ -519,23 +519,23 @@ class OpenCodeStorageProvider(StorageProvider):
             msg_data_list: list[MessageData] = []
             for chat_msg in chat_messages:
                 cost = chat_msg.cost_info
-                msg_data: MessageData = {
-                    "role": chat_msg.role,
-                    "content": chat_msg.content,
-                    "timestamp": (chat_msg.timestamp or get_now()).isoformat(),
-                    "parent_id": chat_msg.parent_id,
-                    "model": chat_msg.model_name,
-                    "name": chat_msg.name,
-                    "token_usage": TokenUsage(
+                msg_data = MessageData(
+                    role=chat_msg.role,
+                    content=chat_msg.content,
+                    timestamp=(chat_msg.timestamp or get_now()).isoformat(),
+                    parent_id=chat_msg.parent_id,
+                    model=chat_msg.model_name,
+                    name=chat_msg.name,
+                    token_usage=TokenUsage(
                         total=cost.token_usage.total_tokens if cost else 0,
                         prompt=cost.token_usage.input_tokens if cost else 0,
                         completion=cost.token_usage.output_tokens if cost else 0,
                     )
                     if cost
                     else None,
-                    "cost": float(cost.total_cost) if cost else None,
-                    "response_time": chat_msg.response_time,
-                }
+                    cost=float(cost.total_cost) if cost else None,
+                    response_time=chat_msg.response_time,
+                )
                 msg_data_list.append(msg_data)
 
             usage = TokenUsage(total=total_tokens, prompt=0, completion=0) if total_tokens else None
