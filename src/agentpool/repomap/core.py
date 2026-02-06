@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 import math
 from pathlib import PurePosixPath
+import re
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from agentpool.repomap.tags import Tag, get_tags_from_content
@@ -251,8 +252,6 @@ class RepoMap:
             boost_files: Files to boost in ranking.
             boost_idents: Identifiers to boost in ranking.
         """
-        import re
-
         from agentpool.repomap.types import RepoMapResult
 
         if not files:
@@ -577,8 +576,6 @@ class RepoMap:
         line_ranges: dict[int, int] | None = None,
     ) -> str:
         """Render a tree representation of a file with lines of interest."""
-        import re
-
         from grep_ast import TreeContext  # type: ignore[import-untyped]
 
         if line_ranges is None:
