@@ -237,22 +237,20 @@ def build_pydantic_messages(
     Returns:
         List of pydantic-ai messages (ModelRequest and/or ModelResponse)
     """
-    if isinstance(msg, UserMessage) and (py_msg := user_message_to_pydantic(msg, parts, timestamp)):
-        return [py_msg]
-
+    if isinstance(msg, UserMessage):
+        if py_msg := user_message_to_pydantic(msg, parts, timestamp):
+            return [py_msg]
+        return []
     result: list[ModelRequest | ModelResponse] = []
     # Assistant message - may contain both tool calls and results
     response_parts: list[TextPart | ToolCallPart | ThinkingPart] = []
     tool_return_parts: list[ToolReturnPart] = []
-    # Build usage
-    usage = RequestUsage()
-    if isinstance(msg, AssistantMessage):
-        usage = RequestUsage(
-            input_tokens=msg.tokens.input,
-            output_tokens=msg.tokens.output,
-            cache_read_tokens=msg.tokens.cache.read,
-            cache_write_tokens=msg.tokens.cache.write,
-        )
+    usage = RequestUsage(
+        input_tokens=msg.tokens.input,
+        output_tokens=msg.tokens.output,
+        cache_read_tokens=msg.tokens.cache.read,
+        cache_write_tokens=msg.tokens.cache.write,
+    )
     for part in parts:
         match part:
             case OpenCodeTextPart(text=text) if text:
@@ -286,14 +284,13 @@ def build_pydantic_messages(
     # Add the response if we have parts
     if response_parts:
         # AssistantMessage only has model_id, not model
-        result.append(
-            ModelResponse(
-                parts=response_parts,
-                usage=usage,
-                model_name=msg.model_id if isinstance(msg, AssistantMessage) else None,
-                timestamp=timestamp,
-            )
+        model_response = ModelResponse(
+            parts=response_parts,
+            usage=usage,
+            model_name=msg.model_id,
+            timestamp=timestamp,
         )
+        result.append(model_response)
     # Add tool returns as a separate request (simulating user sending results back)
     if tool_return_parts:
         result.append(ModelRequest(parts=tool_return_parts, timestamp=timestamp))
