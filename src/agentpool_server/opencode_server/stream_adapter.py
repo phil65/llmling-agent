@@ -192,7 +192,7 @@ class OpenCodeStreamAdapter:
                 text=self._response_text,
                 time=TimeStartEndOptional(start=start, end=response_time),
             )
-            self.assistant_msg.update_part(self._text_part.id, final_text_part, TextPart)
+            self.assistant_msg.update_part(self._text_part.id, final_text_part)
 
         # Step finish
         cache = TokenCache(read=0, write=0)
@@ -306,7 +306,7 @@ class OpenCodeStreamAdapter:
                 session_id=self.session_id,
                 text=self._response_text,
             )
-            self.assistant_msg.update_part(self._text_part.id, updated, TextPart)
+            self.assistant_msg.update_part(self._text_part.id, updated)
             self._text_part = updated
             yield PartUpdatedEvent.create(updated, delta=delta)
 
@@ -343,7 +343,7 @@ class OpenCodeStreamAdapter:
                 text=self._reasoning_part.text + delta,
                 time=self._reasoning_part.time,
             )
-            self.assistant_msg.update_part(self._reasoning_part.id, updated, ReasoningPart)
+            self.assistant_msg.update_part(self._reasoning_part.id, updated)
             self._reasoning_part = updated
             yield PartUpdatedEvent.create(updated, delta=delta)
 
@@ -375,7 +375,7 @@ class OpenCodeStreamAdapter:
                 ),
             )
             self._tool_parts[tool_call_id] = updated
-            self.assistant_msg.update_part(existing.id, updated, ToolPart)
+            self.assistant_msg.update_part(existing.id, updated)
             yield PartUpdatedEvent.create(updated)
         else:
             # Create new tool part
@@ -468,7 +468,7 @@ class OpenCodeStreamAdapter:
                 state=tool_state,
             )
             self._tool_parts[tool_call_id] = updated
-            self.assistant_msg.update_part(existing.id, updated, ToolPart)
+            self.assistant_msg.update_part(existing.id, updated)
             yield PartUpdatedEvent.create(updated)
         else:
             # Create new tool part from progress event
@@ -530,7 +530,7 @@ class OpenCodeStreamAdapter:
             state=new_state,
         )
         self._tool_parts[tool_call_id] = updated
-        self.assistant_msg.update_part(existing.id, updated, ToolPart)
+        self.assistant_msg.update_part(existing.id, updated)
         yield PartUpdatedEvent.create(updated)
 
     # --- stream complete ---

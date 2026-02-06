@@ -135,10 +135,10 @@ async def get_path(state: StateDep) -> PathInfo:
     return PathInfo(config="", cwd=state.working_dir, data="", root=state.working_dir, state="")
 
 
-async def _run_git_command(args: list[str], cwd: str) -> str | None:
+async def _run_command(cmd: str, args: list[str], cwd: str) -> str | None:
     """Run a git command asynchronously and return stdout, or None on error."""
     try:
-        proc = await anyenv.create_process("git", *args, cwd=cwd, stdout="pipe", stderr="pipe")
+        proc = await anyenv.create_process(cmd, *args, cwd=cwd, stdout="pipe", stderr="pipe")
         stdout, _ = await proc.communicate()
         if proc.returncode != 0:
             return None
@@ -157,12 +157,12 @@ async def get_vcs(state: StateDep) -> VcsInfo:
     """
     git_dir = Path(state.working_dir) / ".git"
     if not git_dir.is_dir():
-        return VcsInfo(branch=None, dirty=False, commit=None)
+        return VcsInfo()
 
     branch, commit, status = await asyncio.gather(
-        _run_git_command(["rev-parse", "--abbrev-ref", "HEAD"], state.working_dir),
-        _run_git_command(["rev-parse", "HEAD"], state.working_dir),
-        _run_git_command(["status", "--porcelain"], state.working_dir),
+        _run_command("git", ["rev-parse", "--abbrev-ref", "HEAD"], state.working_dir),
+        _run_command("git", ["rev-parse", "HEAD"], state.working_dir),
+        _run_command("git", ["status", "--porcelain"], state.working_dir),
     )
 
     return VcsInfo(branch=branch, dirty=bool(status), commit=commit)
