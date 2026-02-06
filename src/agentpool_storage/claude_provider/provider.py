@@ -520,23 +520,23 @@ class ClaudeStorageProvider(StorageProvider):
             # Build MessageData list
             msg_data_list: list[MessageData] = []
             for msg in parsed.messages:
-                msg_data: MessageData = {
-                    "role": msg.role,
-                    "content": msg.content,
-                    "timestamp": (msg.timestamp or get_now()).isoformat(),
-                    "parent_id": msg.parent_id,
-                    "model": msg.model_name,
-                    "name": msg.name,
-                    "token_usage": TokenUsage(
+                msg_data = MessageData(
+                    role=msg.role,
+                    content=msg.content,
+                    timestamp=(msg.timestamp or get_now()).isoformat(),
+                    parent_id=msg.parent_id,
+                    model=msg.model_name,
+                    name=msg.name,
+                    token_usage=TokenUsage(
                         total=msg.cost_info.token_usage.total_tokens if msg.cost_info else 0,
                         prompt=msg.cost_info.token_usage.input_tokens if msg.cost_info else 0,
                         completion=msg.cost_info.token_usage.output_tokens if msg.cost_info else 0,
                     )
                     if msg.cost_info
                     else None,
-                    "cost": float(msg.cost_info.total_cost) if msg.cost_info else None,
-                    "response_time": msg.response_time,
-                }
+                    cost=float(msg.cost_info.total_cost) if msg.cost_info else None,
+                    response_time=msg.response_time,
+                )
                 msg_data_list.append(msg_data)
 
             token_usage_data: TokenUsage | None = (
