@@ -212,8 +212,7 @@ class RepoMap:
         results: list[str] = []
 
         async def _recurse(current_path: str) -> None:
-            entries = await self._ls(current_path, detail=True)
-            for entry in entries:
+            for entry in await self._ls(current_path, detail=True):
                 entry_path = entry.get("name", "")
                 entry_type = entry.get("type", "")
 
@@ -229,11 +228,7 @@ class RepoMap:
         await _recurse(path)
         return results
 
-    async def get_file_map(
-        self,
-        fname: str,
-        max_tokens: int = 2048,
-    ) -> str | None:
+    async def get_file_map(self, fname: str, max_tokens: int = 2048) -> str | None:
         """Generate a structure map for a single file.
 
         Unlike get_map which uses PageRank across multiple files, this method
@@ -247,18 +242,15 @@ class RepoMap:
             Formatted structure map or None if no tags found
         """
         rel_fname = get_rel_path(fname, self.root_path)
-
         # Get all definition tags for this file
         tags = await self._get_tags(fname, rel_fname)
         def_tags = [t for t in tags if t.kind == "def"]
-
         if not def_tags:
             return None
 
         # Build line ranges for rendering
         lois: list[int] = []
         line_ranges: dict[int, int] = {}
-
         for tag in def_tags:
             if tag.signature_end_line >= tag.line:
                 lois.extend(range(tag.line, tag.signature_end_line + 1))
@@ -490,11 +482,9 @@ class RepoMap:
         except Exception:  # noqa: BLE001
             return
 
-        tokens = list(lexer.get_tokens(code))
-        name_tokens = [token[1] for token in tokens if token[0] in Token.Name]  # type: ignore[comparison-overlap]
-
-        for token in name_tokens:
-            yield Tag(rel_fname=rel_fname, fname=fname, name=token, kind="ref", line=-1)
+        for token_type, value in lexer.get_tokens(code):
+            if token_type in Token.Name:
+                yield Tag(rel_fname=rel_fname, fname=fname, name=value, kind="ref", line=-1)
 
     async def _get_ranked_tags(  # noqa: PLR0915
         self,
