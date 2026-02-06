@@ -424,6 +424,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         and starts an MCP bridge to expose them to Claude Code via the SDK's
         native MCP support. Also converts external MCP servers to SDK format.
         """
+        from clawd_code_sdk.types import McpHttpServerConfig
+
         # Convert external MCP servers to SDK format first
         if self._external_mcp_servers:
             external_configs = convert_mcp_servers_to_sdk_format(self._external_mcp_servers)
@@ -437,7 +439,16 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             self.tools.add_provider(provider)
         await self._tool_bridge.start()
         # Get Claude SDK-compatible MCP config and merge into our servers dict
-        mcp_config = self._tool_bridge.get_claude_mcp_server_config()
+        if self._tool_bridge._actual_port is None:
+            raise RuntimeError("Bridge not started - call start() first")
+
+        # Use HTTP transport to preserve _meta field with claudecode/toolUseId
+        # SDK transport drops _meta in Claude Agent SDK's query.py
+        url = f"http://127.0.0.1:{self._tool_bridge.port}/mcp"
+        mcp_config = {
+            self._tool_bridge.resolved_server_name: McpHttpServerConfig(type="http", url=url)
+        }
+
         self._mcp_servers.update(mcp_config)
         self.log.info("Toolsets initialized", toolset_count=len(self._toolsets))
 

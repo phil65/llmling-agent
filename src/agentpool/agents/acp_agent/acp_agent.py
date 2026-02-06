@@ -38,6 +38,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self
 import uuid
 
 import anyio
+from pydantic import HttpUrl
 from pydantic_ai import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from acp import InitializeRequest
@@ -255,13 +256,17 @@ class ACPAgent[TDeps = None](BaseAgent[TDeps, str]):
 
     async def _setup_toolsets(self) -> None:
         """Initialize toolsets and start bridge if needed."""
+        from acp.schema import HttpMcpServer
+
         if not self._tool_providers:
             return
         # Add all tool providers to tool manager
         for provider in self._tool_providers:
             self.tools.add_provider(provider)
         await self._tool_bridge.start()
-        mcp_config = self._tool_bridge.get_mcp_server_config()
+
+        url = HttpUrl(self._tool_bridge.url)
+        mcp_config = HttpMcpServer(name=self._tool_bridge.resolved_server_name, url=url)
         self._extra_mcp_servers.append(mcp_config)
 
     async def __aenter__(self) -> Self:

@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any, Self, get_args, get_origin
 from uuid import uuid4
 
 import anyio
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 from pydantic_ai import RunContext
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
@@ -34,19 +34,16 @@ from agentpool.utils.signatures import filter_schema_params, get_params_matching
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Sequence
 
-    from clawd_code_sdk.types import McpServerConfig
     from fastmcp import Context, FastMCP
     from fastmcp.tools.tool import ToolResult
     from pydantic_ai.messages import UserContent
     from uvicorn import Server
 
-    from acp.schema.mcp import HttpMcpServer
     from agentpool.agents import AgentContext
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.agents.prompt_injection import PromptInjectionManager
     from agentpool.tools.base import Tool
     from agentpool.ui.base import InputProvider
-    from codex_adapter.codex_types import HttpMcpServer as CodexHttpMcpServer
 _ = ResourceChangeEvent  # Used at runtime in method signature
 
 
@@ -391,59 +388,6 @@ class ToolManagerBridge:
         """Get the server name."""
         return self.server_name or f"agentpool-{self.node.name}-tools"
 
-    def get_mcp_server_config(self) -> HttpMcpServer:
-        """Get ACP-compatible MCP server configuration.
-
-        Returns config suitable for passing to ACP agent's NewSessionRequest.
-        """
-        from acp.schema import HttpMcpServer
-
-        url = HttpUrl(self.url)
-        return HttpMcpServer(name=self.resolved_server_name, url=url)
-
-    def get_claude_mcp_server_config(self) -> dict[str, McpServerConfig]:
-        """Get Claude Agent SDK-compatible MCP server configuration.
-
-        Returns a dict suitable for passing to ClaudeAgentOptions.mcp_servers.
-        Uses HTTP transport to preserve MCP _meta field which contains
-        claudecode/toolUseId needed for proper tool_call_id correlation.
-
-        Note: SDK transport (passing FastMCP instance directly) would be faster
-        but the Claude Agent SDK's _handle_sdk_mcp_request drops the _meta field,
-        breaking tool_call_id propagation for progress events.
-
-        Returns:
-            Dict mapping server name to McpHttpServerConfig
-
-        Raises:
-            RuntimeError: If bridge not started (no server running)
-        """
-        if self._actual_port is None:
-            raise RuntimeError("Bridge not started - call start() first")
-
-        # Use HTTP transport to preserve _meta field with claudecode/toolUseId
-        # SDK transport drops _meta in Claude Agent SDK's query.py
-        url = f"http://127.0.0.1:{self.port}/mcp"
-        return {self.resolved_server_name: {"type": "http", "url": url}}
-
-    def get_codex_mcp_server_config(self) -> tuple[str, CodexHttpMcpServer]:
-        """Get Codex app-server-compatible MCP server configuration.
-
-        Returns:
-            Tuple of (server name, HttpMcpServer config) suitable for adding
-            to CodexClient mcp_servers dict.
-
-        Raises:
-            RuntimeError: If bridge not started (no server running)
-        """
-        from codex_adapter.codex_types import HttpMcpServer as CodexHttpMcpServer
-
-        if self._actual_port is None:
-            raise RuntimeError("Bridge not started - call start() first")
-
-        url = f"http://127.0.0.1:{self.port}/mcp"
-        return (self.resolved_server_name, CodexHttpMcpServer(url=url))
-
     async def _register_tools(self) -> None:
         """Register all node tools with the FastMCP server."""
         if not self._mcp:
@@ -471,8 +415,9 @@ class ToolManagerBridge:
                 schema = tool.schema["function"]
                 input_schema = schema.get("parameters", {"type": "object", "properties": {}})
                 # Filter out context parameters - they're auto-injected by the bridge
-                context_params = _get_context_param_names(tool.get_callable(), "AgentContext")
-                run_context_params = _get_context_param_names(tool.get_callable(), "RunContext")
+                fn = tool.get_callable()
+                context_params = _get_context_param_names(fn, "AgentContext")
+                run_context_params = _get_context_param_names(fn, "RunContext")
                 all_context_params = context_params | run_context_params
                 filtered_schema = filter_schema_params(input_schema, all_context_params)
                 desc = tool.description or "No description"

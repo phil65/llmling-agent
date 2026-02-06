@@ -225,17 +225,20 @@ class CodexAgent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT])
 
     async def _setup_toolsets(self) -> None:
         """Setup toolsets and start the tool bridge."""
+        from codex_adapter.codex_types import HttpMcpServer as CodexHttpMcpServer
+
         if not self._toolsets:
             return
-
         # Add toolset providers to tool manager
         for provider in self._toolsets:
             self.tools.add_provider(provider)
         # Start bridge to expose tools via MCP
         await self._tool_bridge.start()
         # Add bridge's MCP server config to extra servers
-        # get_codex_mcp_server_config returns (name, HttpMcpServer)
-        bridge_config = self._tool_bridge.get_codex_mcp_server_config()
+        if self._tool_bridge._actual_port is None:
+            raise RuntimeError("Bridge not started - call start() first")
+        url = f"http://127.0.0.1:{self._tool_bridge.port}/mcp"
+        bridge_config = (self._tool_bridge.resolved_server_name, CodexHttpMcpServer(url=url))
         self._extra_mcp_servers.append(bridge_config)
 
     async def __aenter__(self) -> Self:
