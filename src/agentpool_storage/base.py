@@ -228,10 +228,7 @@ class StorageProvider:
         msg = f"{self.__class__.__name__} does not support retrieving commands"
         raise NotImplementedError(msg)
 
-    async def get_sessions(
-        self,
-        filters: QueryFilters,
-    ) -> list[ConversationData]:
+    async def get_sessions(self, filters: QueryFilters) -> list[ConversationData]:
         """Get filtered conversations with their messages.
 
         Args:
@@ -267,10 +264,7 @@ class StorageProvider:
         msg = f"{self.__class__.__name__} does not support filtered conversations"
         raise NotImplementedError(msg)
 
-    async def get_session_stats(
-        self,
-        filters: StatsFilters,
-    ) -> dict[str, dict[str, Any]]:
+    async def get_session_stats(self, filters: StatsFilters) -> dict[str, dict[str, Any]]:
         """Get conversation statistics grouped by specified criterion.
 
         Args:

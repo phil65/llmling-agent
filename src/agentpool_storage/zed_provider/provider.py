@@ -176,10 +176,7 @@ class ZedStorageProvider(StorageProvider):
         """Log a conversation - NOT SUPPORTED (read-only provider)."""
         logger.warning("ZedStorageProvider is read-only, cannot log conversations")
 
-    async def get_sessions(
-        self,
-        filters: QueryFilters,
-    ) -> list[ConversationData]:
+    async def get_sessions(self, filters: QueryFilters) -> list[ConversationData]:
         """Get filtered conversations with their messages."""
         result: list[ConversationData] = []
         # Use SQL-level filtering for efficiency

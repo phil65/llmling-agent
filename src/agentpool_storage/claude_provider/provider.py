@@ -476,10 +476,7 @@ class ClaudeStorageProvider(StorageProvider):
         This is a no-op but could be extended to create an initial entry.
         """
 
-    async def get_sessions(
-        self,
-        filters: QueryFilters,
-    ) -> list[ConversationData]:
+    async def get_sessions(self, filters: QueryFilters) -> list[ConversationData]:
         """Get filtered conversations with their messages.
 
         Uses parallel parsing on free-threaded Python for better performance
@@ -605,11 +602,7 @@ class ClaudeStorageProvider(StorageProvider):
 
         return conv_count, msg_count
 
-    async def get_session_counts(
-        self,
-        *,
-        agent_name: str | None = None,
-    ) -> tuple[int, int]:
+    async def get_session_counts(self, *, agent_name: str | None = None) -> tuple[int, int]:
         """Get counts of conversations and messages."""
         conv_count = 0
         msg_count = 0

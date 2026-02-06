@@ -216,7 +216,7 @@ def _convert_flat_message(
             messages=[ModelRequest(parts=[part])],
         )
     # assistant
-    pydantic_parts: list[TextPart | ThinkingPart | ToolCallPart] = [TextPart(content=display_text)]
+    pydantic_parts = [TextPart(content=display_text)]
     model_response = ModelResponse(parts=pydantic_parts, model_name=model_name)
     return ChatMessage[str](
         content=display_text,

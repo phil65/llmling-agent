@@ -290,10 +290,8 @@ class SQLModelProvider(StorageProvider):
                         Message.session_id == source_session_id,
                     )
                 )
-                fork_msg = msg_result.scalar_one_or_none()
-                if not fork_msg:
-                    err = f"Message {fork_from_message_id} not found in conversation"
-                    raise ValueError(err)
+                if not msg_result.scalar_one_or_none():
+                    raise ValueError(f"Message {fork_from_message_id} not found in conversation")
                 fork_point_id = fork_from_message_id
             else:
                 # Fork from the last message
@@ -303,8 +301,7 @@ class SQLModelProvider(StorageProvider):
                     .order_by(desc(Message.timestamp))
                     .limit(1)
                 )
-                last_msg = msg_result.scalar_one_or_none()
-                if last_msg:
+                if last_msg := msg_result.scalar_one_or_none():
                     fork_point_id = last_msg.id
 
             # Create new conversation
@@ -370,12 +367,9 @@ class SQLModelProvider(StorageProvider):
         )
 
         # Use existing get_sessions method
-        conversations = await self.get_sessions(filters)
         return [
-            format_conversation(
-                conv, conv["messages"], compact=compact, include_tokens=include_tokens
-            )
-            for conv in conversations
+            format_conversation(i, i["messages"], compact=compact, include_tokens=include_tokens)
+            for i in await self.get_sessions(filters)
         ]
 
     async def get_commands(
@@ -401,31 +395,21 @@ class SQLModelProvider(StorageProvider):
             result = await session.execute(query)
             return [h.command for h in result.scalars()]
 
-    async def get_sessions(
-        self,
-        filters: QueryFilters,
-    ) -> list[ConversationData]:
+    async def get_sessions(self, filters: QueryFilters) -> list[ConversationData]:
         """Get filtered conversations using SQL queries."""
         async with AsyncSession(self.engine) as session:
             results: list[ConversationData] = []
-
             # Base conversation query
             conv_query = select(Conversation)
-
             if filters.agent_name:
                 conv_query = conv_query.where(Conversation.agent_name == filters.agent_name)
-
             # Apply time filters if provided
             if filters.since:
                 conv_query = conv_query.where(Conversation.start_time >= filters.since)
-
             if filters.limit:
                 conv_query = conv_query.limit(filters.limit)
-
             conv_result = await session.execute(conv_query)
-            conversations = conv_result.scalars().all()
-
-            for conv in conversations:
+            for conv in conv_result.scalars().all():
                 # Get messages for this conversation
                 msg_query = select(Message).where(Message.session_id == conv.id)
 
@@ -440,8 +424,8 @@ class SQLModelProvider(StorageProvider):
 
                 if not messages:
                     continue
-
-                results.append(format_conversation(conv, messages))
+                chat_msgs = [to_chat_message(msg) for msg in messages]
+                results.append(format_conversation(conv, chat_msgs))
 
             return results
 
@@ -561,7 +545,6 @@ class SQLModelProvider(StorageProvider):
                 select(func.count()).where(Message.session_id == session_id)
             )
             count = count_result.scalar() or 0
-
             # Then delete
             await session.execute(
                 delete(Message).where(Message.session_id == session_id)  # type: ignore[arg-type]
@@ -607,7 +590,6 @@ class SQLModelProvider(StorageProvider):
             # Delete existing if present (upsert via delete+insert)
             stmt = delete(Project).where(Project.project_id == project.project_id)  # type: ignore[arg-type]
             await session.execute(stmt)
-
             # Insert new/updated
             db_project = self._to_project_model(project)
             session.add(db_project)

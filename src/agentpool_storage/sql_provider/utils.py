@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import RunUsage
 from sqlalchemy import Column, and_
 from sqlmodel import select
 
+from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.storage import deserialize_messages
 from agentpool_storage.models import ConversationData
@@ -28,6 +30,7 @@ if TYPE_CHECKING:
 
 # Track migrated databases to skip redundant migration attempts
 _migrated_databases: set[str] = set()
+logger = get_logger(__name__)
 
 
 def aggregate_token_usage(
@@ -53,13 +56,11 @@ def to_chat_message(db_message: Message) -> ChatMessage[str]:
     """Convert database message to ChatMessage."""
     cost_info = None
     if db_message.total_tokens is not None:
-        cost_info = TokenCost(
-            token_usage=RunUsage(
-                input_tokens=db_message.input_tokens or 0,
-                output_tokens=db_message.output_tokens or 0,
-            ),
-            total_cost=Decimal(db_message.cost or 0.0),
+        usage = RunUsage(
+            input_tokens=db_message.input_tokens or 0,
+            output_tokens=db_message.output_tokens or 0,
         )
+        cost_info = TokenCost(token_usage=usage, total_cost=Decimal(db_message.cost or 0.0))
 
     return ChatMessage[str](
         message_id=db_message.id,
@@ -87,20 +88,13 @@ def run_alembic_migrations(connection: Any) -> None:
     Args:
         connection: SQLAlchemy connection (sync)
     """
-    from pathlib import Path
-
     from alembic.config import Config
     from alembic.runtime.environment import EnvironmentContext
     from alembic.script import ScriptDirectory
     from sqlmodel import SQLModel
 
-    from agentpool.log import get_logger
-
-    logger = get_logger(__name__)
-
     # Get database URL for tracking
     db_url = str(connection.engine.url)
-
     # Check if already migrated in this process (fast path)
     if db_url in _migrated_databases:
         logger.debug("Skipping migrations, already completed for this database")
@@ -116,7 +110,6 @@ def run_alembic_migrations(connection: Any) -> None:
     alembic_cfg = Config()
     alembic_cfg.set_main_option("script_location", str(migrations_dir))
     alembic_cfg.attributes["connection"] = connection
-
     script = ScriptDirectory.from_config(alembic_cfg)
 
     def upgrade_fn(rev: str, context: EnvironmentContext) -> list:  # type: ignore[type-arg]
@@ -130,10 +123,7 @@ def run_alembic_migrations(connection: Any) -> None:
         starting_rev=None,
         destination_rev="head",
     ) as env_context:
-        env_context.configure(
-            connection=connection,
-            target_metadata=SQLModel.metadata,
-        )
+        env_context.configure(connection=connection, target_metadata=SQLModel.metadata)
         with env_context.begin_transaction():
             env_context.run_migrations()
 
@@ -203,7 +193,7 @@ def build_message_query(query: SessionQuery) -> SelectOfScalar[Any]:
 
 def format_conversation(
     conv: Conversation | ConversationData,
-    messages: Sequence[Message | ChatMessage[str]],
+    messages: Sequence[ChatMessage[str]],
     *,
     include_tokens: bool = False,
     compact: bool = False,
@@ -213,9 +203,6 @@ def format_conversation(
     if compact and len(msgs) > 1:
         msgs = [msgs[0], msgs[-1]]
 
-    # Convert messages to ChatMessage format if needed
-    chat_messages = [msg if isinstance(msg, ChatMessage) else to_chat_message(msg) for msg in msgs]
-
     # Convert Conversation to ConversationData format
     if isinstance(conv, Conversation):
         return ConversationData(
@@ -223,7 +210,7 @@ def format_conversation(
             agent=conv.agent_name,
             title=conv.title,
             start_time=conv.start_time.isoformat(),
-            messages=chat_messages,
+            messages=msgs,
             token_usage=aggregate_token_usage(msgs) if include_tokens else None,
         )
 

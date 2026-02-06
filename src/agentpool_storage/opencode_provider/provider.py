@@ -471,10 +471,7 @@ class OpenCodeStorageProvider(StorageProvider):
         """Log a conversation start."""
         # No-op for read-only provider
 
-    async def get_sessions(
-        self,
-        filters: QueryFilters,
-    ) -> list[ConvData]:
+    async def get_sessions(self, filters: QueryFilters) -> list[ConvData]:
         """Get filtered conversations with their messages."""
         result: list[ConvData] = []
         for session_id, session_path in self._list_sessions():
@@ -760,28 +757,21 @@ if __name__ == "__main__":
 
     async def main() -> None:
         provider = OpenCodeStorageProvider()
-
         print(f"Base path: {provider.base_path}")
         print(f"Exists: {provider.base_path.exists()}")
-
         # List conversations
         filters = QueryFilters(limit=10)
         conversations = await provider.get_sessions(filters)
         print(f"\nFound {len(conversations)} conversations")
-
         for conv_data in conversations[:5]:
             print(f"  - {conv_data['id'][:8]}... | {conv_data['title'] or 'Untitled'}")
             print(f"    Messages: {len(conv_data['messages'])}, Updated: {conv_data['start_time']}")
-
         # Get counts
         conv_count, msg_count = await provider.get_session_counts()
         print(f"\nTotal: {conv_count} conversations, {msg_count} messages")
-
         # Get stats
-        stats_filters = StatsFilters(
-            cutoff=dt.datetime.now(dt.UTC) - dt.timedelta(days=30),
-            group_by="day",
-        )
+        cutoff = dt.datetime.now(dt.UTC) - dt.timedelta(days=30)
+        stats_filters = StatsFilters(cutoff=cutoff, group_by="day")
         stats = await provider.get_session_stats(stats_filters)
         print(f"\nStats: {stats}")
 

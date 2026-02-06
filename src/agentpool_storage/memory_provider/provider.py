@@ -265,13 +265,9 @@ class MemoryStorageProvider(StorageProvider):
                 break
         return filtered
 
-    async def get_sessions(
-        self,
-        filters: QueryFilters,
-    ) -> list[ConversationData]:
+    async def get_sessions(self, filters: QueryFilters) -> list[ConversationData]:
         """Get filtered conversations from memory."""
         results: list[ConversationData] = []
-
         # First get matching conversations
         convs = {}
         for conv in self.conversations:
@@ -304,7 +300,6 @@ class MemoryStorageProvider(StorageProvider):
                 token_usage=self._aggregate_token_usage(conv_messages),
             )
             results.append(conv_data)
-
             if filters.limit and len(results) >= filters.limit:
                 break
 

@@ -64,10 +64,7 @@ class CodexStorageProvider(StorageProvider):
         """Whether the provider has an active client."""
         return self._client is not None
 
-    async def get_sessions(
-        self,
-        filters: QueryFilters,
-    ) -> list[ConversationData]:
+    async def get_sessions(self, filters: QueryFilters) -> list[ConversationData]:
         """Get sessions from the Codex server.
 
         Args:
