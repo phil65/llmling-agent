@@ -40,6 +40,11 @@ from agentpool_server.opencode_server.models import (
     ToolStateCompleted,
     UserMessage,
 )
+from agentpool_server.opencode_server.models.parts import (
+    ToolStateError,
+    ToolStatePending,
+    ToolStateRunning,
+)
 
 
 if TYPE_CHECKING:
@@ -56,6 +61,22 @@ if TYPE_CHECKING:
 
 
 logger = get_logger(__name__)
+
+
+def to_user_content(url: str, mime: str):
+    if mime.startswith("image/"):
+        mime_typ = mime if mime != "image/*" else None
+        return ImageUrl(url=url, media_type=mime_typ)
+    if mime.startswith("audio/"):
+        mime_typ = mime if mime != "audio/*" else None
+        return AudioUrl(url=url, media_type=mime_typ)
+    if mime.startswith("video/"):
+        mime_typ = mime if mime != "video/*" else None
+        return VideoUrl(url=url, media_type=mime_typ)
+    if mime == "application/pdf" or mime.startswith("application/"):
+        return DocumentUrl(url=url, media_type=mime)
+    # Unknown MIME type - treat as document
+    return DocumentUrl(url=url, media_type=mime)
 
 
 def convert_user_content_to_parts(
@@ -167,7 +188,7 @@ def extract_text_content(parts: list[OpenCodePart]) -> str:
     return "\n".join(text_segments)
 
 
-def build_pydantic_messages(  # noqa: PLR0915
+def build_pydantic_messages(
     msg: OpenCodeMessage,
     parts: list[OpenCodePart],
     timestamp: datetime,
@@ -193,37 +214,21 @@ def build_pydantic_messages(  # noqa: PLR0915
         # Build UserPromptPart content from text and file parts
         user_content: list[UserContent] = []
         for part in parts:
-            if isinstance(part, OpenCodeTextPart) and part.text:
-                user_content.append(part.text)
-            elif isinstance(part, OpenCodeFilePart):
-                # Convert FilePart back to appropriate UserContent type
-                url = part.url
-                mime = part.mime
-                # Detect data URLs for BinaryContent
-                if url.startswith("data:"):
-                    # Parse data URL: data:mime;base64,data
-                    if ";base64," in url:
-                        mime_part, b64_data = url.split(";base64,", 1)
-                        media_type = mime_part.replace("data:", "")
-                        data = base64.b64decode(b64_data)
-                        user_content.append(BinaryContent(data=data, media_type=media_type))
-                    continue
-                # Convert to appropriate URL type based on MIME
-                if mime.startswith("image/"):
-                    mime_typ = mime if mime != "image/*" else None
-                    user_content.append(ImageUrl(url=url, media_type=mime_typ))
-                elif mime.startswith("audio/"):
-                    mime_typ = mime if mime != "audio/*" else None
-                    user_content.append(AudioUrl(url=url, media_type=mime_typ))
-                elif mime.startswith("video/"):
-                    mime_typ = mime if mime != "video/*" else None
-                    user_content.append(VideoUrl(url=url, media_type=mime_typ))
-                elif mime == "application/pdf" or mime.startswith("application/"):
-                    user_content.append(DocumentUrl(url=url, media_type=mime))
-                else:
-                    # Unknown MIME type - treat as document
-                    user_content.append(DocumentUrl(url=url, media_type=mime))
-
+            match part:
+                case OpenCodeTextPart() if part.text:
+                    user_content.append(part.text)
+                case OpenCodeFilePart(url=url, mime=mime):
+                    # Detect data URLs for BinaryContent
+                    if url.startswith("data:"):
+                        # Parse data URL: data:mime;base64,data
+                        if ";base64," in url:
+                            mime_part, b64_data = url.split(";base64,", 1)
+                            media_type = mime_part.replace("data:", "")
+                            data = base64.b64decode(b64_data)
+                            user_content.append(BinaryContent(data=data, media_type=media_type))
+                        continue
+                    # Convert to appropriate URL type based on MIME
+                    user_content.append(to_user_content(url, mime))
         if user_content:
             user_part = UserPromptPart(content=user_content, timestamp=timestamp)
             result.append(ModelRequest(parts=[user_part], timestamp=timestamp))
@@ -241,25 +246,35 @@ def build_pydantic_messages(  # noqa: PLR0915
             cache_write_tokens=msg.tokens.cache.write,
         )
     for part in parts:
-        if isinstance(part, OpenCodeTextPart) and part.text:
-            response_parts.append(TextPart(content=part.text))
-        elif isinstance(part, OpenCodeReasoningPart) and part.text:
-            response_parts.append(ThinkingPart(content=part.text))
-        elif isinstance(part, OpenCodeToolPart):
-            # Add tool call to response
-            args = part.state.input or {}
-            tc_part = ToolCallPart(tool_name=part.tool, args=args, tool_call_id=part.call_id)
-            response_parts.append(tc_part)
-            # If completed, also create a tool return
-            if isinstance(part.state, ToolStateCompleted) and part.state.output:
+        match part:
+            case OpenCodeTextPart(text=text) if text:
+                response_parts.append(TextPart(content=text))
+            case OpenCodeReasoningPart(text=text) if text:
+                response_parts.append(ThinkingPart(content=text))
+            case OpenCodeToolPart(
+                call_id=call_id,
+                tool=tool,
+                state=ToolStateCompleted(output=output, input=input) as state,
+            ) if output:
+                # Add tool call to response
+                tc_part = ToolCallPart(tool_name=tool, args=input or {}, tool_call_id=call_id)
+                response_parts.append(tc_part)
                 return_part = ToolReturnPart(
-                    tool_name=part.tool,
-                    content=part.state.output,
-                    tool_call_id=part.call_id,
+                    tool_name=tool,
+                    content=state.output,
+                    tool_call_id=call_id,
                     timestamp=timestamp,
                 )
                 tool_return_parts.append(return_part)
-
+            case OpenCodeToolPart(
+                call_id=call_id,
+                tool=tool,
+                state=ToolStatePending(input=input)
+                | ToolStateRunning(input=input)
+                | ToolStateError(input=input),
+            ):
+                tc_part = ToolCallPart(tool_name=tool, args=input or {}, tool_call_id=call_id)
+                response_parts.append(tc_part)
     # Add the response if we have parts
     if response_parts:
         # AssistantMessage only has model_id, not model
