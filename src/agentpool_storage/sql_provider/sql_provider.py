@@ -460,15 +460,15 @@ class SQLModelProvider(StorageProvider):
                     timestamp,
                     TokenCost(
                         token_usage=RunUsage(
-                            input_tokens=prompt or 0,
-                            output_tokens=completion or 0,
+                            input_tokens=input_tokens or 0,
+                            output_tokens=output_tokens or 0,
                         ),
                         total_cost=Decimal(0),  # We don't store this in DB
                     )
-                    if total or prompt or completion
+                    if total or input_tokens or output_tokens
                     else None,
                 )
-                for model, agent, timestamp, total, prompt, completion in result.all()
+                for model, agent, timestamp, total, input_tokens, output_tokens in result.all()
             ]
 
         # Use base class aggregation

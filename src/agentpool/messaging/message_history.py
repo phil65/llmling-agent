@@ -55,9 +55,8 @@ class MessageHistory:
         from agentpool.prompts.conversion_manager import ConversionManager
         from agentpool_config.storage import MemoryStorageConfig, StorageConfig
 
-        self._storage = storage or StorageManager(
-            config=StorageConfig(providers=[MemoryStorageConfig()])
-        )
+        storage_cfg = StorageConfig(providers=[MemoryStorageConfig()])
+        self._storage = storage or StorageManager(config=storage_cfg)
         self._converter = converter or ConversionManager([])
         self.chat_messages = ChatMessageList()
         if messages:
@@ -170,10 +169,8 @@ class MessageHistory:
                 case BasePrompt():
                     await self.add_context_from_prompt(source)
         except Exception:
-            logger.exception(
-                "Failed to load context",
-                source="file" if isinstance(source, str) else source.type,
-            )
+            source = "file" if isinstance(source, str) else source.type
+            logger.exception("Failed to load context", source=source)
 
     def get_history(self) -> list[ChatMessage[Any]]:
         """Get conversation history in chronological order."""
