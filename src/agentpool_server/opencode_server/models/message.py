@@ -121,14 +121,14 @@ class MessageWithParts(OpenCodeBaseModel):
 class TextPartInput(OpenCodeBaseModel):
     """Text part for input."""
 
-    type: Literal["text"] = "text"
+    type: Literal["text"] = Field(default="text", init=False)
     text: str
 
 
 class FilePartInput(OpenCodeBaseModel):
     """File part for input (image, document, etc.)."""
 
-    type: Literal["file"] = "file"
+    type: Literal["file"] = Field(default="file", init=False)
     mime: str
     filename: str | None = None
     url: str  # Can be data: URI or file path
@@ -141,7 +141,7 @@ class AgentPartInput(OpenCodeBaseModel):
     When a user types @agent-name in the prompt, this part is created.
     """
 
-    type: Literal["agent"] = "agent"
+    type: Literal["agent"] = Field(default="agent", init=False)
     name: str
     """Name of the agent to delegate to."""
     source: AgentPartSource | None = None
@@ -151,7 +151,7 @@ class AgentPartInput(OpenCodeBaseModel):
 class SubtaskPartInput(OpenCodeBaseModel):
     """Subtask part for input - spawns a subtask to another agent."""
 
-    type: Literal["subtask"] = "subtask"
+    type: Literal["subtask"] = Field(default="subtask", init=False)
     prompt: str
     """The prompt for the subtask."""
     description: str

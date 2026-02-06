@@ -60,7 +60,7 @@ class TextPart(OpenCodeBaseModel):
     """Text content part."""
 
     id: str
-    type: Literal["text"] = "text"
+    type: Literal["text"] = Field(default="text", init=False)
     message_id: str
     session_id: str
     text: str
@@ -73,7 +73,7 @@ class TextPart(OpenCodeBaseModel):
 class ToolStatePending(OpenCodeBaseModel):
     """Pending tool state."""
 
-    status: Literal["pending"] = "pending"
+    status: Literal["pending"] = Field(default="pending", init=False)
     input: dict[str, Any] = Field(default_factory=dict)
     raw: str = ""
 
@@ -81,7 +81,7 @@ class ToolStatePending(OpenCodeBaseModel):
 class ToolStateRunning(OpenCodeBaseModel):
     """Running tool state."""
 
-    status: Literal["running"] = "running"
+    status: Literal["running"] = Field(default="running", init=False)
     time: TimeStart
     input: dict[str, Any] = Field(default_factory=dict)
     metadata: dict[str, Any] | None = None
@@ -91,7 +91,7 @@ class ToolStateRunning(OpenCodeBaseModel):
 class ToolStateCompleted(OpenCodeBaseModel):
     """Completed tool state."""
 
-    status: Literal["completed"] = "completed"
+    status: Literal["completed"] = Field(default="completed", init=False)
     input: dict[str, Any] = Field(default_factory=dict)
     output: str = ""
     title: str = ""
@@ -103,7 +103,7 @@ class ToolStateCompleted(OpenCodeBaseModel):
 class ToolStateError(OpenCodeBaseModel):
     """Error tool state."""
 
-    status: Literal["error"] = "error"
+    status: Literal["error"] = Field(default="error", init=False)
     input: dict[str, Any] = Field(default_factory=dict)
     error: str = ""
     metadata: dict[str, Any] | None = None
@@ -117,7 +117,7 @@ class ToolPart(OpenCodeBaseModel):
     """Tool call part."""
 
     id: str
-    type: Literal["tool"] = "tool"
+    type: Literal["tool"] = Field(default="tool", init=False)
     message_id: str
     session_id: str
     call_id: str
@@ -152,7 +152,7 @@ class FileSource(OpenCodeBaseModel):
     """File source - references a file path."""
 
     text: FilePartSourceText
-    type: Literal["file"] = "file"
+    type: Literal["file"] = Field(default="file", init=False)
     path: str
 
     @classmethod
@@ -164,7 +164,7 @@ class SymbolSource(OpenCodeBaseModel):
     """Symbol source - references an LSP symbol."""
 
     text: FilePartSourceText
-    type: Literal["symbol"] = "symbol"
+    type: Literal["symbol"] = Field(default="symbol", init=False)
     path: str
     range: LSPRange
     name: str
@@ -175,7 +175,7 @@ class ResourceSource(OpenCodeBaseModel):
     """Resource source - references an MCP resource."""
 
     text: FilePartSourceText
-    type: Literal["resource"] = "resource"
+    type: Literal["resource"] = Field(default="resource", init=False)
     client_name: str
     uri: str
 
@@ -187,7 +187,7 @@ class FilePart(OpenCodeBaseModel):
     """File content part."""
 
     id: str
-    type: Literal["file"] = "file"
+    type: Literal["file"] = Field(default="file", init=False)
     message_id: str
     session_id: str
     mime: str
@@ -213,7 +213,7 @@ class AgentPart(OpenCodeBaseModel):
     """
 
     id: str
-    type: Literal["agent"] = "agent"
+    type: Literal["agent"] = Field(default="agent", init=False)
     message_id: str
     session_id: str
     name: str
@@ -226,7 +226,7 @@ class SnapshotPart(OpenCodeBaseModel):
     """File system snapshot reference."""
 
     id: str
-    type: Literal["snapshot"] = "snapshot"
+    type: Literal["snapshot"] = Field(default="snapshot", init=False)
     message_id: str
     session_id: str
     snapshot: str
@@ -237,7 +237,7 @@ class PatchPart(OpenCodeBaseModel):
     """Diff/patch content part."""
 
     id: str
-    type: Literal["patch"] = "patch"
+    type: Literal["patch"] = Field(default="patch", init=False)
     message_id: str
     session_id: str
     hash: str
@@ -253,7 +253,7 @@ class ReasoningPart(OpenCodeBaseModel):
     """
 
     id: str
-    type: Literal["reasoning"] = "reasoning"
+    type: Literal["reasoning"] = Field(default="reasoning", init=False)
     message_id: str
     session_id: str
     text: str
@@ -266,7 +266,7 @@ class CompactionPart(OpenCodeBaseModel):
     """Marks where conversation was compacted/summarized."""
 
     id: str
-    type: Literal["compaction"] = "compaction"
+    type: Literal["compaction"] = Field(default="compaction", init=False)
     message_id: str
     session_id: str
     auto: bool = False
@@ -277,7 +277,7 @@ class SubtaskPart(OpenCodeBaseModel):
     """References a spawned subtask."""
 
     id: str
-    type: Literal["subtask"] = "subtask"
+    type: Literal["subtask"] = Field(default="subtask", init=False)
     message_id: str
     session_id: str
     prompt: str
@@ -307,7 +307,7 @@ class RetryPart(OpenCodeBaseModel):
     """Marks a retry of a failed operation."""
 
     id: str
-    type: Literal["retry"] = "retry"
+    type: Literal["retry"] = Field(default="retry", init=False)
     message_id: str
     session_id: str
     attempt: int
@@ -321,7 +321,7 @@ class StepStartPart(OpenCodeBaseModel):
     """Step start marker."""
 
     id: str
-    type: Literal["step-start"] = "step-start"
+    type: Literal["step-start"] = Field(default="step-start", init=False)
     message_id: str
     session_id: str
     snapshot: str | None = None
@@ -347,7 +347,7 @@ class StepFinishPart(OpenCodeBaseModel):
     """Step finish marker."""
 
     id: str
-    type: Literal["step-finish"] = "step-finish"
+    type: Literal["step-finish"] = Field(default="step-finish", init=False)
     message_id: str
     session_id: str
     reason: str = "stop"

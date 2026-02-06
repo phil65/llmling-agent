@@ -27,7 +27,7 @@ class EmptyProperties(OpenCodeBaseModel):
 class ServerConnectedEvent(OpenCodeBaseModel):
     """Server connected event."""
 
-    type: Literal["server.connected"] = "server.connected"
+    type: Literal["server.connected"] = Field(default="server.connected", init=False)
     properties: EmptyProperties = Field(default_factory=EmptyProperties)
 
 
@@ -40,7 +40,7 @@ class SessionInfoProperties(OpenCodeBaseModel):
 class SessionCreatedEvent(OpenCodeBaseModel):
     """Session created event."""
 
-    type: Literal["session.created"] = "session.created"
+    type: Literal["session.created"] = Field(default="session.created", init=False)
     properties: SessionInfoProperties
 
     @classmethod
@@ -51,7 +51,7 @@ class SessionCreatedEvent(OpenCodeBaseModel):
 class SessionUpdatedEvent(OpenCodeBaseModel):
     """Session updated event."""
 
-    type: Literal["session.updated"] = "session.updated"
+    type: Literal["session.updated"] = Field(default="session.updated", init=False)
     properties: SessionInfoProperties
 
     @classmethod
@@ -68,7 +68,7 @@ class SessionDeletedProperties(OpenCodeBaseModel):
 class SessionDeletedEvent(OpenCodeBaseModel):
     """Session deleted event."""
 
-    type: Literal["session.deleted"] = "session.deleted"
+    type: Literal["session.deleted"] = Field(default="session.deleted", init=False)
     properties: SessionDeletedProperties
 
     @classmethod
@@ -86,7 +86,7 @@ class SessionStatusProperties(OpenCodeBaseModel):
 class SessionStatusEvent(OpenCodeBaseModel):
     """Session status event."""
 
-    type: Literal["session.status"] = "session.status"
+    type: Literal["session.status"] = Field(default="session.status", init=False)
     properties: SessionStatusProperties
 
     @classmethod
@@ -104,7 +104,7 @@ class SessionIdleProperties(OpenCodeBaseModel):
 class SessionIdleEvent(OpenCodeBaseModel):
     """Session idle event (deprecated but still used by TUI run command)."""
 
-    type: Literal["session.idle"] = "session.idle"
+    type: Literal["session.idle"] = Field(default="session.idle", init=False)
     properties: SessionIdleProperties
 
     @classmethod
@@ -121,7 +121,7 @@ class SessionCompactedProperties(OpenCodeBaseModel):
 class SessionCompactedEvent(OpenCodeBaseModel):
     """Session compacted event - emitted when context compaction completes."""
 
-    type: Literal["session.compacted"] = "session.compacted"
+    type: Literal["session.compacted"] = Field(default="session.compacted", init=False)
     properties: SessionCompactedProperties
 
     @classmethod
@@ -152,7 +152,7 @@ class SessionErrorProperties(OpenCodeBaseModel):
 class SessionErrorEvent(OpenCodeBaseModel):
     """Session error event - emitted when an error occurs during message processing."""
 
-    type: Literal["session.error"] = "session.error"
+    type: Literal["session.error"] = Field(default="session.error", init=False)
     properties: SessionErrorProperties
 
     @classmethod
@@ -183,7 +183,7 @@ class MessageUpdatedEventProperties(OpenCodeBaseModel):
 class MessageUpdatedEvent(OpenCodeBaseModel):
     """Message updated event."""
 
-    type: Literal["message.updated"] = "message.updated"
+    type: Literal["message.updated"] = Field(default="message.updated", init=False)
     properties: MessageUpdatedEventProperties
 
     @classmethod
@@ -201,7 +201,7 @@ class PartUpdatedEventProperties(OpenCodeBaseModel):
 class PartUpdatedEvent(OpenCodeBaseModel):
     """Part updated event."""
 
-    type: Literal["message.part.updated"] = "message.part.updated"
+    type: Literal["message.part.updated"] = Field(default="message.part.updated", init=False)
     properties: PartUpdatedEventProperties
 
     @classmethod
@@ -219,7 +219,7 @@ class MessageRemovedProperties(OpenCodeBaseModel):
 class MessageRemovedEvent(OpenCodeBaseModel):
     """Message removed event - emitted during revert."""
 
-    type: Literal["message.removed"] = "message.removed"
+    type: Literal["message.removed"] = Field(default="message.removed", init=False)
     properties: MessageRemovedProperties
 
     @classmethod
@@ -240,7 +240,7 @@ class PartRemovedProperties(OpenCodeBaseModel):
 class PartRemovedEvent(OpenCodeBaseModel):
     """Part removed event - emitted during revert."""
 
-    type: Literal["message.part.removed"] = "message.part.removed"
+    type: Literal["message.part.removed"] = Field(default="message.part.removed", init=False)
     properties: PartRemovedProperties
 
     @classmethod
@@ -294,7 +294,7 @@ class PermissionRequestEvent(OpenCodeBaseModel):
     Uses 'permission.asked' event type for OpenCode TUI compatibility.
     """
 
-    type: Literal["permission.asked"] = "permission.asked"
+    type: Literal["permission.asked"] = Field(default="permission.asked", init=False)
     properties: PermissionAskedProperties
 
     @classmethod
@@ -345,7 +345,7 @@ class PermissionResolvedEvent(OpenCodeBaseModel):
     Uses 'permission.replied' event type for OpenCode TUI compatibility.
     """
 
-    type: Literal["permission.replied"] = "permission.replied"
+    type: Literal["permission.replied"] = Field(default="permission.replied", init=False)
     properties: PermissionRepliedProperties
 
     @classmethod
@@ -377,7 +377,7 @@ class TuiPromptAppendProperties(OpenCodeBaseModel):
 class TuiPromptAppendEvent(OpenCodeBaseModel):
     """TUI prompt append event - appends text to the prompt input."""
 
-    type: Literal["tui.prompt.append"] = "tui.prompt.append"
+    type: Literal["tui.prompt.append"] = Field(default="tui.prompt.append", init=False)
     properties: TuiPromptAppendProperties
 
     @classmethod
@@ -402,7 +402,7 @@ class TuiCommandExecuteEvent(OpenCodeBaseModel):
     - agent.cycle
     """
 
-    type: Literal["tui.command.execute"] = "tui.command.execute"
+    type: Literal["tui.command.execute"] = Field(default="tui.command.execute", init=False)
     properties: TuiCommandExecuteProperties
 
     @classmethod
@@ -422,7 +422,7 @@ class TuiToastShowProperties(OpenCodeBaseModel):
 class TuiToastShowEvent(OpenCodeBaseModel):
     """TUI toast show event - shows a toast notification."""
 
-    type: Literal["tui.toast.show"] = "tui.toast.show"
+    type: Literal["tui.toast.show"] = Field(default="tui.toast.show", init=False)
     properties: TuiToastShowProperties
 
     @classmethod
@@ -473,7 +473,7 @@ class TodoUpdatedProperties(OpenCodeBaseModel):
 class TodoUpdatedEvent(OpenCodeBaseModel):
     """Todo list updated event."""
 
-    type: Literal["todo.updated"] = "todo.updated"
+    type: Literal["todo.updated"] = Field(default="todo.updated", init=False)
     properties: TodoUpdatedProperties
 
     @classmethod
@@ -499,7 +499,7 @@ class FileWatcherUpdatedProperties(OpenCodeBaseModel):
 class FileWatcherUpdatedEvent(OpenCodeBaseModel):
     """File watcher updated event - sent when a project file changes."""
 
-    type: Literal["file.watcher.updated"] = "file.watcher.updated"
+    type: Literal["file.watcher.updated"] = Field(default="file.watcher.updated", init=False)
     properties: FileWatcherUpdatedProperties
 
     @classmethod
@@ -522,7 +522,7 @@ class PtyCreatedProperties(OpenCodeBaseModel):
 class PtyCreatedEvent(OpenCodeBaseModel):
     """PTY session created event."""
 
-    type: Literal["pty.created"] = "pty.created"
+    type: Literal["pty.created"] = Field(default="pty.created", init=False)
     properties: PtyCreatedProperties
 
     @classmethod
@@ -540,7 +540,7 @@ class PtyUpdatedProperties(OpenCodeBaseModel):
 class PtyUpdatedEvent(OpenCodeBaseModel):
     """PTY session updated event."""
 
-    type: Literal["pty.updated"] = "pty.updated"
+    type: Literal["pty.updated"] = Field(default="pty.updated", init=False)
     properties: PtyUpdatedProperties
 
     @classmethod
@@ -561,7 +561,7 @@ class PtyExitedProperties(OpenCodeBaseModel):
 class PtyExitedEvent(OpenCodeBaseModel):
     """PTY process exited event."""
 
-    type: Literal["pty.exited"] = "pty.exited"
+    type: Literal["pty.exited"] = Field(default="pty.exited", init=False)
     properties: PtyExitedProperties
 
     @classmethod
@@ -579,7 +579,7 @@ class PtyDeletedProperties(OpenCodeBaseModel):
 class PtyDeletedEvent(OpenCodeBaseModel):
     """PTY session deleted event."""
 
-    type: Literal["pty.deleted"] = "pty.deleted"
+    type: Literal["pty.deleted"] = Field(default="pty.deleted", init=False)
     properties: PtyDeletedProperties
 
     @classmethod
@@ -611,7 +611,7 @@ class LspStatus(OpenCodeBaseModel):
 class LspUpdatedEvent(OpenCodeBaseModel):
     """LSP status updated event - sent when LSP server status changes."""
 
-    type: Literal["lsp.updated"] = "lsp.updated"
+    type: Literal["lsp.updated"] = Field(default="lsp.updated", init=False)
     properties: EmptyProperties = Field(default_factory=EmptyProperties)
 
 
@@ -628,7 +628,7 @@ class LspClientDiagnosticsProperties(OpenCodeBaseModel):
 class LspClientDiagnosticsEvent(OpenCodeBaseModel):
     """LSP client diagnostics event - sent when diagnostics are published."""
 
-    type: Literal["lsp.client.diagnostics"] = "lsp.client.diagnostics"
+    type: Literal["lsp.client.diagnostics"] = Field(default="lsp.client.diagnostics", init=False)
     properties: LspClientDiagnosticsProperties
 
     @classmethod
@@ -644,7 +644,7 @@ class LspClientDiagnosticsEvent(OpenCodeBaseModel):
 class ProjectUpdatedEvent(OpenCodeBaseModel):
     """Project metadata updated event."""
 
-    type: Literal["project.updated"] = "project.updated"
+    type: Literal["project.updated"] = Field(default="project.updated", init=False)
     properties: Project
 
     @classmethod
@@ -663,7 +663,7 @@ class VcsBranchUpdatedProperties(OpenCodeBaseModel):
 class VcsBranchUpdatedEvent(OpenCodeBaseModel):
     """VCS branch updated event - sent when git branch changes."""
 
-    type: Literal["vcs.branch.updated"] = "vcs.branch.updated"
+    type: Literal["vcs.branch.updated"] = Field(default="vcs.branch.updated", init=False)
     properties: VcsBranchUpdatedProperties
 
     @classmethod
@@ -683,7 +683,7 @@ class QuestionAskedProperties(OpenCodeBaseModel):
 class QuestionAskedEvent(OpenCodeBaseModel):
     """Question asked event - sent when agent asks a question."""
 
-    type: Literal["question.asked"] = "question.asked"
+    type: Literal["question.asked"] = Field(default="question.asked", init=False)
     properties: QuestionAskedProperties
 
     @classmethod
@@ -714,7 +714,7 @@ class QuestionRepliedProperties(OpenCodeBaseModel):
 class QuestionRepliedEvent(OpenCodeBaseModel):
     """Question replied event - sent when user answers a question."""
 
-    type: Literal["question.replied"] = "question.replied"
+    type: Literal["question.replied"] = Field(default="question.replied", init=False)
     properties: QuestionRepliedProperties
 
     @classmethod
@@ -742,7 +742,7 @@ class QuestionRejectedProperties(OpenCodeBaseModel):
 class QuestionRejectedEvent(OpenCodeBaseModel):
     """Question rejected event - sent when user dismisses a question."""
 
-    type: Literal["question.rejected"] = "question.rejected"
+    type: Literal["question.rejected"] = Field(default="question.rejected", init=False)
     properties: QuestionRejectedProperties
 
     @classmethod
