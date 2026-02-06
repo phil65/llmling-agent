@@ -24,7 +24,7 @@ from agentpool_config.tools import ToolHints
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from mcp.types import Tool as MCPTool
+    from mcp.types import Tool as MCPTool, ToolAnnotations
     from pydantic_ai import UserContent
     from schemez import FunctionSchema, Property
 
@@ -254,22 +254,28 @@ class Tool[TOutputType = Any]:
             **kwargs,
         )
 
+    def get_mcp_tool_annotations(self) -> ToolAnnotations:
+        """Convert internal Tool to MCP Tool."""
+        from mcp.types import ToolAnnotations
+
+        return ToolAnnotations(
+            title=self.name,
+            readOnlyHint=self.hints.read_only if self.hints else None,
+            destructiveHint=self.hints.destructive if self.hints else None,
+            idempotentHint=self.hints.idempotent if self.hints else None,
+            openWorldHint=self.hints.open_world if self.hints else None,
+        )
+
     def to_mcp_tool(self) -> MCPTool:
         """Convert internal Tool to MCP Tool."""
         schema = self.schema
-        from mcp.types import Tool as MCPTool, ToolAnnotations
+        from mcp.types import Tool as MCPTool
 
         return MCPTool(
             name=schema["function"]["name"],
             description=schema["function"]["description"],
             inputSchema=schema["function"]["parameters"],  # pyright: ignore
-            annotations=ToolAnnotations(
-                title=self.name,
-                readOnlyHint=self.hints.read_only if self.hints else None,
-                destructiveHint=self.hints.destructive if self.hints else None,
-                idempotentHint=self.hints.idempotent if self.hints else None,
-                openWorldHint=self.hints.open_world if self.hints else None,
-            ),
+            annotations=self.get_mcp_tool_annotations(),
         )
 
 
