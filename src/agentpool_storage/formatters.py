@@ -78,12 +78,13 @@ def _print_conversation(console: Console, conv: ConversationData) -> None:
         console.print()
 
     for msg in conv["messages"]:
-        role_color = "green" if msg["role"] == "assistant" else "yellow"
-        text = f"[{role_color}]{msg['role'].title()}:[/] ({msg['timestamp']})"
+        role_color = "green" if msg.role == "assistant" else "yellow"
+        timestamp = msg.timestamp.isoformat() if msg.timestamp else ""
+        text = f"[{role_color}]{msg.role.title()}:[/] ({timestamp})"
         console.print(text)
-        console.print(Markdown(msg["content"]))
-        if msg.get("model"):
-            console.print(f"[dim]Model: {msg['model']}[/]", highlight=False)
+        console.print(Markdown(str(msg.content)))
+        if msg.model_name:
+            console.print(f"[dim]Model: {msg.model_name}[/]", highlight=False)
         console.print()
 
 

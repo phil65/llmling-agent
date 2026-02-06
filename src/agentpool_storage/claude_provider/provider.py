@@ -45,11 +45,9 @@ from agentpool_storage.models import TokenUsage
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from agentpool.messaging import ChatMessage
     from agentpool_config.session import SessionQuery
-    from agentpool_storage.models import ConversationData, MessageData, QueryFilters, StatsFilters
+    from agentpool_storage.models import ConversationData, QueryFilters, StatsFilters
 
 
 logger = get_logger(__name__)
@@ -481,7 +479,7 @@ class ClaudeStorageProvider(StorageProvider):
     async def get_sessions(
         self,
         filters: QueryFilters,
-    ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
+    ) -> list[ConversationData]:
         """Get filtered conversations with their messages.
 
         Uses parallel parsing on free-threaded Python for better performance
@@ -502,7 +500,7 @@ class ClaudeStorageProvider(StorageProvider):
         )
 
         # Filter and build results (fast, sequential)
-        result: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
+        result: list[ConversationData] = []
         for parsed in parsed_sessions:
             if parsed is None:
                 continue
@@ -517,30 +515,8 @@ class ClaudeStorageProvider(StorageProvider):
             if filters.query and not any(filters.query in m.content for m in parsed.messages):
                 continue
 
-            # Build MessageData list
-            msg_data_list: list[MessageData] = []
-            for msg in parsed.messages:
-                msg_data = MessageData(
-                    role=msg.role,
-                    content=msg.content,
-                    timestamp=(msg.timestamp or get_now()).isoformat(),
-                    parent_id=msg.parent_id,
-                    model=msg.model_name,
-                    name=msg.name,
-                    token_usage=TokenUsage(
-                        total=msg.cost_info.token_usage.total_tokens if msg.cost_info else 0,
-                        prompt=msg.cost_info.token_usage.input_tokens if msg.cost_info else 0,
-                        completion=msg.cost_info.token_usage.output_tokens if msg.cost_info else 0,
-                    )
-                    if msg.cost_info
-                    else None,
-                    cost=float(msg.cost_info.total_cost) if msg.cost_info else None,
-                    response_time=msg.response_time,
-                )
-                msg_data_list.append(msg_data)
-
             token_usage_data: TokenUsage | None = (
-                {"total": parsed.total_tokens, "prompt": 0, "completion": 0}
+                TokenUsage(total=parsed.total_tokens, prompt=0, completion=0)
                 if parsed.total_tokens
                 else None
             )
@@ -549,11 +525,11 @@ class ClaudeStorageProvider(StorageProvider):
                 agent=parsed.messages[0].name or "claude",
                 title=extract_title(parsed.path),
                 start_time=(parsed.first_timestamp or get_now()).isoformat(),
-                messages=msg_data_list,
+                messages=parsed.messages,
                 token_usage=token_usage_data,
             )
 
-            result.append((conv_data, parsed.messages))
+            result.append(conv_data)
             if filters.limit and len(result) >= filters.limit:
                 break
 

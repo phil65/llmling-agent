@@ -12,8 +12,6 @@ from agentpool_storage.models import ConversationData
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from agentpool.messaging import ChatMessage
     from agentpool_storage.models import QueryFilters
     from codex_adapter.client import CodexClient
@@ -69,7 +67,7 @@ class CodexStorageProvider(StorageProvider):
     async def get_sessions(
         self,
         filters: QueryFilters,
-    ) -> list[tuple[ConversationData, Sequence[ChatMessage[Any]]]]:
+    ) -> list[ConversationData]:
         """Get sessions from the Codex server.
 
         Args:
@@ -84,7 +82,7 @@ class CodexStorageProvider(StorageProvider):
             logger.exception("Failed to list Codex threads")
             return []
 
-        result: list[tuple[ConversationData, Sequence[ChatMessage[Any]]]] = []
+        result: list[ConversationData] = []
         for thread_data in response.data:
             created_at = datetime.fromtimestamp(thread_data.created_at, tz=UTC)
 
@@ -101,7 +99,7 @@ class CodexStorageProvider(StorageProvider):
                 messages=[],
                 token_usage=None,
             )
-            result.append((conv_data, []))
+            result.append(conv_data)
 
         return result
 

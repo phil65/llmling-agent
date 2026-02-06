@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from agentpool.log import get_logger
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
@@ -12,11 +12,9 @@ from agentpool_storage.models import ConversationData
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from datetime import datetime
 
     from acp.client.connection import ClientSideConnection
-    from agentpool.messaging import ChatMessage
     from agentpool_storage.models import QueryFilters
 
 
@@ -74,7 +72,7 @@ class ACPStorageProvider(StorageProvider):
     async def get_sessions(
         self,
         filters: QueryFilters,
-    ) -> list[tuple[ConversationData, Sequence[ChatMessage[Any]]]]:
+    ) -> list[ConversationData]:
         """Get sessions from the ACP server.
 
         Args:
@@ -92,7 +90,7 @@ class ACPStorageProvider(StorageProvider):
             logger.exception("Failed to list sessions from ACP server")
             return []
 
-        result: list[tuple[ConversationData, Sequence[ChatMessage[Any]]]] = []
+        result: list[ConversationData] = []
         for acp_session in response.sessions:
             updated_at = self._parse_updated_at(acp_session.updated_at)
             meta = acp_session.meta or {}
@@ -108,7 +106,7 @@ class ACPStorageProvider(StorageProvider):
                 messages=[],
                 token_usage=None,
             )
-            result.append((conv_data, []))
+            result.append(conv_data)
 
         # Apply limit
         if filters.limit is not None:

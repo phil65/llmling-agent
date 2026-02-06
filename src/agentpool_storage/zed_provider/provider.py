@@ -14,14 +14,12 @@ from agentpool.log import get_logger
 from agentpool.utils.time_utils import get_now, parse_iso_timestamp
 from agentpool_config.storage import ZedStorageConfig
 from agentpool_storage.base import StorageProvider
-from agentpool_storage.models import ConversationData, MessageData, TokenUsage
+from agentpool_storage.models import ConversationData, TokenUsage
 from agentpool_storage.zed_provider import helpers
 from agentpool_storage.zed_provider.models import ZedThread
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from agentpool.messaging import ChatMessage
     from agentpool_config.session import SessionQuery
     from agentpool_storage.models import QueryFilters, StatsFilters
@@ -181,9 +179,9 @@ class ZedStorageProvider(StorageProvider):
     async def get_sessions(
         self,
         filters: QueryFilters,
-    ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
+    ) -> list[ConversationData]:
         """Get filtered conversations with their messages."""
-        result: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
+        result: list[ConversationData] = []
         # Use SQL-level filtering for efficiency
         for thread_id, summary, updated_at_str in self._list_threads(since=filters.since):
             updated_at = parse_iso_timestamp(updated_at_str)
@@ -197,21 +195,6 @@ class ZedStorageProvider(StorageProvider):
                 continue
             if filters.query and not any(filters.query in m.content for m in messages):
                 continue
-            # Build MessageData list
-            msg_data_list = [
-                MessageData(
-                    role=msg.role,
-                    content=msg.content,
-                    timestamp=(msg.timestamp or get_now()).isoformat(),
-                    parent_id=msg.parent_id,
-                    model=msg.model_name,
-                    name=msg.name,
-                    token_usage=None,
-                    cost=None,
-                    response_time=None,
-                )
-                for msg in messages
-            ]
             # Get token usage from thread-level cumulative data
             usage = thread.cumulative_token_usage
             total_tokens = usage.input_tokens + usage.output_tokens
@@ -228,11 +211,11 @@ class ZedStorageProvider(StorageProvider):
                 agent="zed",
                 title=summary or thread.title,
                 start_time=updated_at.isoformat(),
-                messages=msg_data_list,
+                messages=messages,
                 token_usage=token_usage_data,
             )
 
-            result.append((conv_data, messages))
+            result.append(conv_data)
             if filters.limit and len(result) >= filters.limit:
                 break
 
@@ -418,9 +401,9 @@ if __name__ == "__main__":
         filters = QueryFilters()
         conversations = await provider.get_sessions(filters)
         print(f"\nFound {len(conversations)} conversations")
-        for conv_data, messages in conversations[:5]:
+        for conv_data in conversations[:5]:
             print(f"  - {conv_data['id'][:8]}... | {conv_data['title'] or 'Untitled'}")
-            print(f"    Messages: {len(messages)}, Updated: {conv_data['start_time']}")
+            print(f"    Messages: {len(conv_data['messages'])}, Updated: {conv_data['start_time']}")
         # Get counts
         conv_count, msg_count = await provider.get_session_counts()
         print(f"\nTotal: {conv_count} conversations, {msg_count} messages")

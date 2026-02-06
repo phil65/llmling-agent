@@ -103,9 +103,9 @@ async def test_get_sessions(provider: SQLModelProvider, sample_data: None):
     filters = QueryFilters(agent_name="test_agent")
     results = await provider.get_sessions(filters)
     assert len(results) == 1
-    conv, msgs = results[0]
+    conv = results[0]
     assert conv["agent"] == "test_agent"
-    assert len(msgs) == 2
+    assert len(conv["messages"]) == 2
 
     # Filter by time
     filters = QueryFilters(since=BASE_TIME - timedelta(hours=1.5))
@@ -133,10 +133,10 @@ async def test_complex_filtering(provider: SQLModelProvider, sample_data: None):
     filters = QueryFilters(agent_name="test_agent", model="gpt-5", since=since, query="Hello")
     results = await provider.get_sessions(filters)
     assert len(results) == 1
-    conv, msgs = results[0]
+    conv = results[0]
     assert conv["agent"] == "test_agent"
-    assert any(msg.content == "Hello" for msg in msgs)
-    assert all(msg.model_name == "gpt-5" for msg in msgs)
+    assert any(msg.content == "Hello" for msg in conv["messages"])
+    assert all(msg.model_name == "gpt-5" for msg in conv["messages"])
 
 
 async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
@@ -150,16 +150,16 @@ async def test_basic_filters(provider: SQLModelProvider, sample_data: None):
     filters = QueryFilters(agent_name="test_agent")
     results = await provider.get_sessions(filters)
     assert len(results) == 1
-    conv, msgs = results[0]
+    conv = results[0]
     assert conv["agent"] == "test_agent"
-    assert len(msgs) == 2
+    assert len(conv["messages"]) == 2
 
     # Filter by model
     filters = QueryFilters(model="gpt-5")
     results = await provider.get_sessions(filters)
     assert len(results) == 1
-    conv, msgs = results[0]
-    assert all(msg.model_name == "gpt-5" for msg in msgs)
+    conv = results[0]
+    assert all(msg.model_name == "gpt-5" for msg in conv["messages"])
 
 
 async def test_time_filters(provider: SQLModelProvider, sample_data: None):
@@ -168,7 +168,7 @@ async def test_time_filters(provider: SQLModelProvider, sample_data: None):
     filters = QueryFilters()
     conversations = await provider.get_sessions(filters)
     latest_conv_time = max(
-        datetime.fromisoformat(conv_data["start_time"]) for conv_data, _ in conversations
+        datetime.fromisoformat(conv_data["start_time"]) for conv_data in conversations
     )
 
     # Get all conversations (no time filter)
@@ -216,7 +216,7 @@ async def test_period_filtering(provider: SQLModelProvider, sample_data: None):
     # Print all conversations and their times using provider method
     filters = QueryFilters()
     conversations = await provider.get_sessions(filters)
-    for conv_data, _ in conversations:
+    for conv_data in conversations:
         start_time = datetime.fromisoformat(conv_data["start_time"])
         print(f"Conversation {conv_data['id']}: {conv_data['start_time']}")
         print(f"Conv {conv_data['id']}: start_time={start_time}, since={since}")

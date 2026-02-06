@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 
 if TYPE_CHECKING:
     from datetime import datetime
 
-    from agentpool.common_types import MessageRole
+    from agentpool.messaging import ChatMessage
 
 
 GroupBy = Literal["agent", "model", "hour", "day"]
@@ -24,37 +24,6 @@ class TokenUsage(TypedDict):
     """Tokens used in the prompt"""
     completion: int
     """Tokens used in the completion"""
-
-
-class MessageData(TypedDict):
-    """Formatted message data."""
-
-    role: MessageRole
-    """Role of the message sender (user/assistant/system)"""
-
-    content: str
-    """Content of the message"""
-
-    timestamp: str
-    """When the message was sent (ISO format)"""
-
-    parent_id: str | None
-    """ID of the parent message for tree-structured conversations."""
-
-    model: str | None
-    """Name of the model that generated this message"""
-
-    name: str | None
-    """Display name of the sender"""
-
-    token_usage: TokenUsage | None
-    """Token usage statistics if available"""
-
-    cost: float | None
-    """Cost of generating this message in USD"""
-
-    response_time: float | None
-    """Time taken to generate the response in seconds"""
 
 
 class ConversationData(TypedDict):
@@ -72,7 +41,7 @@ class ConversationData(TypedDict):
     start_time: str
     """When the conversation started (ISO format)"""
 
-    messages: list[MessageData]
+    messages: list[ChatMessage[Any]]
     """List of messages in this conversation"""
 
     token_usage: TokenUsage | None

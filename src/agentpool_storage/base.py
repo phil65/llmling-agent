@@ -231,7 +231,7 @@ class StorageProvider:
     async def get_sessions(
         self,
         filters: QueryFilters,
-    ) -> list[tuple[ConversationData, Sequence[ChatMessage[Any]]]]:
+    ) -> list[ConversationData]:
         """Get filtered conversations with their messages.
 
         Args:

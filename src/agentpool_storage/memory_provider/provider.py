@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from agentpool.utils.time_utils import get_now
 from agentpool_config.storage import MemoryStorageConfig
@@ -12,13 +12,11 @@ from agentpool_storage.models import ConversationData
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from agentpool.common_types import JsonValue
     from agentpool.messaging import ChatMessage
     from agentpool.sessions.models import ProjectData
     from agentpool_config.session import SessionQuery
-    from agentpool_storage.models import MessageData, QueryFilters, StatsFilters, TokenUsage
+    from agentpool_storage.models import QueryFilters, StatsFilters, TokenUsage
 
 
 class MemoryStorageProvider(StorageProvider):
@@ -268,9 +266,9 @@ class MemoryStorageProvider(StorageProvider):
     async def get_sessions(
         self,
         filters: QueryFilters,
-    ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
+    ) -> list[ConversationData]:
         """Get filtered conversations from memory."""
-        results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
+        results: list[ConversationData] = []
 
         # First get matching conversations
         convs = {}
@@ -295,34 +293,15 @@ class MemoryStorageProvider(StorageProvider):
             if filters.query and not conv_messages:
                 continue
 
-            # Convert ChatMessages to MessageData format for ConversationData
-            message_data: list[MessageData] = [
-                cast(
-                    "MessageData",
-                    {
-                        "role": msg.role,
-                        "content": msg.content,
-                        "timestamp": msg.timestamp.isoformat() if msg.timestamp else None,
-                        "model": msg.model_name,
-                        "name": msg.name,
-                        "token_usage": msg.cost_info.token_usage if msg.cost_info else None,
-                        "cost": msg.cost_info.total_cost if msg.cost_info else None,
-                        "response_time": msg.response_time,
-                    },
-                )
-                for msg in conv_messages
-            ]
-
-            # Create conversation data with proper MessageData
             conv_data = ConversationData(
                 id=conv_id,
                 agent=conv["agent_name"],
                 title=conv.get("title"),
                 start_time=conv["start_time"].isoformat(),
-                messages=message_data,
+                messages=conv_messages,
                 token_usage=self._aggregate_token_usage(conv_messages),
             )
-            results.append((conv_data, conv_messages))
+            results.append(conv_data)
 
             if filters.limit and len(results) >= filters.limit:
                 break

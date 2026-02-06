@@ -31,7 +31,6 @@ from agentpool_storage.sql_provider.utils import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from datetime import datetime
     from types import TracebackType
 
@@ -373,8 +372,10 @@ class SQLModelProvider(StorageProvider):
         # Use existing get_sessions method
         conversations = await self.get_sessions(filters)
         return [
-            format_conversation(conv, msgs, compact=compact, include_tokens=include_tokens)
-            for conv, msgs in conversations
+            format_conversation(
+                conv, conv["messages"], compact=compact, include_tokens=include_tokens
+            )
+            for conv in conversations
         ]
 
     async def get_commands(
@@ -403,10 +404,10 @@ class SQLModelProvider(StorageProvider):
     async def get_sessions(
         self,
         filters: QueryFilters,
-    ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
+    ) -> list[ConversationData]:
         """Get filtered conversations using SQL queries."""
         async with AsyncSession(self.engine) as session:
-            results: list[tuple[ConversationData, Sequence[ChatMessage[str]]]] = []
+            results: list[ConversationData] = []
 
             # Base conversation query
             conv_query = select(Conversation)
@@ -440,9 +441,7 @@ class SQLModelProvider(StorageProvider):
                 if not messages:
                     continue
 
-                chat_messages = [to_chat_message(msg) for msg in messages]
-                conv_data = format_conversation(conv, messages)
-                results.append((conv_data, chat_messages))
+                results.append(format_conversation(conv, messages))
 
             return results
 

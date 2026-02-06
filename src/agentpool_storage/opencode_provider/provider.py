@@ -15,7 +15,6 @@ See ARCHITECTURE.md for detailed documentation of the storage format.
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -46,16 +45,14 @@ from agentpool_server.opencode_server.models import (
     TimeCreatedUpdated,
 )
 from agentpool_storage.base import StorageProvider
-from agentpool_storage.models import ConversationData as ConvData, MessageData, TokenUsage
+from agentpool_storage.models import ConversationData as ConvData, TokenUsage
 from agentpool_storage.opencode_provider import helpers
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from agentpool.messaging import ChatMessage, TokenCost
     from agentpool_config.session import SessionQuery
-    from agentpool_storage.models import ConversationData, QueryFilters, StatsFilters
+    from agentpool_storage.models import QueryFilters, StatsFilters
 
 logger = get_logger(__name__)
 
@@ -477,9 +474,9 @@ class OpenCodeStorageProvider(StorageProvider):
     async def get_sessions(
         self,
         filters: QueryFilters,
-    ) -> list[tuple[ConversationData, Sequence[ChatMessage[str]]]]:
+    ) -> list[ConvData]:
         """Get filtered conversations with their messages."""
-        result: list[tuple[ConvData, Sequence[ChatMessage[str]]]] = []
+        result: list[ConvData] = []
         for session_id, session_path in self._list_sessions():
             session = helpers.read_session(session_path)
             if not session:
@@ -492,7 +489,6 @@ class OpenCodeStorageProvider(StorageProvider):
             # Convert messages
             chat_messages: list[ChatMessage[str]] = []
             total_tokens = 0
-            total_cost = 0.0
             for oc_msg in oc_messages:
                 parts = msg_parts_map.get(oc_msg.id, [])
                 chat_msg = helpers.to_chat_message(oc_msg, parts, session_id)
@@ -502,8 +498,6 @@ class OpenCodeStorageProvider(StorageProvider):
                 if isinstance(oc_msg, AssistantMessage):
                     if oc_msg.tokens:
                         total_tokens += oc_msg.tokens.input + oc_msg.tokens.output
-                    if oc_msg.cost:
-                        total_cost += oc_msg.cost
 
             if not chat_messages:
                 continue
@@ -515,28 +509,6 @@ class OpenCodeStorageProvider(StorageProvider):
                 continue
             if filters.query and not any(filters.query in m.content for m in chat_messages):
                 continue
-            # Build MessageData list
-            msg_data_list: list[MessageData] = []
-            for chat_msg in chat_messages:
-                cost = chat_msg.cost_info
-                msg_data = MessageData(
-                    role=chat_msg.role,
-                    content=chat_msg.content,
-                    timestamp=(chat_msg.timestamp or get_now()).isoformat(),
-                    parent_id=chat_msg.parent_id,
-                    model=chat_msg.model_name,
-                    name=chat_msg.name,
-                    token_usage=TokenUsage(
-                        total=cost.token_usage.total_tokens if cost else 0,
-                        prompt=cost.token_usage.input_tokens if cost else 0,
-                        completion=cost.token_usage.output_tokens if cost else 0,
-                    )
-                    if cost
-                    else None,
-                    cost=float(cost.total_cost) if cost else None,
-                    response_time=chat_msg.response_time,
-                )
-                msg_data_list.append(msg_data)
 
             usage = TokenUsage(total=total_tokens, prompt=0, completion=0) if total_tokens else None
             conv_data = ConvData(
@@ -544,10 +516,10 @@ class OpenCodeStorageProvider(StorageProvider):
                 agent=chat_messages[0].name or "opencode",
                 title=session.title,
                 start_time=first_timestamp.isoformat(),
-                messages=msg_data_list,
+                messages=chat_messages,
                 token_usage=usage,
             )
-            result.append((conv_data, chat_messages))
+            result.append(conv_data)
             if filters.limit and len(result) >= filters.limit:
                 break
 
@@ -798,9 +770,9 @@ if __name__ == "__main__":
         conversations = await provider.get_sessions(filters)
         print(f"\nFound {len(conversations)} conversations")
 
-        for conv_data, messages in conversations[:5]:
+        for conv_data in conversations[:5]:
             print(f"  - {conv_data['id'][:8]}... | {conv_data['title'] or 'Untitled'}")
-            print(f"    Messages: {len(messages)}, Updated: {conv_data['start_time']}")
+            print(f"    Messages: {len(conv_data['messages'])}, Updated: {conv_data['start_time']}")
 
         # Get counts
         conv_count, msg_count = await provider.get_session_counts()
