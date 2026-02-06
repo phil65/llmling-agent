@@ -40,6 +40,7 @@ from agentpool_server.opencode_server.models import (
     ToolStateCompleted,
     UserMessage,
 )
+from agentpool_server.opencode_server.models.message import Tokens, TokensCache
 from agentpool_server.opencode_server.models.parts import (
     ToolStateError,
     ToolStatePending,
@@ -188,6 +189,34 @@ def extract_text_content(parts: list[OpenCodePart]) -> str:
     return "\n".join(text_segments)
 
 
+def user_message_to_pydantic(
+    msg: UserMessage,
+    parts: list[OpenCodePart],
+    timestamp: datetime,
+) -> ModelRequest | None:
+    user_content: list[UserContent] = []
+    for part in parts:
+        match part:
+            case OpenCodeTextPart() if part.text:
+                user_content.append(part.text)
+            case OpenCodeFilePart(url=url, mime=mime):
+                # Detect data URLs for BinaryContent
+                if url.startswith("data:"):
+                    # Parse data URL: data:mime;base64,data
+                    if ";base64," in url:
+                        mime_part, b64_data = url.split(";base64,", 1)
+                        media_type = mime_part.replace("data:", "")
+                        data = base64.b64decode(b64_data)
+                        user_content.append(BinaryContent(data=data, media_type=media_type))
+                    continue
+                # Convert to appropriate URL type based on MIME
+                user_content.append(to_user_content(url, mime))
+    if user_content:
+        user_part = UserPromptPart(content=user_content, timestamp=timestamp)
+        return ModelRequest(parts=[user_part], timestamp=timestamp)
+    return None
+
+
 def build_pydantic_messages(
     msg: OpenCodeMessage,
     parts: list[OpenCodePart],
@@ -208,37 +237,16 @@ def build_pydantic_messages(
     Returns:
         List of pydantic-ai messages (ModelRequest and/or ModelResponse)
     """
-    result: list[ModelRequest | ModelResponse] = []
+    if isinstance(msg, UserMessage) and (py_msg := user_message_to_pydantic(msg, parts, timestamp)):
+        return [py_msg]
 
-    if isinstance(msg, UserMessage):
-        # Build UserPromptPart content from text and file parts
-        user_content: list[UserContent] = []
-        for part in parts:
-            match part:
-                case OpenCodeTextPart() if part.text:
-                    user_content.append(part.text)
-                case OpenCodeFilePart(url=url, mime=mime):
-                    # Detect data URLs for BinaryContent
-                    if url.startswith("data:"):
-                        # Parse data URL: data:mime;base64,data
-                        if ";base64," in url:
-                            mime_part, b64_data = url.split(";base64,", 1)
-                            media_type = mime_part.replace("data:", "")
-                            data = base64.b64decode(b64_data)
-                            user_content.append(BinaryContent(data=data, media_type=media_type))
-                        continue
-                    # Convert to appropriate URL type based on MIME
-                    user_content.append(to_user_content(url, mime))
-        if user_content:
-            user_part = UserPromptPart(content=user_content, timestamp=timestamp)
-            result.append(ModelRequest(parts=[user_part], timestamp=timestamp))
-        return result
+    result: list[ModelRequest | ModelResponse] = []
     # Assistant message - may contain both tool calls and results
     response_parts: list[TextPart | ToolCallPart | ThinkingPart] = []
     tool_return_parts: list[ToolReturnPart] = []
     # Build usage
     usage = RequestUsage()
-    if isinstance(msg, AssistantMessage) and msg.tokens:
+    if isinstance(msg, AssistantMessage):
         usage = RequestUsage(
             input_tokens=msg.tokens.input,
             output_tokens=msg.tokens.output,
@@ -293,14 +301,7 @@ def build_pydantic_messages(
 
 
 def read_session(session_path: Path) -> Session | None:
-    """Read session metadata from file.
-
-    Args:
-        session_path: Path to session JSON file
-
-    Returns:
-        Session object or None if read/parse fails
-    """
+    """Read session metadata from session JSON file. Returns None if read/parse fails."""
     if not session_path.exists():
         return None
     try:
@@ -321,34 +322,43 @@ def to_chat_message(
     content = extract_text_content(parts)
     pydantic_messages = build_pydantic_messages(msg, parts, timestamp)
     cost_info = None
-    model_name = None
-    parent_id = None
     provider_details = {}
-    if isinstance(msg, AssistantMessage):
-        if msg.tokens:
-            input_tokens = msg.tokens.input + msg.tokens.cache.read
-            output_tokens = msg.tokens.output
-            if input_tokens or output_tokens:
-                usage = RunUsage(input_tokens=input_tokens, output_tokens=output_tokens)
+    match msg:
+        case AssistantMessage(
+            tokens=Tokens(input=input, output=output, cache=TokensCache(read=read)),
+        ):
+            if (input_tokens := input + read) or output:
+                usage = RunUsage(input_tokens=input_tokens, output_tokens=output)
                 cost = Decimal(str(msg.cost)) if msg.cost else Decimal(0)
                 cost_info = TokenCost(token_usage=usage, total_cost=cost)
-        model_name = msg.model_id
-        parent_id = msg.parent_id
-        if msg.finish:
-            provider_details["finish_reason"] = msg.finish
-    elif isinstance(msg, UserMessage) and msg.model:
-        model_name = msg.model.model_id
+            if msg.finish:
+                provider_details["finish_reason"] = msg.finish
 
-    return ChatMessage[str](
-        content=content,
-        session_id=session_id,
-        role=msg.role,
-        message_id=msg.id,
-        name=msg.agent,
-        model_name=model_name,
-        cost_info=cost_info,
-        timestamp=timestamp,
-        parent_id=parent_id,
-        messages=pydantic_messages,
-        provider_details=provider_details,
-    )
+            return ChatMessage[str](
+                content=content,
+                session_id=session_id,
+                role=msg.role,
+                message_id=msg.id,
+                name=msg.agent,
+                model_name=msg.model_id,
+                cost_info=cost_info,
+                timestamp=timestamp,
+                parent_id=msg.parent_id,
+                messages=pydantic_messages,
+                provider_details=provider_details,
+            )
+
+        case UserMessage(role=role, id=msg_id, agent=agent, model=model):
+            return ChatMessage[str](
+                content=content,
+                session_id=session_id,
+                role=role,
+                message_id=msg_id,
+                name=agent,
+                model_name=model.model_id if model else None,
+                cost_info=cost_info,
+                timestamp=timestamp,
+                parent_id=None,
+                messages=pydantic_messages,
+                provider_details=provider_details,
+            )
