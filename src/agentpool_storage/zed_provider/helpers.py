@@ -101,15 +101,10 @@ def parse_user_content(items: list[dict[str, Any]]) -> tuple[str, list[str | Bin
                 pydantic_content.append(text)
 
             case {"Image": {"source": source}}:
-                try:
-                    binary_data = base64.b64decode(source)
-                    media_type = detect_image_media_type(binary_data)
-                    pydantic_content.append(BinaryContent(data=binary_data, media_type=media_type))
-                    display_parts.append("[image]")
-                except (ValueError, TypeError, IndexError) as e:
-                    logger.warning("Failed to decode image", error=str(e))
-                    display_parts.append("[image decode error]")
-
+                binary_data = base64.b64decode(source)
+                media_type = detect_image_media_type(binary_data)
+                pydantic_content.append(BinaryContent(data=binary_data, media_type=media_type))
+                display_parts.append("[image]")
             case {"Mention": {"uri": uri, "content": content}}:
                 match uri:
                     case {"File": {"abs_path": path}}:

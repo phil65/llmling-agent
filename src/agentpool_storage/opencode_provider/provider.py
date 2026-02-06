@@ -495,9 +495,8 @@ class OpenCodeStorageProvider(StorageProvider):
                 chat_messages.append(chat_msg)
 
                 # Only assistant messages have tokens and cost
-                if isinstance(oc_msg, AssistantMessage):
-                    if oc_msg.tokens:
-                        total_tokens += oc_msg.tokens.input + oc_msg.tokens.output
+                if isinstance(oc_msg, AssistantMessage) and oc_msg.tokens:
+                    total_tokens += oc_msg.tokens.input + oc_msg.tokens.output
 
             if not chat_messages:
                 continue

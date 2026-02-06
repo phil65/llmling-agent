@@ -12,6 +12,8 @@ from agentpool_storage.models import ConversationData
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from agentpool.common_types import JsonValue
     from agentpool.messaging import ChatMessage
     from agentpool.sessions.models import ProjectData
