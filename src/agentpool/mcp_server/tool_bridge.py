@@ -476,7 +476,13 @@ class ToolManagerBridge:
                 all_context_params = context_params | run_context_params
                 filtered_schema = filter_schema_params(input_schema, all_context_params)
                 desc = tool.description or "No description"
-                super().__init__(name=tool.name, description=desc, parameters=filtered_schema)
+                super().__init__(
+                    name=tool.name,
+                    description=desc,
+                    parameters=filtered_schema,
+                    annotations=tool.get_mcp_tool_annotations(),
+                    # output_schema=...,
+                )
                 # Set these AFTER super().__init__() to avoid being overwritten
                 self._tool = tool
                 self._bridge = bridge
