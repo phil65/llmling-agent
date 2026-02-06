@@ -80,6 +80,87 @@ class UserMessage(OpenCodeBaseModel):
     variant: str | None = None
 
 
+# --- Assistant message error types ---
+# These match the NamedError pattern from upstream OpenCode:
+# Each error is { name: Literal["..."], data: { ... } }
+
+
+class ProviderAuthErrorData(OpenCodeBaseModel):
+    """Data for provider authentication errors."""
+
+    provider_id: str
+    message: str
+
+
+class ProviderAuthError(OpenCodeBaseModel):
+    """Provider authentication error."""
+
+    name: Literal["ProviderAuthError"] = Field(default="ProviderAuthError", init=False)
+    data: ProviderAuthErrorData
+
+
+class UnknownErrorData(OpenCodeBaseModel):
+    """Data for unknown errors."""
+
+    message: str
+
+
+class UnknownError(OpenCodeBaseModel):
+    """Unknown error."""
+
+    name: Literal["UnknownError"] = Field(default="UnknownError", init=False)
+    data: UnknownErrorData
+
+
+class MessageOutputLengthErrorData(OpenCodeBaseModel):
+    """Data for output length errors (empty)."""
+
+
+class MessageOutputLengthError(OpenCodeBaseModel):
+    """Message output length exceeded error."""
+
+    name: Literal["MessageOutputLengthError"] = Field(
+        default="MessageOutputLengthError", init=False
+    )
+    data: MessageOutputLengthErrorData = Field(default_factory=MessageOutputLengthErrorData)
+
+
+class MessageAbortedErrorData(OpenCodeBaseModel):
+    """Data for aborted message errors."""
+
+    message: str
+
+
+class MessageAbortedError(OpenCodeBaseModel):
+    """Message was aborted."""
+
+    name: Literal["MessageAbortedError"] = Field(default="MessageAbortedError", init=False)
+    data: MessageAbortedErrorData
+
+
+class APIErrorData(OpenCodeBaseModel):
+    """Data for API errors."""
+
+    message: str
+    status_code: int | None = None
+    is_retryable: bool = False
+    response_headers: dict[str, str] | None = None
+    response_body: str | None = None
+    metadata: dict[str, str] | None = None
+
+
+class APIError(OpenCodeBaseModel):
+    """API error."""
+
+    name: Literal["APIError"] = Field(default="APIError", init=False)
+    data: APIErrorData
+
+
+MessageError = (
+    ProviderAuthError | UnknownError | MessageOutputLengthError | MessageAbortedError | APIError
+)
+
+
 class AssistantMessage(OpenCodeBaseModel):
     """Assistant message."""
 
@@ -95,7 +176,7 @@ class AssistantMessage(OpenCodeBaseModel):
     time: MessageTime
     tokens: Tokens = Field(default_factory=Tokens)
     cost: float = 0.0
-    error: dict[str, Any] | None = None
+    error: MessageError | None = None
     summary: bool | None = None
     finish: str | None = None
 
