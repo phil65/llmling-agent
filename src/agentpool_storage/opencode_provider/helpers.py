@@ -129,20 +129,42 @@ def convert_user_content_to_parts(
 def extract_text_content(parts: list[OpenCodePart]) -> str:
     """Extract text content from parts for display.
 
+    Groups consecutive reasoning parts into a single <thinking> block
+    and only wraps them if there are also non-reasoning parts present.
+
     Args:
         parts: List of OpenCode parts
 
     Returns:
         Combined text content from all text and reasoning parts
     """
-    text_parts: list[str] = []
+    text_segments: list[str] = []
+    reasoning_segments: list[str] = []
+    has_text = False
+
     for part in parts:
         match part:
-            case OpenCodeTextPart() if part.text:
-                text_parts.append(part.text)
-            case OpenCodeReasoningPart() if part.text:
-                text_parts.append(f"<thinking>\n{part.text}\n</thinking>")
-    return "\n".join(text_parts)
+            case OpenCodeTextPart(text=text) if text:
+                has_text = True
+                # Flush any accumulated reasoning before this text
+                if reasoning_segments:
+                    combined = "\n".join(reasoning_segments)
+                    text_segments.append(f"<thinking>\n{combined}\n</thinking>")
+                    reasoning_segments.clear()
+                text_segments.append(text)
+            case OpenCodeReasoningPart(text=text) if text:
+                reasoning_segments.append(text)
+
+    # Flush remaining reasoning
+    if reasoning_segments:
+        combined = "\n".join(reasoning_segments)
+        if has_text:
+            text_segments.append(f"<thinking>\n{combined}\n</thinking>")
+        else:
+            # Entire message is thinking — no need for wrapper tags
+            text_segments.append(combined)
+
+    return "\n".join(text_segments)
 
 
 def build_pydantic_messages(  # noqa: PLR0915
