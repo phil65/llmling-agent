@@ -288,74 +288,74 @@ class OpenCodeStorageProvider(StorageProvider):
             if isinstance(msg, ModelRequest):
                 # User prompt parts
                 for part in msg.parts:
-                    if isinstance(part, UserPromptPart):
-                        # Convert UserContent to OpenCode parts using helper
-                        text_parts = helpers.convert_user_content_to_parts(
-                            content=part.content,
-                            message_id=message_id,
-                            session_id=session_id,
-                            part_counter_start=part_counter,
-                        )
-                        part_counter += len(text_parts)
-                        # Write each part to disk
-                        for text_part in text_parts:
-                            part_file = parts_dir / f"{text_part.id}.json"
-                            part_file.write_text(
-                                anyenv.dump_json(text_part.model_dump(by_alias=True), indent=True),
-                                encoding="utf-8",
+                    match part:
+                        case UserPromptPart(content=content):
+                            # Convert UserContent to OpenCode parts using helper
+                            text_parts = helpers.convert_user_content_to_parts(
+                                content=content,
+                                message_id=message_id,
+                                session_id=session_id,
+                                part_counter_start=part_counter,
                             )
-                    elif isinstance(part, ToolReturnPart):
-                        # Tool return - update existing tool part with output
-                        tool_part_file = None
-                        # Find the tool part with matching call_id
-                        for existing_file in parts_dir.glob("*.json"):
-                            try:
-                                text = existing_file.read_text(encoding="utf-8")
-                                content = anyenv.load_json(text, return_type=dict)
-                                if (
-                                    content.get("type") == "tool"
-                                    and content.get("callID") == part.tool_call_id
+                            part_counter += len(text_parts)
+                            # Write each part to disk
+                            for text_part in text_parts:
+                                part_file = parts_dir / f"{text_part.id}.json"
+                                data = text_part.model_dump(by_alias=True)
+                                text = anyenv.dump_json(data, indent=True)
+                                part_file.write_text(text, encoding="utf-8")
+                        case ToolReturnPart(tool_call_id=tool_call_id):
+                            # Tool return - update existing tool part with output
+                            tool_part_file = None
+                            # Find the tool part with matching call_id
+                            for existing_file in parts_dir.glob("*.json"):
+                                try:
+                                    text = existing_file.read_text(encoding="utf-8")
+                                    content = anyenv.load_json(text, return_type=dict)
+                                    if (
+                                        content.get("type") == "tool"
+                                        and content.get("callID") == tool_call_id
+                                    ):
+                                        tool_part_file = existing_file
+                                        break
+                                except Exception:  # noqa: BLE001
+                                    continue
+
+                            if tool_part_file:
+                                # Update the tool part with output - create new completed state
+                                text = tool_part_file.read_text(encoding="utf-8")
+                                tool_part = anyenv.load_json(text, return_type=OpenCodeToolPart)
+                                # Create new ToolStateCompleted (states are immutable)
+                                # All tool states have .input,
+                                # but only Running/Completed/Error have .time
+                                start_time = 0
+                                if isinstance(
+                                    tool_part.state,
+                                    (ToolStateRunning, ToolStateCompleted, ToolStateError),
                                 ):
-                                    tool_part_file = existing_file
-                                    break
-                            except Exception:  # noqa: BLE001
-                                continue
+                                    start_time = tool_part.state.time.start
 
-                        if tool_part_file:
-                            # Update the tool part with output - create new completed state
-                            text = tool_part_file.read_text(encoding="utf-8")
-                            tool_part = anyenv.load_json(text, return_type=OpenCodeToolPart)
-                            # Create new ToolStateCompleted (states are immutable)
-                            # All tool states have .input,
-                            # but only Running/Completed/Error have .time
-                            start_time = 0
-                            if isinstance(
-                                tool_part.state,
-                                (ToolStateRunning, ToolStateCompleted, ToolStateError),
-                            ):
-                                start_time = tool_part.state.time.start
-
-                            completed_state = ToolStateCompleted(
-                                input=tool_part.state.input,
-                                output=str(part.content),
-                                title=tool_part.tool,
-                                time=TimeStartEndCompacted(
-                                    start=start_time,
-                                    end=int(get_now().timestamp() * 1000),
-                                ),
-                            )
-                            # Create new tool part with updated state
-                            updated_tool_part = OpenCodeToolPart(
-                                id=tool_part.id,
-                                message_id=tool_part.message_id,
-                                session_id=tool_part.session_id,
-                                call_id=tool_part.call_id,
-                                tool=tool_part.tool,
-                                state=completed_state,
-                            )
-                            dct = updated_tool_part.model_dump(by_alias=True)
-                            text = anyenv.dump_json(dct, indent=True)
-                            tool_part_file.write_text(text, encoding="utf-8")
+                                completed_state = ToolStateCompleted(
+                                    input=tool_part.state.input,
+                                    output=str(part.content),
+                                    title=tool_part.tool,
+                                    time=TimeStartEndCompacted(
+                                        start=start_time,
+                                        end=int(get_now().timestamp() * 1000),
+                                    ),
+                                )
+                                # Create new tool part with updated state
+                                updated_tool_part = OpenCodeToolPart(
+                                    id=tool_part.id,
+                                    message_id=tool_part.message_id,
+                                    session_id=tool_part.session_id,
+                                    call_id=tool_part.call_id,
+                                    tool=tool_part.tool,
+                                    state=completed_state,
+                                )
+                                dct = updated_tool_part.model_dump(by_alias=True)
+                                text = anyenv.dump_json(dct, indent=True)
+                                tool_part_file.write_text(text, encoding="utf-8")
 
             elif isinstance(msg, ModelResponse):
                 # Model response parts

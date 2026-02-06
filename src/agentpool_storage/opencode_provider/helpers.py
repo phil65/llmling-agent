@@ -36,15 +36,14 @@ from agentpool_server.opencode_server.models import (
     ReasoningPart as OpenCodeReasoningPart,
     Session,
     TextPart as OpenCodeTextPart,
+    Tokens,
+    TokensCache,
     ToolPart as OpenCodeToolPart,
     ToolStateCompleted,
-    UserMessage,
-)
-from agentpool_server.opencode_server.models.message import Tokens, TokensCache
-from agentpool_server.opencode_server.models.parts import (
     ToolStateError,
     ToolStatePending,
     ToolStateRunning,
+    UserMessage,
 )
 
 
