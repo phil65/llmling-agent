@@ -80,100 +80,49 @@ def convert_user_content_to_parts(
     """
     parts: list[OpenCodeTextPart | OpenCodeFilePart] = []
     part_counter = part_counter_start
-
-    if isinstance(content, str):
-        # Simple text
+    content_items = [content] if isinstance(content, str) else content
+    # Sequence of UserContent
+    for content_item in content_items:
         part_id = f"{message_id}-{part_counter}"
-        parts.append(
-            OpenCodeTextPart(
-                id=part_id,
-                session_id=session_id,
-                message_id=message_id,
-                type="text",
-                text=content,
-            )
-        )
-    else:
-        # Sequence of UserContent
-        for content_item in content:
-            part_id = f"{message_id}-{part_counter}"
-            part_counter += 1
-
-            if isinstance(content_item, str):
-                # Text content
-                parts.append(
-                    OpenCodeTextPart(
-                        id=part_id,
-                        session_id=session_id,
-                        message_id=message_id,
-                        type="text",
-                        text=content_item,
-                    )
+        part_counter += 1
+        match content_item:
+            case str():
+                text_part = OpenCodeTextPart(
+                    id=part_id,
+                    session_id=session_id,
+                    message_id=message_id,
+                    type="text",
+                    text=content_item,
                 )
-            elif isinstance(content_item, ImageUrl):
-                # Image URL
-                parts.append(
-                    OpenCodeFilePart(
-                        id=part_id,
-                        session_id=session_id,
-                        message_id=message_id,
-                        type="file",
-                        mime=content_item.media_type or "image/*",
-                        url=content_item.url,
-                    )
+                parts.append(text_part)
+            case (
+                ImageUrl(media_type=media_type, url=url)
+                | AudioUrl(media_type=media_type, url=url)
+                | DocumentUrl(media_type=media_type, url=url)
+                | VideoUrl(media_type=media_type, url=url)
+            ):
+                file_part = OpenCodeFilePart(
+                    id=part_id,
+                    session_id=session_id,
+                    message_id=message_id,
+                    type="file",
+                    mime=media_type,
+                    url=url,
                 )
-            elif isinstance(content_item, AudioUrl):
-                # Audio URL
-                parts.append(
-                    OpenCodeFilePart(
-                        id=part_id,
-                        session_id=session_id,
-                        message_id=message_id,
-                        type="file",
-                        mime=content_item.media_type or "audio/*",
-                        url=content_item.url,
-                    )
-                )
-            elif isinstance(content_item, DocumentUrl):
-                # Document URL
-                parts.append(
-                    OpenCodeFilePart(
-                        id=part_id,
-                        session_id=session_id,
-                        message_id=message_id,
-                        type="file",
-                        mime=content_item.media_type or "application/pdf",
-                        url=content_item.url,
-                    )
-                )
-            elif isinstance(content_item, VideoUrl):
-                # Video URL
-                parts.append(
-                    OpenCodeFilePart(
-                        id=part_id,
-                        session_id=session_id,
-                        message_id=message_id,
-                        type="file",
-                        mime=content_item.media_type or "video/*",
-                        url=content_item.url,
-                    )
-                )
-            elif isinstance(content_item, BinaryContent):
+                parts.append(file_part)
+            case BinaryContent(media_type=media_type, data=data):
                 # Binary content - convert to data URL
-                b64_data = base64.b64encode(content_item.data).decode("ascii")
-                data_url = f"data:{content_item.media_type};base64,{b64_data}"
-                parts.append(
-                    OpenCodeFilePart(
-                        id=part_id,
-                        session_id=session_id,
-                        message_id=message_id,
-                        type="file",
-                        mime=content_item.media_type,
-                        url=data_url,
-                    )
+                b64_data = base64.b64encode(data).decode("ascii")
+                file_part = OpenCodeFilePart(
+                    id=part_id,
+                    session_id=session_id,
+                    message_id=message_id,
+                    type="file",
+                    mime=media_type,
+                    url=f"data:{media_type};base64,{b64_data}",
                 )
-            # CachePoint is just a marker for prompt caching - no data to store
-
+                parts.append(file_part)
+        # CachePoint is just a marker for prompt caching - no data to store
     return parts
 
 
@@ -188,10 +137,11 @@ def extract_text_content(parts: list[OpenCodePart]) -> str:
     """
     text_parts: list[str] = []
     for part in parts:
-        if isinstance(part, OpenCodeTextPart) and part.text:
-            text_parts.append(part.text)
-        elif isinstance(part, OpenCodeReasoningPart) and part.text:
-            text_parts.append(f"<thinking>\n{part.text}\n</thinking>")
+        match part:
+            case OpenCodeTextPart() if part.text:
+                text_parts.append(part.text)
+            case OpenCodeReasoningPart() if part.text:
+                text_parts.append(f"<thinking>\n{part.text}\n</thinking>")
     return "\n".join(text_parts)
 
 
