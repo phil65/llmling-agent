@@ -54,7 +54,10 @@ from typing import TYPE_CHECKING, Any, Self, cast
 
 from pydantic_ai import (
     Agent,
+    BaseToolCallPart,
+    BaseToolReturnPart,
     BinaryContent,
+    FilePart,
     ModelRequest,
     ModelResponse,
     RetryPromptPart,
@@ -298,23 +301,17 @@ class FilterEmptyMessages(CompactionStep):
         return result
 
 
-def _part_has_content(part: Any) -> bool:
+def _part_has_content(part: ModelRequestPart | ModelResponsePart) -> bool:
     """Check if a message part has meaningful content."""
     # Use has_content if available (TextPart, ThinkingPart, etc.)
-    if hasattr(part, "has_content"):
-        return part.has_content()  # type: ignore[no-any-return]
     # For UserPromptPart, check content directly
-    if isinstance(part, UserPromptPart):
-        content = part.content
-        if isinstance(content, str):
+    match part:
+        case ThinkingPart() | TextPart() | FilePart() | BaseToolReturnPart() | BaseToolCallPart():
+            return part.has_content()
+        case UserPromptPart(content=str() as content):
             return bool(content.strip())
-        if isinstance(content, list):
+        case UserPromptPart(content=list() as content):
             return bool(content)
-        return content is not None
-    # For ToolReturnPart, check content
-    if isinstance(part, ToolReturnPart):
-        return part.content is not None
-    # Default: assume has content
     return True
 
 
@@ -559,8 +556,6 @@ class Summarize(CompactionStep):
     )
     """Prompt template for summarization. Use {conversation} placeholder."""
 
-    _agent: Agent[None, str] | None = field(default=None, repr=False)
-
     async def apply(self, messages: MessageSequence) -> list[ModelMessage]:
         if len(messages) <= self.threshold:
             return list(messages)
@@ -568,29 +563,21 @@ class Summarize(CompactionStep):
         # Split into messages to summarize and messages to keep
         to_summarize = list(messages[: -self.keep_recent])
         to_keep = list(messages[-self.keep_recent :])
-
         # Format conversation for summarization
-        conversation_text = _format_conversation(to_summarize)
-
+        conversation_text = _format_session(to_summarize)
         # Get or create summarization agent
         agent = await self._get_agent()
-
         # Generate summary
         prompt = self.summary_prompt.format(conversation=conversation_text)
         result = await agent.run(prompt)
-
         # Create summary message
-        summary_request = ModelRequest(
-            parts=[UserPromptPart(content=f"[Conversation Summary]\n{result.output}")]
-        )
-
+        prompt_part = UserPromptPart(content=f"[Conversation Summary]\n{result.output}")
+        summary_request = ModelRequest(parts=[prompt_part])
         return [summary_request, *to_keep]
 
     async def _get_agent(self) -> Agent[None, str]:
         """Get or create the summarization agent."""
-        if self._agent is None:
-            self._agent = Agent(model=self.model, output_type=str)
-        return self._agent
+        return Agent(model=self.model, output_type=str)
 
 
 # =============================================================================
@@ -716,35 +703,22 @@ async def compact_conversation(
         return 0, 0
 
     original_count = len(model_messages)
-
     # Apply the compaction pipeline
     compacted = await pipeline.apply(model_messages)
-
     # Rebuild ChatMessages from compacted model messages
     new_chat_messages: list[ChatMessage[Any]] = []
     current_msgs: list[ModelMessage] = []
-
     for msg in compacted:
         current_msgs.append(msg)
         if isinstance(msg, ModelResponse):
-            new_chat_messages.append(
-                ChatMessage(
-                    content="[compacted]",
-                    role="assistant",
-                    messages=list(current_msgs),
-                )
-            )
+            m = ChatMessage(content="[compacted]", role="assistant", messages=list(current_msgs))
+            new_chat_messages.append(m)
             current_msgs = []
 
     # Handle any remaining messages (incomplete pair)
     if current_msgs:
-        new_chat_messages.append(
-            ChatMessage(
-                content="[compacted]",
-                role="user",
-                messages=list(current_msgs),
-            )
-        )
+        m = ChatMessage(content="[compacted]", role="user", messages=list(current_msgs))
+        new_chat_messages.append(m)
 
     # Update the conversation history
     conversation.set_history(new_chat_messages)
@@ -760,27 +734,23 @@ def _extract_text_content(msg: ModelMessage) -> str:
         case ModelRequest(parts=parts) | ModelResponse(parts=parts):
             for part in parts:
                 match part:
-                    case TextPart(content=content):
-                        parts_text.append(content)
-                    case ThinkingPart(content=content):
-                        parts_text.append(content)
-                    case UserPromptPart(content=content):
-                        if isinstance(content, str):
+                    case (
+                        TextPart(content=content)
+                        | ThinkingPart(content=content)
+                        | UserPromptPart(content=str() as content)
+                        | ToolReturnPart(content=content)
+                    ):
+                        if content is not None:
                             parts_text.append(content)
-                        elif isinstance(content, list):
-                            for item in content:
-                                if isinstance(item, str):
-                                    parts_text.append(item)  # noqa: PERF401
-                    case ToolReturnPart(content=content):
-                        if isinstance(content, str):
-                            parts_text.append(content)
-                        elif content is not None:
-                            parts_text.append(str(content))
+                    case UserPromptPart(content=list()):
+                        for item in content:
+                            if isinstance(item, str):
+                                parts_text.append(item)  # noqa: PERF401
 
     return "\n".join(parts_text)
 
 
-def _format_conversation(messages: Sequence[ModelMessage]) -> str:
+def _format_session(messages: Sequence[ModelMessage]) -> str:
     """Format messages as a readable conversation for summarization."""
     lines: list[str] = []
 
