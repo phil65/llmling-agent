@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from decimal import Decimal
-from uuid import uuid4
 
 from pydantic_ai import RunUsage
 import pytest
 
-from agentpool.messaging import TokenCost
+from agentpool.messaging import ChatMessage, TokenCost
 from agentpool.utils.parse_time import parse_time_period
 from agentpool.utils.time_utils import get_now
 from agentpool_config.storage import SQLStorageConfig
@@ -45,55 +44,45 @@ async def sample_data(provider: SQLModelProvider):
     start = BASE_TIME - timedelta(hours=2)  # 10:00
     await provider.log_session(session_id="conv2", node_name="other_agent", start_time=start)
 
-    # Add messages
-    test_data = [
-        (
-            "conv1",  # session_id
-            "Hello",  # content
-            "user",  # role
-            "user",  # name
-            "gpt-5",  # model
-            TokenCost(
+    # Add messages as ChatMessage objects
+    messages = [
+        ChatMessage(
+            content="Hello",
+            role="user",
+            name="user",
+            model_name="gpt-5",
+            session_id="conv1",
+            cost_info=TokenCost(
                 token_usage=RunUsage(input_tokens=5, output_tokens=5),
                 total_cost=Decimal("0.001"),
-            ),  # cost_info
+            ),
         ),
-        (
-            "conv1",
-            "Hi there!",
-            "assistant",
-            "test_agent",
-            "gpt-5",
-            TokenCost(
+        ChatMessage(
+            content="Hi there!",
+            role="assistant",
+            name="test_agent",
+            model_name="gpt-5",
+            session_id="conv1",
+            cost_info=TokenCost(
                 token_usage=RunUsage(input_tokens=10, output_tokens=10),
                 total_cost=Decimal("0.002"),
             ),
         ),
-        (
-            "conv2",
-            "Testing",
-            "user",
-            "user",
-            "gpt-3.5-turbo",
-            TokenCost(
+        ChatMessage(
+            content="Testing",
+            role="user",
+            name="user",
+            model_name="gpt-3.5-turbo",
+            session_id="conv2",
+            cost_info=TokenCost(
                 token_usage=RunUsage(input_tokens=7, output_tokens=8),
                 total_cost=Decimal("0.0015"),
             ),
         ),
     ]
 
-    # Add messages using the provider's method signature
-    for conv_id, content, role, name, model, cost_info in test_data:
-        await provider.log_message(
-            session_id=conv_id,
-            message_id=str(uuid4()),
-            content=content,
-            role=role,
-            name=name,
-            model=model,
-            cost_info=cost_info,
-            response_time=None,
-        )
+    for msg in messages:
+        await provider.log_message(message=msg)
 
 
 def test_parse_time_period():
