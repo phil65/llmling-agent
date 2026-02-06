@@ -134,12 +134,53 @@ class FilePartSourceText(OpenCodeBaseModel):
     end: int
 
 
+class LSPPosition(OpenCodeBaseModel):
+    """LSP position in a text document."""
+
+    line: int
+    character: int
+
+
+class LSPRange(OpenCodeBaseModel):
+    """LSP range in a text document."""
+
+    start: LSPPosition
+    end: LSPPosition
+
+
 class FileSource(OpenCodeBaseModel):
-    """File source."""
+    """File source - references a file path."""
 
     text: FilePartSourceText
     type: Literal["file"] = "file"
     path: str
+
+    @classmethod
+    def create(cls, value: str, start: int, end: int, path: str) -> FileSource:
+        return cls(text=FilePartSourceText(value=value, start=start, end=end), path=path)
+
+
+class SymbolSource(OpenCodeBaseModel):
+    """Symbol source - references an LSP symbol."""
+
+    text: FilePartSourceText
+    type: Literal["symbol"] = "symbol"
+    path: str
+    range: LSPRange
+    name: str
+    kind: int
+
+
+class ResourceSource(OpenCodeBaseModel):
+    """Resource source - references an MCP resource."""
+
+    text: FilePartSourceText
+    type: Literal["resource"] = "resource"
+    client_name: str
+    uri: str
+
+
+FilePartSource = FileSource | SymbolSource | ResourceSource
 
 
 class FilePart(OpenCodeBaseModel):
@@ -152,7 +193,7 @@ class FilePart(OpenCodeBaseModel):
     mime: str
     filename: str | None = None
     url: str
-    source: FileSource | None = None
+    source: FilePartSource | None = None
 
 
 class AgentPartSource(OpenCodeBaseModel):

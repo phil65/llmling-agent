@@ -11,7 +11,7 @@ from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: TC001
 from agentpool_server.opencode_server.models.parts import (  # noqa: TC001
     AgentPartSource,
-    FilePartSourceText,
+    FilePartSource,
     Part,
 )
 
@@ -123,25 +123,6 @@ class TextPartInput(OpenCodeBaseModel):
 
     type: Literal["text"] = "text"
     text: str
-
-
-class FilePartSource(OpenCodeBaseModel):
-    """Source info for file part."""
-
-    text: FilePartSourceText | None = None
-    type: str | None = None
-    path: str | None = None
-
-    @classmethod
-    def create(
-        cls,
-        value: str,
-        start: int,
-        end: int,
-        typ: str | None = None,
-        path: str | None = None,
-    ) -> FilePartSource:
-        return cls(text=FilePartSourceText(value=value, start=start, end=end), type=typ, path=path)
 
 
 class FilePartInput(OpenCodeBaseModel):
