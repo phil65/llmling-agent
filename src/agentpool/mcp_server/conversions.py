@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         ContentBlock,
         PromptMessage,
         SamplingMessage,
+        SamplingMessageContentBlock,
         TextResourceContents,
     )
     from pydantic_ai import ModelRequestPart, ModelResponsePart, UserContent
@@ -69,21 +70,35 @@ def to_mcp_messages(
 
 
 def sampling_messages_to_user_content(msgs: list[SamplingMessage]) -> list[UserContent]:
-    from mcp import types
 
     # Convert messages to prompts for the agent
     prompts: list[UserContent] = []
     for mcp_msg in msgs:
         match mcp_msg.content:
-            case types.TextContent(text=text):
-                prompts.append(text)
-            case types.ImageContent(data=data, mimeType=mime_type):
-                binary_data = base64.b64decode(data)
-                prompts.append(BinaryImage(data=binary_data, media_type=mime_type))
-            case types.AudioContent(data=data, mimeType=mime_type):
-                binary_data = base64.b64decode(data)
-                prompts.append(BinaryContent(data=binary_data, media_type=mime_type))
+            case list(content_blocks):
+                prompts.extend(c for i in content_blocks if (c := content_block_to_user_content(i)))
+            case _ as content_block:
+                if content := content_block_to_user_content(content_block):
+                    prompts.append(content)
     return prompts
+
+
+def content_block_to_user_content(content: SamplingMessageContentBlock) -> UserContent | None:
+    from mcp import types
+
+    match content:
+        case types.TextContent(text=text):
+            return text
+        case types.ImageContent(data=data, mimeType=mime_type):
+            binary_data = base64.b64decode(data)
+            return BinaryImage(data=binary_data, media_type=mime_type)
+        case types.AudioContent(data=data, mimeType=mime_type):
+            binary_data = base64.b64decode(data)
+            return BinaryContent(data=binary_data, media_type=mime_type)
+        case types.ToolUseContent() | types.ToolResultContent():
+            return None
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 async def from_mcp_content(
