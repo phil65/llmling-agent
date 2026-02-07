@@ -287,9 +287,8 @@ class OpenCodeStreamAdapter:
 
     def _on_text_start(self, delta: str) -> Iterator[Event]:
         self._response_text = delta
-        text_part_id = identifier.ascending("part")
         self._text_part = TextPart(
-            id=text_part_id,
+            id=identifier.ascending("part"),
             message_id=self.assistant_msg_id,
             session_id=self.session_id,
             text=delta,
@@ -362,17 +361,18 @@ class OpenCodeStreamAdapter:
             # Update existing part with the custom title
             existing = self._tool_parts[tool_call_id]
             self._tool_inputs[tool_call_id] = ui_input or self._tool_inputs.get(tool_call_id, {})
+            running_state = ToolStateRunning(
+                time=TimeStart(start=self._stream_start_ms),
+                input=self._tool_inputs[tool_call_id],
+                title=title,
+            )
             updated = ToolPart(
                 id=existing.id,
                 message_id=existing.message_id,
                 session_id=existing.session_id,
                 tool=existing.tool,
                 call_id=existing.call_id,
-                state=ToolStateRunning(
-                    time=TimeStart(start=self._stream_start_ms),
-                    input=self._tool_inputs[tool_call_id],
-                    title=title,
-                ),
+                state=running_state,
             )
             self._tool_parts[tool_call_id] = updated
             self.assistant_msg.update_part(updated)
