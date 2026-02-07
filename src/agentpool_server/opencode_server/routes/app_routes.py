@@ -35,13 +35,7 @@ async def get_app(state: StateDep) -> App:
     """Get app information."""
     working_path = Path(state.working_dir)
     is_git = (working_path / ".git").is_dir()
-    path_info = PathInfo(
-        config="",
-        cwd=state.working_dir,
-        data="",
-        root=state.working_dir,
-        state="",
-    )
+    path_info = PathInfo.for_directory(state.working_dir)
     time_info = AppTimeInfo(initialized=state.start_time)
     return App(git=is_git, hostname="localhost", path=path_info, time=time_info)
 
@@ -132,7 +126,7 @@ async def update_project(project_id: str, update: ProjectUpdateRequest, state: S
 @router.get("/path")
 async def get_path(state: StateDep) -> PathInfo:
     """Get current path info."""
-    return PathInfo(config="", cwd=state.working_dir, data="", root=state.working_dir, state="")
+    return PathInfo.for_directory(state.working_dir)
 
 
 async def _run_command(cmd: str, args: list[str], cwd: str) -> str | None:
