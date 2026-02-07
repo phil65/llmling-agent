@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-import uuid
 
 import anyenv
 from pydantic_ai import (
@@ -93,11 +92,6 @@ def _convert_params_for_ui(params: dict[str, Any]) -> dict[str, Any]:
     This converts our snake_case parameters to match those expectations.
     """
     return {_PARAM_NAME_MAP.get(k, k): v for k, v in params.items()}
-
-
-def generate_part_id() -> str:
-    """Generate a unique part ID."""
-    return str(uuid.uuid4())
 
 
 def _get_input_from_state(state: ToolState, *, convert_params: bool = False) -> dict[str, Any]:
@@ -366,7 +360,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         tool_input = _convert_params_for_ui(safe_args_as_dict(p))
                         tool_part = result.add_tool_part(
                             tool_name,
-                            call_id or generate_part_id(),
+                            call_id,
                             state=ToolStateRunning(
                                 time=TimeStart(start=created_ms),
                                 input=tool_input,
