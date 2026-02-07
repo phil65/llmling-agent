@@ -216,10 +216,10 @@ class ToolManager:
         return all_resources
 
     async def get_resource(self, name: str) -> ResourceInfo:
-        """Get a specific resource by name.
+        """Get a specific resource by name or URI.
 
         Args:
-            name: Name of the resource to find
+            name: Name or URI of the resource to find
 
         Returns:
             ResourceInfo for the requested resource
@@ -227,7 +227,10 @@ class ToolManager:
         Raises:
             ToolError: If resource not found
         """
-        resource = next((r for r in await self.list_resources() if r.name == name), None)
+        resource = next(
+            (r for r in await self.list_resources() if name in (r.name, r.uri)),
+            None,
+        )
         if not resource:
             raise ToolError(f"Resource not found: {name}")
         return resource

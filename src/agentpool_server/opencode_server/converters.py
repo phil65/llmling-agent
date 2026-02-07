@@ -19,6 +19,7 @@ from pydantic_ai import (
 from agentpool import log
 from agentpool.messaging.messages import ChatMessage
 from agentpool.sessions.models import SessionData
+from agentpool.tools.manager import ToolError
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict, to_user_content_or_path_ref
 from agentpool.utils.time_utils import datetime_to_ms, ms_to_datetime
 from agentpool_server.opencode_server.models import (
@@ -97,18 +98,17 @@ def _get_input_from_state(state: ToolState, *, convert_params: bool = False) -> 
 async def _resolve_mcp_resource(source: ResourceSource, tools: ToolManager) -> str | None:
     """Resolve an MCP resource and return its content as text (or None if cant be read)."""
     try:
-        resources = await tools.list_resources()
-        resource = next(
-            (r for r in resources if r.uri == source.uri and r.client == source.client_name),
-            None,
-        )
-        if resource is None:
-            logger.warning("MCP resource not found: %s/%s", source.client_name, source.uri)
-            return None
+        resource = await tools.get_resource(source.uri)
+    except ToolError:
+        logger.warning("MCP resource not found", client_name=source.client_name, uri=source.uri)
+        return None
+    try:
         contents = await resource.read()
         return "\n".join(contents) if contents else None
     except Exception:
-        logger.exception("Failed to read MCP resource: %s/%s", source.client_name, source.uri)
+        logger.exception(
+            "Failed to read MCP resource", client_name=source.client_name, uri=source.uri
+        )
         return None
 
 
