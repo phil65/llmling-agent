@@ -56,13 +56,18 @@ class TimeStartEndCompacted(OpenCodeBaseModel):
     compacted: int | None = None
 
 
-class TextPart(OpenCodeBaseModel):
-    """Text content part."""
+class PartBase(OpenCodeBaseModel):
+    """Base fields shared by all message parts."""
 
     id: str
-    type: Literal["text"] = Field(default="text", init=False)
     message_id: str
     session_id: str
+
+
+class TextPart(PartBase):
+    """Text content part."""
+
+    type: Literal["text"] = Field(default="text", init=False)
     text: str
     synthetic: bool | None = None
     ignored: bool | None = None
@@ -113,13 +118,10 @@ class ToolStateError(OpenCodeBaseModel):
 ToolState = ToolStatePending | ToolStateRunning | ToolStateCompleted | ToolStateError
 
 
-class ToolPart(OpenCodeBaseModel):
+class ToolPart(PartBase):
     """Tool call part."""
 
-    id: str
     type: Literal["tool"] = Field(default="tool", init=False)
-    message_id: str
-    session_id: str
     call_id: str
     tool: str
     state: ToolState
@@ -183,13 +185,10 @@ class ResourceSource(OpenCodeBaseModel):
 FilePartSource = FileSource | SymbolSource | ResourceSource
 
 
-class FilePart(OpenCodeBaseModel):
+class FilePart(PartBase):
     """File content part."""
 
-    id: str
     type: Literal["file"] = Field(default="file", init=False)
-    message_id: str
-    session_id: str
     mime: str
     filename: str | None = None
     url: str
@@ -204,7 +203,7 @@ class AgentPartSource(OpenCodeBaseModel):
     end: int
 
 
-class AgentPart(OpenCodeBaseModel):
+class AgentPart(PartBase):
     """Agent mention part - references a sub-agent to delegate to.
 
     When a user types @agent-name in the prompt, this part is created.
@@ -212,74 +211,56 @@ class AgentPart(OpenCodeBaseModel):
     with the specified agent.
     """
 
-    id: str
     type: Literal["agent"] = Field(default="agent", init=False)
-    message_id: str
-    session_id: str
     name: str
     """Name of the agent to delegate to."""
     source: AgentPartSource | None = None
     """Source location in the original prompt text."""
 
 
-class SnapshotPart(OpenCodeBaseModel):
+class SnapshotPart(PartBase):
     """File system snapshot reference."""
 
-    id: str
     type: Literal["snapshot"] = Field(default="snapshot", init=False)
-    message_id: str
-    session_id: str
     snapshot: str
     """Snapshot identifier."""
 
 
-class PatchPart(OpenCodeBaseModel):
+class PatchPart(PartBase):
     """Diff/patch content part."""
 
-    id: str
     type: Literal["patch"] = Field(default="patch", init=False)
-    message_id: str
-    session_id: str
     hash: str
     """Hash of the patch."""
     files: list[str] = Field(default_factory=list)
     """List of files affected by this patch."""
 
 
-class ReasoningPart(OpenCodeBaseModel):
+class ReasoningPart(PartBase):
     """Extended thinking/reasoning content part.
 
     Used for models that support extended thinking (e.g., Claude with thinking tokens).
     """
 
-    id: str
     type: Literal["reasoning"] = Field(default="reasoning", init=False)
-    message_id: str
-    session_id: str
     text: str
     """The reasoning/thinking content."""
     metadata: dict[str, Any] | None = None
     time: TimeStartEndOptional | None = None
 
 
-class CompactionPart(OpenCodeBaseModel):
+class CompactionPart(PartBase):
     """Marks where conversation was compacted/summarized."""
 
-    id: str
     type: Literal["compaction"] = Field(default="compaction", init=False)
-    message_id: str
-    session_id: str
     auto: bool = False
     """Whether this was an automatic compaction."""
 
 
-class SubtaskPart(OpenCodeBaseModel):
+class SubtaskPart(PartBase):
     """References a spawned subtask."""
 
-    id: str
     type: Literal["subtask"] = Field(default="subtask", init=False)
-    message_id: str
-    session_id: str
     prompt: str
     """The prompt for the subtask."""
     description: str
@@ -303,13 +284,10 @@ class APIErrorInfo(OpenCodeBaseModel):
     metadata: dict[str, str] | None = None
 
 
-class RetryPart(OpenCodeBaseModel):
+class RetryPart(PartBase):
     """Marks a retry of a failed operation."""
 
-    id: str
     type: Literal["retry"] = Field(default="retry", init=False)
-    message_id: str
-    session_id: str
     attempt: int
     """Which retry attempt this is."""
     error: APIErrorInfo
@@ -317,13 +295,10 @@ class RetryPart(OpenCodeBaseModel):
     time: TimeCreated
 
 
-class StepStartPart(OpenCodeBaseModel):
+class StepStartPart(PartBase):
     """Step start marker."""
 
-    id: str
     type: Literal["step-start"] = Field(default="step-start", init=False)
-    message_id: str
-    session_id: str
     snapshot: str | None = None
 
 
@@ -343,13 +318,10 @@ class StepFinishTokens(OpenCodeBaseModel):
     cache: TokenCache = Field(default_factory=TokenCache)
 
 
-class StepFinishPart(OpenCodeBaseModel):
+class StepFinishPart(PartBase):
     """Step finish marker."""
 
-    id: str
     type: Literal["step-finish"] = Field(default="step-finish", init=False)
-    message_id: str
-    session_id: str
     reason: str = "stop"
     snapshot: str | None = None
     cost: float = 0.0
