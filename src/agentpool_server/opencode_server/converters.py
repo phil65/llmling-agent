@@ -307,6 +307,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
 
         usage = msg.usage
         cache = TokenCache(read=usage.cache_read_tokens, write=usage.cache_write_tokens)
+        tokens = Tokens(input=usage.input_tokens, output=usage.output_tokens, cache=cache)
         result = MessageWithParts.assistant(
             message_id=message_id,
             session_id=session_id,
@@ -317,7 +318,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
             agent_name=agent_name,
             path=MessagePath(cwd=working_dir, root=working_dir),
             time=MessageTime(created=created_ms, completed=completed_ms),
-            tokens=Tokens(input=usage.input_tokens, output=usage.output_tokens, cache=cache),
+            tokens=tokens,
             cost=float(msg.cost_info.total_cost) if msg.cost_info else 0.0,
             finish=msg.finish_reason,
         )
