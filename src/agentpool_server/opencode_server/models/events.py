@@ -13,6 +13,7 @@ from agentpool_server.opencode_server.models.message import (  # noqa: TC001
     UserMessage,
 )
 from agentpool_server.opencode_server.models.parts import Part  # noqa: TC001
+from agentpool_server.opencode_server.models.pty import PtyInfo  # noqa: TC001
 from agentpool_server.opencode_server.models.session import (  # noqa: TC001
     Session,
     SessionStatus,
@@ -515,7 +516,7 @@ class FileWatcherUpdatedEvent(OpenCodeBaseModel):
 class PtyCreatedProperties(OpenCodeBaseModel):
     """Properties for PTY created event."""
 
-    info: Any
+    info: PtyInfo
     """PTY session info."""
 
 
@@ -526,14 +527,14 @@ class PtyCreatedEvent(OpenCodeBaseModel):
     properties: PtyCreatedProperties
 
     @classmethod
-    def create(cls, info: Any) -> Self:
+    def create(cls, info: PtyInfo) -> Self:
         return cls(properties=PtyCreatedProperties(info=info))
 
 
 class PtyUpdatedProperties(OpenCodeBaseModel):
     """Properties for PTY updated event."""
 
-    info: Any
+    info: PtyInfo
     """PTY session info."""
 
 
@@ -544,7 +545,7 @@ class PtyUpdatedEvent(OpenCodeBaseModel):
     properties: PtyUpdatedProperties
 
     @classmethod
-    def create(cls, info: Any) -> Self:
+    def create(cls, info: PtyInfo) -> Self:
         return cls(properties=PtyUpdatedProperties(info=info))
 
 

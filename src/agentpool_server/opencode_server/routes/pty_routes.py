@@ -102,7 +102,7 @@ async def create_pty(request: PtyCreateRequest, state: StateDep) -> PtyInfo:
     session.read_task = asyncio.create_task(_read_pty_output(manager, pty_id, state))
     pty_info = PtyInfo.from_exxec(info, title=title)
     # Broadcast PTY created event
-    event = PtyCreatedEvent.create(info=pty_info.model_dump(by_alias=True))
+    event = PtyCreatedEvent.create(info=pty_info)
     await state.broadcast_event(event)
     return pty_info
 
@@ -181,7 +181,7 @@ async def update_pty(pty_id: str, request: PtyUpdateRequest, state: StateDep) ->
     title = request.title if request.title else f"Terminal {pty_id[-4:]}"
     pty_info = PtyInfo.from_exxec(info, title=title)
     # Broadcast PTY updated event
-    event = PtyUpdatedEvent.create(info=pty_info.model_dump(by_alias=True))
+    event = PtyUpdatedEvent.create(info=pty_info)
     await state.broadcast_event(event)
     return pty_info
 
