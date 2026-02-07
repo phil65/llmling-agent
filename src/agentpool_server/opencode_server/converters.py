@@ -6,10 +6,8 @@ from typing import TYPE_CHECKING, Any
 
 import anyenv
 from pydantic_ai import (
-    AudioUrl,
     BinaryContent,
     DocumentUrl,
-    ImageUrl,
     ModelRequest,
     ModelResponse,
     RequestUsage,
@@ -18,7 +16,6 @@ from pydantic_ai import (
     ToolCallPart as PydanticToolCallPart,
     ToolReturnPart as PydanticToolReturnPart,
     UserPromptPart,
-    VideoUrl,
 )
 from tokonomics.model_discovery import ModelPricing
 
@@ -26,7 +23,7 @@ from agentpool import log
 from agentpool.common_types import PathReference
 from agentpool.messaging.messages import ChatMessage
 from agentpool.sessions.models import SessionData
-from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
+from agentpool.utils.pydantic_ai_helpers import get_file_url_obj, safe_args_as_dict
 from agentpool.utils.time_utils import datetime_to_ms, ms_to_datetime
 from agentpool_server.opencode_server.models import (
     AgentPartInput,
@@ -64,7 +61,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from fsspec.asyn import AsyncFileSystem
-    from pydantic_ai import MultiModalContent, UserContent
+    from pydantic_ai import UserContent
     from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
     from agentpool.tools.manager import ToolManager
@@ -160,18 +157,6 @@ def _convert_file_part_to_user_content(
         )
     # Handle regular URLs based on mime type. Fallback: treat as document
     return content if (content := get_file_url_obj(url, mime)) else DocumentUrl(url=url)
-
-
-def get_file_url_obj(url: str, mime: str) -> MultiModalContent | None:
-    if mime.startswith("image/"):
-        return ImageUrl(url=url, media_type=mime)
-    if mime.startswith("audio/"):
-        return AudioUrl(url=url, media_type=mime)
-    if mime.startswith("video/"):
-        return VideoUrl(url=url, media_type=mime)
-    if mime == "application/pdf":
-        return DocumentUrl(url=url, media_type=mime)
-    return None
 
 
 async def _resolve_mcp_resource(
@@ -300,10 +285,8 @@ def chat_message_to_opencode(  # noqa: PLR0915
         result = MessageWithParts(info=info)
 
         if msg.content and isinstance(msg.content, str):
-            result.add_text_part(
-                msg.content,
-                time=TimeStartEndOptional(start=created_ms),
-            )
+            ts_opt = TimeStartEndOptional(start=created_ms)
+            result.add_text_part(msg.content, time=ts_opt)
         else:
             for model_msg in msg.messages:
                 if not isinstance(model_msg, ModelRequest):
@@ -317,10 +300,8 @@ def chat_message_to_opencode(  # noqa: PLR0915
                     else:
                         text = " ".join(str(c) for c in content if isinstance(c, str))
                     if text:
-                        result.add_text_part(
-                            text,
-                            time=TimeStartEndOptional(start=created_ms),
-                        )
+                        ts_opt = TimeStartEndOptional(start=created_ms)
+                        result.add_text_part(text, time=ts_opt)
     else:
         # Assistant message
         completed_ms = created_ms
@@ -353,10 +334,8 @@ def chat_message_to_opencode(  # noqa: PLR0915
             for p in model_msg.parts:
                 match p:
                     case PydanticTextPart(content=content):
-                        result.add_text_part(
-                            content,
-                            time=TimeStartEndOptional(start=created_ms, end=completed_ms),
-                        )
+                        ts_opt = TimeStartEndOptional(start=created_ms, end=completed_ms)
+                        result.add_text_part(content, time=ts_opt)
                     case PydanticToolCallPart(tool_name=tool_name, tool_call_id=call_id):
                         tool_input = _convert_params_for_ui(safe_args_as_dict(p))
                         tool_part = result.add_tool_part(
@@ -430,17 +409,14 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                 ts = TimeStartEndCompacted(start=created_ms, end=completed_ms)
                                 state = ToolStateCompleted(title=title, output=output, time=ts)
                             result.add_tool_part(tool_name, call_id, state=state)
-
-        result.add_step_finish_part(
-            reason=msg.finish_reason or "stop",
-            cost=float(msg.cost_info.total_cost) if msg.cost_info else 0.0,
-            tokens=Tokens(
-                input=tokens.input,
-                output=tokens.output,
-                reasoning=tokens.reasoning,
-                cache=TokenCache(read=tokens.cache.read, write=tokens.cache.write),
-            ),
+        tokens = Tokens(
+            input=tokens.input,
+            output=tokens.output,
+            reasoning=tokens.reasoning,
+            cache=TokenCache(read=tokens.cache.read, write=tokens.cache.write),
         )
+        cost = float(msg.cost_info.total_cost) if msg.cost_info else 0.0
+        result.add_step_finish_part(reason=msg.finish_reason or "stop", cost=cost, tokens=tokens)
 
     return result
 
@@ -574,9 +550,7 @@ def convert_toko_model_to_opencode(model: TokoModelInfo) -> Model:
     has_vision = "image" in model.input_modalities
     has_reasoning = "reasoning" in model.output_modalities or "thinking" in model.name.lower()
     # Format release date if available
-    release_date = ""
-    if model.created_at:
-        release_date = model.created_at.strftime("%Y-%m-%d")
+    release_date = model.created_at.strftime("%Y-%m-%d") if model.created_at else ""
     # Use id_override if available (e.g., "opus" for Claude Code SDK)
     model_id = model.id_override or model.id
     return Model(
@@ -588,7 +562,6 @@ def convert_toko_model_to_opencode(model: TokoModelInfo) -> Model:
         reasoning=has_reasoning,
         release_date=release_date,
         temperature=True,
-        tool_call=True,  # Assume most models support tool calling
     )
 
 

@@ -9,7 +9,7 @@ from pydantic_ai.messages import BaseToolCallPart
 
 
 if TYPE_CHECKING:
-    from pydantic_ai import FileUrl
+    from pydantic_ai import FileUrl, MultiModalContent
     from pydantic_ai.messages import ToolCallPartDelta
 
 
@@ -60,3 +60,15 @@ def url_from_mime_type(uri: str, mime_type: str | None) -> FileUrl:
     if mime_type.startswith("video/"):
         return VideoUrl(url=uri, media_type=mime_type)
     return DocumentUrl(url=uri, media_type=mime_type)
+
+
+def get_file_url_obj(url: str, mime: str) -> MultiModalContent | None:
+    if mime.startswith("image/"):
+        return ImageUrl(url=url, media_type=mime)
+    if mime.startswith("audio/"):
+        return AudioUrl(url=url, media_type=mime)
+    if mime.startswith("video/"):
+        return VideoUrl(url=url, media_type=mime)
+    if mime == "application/pdf":
+        return DocumentUrl(url=url, media_type=mime)
+    return None
