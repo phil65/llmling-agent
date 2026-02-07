@@ -20,6 +20,7 @@ from pydantic_ai import (
     UserPromptPart,
     VideoUrl,
 )
+from tokonomics.model_discovery import ModelPricing
 
 from agentpool import log
 from agentpool.common_types import PathReference
@@ -499,12 +500,11 @@ def opencode_to_chat_message(
             elif isinstance(part, ToolPart):
                 # Create tool call part
 
-                tool_input = _get_input_from_state(part.state)
                 response_parts.append(
                     PydanticToolCallPart(
                         tool_name=part.tool,
                         tool_call_id=part.call_id,
-                        args=tool_input,
+                        args=_get_input_from_state(part.state),
                     )
                 )
 
@@ -559,27 +559,12 @@ def opencode_to_chat_message(
 def convert_toko_model_to_opencode(model: TokoModelInfo) -> Model:
     """Convert a tokonomics ModelInfo to an OpenCode Model."""
     # Convert pricing (tokonomics uses per-token, OpenCode uses per-million-token)
-    input_cost = 0.0
-    output_cost = 0.0
-    cache_read = None
-    cache_write = None
-
-    if model.pricing:
-        # tokonomics pricing is per-token, convert to per-million-tokens
-        if model.pricing.prompt is not None:
-            input_cost = model.pricing.prompt * 1_000_000
-        if model.pricing.completion is not None:
-            output_cost = model.pricing.completion * 1_000_000
-        if model.pricing.input_cache_read is not None:
-            cache_read = model.pricing.input_cache_read * 1_000_000
-        if model.pricing.input_cache_write is not None:
-            cache_write = model.pricing.input_cache_write * 1_000_000
-
+    pricing = model.pricing or ModelPricing()
     cost = ModelCost(
-        input=input_cost,
-        output=output_cost,
-        cache_read=cache_read,
-        cache_write=cache_write,
+        input=(pricing.prompt * 1_000_000) if pricing.prompt else 0.0,
+        output=(pricing.completion * 1_000_000) if pricing.completion else 0.0,
+        cache_read=(pricing.input_cache_read * 1_000_000) if pricing.input_cache_read else None,
+        cache_write=(pricing.input_cache_write * 1_000_000) if pricing.input_cache_write else None,
     )
     # Convert limits
     context = float(model.context_window) if model.context_window else 128000.0
