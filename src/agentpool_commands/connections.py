@@ -84,11 +84,7 @@ class DisconnectCommand(NodeCommand):
     name = "disconnect"
     category = "nodes"
 
-    async def execute_command(
-        self,
-        ctx: CommandContext[NodeContext],
-        node_name: str,
-    ) -> None:
+    async def execute_command(self, ctx: CommandContext[NodeContext], node_name: str) -> None:
         """Disconnect from another node.
 
         Args:
@@ -152,22 +148,18 @@ class ListConnectionsCommand(NodeCommand):
         Args:
             ctx: Command context
         """
+        from rich.console import Console
+
         if not ctx.context.node.connections.get_targets():
             await ctx.print("ℹ️ **No active connections**")  # noqa: RUF001
             return
-
         # Create tree visualization
         tree = Tree(format_node_name(ctx.context.node, current=True))
-
         # Use session's get_connections() for info
         for node in ctx.context.node.connections.get_targets():
             assert ctx.context.pool
             name = format_node_name(ctx.context.pool[node.name])
             _branch = tree.add(name)
-
-        # Create string representation
-        from rich.console import Console
-
         console = Console()
         with console.capture() as capture:
             console.print(tree)

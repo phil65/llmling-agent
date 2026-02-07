@@ -16,11 +16,7 @@ if TYPE_CHECKING:
 class FilteringResourceProvider(ResourceProvider):
     """Wrapper that filters tools from a ResourceProvider based on tool name filter."""
 
-    def __init__(
-        self,
-        provider: ResourceProvider,
-        tool_filter: dict[str, bool],
-    ) -> None:
+    def __init__(self, provider: ResourceProvider, tool_filter: dict[str, bool]) -> None:
         """Initialize filtering wrapper.
 
         Args:

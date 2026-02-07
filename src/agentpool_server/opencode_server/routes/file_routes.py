@@ -13,12 +13,7 @@ import anyenv
 from fastapi import APIRouter, HTTPException, Query
 
 from agentpool_server.opencode_server.dependencies import StateDep
-from agentpool_server.opencode_server.models import (
-    FileContent,
-    FileNode,
-    FindMatch,
-    Symbol,
-)
+from agentpool_server.opencode_server.models import FileContent, FileNode, FindMatch, Symbol
 from agentpool_server.opencode_server.models.file import SubmatchInfo
 
 
@@ -130,16 +125,14 @@ async def _search_with_ripgrep(
                 start = sm.get("start", 0)
                 end = sm.get("end", 0)
                 submatches.append(SubmatchInfo.create(match_text, start, end))
-
-            matches.append(
-                FindMatch.create(
-                    path=rel_path,
-                    lines=line_text.strip(),
-                    line_number=line_number,
-                    absolute_offset=absolute_offset,
-                    submatches=submatches,
-                )
+            find_match = FindMatch.create(
+                path=rel_path,
+                lines=line_text.strip(),
+                line_number=line_number,
+                absolute_offset=absolute_offset,
+                submatches=submatches,
             )
+            matches.append(find_match)
 
             if len(matches) >= max_matches:
                 break

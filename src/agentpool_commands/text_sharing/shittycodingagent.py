@@ -67,7 +67,6 @@ class ShittyCodingAgentSharer(TextSharer):
 
         # Default to session.html for the typical use case
         filename = title or f"session.{syntax or 'html'}"
-
         # Always create as unlisted (secret) gist
         payload: dict[str, Any] = {
             "files": {filename: {"content": content}},
@@ -80,19 +79,11 @@ class ShittyCodingAgentSharer(TextSharer):
         }
         url = "https://api.github.com/gists"
         response: dict[str, Any] = await anyenv.post_json(url, payload, headers=headers)
-
         gist_id = response["id"]
         raw_url = response["files"][filename]["raw_url"]
-
         # Build the shittycodingagent.ai preview URL
         preview_url = f"{PREVIEW_BASE_URL}?{gist_id}"
-
-        return ShareResult(
-            url=preview_url,
-            raw_url=raw_url,
-            delete_url=None,
-            id=gist_id,
-        )
+        return ShareResult(url=preview_url, raw_url=raw_url, id=gist_id)
 
 
 if __name__ == "__main__":

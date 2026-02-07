@@ -95,16 +95,14 @@ class AggregatingResourceProvider(ResourceProvider):
 
         If tool_mode="codemode", wraps all tools in a single Python execution tool.
         """
+        from agentpool.resource_providers.codemode.provider import CodeModeResourceProvider
+        from agentpool.resource_providers.static import StaticResourceProvider
+
         # Get all tools from child providers
         all_tools = [t for provider in self.providers for t in await provider.get_tools()]
 
         # If codemode, wrap all tools in a single codemode tool
         if self.tool_mode == "codemode":
-            from agentpool.resource_providers.codemode.provider import (
-                CodeModeResourceProvider,
-            )
-            from agentpool.resource_providers.static import StaticResourceProvider
-
             # Always create fresh static provider with current tools
             static = StaticResourceProvider("codemode_static", tools=all_tools)
 

@@ -86,11 +86,7 @@ class ShowToolCommand(NodeCommand):
 
         return isinstance(node, Agent)
 
-    async def execute_command(
-        self,
-        ctx: CommandContext[AgentContext],
-        name: str,
-    ) -> None:
+    async def execute_command(self, ctx: CommandContext[AgentContext], name: str) -> None:
         """Show detailed information about a tool.
 
         Args:
@@ -143,11 +139,7 @@ class EnableToolCommand(NodeCommand):
 
         return isinstance(node, Agent)
 
-    async def execute_command(
-        self,
-        ctx: CommandContext[AgentContext],
-        name: str,
-    ) -> None:
+    async def execute_command(self, ctx: CommandContext[AgentContext], name: str) -> None:
         """Enable a tool.
 
         Args:
@@ -182,11 +174,7 @@ class DisableToolCommand(NodeCommand):
 
         return isinstance(node, Agent)
 
-    async def execute_command(
-        self,
-        ctx: CommandContext[AgentContext],
-        name: str,
-    ) -> None:
+    async def execute_command(self, ctx: CommandContext[AgentContext], name: str) -> None:
         """Disable a tool.
 
         Args:

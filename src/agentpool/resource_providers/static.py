@@ -90,14 +90,7 @@ class StaticResourceProvider(ResourceProvider):
         self._prompts.append(prompt)
 
     def remove_prompt(self, name: str) -> bool:
-        """Remove a prompt by name.
-
-        Args:
-            name: Name of prompt to remove
-
-        Returns:
-            True if prompt was found and removed, False otherwise
-        """
+        """Remove a prompt by name."""
         for i, prompt in enumerate(self._prompts):
             if prompt.name == name:
                 self._prompts.pop(i)
@@ -109,14 +102,7 @@ class StaticResourceProvider(ResourceProvider):
         self._resources.append(resource)
 
     def remove_resource(self, name: str) -> bool:
-        """Remove a resource by name.
-
-        Args:
-            name: Name of resource to remove
-
-        Returns:
-            True if resource was found and removed, False otherwise
-        """
+        """Remove a resource by name."""
         for i, resource in enumerate(self._resources):
             if resource.name == name:
                 self._resources.pop(i)

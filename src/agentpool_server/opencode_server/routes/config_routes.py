@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 router = APIRouter(tags=["config"])
 
+DEFAULT_IGNORE = ["node_modules/**", "__pycache__/**", ".venv/**", "*.pyc", ".mypy_cache/**"]
 # Provider display names and environment variable mappings
 PROVIDER_INFO: dict[str, tuple[str, list[str]]] = {
     "anthropic": ("Anthropic", ["ANTHROPIC_API_KEY"]),
@@ -48,9 +49,7 @@ PROVIDER_INFO: dict[str, tuple[str, list[str]]] = {
 }
 
 
-def _group_models_by_provider(
-    models: list[TokoModelInfo],
-) -> dict[str, list[TokoModelInfo]]:
+def _group_models_by_provider(models: list[TokoModelInfo]) -> dict[str, list[TokoModelInfo]]:
     """Group models by their provider."""
     grouped: dict[str, list[TokoModelInfo]] = defaultdict(list)
     for model in models:
@@ -65,7 +64,6 @@ def _build_providers(models: list[TokoModelInfo]) -> list[Provider]:
     """Build Provider list from tokonomics models."""
     grouped = _group_models_by_provider(models)
     providers: list[Provider] = []
-
     for provider_id, provider_models in sorted(grouped.items()):
         # Get provider display info
         display_name, env_vars = PROVIDER_INFO.get(
@@ -73,12 +71,7 @@ def _build_providers(models: list[TokoModelInfo]) -> list[Provider]:
         )
         # Convert models to OpenCode format
         models_dict = {i.id_override or i.id: Model.from_tokonomics(i) for i in provider_models}
-        provider = Provider(
-            id=provider_id,
-            name=display_name,
-            env=env_vars,
-            models=models_dict,
-        )
+        provider = Provider(id=provider_id, name=display_name, env=env_vars, models=models_dict)
         providers.append(provider)
 
     return providers
@@ -107,9 +100,7 @@ async def get_config(state: StateDep) -> Config:
 
     # Ensure watcher config is set with sensible defaults
     if state.config.watcher is None:
-        state.config.watcher = WatcherConfig(
-            ignore=["node_modules/**", "__pycache__/**", ".venv/**", "*.pyc", ".mypy_cache/**"]
-        )
+        state.config.watcher = WatcherConfig(ignore=DEFAULT_IGNORE)
 
     # Set a default model if not already configured
     if state.config.model is None:

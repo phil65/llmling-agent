@@ -108,24 +108,18 @@ class OpenCodeSharer(TextSharer):
         Returns:
             ShareResult with OpenCode share URL
         """
+        session_id = str(uuid.uuid4())
+        message_id = str(uuid.uuid4())
+        part_id = str(uuid.uuid4())
+        current_time = int(time.time() * 1000)
+        # Create share (returns secret and URL)
+        url = f"{self.api_url}/share_create"
         try:
-            session_id = str(uuid.uuid4())
-            message_id = str(uuid.uuid4())
-            part_id = str(uuid.uuid4())
-            current_time = int(time.time() * 1000)
-
-            # Create share (returns secret and URL)
-            resp = await self._client.post(
-                f"{self.api_url}/share_create",
-                json={"sessionID": session_id},
-            )
+            resp = await self._client.post(url, json={"sessionID": session_id})
             resp.raise_for_status()
             share_data = resp.json()
             secret = share_data["secret"]
-            share_url = share_data["url"]
-
             # Sync session info
-            info_key = f"session/info/{session_id}"
             info_content = {
                 "id": session_id,
                 "projectID": "shared-content",
@@ -137,40 +131,30 @@ class OpenCodeSharer(TextSharer):
                     "updated": current_time,
                 },
             }
-
-            resp = await self._client.post(
-                f"{self.api_url}/share_sync",
-                json={
-                    "sessionID": session_id,
-                    "secret": secret,
-                    "key": info_key,
-                    "content": info_content,
-                },
-            )
+            data = {
+                "sessionID": session_id,
+                "secret": secret,
+                "key": f"session/info/{session_id}",
+                "content": info_content,
+            }
+            resp = await self._client.post(f"{self.api_url}/share_sync", json=data)
             resp.raise_for_status()
-
             # Sync message
-            msg_key = f"session/message/{session_id}/{message_id}"
             msg_content = {
                 "id": message_id,
                 "sessionID": session_id,
                 "role": "user",
                 "time": {"created": current_time},
             }
-
-            resp = await self._client.post(
-                f"{self.api_url}/share_sync",
-                json={
-                    "sessionID": session_id,
-                    "secret": secret,
-                    "key": msg_key,
-                    "content": msg_content,
-                },
-            )
+            data = {
+                "sessionID": session_id,
+                "secret": secret,
+                "key": f"session/message/{session_id}/{message_id}",
+                "content": msg_content,
+            }
+            resp = await self._client.post(f"{self.api_url}/share_sync", json=data)
             resp.raise_for_status()
-
             # Sync text part with actual content
-            part_key = f"session/part/{session_id}/{message_id}/{part_id}"
             part_content = {
                 "id": part_id,
                 "sessionID": session_id,
@@ -178,25 +162,19 @@ class OpenCodeSharer(TextSharer):
                 "type": "text",
                 "text": content,
             }
-
-            resp = await self._client.post(
-                f"{self.api_url}/share_sync",
-                json={
-                    "sessionID": session_id,
-                    "secret": secret,
-                    "key": part_key,
-                    "content": part_content,
-                },
-            )
+            data = {
+                "sessionID": session_id,
+                "secret": secret,
+                "key": f"session/part/{session_id}/{message_id}/{part_id}",
+                "content": part_content,
+            }
+            resp = await self._client.post(f"{self.api_url}/share_sync", json=data)
             resp.raise_for_status()
-
             # Store secret in delete_url for later deletion
-            delete_url = f"{self.api_url}/share_delete#{secret}"
-
             return ShareResult(
-                url=share_url,
+                url=share_data["url"],
                 raw_url=f"{self.api_url}/share_data?id={session_id[-8:]}",
-                delete_url=delete_url,
+                delete_url=f"{self.api_url}/share_delete#{secret}",
                 id=session_id,
             )
 
@@ -212,7 +190,7 @@ class OpenCodeSharer(TextSharer):
         except httpx.RequestError as e:
             raise RuntimeError(f"Failed to connect to OpenCode API: {e}") from e
 
-    async def _share_chat_messages(
+    async def _share_messages(
         self,
         messages: list[ChatMessage[Any]],
         *,
@@ -248,23 +226,16 @@ class OpenCodeSharer(TextSharer):
         """
         if not messages:
             raise ValueError("Must provide at least one message")
-
+        session_id = str(uuid.uuid4())
+        current_time = int(time.time() * 1000)
+        # Create share
+        url = f"{self.api_url}/share_create"
         try:
-            session_id = str(uuid.uuid4())
-            current_time = int(time.time() * 1000)
-
-            # Create share
-            resp = await self._client.post(
-                f"{self.api_url}/share_create",
-                json={"sessionID": session_id},
-            )
+            resp = await self._client.post(url, json={"sessionID": session_id})
             resp.raise_for_status()
             share_data = resp.json()
             secret = share_data["secret"]
-            share_url = share_data["url"]
-
             # Sync session info
-            info_key = f"session/info/{session_id}"
             info_content = {
                 "id": session_id,
                 "projectID": "shared-conversation",
@@ -276,18 +247,14 @@ class OpenCodeSharer(TextSharer):
                     "updated": current_time,
                 },
             }
-
-            resp = await self._client.post(
-                f"{self.api_url}/share_sync",
-                json={
-                    "sessionID": session_id,
-                    "secret": secret,
-                    "key": info_key,
-                    "content": info_content,
-                },
-            )
+            data = {
+                "sessionID": session_id,
+                "secret": secret,
+                "key": f"session/info/{session_id}",
+                "content": info_content,
+            }
+            resp = await self._client.post(f"{self.api_url}/share_sync", json=data)
             resp.raise_for_status()
-
             # Sync each message and its parts
             for chat_msg in messages:
                 from agentpool_server.opencode_server.converters import (
@@ -311,40 +278,30 @@ class OpenCodeSharer(TextSharer):
                 ]
 
                 # Sync message
-                msg_key = f"session/message/{session_id}/{msg_info['id']}"
-                resp = await self._client.post(
-                    f"{self.api_url}/share_sync",
-                    json={
-                        "sessionID": session_id,
-                        "secret": secret,
-                        "key": msg_key,
-                        "content": msg_info,
-                    },
-                )
+                data = {
+                    "sessionID": session_id,
+                    "secret": secret,
+                    "key": f"session/message/{session_id}/{msg_info['id']}",
+                    "content": msg_info,
+                }
+                resp = await self._client.post(f"{self.api_url}/share_sync", json=data)
                 resp.raise_for_status()
-
                 # Sync parts
                 for part in msg_parts:
-                    part_key = f"session/part/{session_id}/{msg_info['id']}/{part['id']}"
-
-                    resp = await self._client.post(
-                        f"{self.api_url}/share_sync",
-                        json={
-                            "sessionID": session_id,
-                            "secret": secret,
-                            "key": part_key,
-                            "content": part,
-                        },
-                    )
+                    data = {
+                        "sessionID": session_id,
+                        "secret": secret,
+                        "key": f"session/part/{session_id}/{msg_info['id']}/{part['id']}",
+                        "content": part,
+                    }
+                    resp = await self._client.post(f"{self.api_url}/share_sync", json=data)
                     resp.raise_for_status()
 
             # Store secret in delete_url for later deletion
-            delete_url = f"{self.api_url}/share_delete#{secret}"
-
             return ShareResult(
-                url=share_url,
+                url=share_data["url"],
                 raw_url=f"{self.api_url}/share_data?id={session_id[-8:]}",
-                delete_url=delete_url,
+                delete_url=f"{self.api_url}/share_delete#{secret}",
                 id=session_id,
             )
 
@@ -392,7 +349,7 @@ class OpenCodeSharer(TextSharer):
             else conversation.chat_messages
         )
 
-        return await self._share_chat_messages(
+        return await self._share_messages(
             list(messages_to_share),
             title=title,
             visibility=visibility,
@@ -413,15 +370,9 @@ class OpenCodeSharer(TextSharer):
 
         # Extract secret from delete_url
         secret = result.delete_url.split("#", 1)[1]
-
+        url = f"{self.api_url}/share_delete"
         try:
-            resp = await self._client.post(
-                f"{self.api_url}/share_delete",
-                json={
-                    "sessionID": result.id,
-                    "secret": secret,
-                },
-            )
+            resp = await self._client.post(url, json={"sessionID": result.id, "secret": secret})
             resp.raise_for_status()
         except httpx.HTTPError:
             return False
