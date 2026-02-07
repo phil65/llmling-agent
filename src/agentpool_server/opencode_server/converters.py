@@ -358,23 +358,9 @@ def chat_message_to_opencode(  # noqa: PLR0915
         if msg.response_time:
             completed_ms = created_ms + int(msg.response_time * 1000)
 
-        # Extract token usage (handle both object and dict formats)
         usage = msg.usage
-        if usage:
-            if isinstance(usage, dict):
-                input_tokens = usage.get("input_tokens", 0) or 0
-                output_tokens = usage.get("output_tokens", 0) or 0
-                cache_read = usage.get("cache_read_tokens", 0) or 0
-                cache_write = usage.get("cache_write_tokens", 0) or 0
-            else:
-                input_tokens = usage.input_tokens or 0
-                output_tokens = usage.output_tokens or 0
-                cache_read = usage.cache_read_tokens or 0
-                cache_write = usage.cache_write_tokens or 0
-        else:
-            input_tokens = output_tokens = cache_read = cache_write = 0
-        cache = TokensCache(read=cache_read, write=cache_write)
-        tokens = Tokens(input=input_tokens, output=output_tokens, reasoning=0, cache=cache)
+        cache = TokensCache(read=usage.cache_read_tokens, write=usage.cache_write_tokens)
+        tokens = Tokens(input=usage.input_tokens, output=usage.output_tokens, cache=cache)
         info = AssistantMessage(
             id=message_id,
             session_id=session_id,
