@@ -8,6 +8,7 @@ All models inherit from OpenCodeBaseModel which provides:
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import (
     FileDiff,
+    ModelRef,
     TimeCreated,
     TimeCreatedUpdated,
 )
@@ -26,7 +27,6 @@ from agentpool_server.opencode_server.models.provider import (
     ModelCost,
     ModelLimit,
     Mode,
-    ModeModel,
     Provider,
     ProviderListResponse,
     ProvidersResponse,
@@ -73,7 +73,6 @@ from agentpool_server.opencode_server.models.message import (
     UnknownError,
     UnknownErrorData,
     UserMessage,
-    UserMessageModel,
 )
 from agentpool_server.opencode_server.models.parts import (
     AgentPart,
@@ -196,10 +195,10 @@ __all__ = [
     "MessageUpdatedEventProperties",
     "MessageWithParts",
     "Mode",
-    "ModeModel",
     "Model",
     "ModelCost",
     "ModelLimit",
+    "ModelRef",
     "OpenCodeBaseModel",
     "Part",
     "PartBase",
@@ -283,6 +282,5 @@ __all__ = [
     "UnknownError",
     "UnknownErrorData",
     "UserMessage",
-    "UserMessageModel",
     "VcsInfo",
 ]

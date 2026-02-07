@@ -224,6 +224,7 @@ class OpenCodeStorageProvider(StorageProvider):
             AssistantMessage,
             MessagePath,
             MessageTime,
+            ModelRef,
             ReasoningPart as OpenCodeReasoningPart,
             TextPart as OpenCodeTextPart,
             TimeCreated,
@@ -237,7 +238,6 @@ class OpenCodeStorageProvider(StorageProvider):
             ToolStatePending,
             ToolStateRunning,
             UserMessage,
-            UserMessageModel,
         )
 
         now_ms = int(get_now().timestamp() * 1000)
@@ -273,7 +273,7 @@ class OpenCodeStorageProvider(StorageProvider):
                 id=message_id,
                 session_id=session_id,
                 time=TimeCreated(created=now_ms),
-                model=UserMessageModel(provider_id="", model_id=model or "") if model else None,
+                model=ModelRef(provider_id="", model_id=model or "") if model else None,
             )
 
         # Write message file

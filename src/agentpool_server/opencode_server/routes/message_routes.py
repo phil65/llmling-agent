@@ -43,7 +43,6 @@ from agentpool_server.opencode_server.models.message import (
     FilePartInput,
     SubtaskPartInput,
     TextPartInput,
-    UserMessageModel,
 )
 from agentpool_server.opencode_server.routes.session_routes import get_or_load_session
 from agentpool_server.opencode_server.stream_adapter import OpenCodeStreamAdapter
@@ -162,16 +161,12 @@ async def _process_message(  # noqa: PLR0915
         raise HTTPException(status_code=404, detail="Session not found")
     # --- Create user message ---
     user_msg_id = identifier.ascending("message", request.message_id)
-    model = UserMessageModel(
-        provider_id=request.model.provider_id if request.model else "agentpool",
-        model_id=request.model.model_id if request.model else "default",
-    )
     user_message = UserMessage(
         id=user_msg_id,
         session_id=session_id,
         time=TimeCreated.now(),
         agent=request.agent or "default",
-        model=model,
+        model=request.model,
         variant=request.variant,
     )
 

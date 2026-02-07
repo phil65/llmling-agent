@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
+from agentpool_server.opencode_server.models.common import ModelRef
 
 
 class AgentPermission(OpenCodeBaseModel):
@@ -18,13 +19,6 @@ class AgentPermission(OpenCodeBaseModel):
     webfetch: Literal["ask", "allow", "deny"] | None = None
     doom_loop: Literal["ask", "allow", "deny"] | None = None
     external_directory: Literal["ask", "allow", "deny"] | None = None
-
-
-class AgentModel(OpenCodeBaseModel):
-    """Agent model configuration."""
-
-    model_id: str
-    provider_id: str
 
 
 class Agent(OpenCodeBaseModel):
@@ -40,7 +34,7 @@ class Agent(OpenCodeBaseModel):
     temperature: float | None = None
     color: str | None = None
     permission: AgentPermission = Field(default_factory=AgentPermission)
-    model: AgentModel | None = None
+    model: ModelRef | None = None
     prompt: str | None = None
     tools: dict[str, bool] = Field(default_factory=dict)
     options: dict[str, str] = Field(default_factory=dict)

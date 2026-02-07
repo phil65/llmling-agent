@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
+from agentpool_server.opencode_server.models.common import ModelRef  # noqa: TC001
 
 
 class ModelCost(OpenCodeBaseModel):
@@ -71,18 +72,11 @@ class ProviderListResponse(OpenCodeBaseModel):
     connected: list[str] = Field(default_factory=list)
 
 
-class ModeModel(OpenCodeBaseModel):
-    """Model selection for a mode."""
-
-    model_id: str
-    provider_id: str
-
-
 class Mode(OpenCodeBaseModel):
     """Agent mode configuration."""
 
     name: str
     tools: dict[str, bool] = Field(default_factory=dict)
-    model: ModeModel | None = None
+    model: ModelRef | None = None
     prompt: str | None = None
     temperature: float | None = None

@@ -6,10 +6,10 @@ from typing import Literal
 
 from pydantic import Field
 
-from agentpool_server.opencode_server.models.agent import AgentModel  # noqa: TC001
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import (  # noqa: TC001
     FileDiff,
+    ModelRef,
     TimeCreated,
 )
 from agentpool_server.opencode_server.models.parts import (  # noqa: TC001
@@ -57,13 +57,6 @@ class Tokens(OpenCodeBaseModel):
     reasoning: int = 0
 
 
-class UserMessageModel(OpenCodeBaseModel):
-    """Model info for user message."""
-
-    provider_id: str
-    model_id: str
-
-
 class UserMessage(OpenCodeBaseModel):
     """User message."""
 
@@ -72,7 +65,7 @@ class UserMessage(OpenCodeBaseModel):
     session_id: str
     time: TimeCreated
     agent: str = "default"
-    model: UserMessageModel | None = None
+    model: ModelRef | None = None
     summary: MessageSummary | None = None
     system: str | None = None
     tools: dict[str, bool] | None = None
@@ -234,18 +227,11 @@ class SubtaskPartInput(OpenCodeBaseModel):
     """Description of what the subtask does."""
     agent: str
     """The agent to handle this subtask."""
-    model: AgentModel | None = None
+    model: ModelRef | None = None
     """Optional model to use for the subtask."""
 
 
 PartInput = TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput
-
-
-class MessageModelInfo(OpenCodeBaseModel):
-    """Model info in message request."""
-
-    provider_id: str
-    model_id: str
 
 
 class MessageRequest(OpenCodeBaseModel):
@@ -253,7 +239,7 @@ class MessageRequest(OpenCodeBaseModel):
 
     parts: list[PartInput]
     message_id: str | None = None
-    model: MessageModelInfo | None = None
+    model: ModelRef | None = None
     agent: str | None = None
     no_reply: bool | None = None
     system: str | None = None
@@ -271,7 +257,7 @@ class ShellRequest(OpenCodeBaseModel):
 
     agent: str
     command: str
-    model: MessageModelInfo | None = None
+    model: ModelRef | None = None
 
 
 class CommandRequest(OpenCodeBaseModel):

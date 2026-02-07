@@ -30,6 +30,13 @@ class TimeStartEnd(OpenCodeBaseModel):
     end: int | None = None
 
 
+class ModelRef(OpenCodeBaseModel):
+    """Reference to a provider model (provider_id + model_id)."""
+
+    provider_id: str
+    model_id: str
+
+
 class FileDiff(OpenCodeBaseModel):
     """A file diff entry."""
 

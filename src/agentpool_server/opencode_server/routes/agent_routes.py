@@ -55,7 +55,7 @@ async def list_agents(state: StateDep) -> list[Agent]:
         Agent(
             name=name,
             description=agent.description or f"Agent: {name}",
-            # model=AgentModel(model_id=agent.model_name or "unknown", provider_id=""),
+            # model=ModelRef(model_id=agent.model_name or "unknown", provider_id=""),
             mode="primary" if agent == state.agent else "subagent",
             default=(name == pool.main_agent.name),  # Default agent from pool
         )

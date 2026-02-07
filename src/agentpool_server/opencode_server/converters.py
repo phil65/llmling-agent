@@ -313,7 +313,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
             session_id=session_id,
             time=TimeCreated(created=created_ms),
             agent=agent_name,
-            # model=UserMessageModel(provider_id=provider_id, model_id=model_id),
+            # model=ModelRef(provider_id=provider_id, model_id=model_id),
         )
 
         # Extract text from user message

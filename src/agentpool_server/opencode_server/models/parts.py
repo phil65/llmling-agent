@@ -7,9 +7,11 @@ from typing import Any, Literal, Self
 from pydantic import Field
 
 from agentpool.utils.time_utils import now_ms
-from agentpool_server.opencode_server.models.agent import AgentModel  # noqa: TC001
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
-from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: TC001
+from agentpool_server.opencode_server.models.common import (
+    ModelRef,  # noqa: TC001
+    TimeCreated,  # noqa: TC001
+)
 
 
 class TimeStart(OpenCodeBaseModel):
@@ -269,7 +271,7 @@ class SubtaskPart(PartBase):
     """The agent handling this subtask."""
     command: str | None = None
     """Optional command associated with the subtask."""
-    model: AgentModel | None = None
+    model: ModelRef | None = None
     """The model used for the subtask."""
 
 
