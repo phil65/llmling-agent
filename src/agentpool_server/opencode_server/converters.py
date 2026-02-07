@@ -97,7 +97,9 @@ def _get_input_from_state(state: ToolState, *, convert_params: bool = False) -> 
 
 
 def _convert_file_part_to_user_content(
-    part: FilePartInput,
+    mime: str,
+    url: str,
+    filename: str | None = None,
     fs: AsyncFileSystem | None = None,
 ) -> UserContent | PathReference:
     """Convert an OpenCode FilePartInput to pydantic-ai content or PathReference.
@@ -111,7 +113,9 @@ def _convert_file_part_to_user_content(
     - Video (video/*) -> VideoUrl or BinaryContent
 
     Args:
-        part: OpenCode file part with mime, url, and optional filename
+        mime: Mime type
+        url: part URL
+        filename: Optional filename
         fs: Optional async filesystem for PathReference resolution
 
     Returns:
@@ -119,9 +123,6 @@ def _convert_file_part_to_user_content(
     """
     from urllib.parse import unquote, urlparse
 
-    mime = part.mime
-    url = part.url
-    filename = part.filename or ""
     # Handle data: URIs - convert to BinaryContent
     if url.startswith("data:"):
         return BinaryContent.from_data_uri(url)
@@ -166,7 +167,7 @@ async def extract_user_prompt_from_parts(
     parts: list[PartInput],
     fs: AsyncFileSystem | None = None,
     tools: ToolManager | None = None,
-) -> str | Sequence[UserContent | PathReference]:
+) -> Sequence[UserContent | PathReference]:
     """Extract user prompt from OpenCode message input parts.
 
     Converts OpenCode input parts to pydantic-ai UserContent or PathReference format:
@@ -196,8 +197,8 @@ async def extract_user_prompt_from_parts(
                 content = await _resolve_mcp_resource(resource, tools)
                 if content is not None:
                     result.append(content)
-            case FilePartInput():
-                file_content = _convert_file_part_to_user_content(part, fs=fs)
+            case FilePartInput(mime=mime, url=url, filename=filename):
+                file_content = _convert_file_part_to_user_content(mime, url, filename, fs=fs)
                 result.append(file_content)
             case AgentPartInput(name=agent_name):
                 # Agent mention (@agent-name in prompt) - inject instruction to execute task
@@ -218,10 +219,6 @@ async def extract_user_prompt_from_parts(
                     f"  description: '{desc}'"
                 )
                 result.append(instruction)
-
-    # If only text parts, join them as a single string for simplicity
-    if all(isinstance(item, str) for item in result):
-        return "\n".join(result)  # type: ignore[arg-type]
 
     return result
 
