@@ -382,7 +382,7 @@ class ACPSession:
         """
         self._cancelled = False
         fs = self.agent.env.get_fs()
-        contents = from_acp_content(content_blocks, fs=fs)
+        contents = [from_acp_content(i, fs=fs) for i in content_blocks]
         self.log.debug("Converted content", content=contents)
         if not contents:
             self.log.warning("Empty prompt received")

@@ -42,8 +42,6 @@ from agentpool_config.mcp_server import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from fsspec.asyn import AsyncFileSystem
     from pydantic_ai import UserContent
 
@@ -102,72 +100,66 @@ def convert_acp_mcp_server_to_config(acp_server: McpServer) -> MCPServerConfig:
             assert_never(unreachable)
 
 
-def from_acp_content(
-    blocks: Sequence[ContentBlock],
+def from_acp_content(  # noqa: PLR0911
+    block: ContentBlock,
     fs: AsyncFileSystem | None = None,
-) -> Sequence[UserContent | PathReference]:
+) -> UserContent | PathReference:
     """Convert ACP content blocks to UserContent or PathReference objects.
 
     File/directory references are converted to PathReference objects, deferring
     context resolution to the prompt conversion layer (convert_prompts).
 
     Args:
-        blocks: List of ACP ContentBlock objects
+        block: ACP ContentBlock
         fs: Optional filesystem for file references
 
     Returns:
-        List of UserContent or PathReference objects
+        UserContent or PathReference objects
     """
-    content: list[UserContent | PathReference] = []
-    logger.info("Processing content blocks", block_count=len(blocks))
+    logger.info("Processing block", block_type=type(block).__name__)
+    match block:
+        case TextContentBlock(text=text):
+            return text
 
-    for block in blocks:
-        logger.info("Processing block", block_type=type(block).__name__)
-        match block:
-            case TextContentBlock(text=text):
-                content.append(text)
+        case ImageContentBlock(data=data, mime_type=mime_type):
+            binary_data = base64.b64decode(data)
+            return BinaryImage(data=binary_data, media_type=mime_type)
 
-            case ImageContentBlock(data=data, mime_type=mime_type):
-                binary_data = base64.b64decode(data)
-                content.append(BinaryImage(data=binary_data, media_type=mime_type))
+        case AudioContentBlock(data=data, mime_type=mime_type):
+            binary_data = base64.b64decode(data)
+            return BinaryContent(data=binary_data, media_type=mime_type)
 
-            case AudioContentBlock(data=data, mime_type=mime_type):
-                binary_data = base64.b64decode(data)
-                content.append(BinaryContent(data=binary_data, media_type=mime_type))
+        case ResourceContentBlock(uri=uri, mime_type=mime_type):
+            if mime_type:
+                if obj := get_file_url_obj(uri, mime_type):
+                    return obj
+                # Try to create a PathReference for file:// URIs
+                if ref := uri_to_path_reference(uri, mime_type, fs):
+                    return ref
+                return format_uri_as_link(uri)
+            # No MIME type - try to create PathReference for file:// URIs
+            if ref := uri_to_path_reference(uri, mime_type, fs):
+                return ref
+            return format_uri_as_link(uri)
 
-            case ResourceContentBlock(uri=uri, mime_type=mime_type):
-                if mime_type:
-                    if obj := get_file_url_obj(uri, mime_type):
-                        content.append(obj)
-                    # Try to create a PathReference for file:// URIs
-                    elif ref := uri_to_path_reference(uri, mime_type, fs):
-                        content.append(ref)
-                    else:
-                        content.append(format_uri_as_link(uri))
-                # No MIME type - try to create PathReference for file:// URIs
-                elif ref := uri_to_path_reference(uri, mime_type, fs):
-                    content.append(ref)
-                else:
-                    content.append(format_uri_as_link(uri))
-
-            case EmbeddedResourceContentBlock(resource=resource):
-                match resource:
-                    case TextResourceContents(uri=uri, text=text):
-                        content.append(format_uri_as_link(uri))
-                        content.append(f'\n<context ref="{uri}">\n{text}\n</context>')
-                    case BlobResourceContents(blob=blob, mime_type=mime_type):
-                        binary_data = base64.b64decode(blob)
-                        if mime_type and mime_type.startswith("image/"):
-                            content.append(BinaryImage(data=binary_data, media_type=mime_type))
-                        elif (
-                            mime_type and mime_type.startswith("audio/")
-                        ) or mime_type in _document_format_lookup:
-                            content.append(BinaryContent(data=binary_data, media_type=mime_type))
-                        else:
-                            formatted_uri = format_uri_as_link(resource.uri)
-                            content.append(f"Binary Resource: {formatted_uri}")
-
-    return content
+        case EmbeddedResourceContentBlock(resource=resource):
+            match resource:
+                case TextResourceContents(uri=uri, text=text):
+                    return format_uri_as_link(uri) + f'\n<context ref="{uri}">\n{text}\n</context>'
+                case BlobResourceContents(blob=blob, mime_type=mime_type):
+                    binary_data = base64.b64decode(blob)
+                    if mime_type and mime_type.startswith("image/"):
+                        return BinaryImage(data=binary_data, media_type=mime_type)
+                    if (
+                        mime_type and mime_type.startswith("audio/")
+                    ) or mime_type in _document_format_lookup:
+                        return BinaryContent(data=binary_data, media_type=mime_type)
+                    formatted_uri = format_uri_as_link(resource.uri)
+                    return f"Binary Resource: {formatted_uri}"
+                case _ as unreachable:
+                    assert_never(unreachable)
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 def to_session_select_option(mode: ModeInfo) -> SessionConfigSelectOption:
