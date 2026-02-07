@@ -69,7 +69,7 @@ if TYPE_CHECKING:
 
     from agentpool.tools.manager import ToolManager
     from agentpool_server.opencode_server.models import ToolState
-    from agentpool_server.opencode_server.models.message import PartInput
+    from agentpool_server.opencode_server.models.message import MessageInfo, PartInput
     from agentpool_server.opencode_server.models.parts import ResourceSource
 
 
@@ -296,7 +296,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
     message_id = msg.message_id
     created_ms = datetime_to_ms(msg.timestamp)
     if msg.role == "user":
-        info: UserMessage | AssistantMessage = UserMessage(
+        info: MessageInfo = UserMessage(
             id=message_id,
             session_id=session_id,
             time=TimeCreated(created=created_ms),

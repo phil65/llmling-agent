@@ -173,7 +173,7 @@ class AssistantMessage(OpenCodeBaseModel):
 class MessageWithParts(OpenCodeBaseModel):
     """Message with its parts."""
 
-    info: UserMessage | AssistantMessage
+    info: MessageInfo
     parts: list[Part] = Field(default_factory=list)
 
     def update_part(self, updated: Part) -> None:

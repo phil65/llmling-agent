@@ -8,10 +8,7 @@ from pydantic import Field
 
 from agentpool_server.opencode_server.models.app import Project  # noqa: TC001
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
-from agentpool_server.opencode_server.models.message import (  # noqa: TC001
-    AssistantMessage,
-    UserMessage,
-)
+from agentpool_server.opencode_server.models.message import MessageInfo  # noqa: TC001
 from agentpool_server.opencode_server.models.parts import Part  # noqa: TC001
 from agentpool_server.opencode_server.models.pty import PtyInfo  # noqa: TC001
 from agentpool_server.opencode_server.models.question import (  # noqa: TC001
@@ -182,7 +179,7 @@ class SessionErrorEvent(OpenCodeBaseModel):
 class MessageUpdatedEventProperties(OpenCodeBaseModel):
     """Properties for message updated event."""
 
-    info: UserMessage | AssistantMessage
+    info: MessageInfo
 
 
 class MessageUpdatedEvent(OpenCodeBaseModel):
@@ -192,7 +189,7 @@ class MessageUpdatedEvent(OpenCodeBaseModel):
     properties: MessageUpdatedEventProperties
 
     @classmethod
-    def create(cls, message: UserMessage | AssistantMessage) -> Self:
+    def create(cls, message: MessageInfo) -> Self:
         return cls(properties=MessageUpdatedEventProperties(info=message))
 
 
