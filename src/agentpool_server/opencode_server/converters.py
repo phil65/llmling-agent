@@ -27,7 +27,6 @@ from agentpool.utils.pydantic_ai_helpers import get_file_url_obj, safe_args_as_d
 from agentpool.utils.time_utils import datetime_to_ms, ms_to_datetime
 from agentpool_server.opencode_server.models import (
     AgentPartInput,
-    AssistantMessage,
     FilePartInput,
     MessagePath,
     MessageTime,
@@ -66,7 +65,7 @@ if TYPE_CHECKING:
 
     from agentpool.tools.manager import ToolManager
     from agentpool_server.opencode_server.models import ToolState
-    from agentpool_server.opencode_server.models.message import MessageInfo, PartInput
+    from agentpool_server.opencode_server.models.message import PartInput
     from agentpool_server.opencode_server.models.parts import ResourceSource
 
 
@@ -276,14 +275,12 @@ def chat_message_to_opencode(  # noqa: PLR0915
     message_id = msg.message_id
     created_ms = datetime_to_ms(msg.timestamp)
     if msg.role == "user":
-        info: MessageInfo = UserMessage(
-            id=message_id,
+        result = MessageWithParts.user(
+            message_id=message_id,
             session_id=session_id,
             time=TimeCreated(created=created_ms),
-            agent=agent_name,
+            agent_name=agent_name,
         )
-        result = MessageWithParts(info=info)
-
         if msg.content and isinstance(msg.content, str):
             ts_opt = TimeStartEndOptional(start=created_ms)
             result.add_text_part(msg.content, time=ts_opt)
@@ -310,23 +307,21 @@ def chat_message_to_opencode(  # noqa: PLR0915
 
         usage = msg.usage
         cache = TokenCache(read=usage.cache_read_tokens, write=usage.cache_write_tokens)
-        tokens = Tokens(input=usage.input_tokens, output=usage.output_tokens, cache=cache)
-        info = AssistantMessage(
-            id=message_id,
+        result = MessageWithParts.assistant(
+            message_id=message_id,
             session_id=session_id,
             parent_id="",  # Would need to track parent user message
             model_id=msg.model_name or model_id,
             provider_id=msg.provider_name or provider_id,
             mode="default",
-            agent=agent_name,
+            agent_name=agent_name,
             path=MessagePath(cwd=working_dir, root=working_dir),
             time=MessageTime(created=created_ms, completed=completed_ms),
-            tokens=tokens,
+            tokens=Tokens(input=usage.input_tokens, output=usage.output_tokens, cache=cache),
             cost=float(msg.cost_info.total_cost) if msg.cost_info else 0.0,
             finish=msg.finish_reason,
         )
 
-        result = MessageWithParts(info=info)
         result.add_step_start_part()
         # Process all model messages to extract parts
         tool_calls: dict[str, ToolPart] = {}
@@ -338,15 +333,10 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         result.add_text_part(content, time=ts_opt)
                     case PydanticToolCallPart(tool_name=tool_name, tool_call_id=call_id):
                         tool_input = _convert_params_for_ui(safe_args_as_dict(p))
-                        tool_part = result.add_tool_part(
-                            tool_name,
-                            call_id,
-                            state=ToolStateRunning(
-                                time=TimeStart(start=created_ms),
-                                input=tool_input,
-                                title=f"Running {tool_name}",
-                            ),
-                        )
+                        ts = TimeStart(start=created_ms)
+                        title = f"Running {tool_name}"
+                        running_state = ToolStateRunning(time=ts, input=tool_input, title=title)
+                        tool_part = result.add_tool_part(tool_name, call_id, state=running_state)
                         tool_calls[call_id] = tool_part
                     case RetryPromptPart(content=retry_content, tool_name=tool_name, timestamp=ts):
                         retry_count = sum(

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 from pydantic import Field
 
@@ -175,6 +175,60 @@ class MessageWithParts(OpenCodeBaseModel):
 
     info: MessageInfo
     parts: list[Part] = Field(default_factory=list)
+
+    @classmethod
+    def user(
+        cls,
+        message_id: str,
+        session_id: str,
+        time: TimeCreated,
+        agent_name: str,
+        model: ModelRef | None = None,
+    ) -> Self:
+        user_msg = UserMessage(
+            id=message_id,
+            session_id=session_id,
+            time=time,
+            agent=agent_name,
+            model=model,
+        )
+        return cls(info=user_msg)
+
+    @classmethod
+    def assistant(
+        cls,
+        message_id: str,
+        session_id: str,
+        time: MessageTime,
+        agent_name: str,
+        model_id: str,
+        parent_id: str,
+        provider_id: str,
+        path: MessagePath,
+        mode: str = "default",
+        cost: float = 0.0,
+        summary: bool | None = None,
+        finish: str | None = None,
+        error: MessageError | None = None,
+        tokens: Tokens | None = None,
+    ) -> Self:
+        user_msg = AssistantMessage(
+            id=message_id,
+            session_id=session_id,
+            time=time,
+            agent=agent_name,
+            model_id=model_id,
+            parent_id=parent_id,
+            provider_id=provider_id,
+            path=path,
+            mode=mode,
+            cost=cost,
+            error=error,
+            summary=summary,
+            finish=finish,
+            tokens=tokens or Tokens(),
+        )
+        return cls(info=user_msg)
 
     def update_part(self, updated: Part) -> None:
         """Replace a part in the assistant message's parts list by ID."""
