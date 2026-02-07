@@ -102,7 +102,7 @@ class ToolStateCompleted(OpenCodeBaseModel):
     title: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
     time: TimeStartEndCompacted
-    attachments: list[Any] | None = None
+    attachments: list[FilePart] | None = None
 
 
 class ToolStateError(OpenCodeBaseModel):
