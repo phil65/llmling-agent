@@ -28,3 +28,13 @@ class TimeStartEnd(OpenCodeBaseModel):
 
     start: int
     end: int | None = None
+
+
+class FileDiff(OpenCodeBaseModel):
+    """A file diff entry."""
+
+    file: str
+    before: str
+    after: str
+    additions: int
+    deletions: int

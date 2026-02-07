@@ -14,6 +14,10 @@ from agentpool_server.opencode_server.models.message import (  # noqa: TC001
 )
 from agentpool_server.opencode_server.models.parts import Part  # noqa: TC001
 from agentpool_server.opencode_server.models.pty import PtyInfo  # noqa: TC001
+from agentpool_server.opencode_server.models.question import (  # noqa: TC001
+    QuestionInfo,
+    QuestionToolInfo,
+)
 from agentpool_server.opencode_server.models.session import (  # noqa: TC001
     Session,
     SessionStatus,
@@ -677,8 +681,8 @@ class QuestionAskedProperties(OpenCodeBaseModel):
 
     id: str
     session_id: str
-    questions: list[dict[str, Any]]
-    tool: dict[str, str] | None = None
+    questions: list[QuestionInfo]
+    tool: QuestionToolInfo | None = None
 
 
 class QuestionAskedEvent(OpenCodeBaseModel):
@@ -692,8 +696,8 @@ class QuestionAskedEvent(OpenCodeBaseModel):
         cls,
         request_id: str,
         session_id: str,
-        questions: list[dict[str, Any]],
-        tool: dict[str, str] | None = None,
+        questions: list[QuestionInfo],
+        tool: QuestionToolInfo | None = None,
     ) -> Self:
         props = QuestionAskedProperties(
             id=request_id,

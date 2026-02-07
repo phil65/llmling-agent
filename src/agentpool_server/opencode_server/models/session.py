@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
-from agentpool_server.opencode_server.models.common import TimeCreatedUpdated  # noqa: TC001
+from agentpool_server.opencode_server.models.common import (  # noqa: TC001
+    FileDiff,
+    TimeCreatedUpdated,
+)
 
 
 SessionStatusType = Literal["idle", "busy", "retry"]
@@ -20,7 +23,7 @@ class SessionSummary(OpenCodeBaseModel):
     additions: int | None = None
     deletions: int | None = None
     files: int | None = None
-    diffs: list[Any] = Field(default_factory=list)
+    diffs: list[FileDiff] = Field(default_factory=list)
 
 
 class SessionRevert(OpenCodeBaseModel):

@@ -305,7 +305,7 @@ class OpenCodeInputProvider(InputProvider):
         event = QuestionAskedEvent.create(
             request_id=question_id,
             session_id=self.session_id,
-            questions=[question_info.model_dump(mode="json", by_alias=True)],
+            questions=[question_info],
         )
         await self.state.broadcast_event(event)
         logger.info(

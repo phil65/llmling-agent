@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.agent import AgentModel  # noqa: TC001
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
-from agentpool_server.opencode_server.models.common import TimeCreated  # noqa: TC001
+from agentpool_server.opencode_server.models.common import (  # noqa: TC001
+    FileDiff,
+    TimeCreated,
+)
 from agentpool_server.opencode_server.models.parts import (  # noqa: TC001
     AgentPartSource,
     FilePartSource,
@@ -21,7 +24,7 @@ class MessageSummary(OpenCodeBaseModel):
 
     title: str | None = None
     body: str | None = None
-    diffs: list[Any] = Field(default_factory=list)
+    diffs: list[FileDiff] = Field(default_factory=list)
 
 
 class MessagePath(OpenCodeBaseModel):

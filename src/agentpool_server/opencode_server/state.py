@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         SessionStatus,
         Todo,
     )
+    from agentpool_server.opencode_server.models.question import QuestionToolInfo
 
 # Type alias for async callback
 OnFirstSubscriberCallback = Callable[[], Coroutine[Any, Any, None]]
@@ -45,8 +46,8 @@ class PendingQuestion:
     future: asyncio.Future[list[list[str]]]
     """Future that resolves when user answers."""
 
-    tool: dict[str, str] | None = None
-    """Optional tool context: {message_id, call_id}."""
+    tool: QuestionToolInfo | None = None
+    """Optional tool context."""
 
 
 @dataclass

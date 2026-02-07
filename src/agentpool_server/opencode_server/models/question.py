@@ -33,6 +33,16 @@ class QuestionInfo(OpenCodeBaseModel):
     """Allow selecting multiple choices."""
 
 
+class QuestionToolInfo(OpenCodeBaseModel):
+    """Tool context for a question request."""
+
+    message_id: str
+    """Message ID."""
+
+    call_id: str
+    """Tool call ID."""
+
+
 class QuestionRequest(OpenCodeBaseModel):
     """A pending question request."""
 
@@ -45,8 +55,8 @@ class QuestionRequest(OpenCodeBaseModel):
     questions: list[QuestionInfo]
     """List of questions to ask."""
 
-    tool: dict[str, str] | None = None
-    """Optional tool context: {message_id, call_id}."""
+    tool: QuestionToolInfo | None = None
+    """Optional tool context."""
 
 
 class QuestionReply(OpenCodeBaseModel):

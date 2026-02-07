@@ -7,6 +7,7 @@ All models inherit from OpenCodeBaseModel which provides:
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import (
+    FileDiff,
     TimeCreated,
     TimeCreatedUpdated,
 )
@@ -151,6 +152,7 @@ from agentpool_server.opencode_server.models.question import (
     QuestionOption,
     QuestionReply,
     QuestionRequest,
+    QuestionToolInfo,
 )
 
 __all__ = [
@@ -169,6 +171,7 @@ __all__ = [
     "Config",
     "Event",
     "FileContent",
+    "FileDiff",
     "FileNode",
     "FilePart",
     "FilePartInput",
@@ -223,6 +226,7 @@ __all__ = [
     "QuestionOption",
     "QuestionReply",
     "QuestionRequest",
+    "QuestionToolInfo",
     "ReasoningPart",
     "RetryPart",
     "ServerConnectedEvent",
