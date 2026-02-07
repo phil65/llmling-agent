@@ -2602,7 +2602,7 @@ wheels = [
 
 [[package]]
 name = "lancedb"
-version = "0.29.0"
+version = "0.29.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "deprecation" },
@@ -2614,12 +2614,12 @@ dependencies = [
     { name = "tqdm" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a5/60/c6ac12542d0fa1791d7b2b1ea6a36b7c0363f7cfc864ebb51c6677bde8f4/lancedb-0.29.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:4c043d4532eaab308950a6cfd4baa6d9a224f6d56146ab080475d02120c21f78", size = 42340671, upload-time = "2026-02-06T18:27:10.23Z" },
-    { url = "https://files.pythonhosted.org/packages/70/87/50638041b21727de0cd0b9140ab5da1bf129202deeee47c46faebcee87ff/lancedb-0.29.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d3a211737f5a2ffd8e222a74937ce47a856b33bb4b9905afbcb5acc39e2250ab", size = 44148466, upload-time = "2026-02-06T18:32:27.406Z" },
-    { url = "https://files.pythonhosted.org/packages/ee/91/5a00f284706b7f3709f42c75498bfd721f50e40c5f469bafa3cfb519f1ae/lancedb-0.29.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4034ffd0cb784f3f48bb4e1c3324d61f0eb6e5b2f9947eaa8001c927f17005ce", size = 47186587, upload-time = "2026-02-06T18:37:08.375Z" },
-    { url = "https://files.pythonhosted.org/packages/c0/1b/8ff83206d464703dcc62509ed26cc75b1877d5893d2a4d45f89a7872f434/lancedb-0.29.0-cp39-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:e15f1311fd258053993379dfd8de73f5b68f0356ca16d14ace10adf48f80e22e", size = 44175865, upload-time = "2026-02-06T18:32:33.604Z" },
-    { url = "https://files.pythonhosted.org/packages/df/17/8edddfd95765204ec811b00e525772645b33dc335e67a57a11860af4689c/lancedb-0.29.0-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:83d4f4c38535140b5cece3d5236200dbb9d2369c270fb5bed1014f4e26e4d344", size = 47225995, upload-time = "2026-02-06T18:36:45.874Z" },
-    { url = "https://files.pythonhosted.org/packages/b0/5d/35a81022c80c22b9ee67f6b921079be65ee27290dac69e097f8c9ba12984/lancedb-0.29.0-cp39-abi3-win_amd64.whl", hash = "sha256:d33ff1bc304b1ff8aebb10e1e9a8aee1cd95ba8791d1efcb3a4b02b679681732", size = 52031912, upload-time = "2026-02-06T19:03:00.402Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/7d/1031d4fabf51fd8b6cfe47cfccf8d2cbe3d4709d248cd08c78a99ce97385/lancedb-0.29.1-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:4a9f8f4d03ca2127d6e0b72728b2cc09ae7bfc8ea7b14ab37fc09bfdd1f03f73", size = 42340080, upload-time = "2026-02-07T00:51:24.38Z" },
+    { url = "https://files.pythonhosted.org/packages/2e/44/25f20890fd4cc1588bea4974be0da2921421a9e22291cfb6118690eefe37/lancedb-0.29.1-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:7c2477e898762324314a6a3be902c64ea5a3f7457720d4ec235e65e6ab3170f7", size = 44151522, upload-time = "2026-02-07T00:57:59.298Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/6a/bbdeb1dea91bbf2c613ca991a2b76f29b598c1c46f17b42c81d052b4e726/lancedb-0.29.1-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6ba3d4fa4d7f0e9b00861349dcce13fb437d9e40462c48679df91dd587d13919", size = 47183673, upload-time = "2026-02-07T01:01:09.364Z" },
+    { url = "https://files.pythonhosted.org/packages/30/4f/014a1097c9b77b1883d9afca7872fa6d5cc5f890546af5939400c2aea971/lancedb-0.29.1-cp39-abi3-manylinux_2_28_aarch64.whl", hash = "sha256:a60143bdeef2390e5c07cb5335c1888cf322102540108e1281b8b6444b8eb7d1", size = 44169206, upload-time = "2026-02-07T00:57:12.096Z" },
+    { url = "https://files.pythonhosted.org/packages/65/a2/8f0c4978df7c5ec7e8e813f0488ac88beca51282cc58726babae51ab6d00/lancedb-0.29.1-cp39-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:1208a4c825ba51fd61e285b0fd179976fb035f0a0838acde1022d45b2c171b30", size = 47222807, upload-time = "2026-02-07T01:03:25.117Z" },
+    { url = "https://files.pythonhosted.org/packages/cd/3f/bb3ec72aa32e77a132ba17edccaaa6edc0e69c16d8781a5985732920e71c/lancedb-0.29.1-cp39-abi3-win_amd64.whl", hash = "sha256:f122263c074c12cc4e716423a29fe2bc7bf574ee958c4df6099b1ed6b47a35ea", size = 52031064, upload-time = "2026-02-07T01:28:28.572Z" },
 ]
 
 [[package]]
