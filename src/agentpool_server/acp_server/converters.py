@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, assert_never, overload
 
 from pydantic import HttpUrl
 from pydantic_ai import BinaryContent, BinaryImage
+from pydantic_ai.messages import _document_format_lookup
 
 from acp.schema import (
     AudioContentBlock,
@@ -158,12 +159,10 @@ def from_acp_content(
                         binary_data = base64.b64decode(blob)
                         if mime_type and mime_type.startswith("image/"):
                             content.append(BinaryImage(data=binary_data, media_type=mime_type))
-                        elif mime_type and mime_type.startswith("audio/"):
+                        elif (
+                            mime_type and mime_type.startswith("audio/")
+                        ) or mime_type in _document_format_lookup:
                             content.append(BinaryContent(data=binary_data, media_type=mime_type))
-                        elif mime_type == "application/pdf":
-                            content.append(
-                                BinaryContent(data=binary_data, media_type="application/pdf")
-                            )
                         else:
                             formatted_uri = format_uri_as_link(resource.uri)
                             content.append(f"Binary Resource: {formatted_uri}")
