@@ -206,6 +206,7 @@ async def find_text(state: StateDep, pattern: str = Query()) -> list[FindMatch]:
     except re.error as e:
         raise HTTPException(status_code=400, detail=f"Invalid regex: {e}") from e
     max_matches = 100
+    fs = state.fs
     base_path = state.base_path
     # Fast path: use ripgrep-rs library for local filesystems
     if state.is_local_fs:
@@ -215,7 +216,7 @@ async def find_text(state: StateDep, pattern: str = Query()) -> list[FindMatch]:
     regex = re.compile(pattern)
     try:
         # Use find to get all files recursively (limit depth to avoid scanning huge trees)
-        for path in await state.fs._find(base_path, maxdepth=10, withdirs=False):
+        for path in await fs._find(base_path, maxdepth=10, withdirs=False):
             if len(matches) >= max_matches:
                 break
             # Skip directories we don't want to search
@@ -224,7 +225,7 @@ async def find_text(state: StateDep, pattern: str = Query()) -> list[FindMatch]:
             # Get relative path using os.path.relpath for cross-platform support
             rel_path = os.path.relpath(path, base_path)
             try:
-                content = await state.fs._cat_file(path)
+                content = await fs._cat_file(path)
                 if isinstance(content, bytes):
                     content = content.decode("utf-8")
                 for line_num, line in enumerate(content.splitlines(), 1):
