@@ -75,8 +75,10 @@ if TYPE_CHECKING:
     from pydantic_ai import MultiModalContent, UserContent
     from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
+    from agentpool.tools.manager import ToolManager
     from agentpool_server.opencode_server.models import Part, ToolState
     from agentpool_server.opencode_server.models.message import PartInput
+    from agentpool_server.opencode_server.models.parts import ResourceSource
 
 
 logger = log.get_logger(__name__)
@@ -185,15 +187,41 @@ def get_file_url_obj(url: str, mime: str) -> MultiModalContent | None:
     return None
 
 
-def extract_user_prompt_from_parts(
+async def _resolve_mcp_resource(
+    source: ResourceSource,
+    tools: ToolManager,
+) -> str | None:
+    """Resolve an MCP resource and return its content as text.
+
+    Returns None if the resource cannot be read.
+    """
+    try:
+        resources = await tools.list_resources()
+        resource = next(
+            (r for r in resources if r.uri == source.uri and r.client == source.client_name),
+            None,
+        )
+        if resource is None:
+            log.warning("MCP resource not found: %s/%s", source.client_name, source.uri)
+            return None
+        contents = await resource.read()
+        return "\n".join(contents) if contents else None
+    except Exception:
+        log.exception("Failed to read MCP resource: %s/%s", source.client_name, source.uri)
+        return None
+
+
+async def extract_user_prompt_from_parts(
     parts: list[PartInput],
     fs: AsyncFileSystem | None = None,
+    tools: ToolManager | None = None,
 ) -> str | Sequence[UserContent | PathReference]:
     """Extract user prompt from OpenCode message input parts.
 
     Converts OpenCode input parts to pydantic-ai UserContent or PathReference format:
     - Text parts become strings
     - File parts with file:// URLs become PathReference (deferred resolution)
+    - File parts with ResourceSource are resolved via MCP
     - Other file parts become ImageUrl, DocumentUrl, AudioUrl, VideoUrl, or BinaryContent
     - Agent parts inject instructions to delegate to sub-agents
     - Subtask parts inject instructions for spawning subtasks
@@ -201,15 +229,22 @@ def extract_user_prompt_from_parts(
     Args:
         parts: List of OpenCode message input parts
         fs: Optional async filesystem for PathReference resolution
+        tools: Optional tool manager for resolving MCP resources
 
     Returns:
         Either a simple string (text-only) or a list of UserContent/PathReference items
     """
+    from agentpool_server.opencode_server.models.parts import ResourceSource
+
     result: list[UserContent | PathReference] = []
     for part in parts:
         match part:
             case TextPartInput(text=text) if text:
                 result.append(text)
+            case FilePartInput(source=ResourceSource() as resource) if tools is not None:
+                content = await _resolve_mcp_resource(resource, tools)
+                if content is not None:
+                    result.append(content)
             case FilePartInput():
                 content = _convert_file_part_to_user_content(part, fs=fs)
                 result.append(content)

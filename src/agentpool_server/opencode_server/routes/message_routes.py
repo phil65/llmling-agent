@@ -234,7 +234,11 @@ async def _process_message(  # noqa: PLR0915
     state.session_status[session_id] = busy
     await state.broadcast_event(SessionStatusEvent.create(session_id, busy))
     # --- Extract user prompt ---
-    user_prompt = extract_user_prompt_from_parts(request.parts, fs=state.fs)
+    user_prompt = await extract_user_prompt_from_parts(
+        request.parts,
+        fs=state.fs,
+        tools=state.agent.tools,
+    )
     # --- Create assistant message ---
     assistant_msg_id = identifier.ascending("message")
     now = now_ms()
