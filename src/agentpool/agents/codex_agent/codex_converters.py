@@ -163,7 +163,7 @@ def user_content_to_codex(
                 result.append(TextInputItem(text=item))
             case ImageUrl():
                 result.append(ImageInputItem(url=item.url))
-            case BinaryContent() if item.media_type.startswith("image/"):
+            case BinaryContent() if item.is_image:
                 # Convert binary image to data URI
                 b64 = base64.b64encode(item.data).decode()
                 data_uri = f"data:{item.media_type};base64,{b64}"

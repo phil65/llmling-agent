@@ -216,7 +216,7 @@ def to_agui_input_content(parts: Sequence[UserContent]) -> list[InputContent]:
                 result.append(BinaryInputContent(url=str(url), mime_type=media_type))
 
             case BinaryContent(data=data, media_type=media_type):
-                encoded = base64.b64encode(data).decode("utf-8")
+                encoded = base64.b64encode(data).decode()
                 result.append(BinaryInputContent(data=encoded, mime_type=media_type))
     return result
 

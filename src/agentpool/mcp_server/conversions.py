@@ -48,13 +48,13 @@ def to_mcp_messages(
         case UserPromptPart(content=content_items):
             for item in content_items:
                 match item:
-                    case BinaryContent() if item.is_audio:
-                        encoded = base64.b64encode(item.data).decode("utf-8")
-                        audio = AudioContent(type="audio", data=encoded, mimeType=item.media_type)
+                    case BinaryContent(data=data, media_type=media_type) if item.is_audio:
+                        encoded = base64.b64encode(data).decode()
+                        audio = AudioContent(type="audio", data=encoded, mimeType=media_type)
                         messages.append(PromptMessage(role="user", content=audio))
-                    case BinaryContent() if item.is_image:
-                        encoded = base64.b64encode(item.data).decode("utf-8")
-                        image = ImageContent(type="image", data=encoded, mimeType=item.media_type)
+                    case BinaryContent(data=data, media_type=media_type) if item.is_image:
+                        encoded = base64.b64encode(data).decode()
+                        image = ImageContent(type="image", data=encoded, mimeType=media_type)
                         messages.append(PromptMessage(role="user", content=image))
                     case FileUrl(url=url):
                         content = TextContent(type="text", text=url)
@@ -63,9 +63,8 @@ def to_mcp_messages(
         case SystemPromptPart(content=msg):
             messages.append(PromptMessage(role="user", content=TextContent(type="text", text=msg)))
         case TextPart(content=msg):
-            messages.append(
-                PromptMessage(role="assistant", content=TextContent(type="text", text=msg))
-            )
+            text_content = TextContent(type="text", text=msg)
+            messages.append(PromptMessage(role="assistant", content=text_content))
     return messages
 
 
@@ -144,8 +143,8 @@ async def from_mcp_content(
                 match resource:
                     case TextResourceContents(text=text):
                         contents.append(text)
-                    case BlobResourceContents() as blob_resource:
-                        contents.append(f"[Binary data: {blob_resource.mimeType}]")
+                    case BlobResourceContents(mimeType=mime_type):
+                        contents.append(f"[Binary data: {mime_type}]")
                     case _ as unreachable:
                         assert_never(unreachable)  # ty: ignore
             case _ as unreachable:

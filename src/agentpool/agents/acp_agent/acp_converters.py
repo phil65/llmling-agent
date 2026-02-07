@@ -251,7 +251,7 @@ def convert_to_acp_content(prompts: Sequence[UserContent]) -> list[ContentBlock]
                 content_blocks.append(ImageContentBlock(data=encoded, mime_type=media_type))
 
             case BinaryContent(data=data, media_type=typ):
-                encoded = base64.b64encode(data).decode("utf-8")
+                encoded = base64.b64encode(data).decode()
                 # Handle different media types
                 if item.is_image:
                     content_blocks.append(ImageContentBlock(data=encoded, mime_type=typ))
