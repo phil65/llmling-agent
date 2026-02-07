@@ -10,9 +10,8 @@ This separation enables easy testing without mocks.
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, assert_never
 
 from pydantic_ai import (
     BuiltinToolCallPart,
@@ -21,6 +20,7 @@ from pydantic_ai import (
     FunctionToolCallEvent,
     FunctionToolResultEvent,
     PartDeltaEvent,
+    PartEndEvent,
     PartStartEvent,
     RetryPromptPart,
     TextPart,
@@ -30,6 +30,7 @@ from pydantic_ai import (
     ToolCallPartDelta,
     ToolReturnPart,
 )
+from pydantic_ai.messages import BuiltinToolCallEvent, BuiltinToolResultEvent
 
 from acp.schema import (
     AgentMessageChunk,
@@ -43,17 +44,21 @@ from acp.schema import (
 from acp.utils import generate_tool_title, infer_tool_kind, to_acp_content_blocks
 from agentpool.agents.events import (
     CompactionEvent,
+    CustomEvent,
     DiffContentItem,
     FileContentItem,
     LocationContentItem,
     PlanUpdateEvent,
     RunErrorEvent,
+    RunStartedEvent,
     StreamCompleteEvent,
     SubAgentEvent,
     TerminalContentItem,
     TextContentItem,
+    ToolCallCompleteEvent,
     ToolCallProgressEvent,
     ToolCallStartEvent,
+    ToolResultMetadataEvent,
 )
 from agentpool.log import get_logger
 from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
@@ -74,9 +79,10 @@ ACPSessionUpdate = (
 )
 
 
-# ============================================================================
-# Internal tool state tracking
-# ============================================================================
+def get_compaction_text(trigger: str) -> str:
+    if trigger == "auto":
+        return "\n\n---\n\n📦 **Context compaction** triggered. Summarizing...\n\n---\n\n"
+    return "\n\n---\n\n📦 **Manual compaction** requested. Summarizing...\n\n---\n\n"
 
 
 @dataclass
@@ -152,10 +158,7 @@ class ACPEventConverter:
         """
         for tool_call_id, state in list(self._tool_states.items()):
             if state.started:
-                yield ToolCallProgress(
-                    tool_call_id=tool_call_id,
-                    status="completed",
-                )
+                yield ToolCallProgress(tool_call_id=tool_call_id, status="completed")
         # Clean up all state
         self.reset()
 
@@ -198,14 +201,14 @@ class ACPEventConverter:
                 PartStartEvent(part=TextPart(content=delta))
                 | PartDeltaEvent(delta=TextPartDelta(content_delta=delta))
             ):
-                yield AgentMessageChunk.text(text=delta)
+                yield AgentMessageChunk.text(delta)
 
             # Thinking/reasoning
             case (
                 PartStartEvent(part=ThinkingPart(content=delta))
                 | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
             ):
-                yield AgentThoughtChunk.text(text=delta or "\n")
+                yield AgentThoughtChunk.text(delta or "\n")
 
             # Builtin tool call started (e.g., WebSearchTool, CodeExecutionTool)
             case PartStartEvent(part=BuiltinToolCallPart() as part):
@@ -224,27 +227,19 @@ class ACPEventConverter:
                     )
 
             # Builtin tool completed
-            case PartStartEvent(part=BuiltinToolReturnPart() as part):
-                tool_call_id = part.tool_call_id
-                tool_state = self._tool_states.get(tool_call_id)
-                final_output = part.content
-
+            case PartStartEvent(part=BuiltinToolReturnPart(content=out, tool_call_id=tc_id)):
+                tool_state = self._tool_states.get(tc_id)
                 if tool_state and tool_state.has_content:
-                    yield ToolCallProgress(
-                        tool_call_id=tool_call_id,
-                        status="completed",
-                        raw_output=final_output,
-                    )
+                    yield ToolCallProgress(tool_call_id=tc_id, status="completed", raw_output=out)
                 else:
-                    converted = to_acp_content_blocks(final_output)
-                    content = [ContentToolCallContent(content=block) for block in converted]
+                    converted = to_acp_content_blocks(out)
                     yield ToolCallProgress(
-                        tool_call_id=tool_call_id,
+                        tool_call_id=tc_id,
                         status="completed",
-                        raw_output=final_output,
-                        content=content,
+                        raw_output=out,
+                        content=[ContentToolCallContent(content=block) for block in converted],
                     )
-                self._cleanup_tool_state(tool_call_id)
+                self._cleanup_tool_state(tc_id)
 
             case PartStartEvent(part=part):
                 logger.debug("Received unhandled PartStartEvent", part=part)
@@ -289,73 +284,45 @@ class ACPEventConverter:
                     )
 
             # Tool completed successfully
-            case FunctionToolResultEvent(
-                result=ToolReturnPart(content=content) as result,
-                tool_call_id=tool_call_id,
-            ):
+            case FunctionToolResultEvent(result=ToolReturnPart(content=out), tool_call_id=tc_id):
                 # Handle async generator content
-                if isinstance(content, AsyncGenerator):
-                    full_content = ""
-                    async for chunk in content:
-                        full_content += str(chunk)
-                        if tool_call_id in self._tool_states:
-                            yield ToolCallProgress(
-                                tool_call_id=tool_call_id,
-                                status="in_progress",
-                                raw_output=chunk,
-                            )
-                    result.content = full_content
-                    final_output = full_content
-                else:
-                    final_output = result.content
-
-                tool_state = self._tool_states.get(tool_call_id)
+                tool_state = self._tool_states.get(tc_id)
                 if tool_state and tool_state.has_content:
-                    yield ToolCallProgress(
-                        tool_call_id=tool_call_id,
-                        status="completed",
-                        raw_output=final_output,
-                    )
+                    yield ToolCallProgress(tool_call_id=tc_id, status="completed", raw_output=out)
                 else:
-                    converted = to_acp_content_blocks(final_output)
+                    converted = to_acp_content_blocks(out)
                     content_items = [ContentToolCallContent(content=block) for block in converted]
                     yield ToolCallProgress(
-                        tool_call_id=tool_call_id,
+                        tool_call_id=tc_id,
                         status="completed",
-                        raw_output=final_output,
+                        raw_output=out,
                         content=content_items,
                     )
-                self._cleanup_tool_state(tool_call_id)
+                self._cleanup_tool_state(tc_id)
 
             # Tool failed with retry
-            case FunctionToolResultEvent(
-                result=RetryPromptPart() as result,
-                tool_call_id=tool_call_id,
-            ):
+            case FunctionToolResultEvent(result=RetryPromptPart() as result, tool_call_id=tc_id):
                 error_message = result.model_response()
-                yield ToolCallProgress(
-                    tool_call_id=tool_call_id,
-                    status="failed",
-                    content=[ContentToolCallContent.text(text=f"Error: {error_message}")],
-                )
-                self._cleanup_tool_state(tool_call_id)
+                content = ContentToolCallContent.text(f"Error: {error_message}")
+                yield ToolCallProgress(tool_call_id=tc_id, status="failed", content=[content])
+                self._cleanup_tool_state(tc_id)
 
             # Tool emits its own start event
             case ToolCallStartEvent(
-                tool_call_id=tool_call_id,
+                tool_call_id=tc_id,
                 tool_name=tool_name,
                 title=title,
                 kind=kind,
                 locations=loc_items,
                 raw_input=raw_input,
             ):
-                state = self._get_or_create_tool_state(tool_call_id, tool_name, raw_input or {})
+                state = self._get_or_create_tool_state(tc_id, tool_name, raw_input or {})
                 acp_locations = [ToolCallLocation(path=i.path, line=i.line) for i in loc_items]
                 # If not started, send start notification
                 if not state.started:
                     state.started = True
                     yield ToolCallStart(
-                        tool_call_id=tool_call_id,
+                        tool_call_id=tc_id,
                         title=title,
                         kind=kind,
                         raw_input=raw_input,
@@ -365,7 +332,7 @@ class ACPEventConverter:
                 else:
                     # Send update with tool-provided details
                     yield ToolCallProgress(
-                        tool_call_id=tool_call_id,
+                        tool_call_id=tc_id,
                         title=title,
                         kind=kind,
                         locations=acp_locations or None,
@@ -394,13 +361,13 @@ class ACPEventConverter:
                         status="pending",
                     )
                 acp_content: list[ToolCallContent] = []
-                progress_locations: list[ToolCallLocation] = []
+                locations: list[ToolCallLocation] = []
                 for item in items:
                     match item:
                         case TerminalContentItem(terminal_id=tid):
                             acp_content.append(TerminalToolCallContent(terminal_id=tid))
                         case TextContentItem(text=text):
-                            acp_content.append(ContentToolCallContent.text(text=text))
+                            acp_content.append(ContentToolCallContent.text(text))
                         case FileContentItem(
                             content=file_content,
                             path=file_path,
@@ -410,19 +377,17 @@ class ACPEventConverter:
                             formatted = format_zed_code_block(
                                 file_content, file_path, start_line, end_line
                             )
-                            acp_content.append(ContentToolCallContent.text(text=formatted))
-                            progress_locations.append(
-                                ToolCallLocation(path=file_path, line=start_line or 0)
-                            )
+                            acp_content.append(ContentToolCallContent.text(formatted))
+                            locations.append(ToolCallLocation(path=file_path, line=start_line or 0))
                         case DiffContentItem(path=diff_path, old_text=old, new_text=new):
                             acp_content.append(
                                 FileEditToolCallContent(path=diff_path, old_text=old, new_text=new)
                             )
-                            progress_locations.append(ToolCallLocation(path=diff_path))
+                            locations.append(ToolCallLocation(path=diff_path))
                             state.has_content = True
                         case LocationContentItem(path=loc_path, line=loc_line):
                             location = ToolCallLocation(path=loc_path, line=loc_line)
-                            progress_locations.append(location)
+                            locations.append(location)
 
                 # Build title: use provided title, or format MCP numeric progress
                 effective_title = title
@@ -443,7 +408,7 @@ class ACPEventConverter:
                     title=effective_title,
                     status="in_progress",
                     content=acp_content or None,
-                    locations=progress_locations or None,
+                    locations=locations or None,
                 )
                 if acp_content:
                     state.has_content = True
@@ -461,23 +426,9 @@ class ACPEventConverter:
                 ]
                 yield AgentPlanUpdate(entries=acp_entries)
 
-            case CompactionEvent(trigger=trigger, phase=phase):
-                if phase == "starting":
-                    if trigger == "auto":
-                        text = (
-                            "\n\n---\n\n"
-                            "📦 **Context compaction** triggered. "
-                            "Summarizing conversation..."
-                            "\n\n---\n\n"
-                        )
-                    else:
-                        text = (
-                            "\n\n---\n\n"
-                            "📦 **Manual compaction** requested. "
-                            "Summarizing conversation..."
-                            "\n\n---\n\n"
-                        )
-                    yield AgentMessageChunk.text(text=text)
+            case CompactionEvent(trigger=trigger, phase=phase) if phase == "starting":
+                text = get_compaction_text(trigger)
+                yield AgentMessageChunk.text(text)
 
             case SubAgentEvent(
                 source_name=source_name,
@@ -500,7 +451,7 @@ class ACPEventConverter:
                 # Display error as agent text with formatting
                 agent_prefix = f"[{agent_name}] " if agent_name else ""
                 error_text = f"\n\n❌ **Error**: {agent_prefix}{message}\n\n"
-                yield AgentMessageChunk.text(text=error_text)
+                yield AgentMessageChunk.text(error_text)
 
             case _:
                 logger.debug("Unhandled event", event_type=type(event).__name__)
@@ -524,18 +475,18 @@ class ACPEventConverter:
                 header_key = f"{source_name}:{depth}"
                 if header_key not in self._subagent_headers:
                     self._subagent_headers.add(header_key)
-                    yield AgentMessageChunk.text(text=f"\n{indent}{icon} **{source_name}**: ")
-                yield AgentMessageChunk.text(text=delta)
+                    yield AgentMessageChunk.text(f"\n{indent}{icon} **{source_name}**: ")
+                yield AgentMessageChunk.text(delta)
 
             case (
                 PartStartEvent(part=ThinkingPart(content=delta))
                 | PartDeltaEvent(delta=ThinkingPartDelta(content_delta=delta))
             ):
-                yield AgentThoughtChunk.text(text=f"{indent}[{source_name}] {delta or ''}")
+                yield AgentThoughtChunk.text(f"{indent}[{source_name}] {delta or ''}")
 
             case FunctionToolCallEvent(part=part):
                 text = f"\n{indent}🔧 [{source_name}] Using tool: {part.tool_name}\n"
-                yield AgentMessageChunk.text(text=text)
+                yield AgentMessageChunk.text(text)
 
             case FunctionToolResultEvent(
                 result=ToolReturnPart(content=content, tool_name=tool_name),
@@ -544,20 +495,41 @@ class ACPEventConverter:
                 if len(result_str) > 200:  # noqa: PLR2004
                     result_str = result_str[:200] + "..."
                 text = f"{indent}✅ [{source_name}] {tool_name}: {result_str}\n"
-                yield AgentMessageChunk.text(text=text)
+                yield AgentMessageChunk.text(text)
 
             case FunctionToolResultEvent(result=RetryPromptPart(tool_name=tool_name) as result):
                 error_msg = result.model_response()
                 text = f"{indent}❌ [{source_name}] {tool_name}: {error_msg}\n"
-                yield AgentMessageChunk.text(text=text)
+                yield AgentMessageChunk.text(text)
 
             case StreamCompleteEvent():
                 header_key = f"{source_name}:{depth}"
                 self._subagent_headers.discard(header_key)
-                yield AgentMessageChunk.text(text=f"\n{indent}---\n")
+                yield AgentMessageChunk.text(f"\n{indent}---\n")
 
-            case _:
-                pass
+            case (
+                BuiltinToolCallEvent()  # depracated
+                | BuiltinToolResultEvent()  # depracated
+                | CompactionEvent()
+                | FinalResultEvent()
+                | FunctionToolResultEvent()
+                | PartDeltaEvent()
+                | PartEndEvent()
+                | PartStartEvent()
+                | PlanUpdateEvent()
+                | RunErrorEvent()
+                | RunStartedEvent()
+                | SubAgentEvent()
+                | ToolCallCompleteEvent()
+                | ToolCallProgressEvent()
+                | ToolCallStartEvent()
+                | ToolResultMetadataEvent()
+                | CustomEvent()
+            ):
+                pass  # TODO
+
+            case _ as unreachable:
+                assert_never(unreachable)
 
     async def _convert_subagent_tool_box(
         self,
@@ -621,8 +593,29 @@ class ACPEventConverter:
                     self._cleanup_tool_state(state_key)
                 self._subagent_content.pop(state_key, None)
 
-            case _:
-                pass
+            case (
+                BuiltinToolCallEvent()  # depracated
+                | BuiltinToolResultEvent()  # depracated
+                | CompactionEvent()
+                | FinalResultEvent()
+                | FunctionToolResultEvent()
+                | PartDeltaEvent()
+                | PartEndEvent()
+                | PartStartEvent()
+                | PlanUpdateEvent()
+                | RunErrorEvent()
+                | RunStartedEvent()
+                | SubAgentEvent()
+                | ToolCallCompleteEvent()
+                | ToolCallProgressEvent()
+                | ToolCallStartEvent()
+                | ToolResultMetadataEvent()
+                | CustomEvent()
+            ):
+                pass  # TODO
+
+            case _ as unreachable:
+                assert_never(unreachable)
 
     async def _emit_subagent_progress(
         self, state_key: str, title: str
@@ -654,5 +647,5 @@ class ACPEventConverter:
             tool_call_id=state_key,
             title=title,
             status="in_progress",
-            content=[ContentToolCallContent.text(text=content_text)],
+            content=[ContentToolCallContent.text(content_text)],
         )

@@ -23,6 +23,7 @@ import zstandard
 
 from agentpool.log import get_logger
 from agentpool.messaging import ChatMessage
+from agentpool.mime_utils import detect_image_media_type
 from agentpool.utils.time_utils import parse_iso_timestamp
 
 
@@ -58,28 +59,6 @@ def _decompress(data: bytes, data_type: Literal["zstd", "plain"]) -> bytes:
         reader = _ZSTD_DECOMPRESSOR.stream_reader(io.BytesIO(data))
         return reader.read()
     return data
-
-
-def detect_image_media_type(data: bytes) -> str:
-    """Detect image media type from magic bytes.
-
-    Args:
-        data: Raw image bytes (at least first 12 bytes needed)
-
-    Returns:
-        Media type string (defaults to "image/png" if unknown)
-    """
-    match data[:12]:
-        case b if b[:3] == b"\xff\xd8\xff":
-            return "image/jpeg"
-        case b if b[:4] == b"\x89PNG":
-            return "image/png"
-        case b if b[:6] in (b"GIF87a", b"GIF89a"):
-            return "image/gif"
-        case b if b[:4] == b"RIFF" and b[8:12] == b"WEBP":
-            return "image/webp"
-        case _:
-            return "image/png"
 
 
 def parse_user_content(items: list[dict[str, Any]]) -> tuple[str, list[str | BinaryContent]]:

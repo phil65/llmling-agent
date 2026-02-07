@@ -93,3 +93,25 @@ def is_binary_content(data: bytes) -> bool:
     """
     probe = data[:BINARY_PROBE_SIZE]
     return b"\x00" in probe
+
+
+def detect_image_media_type(data: bytes) -> str:
+    """Detect image media type from magic bytes.
+
+    Args:
+        data: Raw image bytes (at least first 12 bytes needed)
+
+    Returns:
+        Media type string (defaults to "image/png" if unknown)
+    """
+    match data[:12]:
+        case b if b[:3] == b"\xff\xd8\xff":
+            return "image/jpeg"
+        case b if b[:4] == b"\x89PNG":
+            return "image/png"
+        case b if b[:6] in (b"GIF87a", b"GIF89a"):
+            return "image/gif"
+        case b if b[:4] == b"RIFF" and b[8:12] == b"WEBP":
+            return "image/webp"
+        case _:
+            return "image/png"

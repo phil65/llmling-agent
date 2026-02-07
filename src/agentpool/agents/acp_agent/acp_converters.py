@@ -20,6 +20,7 @@ from pydantic_ai import (
     AudioUrl,
     BinaryContent,
     BinaryImage,
+    CachePoint,
     DocumentUrl,
     ImageUrl,
     ModelRequest,
@@ -46,6 +47,7 @@ from acp.schema import (
     FileEditToolCallContent,
     ImageContentBlock,
     ResourceContentBlock,
+    SessionConfigSelectOption,
     TerminalToolCallContent,
     TextContentBlock,
     ToolCallProgress,
@@ -106,7 +108,6 @@ def get_modes(
     available_modes: SessionModeState | None,
     available_models: SessionModelState | None,
 ) -> list[ModeCategory]:
-    from acp.schema import SessionConfigSelectGroup
     from agentpool.agents.modes import ModeCategory, ModeInfo
 
     categories: list[ModeCategory] = []
@@ -115,28 +116,17 @@ def get_modes(
         for config_opt in config_options:
             # Extract options from the config (ungrouped or grouped)
             mode_infos: list[ModeInfo] = []
-            if isinstance(config_opt.options, list):
-                for opt_item in config_opt.options:
-                    if isinstance(opt_item, SessionConfigSelectGroup):
-                        mode_infos.extend(
-                            ModeInfo(
-                                id=sub_opt.value,
-                                name=sub_opt.name,
-                                description=sub_opt.description or "",
-                                category_id=config_opt.id,
-                            )
-                            for sub_opt in opt_item.options
-                        )
-                    else:
-                        # Ungrouped options
-                        mode_infos.append(
-                            ModeInfo(
-                                id=opt_item.value,
-                                name=opt_item.name,
-                                description=opt_item.description or "",
-                                category_id=config_opt.id,
-                            )
-                        )
+            for i in config_opt.options:
+                opts = [i] if isinstance(i, SessionConfigSelectOption) else i.options
+                mode_infos.extend(
+                    ModeInfo(
+                        id=sub_opt.value,
+                        name=sub_opt.name,
+                        description=sub_opt.description or "",
+                        category_id=config_opt.id,
+                    )
+                    for sub_opt in opts
+                )
 
             categories.append(
                 ModeCategory(
@@ -151,7 +141,6 @@ def get_modes(
 
     # Legacy: Convert ACP SessionModeState to ModeCategory
     if available_modes:
-        acp_modes = available_modes
         modes = [
             ModeInfo(
                 id=m.id,
@@ -159,21 +148,20 @@ def get_modes(
                 description=m.description or "",
                 category_id="mode",
             )
-            for m in acp_modes.available_modes
+            for m in available_modes.available_modes
         ]
         categories.append(
             ModeCategory(
                 id="mode",
                 name="Mode",
                 available_modes=modes,
-                current_mode_id=acp_modes.current_mode_id,
+                current_mode_id=available_modes.current_mode_id,
                 category="mode",
             )
         )
 
     # Legacy: Convert ACP SessionModelState to ModeCategory
     if available_models:
-        acp_models = available_models
         models = [
             ModeInfo(
                 id=m.model_id,
@@ -181,14 +169,14 @@ def get_modes(
                 description=m.description or "",
                 category_id="model",
             )
-            for m in acp_models.available_models
+            for m in available_models.available_models
         ]
         categories.append(
             ModeCategory(
                 id="model",
                 name="Model",
                 available_modes=models,
-                current_mode_id=acp_models.current_model_id,
+                current_mode_id=available_models.current_model_id,
                 category="model",
             )
         )
@@ -262,63 +250,41 @@ def convert_to_acp_content(prompts: Sequence[UserContent]) -> list[ContentBlock]
                 encoded = base64.b64encode(data).decode("utf-8")
                 content_blocks.append(ImageContentBlock(data=encoded, mime_type=media_type))
 
-            case BinaryContent(data=data, media_type=media_type):
+            case BinaryContent(data=data, media_type=typ):
                 encoded = base64.b64encode(data).decode("utf-8")
                 # Handle different media types
-                if media_type and media_type.startswith("image/"):
-                    content_blocks.append(ImageContentBlock(data=encoded, mime_type=media_type))
-                elif media_type and media_type.startswith("audio/"):
-                    content_blocks.append(AudioContentBlock(data=encoded, mime_type=media_type))
-                elif media_type == "application/pdf":
-                    blob_resource = BlobResourceContents(
-                        blob=encoded,
-                        mime_type="application/pdf",
-                        uri=f"data:application/pdf;base64,{encoded[:50]}...",
-                    )
+                if item.is_image:
+                    content_blocks.append(ImageContentBlock(data=encoded, mime_type=typ))
+                elif item.is_audio:
+                    content_blocks.append(AudioContentBlock(data=encoded, mime_type=typ))
+                elif item.is_document:
+                    uri = f"data:application/pdf;base64,{encoded[:50]}..."
+                    blob_resource = BlobResourceContents(blob=encoded, mime_type=typ, uri=uri)
                     content_blocks.append(EmbeddedResourceContentBlock(resource=blob_resource))
                 else:
                     # Generic binary as embedded resource
                     blob_resource = BlobResourceContents(
                         blob=encoded,
-                        mime_type=media_type or "application/octet-stream",
-                        uri=f"data:{media_type or 'application/octet-stream'};base64,...",
+                        mime_type=typ or "application/octet-stream",
+                        uri=f"data:{typ or 'application/octet-stream'};base64,...",
                     )
                     content_blocks.append(EmbeddedResourceContentBlock(resource=blob_resource))
 
-            case ImageUrl(url=url, media_type=typ):
-                content_blocks.append(
-                    ResourceContentBlock(uri=url, name="Image", mime_type=typ or "image/jpeg")
-                )
+            case (
+                AudioUrl(url=url, media_type=typ)
+                | DocumentUrl(url=url, media_type=typ)
+                | VideoUrl(url=url, media_type=typ)
+                | ImageUrl(url=url, media_type=typ)
+                # FileUrl(url=url, media_type=typ)
+            ):
+                name = type(item).__name__.removesuffix("Url")
+                content_blocks.append(ResourceContentBlock(uri=url, name=name, mime_type=typ))
 
-            case AudioUrl(url=url, media_type=media_type):
-                content_blocks.append(
-                    ResourceContentBlock(
-                        uri=url,
-                        name="Audio",
-                        mime_type=media_type or "audio/wav",
-                        description="Audio content",
-                    )
-                )
+            case CachePoint():
+                pass
 
-            case DocumentUrl(url=url, media_type=media_type):
-                content_blocks.append(
-                    ResourceContentBlock(
-                        uri=url,
-                        name="Document",
-                        mime_type=media_type or "application/pdf",
-                        description="Document",
-                    )
-                )
-
-            case VideoUrl(url=url, media_type=media_type):
-                content_blocks.append(
-                    ResourceContentBlock(
-                        uri=url,
-                        name="Video",
-                        mime_type=media_type or "video/mp4",
-                        description="Video content",
-                    )
-                )
+            case _ as unreachable:
+                assert_never(unreachable)
 
     return content_blocks
 
