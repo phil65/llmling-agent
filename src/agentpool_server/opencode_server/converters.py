@@ -366,7 +366,9 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         tool_call_id=call_id,
                         content=tool_content,
                         tool_name=tool_name,
+                        timestamp=tool_ts,
                     ):
+                        end_ms = datetime_to_ms(tool_ts)
                         if isinstance(tool_content, str):
                             output = tool_content
                         elif isinstance(tool_content, dict):
@@ -379,11 +381,11 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                 existing.state = ToolStateError(
                                     error=str(tool_content.get("error", "Unknown error")),
                                     input=existing_input,
-                                    time=TimeStartEnd(start=created_ms, end=completed_ms),
+                                    time=TimeStartEnd(start=created_ms, end=end_ms),
                                 )
                             else:
                                 title = f"Completed {tool_name}"
-                                ts = TimeStartEndCompacted(start=created_ms, end=completed_ms)
+                                ts = TimeStartEndCompacted(start=created_ms, end=end_ms)
                                 existing.state = ToolStateCompleted(
                                     title=title, input=existing_input, output=output, time=ts
                                 )
@@ -392,11 +394,11 @@ def chat_message_to_opencode(  # noqa: PLR0915
                             state: ToolStateCompleted | ToolStateError
                             if isinstance(tool_content, dict) and "error" in tool_content:
                                 err = str(tool_content.get("error", "Unknown error"))
-                                ts_end = TimeStartEnd(start=created_ms, end=completed_ms)
-                                state = ToolStateError(error=err, input={}, time=ts_end)
+                                ts_end = TimeStartEnd(start=created_ms, end=end_ms)
+                                state = ToolStateError(error=err, time=ts_end)
                             else:
                                 title = f"Completed {tool_name}"
-                                ts = TimeStartEndCompacted(start=created_ms, end=completed_ms)
+                                ts = TimeStartEndCompacted(start=created_ms, end=end_ms)
                                 state = ToolStateCompleted(title=title, output=output, time=ts)
                             result.add_tool_part(tool_name, call_id, state=state)
         tokens = Tokens(
