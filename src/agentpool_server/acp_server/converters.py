@@ -10,7 +10,7 @@ import base64
 from typing import TYPE_CHECKING, Any, assert_never, overload
 
 from pydantic import HttpUrl
-from pydantic_ai import AudioUrl, BinaryContent, BinaryImage, DocumentUrl, ImageUrl, VideoUrl
+from pydantic_ai import BinaryContent, BinaryImage
 
 from acp.schema import (
     AudioContentBlock,
@@ -28,7 +28,11 @@ from acp.schema import (
     TextResourceContents,
 )
 from agentpool.log import get_logger
-from agentpool.utils.pydantic_ai_helpers import format_uri_as_link, uri_to_path_reference
+from agentpool.utils.pydantic_ai_helpers import (
+    format_uri_as_link,
+    get_file_url_obj,
+    uri_to_path_reference,
+)
 from agentpool_config.mcp_server import (
     SSEMCPServerConfig,
     StdioMCPServerConfig,
@@ -132,14 +136,8 @@ def from_acp_content(
 
             case ResourceContentBlock(uri=uri, mime_type=mime_type):
                 if mime_type:
-                    if mime_type.startswith("image/"):
-                        content.append(ImageUrl(url=uri))
-                    elif mime_type.startswith("audio/"):
-                        content.append(AudioUrl(url=uri))
-                    elif mime_type.startswith("video/"):
-                        content.append(VideoUrl(url=uri))
-                    elif mime_type == "application/pdf":
-                        content.append(DocumentUrl(url=uri))
+                    if obj := get_file_url_obj(uri, mime_type):
+                        content.append(obj)
                     # Try to create a PathReference for file:// URIs
                     elif ref := uri_to_path_reference(uri, mime_type, fs):
                         content.append(ref)
