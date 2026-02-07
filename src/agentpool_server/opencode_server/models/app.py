@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
-import subprocess
 from typing import Any, Self
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
@@ -14,30 +14,10 @@ _APP_NAME = "opencode"
 
 def _get_xdg_dir(env_var: str, default_subdir: str) -> str:
     """Get an XDG base directory, falling back to the spec default."""
-    import os
-
     base = os.environ.get(env_var)
     if base:
         return str(Path(base) / _APP_NAME)
     return str(Path.home() / default_subdir / _APP_NAME)
-
-
-def _find_worktree(directory: str) -> str:
-    """Find the git worktree root for the given directory."""
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            cwd=directory,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=5,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-    except (OSError, subprocess.TimeoutExpired):
-        pass
-    return directory
 
 
 class HealthResponse(OpenCodeBaseModel):
@@ -66,13 +46,18 @@ class PathInfo(OpenCodeBaseModel):
     """Working directory."""
 
     @classmethod
-    def for_directory(cls, directory: str) -> Self:
-        """Build PathInfo for the given working directory."""
+    def for_directory(cls, directory: str, worktree: str | None = None) -> Self:
+        """Build PathInfo for the given working directory.
+
+        Args:
+            directory: The working directory.
+            worktree: Git worktree root. Falls back to directory if not provided.
+        """
         return cls(
             home=str(Path.home()),
             state=_get_xdg_dir("XDG_STATE_HOME", ".local/state"),
             config=_get_xdg_dir("XDG_CONFIG_HOME", ".config"),
-            worktree=_find_worktree(directory),
+            worktree=worktree or directory,
             directory=directory,
         )
 
