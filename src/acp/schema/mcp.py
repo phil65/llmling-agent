@@ -43,6 +43,9 @@ class HttpMcpServer(BaseMcpServer):
     url: HttpUrl
     """URL to the MCP server."""
 
+    def get_headers_dict(self) -> dict[str, str]:
+        return {header.name: header.value for header in self.headers}
+
 
 class SseMcpServer(BaseMcpServer):
     """SSE transport configuration.
@@ -58,6 +61,9 @@ class SseMcpServer(BaseMcpServer):
 
     url: HttpUrl
     """URL to the MCP server."""
+
+    def get_headers_dict(self) -> dict[str, str]:
+        return {header.name: header.value for header in self.headers}
 
 
 class StdioMcpServer(BaseMcpServer):
@@ -77,6 +83,9 @@ class StdioMcpServer(BaseMcpServer):
 
     env: Sequence[EnvVariable]
     """Environment variables to set when launching the MCP server."""
+
+    def get_env_dict(self) -> dict[str, str]:
+        return {env.name: env.value for env in self.env}
 
 
 McpServer = HttpMcpServer | SseMcpServer | StdioMcpServer

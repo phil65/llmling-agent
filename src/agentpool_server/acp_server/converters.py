@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from pydantic_ai import UserContent
 
     from acp.schema import ContentBlock, McpServer
+    from acp.schema.content_blocks import ResourceContents
     from agentpool.agents.modes import ModeInfo
     from agentpool.common_types import PathReference
     from agentpool.messaging import MessageNode
@@ -87,14 +88,14 @@ def convert_acp_mcp_server_to_config(acp_server: McpServer) -> MCPServerConfig:
         MCPServerConfig instance
     """
     match acp_server:
-        case StdioMcpServer(name=name, command=cmd, args=args, env=env_vars):
-            env = {var.name: var.value for var in env_vars}
+        case StdioMcpServer(name=name, command=cmd, args=args):
+            env = acp_server.get_env_dict()
             return StdioMCPServerConfig(name=name, command=cmd, args=list(args), env=env)
-        case SseMcpServer(name=name, url=url, headers=headers):
-            h = {h.name: h.value for h in headers}
+        case SseMcpServer(name=name, url=url):
+            h = acp_server.get_headers_dict()
             return SSEMCPServerConfig(name=name, url=HttpUrl(url), headers=h)
-        case HttpMcpServer(name=name, url=url, headers=headers):
-            h = {h.name: h.value for h in acp_server.headers}
+        case HttpMcpServer(name=name, url=url):
+            h = acp_server.get_headers_dict()
             return StreamableHTTPMCPServerConfig(name=name, url=HttpUrl(url), headers=h)
         case _ as unreachable:
             assert_never(unreachable)
@@ -143,21 +144,26 @@ def from_acp_content(  # noqa: PLR0911
             return format_uri_as_link(uri)
 
         case EmbeddedResourceContentBlock(resource=resource):
-            match resource:
-                case TextResourceContents(uri=uri, text=text):
-                    return format_uri_as_link(uri) + f'\n<context ref="{uri}">\n{text}\n</context>'
-                case BlobResourceContents(blob=blob, mime_type=mime_type):
-                    binary_data = base64.b64decode(blob)
-                    if mime_type and mime_type.startswith("image/"):
-                        return BinaryImage(data=binary_data, media_type=mime_type)
-                    if (
-                        mime_type and mime_type.startswith("audio/")
-                    ) or mime_type in _document_format_lookup:
-                        return BinaryContent(data=binary_data, media_type=mime_type)
-                    formatted_uri = format_uri_as_link(resource.uri)
-                    return f"Binary Resource: {formatted_uri}"
-                case _ as unreachable:
-                    assert_never(unreachable)
+            return resource_to_content(resource)
+
+        case _ as unreachable:
+            assert_never(unreachable)
+
+
+def resource_to_content(resource: ResourceContents) -> str | BinaryImage | BinaryContent:
+    match resource:
+        case TextResourceContents(uri=uri, text=text):
+            return format_uri_as_link(uri) + f'\n<context ref="{uri}">\n{text}\n</context>'
+        case BlobResourceContents(blob=blob, mime_type=mime_type):
+            binary_data = base64.b64decode(blob)
+            if mime_type and mime_type.startswith("image/"):
+                return BinaryImage(data=binary_data, media_type=mime_type)
+            if (
+                mime_type and mime_type.startswith("audio/")
+            ) or mime_type in _document_format_lookup:
+                return BinaryContent(data=binary_data, media_type=mime_type)
+            formatted_uri = format_uri_as_link(resource.uri)
+            return f"Binary Resource: {formatted_uri}"
         case _ as unreachable:
             assert_never(unreachable)
 
