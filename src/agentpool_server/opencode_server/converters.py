@@ -374,7 +374,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                             ),
                         )
                         tool_calls[call_id] = tool_part
-                    case RetryPromptPart(content=content, tool_name=tool_name, timestamp=ts):
+                    case RetryPromptPart(content=retry_content, tool_name=tool_name, timestamp=ts):
                         retry_count = sum(
                             1
                             for m in msg.messages
@@ -384,7 +384,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         )
                         error_message = p.model_response()
                         is_retryable = True
-                        if isinstance(content, list):
+                        if isinstance(retry_content, list):
                             error_type = "validation_error"
                         elif tool_name:
                             error_type = "tool_error"

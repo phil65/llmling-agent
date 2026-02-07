@@ -45,6 +45,7 @@ from agentpool_server.opencode_server.stream_adapter import OpenCodeStreamAdapte
 
 
 if TYPE_CHECKING:
+    from agentpool_server.opencode_server.models.parts import Part
     from agentpool_server.opencode_server.state import ServerState
 
 
@@ -169,7 +170,7 @@ async def _process_message(  # noqa: PLR0915
     for part in request.parts:
         match part:
             case TextPartInput(text=text):
-                created = user_msg_with_parts.add_text_part(text)
+                created: Part = user_msg_with_parts.add_text_part(text)
             case FilePartInput(mime=mime, url=url, filename=filename, source=source):
                 created = user_msg_with_parts.add_file_part(
                     mime,
