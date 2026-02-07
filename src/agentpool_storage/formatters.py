@@ -103,11 +103,7 @@ def _print_stats(console: Console, stats: dict[str, Any]) -> None:
         console.print()
 
 
-def format_stats(
-    stats: dict[str, dict[str, Any]],
-    period: str,
-    group_by: str,
-) -> dict[str, Any]:
+def format_stats(stats: dict[str, dict[str, Any]], period: str, group_by: str) -> dict[str, Any]:
     """Format statistics for output.
 
     Args:

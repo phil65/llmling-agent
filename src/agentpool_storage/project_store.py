@@ -165,7 +165,6 @@ class ProjectStore:
             config_path=config_path,
             created_at=get_now(),
             last_active=get_now(),
-            settings={},
         )
 
         await self.storage.save_project(project)
@@ -307,9 +306,8 @@ class ProjectStore:
 
         config_path = discover_config_path(project.worktree)
         if config_path != project.config_path:
-            updated = project.model_copy(
-                update={"config_path": config_path, "last_active": get_now()}
-            )
+            update = {"config_path": config_path, "last_active": get_now()}
+            updated = project.model_copy(update=update)
             await self.storage.save_project(updated)
             return updated
         return project
