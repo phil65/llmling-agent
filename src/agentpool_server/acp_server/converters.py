@@ -48,7 +48,6 @@ if TYPE_CHECKING:
     from agentpool.messaging import MessageNode
     from agentpool.sessions import SessionData
     from agentpool_config.mcp_server import MCPServerConfig
-    from agentpool_config.nodes import ToolConfirmationMode
 
 logger = get_logger(__name__)
 
@@ -210,35 +209,3 @@ def get_confirmation_modes() -> list[SessionMode]:
             description="Auto-approve all tool calls without confirmation",
         ),
     ]
-
-
-def mode_id_to_confirmation_mode(mode_id: str) -> ToolConfirmationMode | None:
-    """Map ACP mode ID to ToolConfirmationMode.
-
-    Returns:
-        ToolConfirmationMode value or None if mode_id is invalid
-    """
-    mapping: dict[str, ToolConfirmationMode] = {
-        "default": "per_tool",
-        "acceptEdits": "never",
-        "bypassPermissions": "never",
-        # "plan": "..."
-    }
-    return mapping.get(mode_id)
-
-
-def confirmation_mode_to_mode_id(mode: ToolConfirmationMode) -> str:
-    """Map ToolConfirmationMode to ACP mode ID.
-
-    Args:
-        mode: Tool confirmation mode
-
-    Returns:
-        ACP mode ID string
-    """
-    mapping: dict[ToolConfirmationMode, str] = {
-        "per_tool": "default",
-        "always": "default",  # No direct ACP equivalent, use default (requires confirmation)
-        "never": "acceptEdits",
-    }
-    return mapping.get(mode, "default")
