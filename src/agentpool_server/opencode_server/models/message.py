@@ -183,10 +183,10 @@ class MessageWithParts(OpenCodeBaseModel):
     info: UserMessage | AssistantMessage
     parts: list[Part] = Field(default_factory=list)
 
-    def update_part(self, part_id: str, updated: Part) -> None:
+    def update_part(self, updated: Part) -> None:
         """Replace a part in the assistant message's parts list by ID."""
         for i, p in enumerate(self.parts):
-            if isinstance(p, type(updated)) and p.id == part_id:
+            if isinstance(p, type(updated)) and p.id == updated.id:
                 self.parts[i] = updated
                 break
 

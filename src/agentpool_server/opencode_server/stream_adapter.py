@@ -192,7 +192,7 @@ class OpenCodeStreamAdapter:
                 text=self._response_text,
                 time=TimeStartEndOptional(start=start, end=response_time),
             )
-            self.assistant_msg.update_part(self._text_part.id, final_text_part)
+            self.assistant_msg.update_part(final_text_part)
 
         # Step finish
         cache = TokenCache(read=0, write=0)
@@ -306,7 +306,7 @@ class OpenCodeStreamAdapter:
                 session_id=self.session_id,
                 text=self._response_text,
             )
-            self.assistant_msg.update_part(self._text_part.id, updated)
+            self.assistant_msg.update_part(updated)
             self._text_part = updated
             yield PartUpdatedEvent.create(updated, delta=delta)
 
@@ -343,7 +343,7 @@ class OpenCodeStreamAdapter:
                 text=self._reasoning_part.text + delta,
                 time=self._reasoning_part.time,
             )
-            self.assistant_msg.update_part(self._reasoning_part.id, updated)
+            self.assistant_msg.update_part(updated)
             self._reasoning_part = updated
             yield PartUpdatedEvent.create(updated, delta=delta)
 
@@ -375,7 +375,7 @@ class OpenCodeStreamAdapter:
                 ),
             )
             self._tool_parts[tool_call_id] = updated
-            self.assistant_msg.update_part(existing.id, updated)
+            self.assistant_msg.update_part(updated)
             yield PartUpdatedEvent.create(updated)
         else:
             # Create new tool part
@@ -434,13 +434,14 @@ class OpenCodeStreamAdapter:
         new_output = ""
         file_paths: list[str] = []
         for item in items:
-            if isinstance(item, TextContentItem):
-                new_output += item.text
-            elif isinstance(item, FileContentItem):
-                new_output += item.content
-                file_paths.append(item.path)
-            elif isinstance(item, LocationContentItem):
-                file_paths.append(item.path)
+            match item:
+                case TextContentItem(text=text):
+                    new_output += text
+                case FileContentItem(content=content, path=path):
+                    new_output += content
+                    file_paths.append(path)
+                case LocationContentItem(path=path):
+                    file_paths.append(path)
 
         if file_paths and self.on_file_paths is not None:
             self.on_file_paths(file_paths)
@@ -468,7 +469,7 @@ class OpenCodeStreamAdapter:
                 state=tool_state,
             )
             self._tool_parts[tool_call_id] = updated
-            self.assistant_msg.update_part(existing.id, updated)
+            self.assistant_msg.update_part(updated)
             yield PartUpdatedEvent.create(updated)
         else:
             # Create new tool part from progress event
@@ -530,7 +531,7 @@ class OpenCodeStreamAdapter:
             state=new_state,
         )
         self._tool_parts[tool_call_id] = updated
-        self.assistant_msg.update_part(existing.id, updated)
+        self.assistant_msg.update_part(updated)
         yield PartUpdatedEvent.create(updated)
 
     # --- stream complete ---
