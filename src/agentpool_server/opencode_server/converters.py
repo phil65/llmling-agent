@@ -202,12 +202,12 @@ async def _resolve_mcp_resource(
             None,
         )
         if resource is None:
-            log.warning("MCP resource not found: %s/%s", source.client_name, source.uri)
+            logger.warning("MCP resource not found: %s/%s", source.client_name, source.uri)
             return None
         contents = await resource.read()
         return "\n".join(contents) if contents else None
     except Exception:
-        log.exception("Failed to read MCP resource: %s/%s", source.client_name, source.uri)
+        logger.exception("Failed to read MCP resource: %s/%s", source.client_name, source.uri)
         return None
 
 
@@ -246,8 +246,8 @@ async def extract_user_prompt_from_parts(
                 if content is not None:
                     result.append(content)
             case FilePartInput():
-                content = _convert_file_part_to_user_content(part, fs=fs)
-                result.append(content)
+                file_content = _convert_file_part_to_user_content(part, fs=fs)
+                result.append(file_content)
             case AgentPartInput(name=agent_name):
                 # Agent mention (@agent-name in prompt) - inject instruction to execute task
                 # This mirrors OpenCode's server-side behavior: inject a synthetic
