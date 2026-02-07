@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, assert_never
 
 import anyenv
 from pydantic_ai import (
-    BinaryContent,
-    DocumentUrl,
     ModelRequest,
     ModelResponse,
     RequestUsage,
@@ -19,10 +17,9 @@ from pydantic_ai import (
 )
 
 from agentpool import log
-from agentpool.common_types import PathReference
 from agentpool.messaging.messages import ChatMessage
 from agentpool.sessions.models import SessionData
-from agentpool.utils.pydantic_ai_helpers import get_file_url_obj, safe_args_as_dict
+from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict, to_user_content_or_path_ref
 from agentpool.utils.time_utils import datetime_to_ms, ms_to_datetime
 from agentpool_server.opencode_server.models import (
     AgentPartInput,
@@ -58,6 +55,7 @@ if TYPE_CHECKING:
     from fsspec.asyn import AsyncFileSystem
     from pydantic_ai import UserContent
 
+    from agentpool.common_types import PathReference
     from agentpool.tools.manager import ToolManager
     from agentpool_server.opencode_server.models import ToolState
     from agentpool_server.opencode_server.models.message import PartInput
@@ -94,55 +92,6 @@ def _get_input_from_state(state: ToolState, *, convert_params: bool = False) -> 
         convert_params: If True, convert param names to camelCase for UI display
     """
     return _convert_params_for_ui(state.input) if convert_params else state.input
-
-
-def _convert_file_part_to_user_content(
-    mime: str,
-    url: str,
-    filename: str | None = None,
-    fs: AsyncFileSystem | None = None,
-) -> UserContent | PathReference:
-    """Convert an OpenCode FilePartInput to pydantic-ai content or PathReference.
-
-    Supports:
-    - file:// URLs with text/* or directory MIME -> PathReference (deferred resolution)
-    - data: URIs -> BinaryContent
-    - Images (image/*) -> ImageUrl or BinaryContent
-    - Documents (application/pdf) -> DocumentUrl or BinaryContent
-    - Audio (audio/*) -> AudioUrl or BinaryContent
-    - Video (video/*) -> VideoUrl or BinaryContent
-
-    Args:
-        mime: Mime type
-        url: part URL
-        filename: Optional filename
-        fs: Optional async filesystem for PathReference resolution
-
-    Returns:
-        Appropriate pydantic-ai content type or PathReference
-    """
-    from urllib.parse import unquote, urlparse
-
-    # Handle data: URIs - convert to BinaryContent
-    if url.startswith("data:"):
-        return BinaryContent.from_data_uri(url)
-
-    # Handle file:// URLs for text files and directories -> PathReference
-    if url.startswith("file://"):
-        parsed = urlparse(url)
-        path = unquote(parsed.path)
-        # Text files and directories get deferred context resolution
-        title = f"@{filename}" if filename else None
-        if mime.startswith("text/") or mime == "application/x-directory" or not mime:
-            return PathReference(path=path, fs=fs, mime_type=mime or None, display_name=title)
-
-        # Media files from local filesystem - use URL types
-        if content := get_file_url_obj(url, mime):
-            return content
-        # Unknown MIME for file:// - defer to PathReference
-        return PathReference(path=path, fs=fs, mime_type=mime or None, display_name=title)
-    # Handle regular URLs based on mime type. Fallback: treat as document
-    return content if (content := get_file_url_obj(url, mime)) else DocumentUrl(url=url)
 
 
 async def _resolve_mcp_resource(source: ResourceSource, tools: ToolManager) -> str | None:
@@ -191,14 +140,14 @@ async def extract_user_prompt_from_parts(
     result: list[UserContent | PathReference] = []
     for part in parts:
         match part:
-            case TextPartInput(text=text) if text:
+            case TextPartInput(text=text):
                 result.append(text)
             case FilePartInput(source=ResourceSource() as resource) if tools is not None:
                 content = await _resolve_mcp_resource(resource, tools)
                 if content is not None:
                     result.append(content)
             case FilePartInput(mime=mime, url=url, filename=filename):
-                file_content = _convert_file_part_to_user_content(mime, url, filename, fs=fs)
+                file_content = to_user_content_or_path_ref(mime, url, filename, fs=fs)
                 result.append(file_content)
             case AgentPartInput(name=agent_name):
                 # Agent mention (@agent-name in prompt) - inject instruction to execute task
@@ -219,6 +168,8 @@ async def extract_user_prompt_from_parts(
                     f"  description: '{desc}'"
                 )
                 result.append(instruction)
+            case _ as unreachable:
+                assert_never(unreachable)
 
     return result
 

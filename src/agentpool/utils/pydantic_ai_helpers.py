@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from pydantic_ai import AudioUrl, DocumentUrl, ImageUrl, VideoUrl
+from pydantic_ai import AudioUrl, BinaryContent, DocumentUrl, ImageUrl, VideoUrl
 from pydantic_ai.messages import BaseToolCallPart
+
+from agentpool.common_types import PathReference
 
 
 if TYPE_CHECKING:
-    from pydantic_ai import FileUrl, MultiModalContent
+    from fsspec.asyn import AsyncFileSystem
+    from pydantic_ai import FileUrl, MultiModalContent, UserContent
     from pydantic_ai.messages import ToolCallPartDelta
 
 
@@ -72,3 +75,52 @@ def get_file_url_obj(url: str, mime: str) -> MultiModalContent | None:
     if mime == "application/pdf":
         return DocumentUrl(url=url, media_type=mime)
     return None
+
+
+def to_user_content_or_path_ref(
+    mime: str,
+    url: str,
+    filename: str | None = None,
+    fs: AsyncFileSystem | None = None,
+) -> UserContent | PathReference:
+    """Convert an OpenCode FilePartInput to pydantic-ai content or PathReference.
+
+    Supports:
+    - file:// URLs with text/* or directory MIME -> PathReference (deferred resolution)
+    - data: URIs -> BinaryContent
+    - Images (image/*) -> ImageUrl or BinaryContent
+    - Documents (application/pdf) -> DocumentUrl or BinaryContent
+    - Audio (audio/*) -> AudioUrl or BinaryContent
+    - Video (video/*) -> VideoUrl or BinaryContent
+
+    Args:
+        mime: Mime type
+        url: part URL
+        filename: Optional filename
+        fs: Optional async filesystem for PathReference resolution
+
+    Returns:
+        Appropriate pydantic-ai content type or PathReference
+    """
+    from urllib.parse import unquote, urlparse
+
+    # Handle data: URIs - convert to BinaryContent
+    if url.startswith("data:"):
+        return BinaryContent.from_data_uri(url)
+
+    # Handle file:// URLs for text files and directories -> PathReference
+    if url.startswith("file://"):
+        parsed = urlparse(url)
+        path = unquote(parsed.path)
+        # Text files and directories get deferred context resolution
+        title = f"@{filename}" if filename else None
+        if mime.startswith("text/") or mime == "application/x-directory" or not mime:
+            return PathReference(path=path, fs=fs, mime_type=mime or None, display_name=title)
+
+        # Media files from local filesystem - use URL types
+        if content := get_file_url_obj(url, mime):
+            return content
+        # Unknown MIME for file:// - defer to PathReference
+        return PathReference(path=path, fs=fs, mime_type=mime or None, display_name=title)
+    # Handle regular URLs based on mime type. Fallback: treat as document
+    return content if (content := get_file_url_obj(url, mime)) else DocumentUrl(url=url)
