@@ -26,6 +26,7 @@ from agentpool_server.opencode_server.models.parts import (  # noqa: TC001
     StepStartPart,
     SubtaskPart,
     TextPart,
+    TimeStartEndOptional,
     ToolPart,
     ToolState,
 )
@@ -182,14 +183,24 @@ class MessageWithParts(OpenCodeBaseModel):
                 self.parts[i] = updated
                 break
 
-    def add_text_part(self, text: str, **kwargs: Any) -> TextPart:
+    def add_text_part(
+        self,
+        text: str,
+        synthetic: bool | None = None,
+        ignored: bool | None = None,
+        time: TimeStartEndOptional | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> TextPart:
         """Create and append a text part."""
         part = TextPart(
             id=identifier.ascending("part"),
             message_id=self.info.id,
             session_id=self.info.session_id,
             text=text,
-            **kwargs,
+            synthetic=synthetic,
+            ignored=ignored,
+            time=time,
+            metadata=metadata,
         )
         self.parts.append(part)
         return part

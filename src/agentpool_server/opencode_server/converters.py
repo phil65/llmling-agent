@@ -418,28 +418,22 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                     time=TimeStartEnd(start=created_ms, end=completed_ms),
                                 )
                             else:
+                                title = f"Completed {tool_name}"
+                                ts = TimeStartEndCompacted(start=created_ms, end=completed_ms)
                                 existing.state = ToolStateCompleted(
-                                    title=f"Completed {tool_name}",
-                                    input=existing_input,
-                                    output=output,
-                                    time=TimeStartEndCompacted(start=created_ms, end=completed_ms),
+                                    title=title, input=existing_input, output=output, time=ts
                                 )
                         else:
                             # Orphan return - create completed tool part
                             state: ToolStateCompleted | ToolStateError
                             if isinstance(tool_content, dict) and "error" in tool_content:
-                                state = ToolStateError(
-                                    error=str(tool_content.get("error", "Unknown error")),
-                                    input={},
-                                    time=TimeStartEnd(start=created_ms, end=completed_ms),
-                                )
+                                err = str(tool_content.get("error", "Unknown error"))
+                                ts_end = TimeStartEnd(start=created_ms, end=completed_ms)
+                                state = ToolStateError(error=err, input={}, time=ts_end)
                             else:
-                                state = ToolStateCompleted(
-                                    title=f"Completed {tool_name}",
-                                    input={},
-                                    output=output,
-                                    time=TimeStartEndCompacted(start=created_ms, end=completed_ms),
-                                )
+                                title = f"Completed {tool_name}"
+                                ts = TimeStartEndCompacted(start=created_ms, end=completed_ms)
+                                state = ToolStateCompleted(title=title, output=output, time=ts)
                             result.add_tool_part(tool_name, call_id, state=state)
 
         result.add_step_finish_part(
