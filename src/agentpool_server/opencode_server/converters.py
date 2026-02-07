@@ -32,7 +32,6 @@ from agentpool.utils.pydantic_ai_helpers import safe_args_as_dict
 from agentpool.utils.time_utils import datetime_to_ms, ms_to_datetime
 from agentpool_server.opencode_server.models import (
     AgentPartInput,
-    APIErrorInfo,
     AssistantMessage,
     FilePartInput,
     MessagePath,
@@ -41,13 +40,10 @@ from agentpool_server.opencode_server.models import (
     Model,
     ModelCost,
     ModelLimit,
-    RetryPart,
     Session,
     SessionRevert,
     SessionShare,
-    StepFinishPart,
     StepFinishTokens,
-    StepStartPart,
     SubtaskPartInput,
     TextPart,
     TextPartInput,
@@ -76,7 +72,7 @@ if TYPE_CHECKING:
     from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
     from agentpool.tools.manager import ToolManager
-    from agentpool_server.opencode_server.models import Part, ToolState
+    from agentpool_server.opencode_server.models import ToolState
     from agentpool_server.opencode_server.models.message import PartInput
     from agentpool_server.opencode_server.models.parts import ResourceSource
 
@@ -303,33 +299,21 @@ def chat_message_to_opencode(  # noqa: PLR0915
     """
     message_id = msg.message_id
     created_ms = datetime_to_ms(msg.timestamp)
-    parts: list[Part] = []
-    # Track tool calls by ID for pairing with returns
-    tool_calls: dict[str, ToolPart] = {}
     if msg.role == "user":
-        # User message - don't set model (users don't use models)
         info: UserMessage | AssistantMessage = UserMessage(
             id=message_id,
             session_id=session_id,
             time=TimeCreated(created=created_ms),
             agent=agent_name,
-            # model=ModelRef(provider_id=provider_id, model_id=model_id),
         )
+        result = MessageWithParts(info=info)
 
-        # Extract text from user message
-        # First try msg.content directly (simple case)
         if msg.content and isinstance(msg.content, str):
-            parts.append(
-                TextPart(
-                    id=generate_part_id(),
-                    message_id=message_id,
-                    session_id=session_id,
-                    text=msg.content,
-                    time=TimeStartEndOptional(start=created_ms),
-                )
+            result.add_text_part(
+                msg.content,
+                time=TimeStartEndOptional(start=created_ms),
             )
         else:
-            # Fall back to extracting from messages (pydantic-ai format)
             for model_msg in msg.messages:
                 if not isinstance(model_msg, ModelRequest):
                     continue
@@ -340,17 +324,11 @@ def chat_message_to_opencode(  # noqa: PLR0915
                     if isinstance(content, str):
                         text = content
                     else:
-                        # Multi-modal content - extract text parts
                         text = " ".join(str(c) for c in content if isinstance(c, str))
                     if text:
-                        parts.append(
-                            TextPart(
-                                id=generate_part_id(),
-                                message_id=message_id,
-                                session_id=session_id,
-                                text=text,
-                                time=TimeStartEndOptional(start=created_ms),
-                            )
+                        result.add_text_part(
+                            text,
+                            time=TimeStartEndOptional(start=created_ms),
                         )
     else:
         # Assistant message
@@ -376,36 +354,25 @@ def chat_message_to_opencode(  # noqa: PLR0915
             finish=msg.finish_reason,
         )
 
-        # Add step start
-        part_id = generate_part_id()
-        parts.append(StepStartPart(id=part_id, message_id=message_id, session_id=session_id))
+        result = MessageWithParts(info=info)
+        result.add_step_start_part()
         # Process all model messages to extract parts
-        # Deserialize dicts to proper pydantic-ai objects if needed
+        tool_calls: dict[str, ToolPart] = {}
         adapter: TypeAdapter[ModelMessage] = TypeAdapter(ModelMessage)
         for raw_msg in msg.messages:
-            # Deserialize dict to proper ModelRequest/ModelResponse if needed
             model_msg = adapter.validate_python(raw_msg) if isinstance(raw_msg, dict) else raw_msg
             for p in model_msg.parts:
                 match p:
-                    case PydanticTextPart(id=part_id, content=content):
-                        parts.append(
-                            TextPart(
-                                id=part_id or generate_part_id(),
-                                message_id=message_id,
-                                session_id=session_id,
-                                text=content,
-                                time=TimeStartEndOptional(start=created_ms, end=completed_ms),
-                            )
+                    case PydanticTextPart(content=content):
+                        result.add_text_part(
+                            content,
+                            time=TimeStartEndOptional(start=created_ms, end=completed_ms),
                         )
                     case PydanticToolCallPart(tool_name=tool_name, tool_call_id=call_id):
-                        # Create tool part in pending/running state
                         tool_input = _convert_params_for_ui(safe_args_as_dict(p))
-                        tool_part = ToolPart(
-                            id=generate_part_id(),
-                            message_id=message_id,
-                            session_id=session_id,
-                            tool=tool_name,
-                            call_id=call_id or generate_part_id(),
+                        tool_part = result.add_tool_part(
+                            tool_name,
+                            call_id or generate_part_id(),
                             state=ToolStateRunning(
                                 time=TimeStart(start=created_ms),
                                 input=tool_input,
@@ -413,10 +380,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                             ),
                         )
                         tool_calls[call_id] = tool_part
-                        parts.append(tool_part)
-                    # Check for tool returns and retries in requests (they come after responses)
                     case RetryPromptPart(content=content, tool_name=tool_name, timestamp=ts):
-                        # Track retry attempts - count RetryPromptParts in message history
                         retry_count = sum(
                             1
                             for m in msg.messages
@@ -424,44 +388,27 @@ def chat_message_to_opencode(  # noqa: PLR0915
                             for p in m.parts
                             if isinstance(p, RetryPromptPart)
                         )
-
-                        # Create error info from retry content
                         error_message = p.model_response()
-                        # Try to extract more info if we have structured error details
                         is_retryable = True
                         if isinstance(content, list):
-                            # Validation errors - always retryable
                             error_type = "validation_error"
                         elif tool_name:
-                            # Tool-related retry
                             error_type = "tool_error"
                         else:
-                            # Generic retry
                             error_type = "retry"
 
-                        api_error = APIErrorInfo(
+                        result.add_retry_part(
+                            attempt=retry_count,
                             message=error_message,
-                            status_code=None,  # Not available from pydantic-ai
+                            created=int(ts.timestamp() * 1000),
                             is_retryable=is_retryable,
                             metadata={"error_type": error_type} if error_type else None,
-                        )
-
-                        parts.append(
-                            RetryPart(
-                                id=generate_part_id(),
-                                message_id=message_id,
-                                session_id=session_id,
-                                attempt=retry_count,
-                                error=api_error,
-                                time=TimeCreated(created=int(ts.timestamp() * 1000)),
-                            )
                         )
                     case PydanticToolReturnPart(
                         tool_call_id=call_id,
                         content=tool_content,
                         tool_name=tool_name,
                     ):
-                        # Format output
                         if isinstance(tool_content, str):
                             output = tool_content
                         elif isinstance(tool_content, dict):
@@ -469,7 +416,6 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         else:
                             output = str(tool_content) if tool_content is not None else ""
                         if existing := tool_calls.get(call_id):
-                            # Update existing tool part with completion
                             existing_input = _get_input_from_state(existing.state)
                             if isinstance(tool_content, dict) and "error" in tool_content:
                                 existing.state = ToolStateError(
@@ -500,35 +446,20 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                     output=output,
                                     time=TimeStartEndCompacted(start=created_ms, end=completed_ms),
                                 )
-                            parts.append(
-                                ToolPart(
-                                    id=generate_part_id(),
-                                    message_id=message_id,
-                                    session_id=session_id,
-                                    tool=tool_name,
-                                    call_id=call_id,
-                                    state=state,
-                                )
-                            )
+                            result.add_tool_part(tool_name, call_id, state=state)
 
-        # Add step finish
-        parts.append(
-            StepFinishPart(
-                id=generate_part_id(),
-                message_id=message_id,
-                session_id=session_id,
-                reason=msg.finish_reason or "stop",
-                cost=float(msg.cost_info.total_cost) if msg.cost_info else 0.0,
-                tokens=StepFinishTokens(
-                    input=tokens.input,
-                    output=tokens.output,
-                    reasoning=tokens.reasoning,
-                    cache=TokenCache(read=tokens.cache.read, write=tokens.cache.write),
-                ),
-            )
+        result.add_step_finish_part(
+            reason=msg.finish_reason or "stop",
+            cost=float(msg.cost_info.total_cost) if msg.cost_info else 0.0,
+            tokens=StepFinishTokens(
+                input=tokens.input,
+                output=tokens.output,
+                reasoning=tokens.reasoning,
+                cache=TokenCache(read=tokens.cache.read, write=tokens.cache.write),
+            ),
         )
 
-    return MessageWithParts(info=info, parts=parts)
+    return result
 
 
 def opencode_to_chat_message(

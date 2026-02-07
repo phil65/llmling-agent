@@ -16,11 +16,18 @@ from agentpool_server.opencode_server.models.common import (  # noqa: TC001
 from agentpool_server.opencode_server.models.parts import (  # noqa: TC001
     AgentPart,
     AgentPartSource,
+    APIErrorInfo,
     FilePart,
     FilePartSource,
     Part,
+    RetryPart,
+    StepFinishPart,
+    StepFinishTokens,
+    StepStartPart,
     SubtaskPart,
     TextPart,
+    ToolPart,
+    ToolState,
 )
 
 
@@ -255,6 +262,79 @@ class MessageWithParts(OpenCodeBaseModel):
             description=description,
             agent=agent,
             model=model,
+        )
+        self.parts.append(part)
+        return part
+
+    def add_step_start_part(self, snapshot: str | None = None) -> StepStartPart:
+        """Create and append a step start marker."""
+        part = StepStartPart(
+            id=identifier.ascending("part"),
+            message_id=self.info.id,
+            session_id=self.info.session_id,
+            snapshot=snapshot,
+        )
+        self.parts.append(part)
+        return part
+
+    def add_step_finish_part(
+        self,
+        reason: str = "stop",
+        cost: float = 0.0,
+        tokens: StepFinishTokens | None = None,
+        snapshot: str | None = None,
+    ) -> StepFinishPart:
+        """Create and append a step finish marker."""
+        part = StepFinishPart(
+            id=identifier.ascending("part"),
+            message_id=self.info.id,
+            session_id=self.info.session_id,
+            reason=reason,
+            cost=cost,
+            tokens=tokens or StepFinishTokens(),
+            snapshot=snapshot,
+        )
+        self.parts.append(part)
+        return part
+
+    def add_tool_part(
+        self,
+        tool: str,
+        call_id: str,
+        state: ToolState,
+    ) -> ToolPart:
+        """Create and append a tool call part."""
+        part = ToolPart(
+            id=identifier.ascending("part"),
+            message_id=self.info.id,
+            session_id=self.info.session_id,
+            tool=tool,
+            call_id=call_id,
+            state=state,
+        )
+        self.parts.append(part)
+        return part
+
+    def add_retry_part(
+        self,
+        attempt: int,
+        message: str,
+        created: int,
+        is_retryable: bool = True,
+        metadata: dict[str, str] | None = None,
+    ) -> RetryPart:
+        """Create and append a retry part."""
+        part = RetryPart(
+            id=identifier.ascending("part"),
+            message_id=self.info.id,
+            session_id=self.info.session_id,
+            attempt=attempt,
+            error=APIErrorInfo(
+                message=message,
+                is_retryable=is_retryable,
+                metadata=metadata,
+            ),
+            time=TimeCreated(created=created),
         )
         self.parts.append(part)
         return part
