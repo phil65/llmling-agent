@@ -385,40 +385,37 @@ def chat_message_to_opencode(  # noqa: PLR0915
         for raw_msg in msg.messages:
             # Deserialize dict to proper ModelRequest/ModelResponse if needed
             model_msg = adapter.validate_python(raw_msg) if isinstance(raw_msg, dict) else raw_msg
-            if isinstance(model_msg, ModelResponse):
-                for p in model_msg.parts:
-                    if isinstance(p, PydanticTextPart):
+            for p in model_msg.parts:
+                match p:
+                    case PydanticTextPart(id=part_id, content=content):
                         parts.append(
                             TextPart(
-                                id=p.id or generate_part_id(),
+                                id=part_id or generate_part_id(),
                                 message_id=message_id,
                                 session_id=session_id,
-                                text=p.content,
+                                text=content,
                                 time=TimeStartEndOptional(start=created_ms, end=completed_ms),
                             )
                         )
-                    elif isinstance(p, PydanticToolCallPart):
+                    case PydanticToolCallPart(tool_name=tool_name, tool_call_id=call_id):
                         # Create tool part in pending/running state
                         tool_input = _convert_params_for_ui(safe_args_as_dict(p))
                         tool_part = ToolPart(
                             id=generate_part_id(),
                             message_id=message_id,
                             session_id=session_id,
-                            tool=p.tool_name,
-                            call_id=p.tool_call_id or generate_part_id(),
+                            tool=tool_name,
+                            call_id=call_id or generate_part_id(),
                             state=ToolStateRunning(
                                 time=TimeStart(start=created_ms),
                                 input=tool_input,
-                                title=f"Running {p.tool_name}",
+                                title=f"Running {tool_name}",
                             ),
                         )
-                        tool_calls[p.tool_call_id] = tool_part
+                        tool_calls[call_id] = tool_part
                         parts.append(tool_part)
-
-            elif isinstance(model_msg, ModelRequest):
-                # Check for tool returns and retries in requests (they come after responses)
-                for part in model_msg.parts:
-                    if isinstance(part, RetryPromptPart):
+                    # Check for tool returns and retries in requests (they come after responses)
+                    case RetryPromptPart(content=content, tool_name=tool_name, timestamp=ts):
                         # Track retry attempts - count RetryPromptParts in message history
                         retry_count = sum(
                             1
@@ -429,13 +426,13 @@ def chat_message_to_opencode(  # noqa: PLR0915
                         )
 
                         # Create error info from retry content
-                        error_message = part.model_response()
+                        error_message = p.model_response()
                         # Try to extract more info if we have structured error details
                         is_retryable = True
-                        if isinstance(part.content, list):
+                        if isinstance(content, list):
                             # Validation errors - always retryable
                             error_type = "validation_error"
-                        elif part.tool_name:
+                        elif tool_name:
                             # Tool-related retry
                             error_type = "tool_error"
                         else:
@@ -456,14 +453,15 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                 session_id=session_id,
                                 attempt=retry_count,
                                 error=api_error,
-                                time=TimeCreated(created=int(part.timestamp.timestamp() * 1000)),
+                                time=TimeCreated(created=int(ts.timestamp() * 1000)),
                             )
                         )
-
-                    elif isinstance(part, PydanticToolReturnPart):
-                        call_id = part.tool_call_id
+                    case PydanticToolReturnPart(
+                        tool_call_id=call_id,
+                        content=tool_content,
+                        tool_name=tool_name,
+                    ):
                         # Format output
-                        tool_content = part.content
                         if isinstance(tool_content, str):
                             output = tool_content
                         elif isinstance(tool_content, dict):
@@ -481,7 +479,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                 )
                             else:
                                 existing.state = ToolStateCompleted(
-                                    title=f"Completed {part.tool_name}",
+                                    title=f"Completed {tool_name}",
                                     input=existing_input,
                                     output=output,
                                     time=TimeStartEndCompacted(start=created_ms, end=completed_ms),
@@ -497,7 +495,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                 )
                             else:
                                 state = ToolStateCompleted(
-                                    title=f"Completed {part.tool_name}",
+                                    title=f"Completed {tool_name}",
                                     input={},
                                     output=output,
                                     time=TimeStartEndCompacted(start=created_ms, end=completed_ms),
@@ -507,7 +505,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                     id=generate_part_id(),
                                     message_id=message_id,
                                     session_id=session_id,
-                                    tool=part.tool_name,
+                                    tool=tool_name,
                                     call_id=call_id,
                                     state=state,
                                 )
