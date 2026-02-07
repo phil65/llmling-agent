@@ -55,6 +55,14 @@ class Tokens(OpenCodeBaseModel):
     cache: TokenCache = Field(default_factory=TokenCache)
 
 
+class TextSpan(OpenCodeBaseModel):
+    """A text span in user input (value + start/end offsets)."""
+
+    value: str
+    start: int
+    end: int
+
+
 class FileDiff(OpenCodeBaseModel):
     """A file diff entry."""
 

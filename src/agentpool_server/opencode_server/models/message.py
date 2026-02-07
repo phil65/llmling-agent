@@ -11,12 +11,12 @@ from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import (  # noqa: TC001
     FileDiff,
     ModelRef,
+    TextSpan,
     TimeCreated,
     Tokens,
 )
 from agentpool_server.opencode_server.models.parts import (  # noqa: TC001
     AgentPart,
-    AgentPartSource,
     APIErrorInfo,
     FilePart,
     FilePartSource,
@@ -217,7 +217,7 @@ class MessageWithParts(OpenCodeBaseModel):
     def add_agent_part(
         self,
         name: str,
-        source: AgentPartSource | None = None,
+        source: TextSpan | None = None,
     ) -> AgentPart:
         """Create and append an agent mention part."""
         part = AgentPart(
@@ -350,7 +350,7 @@ class AgentPartInput(OpenCodeBaseModel):
     type: Literal["agent"] = Field(default="agent", init=False)
     name: str
     """Name of the agent to delegate to."""
-    source: AgentPartSource | None = None
+    source: TextSpan | None = None
     """Source location in the original prompt text."""
 
 

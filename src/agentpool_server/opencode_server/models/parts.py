@@ -10,6 +10,7 @@ from agentpool.utils.time_utils import now_ms
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import (
     ModelRef,  # noqa: TC001
+    TextSpan,
     TimeCreated,  # noqa: TC001
     Tokens,
 )
@@ -131,14 +132,6 @@ class ToolPart(PartBase):
     metadata: dict[str, Any] | None = None
 
 
-class FilePartSourceText(OpenCodeBaseModel):
-    """File part source text."""
-
-    value: str
-    start: int
-    end: int
-
-
 class LSPPosition(OpenCodeBaseModel):
     """LSP position in a text document."""
 
@@ -156,19 +149,19 @@ class LSPRange(OpenCodeBaseModel):
 class FileSource(OpenCodeBaseModel):
     """File source - references a file path."""
 
-    text: FilePartSourceText
+    text: TextSpan
     type: Literal["file"] = Field(default="file", init=False)
     path: str
 
     @classmethod
     def create(cls, value: str, start: int, end: int, path: str) -> FileSource:
-        return cls(text=FilePartSourceText(value=value, start=start, end=end), path=path)
+        return cls(text=TextSpan(value=value, start=start, end=end), path=path)
 
 
 class SymbolSource(OpenCodeBaseModel):
     """Symbol source - references an LSP symbol."""
 
-    text: FilePartSourceText
+    text: TextSpan
     type: Literal["symbol"] = Field(default="symbol", init=False)
     path: str
     range: LSPRange
@@ -179,7 +172,7 @@ class SymbolSource(OpenCodeBaseModel):
 class ResourceSource(OpenCodeBaseModel):
     """Resource source - references an MCP resource."""
 
-    text: FilePartSourceText
+    text: TextSpan
     type: Literal["resource"] = Field(default="resource", init=False)
     client_name: str
     uri: str
@@ -198,14 +191,6 @@ class FilePart(PartBase):
     source: FilePartSource | None = None
 
 
-class AgentPartSource(OpenCodeBaseModel):
-    """Agent part source location in original text."""
-
-    value: str
-    start: int
-    end: int
-
-
 class AgentPart(PartBase):
     """Agent mention part - references a sub-agent to delegate to.
 
@@ -217,7 +202,7 @@ class AgentPart(PartBase):
     type: Literal["agent"] = Field(default="agent", init=False)
     name: str
     """Name of the agent to delegate to."""
-    source: AgentPartSource | None = None
+    source: TextSpan | None = None
     """Source location in the original prompt text."""
 
 
