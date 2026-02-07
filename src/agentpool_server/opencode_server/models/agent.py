@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import Field
 
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
-from agentpool_server.opencode_server.models.common import ModelRef
+from agentpool_server.opencode_server.models.common import ModelRef  # noqa: TC001
 
 
 class AgentPermission(OpenCodeBaseModel):
