@@ -182,25 +182,6 @@ def to_session_info(session_data: SessionData) -> SessionInfo:
 
 
 def agent_to_mode(agent: MessageNode[Any, Any]) -> SessionMode:
-    """Convert agent to a session mode (deprecated - use get_confirmation_modes)."""
+    """Convert agent to a session mode."""
     desc = agent.description or f"Switch to {agent.name} agent"
     return SessionMode(id=agent.name, name=agent.display_name, description=desc)
-
-
-def get_confirmation_modes() -> list[SessionMode]:
-    """Get available tool confirmation modes as ACP session modes.
-
-    Returns standard ACP-compatible modes for tool confirmation levels.
-    """
-    return [
-        SessionMode(
-            id="default",
-            name="Default",
-            description="Require confirmation for tools marked as needing it",
-        ),
-        SessionMode(
-            id="acceptEdits",
-            name="Accept Edits",
-            description="Auto-approve all tool calls without confirmation",
-        ),
-    ]
