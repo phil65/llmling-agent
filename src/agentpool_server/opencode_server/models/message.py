@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
+from agentpool.utils import identifiers as identifier
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import (  # noqa: TC001
     FileDiff,
@@ -13,9 +14,13 @@ from agentpool_server.opencode_server.models.common import (  # noqa: TC001
     TimeCreated,
 )
 from agentpool_server.opencode_server.models.parts import (  # noqa: TC001
+    AgentPart,
     AgentPartSource,
+    FilePart,
     FilePartSource,
     Part,
+    SubtaskPart,
+    TextPart,
 )
 
 
@@ -185,6 +190,74 @@ class MessageWithParts(OpenCodeBaseModel):
             if isinstance(p, type(updated)) and p.id == updated.id:
                 self.parts[i] = updated
                 break
+
+    def add_text_part(self, text: str, **kwargs: Any) -> TextPart:
+        """Create and append a text part."""
+        part = TextPart(
+            id=identifier.ascending("part"),
+            message_id=self.info.id,
+            session_id=self.info.session_id,
+            text=text,
+            **kwargs,
+        )
+        self.parts.append(part)
+        return part
+
+    def add_file_part(
+        self,
+        mime: str,
+        url: str,
+        filename: str | None = None,
+        source: FilePartSource | None = None,
+    ) -> FilePart:
+        """Create and append a file part."""
+        part = FilePart(
+            id=identifier.ascending("part"),
+            message_id=self.info.id,
+            session_id=self.info.session_id,
+            mime=mime,
+            url=url,
+            filename=filename,
+            source=source,
+        )
+        self.parts.append(part)
+        return part
+
+    def add_agent_part(
+        self,
+        name: str,
+        source: AgentPartSource | None = None,
+    ) -> AgentPart:
+        """Create and append an agent mention part."""
+        part = AgentPart(
+            id=identifier.ascending("part"),
+            message_id=self.info.id,
+            session_id=self.info.session_id,
+            name=name,
+            source=source,
+        )
+        self.parts.append(part)
+        return part
+
+    def add_subtask_part(
+        self,
+        prompt: str,
+        description: str,
+        agent: str,
+        model: ModelRef | None = None,
+    ) -> SubtaskPart:
+        """Create and append a subtask part."""
+        part = SubtaskPart(
+            id=identifier.ascending("part"),
+            message_id=self.info.id,
+            session_id=self.info.session_id,
+            prompt=prompt,
+            description=description,
+            agent=agent,
+            model=model,
+        )
+        self.parts.append(part)
+        return part
 
 
 class TextPartInput(OpenCodeBaseModel):

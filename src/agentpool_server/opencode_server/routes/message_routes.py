@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, assert_never
 
 from fastapi import APIRouter, HTTPException, Query, status
 
@@ -16,9 +16,7 @@ from agentpool_server.opencode_server.converters import (
 )
 from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.models import (
-    AgentPart,
     AssistantMessage,
-    FilePart,
     MessagePath,
     MessageRequest,
     MessageTime,
@@ -29,8 +27,6 @@ from agentpool_server.opencode_server.models import (
     SessionStatus,
     SessionStatusEvent,
     StepStartPart,
-    SubtaskPart,
-    TextPart,
     TimeCreated,
     TimeCreatedUpdated,
     Tokens,
@@ -49,7 +45,6 @@ from agentpool_server.opencode_server.stream_adapter import OpenCodeStreamAdapte
 
 
 if TYPE_CHECKING:
-    from agentpool_server.opencode_server.models import Part
     from agentpool_server.opencode_server.state import ServerState
 
 
@@ -170,60 +165,35 @@ async def _process_message(  # noqa: PLR0915
         variant=request.variant,
     )
 
-    user_parts: list[Part] = []
+    user_msg_with_parts = MessageWithParts(info=user_message)
     for part in request.parts:
         match part:
             case TextPartInput(text=text):
-                user_parts.append(
-                    TextPart(
-                        id=identifier.ascending("part"),
-                        message_id=user_msg_id,
-                        session_id=session_id,
-                        text=text,
-                    )
-                )
+                created = user_msg_with_parts.add_text_part(text)
             case FilePartInput(mime=mime, url=url, filename=filename, source=source):
-                user_parts.append(
-                    FilePart(
-                        id=identifier.ascending("part"),
-                        message_id=user_msg_id,
-                        session_id=session_id,
-                        mime=mime,
-                        url=url,
-                        filename=filename,
-                        source=source,
-                    )
+                created = user_msg_with_parts.add_file_part(
+                    mime,
+                    url,
+                    filename=filename,
+                    source=source,
                 )
             case AgentPartInput(name=name, source=source):
-                user_parts.append(
-                    AgentPart(
-                        id=identifier.ascending("part"),
-                        message_id=user_msg_id,
-                        session_id=session_id,
-                        name=name,
-                        source=source,
-                    )
-                )
+                created = user_msg_with_parts.add_agent_part(name, source=source)
             case SubtaskPartInput(
                 prompt=subtask_prompt, description=desc, agent=subtask_agent, model=subtask_model
             ):
-                user_parts.append(
-                    SubtaskPart(
-                        id=identifier.ascending("part"),
-                        message_id=user_msg_id,
-                        session_id=session_id,
-                        prompt=subtask_prompt,
-                        description=desc,
-                        agent=subtask_agent,
-                        model=subtask_model,
-                    )
+                created = user_msg_with_parts.add_subtask_part(
+                    subtask_prompt,
+                    desc,
+                    subtask_agent,
+                    model=subtask_model,
                 )
-    user_msg_with_parts = MessageWithParts(info=user_message, parts=user_parts)
+            case _ as unreachable:
+                assert_never(unreachable)
+        await state.broadcast_event(PartUpdatedEvent.create(created))
     state.messages[session_id].append(user_msg_with_parts)
     await persist_message_to_storage(state, user_msg_with_parts, session_id)
     await state.broadcast_event(MessageUpdatedEvent.create(user_message))
-    for user_part in user_parts:
-        await state.broadcast_event(PartUpdatedEvent.create(user_part))
     # --- Mark session busy ---
     busy = SessionStatus(type="busy")
     state.session_status[session_id] = busy
