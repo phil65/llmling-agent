@@ -17,7 +17,6 @@ from pydantic_ai import (
     ToolReturnPart as PydanticToolReturnPart,
     UserPromptPart,
 )
-from tokonomics.model_discovery import ModelPricing
 
 from agentpool import log
 from agentpool.common_types import PathReference
@@ -31,9 +30,6 @@ from agentpool_server.opencode_server.models import (
     MessagePath,
     MessageTime,
     MessageWithParts,
-    Model,
-    ModelCost,
-    ModelLimit,
     Session,
     SessionRevert,
     SessionShare,
@@ -61,7 +57,6 @@ if TYPE_CHECKING:
 
     from fsspec.asyn import AsyncFileSystem
     from pydantic_ai import UserContent
-    from tokonomics.model_discovery.model_info import ModelInfo as TokoModelInfo
 
     from agentpool.tools.manager import ToolManager
     from agentpool_server.opencode_server.models import ToolState
@@ -136,36 +131,21 @@ def _convert_file_part_to_user_content(
         parsed = urlparse(url)
         path = unquote(parsed.path)
         # Text files and directories get deferred context resolution
+        title = f"@{filename}" if filename else None
         if mime.startswith("text/") or mime == "application/x-directory" or not mime:
-            return PathReference(
-                path=path,
-                fs=fs,
-                mime_type=mime or None,
-                display_name=f"@{filename}" if filename else None,
-            )
+            return PathReference(path=path, fs=fs, mime_type=mime or None, display_name=title)
 
         # Media files from local filesystem - use URL types
         if content := get_file_url_obj(url, mime):
             return content
         # Unknown MIME for file:// - defer to PathReference
-        return PathReference(
-            path=path,
-            fs=fs,
-            mime_type=mime or None,
-            display_name=f"@{filename}" if filename else None,
-        )
+        return PathReference(path=path, fs=fs, mime_type=mime or None, display_name=title)
     # Handle regular URLs based on mime type. Fallback: treat as document
     return content if (content := get_file_url_obj(url, mime)) else DocumentUrl(url=url)
 
 
-async def _resolve_mcp_resource(
-    source: ResourceSource,
-    tools: ToolManager,
-) -> str | None:
-    """Resolve an MCP resource and return its content as text.
-
-    Returns None if the resource cannot be read.
-    """
+async def _resolve_mcp_resource(source: ResourceSource, tools: ToolManager) -> str | None:
+    """Resolve an MCP resource and return its content as text (or None if cant be read)."""
     try:
         resources = await tools.list_resources()
         resource = next(
@@ -386,9 +366,9 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                 )
                             else:
                                 title = f"Completed {tool_name}"
-                                ts = TimeStartEndCompacted(start=created_ms, end=end_ms)
+                                tsc = TimeStartEndCompacted(start=created_ms, end=end_ms)
                                 existing.state = ToolStateCompleted(
-                                    title=title, input=existing_input, output=output, time=ts
+                                    title=title, input=existing_input, output=output, time=tsc
                                 )
                         else:
                             # Orphan return - create completed tool part
@@ -399,8 +379,8 @@ def chat_message_to_opencode(  # noqa: PLR0915
                                 state = ToolStateError(error=err, time=ts_end)
                             else:
                                 title = f"Completed {tool_name}"
-                                ts = TimeStartEndCompacted(start=created_ms, end=end_ms)
-                                state = ToolStateCompleted(title=title, output=output, time=ts)
+                                tsc = TimeStartEndCompacted(start=created_ms, end=end_ms)
+                                state = ToolStateCompleted(title=title, output=output, time=tsc)
                             result.add_tool_part(tool_name, call_id, state=state)
         tokens = Tokens(
             input=tokens.input,
@@ -464,37 +444,34 @@ def opencode_to_chat_message(
         response_parts: list[Any] = []
         tool_returns: list[PydanticToolReturnPart] = []
         for part in msg.parts:
-            if isinstance(part, TextPart):
-                response_parts.append(PydanticTextPart(content=part.text, id=part.id))
-            elif isinstance(part, ToolPart):
-                # Create tool call part
-
-                response_parts.append(
-                    PydanticToolCallPart(
-                        tool_name=part.tool,
-                        tool_call_id=part.call_id,
-                        args=_get_input_from_state(part.state),
-                    )
-                )
-
-                # If completed/error, also create tool return
-                if isinstance(part.state, ToolStateCompleted):
-                    tool_returns.append(
-                        PydanticToolReturnPart(
-                            tool_name=part.tool,
-                            tool_call_id=part.call_id,
-                            content=part.state.output,
+            match part:
+                case TextPart(text=text, id=part_id):
+                    response_parts.append(PydanticTextPart(content=text, id=part_id))
+                case ToolPart(tool=tool_name, call_id=call_id, state=state):
+                    response_parts.append(
+                        PydanticToolCallPart(
+                            tool_name=tool_name,
+                            tool_call_id=call_id,
+                            args=_get_input_from_state(state),
                         )
                     )
-                elif isinstance(part.state, ToolStateError):
-                    tool_returns.append(
-                        PydanticToolReturnPart(
-                            tool_name=part.tool,
-                            tool_call_id=part.call_id,
-                            content={"error": part.state.error},
-                        )
-                    )
-            # Skip StepStartPart, StepFinishPart, FilePart for now
+                    match state:
+                        case ToolStateCompleted(output=output):
+                            tool_returns.append(
+                                PydanticToolReturnPart(
+                                    tool_name=tool_name,
+                                    tool_call_id=call_id,
+                                    content=output,
+                                )
+                            )
+                        case ToolStateError(error=error):
+                            tool_returns.append(
+                                PydanticToolReturnPart(
+                                    tool_name=tool_name,
+                                    tool_call_id=call_id,
+                                    content={"error": error},
+                                )
+                            )
 
         if response_parts:
             model_messages.append(
@@ -522,39 +499,6 @@ def opencode_to_chat_message(
         model_name=model_name,
         provider_name=provider_name,
         finish_reason=finish_reason,  # type: ignore[arg-type]
-    )
-
-
-def convert_toko_model_to_opencode(model: TokoModelInfo) -> Model:
-    """Convert a tokonomics ModelInfo to an OpenCode Model."""
-    # Convert pricing (tokonomics uses per-token, OpenCode uses per-million-token)
-    pricing = model.pricing or ModelPricing()
-    cost = ModelCost(
-        input=(pricing.prompt * 1_000_000) if pricing.prompt else 0.0,
-        output=(pricing.completion * 1_000_000) if pricing.completion else 0.0,
-        cache_read=(pricing.input_cache_read * 1_000_000) if pricing.input_cache_read else None,
-        cache_write=(pricing.input_cache_write * 1_000_000) if pricing.input_cache_write else None,
-    )
-    # Convert limits
-    context = float(model.context_window) if model.context_window else 128000.0
-    output = float(model.max_output_tokens) if model.max_output_tokens else 4096.0
-    limit = ModelLimit(context=context, output=output)
-    # Determine capabilities from modalities and metadata
-    has_vision = "image" in model.input_modalities
-    has_reasoning = "reasoning" in model.output_modalities or "thinking" in model.name.lower()
-    # Format release date if available
-    release_date = model.created_at.strftime("%Y-%m-%d") if model.created_at else ""
-    # Use id_override if available (e.g., "opus" for Claude Code SDK)
-    model_id = model.id_override or model.id
-    return Model(
-        id=model_id,
-        name=model.name,
-        attachment=has_vision,
-        cost=cost,
-        limit=limit,
-        reasoning=has_reasoning,
-        release_date=release_date,
-        temperature=True,
     )
 
 

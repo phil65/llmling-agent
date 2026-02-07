@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter
 
-from agentpool_server.opencode_server.converters import convert_toko_model_to_opencode
 from agentpool_server.opencode_server.dependencies import StateDep
 from agentpool_server.opencode_server.models import (
     Config,
@@ -72,15 +71,8 @@ def _build_providers(models: list[TokoModelInfo]) -> list[Provider]:
         display_name, env_vars = PROVIDER_INFO.get(
             provider_id, (provider_id.title(), [f"{provider_id.upper()}_API_KEY"])
         )
-
         # Convert models to OpenCode format
-        models_dict: dict[str, Model] = {}
-        for toko_model in provider_models:
-            opencode_model = convert_toko_model_to_opencode(toko_model)
-            # Use id_override if available (e.g., "opus" for Claude Code SDK)
-            model_key = toko_model.id_override or toko_model.id
-            models_dict[model_key] = opencode_model
-
+        models_dict = {i.id_override or i.id: Model.from_tokonomics(i) for i in provider_models}
         provider = Provider(
             id=provider_id,
             name=display_name,
