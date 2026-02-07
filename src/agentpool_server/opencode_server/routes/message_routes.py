@@ -29,8 +29,8 @@ from agentpool_server.opencode_server.models import (
     StepStartPart,
     TimeCreated,
     TimeCreatedUpdated,
+    TokenCache,
     Tokens,
-    TokensCache,
     UserMessage,
 )
 from agentpool_server.opencode_server.models.events import LspUpdatedEvent
@@ -207,7 +207,7 @@ async def _process_message(  # noqa: PLR0915
     # --- Create assistant message ---
     assistant_msg_id = identifier.ascending("message")
     now = now_ms()
-    tokens = Tokens(cache=TokensCache(read=0, write=0))
+    tokens = Tokens(cache=TokenCache(read=0, write=0))
     assistant_msg = AssistantMessage(
         id=assistant_msg_id,
         session_id=session_id,
@@ -256,7 +256,7 @@ async def _process_message(  # noqa: PLR0915
     response_time = now_ms()
     preview = adapter.response_text[:100] if adapter.response_text else "EMPTY"
     logger.info("Response text", text_preview=preview)
-    token_cache = TokensCache(read=0, write=0)
+    token_cache = TokenCache(read=0, write=0)
     tokens = Tokens(cache=token_cache, input=adapter.input_tokens, output=adapter.output_tokens)
     msg_time = MessageTime(created=now, completed=response_time)
     update = {"time": msg_time, "tokens": tokens, "cost": adapter.total_cost}

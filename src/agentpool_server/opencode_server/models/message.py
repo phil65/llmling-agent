@@ -12,6 +12,7 @@ from agentpool_server.opencode_server.models.common import (  # noqa: TC001
     FileDiff,
     ModelRef,
     TimeCreated,
+    Tokens,
 )
 from agentpool_server.opencode_server.models.parts import (  # noqa: TC001
     AgentPart,
@@ -22,7 +23,6 @@ from agentpool_server.opencode_server.models.parts import (  # noqa: TC001
     Part,
     RetryPart,
     StepFinishPart,
-    StepFinishTokens,
     StepStartPart,
     SubtaskPart,
     TextPart,
@@ -51,22 +51,6 @@ class MessageTime(OpenCodeBaseModel):
 
     created: int
     completed: int | None = None
-
-
-class TokensCache(OpenCodeBaseModel):
-    """Token cache information."""
-
-    read: int = 0
-    write: int = 0
-
-
-class Tokens(OpenCodeBaseModel):
-    """Token usage information."""
-
-    cache: TokensCache = Field(default_factory=TokensCache)
-    input: int = 0
-    output: int = 0
-    reasoning: int = 0
 
 
 class UserMessage(OpenCodeBaseModel):
@@ -281,7 +265,7 @@ class MessageWithParts(OpenCodeBaseModel):
         self,
         reason: str = "stop",
         cost: float = 0.0,
-        tokens: StepFinishTokens | None = None,
+        tokens: Tokens | None = None,
         snapshot: str | None = None,
     ) -> StepFinishPart:
         """Create and append a step finish marker."""
@@ -291,7 +275,7 @@ class MessageWithParts(OpenCodeBaseModel):
             session_id=self.info.session_id,
             reason=reason,
             cost=cost,
-            tokens=tokens or StepFinishTokens(),
+            tokens=tokens or Tokens(),
             snapshot=snapshot,
         )
         self.parts.append(part)

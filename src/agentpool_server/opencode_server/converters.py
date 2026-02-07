@@ -6,13 +6,11 @@ from typing import TYPE_CHECKING, Any
 import uuid
 
 import anyenv
-from pydantic import TypeAdapter
 from pydantic_ai import (
     AudioUrl,
     BinaryContent,
     DocumentUrl,
     ImageUrl,
-    ModelMessage,
     ModelRequest,
     ModelResponse,
     RequestUsage,
@@ -43,7 +41,6 @@ from agentpool_server.opencode_server.models import (
     Session,
     SessionRevert,
     SessionShare,
-    StepFinishTokens,
     SubtaskPartInput,
     TextPart,
     TextPartInput,
@@ -55,7 +52,6 @@ from agentpool_server.opencode_server.models import (
     TimeStartEndOptional,
     TokenCache,
     Tokens,
-    TokensCache,
     ToolPart,
     ToolStateCompleted,
     ToolStateError,
@@ -337,7 +333,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
             completed_ms = created_ms + int(msg.response_time * 1000)
 
         usage = msg.usage
-        cache = TokensCache(read=usage.cache_read_tokens, write=usage.cache_write_tokens)
+        cache = TokenCache(read=usage.cache_read_tokens, write=usage.cache_write_tokens)
         tokens = Tokens(input=usage.input_tokens, output=usage.output_tokens, cache=cache)
         info = AssistantMessage(
             id=message_id,
@@ -358,9 +354,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
         result.add_step_start_part()
         # Process all model messages to extract parts
         tool_calls: dict[str, ToolPart] = {}
-        adapter: TypeAdapter[ModelMessage] = TypeAdapter(ModelMessage)
-        for raw_msg in msg.messages:
-            model_msg = adapter.validate_python(raw_msg) if isinstance(raw_msg, dict) else raw_msg
+        for model_msg in msg.messages:
             for p in model_msg.parts:
                 match p:
                     case PydanticTextPart(content=content):
@@ -451,7 +445,7 @@ def chat_message_to_opencode(  # noqa: PLR0915
         result.add_step_finish_part(
             reason=msg.finish_reason or "stop",
             cost=float(msg.cost_info.total_cost) if msg.cost_info else 0.0,
-            tokens=StepFinishTokens(
+            tokens=Tokens(
                 input=tokens.input,
                 output=tokens.output,
                 reasoning=tokens.reasoning,

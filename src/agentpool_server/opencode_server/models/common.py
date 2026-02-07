@@ -2,6 +2,8 @@
 
 from typing import Self
 
+from pydantic import Field
+
 from agentpool.utils.time_utils import now_ms
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 
@@ -35,6 +37,22 @@ class ModelRef(OpenCodeBaseModel):
 
     provider_id: str
     model_id: str
+
+
+class TokenCache(OpenCodeBaseModel):
+    """Token cache information."""
+
+    read: int = 0
+    write: int = 0
+
+
+class Tokens(OpenCodeBaseModel):
+    """Token usage information."""
+
+    input: int = 0
+    output: int = 0
+    reasoning: int = 0
+    cache: TokenCache = Field(default_factory=TokenCache)
 
 
 class FileDiff(OpenCodeBaseModel):

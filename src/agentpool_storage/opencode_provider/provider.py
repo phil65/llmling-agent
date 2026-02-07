@@ -230,8 +230,8 @@ class OpenCodeStorageProvider(StorageProvider):
             TimeCreated,
             TimeStartEndCompacted,
             TimeStartEndOptional,
+            TokenCache,
             Tokens,
-            TokensCache,
             ToolPart as OpenCodeToolPart,
             ToolStateCompleted,
             ToolStateError,
@@ -258,7 +258,7 @@ class OpenCodeStorageProvider(StorageProvider):
                 tokens=Tokens(
                     input=cost_info.token_usage.input_tokens if cost_info else 0,
                     output=cost_info.token_usage.output_tokens if cost_info else 0,
-                    cache=TokensCache(
+                    cache=TokenCache(
                         read=cost_info.token_usage.cache_read_tokens if cost_info else 0,
                         write=cost_info.token_usage.cache_write_tokens if cost_info else 0,
                     ),

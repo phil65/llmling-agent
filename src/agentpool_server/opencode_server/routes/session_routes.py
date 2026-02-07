@@ -48,12 +48,11 @@ from agentpool_server.opencode_server.models import (
     TextPart,
     TimeCreatedUpdated,
     Todo,
+    TokenCache,
     Tokens,
-    TokensCache,
 )
 from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.events import PermissionResolvedEvent
-from agentpool_server.opencode_server.models.parts import StepFinishTokens, TokenCache
 
 
 if TYPE_CHECKING:
@@ -509,7 +508,7 @@ async def run_shell_command(
         agent=request.agent,
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         time=MessageTime(created=now, completed=None),
-        tokens=Tokens(cache=TokensCache(read=0, write=0), input=0, output=0, reasoning=0),
+        tokens=Tokens(cache=TokenCache(read=0, write=0), input=0, output=0, reasoning=0),
         cost=0.0,
     )
 
@@ -556,7 +555,7 @@ async def run_shell_command(
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
         session_id=session_id,
-        tokens=StepFinishTokens(cache=TokenCache(read=0, write=0)),
+        tokens=Tokens(cache=TokenCache(read=0, write=0)),
     )
     assistant_msg_with_parts.parts.append(step_finish)
     await state.broadcast_event(PartUpdatedEvent.create(step_finish))
@@ -683,7 +682,7 @@ async def summarize_session(  # noqa: PLR0915
         agent="summarizer",
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         time=MessageTime(created=now, completed=None),
-        tokens=Tokens(cache=TokensCache(read=0, write=0), input=0, output=0, reasoning=0),
+        tokens=Tokens(cache=TokenCache(read=0, write=0), input=0, output=0, reasoning=0),
         cost=0.0,
         summary=True,  # Mark as summary message
     )
@@ -807,7 +806,7 @@ async def summarize_session(  # noqa: PLR0915
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
         session_id=session_id,
-        tokens=StepFinishTokens(
+        tokens=Tokens(
             cache=TokenCache(read=0, write=0),
             input=input_tokens,
             output=output_tokens,
@@ -821,7 +820,7 @@ async def summarize_session(  # noqa: PLR0915
         update={
             "time": MessageTime(created=now, completed=response_time),
             "tokens": Tokens(
-                cache=TokensCache(read=0, write=0),
+                cache=TokenCache(read=0, write=0),
                 input=input_tokens,
                 output=output_tokens,
                 reasoning=0,
@@ -1107,7 +1106,7 @@ async def execute_command(  # noqa: PLR0915
         agent=request.agent or "default",
         path=MessagePath(cwd=state.working_dir, root=state.working_dir),
         time=MessageTime(created=now, completed=None),
-        tokens=Tokens(cache=TokensCache(read=0, write=0), input=0, output=0, reasoning=0),
+        tokens=Tokens(cache=TokenCache(read=0, write=0), input=0, output=0, reasoning=0),
         cost=0.0,
     )
     assistant_msg_with_parts = MessageWithParts(info=assistant_message, parts=[])
@@ -1161,7 +1160,7 @@ async def execute_command(  # noqa: PLR0915
         id=identifier.ascending("part"),
         message_id=assistant_msg_id,
         session_id=session_id,
-        tokens=StepFinishTokens(cache=TokenCache()),
+        tokens=Tokens(cache=TokenCache()),
         cost=0.0,
     )
     assistant_msg_with_parts.parts.append(step_finish)

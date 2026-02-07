@@ -43,17 +43,17 @@ from agentpool_server.opencode_server.models import (
     PartUpdatedEvent,
     SessionCompactedEvent,
     SessionErrorEvent,
+    TokenCache,
+    Tokens,
 )
 from agentpool_server.opencode_server.models.parts import (
     ReasoningPart,
     StepFinishPart,
-    StepFinishTokens,
     TextPart,
     TimeStart,
     TimeStartEnd,
     TimeStartEndCompacted,
     TimeStartEndOptional,
-    TokenCache,
     ToolPart,
     ToolStateCompleted,
     ToolStateError,
@@ -196,7 +196,7 @@ class OpenCodeStreamAdapter:
 
         # Step finish
         cache = TokenCache(read=0, write=0)
-        tokens = StepFinishTokens(
+        tokens = Tokens(
             cache=cache,
             input=self._input_tokens,
             output=self._output_tokens,

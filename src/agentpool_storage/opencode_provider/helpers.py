@@ -36,8 +36,8 @@ from agentpool_server.opencode_server.models import (
     ReasoningPart as OpenCodeReasoningPart,
     Session,
     TextPart as OpenCodeTextPart,
+    TokenCache,
     Tokens,
-    TokensCache,
     ToolPart as OpenCodeToolPart,
     ToolStateCompleted,
     ToolStateError,
@@ -321,7 +321,7 @@ def to_chat_message(
     provider_details = {}
     match msg:
         case AssistantMessage(
-            tokens=Tokens(input=input, output=output, cache=TokensCache(read=read)),
+            tokens=Tokens(input=input, output=output, cache=TokenCache(read=read)),
         ):
             if (input_tokens := input + read) or output:
                 usage = RunUsage(input_tokens=input_tokens, output_tokens=output)

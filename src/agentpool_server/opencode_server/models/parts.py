@@ -11,6 +11,7 @@ from agentpool_server.opencode_server.models.base import OpenCodeBaseModel
 from agentpool_server.opencode_server.models.common import (
     ModelRef,  # noqa: TC001
     TimeCreated,  # noqa: TC001
+    Tokens,
 )
 
 
@@ -304,22 +305,6 @@ class StepStartPart(PartBase):
     snapshot: str | None = None
 
 
-class TokenCache(OpenCodeBaseModel):
-    """Token cache information."""
-
-    read: int = 0
-    write: int = 0
-
-
-class StepFinishTokens(OpenCodeBaseModel):
-    """Token usage for step finish."""
-
-    input: int = 0
-    output: int = 0
-    reasoning: int = 0
-    cache: TokenCache = Field(default_factory=TokenCache)
-
-
 class StepFinishPart(PartBase):
     """Step finish marker."""
 
@@ -327,7 +312,7 @@ class StepFinishPart(PartBase):
     reason: str = "stop"
     snapshot: str | None = None
     cost: float = 0.0
-    tokens: StepFinishTokens = Field(default_factory=StepFinishTokens)
+    tokens: Tokens = Field(default_factory=Tokens)
 
 
 Part = (
