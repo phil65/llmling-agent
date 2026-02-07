@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+from urllib.parse import unquote, urlparse
 
 from pydantic_ai import AudioUrl, BinaryContent, DocumentUrl, ImageUrl, VideoUrl
 from pydantic_ai.messages import BaseToolCallPart
@@ -124,3 +125,60 @@ def to_user_content_or_path_ref(
         return PathReference(path=path, fs=fs, mime_type=mime or None, display_name=title)
     # Handle regular URLs based on mime type. Fallback: treat as document
     return content if (content := get_file_url_obj(url, mime)) else DocumentUrl(url=url)
+
+
+def format_uri_as_link(uri: str) -> str:
+    """Format URI as markdown-style link similar to other ACP implementations.
+
+    Args:
+        uri: URI to format (file://, zed://, etc.)
+
+    Returns:
+        Markdown-style link in format [@name](uri)
+    """
+    if uri.startswith("file://"):
+        path = uri[7:]  # Remove "file://"
+        name = path.split("/")[-1] or path
+        return f"[@{name}]({uri})"
+    if uri.startswith("zed://"):
+        parts = uri.split("/")
+        name = parts[-1] or uri
+        return f"[@{name}]({uri})"
+    return uri
+
+
+def _uri_to_path(uri: str) -> str | None:
+    """Extract filesystem path from a file:// URI.
+
+    Args:
+        uri: URI string
+
+    Returns:
+        Filesystem path string, or None if not a file:// URI
+    """
+    if not uri.startswith("file://"):
+        return None
+    parsed = urlparse(uri)
+    return unquote(parsed.path)
+
+
+def uri_to_path_reference(
+    uri: str,
+    mime_type: str | None,
+    fs: AsyncFileSystem | None,
+) -> PathReference | None:
+    """Create a PathReference from a URI if it's a file:// reference.
+
+    Args:
+        uri: URI string
+        mime_type: Optional MIME type hint
+        fs: Optional async filesystem
+
+    Returns:
+        PathReference if URI is a file:// reference, None otherwise
+    """
+    path = _uri_to_path(uri)
+    if path is None:
+        return None
+    name = format_uri_as_link(uri)
+    return PathReference(path=path, fs=fs, mime_type=mime_type, display_name=name)

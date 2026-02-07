@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import base64
 from typing import TYPE_CHECKING, Any, assert_never, overload
-from urllib.parse import unquote, urlparse
 
 from pydantic import HttpUrl
 from pydantic_ai import AudioUrl, BinaryContent, BinaryImage, DocumentUrl, ImageUrl, VideoUrl
@@ -28,8 +27,8 @@ from acp.schema import (
     TextContentBlock,
     TextResourceContents,
 )
-from agentpool.common_types import PathReference
 from agentpool.log import get_logger
+from agentpool.utils.pydantic_ai_helpers import format_uri_as_link, uri_to_path_reference
 from agentpool_config.mcp_server import (
     SSEMCPServerConfig,
     StdioMCPServerConfig,
@@ -45,6 +44,7 @@ if TYPE_CHECKING:
 
     from acp.schema import ContentBlock, McpServer
     from agentpool.agents.modes import ModeInfo
+    from agentpool.common_types import PathReference
     from agentpool.messaging import MessageNode
     from agentpool.sessions import SessionData
     from agentpool_config.mcp_server import MCPServerConfig
@@ -98,63 +98,6 @@ def convert_acp_mcp_server_to_config(acp_server: McpServer) -> MCPServerConfig:
             assert_never(unreachable)
 
 
-def format_uri_as_link(uri: str) -> str:
-    """Format URI as markdown-style link similar to other ACP implementations.
-
-    Args:
-        uri: URI to format (file://, zed://, etc.)
-
-    Returns:
-        Markdown-style link in format [@name](uri)
-    """
-    if uri.startswith("file://"):
-        path = uri[7:]  # Remove "file://"
-        name = path.split("/")[-1] or path
-        return f"[@{name}]({uri})"
-    if uri.startswith("zed://"):
-        parts = uri.split("/")
-        name = parts[-1] or uri
-        return f"[@{name}]({uri})"
-    return uri
-
-
-def _uri_to_path(uri: str) -> str | None:
-    """Extract filesystem path from a file:// URI.
-
-    Args:
-        uri: URI string
-
-    Returns:
-        Filesystem path string, or None if not a file:// URI
-    """
-    if not uri.startswith("file://"):
-        return None
-    parsed = urlparse(uri)
-    return unquote(parsed.path)
-
-
-def _uri_to_path_reference(
-    uri: str,
-    mime_type: str | None,
-    fs: AsyncFileSystem | None,
-) -> PathReference | None:
-    """Create a PathReference from a URI if it's a file:// reference.
-
-    Args:
-        uri: URI string
-        mime_type: Optional MIME type hint
-        fs: Optional async filesystem
-
-    Returns:
-        PathReference if URI is a file:// reference, None otherwise
-    """
-    path = _uri_to_path(uri)
-    if path is None:
-        return None
-    name = format_uri_as_link(uri)
-    return PathReference(path=path, fs=fs, mime_type=mime_type, display_name=name)
-
-
 def from_acp_content(
     blocks: Sequence[ContentBlock],
     fs: AsyncFileSystem | None = None,
@@ -199,12 +142,12 @@ def from_acp_content(
                     elif mime_type == "application/pdf":
                         content.append(DocumentUrl(url=uri))
                     # Try to create a PathReference for file:// URIs
-                    elif ref := _uri_to_path_reference(uri, mime_type, fs):
+                    elif ref := uri_to_path_reference(uri, mime_type, fs):
                         content.append(ref)
                     else:
                         content.append(format_uri_as_link(uri))
                 # No MIME type - try to create PathReference for file:// URIs
-                elif ref := _uri_to_path_reference(uri, mime_type, fs):
+                elif ref := uri_to_path_reference(uri, mime_type, fs):
                     content.append(ref)
                 else:
                     content.append(format_uri_as_link(uri))
