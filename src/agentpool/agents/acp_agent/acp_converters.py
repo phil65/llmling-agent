@@ -76,7 +76,6 @@ if TYPE_CHECKING:
         SessionConfigOption,
         SessionModelState,
         SessionModeState,
-        SessionNotification,
         SessionUpdate,
         SseMcpServer,
         StdioMcpServer,
@@ -534,7 +533,6 @@ class ACPMessageAccumulator:
             #         -> ModelResponse(TextPart)
             all_messages: list[ModelMessage] = []
             response_parts: list[ModelResponsePart] = []
-
             # Add thinking part if present
             if self._thinking_buffer:
                 thinking_content = "".join(self._thinking_buffer)
@@ -550,7 +548,6 @@ class ACPMessageAccumulator:
                 )
                 tool_call_response = ModelResponse(parts=[call_part], model_name=self.model_name)
                 all_messages.append(tool_call_response)
-
                 # Then, a ModelRequest with the ToolReturnPart
                 return_part = ToolReturnPart(
                     tool_name=tc.tool_name,
@@ -584,9 +581,8 @@ class ACPMessageAccumulator:
                 )
                 all_messages.append(final_response)
 
-            content = "".join(self._text_buffer)
             msg = ChatMessage(
-                content=content,
+                content="".join(self._text_buffer),
                 role="assistant",
                 message_id=message_id,
                 session_id=self.session_id,
@@ -598,7 +594,6 @@ class ACPMessageAccumulator:
 
         self._messages.append(msg)
         self._last_parent_id = message_id
-
         # Clear buffers for next message
         self._text_buffer.clear()
         self._thinking_buffer.clear()
@@ -613,11 +608,7 @@ class ACPMessageAccumulator:
         self._current_role = new_role
 
     def process(self, update: SessionUpdate) -> None:
-        """Process a single ACP session update.
-
-        Args:
-            update: The session update to process
-        """
+        """Process a single ACP session update."""
         match update:
             # User message chunks → switch to user role
             case UserMessageChunk(content=content_block):
@@ -638,11 +629,7 @@ class ACPMessageAccumulator:
                     self._thinking_buffer.append(content_block.text)
 
             # Tool call start → track pending tool call
-            case ToolCallStart(
-                tool_call_id=tool_call_id,
-                title=title,
-                raw_input=raw_input,
-            ):
+            case ToolCallStart(tool_call_id=tool_call_id, title=title, raw_input=raw_input):
                 self._switch_role("assistant")
                 self._pending_tool_calls[tool_call_id] = _PendingToolCall(
                     tool_call_id=tool_call_id,
@@ -651,11 +638,7 @@ class ACPMessageAccumulator:
                 )
 
             # Tool call progress → update or complete tool call
-            case ToolCallProgress(
-                tool_call_id=tool_call_id,
-                status=status,
-                raw_output=raw_output,
-            ):
+            case ToolCallProgress(tool_call_id=tool_call_id, status=status, raw_output=raw_output):
                 self._switch_role("assistant")
                 if tool_call_id in self._pending_tool_calls:
                     tc = self._pending_tool_calls[tool_call_id]
@@ -671,31 +654,6 @@ class ACPMessageAccumulator:
                 if self._current_role is None:
                     self._current_role = "assistant"
 
-    def process_notification(self, notification: SessionNotification[SessionUpdate]) -> None:
-        """Process a SessionNotification containing an update.
-
-        Args:
-            notification: The notification containing the update
-        """
-        self.process(notification.update)
-
-    def process_all(
-        self,
-        updates: Iterable[SessionUpdate] | Iterable[SessionNotification[SessionUpdate]],
-    ) -> None:
-        """Process multiple updates or notifications.
-
-        Args:
-            updates: Iterable of SessionUpdate or SessionNotification objects
-        """
-        from acp.schema import SessionNotification
-
-        for item in updates:
-            if isinstance(item, SessionNotification):
-                self.process(item.update)
-            else:
-                self.process(item)
-
     def finalize(self) -> list[ChatMessage[str]]:
         """Finalize accumulation and return all messages.
 
@@ -708,20 +666,9 @@ class ACPMessageAccumulator:
         self._finalize_current_message()
         return list(self._messages)
 
-    def get_messages(self) -> list[ChatMessage[str]]:
-        """Get accumulated messages without finalizing.
-
-        Returns messages accumulated so far. Call finalize() when done
-        processing to include the final pending message.
-
-        Returns:
-            List of ChatMessage objects accumulated so far
-        """
-        return list(self._messages)
-
 
 def acp_notifications_to_messages(
-    notifications: Iterable[SessionNotification[SessionUpdate]] | Iterable[SessionUpdate],
+    notifications: Iterable[SessionUpdate],
     *,
     session_id: str | None = None,
     agent_name: str | None = None,
@@ -760,5 +707,6 @@ def acp_notifications_to_messages(
         agent_name=agent_name,
         model_name=model_name,
     )
-    accumulator.process_all(notifications)
+    for item in notifications:
+        accumulator.process(item)
     return accumulator.finalize()

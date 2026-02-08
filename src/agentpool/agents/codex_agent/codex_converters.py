@@ -47,15 +47,7 @@ if TYPE_CHECKING:
     from codex_adapter import ModelData, ThreadData
     from codex_adapter.codex_types import HttpMcpServer, McpServerConfig, StdioMcpServer
     from codex_adapter.events import CodexEvent
-    from codex_adapter.models import (
-        ThreadItem,
-        Turn,
-        TurnInputItem,
-        UserInputImage,
-        UserInputLocalImage,
-        UserInputSkill,
-        UserInputText,
-    )
+    from codex_adapter.models import ThreadItem, Turn, TurnInputItem, UserInput
 
 
 @overload
@@ -150,9 +142,7 @@ def to_session_data(thread_data: ThreadData, agent_name: str, cwd: str | None) -
     )
 
 
-def user_content_to_codex(
-    content: list[UserContent],
-) -> list[TurnInputItem]:
+def user_content_to_codex(content: list[UserContent]) -> list[TurnInputItem]:
     """Convert pydantic-ai UserContent list to Codex TurnInputItem list."""
     from codex_adapter.models import ImageInputItem, TextInputItem
 
@@ -161,12 +151,12 @@ def user_content_to_codex(
         match item:
             case str():
                 result.append(TextInputItem(text=item))
-            case ImageUrl():
-                result.append(ImageInputItem(url=item.url))
-            case BinaryContent() if item.is_image:
+            case ImageUrl(url=url):
+                result.append(ImageInputItem(url=url))
+            case BinaryContent(data=data, media_type=media_type, is_image=is_image) if is_image:
                 # Convert binary image to data URI
-                b64 = base64.b64encode(item.data).decode()
-                data_uri = f"data:{item.media_type};base64,{b64}"
+                b64 = base64.b64encode(data).decode()
+                data_uri = f"data:{media_type};base64,{b64}"
                 result.append(ImageInputItem(url=data_uri))
             case _:
                 # AudioUrl, DocumentUrl, VideoUrl, CachePoint - not supported by Codex
@@ -191,8 +181,7 @@ def _format_tool_result(item: ThreadItem) -> str:  # noqa: PLR0911
 
     match item:
         case ThreadItemCommandExecution():
-            output = item.aggregated_output or ""
-            if output:
+            if output := item.aggregated_output or "":
                 return f"```\n{output}\n```"
             return ""
         case ThreadItemFileChange():
@@ -205,12 +194,12 @@ def _format_tool_result(item: ThreadItem) -> str:  # noqa: PLR0911
                 if change.diff:
                     parts.append(change.diff)
             return "\n".join(parts)
-        case ThreadItemMcpToolCall():
-            if item.result and item.result.content:
-                texts = [str(block.model_dump().get("text", "")) for block in item.result.content]
-                return "\n".join(texts)
-            if item.error:
-                return f"Error: {item.error.message}"
+        case ThreadItemMcpToolCall(result=result) if result and result.content:
+            texts = [str(block.model_dump().get("text", "")) for block in result.content]
+            return "\n".join(texts)
+        case ThreadItemMcpToolCall(error=error) if error:
+            if error:
+                return f"Error: {error.message}"
             return ""
         case _:
             return ""
@@ -439,10 +428,7 @@ async def convert_codex_stream(  # noqa: PLR0915
 
             # === Stateless: MCP tool call progress ===
             case McpToolCallProgressEvent(data=data):
-                yield ToolCallProgressEvent(
-                    tool_call_id=data.item_id,
-                    message=data.message,
-                )
+                yield ToolCallProgressEvent(tool_call_id=data.item_id, message=data.message)
 
             # === Stateless: Thread compacted ===
             case ThreadCompactedEvent(data=data):
@@ -508,9 +494,7 @@ def event_to_part(
             return None
 
 
-def _user_input_to_content(
-    inp: UserInputText | UserInputImage | UserInputLocalImage | UserInputSkill,
-) -> UserContent:
+def _user_input_to_content(inp: UserInput) -> UserContent:
     """Convert Codex UserInput to pydantic-ai UserContent."""
     from codex_adapter.models import (
         UserInputImage,
