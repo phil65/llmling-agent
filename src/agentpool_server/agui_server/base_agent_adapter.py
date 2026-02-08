@@ -14,15 +14,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ag_ui.core import RunAgentInput
-from ag_ui.encoder import EventEncoder
-from pydantic_ai.ui.ag_ui import AGUIEventStream
-
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
-    from ag_ui.core import BaseEvent
+    from ag_ui.core import BaseEvent, RunAgentInput
     from starlette.requests import Request
     from starlette.responses import StreamingResponse
 
@@ -74,6 +70,8 @@ class BaseAgentAGUIAdapter:
         Returns:
             Configured adapter instance
         """
+        from ag_ui.core import RunAgentInput
+
         body = await request.body()
         run_input = RunAgentInput.model_validate_json(body)
         accept = request.headers.get("accept")
@@ -102,6 +100,8 @@ class BaseAgentAGUIAdapter:
         Yields:
             AG-UI protocol events
         """
+        from pydantic_ai.ui.ag_ui import AGUIEventStream
+
         # Create event stream transformer
         event_stream = AGUIEventStream(self.run_input, accept=self.accept)
 
@@ -135,6 +135,8 @@ class BaseAgentAGUIAdapter:
 
     def encode_stream(self, stream: AsyncIterator[BaseEvent]) -> AsyncIterator[str]:
         """Encode events as SSE strings."""
+        from ag_ui.encoder import EventEncoder
+
         encoder = EventEncoder(accept=self.accept or SSE_CONTENT_TYPE)
 
         async def _encode() -> AsyncIterator[str]:
@@ -149,14 +151,12 @@ class BaseAgentAGUIAdapter:
         Returns:
             Starlette StreamingResponse with AG-UI events
         """
+        from ag_ui.encoder import EventEncoder
         from starlette.responses import StreamingResponse
 
         encoder = EventEncoder(accept=self.accept or SSE_CONTENT_TYPE)
-
-        return StreamingResponse(
-            self.encode_stream(self.run_stream()),
-            media_type=encoder.get_content_type(),
-        )
+        media_type = encoder.get_content_type()
+        return StreamingResponse(self.encode_stream(self.run_stream()), media_type=media_type)
 
     @classmethod
     async def dispatch_request(
