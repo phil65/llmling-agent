@@ -67,7 +67,7 @@ from agentpool.agents.events import (
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-    from pydantic_ai import FinishReason, ModelResponsePart, UserContent
+    from pydantic_ai import FinishReason, ModelMessage, ModelResponsePart, UserContent
 
     from acp.schema import (
         ContentBlock,
@@ -263,11 +263,8 @@ def convert_to_acp_content(prompts: Sequence[UserContent]) -> list[ContentBlock]
                     content_blocks.append(EmbeddedResourceContentBlock(resource=blob_resource))
                 else:
                     # Generic binary as embedded resource
-                    blob_resource = BlobResourceContents(
-                        blob=encoded,
-                        mime_type=typ or "application/octet-stream",
-                        uri=f"data:{typ or 'application/octet-stream'};base64,...",
-                    )
+                    uri = f"data:{typ or 'application/octet-stream'};base64,..."
+                    blob_resource = BlobResourceContents(blob=encoded, mime_type=typ, uri=uri)
                     content_blocks.append(EmbeddedResourceContentBlock(resource=blob_resource))
 
             case (
@@ -415,14 +412,9 @@ def mcp_config_to_acp(config: MCPServerConfig) -> McpServer:
 
     match config:
         case StdioMCPServerConfig(command=command, args=args):
-            env_vars = config.get_env_vars() if hasattr(config, "get_env_vars") else {}
-            env_list = [EnvVariable(name=k, value=v) for k, v in env_vars.items()]
-            return StdioMcpServer(
-                name=config.name or command,
-                command=command,
-                args=list(args) if args else [],
-                env=env_list,
-            )
+            envs = [EnvVariable(name=k, value=v) for k, v in config.get_env_vars().items()]
+            args = list(args) if args else []
+            return StdioMcpServer(name=config.name or command, command=command, args=args, env=envs)
 
         case SSEMCPServerConfig(url=url):
             return SseMcpServer(name=config.name or str(url), url=url, headers=[])
@@ -516,13 +508,11 @@ class ACPMessageAccumulator:
 
     def _finalize_current_message(self) -> None:
         """Finalize the current message and add it to the messages list."""
-        if self._current_role is None:
-            return
-
         from agentpool.messaging.messages import ChatMessage
 
+        if self._current_role is None:
+            return
         message_id = str(uuid4())
-
         if self._current_role == "user":
             # Build user message
             content = "".join(self._text_buffer)
@@ -542,8 +532,6 @@ class ACPMessageAccumulator:
             # Build assistant message with proper parts
             # Structure: ModelResponse(ToolCallPart) -> ModelRequest(ToolReturnPart)
             #         -> ModelResponse(TextPart)
-            from pydantic_ai import ModelMessage  # noqa: TC002
-
             all_messages: list[ModelMessage] = []
             response_parts: list[ModelResponsePart] = []
 
@@ -555,28 +543,21 @@ class ACPMessageAccumulator:
             # Process completed tool calls - each creates a response + request pair
             for tc in self._completed_tool_calls:
                 # First, a ModelResponse with the ToolCallPart
-                tool_call_response = ModelResponse(
-                    parts=[
-                        ToolCallPart(
-                            tool_name=tc.tool_name,
-                            args=tc.args,
-                            tool_call_id=tc.tool_call_id,
-                        )
-                    ],
-                    model_name=self.model_name,
+                call_part = ToolCallPart(
+                    tool_name=tc.tool_name,
+                    args=tc.args,
+                    tool_call_id=tc.tool_call_id,
                 )
+                tool_call_response = ModelResponse(parts=[call_part], model_name=self.model_name)
                 all_messages.append(tool_call_response)
 
                 # Then, a ModelRequest with the ToolReturnPart
-                tool_return_request = ModelRequest(
-                    parts=[
-                        ToolReturnPart(
-                            tool_name=tc.tool_name,
-                            content=tc.result if tc.result is not None else "",
-                            tool_call_id=tc.tool_call_id,
-                        )
-                    ],
+                return_part = ToolReturnPart(
+                    tool_name=tc.tool_name,
+                    content=tc.result if tc.result is not None else "",
+                    tool_call_id=tc.tool_call_id,
                 )
+                tool_return_request = ModelRequest(parts=[return_part])
                 all_messages.append(tool_return_request)
 
             # Add pending (incomplete) tool calls to response parts
