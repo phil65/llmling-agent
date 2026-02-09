@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-import types
 from dataclasses import dataclass
 from pathlib import Path
+import types
 from typing import TYPE_CHECKING, Annotated, Any, Self, Union, get_args, get_origin
 
 
@@ -253,7 +253,7 @@ def _strip_docstring_sections(description: str) -> str:
         # Check if we're in a section (indented content after section header)
         if in_section:
             # If line is empty or still indented, skip it
-            if not stripped or line.startswith("    ") or line.startswith("\t"):
+            if not stripped or line.startswith(("    ", "\t")):
                 continue
             # Non-indented non-empty line means new content
             in_section = False
@@ -352,8 +352,7 @@ def generate_tool_docs(toolset: ResourceProvider) -> str:
 
     lines = [f"## {toolset.name.replace('_', ' ').title()} Tools", ""]
 
-    for tool in tools:
-        lines.append(tool_to_markdown(tool))
+    lines.extend(tool_to_markdown(tool) for tool in tools)
 
     return "\n".join(lines)
 

@@ -6,8 +6,9 @@
 
 from __future__ import annotations
 
-import anyio
 from pathlib import Path
+
+import anyio
 
 from agentpool import Agent
 from agentpool_config.mcp_server import StdioMCPServerConfig

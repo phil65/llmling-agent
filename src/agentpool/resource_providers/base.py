@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from pydantic_ai import ModelRequestPart
     from schemez import OpenAIFunctionDefinition
 
+    from agentpool.prompts.instructions import InstructionFunc
     from agentpool.prompts.prompts import BasePrompt
     from agentpool.resource_providers.resource_info import ResourceInfo
     from agentpool.skills.skill import Skill
@@ -132,6 +133,10 @@ class ResourceProvider:
 
     async def get_skills(self) -> list[Skill]:
         """Get available skills. Override to provide skills."""
+        return []
+
+    async def get_instructions(self) -> list[InstructionFunc]:
+        """Get available instruction functions. Override to provide instructions."""
         return []
 
     async def get_skill_instructions(self, skill_name: str) -> str:

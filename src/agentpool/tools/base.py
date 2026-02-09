@@ -116,11 +116,13 @@ class Tool[TOutputType = Any]:
         """Get the callable for this tool. Subclasses must implement."""
         ...
 
-    def to_pydantic_ai(self) -> PydanticAiTool:
+    def to_pydantic_ai(
+        self, function_override: Callable[..., TOutputType | Awaitable[TOutputType]] | None = None
+    ) -> PydanticAiTool:
         """Convert tool to Pydantic AI tool."""
         metadata = {**self.metadata, "agent_name": self.agent_name, "category": self.category}
         return PydanticAiTool(
-            function=self.get_callable(),
+            function=function_override if function_override is not None else self.get_callable(),
             name=self.name,
             description=self.description,
             requires_approval=self.requires_confirmation,

@@ -12,9 +12,8 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict, TypeVar, overl
 from uuid import uuid4
 
 import logfire
-from pydantic_ai import Agent as PydanticAgent, CallToolsNode, ModelRequestNode, RunContext
+from pydantic_ai import Agent as PydanticAgent, CallToolsNode, ModelRequestNode
 from pydantic_ai.models import Model
-from pydantic_ai.tools import ToolDefinition
 
 from agentpool.agents.base_agent import BaseAgent
 from agentpool.agents.events import RunStartedEvent, StreamCompleteEvent
@@ -26,7 +25,6 @@ from agentpool.messaging import ChatMessage, MessageHistory
 from agentpool.storage import StorageManager
 from agentpool.tools import Tool, ToolManager
 from agentpool.tools.exceptions import ToolError
-from agentpool.utils.inspection import get_argument_key
 from agentpool.utils.result_utils import to_type
 from agentpool.utils.streams import merge_queue_into_iterator
 
@@ -609,6 +607,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
     ) -> PydanticAgent[TDeps, AgentOutputType]:
         """Create pydantic-ai agent from current state."""
         from agentpool.agents.native_agent.tool_wrapping import wrap_tool
+        from agentpool.utils.context_wrapping import wrap_instruction
 
         tools = await self.tools.get_tools(state="enabled")
         final_type = to_type(output_type) if output_type not in [None, str] else self._output_type
@@ -617,50 +616,89 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             model_, _settings = self._resolve_model_string(actual_model)
         else:
             model_ = actual_model
-        agent = PydanticAgent(
-            name=self.name,
-            model=model_,
-            model_settings=self.model_settings,
-            instructions=self._formatted_system_prompt,
-            retries=self._retries,
-            end_strategy=self._end_strategy,
-            output_retries=self._output_retries,
-            deps_type=self.deps_type or NoneType,
-            output_type=final_type,
-            builtin_tools=self._builtin_tools,
-        )
 
         context_for_tools = self.get_context(input_provider=input_provider)
 
+        # Collect pydantic_ai.tools.Tool instances using Tool.to_pydantic_ai()
+        pydantic_ai_tools = []
         for tool in tools:
             wrapped = wrap_tool(tool, context_for_tools, hooks=self._hook_manager)
+            pydantic_ai_tool = tool.to_pydantic_ai(function_override=wrapped)
+            pydantic_ai_tools.append(pydantic_ai_tool)
 
-            prepare_fn = None
-            if tool.schema_override:
+        # Collect and wrap instructions from all resource providers
+        all_instructions: list[Any] = []
 
-                def create_prepare(
-                    t: Tool,
-                ) -> Callable[[RunContext[Any], ToolDefinition], Awaitable[ToolDefinition | None]]:
-                    async def prepare_schema(
-                        ctx: RunContext[Any], tool_def: ToolDefinition
-                    ) -> ToolDefinition | None:
-                        if not t.schema_override:
-                            return None
-                        return ToolDefinition(
-                            name=t.schema_override.get("name") or t.name,
-                            description=t.schema_override.get("description") or t.description,
-                            parameters_json_schema=t.schema_override.get("parameters"),
+        # Start with formatted system prompt as a static instruction
+        if self._formatted_system_prompt:
+            all_instructions.append(self._formatted_system_prompt)
+
+        # Collect instructions from all providers
+        for provider in self.tools.providers:
+            try:
+                provider_instructions = await provider.get_instructions()
+                # Wrap each instruction for pydantic-ai compatibility
+                for instruction_fn in provider_instructions:
+                    try:
+                        wrapped_instruction = wrap_instruction(instruction_fn, fallback="")
+                        all_instructions.append(wrapped_instruction)
+                    except Exception:
+                        # Wrap failure - log and skip this instruction
+                        logger.exception(
+                            "Failed to wrap instruction, skipping",
+                            provider=provider.name,
+                            instruction=instruction_fn,
                         )
+                        continue
+            except Exception as e:
+                # Provider failure - log and continue
+                logger.exception(
+                    "Failed to get instructions from provider",
+                    provider=provider.name,
+                    error=str(e),
+                )
+                continue
 
-                    return prepare_schema
+        return PydanticAgent(  # type: ignore[misc]
+            name=self.name,
+            model=model_,
+            model_settings=self.model_settings,
+            instructions=all_instructions,
+            retries=self._retries,
+            end_strategy=self._end_strategy,
+            output_retries=self._output_retries,
+            deps_type=self.deps_type or NoneType,  # type: ignore[arg-type]
+            output_type=final_type,  # type: ignore[arg-type]
+            tools=pydantic_ai_tools,
+            builtin_tools=self._builtin_tools,
+        )
 
-                prepare_fn = create_prepare(tool)
+    async def _process_node_stream(
+        self,
+        node_stream: AsyncIterator[Any],
+        *,
+        file_tracker: FileTracker,
+        pending_tcs: dict[str, BaseToolCallPart],
+        message_id: str,
+    ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
+        """Process events from a node stream (ModelRequest or CallTools).
 
-            if get_argument_key(wrapped, RunContext):
-                agent.tool(prepare=prepare_fn)(wrapped)
-            else:
-                agent.tool_plain(prepare=prepare_fn)(wrapped)
-        return agent  # type: ignore[return-value]
+        Args:
+            node_stream: Stream of events from the node
+            file_tracker: Tracker for file operations
+            pending_tcs: Dictionary of pending tool calls
+            message_id: Current message ID
+
+        Yields:
+            Processed stream events
+        """
+        async with merge_queue_into_iterator(node_stream, self._event_queue) as merged:
+            async for event in file_tracker(merged):
+                if self._cancelled:
+                    break
+                yield event
+                if combined := process_tool_event(self.name, event, pending_tcs, message_id):
+                    yield combined
 
     async def _stream_events(
         self,
