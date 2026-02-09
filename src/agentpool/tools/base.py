@@ -22,12 +22,6 @@ from agentpool_config.tools import ToolHints
 
 
 if TYPE_CHECKING:
-    from pydantic_ai import RunContext
-
-    from agentpool.agents.context import AgentContext
-
-
-if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
     from mcp.types import Tool as MCPTool, ToolAnnotations
@@ -35,6 +29,7 @@ if TYPE_CHECKING:
     from pydantic_ai.tools import ToolDefinition
     from schemez import FunctionSchema, Property
 
+    from agentpool.agents.context import AgentContext
     from agentpool.common_types import ToolSource
     from agentpool.tools.manager import ToolState
 

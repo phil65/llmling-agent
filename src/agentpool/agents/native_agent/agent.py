@@ -639,65 +639,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             builtin_tools=self._builtin_tools,
         )
 
-        context_for_tools = self.get_context(input_provider=input_provider)
-
-        for tool in tools:
-            wrapped = wrap_tool(tool, context_for_tools, hooks=self._hook_manager)
-
-            prepare_fn = None
-            if tool.schema_override:
-
-                def create_prepare(
-                    t: Tool,
-                ) -> Callable[[RunContext[Any], ToolDefinition], Awaitable[ToolDefinition | None]]:
-                    async def prepare_schema(
-                        ctx: RunContext[Any], tool_def: ToolDefinition
-                    ) -> ToolDefinition | None:
-                        if not t.schema_override:
-                            return None
-                        return ToolDefinition(
-                            name=t.schema_override.get("name") or t.name,
-                            description=t.schema_override.get("description") or t.description,
-                            parameters_json_schema=t.schema_override.get("parameters"),
-                        )
-
-                    return prepare_schema
-
-                prepare_fn = create_prepare(tool)
-
-            if get_argument_key(wrapped, RunContext):
-                agent.tool(prepare=prepare_fn)(wrapped)
-            else:
-                agent.tool_plain(prepare=prepare_fn)(wrapped)
-        return agent  # type: ignore[return-value]
-
-    async def _process_node_stream(
-        self,
-        node_stream: AsyncIterator[Any],
-        *,
-        file_tracker: FileTracker,
-        pending_tcs: dict[str, BaseToolCallPart],
-        message_id: str,
-    ) -> AsyncIterator[RichAgentStreamEvent[OutputDataT]]:
-        """Process events from a node stream (ModelRequest or CallTools).
-
-        Args:
-            node_stream: Stream of events from the node
-            file_tracker: Tracker for file operations
-            pending_tcs: Dictionary of pending tool calls
-            message_id: Current message ID
-
-        Yields:
-            Processed stream events
-        """
-        async with merge_queue_into_iterator(node_stream, self._event_queue) as merged:
-            async for event in file_tracker(merged):
-                if self._cancelled:
-                    break
-                yield event
-                if combined := process_tool_event(self.name, event, pending_tcs, message_id):
-                    yield combined
-
     async def _stream_events(
         self,
         prompts: list[UserContent],

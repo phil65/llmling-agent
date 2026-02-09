@@ -8,6 +8,11 @@ from typing import TYPE_CHECKING, Any, Literal
 from pydantic import ConfigDict, Field, ImportString
 from schemez import Schema
 
+from agentpool.log import get_logger
+
+
+logger = get_logger(__name__)
+
 
 if TYPE_CHECKING:
     from agentpool.tools.base import Tool
@@ -122,9 +127,9 @@ class ImportToolConfig(BaseToolConfig):
                 module_path, func_name = str(self.prepare).split(":")
                 module = __import__(module_path, fromlist=[func_name])
                 prepare_callable = getattr(module, func_name)
-            except (ValueError, ImportError, AttributeError):
+            except (ValueError, ImportError, AttributeError) as e:
                 # If import fails, pass None (prepare is optional)
-                pass
+                logger.warning("Failed to import prepare function %s: %s", self.prepare, e)
 
         return Tool.from_callable(
             self.import_path,
