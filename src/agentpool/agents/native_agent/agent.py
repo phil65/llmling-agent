@@ -8,7 +8,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
 import time
-from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict, TypeVar, overload
 from uuid import uuid4
 
 import logfire
@@ -604,7 +604,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         model: ModelType | None,
         output_type: type[AgentOutputType] | None,
         input_provider: InputProvider | None = None,
-    ) -> PydanticAgent[AgentContext[TDeps], AgentOutputType]:
+    ) -> PydanticAgent[AgentContext[TDeps], Any]:
         """Create pydantic-ai agent from current state."""
         from agentpool.agents.native_agent.tool_wrapping import wrap_tool
 
@@ -634,7 +634,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             end_strategy=self._end_strategy,
             output_retries=self._output_retries,
             deps_type=AgentContext[TDeps],
-            output_type=cast(Any, final_type),
+            output_type=final_type,
             tools=pydantic_ai_tools,
             builtin_tools=self._builtin_tools,
         )
