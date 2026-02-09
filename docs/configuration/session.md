@@ -123,3 +123,51 @@ agents:
       roles: ["assistant"]  # Only assistant messages
       since: "1d"          # From last day
 ```
+
+## History Processors
+
+History processors allow you to transform message history before each model call using custom Python functions. This is useful for filtering, summarizing, or modifying context dynamically.
+
+### Basic Usage
+
+```yaml
+agents:
+  my_agent:
+    session:
+      history_processors:
+        - my_module:filter_old_messages
+        - my_module:summarize_history
+```
+
+Each processor is an import path to a callable with one of these signatures:
+
+```python
+# Simple synchronous processor
+def processor(messages: list[ModelMessage]) -> list[ModelMessage]:
+    return messages[-10:]  # Keep only last 10 messages
+
+# Async processor
+async def processor(messages: list[ModelMessage]) -> list[ModelMessage]:
+    return await async_filter(messages)
+
+# With RunContext access (for token usage, deps, etc.)
+def processor(
+    ctx: RunContext,
+    messages: list[ModelMessage]
+) -> list[ModelMessage]:
+    if ctx.usage.total_tokens > 8000:
+        return messages[-5:]
+    return messages
+```
+
+### Execution Order
+
+When both compaction pipeline and history processors are configured:
+
+1. **CompactionPipeline** runs first (filtering, truncation)
+2. **History Processors** run second (custom transformations)
+3. **LLM Request** is made with processed history
+
+### Security Considerations
+
+History processors execute arbitrary Python code. Only use trusted import paths and avoid side effects (network calls, file I/O) in processors.
