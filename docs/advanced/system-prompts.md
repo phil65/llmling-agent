@@ -135,6 +135,121 @@ def generate_context_prompt(user_id: str, session_type: str) -> str:
     return f"You are assisting {user_data.name} with {session_type}."
 ```
 
+### Provider-Based Dynamic Instructions
+
+ResourceProviders can provide dynamic instructions that are re-evaluated on each agent run with access to runtime context. This is different from function-generated prompts because instructions have access to AgentContext and RunContext.
+
+```yaml
+agents:
+  context_aware_agent:
+    system_prompt:
+      - "You are a helpful assistant."
+
+    toolsets:
+      - type: custom
+        import_path: myapp.providers.UserContextProvider
+        name: user_provider
+
+    # Add provider-based dynamic instructions
+    instructions:
+      - type: provider
+        ref: user_provider
+```
+
+Provider implementation:
+
+```python
+from agentpool.resource_providers import ResourceProvider
+from agentpool.prompts.instructions import InstructionFunc
+from agentpool.agents.context import AgentContext
+
+class UserContextProvider(ResourceProvider):
+    async def get_instructions(self) -> list[InstructionFunc]:
+        """Return dynamic instruction functions.
+
+        Each function is re-evaluated on each run with access
+        to runtime context (AgentContext, RunContext, or both).
+        """
+        return [
+            self._get_user_context,     # With AgentContext
+            self._get_system_status,     # No context
+        ]
+
+    async def _get_user_context(self, ctx: AgentContext) -> str:
+        """Generate context based on agent state."""
+        # Access agent name, model, conversation history, etc.
+        return f"Agent: {ctx.name}, Model: {ctx.model_name}"
+
+    def _get_system_status(self) -> str:
+        """Return static instruction."""
+        return "System: Online"
+```
+
+#### Instruction Function Context Types
+
+Instruction functions can receive different context types:
+
+- **No context**: `() -> str`
+- **AgentContext only**: `(AgentContext) -> str`
+- **RunContext only**: `(RunContext) -> str`
+- **Both contexts**: `(AgentContext, RunContext) -> str`
+
+```python
+# No context
+def simple() -> str:
+    return "Be helpful."
+
+# AgentContext only
+async def with_agent(ctx: AgentContext) -> str:
+    return f"Agent: {ctx.name}"
+
+# RunContext only
+async def with_run(ctx: RunContext) -> str:
+    return f"Model: {ctx.model_name}"
+
+# Both contexts
+async def with_both(agent_ctx: AgentContext, run_ctx: RunContext) -> str:
+    return f"Agent {agent_ctx.name} using {run_ctx.model.model_name}"
+```
+
+#### Function-Generated vs Provider-Based Instructions
+
+| Feature | Function-Generated | Provider-Based |
+|---------|-------------------|-----------------|
+| **Location** | In `system_prompt` field | In `instructions` field |
+| **Context Access** | No runtime context | AgentContext, RunContext, or both |
+| **Re-evaluation** | Evaluated once at agent start | Re-evaluated on each run |
+| **Best For** | Simple dynamic content | Context-aware instructions |
+
+#### Order of Instructions
+
+Instructions are processed in this order:
+
+1. **Static system prompts** (from `system_prompt` field)
+2. **Provider instructions** (in order defined in `instructions` list)
+
+```yaml
+# Resulting instruction order:
+instructions:
+  - "You are an expert."              # 1
+  - type: provider
+    ref: provider_a                    # 2
+  - "Follow these guidelines:"         # 3
+  - type: provider
+    ref: provider_b                    # 4
+```
+
+#### Error Handling
+
+If an instruction function fails, the error is logged and the instruction is skipped. Agent initialization continues without crashing.
+
+!!! tip "Use Provider-Based Instructions When"
+    You need access to runtime state (AgentContext, RunContext) or want instructions that change on each run based on context like conversation history, available tools, or session state.
+
+!!! note "See Also"
+    - [Dynamic Instructions Example](../../examples/dynamic-instructions/)
+    - [Resource Providers](../configuration/resources.md)
+
 ## Callable Prompts
 
 System prompts can include callables that are evaluated when the agent context starts:

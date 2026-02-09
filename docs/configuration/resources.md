@@ -54,3 +54,100 @@ Resources are loaded on-demand when agents request them, supporting parameteriza
 - Source resources automatically extract docstrings and type hints
 - LangChain resources leverage the extensive LangChain loader ecosystem
 - Callable resources provide maximum flexibility for custom logic
+
+## Dynamic Instructions from Resource Providers
+
+ResourceProviders can now provide dynamic instructions that are re-evaluated on each agent run. This allows providers to generate context-aware instructions based on runtime state.
+
+### How It Works
+
+ResourceProviders can implement the `get_instructions()` method to return instruction functions:
+
+```python
+from agentpool.resource_providers import ResourceProvider
+from agentpool.prompts.instructions import InstructionFunc
+from agentpool.agents.context import AgentContext
+
+class MyProvider(ResourceProvider):
+    async def get_instructions(self) -> list[InstructionFunc]:
+        """Return dynamic instruction functions."""
+        return [
+            self._get_static_instruction,      # No context
+            self._get_context_instruction,     # With AgentContext
+        ]
+
+    def _get_static_instruction(self) -> str:
+        """Instruction without context access."""
+        return "Always be helpful."
+
+    async def _get_context_instruction(self, ctx: AgentContext) -> str:
+        """Instruction with context access."""
+        return f"Agent: {ctx.name}, Model: {ctx.model_name}"
+```
+
+### YAML Configuration
+
+Configure providers to provide instructions using the `instructions` field:
+
+```yaml
+agents:
+  my_agent:
+    type: native
+    model: openai:gpt-4o
+    toolsets:
+      - type: custom
+        import_path: myapp.providers.MyProvider
+        name: my_provider
+
+    # Add provider-based instructions
+    instructions:
+      - type: provider
+        ref: my_provider
+```
+
+### Instruction Function Types
+
+Instruction functions can accept different context types:
+
+- **No context**: `() -> str`
+- **AgentContext only**: `(AgentContext) -> str`
+- **RunContext only**: `(RunContext) -> str`
+- **Both contexts**: `(AgentContext, RunContext) -> str`
+
+```python
+# No context
+def simple() -> str:
+    return "Be helpful."
+
+# AgentContext only
+async def with_agent(ctx: AgentContext) -> str:
+    return f"Agent: {ctx.name}"
+
+# RunContext only
+async def with_run(ctx: RunContext) -> str:
+    return f"Model: {ctx.model.model_name}"
+
+# Both contexts
+async def with_both(agent_ctx: AgentContext, run_ctx: RunContext) -> str:
+    return f"Agent {agent_ctx.name} using {run_ctx.model.model_name}"
+```
+
+### Benefits
+
+- **Context-aware**: Instructions adapt to runtime state (conversation history, tools used, etc.)
+- **Per-run re-evaluation**: Unlike static prompts, dynamic instructions regenerate on each run
+- **Provider integration**: Toolsets and other providers can inject their own contextual instructions
+- **Flexible context access**: Choose what context you need (AgentContext, RunContext, or both)
+
+### Error Handling
+
+If an instruction function fails:
+- Error is logged with context
+- Agent initialization continues
+- Failed instruction is skipped (uses empty string fallback)
+
+### See Also
+
+- [Dynamic Instructions Example](../../examples/dynamic-instructions/)
+- [ResourceProvider Base Class](../api/resource_providers.md)
+- [Instruction Types](../api/instructions.md)
