@@ -245,7 +245,18 @@ class Tool[TOutputType = Any]:
             # Return only the parameters part (the "object" schema)
             # Use model_dump - schemez.FunctionSchema has this method (pydantic-compatible)
             schema_dump = getattr(schema, "model_dump")()  # noqa: B009, type: ignore[attr-defined]
-            return schema_dump["parameters"]  # type: ignore[no-any-return]
+            generated_params = schema_dump["parameters"]
+
+            # Apply parameter overrides to maintain consistency with the primary path
+            if "parameters" in self.schema_override:
+                override_params = self.schema_override["parameters"]
+                if "properties" in override_params:
+                    for param_name, param_def in override_params["properties"].items():
+                        if param_name in generated_params.get("properties", {}):
+                            generated_params["properties"][param_name].update(param_def)
+                        else:
+                            generated_params.setdefault("properties", {})[param_name] = param_def
+            return generated_params  # type: ignore[no-any-return]
         else:
             return schema.json_schema
 

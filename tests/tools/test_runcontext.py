@@ -27,11 +27,7 @@ async def data_with_run_ctx(ctx: RunContext[AgentContext[dict[str, str]]]) -> st
 
 async def data_with_agent_ctx(ctx: AgentContext) -> str:
     """Tool accessing data through AgentContext."""
-    # When a tool requests AgentContext, it gets RunContext.deps
-    # RunContext.deps is AgentContext, and the user data is in AgentContext.data
-    # But ctx here is AgentContext, so ctx.data contains the user data directly
-    data_value = ctx.data.data if isinstance(ctx.data, AgentContext) else ctx.data
-    return f"Data from AgentContext: {data_value}"
+    return f"Data from AgentContext: {ctx.data}"
 
 
 async def no_ctx_tool() -> str:
