@@ -353,11 +353,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             return self._resolved_history_processors
 
         # Get history processors from memory config
-        if not (memory_cfg := self.conversation._config):
-            self._resolved_history_processors = []
-            return []
-
-        processor_paths = getattr(memory_cfg, "history_processors", None)
+        processor_paths = getattr(self.conversation._config, "history_processors", None)
         if not processor_paths:
             self._resolved_history_processors = []
             return []
