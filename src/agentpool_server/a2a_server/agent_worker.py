@@ -207,6 +207,7 @@ def _request_parts_from_a2a(parts: list[Part]) -> list[ModelRequestPart]:
             case {"kind": "file", "file": {"bytes": raw_bytes, **rest}}:
                 data = raw_bytes.encode("utf-8")
                 mime_type = rest.get("mime_type", "application/octet-stream")
+                assert isinstance(mime_type, str)
                 content: UserContent = BinaryContent(data=data, media_type=mime_type)
                 model_parts.append(UserPromptPart(content=[content]))
             case {"kind": "file", "file": {"uri": url}}:

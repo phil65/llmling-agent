@@ -249,7 +249,8 @@ class CallableCondition(ConnectionCondition):
         """Execute predicate function."""
         from agentpool.utils.inspection import execute
 
-        return await bool(await execute(self.predicate, context.message, context.stats))
+        val = await execute(self.predicate, context.message, context.stats)
+        return bool(val)
 
 
 class AndCondition(ConnectionCondition):

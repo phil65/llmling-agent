@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 import json
 import os
@@ -14,6 +13,8 @@ from agentpool_cli import log, resolve_agent_config
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     from agentpool import ChatMessage
 
 
