@@ -110,13 +110,13 @@ class PromptHook(Hook):
         Returns:
             Structured hook decision.
         """
-        from pydantic_ai import Agent
+        from agentpool import Agent
 
-        agent: Agent[None, HookDecision] = Agent(
+        agent = Agent(
             model=self.model,
             system_prompt="You are a security/policy evaluation assistant. "
             "Analyze the request and decide whether to allow or deny it.",
             output_type=HookDecision,
         )
         result = await agent.run(prompt)
-        return result.output
+        return result.data

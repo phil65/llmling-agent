@@ -318,7 +318,7 @@ class Talk[TTransmittedData = Any]:
                         case BaseTeam():
                             # Add context to all team members
                             for agent in target.iter_agents():
-                                agent.staged_content.add_text(str(message.content))
+                                agent.staged_content.add_text(str(message.content))  # ty: ignore[unresolved-attribute]
                         case BaseAgent():
                             target.staged_content.add_text(str(message.content))
 

@@ -136,7 +136,7 @@ class ConnectionManager:
             talks = [
                 self.create_connection(
                     source,
-                    t,
+                    t,  # ty: ignore[invalid-argument-type]
                     connection_type=connection_type,
                     priority=priority,
                     delay=delay,

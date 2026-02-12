@@ -153,7 +153,13 @@ class ChatMessageFileSystem(AsyncFileSystem):  # type: ignore[misc]
             return entries
         return [e["name"] for e in entries]
 
-    async def _cat_file(self, path: str, **kwargs: Any) -> bytes:
+    async def _cat_file(
+        self,
+        path: str,
+        start: int | None = None,
+        end: int | None = None,
+        **kwargs: Any,
+    ) -> bytes:
         """Read file content."""
         path = self._normalize_path(path)
         file_entries = self._get_file_entries()
@@ -221,6 +227,7 @@ class ChatMessageFileSystem(AsyncFileSystem):  # type: ignore[misc]
         self,
         path: str,
         value: bytes,
+        mode: str = "overwrite",
         **kwargs: Any,
     ) -> None:
         """Write file - not supported."""

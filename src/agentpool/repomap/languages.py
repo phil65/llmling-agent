@@ -22,7 +22,9 @@ def get_scm_fname(lang: str) -> Path | None:
 
     # Try to get the path
     if isinstance(ref, os.PathLike):
-        path = Path(ref.__fspath__())
+        fs_path = ref.__fspath__()
+        assert isinstance(fs_path, str)
+        path = Path(fs_path)
         return path if path.exists() else None
 
     # Fallback for older Python or packaged resources

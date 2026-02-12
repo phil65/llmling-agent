@@ -388,7 +388,7 @@ class NativeAgentConfig(BaseAgentConfig):
                     )
                     prompts.append(static_prompt)
                 case _ as unreachable:
-                    assert_never(unreachable)
+                    assert_never(unreachable)  # ty: ignore[type-assertion-failure]
         return prompts
 
     def render_system_prompts(self, context: dict[str, Any] | None = None) -> list[str]:

@@ -14,7 +14,6 @@ from uuid import uuid4
 
 import logfire
 from pydantic_ai import Agent as PydanticAgent, CallToolsNode, ModelRequestNode, RunContext
-from pydantic_ai.models import Model
 from pydantic_ai.tools import ToolDefinition
 
 from agentpool.agents.base_agent import BaseAgent
@@ -37,9 +36,9 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from exxec import ExecutionEnvironment
-    from llmling_models_config import AnyModelConfig
     from pydantic_ai import BaseToolCallPart, UsageLimits, UserContent
     from pydantic_ai.builtin_tools import AbstractBuiltinTool
+    from pydantic_ai.models import Model
     from pydantic_ai.output import OutputSpec
     from pydantic_ai.settings import ModelSettings
     from slashed import BaseCommand
@@ -200,12 +199,9 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
                 Defaults to ["models.dev"] if not specified.
             commands: Slash commands
         """
-        from llmling_models_config import StringModelConfig
-
         from agentpool.agents.interactions import Interactions
         from agentpool.agents.native_agent.hook_manager import NativeAgentHookManager
         from agentpool.agents.sys_prompts import SystemPrompts
-        from agentpool.models.agents import NativeAgentConfig
         from agentpool.models.manifest import AgentsManifest
         from agentpool.prompts.conversion_manager import ConversionManager
         from agentpool_commands.pool import CompactCommand
@@ -241,22 +237,6 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             hooks=hooks,
         )
         self.tool_confirmation_mode: ToolConfirmationMode = tool_confirmation_mode
-        # Store config for context creation
-        # Convert model to proper config type for NativeAgentConfig
-        config_model: AnyModelConfig
-        if isinstance(model, Model):
-            config_model = StringModelConfig(
-                identifier=model.model_name,
-                **({"model_settings": model._settings} if model._settings else {}),  # pyright: ignore[reportArgumentType]
-            )
-        elif isinstance(model, str):
-            config_model = StringModelConfig(
-                identifier=model,
-                **({"model_settings": model_settings} if model_settings else {}),  # pyright: ignore[reportArgumentType]
-            )
-        else:
-            config_model = model
-        self._agent_config = agent_config or NativeAgentConfig(name=name, model=config_model)
         # Store builtin tools for pydantic-ai
         self._builtin_tools = list(builtin_tools) if builtin_tools else []
         # Override tools with Agent-specific ToolManager (with tools and tool_mode)

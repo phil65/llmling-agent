@@ -106,7 +106,7 @@ class AGUIAgentConfig(BaseAgentConfig):
     ) -> AGUIAgent[TDeps]:
         from agentpool.agents.agui_agent import AGUIAgent
 
-        return AGUIAgent.from_config(
+        return AGUIAgent[TDeps].from_config(
             self,
             event_handlers=event_handlers,
             input_provider=input_provider,

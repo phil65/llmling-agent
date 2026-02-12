@@ -274,6 +274,8 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
 
     def get_structure_diagram(self) -> str:
         """Generate mermaid flowchart of node hierarchy."""
+        from agentpool.delegation.base_team import BaseTeam
+
         lines = ["flowchart TD"]
 
         def add_node(node: MessageNode[Any, Any], parent: str | None = None) -> None:
@@ -282,10 +284,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             lines.append(f"    {node_id}[{node.name}]")
             if parent:
                 lines.append(f"    {parent} --> {node_id}")
-
             # If it's a team, recursively add its members
-            from agentpool.delegation.base_team import BaseTeam
-
             if isinstance(node, BaseTeam):
                 for member in node.nodes:
                     add_node(member, node_id)

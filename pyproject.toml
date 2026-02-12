@@ -443,6 +443,7 @@ python-platform = "all"
 unresolved-import = "ignore"
 unused-type-ignore-comment = "ignore"
 invalid-type-form = "ignore"
+not-subscriptable = "ignore"
 
 [tool.uv]
 default-groups = ["dev", "lint", "docs"]

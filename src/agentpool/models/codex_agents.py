@@ -113,7 +113,7 @@ class CodexAgentConfig(BaseAgentConfig):
     ) -> CodexAgent[TDeps, Any]:
         from agentpool.agents.codex_agent import CodexAgent
 
-        return CodexAgent.from_config(
+        return CodexAgent[TDeps, Any].from_config(
             self,
             event_handlers=event_handlers,
             input_provider=input_provider,

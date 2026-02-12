@@ -150,7 +150,7 @@ class BaseACPAgentConfig(BaseAgentConfig):
     ) -> ACPAgent[TDeps]:
         from agentpool.agents.acp_agent import ACPAgent
 
-        return ACPAgent.from_config(
+        return ACPAgent[TDeps].from_config(
             self,
             event_handlers=event_handlers,
             input_provider=input_provider,

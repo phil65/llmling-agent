@@ -24,7 +24,7 @@ class InputProvider(ABC):
         self,
         context: NodeContext,
         prompt: str,
-        output_type: type | None = None,
+        output_type: type[BaseModel] | None = None,
         message_history: list[ChatMessage[Any]] | None = None,
     ) -> Any:
         """Get normal input (used by HumanProvider).

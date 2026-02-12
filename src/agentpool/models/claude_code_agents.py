@@ -315,7 +315,7 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     ) -> ClaudeCodeAgent[TDeps, Any]:
         from agentpool.agents.claude_code_agent import ClaudeCodeAgent
 
-        return ClaudeCodeAgent.from_config(
+        return ClaudeCodeAgent[TDeps, Any].from_config(
             self,
             event_handlers=event_handlers,
             input_provider=input_provider,

@@ -432,13 +432,14 @@ class ToolManagerBridge:
                 self._tool = tool
                 self._bridge = bridge
 
-            async def run(self, args: dict[str, Any]) -> ToolResult:
+            async def run(self, arguments: dict[str, Any]) -> ToolResult:
                 """Execute the wrapped tool with context bridging."""
                 from fastmcp.server.dependencies import get_context
 
                 from agentpool.agents.events import ToolResultMetadataEvent
                 from agentpool.tools.base import ToolResult as AgentPoolToolResult
 
+                args = arguments.copy()
                 # Validate args against tool's schema
                 # try:
                 #     param_model = self._tool.schema_obj.create_parameter_model()
@@ -466,7 +467,7 @@ class ToolManagerBridge:
                 ctx = replace(ctx, tool_name=self._tool.name, tool_call_id=tc_id, tool_input=args)
                 # Invoke with context - copy args since invoke_tool_with_context
                 # modifies kwargs in-place to inject context parameters
-                result = await self._bridge.invoke_tool_with_context(self._tool, ctx, args.copy())
+                result = await self._bridge.invoke_tool_with_context(self._tool, ctx, args)
                 # Emit metadata event for ClaudeCodeAgent to correlate
                 # (works around Claude SDK stripping MCP _meta field)
                 if isinstance(result, AgentPoolToolResult) and result.metadata:
