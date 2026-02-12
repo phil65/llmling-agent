@@ -402,22 +402,17 @@ def parse_mcp_servers_json(data: dict[str, object]) -> list[MCPServerConfig]:
         raise TypeError(msg)
 
     for server_name, server_cfg in mcp_servers.items():
-        if not isinstance(server_cfg, dict):
-            msg = f"Server config for '{server_name}' must be an object"
-            raise TypeError(msg)
         assert isinstance(server_name, str)
-        url = server_cfg.get("url")
-        if not url:
-            msg = f"Server '{server_name}' must have a 'url' field"
-            raise ValueError(msg)
-
-        match server_cfg.get("transport"):
-            case "sse":
+        match server_cfg:
+            case {"transport": "sse", "url": url}:
                 server: MCPServerConfig = SSEMCPServerConfig(name=server_name, url=url)
-            case "http" | None:  # Default to HTTP
+            case {"transport": "http", "url": url} | {"url": url}:  # Default to HTTP
                 server = StreamableHTTPMCPServerConfig(name=server_name, url=url)
-            case unknown:
+            case {"transport": unknown}:
                 msg = f"Unsupported transport type for '{server_name}': {unknown}"
+                raise ValueError(msg)
+            case _:
+                msg = f"Invalid config for MCP server '{server_name}': {server_cfg}"
                 raise ValueError(msg)
 
         servers.append(server)
