@@ -24,10 +24,11 @@ from acp.filesystem import ACPFileSystem
 from acp.schema import AvailableCommand, ClientCapabilities
 from agentpool import Agent, AgentPool  # noqa: TC001
 from agentpool.agents.acp_agent import ACPAgent
-from agentpool.agents.modes import ModeInfo
+from agentpool.agents.modes import ConfigOptionChanged, ModeInfo
 from agentpool.log import get_logger
 from agentpool_commands import get_commands
 from agentpool_commands.base import NodeCommand
+from agentpool_server.acp_server.commands import get_commands as get_acp_commands
 from agentpool_server.acp_server.converters import (
     convert_acp_mcp_server_to_config,
     from_acp_content,
@@ -50,7 +51,6 @@ if TYPE_CHECKING:
         StopReason,
     )
     from agentpool.agents.base_agent import BaseAgent
-    from agentpool.agents.modes import ConfigOptionChanged
     from agentpool.common_types import PathReference
     from agentpool_server.acp_server.acp_agent import AgentPoolACPAgent
     from agentpool_server.acp_server.session_manager import ACPSessionManager
@@ -86,6 +86,16 @@ In addition to `file://` URLs, these `zed://` URLs work in the agent context:
 Query params must be URL-encoded (spaces → `%20`). Paths must be absolute.
 """
 
+CMDS = [
+    *get_commands(
+        enable_set_model=False,
+        enable_list_resources=False,
+        enable_add_resource=False,
+        enable_show_resource=False,
+    ),
+    *get_acp_commands(),
+]
+
 
 def _is_slash_command(text: str) -> bool:
     """Check if text starts with a slash command."""
@@ -117,6 +127,18 @@ def split_commands(
             # Not a local command - pass through (may be remote command or regular text)
             non_command_content.append(item)
     return commands, non_command_content
+
+
+def infer_stop_reason(error_msg: str) -> StopReason:
+    """Infers the reason for stopping the session based on the error message."""
+    if "request_limit" in error_msg:
+        return "max_turn_requests"
+    if any(limit in error_msg for limit in ["tokens_limit", "token_limit"]):
+        return "max_tokens"
+    # Tool call limits don't have a direct ACP stop reason, treat as refusal
+    if "tool_calls_limit" in error_msg or "tool call" in error_msg:
+        return "refusal"
+    return "max_tokens"  # Default to max_tokens for other usage limits
 
 
 @dataclass
@@ -170,24 +192,13 @@ class ACPSession:
 
     def __post_init__(self) -> None:
         """Initialize session state and set up providers."""
-        from agentpool_server.acp_server.commands import get_commands as get_acp_commands
-
         self.mcp_servers = self.mcp_servers or []
         self.log = logger.bind(session_id=self.session_id)
         self._task_lock = asyncio.Lock()
         self._cancelled = False
         self._current_converter: ACPEventConverter | None = None
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
-        cmds = [
-            *get_commands(
-                enable_set_model=False,
-                enable_list_resources=False,
-                enable_add_resource=False,
-                enable_show_resource=False,
-            ),
-            *get_acp_commands(),
-        ]
-        self.command_store = CommandStore(commands=cmds)
+        self.command_store = CommandStore(commands=CMDS)
         self.command_store._initialize_sync()
         self._update_callbacks: list[Callable[[], None]] = []
         self._remote_commands: list[AvailableCommand] = []  # Commands from nested ACP agents
@@ -236,7 +247,6 @@ class ACPSession:
             CurrentModelUpdate,
             CurrentModeUpdate,
         )
-        from agentpool.agents.modes import ConfigOptionChanged as CoreConfigOptionChanged
         from agentpool_server.acp_server.acp_agent import get_session_config_options
 
         update: CurrentModeUpdate | CurrentModelUpdate | ConfigOptionUpdate
@@ -253,14 +263,12 @@ class ACPSession:
                 await self.send_available_commands_update()
                 self.log.debug("Merged and sent commands update to client")
                 return
-            case CoreConfigOptionChanged(config_id=config_id, value_id=value_id):
+            case ConfigOptionChanged(config_id=config_id, value_id=value_id):
                 # Get full config_options from agent (required by ACP protocol)
                 config_options = await get_session_config_options(self.agent)
                 # Update the changed option's current_value
-                for opt in config_options:
-                    if opt.id == config_id:
-                        opt.current_value = value_id
-                        break
+                if opt := next((i for i in config_options if i.id == config_id), None):
+                    opt.current_value = value_id
                 # Convert our core type to ACP type with full config_options
                 update = ConfigOptionUpdate(
                     config_id=config_id,
@@ -299,14 +307,7 @@ class ACPSession:
             self.log.exception("Failed to register MCP prompts as commands")
 
     async def init_client_skills(self) -> None:
-        """Discover and load skills from client-side .claude/skills directory.
-
-        Adds the client's .claude/skills directory to the pool's skills manager,
-        making those skills available to all agents via the SkillsTools toolset.
-
-        We pass the filesystem directly to avoid fsspec trying to create a new
-        ACPFileSystem instance without the required client/session_id parameters.
-        """
+        """Discover and load skills from client-side .claude/skills directory."""
         try:
             await self.agent_pool.skills.add_skills_directory(".claude/skills", fs=self.fs)
             skills = self.agent_pool.skills.list_skills()
@@ -450,23 +451,13 @@ class ACPSession:
                 return "cancelled"
             except UsageLimitExceeded as e:
                 self.log.info("Usage limit exceeded", error=str(e))
-                error_msg = str(e)  # Determine which limit was hit based on error
-                if "request_limit" in error_msg:
-                    return "max_turn_requests"
-                if any(limit in error_msg for limit in ["tokens_limit", "token_limit"]):
-                    return "max_tokens"
-                # Tool call limits don't have a direct ACP stop reason, treat as refusal
-                if "tool_calls_limit" in error_msg or "tool call" in error_msg:
-                    return "refusal"
-                return "max_tokens"  # Default to max_tokens for other usage limits
+                return infer_stop_reason(str(e))
             except Exception as e:
                 self._current_converter = None  # Clear converter reference
                 self.log.exception("Error during streaming")
                 # Send error notification asynchronously to avoid blocking response
-                self.acp_agent.tasks.create_task(
-                    self._send_error_notification(f"❌ Agent error: {e}"),
-                    name=f"agent_error_notification_{self.session_id}",
-                )
+                coro = self._send_error_notification(f"❌ Agent error: {e}")
+                self.acp_agent.tasks.create_task(coro)
                 return "end_turn"
             else:
                 # Title generation is now handled automatically by log_session
@@ -503,8 +494,7 @@ class ACPSession:
         Merges local commands from command_store with any remote commands
         from nested ACP agents.
         """
-        commands = self.get_acp_commands()  # Local commands
-        commands.extend(self._remote_commands)  # Merge remote commands
+        commands = [*self.get_acp_commands(), *self._remote_commands]
         try:
             await self.notifications.update_commands(commands)
         except Exception:
@@ -512,41 +502,35 @@ class ACPSession:
 
     async def _register_mcp_prompts_as_commands(self) -> None:
         """Register MCP prompts as slash commands."""
-        try:  # Get all prompts from the agent's ToolManager
-            if all_prompts := await self.agent.tools.list_prompts():
-                for prompt in all_prompts:
-                    command = prompt.create_mcp_command(self.agent.staged_content)
-                    self.command_store.register_command(command)
-                self._notify_command_update()
-                self.log.info("Registered MCP prompts as commands", prompt_count=len(all_prompts))
-                await self.send_available_commands_update()  # Send updated command list to client
-        except Exception:
-            self.log.exception("Failed to register MCP prompts as commands")
+        if all_prompts := await self.agent.tools.list_prompts():
+            for prompt in all_prompts:
+                command = prompt.create_mcp_command(self.agent.staged_content)
+                self.command_store.register_command(command)
+            self._notify_command_update()
+            self.log.info("Registered MCP prompts as commands", prompt_count=len(all_prompts))
+            await self.send_available_commands_update()  # Send updated command list to client
 
     async def _register_prompt_hub_commands(self) -> None:
         """Register prompt hub prompts as slash commands."""
         manager = self.agent_pool.prompt_manager
         cmd_count = 0
-        try:
-            all_prompts = await manager.list_prompts()
-            for provider_name, prompt_names in all_prompts.items():
-                if not prompt_names:  # Skip empty providers
-                    continue
-                for prompt_name in prompt_names:
-                    command = manager.create_prompt_hub_command(
-                        provider_name,
-                        prompt_name,
-                        self.agent.staged_content,
-                    )
-                    self.command_store.register_command(command)
-                    cmd_count += 1
+        all_prompts = await manager.list_prompts()
+        for provider_name, prompt_names in all_prompts.items():
+            if not prompt_names:  # Skip empty providers
+                continue
+            for prompt_name in prompt_names:
+                command = manager.create_prompt_hub_command(
+                    provider_name,
+                    prompt_name,
+                    self.agent.staged_content,
+                )
+                self.command_store.register_command(command)
+                cmd_count += 1
 
-            if cmd_count > 0:
-                self._notify_command_update()
-                self.log.info("Registered hub prompts as slash commands", cmd_count=cmd_count)
-                await self.send_available_commands_update()  # Send updated command list to client
-        except Exception:
-            self.log.exception("Failed to register prompt hub prompts as commands")
+        if cmd_count > 0:
+            self._notify_command_update()
+            self.log.info("Registered hub prompts as slash commands", cmd_count=cmd_count)
+            await self.send_available_commands_update()  # Send updated command list to client
 
     def _notify_command_update(self) -> None:
         """Notify all registered callbacks about command updates."""
@@ -557,26 +541,20 @@ class ACPSession:
                 logger.exception("Command update callback failed")
 
     def get_acp_commands(self) -> list[AvailableCommand]:
-        """Convert all slashed commands to ACP format.
-
-        Filters commands based on current agent's node type compatibility.
-
-        Returns:
-            List of ACP AvailableCommand objects compatible with current node
-        """
+        """Convert all slashed commands to ACP format."""
         # Filter commands by node compatibility
-        compatible_commands = []
+        cmds = []
         for cmd in self.command_store.list_commands():
-            cmd_cls = cmd if isinstance(cmd, type) else type(cmd)
             # Check if command supports current node type
-            if issubclass(cmd_cls, NodeCommand) and not cmd_cls.supports_node(self.agent):  # type: ignore[union-attr]
+            if isinstance(cmd, NodeCommand) and not cmd.supports_node(self.agent):
                 continue
-            compatible_commands.append(cmd)
-
-        return [
-            AvailableCommand.create(name=i.name, description=i.description, input_hint=i.usage)
-            for i in compatible_commands
-        ]
+            available_cmd = AvailableCommand.create(
+                name=cmd.name,
+                description=cmd.description,
+                input_hint=cmd.usage,
+            )
+            cmds.append(available_cmd)
+        return cmds
 
     @logfire.instrument(r"Execute Slash Command {command_text}")
     async def execute_slash_command(self, command_text: str) -> None:
@@ -594,12 +572,14 @@ class ACPSession:
             return
 
         # Check if command supports current node type
-        if cmd := self.command_store.get_command(command_name):
-            cmd_cls = cmd if isinstance(cmd, type) else type(cmd)
-            if issubclass(cmd_cls, NodeCommand) and not cmd_cls.supports_node(self.agent):  # type: ignore[union-attr]
-                error_msg = f"❌ Command `/{command_name}` is not available for this node type"
-                await self.notifications.send_agent_text(error_msg)
-                return
+        if (
+            (cmd := self.command_store.get_command(command_name))
+            and isinstance(cmd, NodeCommand)
+            and not cmd.supports_node(self.agent)
+        ):
+            error_msg = f"❌ Command `/{command_name}` is not available for this node type"
+            await self.notifications.send_agent_text(error_msg)
+            return
 
         # Create context with session data
         agent_context = self.agent.get_context(data=self)
@@ -614,10 +594,8 @@ class ACPSession:
         except Exception as e:
             logger.exception("Command execution failed")
             # Send error notification asynchronously to avoid blocking
-            self.acp_agent.tasks.create_task(
-                self._send_error_notification(f"❌ Command error: {e}"),
-                name=f"command_error_notification_{self.session_id}",
-            )
+            coro = self._send_error_notification(f"❌ Command error: {e}")
+            self.acp_agent.tasks.create_task(coro)
 
     def register_update_callback(self, callback: Callable[[], None]) -> None:
         """Register callback for command updates."""

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from agentpool_commands.base import NodeCommand
 from agentpool_commands.agents import (
     CreateAgentCommand,
     CreateTeamCommand,
@@ -58,8 +57,6 @@ if TYPE_CHECKING:
 
     from slashed import BaseCommand, SlashedCommand
 
-    from agentpool.messaging import MessageNode
-
 
 def get_agent_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedCommand]]:
     """Get commands that operate primarily on a single agent."""
@@ -109,25 +106,6 @@ def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComma
         "enable_spawn": SpawnCommand,
     }
     return [command for flag, command in command_map.items() if kwargs.get(flag, True)]
-
-
-def filter_commands_for_node(
-    commands: Sequence[BaseCommand | type[SlashedCommand]],
-    node: MessageNode[Any, Any],
-) -> list[BaseCommand | type[SlashedCommand]]:
-    """Filter commands to those supporting the given node type.
-
-    Args:
-        commands: Commands to filter
-        node: The node to check compatibility with
-    """
-    result: list[BaseCommand | type[SlashedCommand]] = []
-    for cmd in commands:
-        cmd_cls = cmd if isinstance(cmd, type) else type(cmd)
-        if issubclass(cmd_cls, NodeCommand) and not cmd_cls.supports_node(node):
-            continue
-        result.append(cmd)
-    return result
 
 
 def get_commands(
