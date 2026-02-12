@@ -270,8 +270,9 @@ class CallableConnectionConfig(ConnectionConfig):
 
     def get_node(self, agents: Sequence[MessageNode[Any, Any]]) -> MessageNode[Any, Any]:
         from agentpool import Agent
+        from agentpool.utils.inspection import get_fn_name
 
-        return Agent(model=self.get_model(), name=self.callable.__name__)
+        return Agent(model=self.get_model(), name=get_fn_name(self.callable))
 
     async def process_message(self, message: ChatMessage[Any]) -> Any:
         """Process a message through the callable.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 import json
 import os
 from typing import TYPE_CHECKING, Annotated, Any
@@ -12,8 +14,6 @@ from agentpool_cli import log, resolve_agent_config
 
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
-
     from agentpool import ChatMessage
 
 
@@ -73,10 +73,21 @@ def vercel_command(  # noqa: PLR0915
         for agent in pool.all_agents.values():
             agent.message_sent.connect(on_message)
 
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        await pool.__aenter__()
+        logger.info("Agent pool initialized")
+        try:
+            yield
+        finally:
+            await pool.__aexit__(None, None, None)
+            logger.info("Agent pool shut down")
+
     # Create FastAPI app
     app = FastAPI(
         title="AgentPool - Vercel AI Server",
         description="Vercel AI Data Stream Protocol server for AgentPool",
+        lifespan=lifespan,
     )
 
     if cors:
@@ -87,16 +98,6 @@ def vercel_command(  # noqa: PLR0915
             allow_methods=["*"],
             allow_headers=["*"],
         )
-
-    @app.on_event("startup")
-    async def startup() -> None:
-        await pool.__aenter__()
-        logger.info("Agent pool initialized")
-
-    @app.on_event("shutdown")
-    async def shutdown() -> None:
-        await pool.__aexit__(None, None, None)
-        logger.info("Agent pool shut down")
 
     @app.post("/chat")
     async def chat(request: Request) -> Response:
