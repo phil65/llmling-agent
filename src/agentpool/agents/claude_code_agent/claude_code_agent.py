@@ -267,6 +267,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             max_turns: Maximum conversation turns
             max_budget_usd: Maximum budget to consume in dollars
             max_thinking_tokens: Max tokens for extended thinking
+            reasoning_effort: Reasoning effort level
             permission_mode: Permission mode ("default", "acceptEdits", "plan", "bypassPermissions")
             mcp_servers: External MCP servers to connect to (internal format, converted at runtime)
             env_vars: Environment variables for the agent process
@@ -327,7 +328,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._max_turns = max_turns
         self._max_budget_usd = max_budget_usd
         self._max_thinking_tokens: int | Literal["adaptive"] | None = max_thinking_tokens
-        self._effort = reasoning_effort
+        self._effort: ReasoningEffort | None = reasoning_effort
         self._permission_mode: PermissionMode | None = permission_mode
         self._thinking_mode: ThinkingMode = "off"
         self._external_mcp_servers = list(mcp_servers) if mcp_servers else []
@@ -449,10 +450,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Use HTTP transport to preserve _meta field with claudecode/toolUseId
         # SDK transport drops _meta in Claude Agent SDK's query.py
         url = f"http://127.0.0.1:{self._tool_bridge.port}/mcp"
-        mcp_config = {
-            self._tool_bridge.resolved_server_name: McpHttpServerConfig(type="http", url=url)
-        }
-
+        cfg = McpHttpServerConfig(type="http", url=url)
+        mcp_config = {self._tool_bridge.resolved_server_name: cfg}
         self._mcp_servers.update(mcp_config)
         self.log.info("Toolsets initialized", toolset_count=len(self._toolsets))
 
