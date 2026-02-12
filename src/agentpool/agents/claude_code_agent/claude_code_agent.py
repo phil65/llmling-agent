@@ -380,9 +380,7 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         # Get manifest from pool or create empty one
         manifest = agent_pool.manifest if agent_pool is not None else AgentsManifest()
         # Resolve output type from config
-        resolved_output_type: type | None = None
-        if config.output_type:
-            resolved_output_type = to_type(config.output_type, manifest.responses)
+        resolved_output_type = to_type(t, manifest.responses) if (t := config.output_type) else None
         # Merge config-level handlers with provided handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[AnyEventHandlerType] = [*config_handlers, *(event_handlers or [])]

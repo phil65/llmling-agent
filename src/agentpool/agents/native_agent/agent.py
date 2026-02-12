@@ -356,7 +356,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         return resolved
 
     @classmethod
-    def from_config(  # noqa: PLR0915
+    def from_config(
         cls,
         config: NativeAgentConfig,
         *,
@@ -439,9 +439,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             workers_provider = WorkersTools(workers=list(config.workers), name="workers")
             toolsets_list.append(workers_provider)
         # Resolve output type from config
-        resolved_output_type: type = str
-        if config.output_type:
-            resolved_output_type = to_type(config.output_type, manifest.responses)
+        resolved_output_type = to_type(t, manifest.responses) if (t := config.output_type) else str
         # Merge event handlers
         config_handlers = config.get_event_handlers()
         merged_handlers: list[AnyEventHandlerType] = [*config_handlers, *(event_handlers or [])]
