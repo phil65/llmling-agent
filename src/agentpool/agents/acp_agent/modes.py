@@ -73,7 +73,7 @@ class ACPModeCategory(ModeCategoryProtocol["ACPAgent"]):
         config_request = SetSessionConfigOptionRequest(
             session_id=agent._sdk_session_id,
             config_id="mode",
-            value_id=mode_id,
+            value=mode_id,
         )
         response = await agent._connection.set_session_config_option(config_request)
 
@@ -213,7 +213,7 @@ class ACPModelCategory(ModeCategoryProtocol["ACPAgent"]):
         config_request = SetSessionConfigOptionRequest(
             session_id=agent._sdk_session_id,
             config_id="model",
-            value_id=mode_id,
+            value=mode_id,
         )
         response = await agent._connection.set_session_config_option(config_request)
 
@@ -339,7 +339,7 @@ class ACPGenericCategory(ModeCategoryProtocol["ACPAgent"]):
         config_request = SetSessionConfigOptionRequest(
             session_id=agent._sdk_session_id,
             config_id=self.id,
-            value_id=mode_id,
+            value=mode_id,
         )
         response = await agent._connection.set_session_config_option(config_request)
 

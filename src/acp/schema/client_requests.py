@@ -176,7 +176,7 @@ class SetSessionConfigOptionRequest(Request):
     session_id: str
     """The ID of the session to set the config option for."""
 
-    value_id: str
+    value: str = Field(alias="valueId")
     """The ID of the value to set for this configuration option."""
 
 
