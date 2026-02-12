@@ -93,7 +93,7 @@ def to_acp_content_blocks(  # noqa: PLR0911
                 mime_type=media_type,
                 uri=f"data:{media_type};base64,{blob_data[:50]}...",
             )
-            return [EmbeddedResourceContentBlock(resource=blob_resource)]  # ty: ignore[invalid-return-type]
+            return [EmbeddedResourceContentBlock(resource=blob_resource)]
 
         case ImageUrl() | AudioUrl() | VideoUrl() | DocumentUrl() as file_url:
             from urllib.parse import urlparse

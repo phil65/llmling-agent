@@ -59,11 +59,11 @@ class PromptCompleter(CompletionProvider):
     """Completer for prompts."""
 
     async def get_completions(
-        self, ctx: CompletionContext[AgentContext[Any]]
+        self, context: CompletionContext[AgentContext[Any]]
     ) -> AsyncIterator[CompletionItem]:
         """Complete prompt references."""
-        current = ctx.current_word
-        pool = ctx.command_context.context.pool
+        current = context.current_word
+        pool = context.command_context.context.pool
         if pool is None:
             return
 

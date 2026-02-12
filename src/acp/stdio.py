@@ -241,7 +241,7 @@ async def run_agent(
     else:
 
         def agent_factory(connection: AgentSideConnection) -> Agent:
-            return agent  # ty: ignore[invalid-return-type]
+            return agent
 
     conn = AgentSideConnection(agent_factory, input_stream, output_stream, **connection_kwargs)
     shutdown_event = asyncio.Event()

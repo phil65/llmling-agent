@@ -355,3 +355,5 @@ def to_chat_message(
                 messages=pydantic_messages,
                 provider_details=provider_details,
             )
+        case _:
+            raise ValueError(f"Unexpected message type: {msg}")
