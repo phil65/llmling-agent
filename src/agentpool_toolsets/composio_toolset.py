@@ -69,7 +69,7 @@ class ComposioTools(ResourceProvider):
                     tool_slug = tool_def["function"].get("name", "")
                     if tool_slug:
                         fn = self._create_tool_handler(tool_slug)
-                        tool = self.create_tool(fn, schema_override=tool_def["function"])
+                        tool = self.create_tool(fn, schema_override=tool_def["function"])  # type: ignore[arg-type]
                         self._tools.append(tool)
 
         except Exception:

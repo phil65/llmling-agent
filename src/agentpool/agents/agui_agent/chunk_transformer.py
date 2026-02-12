@@ -205,9 +205,12 @@ class ChunkTransformer:
         delta = event.delta
 
         # Check if we need to close current reasoning message (different ID)
-        if self._active_reasoning is not None:
-            if message_id and message_id != self._active_reasoning:
-                result.extend(self._close_reasoning_message())
+        if (
+            self._active_reasoning is not None
+            and message_id
+            and message_id != self._active_reasoning
+        ):
+            result.extend(self._close_reasoning_message())
 
         # Start new reasoning message if needed
         if self._active_reasoning is None and message_id:
