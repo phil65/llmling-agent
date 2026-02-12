@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, overload
 
 import anyio
-from psygnal.containers import EventedList
 
 from agentpool.log import get_logger
 from agentpool.messaging import MessageNode
@@ -20,7 +19,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
     from evented_config import EventConfig
-    from psygnal.containers._evented_list import ListEvents
 
     from agentpool import Agent, AgentPool, Team
     from agentpool.agents.base_agent import BaseAgent
@@ -64,10 +62,7 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         from agentpool.delegation.teamrun import ExtendedTeamTalk
 
         self._name = name or " & ".join([i.name for i in agents])
-        self.nodes = EventedList[MessageNode[Any, Any]]()
-        self.nodes.events.inserted.connect(self._on_node_added)
-        self.nodes.events.removed.connect(self._on_node_removed)
-        self.nodes.events.changed.connect(self._on_node_changed)
+        self._nodes: list[MessageNode[Any, Any]] = []
         super().__init__(
             name=self._name,
             display_name=display_name,
@@ -76,32 +71,32 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
             event_configs=event_configs,
             agent_pool=agent_pool,
         )
-        self.nodes.extend(list(agents))
+        for agent in agents:
+            self.add_node(agent)
         self._team_talk = ExtendedTeamTalk()
         self.shared_prompt = shared_prompt
         self._main_task: asyncio.Task[ChatMessage[Any] | None] | None = None
         self._infinite = False
 
-    def _on_node_changed(
-        self, index: int, old: MessageNode[Any, Any], new: MessageNode[Any, Any]
-    ) -> None:
-        """Handle node replacement in the agents list."""
-        self._on_node_removed(index, old)
-        self._on_node_added(index, new)
+    @property
+    def nodes(self) -> list[MessageNode[Any, Any]]:
+        return self._nodes
 
-    def _on_node_added(self, index: int, node: MessageNode[Any, Any]) -> None:
+    def add_node(self, node: MessageNode[Any, Any]) -> None:
         """Handler for adding new nodes to the team."""
         from agentpool.agents import Agent
 
+        self._nodes.append(node)
         if isinstance(node, Agent):
             # Add MCP aggregating provider from manager
             aggregating_provider = self.mcp.get_aggregating_provider()
             node.tools.add_provider(aggregating_provider)
 
-    def _on_node_removed(self, index: int, node: MessageNode[Any, Any]) -> None:
+    def remove_node(self, node: MessageNode[Any, Any]) -> None:
         """Handler for removing nodes from the team."""
         from agentpool.agents import Agent
 
+        self._nodes.remove(node)
         if isinstance(node, Agent):
             # Remove MCP aggregating provider
             aggregating_provider = self.mcp.get_aggregating_provider()
@@ -262,10 +257,6 @@ class BaseTeam[TDeps, TResult](MessageNode[TDeps, TResult]):
         return self._team_talk
 
     @property
-    def events(self) -> ListEvents:
-        """Get events for the team."""
-        return self.nodes.events
-
     async def cancel(self) -> None:
         """Cancel execution and cleanup."""
         if self._main_task:
