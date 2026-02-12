@@ -53,7 +53,7 @@ class AgentContext[TDeps = Any](NodeContext[TDeps]):
         from agentpool import Agent
 
         assert isinstance(self.node, Agent)
-        return self.node
+        return self.node  # ty: ignore[invalid-return-type]
 
     async def handle_elicitation(
         self,

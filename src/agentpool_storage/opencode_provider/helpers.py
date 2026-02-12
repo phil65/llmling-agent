@@ -113,7 +113,6 @@ def convert_user_content_to_parts(
                     id=part_id,
                     session_id=session_id,
                     message_id=message_id,
-                    type="text",
                     text=content_item,
                 )
                 parts.append(text_part)
@@ -127,7 +126,6 @@ def convert_user_content_to_parts(
                     id=part_id,
                     session_id=session_id,
                     message_id=message_id,
-                    type="file",
                     mime=media_type,
                     url=url,
                 )
@@ -139,7 +137,6 @@ def convert_user_content_to_parts(
                     id=part_id,
                     session_id=session_id,
                     message_id=message_id,
-                    type="file",
                     mime=media_type,
                     url=f"data:{media_type};base64,{b64_data}",
                 )

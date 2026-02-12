@@ -508,8 +508,8 @@ class ACPEventConverter:
                 yield AgentMessageChunk.text(f"\n{indent}---\n")
 
             case (
-                BuiltinToolCallEvent()  # depracated
-                | BuiltinToolResultEvent()  # depracated
+                BuiltinToolCallEvent()  # deprecated
+                | BuiltinToolResultEvent()  # deprecated
                 | CompactionEvent()
                 | FinalResultEvent()
                 | FunctionToolResultEvent()
@@ -594,8 +594,8 @@ class ACPEventConverter:
                 self._subagent_content.pop(state_key, None)
 
             case (
-                BuiltinToolCallEvent()  # depracated
-                | BuiltinToolResultEvent()  # depracated
+                BuiltinToolCallEvent()  # deprecated
+                | BuiltinToolResultEvent()  # deprecated
                 | CompactionEvent()
                 | FinalResultEvent()
                 | FunctionToolResultEvent()

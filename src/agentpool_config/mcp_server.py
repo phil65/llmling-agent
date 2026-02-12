@@ -405,7 +405,7 @@ def parse_mcp_servers_json(data: dict[str, object]) -> list[MCPServerConfig]:
         if not isinstance(server_cfg, dict):
             msg = f"Server config for '{server_name}' must be an object"
             raise TypeError(msg)
-
+        assert isinstance(server_name, str)
         url = server_cfg.get("url")
         if not url:
             msg = f"Server '{server_name}' must have a 'url' field"

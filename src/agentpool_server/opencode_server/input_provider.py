@@ -326,7 +326,7 @@ class OpenCodeInputProvider(InputProvider):
             content: dict[str, str | list[str]] = (
                 {"value": answer} if is_multi else {"value": answer[0] if answer else ""}
             )
-            return types.ElicitResult(action="accept", content=content)  # pyright: ignore[reportArgumentType]
+            return types.ElicitResult(action="accept", content=content)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
         except asyncio.CancelledError:
             logger.info("Question cancelled", question_id=question_id)
             return types.ElicitResult(action="cancel")

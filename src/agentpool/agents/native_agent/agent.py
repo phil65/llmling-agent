@@ -459,7 +459,7 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
             end_strategy=config.end_strategy,
             agent_config=config,
             input_provider=input_provider,
-            output_type=resolved_output_type,
+            output_type=resolved_output_type,  # type: ignore[arg-type]
             event_handlers=merged_handlers or None,
             agent_pool=agent_pool,
             tool_mode=config.tool_mode,

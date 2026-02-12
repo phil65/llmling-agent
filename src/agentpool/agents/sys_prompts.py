@@ -88,7 +88,7 @@ class SystemPrompts:
 
         try:
             content = await self.prompt_manager.get(reference)
-            self.prompts.append(content)
+            self.prompts.append(content)  # ty: ignore[invalid-argument-type]
         except Exception as e:
             raise PromptResolutionError(f"failed to add prompt {reference!r}") from e
 

@@ -201,17 +201,15 @@ def _request_parts_from_a2a(parts: list[Part]) -> list[ModelRequestPart]:
     """
     model_parts: list[ModelRequestPart] = []
     for part in parts:
-        if part["kind"] == "text":
-            model_parts.append(UserPromptPart(content=part["text"]))
-        elif part["kind"] == "file":
-            file_content = part["file"]
-            if "bytes" in file_content:
-                data = file_content["bytes"].encode("utf-8")
-                mime_type = file_content.get("mime_type", "application/octet-stream")
+        match part:
+            case {"kind": "text", "text": text}:
+                model_parts.append(UserPromptPart(content=text))
+            case {"kind": "file", "file": {"bytes": raw_bytes, **rest}}:
+                data = raw_bytes.encode("utf-8")
+                mime_type = rest.get("mime_type", "application/octet-stream")
                 content: UserContent = BinaryContent(data=data, media_type=mime_type)
                 model_parts.append(UserPromptPart(content=[content]))
-            else:
-                url = file_content["uri"]
+            case {"kind": "file", "file": {"uri": url}}:
                 for url_cls in (DocumentUrl, AudioUrl, ImageUrl, VideoUrl):
                     content = url_cls(url=url)
                     try:
@@ -223,10 +221,10 @@ def _request_parts_from_a2a(parts: list[Part]) -> list[ModelRequestPart]:
                 else:
                     raise ValueError(f"Unsupported file type: {url}")  # pragma: no cover
                 model_parts.append(UserPromptPart(content=[content]))
-        elif part["kind"] == "data":
-            raise NotImplementedError("Data parts are not supported yet.")
-        else:
-            assert_never(part)
+            case {"kind": "data"}:
+                raise NotImplementedError("Data parts are not supported yet.")
+            case _:
+                assert_never(part)  # ty: ignore[type-assertion-failure]
     return model_parts
 
 
