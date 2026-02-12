@@ -1,6 +1,6 @@
 """Extended AG-UI event types.
 
-The upstream ag_ui.core.Event union is missing thinking events.
+The upstream ag_ui.core.Event union is missing thinking and reasoning events.
 This module provides a complete Event type until the SDK is fixed.
 
 TODO: Remove this workaround once upstream SDK is fixed.
@@ -17,6 +17,13 @@ from ag_ui.core import (
     CustomEvent,
     MessagesSnapshotEvent,
     RawEvent,
+    ReasoningEncryptedValueEvent,
+    ReasoningEndEvent,
+    ReasoningMessageChunkEvent,
+    ReasoningMessageContentEvent,
+    ReasoningMessageEndEvent,
+    ReasoningMessageStartEvent,
+    ReasoningStartEvent,
     RunErrorEvent,
     RunFinishedEvent,
     RunStartedEvent,
@@ -42,19 +49,27 @@ from ag_ui.core import (
 from pydantic import Field
 
 
-# Complete Event union including thinking events (missing from upstream SDK)
+# Complete Event union including thinking and reasoning events
 Event = Annotated[
     # Text message events
     TextMessageStartEvent
     | TextMessageContentEvent
     | TextMessageEndEvent
     | TextMessageChunkEvent
-    # Thinking events (missing from upstream Event union)
+    # Thinking events (legacy, missing from upstream Event union)
     | ThinkingStartEvent
     | ThinkingEndEvent
     | ThinkingTextMessageStartEvent
     | ThinkingTextMessageContentEvent
     | ThinkingTextMessageEndEvent
+    # Reasoning events
+    | ReasoningStartEvent
+    | ReasoningMessageStartEvent
+    | ReasoningMessageContentEvent
+    | ReasoningMessageEndEvent
+    | ReasoningMessageChunkEvent
+    | ReasoningEndEvent
+    | ReasoningEncryptedValueEvent
     # Tool call events
     | ToolCallStartEvent
     | ToolCallArgsEvent

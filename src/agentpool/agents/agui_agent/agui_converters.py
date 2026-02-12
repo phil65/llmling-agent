@@ -56,6 +56,13 @@ def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None: 
         CustomEvent as AGUICustomEvent,
         MessagesSnapshotEvent,
         RawEvent,
+        ReasoningEncryptedValueEvent,
+        ReasoningEndEvent,
+        ReasoningMessageChunkEvent,
+        ReasoningMessageContentEvent,
+        ReasoningMessageEndEvent,
+        ReasoningMessageStartEvent,
+        ReasoningStartEvent,
         RunErrorEvent as AGUIRunErrorEvent,
         RunStartedEvent as AGUIRunStartedEvent,
         StateDeltaEvent,
@@ -104,6 +111,24 @@ def agui_to_native_event(event: BaseEvent) -> RichAgentStreamEvent[Any] | None: 
             | ThinkingTextMessageEndEvent()
         ):
             # These mark thinking blocks but don't carry content
+            return None
+
+        # === Reasoning Events (new AG-UI protocol) ===
+
+        case ReasoningMessageContentEvent(delta=delta):
+            return PartDeltaEvent(index=0, delta=ThinkingPartDelta(content_delta=delta))
+
+        case ReasoningMessageChunkEvent(delta=str() as delta):
+            return PartDeltaEvent(index=0, delta=ThinkingPartDelta(content_delta=delta))
+
+        case (
+            ReasoningStartEvent()
+            | ReasoningEndEvent()
+            | ReasoningMessageStartEvent()
+            | ReasoningMessageEndEvent()
+            | ReasoningEncryptedValueEvent()
+        ):
+            # These mark reasoning blocks but don't carry streamable content
             return None
 
         # === Tool Call Events ===

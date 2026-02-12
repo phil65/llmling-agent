@@ -487,6 +487,8 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
         tool_calls_pending: dict[str, tuple[str, dict[str, Any]]],
     ) -> AsyncIterator[RichAgentStreamEvent[Any]]:
         from ag_ui.core import (
+            ReasoningMessageChunkEvent,
+            ReasoningMessageContentEvent,
             TextMessageChunkEvent,
             TextMessageContentEvent,
             ThinkingTextMessageContentEvent,
@@ -514,6 +516,10 @@ class AGUIAgent[TDeps = None](BaseAgent[TDeps, str]):
                     case TextMessageChunkEvent(delta=delta) if delta:
                         response_parts.append(TextPart(content=delta))
                     case ThinkingTextMessageContentEvent(delta=delta):
+                        response_parts.append(ThinkingPart(content=delta))
+                    case ReasoningMessageContentEvent(delta=delta):
+                        response_parts.append(ThinkingPart(content=delta))
+                    case ReasoningMessageChunkEvent(delta=str() as delta):
                         response_parts.append(ThinkingPart(content=delta))
                     case AGUIToolCallStartEvent(tool_call_id=tc_id, tool_call_name=name) if name:
                         tool_accumulator.start(tc_id, name)

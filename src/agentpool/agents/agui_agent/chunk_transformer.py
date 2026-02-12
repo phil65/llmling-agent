@@ -12,7 +12,12 @@ from agentpool.log import get_logger
 
 
 if TYPE_CHECKING:
-    from ag_ui.core import BaseEvent, TextMessageChunkEvent, ToolCallChunkEvent
+    from ag_ui.core import (
+        BaseEvent,
+        ReasoningMessageChunkEvent,
+        TextMessageChunkEvent,
+        ToolCallChunkEvent,
+    )
 
 
 logger = get_logger(__name__)
@@ -35,6 +40,8 @@ class ChunkTransformer:
         self._active_text: dict[str, str] | None = None
         # Track active tool call: tool_call_id -> (name, parent_message_id)
         self._active_tool: dict[str, tuple[str, str | None]] | None = None
+        # Track active reasoning message: message_id
+        self._active_reasoning: str | None = None
 
     def transform(self, event: BaseEvent) -> list[BaseEvent]:
         """Transform a single event, potentially expanding chunks.
@@ -54,12 +61,17 @@ class ChunkTransformer:
             case EventType.TOOL_CALL_CHUNK:
                 return self._handle_tool_chunk(event)  # type: ignore[arg-type]
 
+            case EventType.REASONING_MESSAGE_CHUNK:
+                return self._handle_reasoning_chunk(event)  # type: ignore[arg-type]
+
             # These events close any pending chunks
             case (
                 EventType.TEXT_MESSAGE_START
                 | EventType.TEXT_MESSAGE_END
                 | EventType.TOOL_CALL_START
                 | EventType.TOOL_CALL_END
+                | EventType.REASONING_MESSAGE_START
+                | EventType.REASONING_MESSAGE_END
                 | EventType.RUN_FINISHED
                 | EventType.RUN_ERROR
             ):
@@ -180,11 +192,67 @@ class ChunkTransformer:
         logger.debug("Chunk transformer: TOOL_CALL_END", tool_call_id=tool_call_id)
         return [end_event]
 
+    def _handle_reasoning_chunk(self, event: ReasoningMessageChunkEvent) -> list[BaseEvent]:
+        """Handle REASONING_MESSAGE_CHUNK event."""
+        from ag_ui.core import (
+            EventType,
+            ReasoningMessageContentEvent,
+            ReasoningMessageStartEvent,
+        )
+
+        result: list[BaseEvent] = []
+        message_id = event.message_id
+        delta = event.delta
+
+        # Check if we need to close current reasoning message (different ID)
+        if self._active_reasoning is not None:
+            if message_id and message_id != self._active_reasoning:
+                result.extend(self._close_reasoning_message())
+
+        # Start new reasoning message if needed
+        if self._active_reasoning is None and message_id:
+            self._active_reasoning = message_id
+            start_event = ReasoningMessageStartEvent(
+                type=EventType.REASONING_MESSAGE_START,
+                message_id=message_id,
+                role="assistant",
+            )
+            result.append(start_event)
+
+        # Emit content if we have delta and active reasoning message
+        if delta and self._active_reasoning:
+            content_event = ReasoningMessageContentEvent(
+                type=EventType.REASONING_MESSAGE_CONTENT,
+                message_id=self._active_reasoning,
+                delta=delta,
+            )
+            result.append(content_event)
+
+        return result
+
+    def _close_reasoning_message(self) -> list[BaseEvent]:
+        """Close active reasoning message."""
+        from ag_ui.core import EventType, ReasoningMessageEndEvent
+
+        if self._active_reasoning is None:
+            return []
+
+        message_id = self._active_reasoning
+        self._active_reasoning = None
+
+        end_event = ReasoningMessageEndEvent(
+            type=EventType.REASONING_MESSAGE_END,
+            message_id=message_id,
+        )
+        logger.debug("Chunk transformer: REASONING_MESSAGE_END", message_id=message_id)
+        return [end_event]
+
     def _close_all_pending(self) -> list[BaseEvent]:
-        """Close all pending chunks (text and tool)."""
+        """Close all pending chunks (text, tool, and reasoning)."""
         result: list[BaseEvent] = []
         result.extend(self._close_text_message())
         result.extend(self._close_tool_call())
+        result.extend(self._close_reasoning_message())
         return result
 
     def flush(self) -> list[BaseEvent]:
@@ -202,3 +270,4 @@ class ChunkTransformer:
         """Reset transformer state."""
         self._active_text = None
         self._active_tool = None
+        self._active_reasoning = None
