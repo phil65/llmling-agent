@@ -45,9 +45,9 @@ if TYPE_CHECKING:
     from fsspec.asyn import AsyncFileSystem
     from pydantic_ai import UserContent
 
-    from acp.schema import ContentBlock, McpServer
+    from acp.schema import ContentBlock, McpServer, SessionConfigOption
     from acp.schema.content_blocks import ResourceContents
-    from agentpool.agents.modes import ModeInfo
+    from agentpool.agents.modes import ModeCategory, ModeInfo
     from agentpool.common_types import PathReference
     from agentpool.messaging import MessageNode
     from agentpool.sessions import SessionData
@@ -170,6 +170,19 @@ def resource_to_content(resource: ResourceContents) -> str | BinaryImage | Binar
 
 def to_session_select_option(mode: ModeInfo) -> SessionConfigSelectOption:
     return SessionConfigSelectOption(value=mode.id, name=mode.name, description=mode.description)
+
+
+def to_session_config_option(category: ModeCategory) -> SessionConfigOption:
+    from acp.schema import SessionConfigOption
+
+    return SessionConfigOption(
+        id=category.id,
+        name=category.name,
+        description=None,
+        category=category.category,
+        current_value=category.current_mode_id,
+        options=[to_session_select_option(mode) for mode in category.available_modes],
+    )
 
 
 def to_session_info(session_data: SessionData) -> SessionInfo:
