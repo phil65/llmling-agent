@@ -84,7 +84,7 @@ class ChunkTransformer:
 
     def _handle_text_chunk(self, event: TextMessageChunkEvent) -> list[BaseEvent]:
         """Handle TEXT_MESSAGE_CHUNK event."""
-        from ag_ui.core import EventType, TextMessageContentEvent, TextMessageStartEvent
+        from ag_ui.core import TextMessageContentEvent, TextMessageStartEvent
 
         result: list[BaseEvent] = []
         message_id = event.message_id
@@ -100,28 +100,20 @@ class ChunkTransformer:
         # Start new message if needed
         if self._active_text is None and message_id:
             self._active_text = {message_id: role}
-            start_event = TextMessageStartEvent(
-                type=EventType.TEXT_MESSAGE_START,
-                message_id=message_id,
-                role=role,
-            )
+            start_event = TextMessageStartEvent(message_id=message_id, role=role)
             result.append(start_event)
 
         # Emit content if we have delta and active message
         if delta and self._active_text:
             current_id = next(iter(self._active_text.keys()))
-            content_event = TextMessageContentEvent(
-                type=EventType.TEXT_MESSAGE_CONTENT,
-                message_id=current_id,
-                delta=delta,
-            )
+            content_event = TextMessageContentEvent(message_id=current_id, delta=delta)
             result.append(content_event)
 
         return result
 
     def _handle_tool_chunk(self, event: ToolCallChunkEvent) -> list[BaseEvent]:
         """Handle TOOL_CALL_CHUNK event."""
-        from ag_ui.core import EventType, ToolCallArgsEvent, ToolCallStartEvent
+        from ag_ui.core import ToolCallArgsEvent, ToolCallStartEvent
 
         result: list[BaseEvent] = []
         tool_call_id = event.tool_call_id
@@ -139,7 +131,6 @@ class ChunkTransformer:
         if self._active_tool is None and tool_call_id and tool_name:
             self._active_tool = {tool_call_id: (tool_name, parent_id)}
             start_event = ToolCallStartEvent(
-                type=EventType.TOOL_CALL_START,
                 tool_call_id=tool_call_id,
                 tool_call_name=tool_name,
                 parent_message_id=parent_id,
@@ -149,18 +140,14 @@ class ChunkTransformer:
         # Emit args if we have delta and active tool call
         if delta and self._active_tool:
             current_id = next(iter(self._active_tool.keys()))
-            args_event = ToolCallArgsEvent(
-                type=EventType.TOOL_CALL_ARGS,
-                tool_call_id=current_id,
-                delta=delta,
-            )
+            args_event = ToolCallArgsEvent(tool_call_id=current_id, delta=delta)
             result.append(args_event)
 
         return result
 
     def _close_text_message(self) -> list[BaseEvent]:
         """Close active text message."""
-        from ag_ui.core import EventType, TextMessageEndEvent
+        from ag_ui.core import TextMessageEndEvent
 
         if self._active_text is None:
             return []
@@ -168,37 +155,26 @@ class ChunkTransformer:
         message_id = next(iter(self._active_text.keys()))
         self._active_text = None
 
-        end_event = TextMessageEndEvent(
-            type=EventType.TEXT_MESSAGE_END,
-            message_id=message_id,
-        )
+        end_event = TextMessageEndEvent(message_id=message_id)
         logger.debug("Chunk transformer: TEXT_MESSAGE_END", message_id=message_id)
         return [end_event]
 
     def _close_tool_call(self) -> list[BaseEvent]:
         """Close active tool call."""
-        from ag_ui.core import EventType, ToolCallEndEvent
+        from ag_ui.core import ToolCallEndEvent
 
         if self._active_tool is None:
             return []
 
         tool_call_id = next(iter(self._active_tool.keys()))
         self._active_tool = None
-
-        end_event = ToolCallEndEvent(
-            type=EventType.TOOL_CALL_END,
-            tool_call_id=tool_call_id,
-        )
+        end_event = ToolCallEndEvent(tool_call_id=tool_call_id)
         logger.debug("Chunk transformer: TOOL_CALL_END", tool_call_id=tool_call_id)
         return [end_event]
 
     def _handle_reasoning_chunk(self, event: ReasoningMessageChunkEvent) -> list[BaseEvent]:
         """Handle REASONING_MESSAGE_CHUNK event."""
-        from ag_ui.core import (
-            EventType,
-            ReasoningMessageContentEvent,
-            ReasoningMessageStartEvent,
-        )
+        from ag_ui.core import ReasoningMessageContentEvent, ReasoningMessageStartEvent
 
         result: list[BaseEvent] = []
         message_id = event.message_id
@@ -215,27 +191,19 @@ class ChunkTransformer:
         # Start new reasoning message if needed
         if self._active_reasoning is None and message_id:
             self._active_reasoning = message_id
-            start_event = ReasoningMessageStartEvent(
-                type=EventType.REASONING_MESSAGE_START,
-                message_id=message_id,
-                role="assistant",
-            )
+            start_event = ReasoningMessageStartEvent(message_id=message_id, role="assistant")
             result.append(start_event)
 
         # Emit content if we have delta and active reasoning message
         if delta and self._active_reasoning:
-            content_event = ReasoningMessageContentEvent(
-                type=EventType.REASONING_MESSAGE_CONTENT,
-                message_id=self._active_reasoning,
-                delta=delta,
-            )
-            result.append(content_event)
+            event_ = ReasoningMessageContentEvent(message_id=self._active_reasoning, delta=delta)
+            result.append(event_)
 
         return result
 
     def _close_reasoning_message(self) -> list[BaseEvent]:
         """Close active reasoning message."""
-        from ag_ui.core import EventType, ReasoningMessageEndEvent
+        from ag_ui.core import ReasoningMessageEndEvent
 
         if self._active_reasoning is None:
             return []
@@ -243,10 +211,7 @@ class ChunkTransformer:
         message_id = self._active_reasoning
         self._active_reasoning = None
 
-        end_event = ReasoningMessageEndEvent(
-            type=EventType.REASONING_MESSAGE_END,
-            message_id=message_id,
-        )
+        end_event = ReasoningMessageEndEvent(message_id=message_id)
         logger.debug("Chunk transformer: REASONING_MESSAGE_END", message_id=message_id)
         return [end_event]
 
