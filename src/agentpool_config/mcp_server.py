@@ -181,9 +181,9 @@ class StdioMCPServerConfig(BaseMCPServerConfig):
     """Command arguments (e.g. ["run", "some-server", "--debug"])."""
 
     @classmethod
-    def from_string(cls, command: str) -> Self:
+    def from_string(cls, text: str) -> Self:
         """Create a MCP server from a command string."""
-        parts = command.split(maxsplit=1)
+        parts = text.split(maxsplit=1)
         cmd = parts[0]
         args = parts[1].split() if len(parts) > 1 else []
         return cls(command=cmd, args=args)
