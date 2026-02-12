@@ -543,9 +543,10 @@ class Agent[TDeps = None, OutputDataT = str](BaseAgent[TDeps, OutputDataT]):
         """
         from llmling_models import function_to_model
 
+        from agentpool.utils.inspection import get_fn_name
         from agentpool.utils.signatures import get_return_type
 
-        name = name or callback.__name__ or "processor"
+        name = name or get_fn_name(callback) or "processor"
         model = function_to_model(callback)
         output_type = get_return_type(callback)
         return Agent(model=model, name=name, output_type=output_type or str, **kwargs)

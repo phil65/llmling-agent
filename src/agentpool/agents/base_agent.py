@@ -277,7 +277,7 @@ class BaseAgent[TDeps = None, TResult = str](MessageNode[TDeps, TResult]):
             case Team():
                 return Team([self, *other.nodes])
             case Callable():
-                agent_2 = Agent.from_callback(other, agent_pool=self.agent_pool)
+                agent_2 = Agent.from_callback(other, agent_pool=self.agent_pool)  # ty: ignore[no-matching-overload]
                 return Team([self, agent_2])
             case MessageNode():
                 return Team([self, other])

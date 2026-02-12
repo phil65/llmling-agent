@@ -122,7 +122,7 @@ class SystemPrompts:
                 version=version,
                 variables=variables,
             )
-            self.prompts.append(content)
+            self.prompts.append(content)  # ty: ignore[invalid-argument-type]
         except Exception as e:
             ref = f"{provider + ':' if provider else ''}{identifier}"
             raise PromptResolutionError(f"failed to add prompt {ref!r}") from e

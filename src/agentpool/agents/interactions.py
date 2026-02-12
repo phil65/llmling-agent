@@ -92,8 +92,8 @@ class Interactions:
         self.agent = agent
 
     @asynccontextmanager
-    async def _with_structured_output[T](
-        self, output_type: type[T]
+    async def _with_structured_output(
+        self, output_type: type
     ) -> AsyncIterator[SupportsStructuredOutput]:
         """Context manager to temporarily set structured output type and restore afterwards.
 

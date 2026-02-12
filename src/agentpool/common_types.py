@@ -8,11 +8,8 @@ import os
 from typing import (
     TYPE_CHECKING,
     Any,
-    ClassVar,
     Literal,
     Protocol,
-    get_args,
-    get_origin,
     runtime_checkable,
 )
 
@@ -209,85 +206,85 @@ def _validate_type_args(data: Any, args: tuple[Any, ...]) -> None:
                     raise ValueError(f"Invalid item type: {type(item)}, expected {item_type}")  # noqa: TRY004
 
 
-class ConfigCode[T](BaseCode):
-    """Base class for configuration code that validates against a specific type.
+# class ConfigCode[T](BaseCode):
+#     """Base class for configuration code that validates against a specific type.
 
-    Generic type T specifies the type to validate against.
-    """
+#     Generic type T specifies the type to validate against.
+#     """
 
-    validator_type: ClassVar[type]
+#     validator_type: ClassVar[type]
 
-    @field_validator("code")
-    @classmethod
-    def validate_syntax(cls, code: str) -> str:
-        """Validate both YAML syntax and type constraints."""
-        import yamling
+#     @field_validator("code")
+#     @classmethod
+#     def validate_syntax(cls, code: str) -> str:
+#         """Validate both YAML syntax and type constraints."""
+#         import yamling
 
-        try:
-            # First validate YAML syntax
-            data = yamling.load(code, mode="yaml")
+#         try:
+#             # First validate YAML syntax
+#             data = yamling.load(code, mode="yaml")
 
-            # Then validate against target type
-            match cls.validator_type:
-                case type() as model_cls if issubclass(model_cls, BaseModel):
-                    model_cls.model_validate(data)
-                case _ if origin := get_origin(cls.validator_type):
-                    # Handle generics like dict[str, int]
-                    if not isinstance(data, origin):
-                        raise ValueError(f"Expected {origin.__name__}, got {type(data).__name__}")  # noqa: TRY004, TRY301
-                    # Validate type arguments if present
-                    if args := get_args(cls.validator_type):
-                        _validate_type_args(data, args)
-                case _:
-                    raise TypeError(f"Unsupported validation type: {cls.validator_type}")  # noqa: TRY301
+#             # Then validate against target type
+#             match cls.validator_type:
+#                 case type() as model_cls if issubclass(model_cls, BaseModel):
+#                     model_cls.model_validate(data)
+#                 case _ if origin := get_origin(cls.validator_type):
+#                     # Handle generics like dict[str, int]
+#                     if not isinstance(data, origin):
+#                         raise ValueError(f"Expected {origin.__name__}, got {type(data).__name__}")
+#                     # Validate type arguments if present
+#                     if args := get_args(cls.validator_type):
+#                         _validate_type_args(data, args)
+#                 case _:
+#                     raise TypeError(f"Unsupported validation type: {cls.validator_type}")
 
-        except Exception as e:
-            raise ValueError(f"Invalid YAML for {cls.validator_type.__name__}: {e}") from e
+#         except Exception as e:
+#             raise ValueError(f"Invalid YAML for {cls.validator_type.__name__}: {e}") from e
 
-        return code
+#         return code
 
-    @classmethod
-    def for_config[TConfig](
-        cls,
-        base_type: type[TConfig],
-        *,
-        name: str | None = None,
-        error_msg: str | None = None,
-    ) -> type[ConfigCode[TConfig]]:
-        """Create a new ConfigCode class for a specific type.
+#     @classmethod
+#     def for_config[TConfig](
+#         cls,
+#         base_type: type[TConfig],
+#         *,
+#         name: str | None = None,
+#         error_msg: str | None = None,
+#     ) -> type[ConfigCode[TConfig]]:
+#         """Create a new ConfigCode class for a specific type.
 
-        Args:
-            base_type: The type to validate against
-            name: Optional name for the new class
-            error_msg: Optional custom error message
+#         Args:
+#             base_type: The type to validate against
+#             name: Optional name for the new class
+#             error_msg: Optional custom error message
 
-        Returns:
-            New ConfigCode subclass with type-specific validation
-        """
+#         Returns:
+#             New ConfigCode subclass with type-specific validation
+#         """
 
-        class TypedConfigCode(ConfigCode[TConfig]):
-            validator_type = base_type
+#         class TypedConfigCode(ConfigCode[TConfig]):
+#             validator_type = base_type
 
-            @field_validator("code")
-            @classmethod
-            def validate_syntax(cls, code: str) -> str:
-                try:
-                    return super().validate_syntax(code)
-                except ValueError as e:
-                    msg = error_msg or str(e)
-                    raise ValueError(msg) from e
+#             @field_validator("code")
+#             @classmethod
+#             def validate_syntax(cls, code: str) -> str:
+#                 try:
+#                     return super().validate_syntax(code)
+#                 except ValueError as e:
+#                     msg = error_msg or str(e)
+#                     raise ValueError(msg) from e
 
-        if name:
-            TypedConfigCode.__name__ = name
+#         if name:
+#             TypedConfigCode.__name__ = name
 
-        return TypedConfigCode
+#         return TypedConfigCode
 
 
-if __name__ == "__main__":
-    from agentpool.models.manifest import AgentsManifest
+# if __name__ == "__main__":
+#     from agentpool.models.manifest import AgentsManifest
 
-    AgentsManifestCode = ConfigCode.for_config(
-        AgentsManifest,
-        name="AgentsManifestCode",
-        error_msg="Invalid agents manifest YAML",
-    )
+#     AgentsManifestCode = ConfigCode.for_config(
+#         AgentsManifest,
+#         name="AgentsManifestCode",
+#         error_msg="Invalid agents manifest YAML",
+#     )

@@ -120,15 +120,17 @@ class ClaudeCodeHookManager:
         Consumes pending injection from the shared PromptInjectionManager
         and adds it as additionalContext in the response.
         """
+        from clawd_code_sdk.types import PostToolUseHookSpecificOutput
+
         result: SyncHookJSONOutput = {"continue_": True}
         # Consume pending injection from shared manager
         if self._injection_manager and (injection := await self._injection_manager.consume()):
             tool_name = input_data.get("tool_name", "unknown")
             logger.debug("Injecting context after tool use", agent=self.agent_name, tool=tool_name)
-            result["hookSpecificOutput"] = {
-                "hookEventName": "PostToolUse",
-                "additionalContext": injection,
-            }
+            result["hookSpecificOutput"] = PostToolUseHookSpecificOutput(
+                hookEventName="PostToolUse",
+                additionalContext=injection,
+            )
         if input_data.get("tool_name") == "EnterPlanMode" and self._set_mode:
             await self._set_mode("plan", "mode")
 

@@ -158,13 +158,13 @@ class Talk[TTransmittedData = Any]:
 
         match other:
             case Callable():
-                other = Agent.from_callback(other)
+                other = Agent.from_callback(other)  # ty: ignore[no-matching-overload]
                 if pool := self.source.agent_pool:
                     other.agent_pool = pool
                     pool.register(other.name, other)
                 return self.__rshift__(other)
             case Sequence():
-                team_talks = [self.__rshift__(o) for o in other]
+                team_talks = [self.__rshift__(o) for o in other]  # ty: ignore[no-matching-overload]
                 return TeamTalk([self, *team_talks])
             case MessageNode():
                 talks = [t.__rshift__(other) for t in self.targets]
@@ -503,7 +503,7 @@ class TeamTalk[TTransmittedData = Any](list["Talk | TeamTalk"]):
 
         match other:
             case Callable():
-                other = Agent.from_callback(other)
+                other = Agent.from_callback(other)  # ty: ignore[no-matching-overload]
                 for talk_ in self.iter_talks():
                     if pool := talk_.source.agent_pool:
                         other.agent_pool = pool
@@ -511,7 +511,7 @@ class TeamTalk[TTransmittedData = Any](list["Talk | TeamTalk"]):
                         break
                 return self.__rshift__(other)
             case Sequence():
-                team_talks = [self.__rshift__(o) for o in other]
+                team_talks = [self.__rshift__(o) for o in other]  # ty: ignore[invalid-argument-type]
                 return TeamTalk([self, *team_talks])
             case MessageNode():
                 talks = [t.connect_to(other) for t in self.targets]

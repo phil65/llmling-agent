@@ -68,6 +68,7 @@ class ACPModeCategory(ModeCategoryProtocol["ACPAgent"]):
 
         assert agent._connection is not None
         assert agent._state is not None
+        assert agent._sdk_session_id is not None
 
         config_request = SetSessionConfigOptionRequest(
             session_id=agent._sdk_session_id,
@@ -87,6 +88,7 @@ class ACPModeCategory(ModeCategoryProtocol["ACPAgent"]):
 
         assert agent._connection is not None
         assert agent._state is not None
+        assert agent._sdk_session_id is not None
 
         mode_request = SetSessionModeRequest(session_id=agent._sdk_session_id, mode_id=mode_id)
         await agent._connection.set_session_mode(mode_request)
@@ -206,6 +208,7 @@ class ACPModelCategory(ModeCategoryProtocol["ACPAgent"]):
 
         assert agent._connection is not None
         assert agent._state is not None
+        assert agent._sdk_session_id is not None
 
         config_request = SetSessionConfigOptionRequest(
             session_id=agent._sdk_session_id,
@@ -225,6 +228,7 @@ class ACPModelCategory(ModeCategoryProtocol["ACPAgent"]):
 
         assert agent._connection is not None
         assert agent._state is not None
+        assert agent._sdk_session_id is not None
 
         request = SetSessionModelRequest(session_id=agent._sdk_session_id, model_id=mode_id)
         if await agent._connection.set_session_model(request):
