@@ -175,11 +175,11 @@ class ClaudeCodeAgentConfig(BaseAgentConfig):
     When set, the agent will stop once the estimated cost exceeds this limit.
     """
 
-    max_thinking_tokens: int | None = Field(
+    max_thinking_tokens: int | Literal["adaptive"] | None = Field(
         default=None,
         title="Max Thinking Tokens",
         ge=1000,
-        examples=[5000, 10000, 50000],
+        examples=[5000, 10000, "adaptive"],
     )
     """Maximum tokens for extended thinking mode.
 

@@ -90,6 +90,7 @@ from agentpool.agents.claude_code_agent.converters import (
     convert_to_opencode_metadata,
     to_claude_system_prompt,
     to_output_format,
+    to_thinking_config,
 )
 from agentpool.agents.claude_code_agent.exceptions import raise_if_usage_limit_reached
 from agentpool.agents.claude_code_agent.static_info import models_to_category
@@ -134,6 +135,7 @@ if TYPE_CHECKING:
         ToolUseBlock,
         UserMessage,
     )
+    from clawd_code_sdk.types import ReasoningEffort
     from evented_config import EventConfig
     from exxec import ExecutionEnvironment
     from pydantic_ai import UserContent
@@ -226,7 +228,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         model: AnthropicMaxModelName | str | None = "opus",
         max_turns: int | None = None,
         max_budget_usd: float | None = None,
-        max_thinking_tokens: int | None = None,
+        max_thinking_tokens: int | Literal["adaptive"] | None = None,
+        reasoning_effort: ReasoningEffort | None = None,
         permission_mode: PermissionMode | None = None,
         mcp_servers: Sequence[MCPServerConfig] | None = None,
         env_vars: dict[str, str] | None = None,
@@ -323,7 +326,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
         self._model = model
         self._max_turns = max_turns
         self._max_budget_usd = max_budget_usd
-        self._max_thinking_tokens = max_thinking_tokens
+        self._max_thinking_tokens: int | Literal["adaptive"] | None = max_thinking_tokens
+        self._effort = reasoning_effort
         self._permission_mode: PermissionMode | None = permission_mode
         self._thinking_mode: ThinkingMode = "off"
         self._external_mcp_servers = list(mcp_servers) if mcp_servers else []
@@ -547,7 +551,8 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             model=self._model,
             max_turns=self._max_turns,
             max_budget_usd=self._max_budget_usd,
-            max_thinking_tokens=self._max_thinking_tokens,
+            thinking=to_thinking_config(self._max_thinking_tokens),
+            effort=self._effort,
             permission_mode=permission_mode,
             env=env,
             agents=self._subagents,
@@ -558,7 +563,6 @@ class ClaudeCodeAgent[TDeps = None, TResult = str](BaseAgent[TDeps, TResult]):
             max_buffer_size=10 * 1024 * 1024,
             output_format=to_output_format(self._output_type),
             mcp_servers=self._mcp_servers or {},
-            include_partial_messages=True,
             hooks=self._hook_manager.build_hooks(),  # type: ignore[arg-type]
             setting_sources=self._setting_sources,
             extra_args=extra_args,

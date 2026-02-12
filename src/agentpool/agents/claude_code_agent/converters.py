@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from difflib import unified_diff
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, assert_never, cast
+from typing import TYPE_CHECKING, Any, Literal, assert_never, cast
 import uuid
 
 from pydantic import TypeAdapter
@@ -19,12 +19,32 @@ from agentpool.agents.events import ToolCallCompleteEvent, ToolCallStartEvent
 
 
 if TYPE_CHECKING:
-    from clawd_code_sdk import ContentBlock, McpServerConfig, Message, PermissionResult
+    from clawd_code_sdk import (
+        ContentBlock,
+        McpServerConfig,
+        Message,
+        PermissionResult,
+        ThinkingConfig,
+    )
     from clawd_code_sdk.types import SystemPromptPreset
 
     from agentpool.agents.context import ConfirmationResult
     from agentpool.agents.events import RichAgentStreamEvent
     from agentpool_config.mcp_server import MCPServerConfig as NativeMCPServerConfig
+
+
+def to_thinking_config(
+    max_thinking_tokens: int | Literal["adaptive"] | None,
+) -> ThinkingConfig | None:
+    from clawd_code_sdk import ThinkingConfigAdaptive, ThinkingConfigDisabled, ThinkingConfigEnabled
+
+    if max_thinking_tokens == "adaptive":
+        return ThinkingConfigAdaptive(type="adaptive")
+    if max_thinking_tokens == 0:
+        return ThinkingConfigDisabled(type="disabled")
+    if max_thinking_tokens:
+        return ThinkingConfigEnabled(type="enabled", budget_tokens=max_thinking_tokens)
+    return None
 
 
 def content_block_to_event(block: ContentBlock, index: int = 0) -> RichAgentStreamEvent[Any] | None:
