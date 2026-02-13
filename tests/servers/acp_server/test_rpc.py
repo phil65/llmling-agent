@@ -161,16 +161,14 @@ async def test_bidirectional_file_ops(test_agent: TestAgent, test_client: Defaul
         assert s.client_reader is not None
         assert s.server_writer is not None
         assert s.server_reader is not None
-        agent = test_agent
-        client = test_client
-        client.files["/test/file.txt"] = "Hello, World!"
+        test_client.files["/test/file.txt"] = "Hello, World!"
         _agent_conn = ClientSideConnection(
-            lambda _conn: client,
+            lambda _conn: test_client,
             AsyncioWriterAdapter(s.client_writer),
             AsyncioReaderAdapter(s.client_reader),
         )
         client_conn = AgentSideConnection(
-            lambda _conn: agent,
+            lambda _conn: test_agent,
             AsyncioWriterAdapter(s.server_writer),
             AsyncioReaderAdapter(s.server_reader),
         )
@@ -179,11 +177,10 @@ async def test_bidirectional_file_ops(test_agent: TestAgent, test_client: Defaul
         read_request = ReadTextFileRequest(session_id="sess", path="/test/file.txt")
         res = await client_conn.read_text_file(read_request)
         assert res.content == "Hello, World!"
-
         # Agent asks client to write
         req = WriteTextFileRequest(session_id="sess", path="/test/file.txt", content="A")
         await client_conn.write_text_file(req)
-        assert client.files["/test/file.txt"] == "A"
+        assert test_client.files["/test/file.txt"] == "A"
 
 
 async def test_cancel_notification_and_capture_wire(
@@ -195,29 +192,25 @@ async def test_cancel_notification_and_capture_wire(
         assert s.server_writer is not None
         assert s.server_reader is not None
         # Build only agent-side (server) connection. Client side: reader to inspect wire
-        agent = test_agent
-        client = test_client
         agent_conn = ClientSideConnection(
-            lambda _conn: client,
+            lambda _conn: test_client,
             AsyncioWriterAdapter(s.client_writer),
             AsyncioReaderAdapter(s.client_reader),
         )
         _client_conn = AgentSideConnection(
-            lambda _conn: agent,
+            lambda _conn: test_agent,
             AsyncioWriterAdapter(s.server_writer),
             AsyncioReaderAdapter(s.server_reader),
         )
-
         # Send cancel notification from client-side connection to agent
         await agent_conn.cancel(CancelNotification(session_id="test-123"))
-
         # Read raw line from server peer (it will be consumed by agent recv loop quickly).
         # Instead, wait a brief moment and assert agent recorded it.
         for _ in range(50):
-            if agent.cancellations:
+            if test_agent.cancellations:
                 break
             await anyio.sleep(0.01)
-        assert agent.cancellations == ["test-123"]
+        assert test_agent.cancellations == ["test-123"]
 
 
 async def test_session_notifications_flow(
@@ -238,12 +231,11 @@ async def test_session_notifications_flow(
             AsyncioWriterAdapter(s.server_writer),
             AsyncioReaderAdapter(s.server_reader),
         )
-
         # Agent -> Client notifications
-        agent_chunk = AgentMessageChunk.text(text="Hello")
+        agent_chunk = AgentMessageChunk.text("Hello")
         notification = SessionNotification(session_id="sess", update=agent_chunk)
         await client_conn.session_update(notification)  # pyright: ignore[reportArgumentType]
-        chunk = UserMessageChunk.text(text="World")
+        chunk = UserMessageChunk.text("World")
         notification = SessionNotification(session_id="sess", update=chunk)
         await client_conn.session_update(notification)  # pyright: ignore[reportArgumentType]
 
