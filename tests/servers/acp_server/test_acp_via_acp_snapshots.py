@@ -17,7 +17,7 @@ import tempfile
 from typing import TYPE_CHECKING, Any
 
 from exxec.models import ExecutionResult
-from exxec_config import MockExecutionEnvironmentConfig
+from exxec_config import BaseExecutionEnvironmentConfig, MockExecutionEnvironmentConfig
 import pytest
 from syrupy.extensions.json import JSONSnapshotExtension
 import yaml
@@ -143,6 +143,7 @@ class ACPViaACPHarness:
         for tool in tools:
             if hasattr(tool, "environment") and (env := tool.environment):  # pyright: ignore[reportAttributeAccessIssue]
                 mock_env = env
+                assert isinstance(mock_env, BaseExecutionEnvironmentConfig)
                 break
         if not mock_env:
             # Default mock env with deterministic IDs

@@ -7,6 +7,7 @@ from pydantic_ai.models.test import TestModel
 import pytest
 
 from agentpool import Agent
+from agentpool.utils.inspection import get_fn_name
 from agentpool_config.session import MemoryConfig
 
 
@@ -69,7 +70,7 @@ async def test_processor_resolution_sync_no_ctx(mock_model):
     async with Agent(name="test", model=mock_model, session=memory_cfg) as agent:
         processors = await agent.get_agentlet(None, str)
         assert len(processors.history_processors) == 1
-        assert processors.history_processors[0].__name__ == "keep_recent"
+        assert get_fn_name(processors.history_processors[0]) == "keep_recent"
 
 
 async def test_processor_resolution_async_no_ctx(mock_model):
@@ -78,7 +79,7 @@ async def test_processor_resolution_async_no_ctx(mock_model):
     async with Agent(name="test", model=mock_model, session=memory_cfg) as agent:
         processors = await agent.get_agentlet(None, str)
         assert len(processors.history_processors) == 1
-        assert processors.history_processors[0].__name__ == "filter_thinking_async"
+        assert get_fn_name(processors.history_processors[0]) == "filter_thinking_async"
         assert inspect.iscoroutinefunction(processors.history_processors[0])
 
 
@@ -88,7 +89,7 @@ async def test_processor_resolution_sync_ctx(mock_model):
     async with Agent(name="test", model=mock_model, session=memory_cfg) as agent:
         processors = await agent.get_agentlet(None, str)
         assert len(processors.history_processors) == 1
-        assert processors.history_processors[0].__name__ == "context_aware_sync"
+        assert get_fn_name(processors.history_processors[0]) == "context_aware_sync"
 
 
 async def test_processor_resolution_async_ctx(mock_model):
@@ -97,7 +98,7 @@ async def test_processor_resolution_async_ctx(mock_model):
     async with Agent(name="test", model=mock_model, session=memory_cfg) as agent:
         processors = await agent.get_agentlet(None, str)
         assert len(processors.history_processors) == 1
-        assert processors.history_processors[0].__name__ == "context_aware_async"
+        assert get_fn_name(processors.history_processors[0]) == "context_aware_async"
 
 
 async def test_processor_caching(mock_model):

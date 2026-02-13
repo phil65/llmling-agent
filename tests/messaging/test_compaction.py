@@ -174,6 +174,7 @@ async def test_truncate_tool_outputs():
     assert isinstance(request, ModelRequest)
     tool_return = request.parts[0]
     assert isinstance(tool_return, ToolReturnPart)
+    assert isinstance(tool_return.content, str)
     assert len(tool_return.content) < 150
     assert "[truncated]" in tool_return.content
 

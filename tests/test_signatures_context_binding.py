@@ -7,6 +7,7 @@ import pytest
 
 from agentpool import Agent
 from agentpool.agents.context import AgentContext
+from agentpool.utils.inspection import get_fn_name
 from agentpool.utils.signatures import create_bound_callable
 
 
@@ -126,7 +127,7 @@ class TestContextBoundCallable:
             sync_func_with_agent_ctx, by_type={AgentContext: mock_agent_context}
         )
         # Check attributes are preserved
-        assert bound_func.__name__ == "sync_func_with_agent_ctx"
+        assert get_fn_name(bound_func) == "sync_func_with_agent_ctx"
         assert "Sync function that requires AgentContext" in (bound_func.__doc__ or "")
         assert hasattr(bound_func, "__signature__")
         # Check annotations are updated correctly

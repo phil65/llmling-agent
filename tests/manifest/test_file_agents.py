@@ -151,7 +151,7 @@ def test_parse_minimal_agent():
         config = parse_agent_file(f.name)
 
         assert config.description == "A minimal agent"
-        assert config.model.identifier == "openai:gpt-4o-mini"
+        assert get_model_identifier(config.model) == "openai:gpt-4o-mini"
         assert config.system_prompt is not None
         assert "simple system prompt" in str(config.system_prompt)
 

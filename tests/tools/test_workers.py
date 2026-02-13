@@ -124,6 +124,7 @@ async def test_history_sharing(tmp_path: Path):
         # Configure models: real model for main agent, TestModel for worker
         await main_agent.set_model("openai:gpt-5-nano")
         worker_model = TestModel(custom_output_text="The value is 42")
+        assert isinstance(worker, Agent)
         await worker.set_model(worker_model)
         # Create some conversation history
         result = await main_agent.run("Remember X equals 42")
@@ -139,6 +140,8 @@ async def test_worker_context_sharing(tmp_path: Path):
     async with AgentPool(manifest) as pool:
         main_agent = pool.get_agent("main", deps_type=dict)
         specialist = pool.get_agent("specialist")
+        assert isinstance(main_agent, Agent)
+        assert isinstance(specialist, Agent)
         main_model = TestModel(call_tools=["ask_specialist"])
         specialist_model = TestModel(custom_output_text="I can see context value: 123")
         await main_agent.set_model(main_model)
@@ -182,6 +185,9 @@ async def test_multiple_workers_same_prompt(tmp_path: Path):
         main_agent = pool.get_agent("main")
         worker = pool.get_agent("worker")
         specialist = pool.get_agent("specialist")
+        assert isinstance(main_agent, Agent)
+        assert isinstance(worker, Agent)
+        assert isinstance(specialist, Agent)
         main_model = TestModel(call_tools=["ask_worker", "ask_specialist"])
         worker_model = TestModel(custom_output_text="I am a helpful worker assistant")
         specialist_model = TestModel(custom_output_text="I am a domain specialist")
