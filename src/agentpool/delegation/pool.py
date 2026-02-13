@@ -30,7 +30,6 @@ if TYPE_CHECKING:
 
     from upathtools import JoinablePathLike
 
-    from agentpool.agents import Agent
     from agentpool.agents.base_agent import BaseAgent
     from agentpool.common_types import AgentName, AnyEventHandlerType
     from agentpool.delegation.base_team import BaseTeam
@@ -451,7 +450,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     @overload
     def get_agent[TResult = str](
         self,
-        agent: AgentName | Agent[Any, str],
+        agent: AgentName | BaseAgent[Any, Any],
         *,
         output_type: type[TResult] = str,  # type: ignore[assignment]
     ) -> BaseAgent[TPoolDeps, TResult]: ...
@@ -459,7 +458,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
     @overload
     def get_agent[TCustomDeps, TResult = str](
         self,
-        agent: AgentName | Agent[Any, str],
+        agent: AgentName | BaseAgent[Any, Any],
         *,
         deps_type: type[TCustomDeps],
         output_type: type[TResult] = str,  # type: ignore[assignment]
@@ -467,7 +466,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
 
     def get_agent(
         self,
-        agent: AgentName | Agent[Any, str],
+        agent: AgentName | BaseAgent[Any, Any],
         *,
         deps_type: Any | None = None,
         output_type: Any = str,

@@ -29,7 +29,7 @@ async def test_function_sorting():
     async def third(): ...
 
     funcs = [second, third, first]
-    sorted_funcs = _sort_functions([f._node_function for f in funcs])
+    sorted_funcs = _sort_functions([f._node_function for f in funcs])  # ty: ignore[possibly-missing-attribute]
     assert [f.name for f in sorted_funcs] == ["first", "second", "third"]
 
 

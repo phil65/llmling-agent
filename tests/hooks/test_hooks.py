@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
 from agentpool import Agent
-from agentpool.hooks import AgentHooks, CallableHook, HookResult
+from agentpool.hooks import AgentHooks, CallableHook
+
+
+if TYPE_CHECKING:
+    from agentpool.hooks import HookResult
 
 
 # Hook state for testing

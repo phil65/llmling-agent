@@ -30,7 +30,10 @@ from pydantic_ai import (
     ToolCallPartDelta,
     ToolReturnPart,
 )
-from pydantic_ai.messages import BuiltinToolCallEvent, BuiltinToolResultEvent
+from pydantic_ai.messages import (
+    BuiltinToolCallEvent,  # ty: ignore[deprecated]
+    BuiltinToolResultEvent,  # ty: ignore[deprecated]
+)
 
 from acp.schema import (
     AgentMessageChunk,
@@ -508,8 +511,8 @@ class ACPEventConverter:
                 yield AgentMessageChunk.text(f"\n{indent}---\n")
 
             case (
-                BuiltinToolCallEvent()  # deprecated
-                | BuiltinToolResultEvent()  # deprecated
+                BuiltinToolCallEvent()  # ty: ignore[deprecated]
+                | BuiltinToolResultEvent()  # ty: ignore[deprecated]
                 | CompactionEvent()
                 | FinalResultEvent()
                 | FunctionToolResultEvent()
@@ -594,8 +597,8 @@ class ACPEventConverter:
                 self._subagent_content.pop(state_key, None)
 
             case (
-                BuiltinToolCallEvent()  # deprecated
-                | BuiltinToolResultEvent()  # deprecated
+                BuiltinToolCallEvent()  # ty: ignore[deprecated]
+                | BuiltinToolResultEvent()  # ty: ignore[deprecated]
                 | CompactionEvent()
                 | FinalResultEvent()
                 | FunctionToolResultEvent()

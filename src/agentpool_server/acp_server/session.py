@@ -213,7 +213,7 @@ class ACPSession:
             agent.env = self.acp_env
             if isinstance(agent, Agent):
                 # TODO: need to inject this info for ACP agents, too.
-                agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
+                agent.sys_prompts.prompts.append(self.get_cwd_context)  # pyright: ignore[reportArgumentType] # ty: ignore[invalid-argument-type]
             if isinstance(agent, ACPAgent):
 
                 async def permission_callback(
@@ -480,7 +480,7 @@ class ACPSession:
             # Remove cwd context callable from all agents
             for agent in self.agent_pool.get_agents(Agent).values():
                 if self.get_cwd_context in agent.sys_prompts.prompts:
-                    agent.sys_prompts.prompts.remove(self.get_cwd_context)  # pyright: ignore[reportArgumentType]
+                    agent.sys_prompts.prompts.remove(self.get_cwd_context)  # pyright: ignore[reportArgumentType]  # ty: ignore[invalid-argument-type]
 
             # Note: Individual agents are managed by the pool's lifecycle
             # The pool will handle agent cleanup when it's closed

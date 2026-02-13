@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any
 
@@ -20,6 +19,8 @@ from agentpool_toolsets.builtin.execution_environment import ProcessManagementTo
 
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from agentpool.agents.events import RichAgentStreamEvent
 
 

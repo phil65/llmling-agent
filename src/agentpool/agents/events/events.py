@@ -69,9 +69,8 @@ class PartDeltaEvent(PyAIPartDeltaEvent):
 
     @classmethod
     def tool_call(cls, index: int, content: str, tool_call_id: str) -> PartDeltaEvent:
-        return cls(
-            index=index, delta=ToolCallPartDelta(args_delta=content, tool_call_id=tool_call_id)
-        )
+        delta = ToolCallPartDelta(args_delta=content, tool_call_id=tool_call_id)
+        return cls(index=index, delta=delta)
 
 
 @dataclass(kw_only=True)
