@@ -61,7 +61,7 @@ async def test_parallel_grouping():
     @node_function(depends_on=["second_a", "second_b"])
     async def third(): ...
 
-    sorted_funcs = _sort_functions([f._node_function for f in [first, second_a, second_b, third]])
+    sorted_funcs = _sort_functions([f._node_function for f in [first, second_a, second_b, third]])  # ty: ignore[possibly-missing-attribute]
     groups = _group_parallel(sorted_funcs)
 
     assert len(groups) == 3
@@ -119,7 +119,7 @@ async def test_parallel_execution(pool):
         end_times["second_b"] = time.perf_counter()
         return "second_b"
 
-    funcs = [f._node_function for f in [first, second_a, second_b]]
+    funcs = [f._node_function for f in [first, second_a, second_b]]  # ty: ignore[possibly-missing-attribute]
 
     await execute_functions(funcs, pool, parallel=True)
 

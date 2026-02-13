@@ -275,7 +275,7 @@ class DebugCreateTemplateCommand(NodeCommand):
         """
         try:
             # Create proper BaseModel instances
-            message_chunk = AgentMessageChunk.text(text="Hello, this is a debug message!")
+            message_chunk = AgentMessageChunk.text("Hello, this is a debug message!")
 
             tool_start = ToolCallStart(
                 tool_call_id="debug-tool-1",
@@ -290,7 +290,7 @@ class DebugCreateTemplateCommand(NodeCommand):
                 tool_call_id="debug-tool-1",
                 status="completed",
                 content=[
-                    ContentToolCallContent.text(text="Tool completed successfully!"),
+                    ContentToolCallContent.text("Tool completed successfully!"),
                 ],
                 title="tool_call_update",
             )

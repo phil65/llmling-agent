@@ -158,8 +158,7 @@ class ACPNotifications:
             kind=kind,
             locations=locations,
             content=[
-                ContentToolCallContent.text(text=i) if isinstance(i, str) else i
-                for i in content or []
+                ContentToolCallContent.text(i) if isinstance(i, str) else i for i in content or []
             ],
             raw_input=raw_input,
         )

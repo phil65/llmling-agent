@@ -172,7 +172,7 @@ class ToolCallState:
 
         content = None
         if error:
-            error_content = ContentToolCallContent.text(text=f"Error: {error}")
+            error_content = ContentToolCallContent.text(f"Error: {error}")
             content = [error_content]
 
         await self.update(status="failed", content=content, raw_output=raw_output)
