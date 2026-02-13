@@ -112,6 +112,7 @@ async def test_pre_tool_hook_allow():
     async with Agent(model="test", hooks=hooks, tools=[simple_tool]) as agent:
         # Just verify the hooks are set up correctly
         assert agent._hook_manager.has_hooks()
+        assert agent._hook_manager.agent_hooks
         assert len(agent._hook_manager.agent_hooks.pre_tool_use) == 1
 
 

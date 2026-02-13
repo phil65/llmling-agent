@@ -54,16 +54,10 @@ def test_file_command_get_callable():
         temp_path = f.name
 
     try:
-        cmd = FileCommandConfig(
-            name="analyze",
-            path=temp_path,
-            description="Run analysis command",
-        )
-
+        cmd = FileCommandConfig(name="analyze", path=temp_path, description="Run analysis command")
         func = cmd.get_callable()
-
         # Check function metadata
-        assert func.__name__ == "analyze"
+        assert get_fn_name(func) == "analyze"
         assert func.__doc__ == "Run analysis command"
 
         # Check signature

@@ -120,13 +120,15 @@ async def test_put_file(acp_fs: ACPFileSystem):
     """Test writing file content."""
     await acp_fs._put_file("new.txt", "new content")
     # Verify it was written to mock
-    assert acp_fs.client.files["new.txt"] == "new content"  # pyright: ignore[reportAttributeAccessIssue]
+    assert isinstance(acp_fs.client, MockClient)
+    assert acp_fs.client.files["new.txt"] == "new content"
 
 
 async def test_put_file_bytes(acp_fs: ACPFileSystem):
     """Test writing bytes content."""
     await acp_fs._put_file("new.txt", b"new content")
-    assert acp_fs.client.files["new.txt"] == "new content"  # pyright: ignore[reportAttributeAccessIssue]
+    assert isinstance(acp_fs.client, MockClient)
+    assert acp_fs.client.files["new.txt"] == "new content"
 
 
 async def test_ls_detail(acp_fs: ACPFileSystem):

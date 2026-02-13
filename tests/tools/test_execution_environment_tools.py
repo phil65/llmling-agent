@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from anyenv.process_manager import ProcessOutput
 from exxec.mock_provider import MockExecutionEnvironment
@@ -230,7 +231,13 @@ class TestProcessLifecycle:
         env = MockExecutionEnvironment()
         # Inject a failure into the mock process manager
 
-        async def failing_start(*args, **kwargs):
+        async def failing_start(
+            command: str,
+            args: list[str] | None = None,
+            cwd: str | Path | None = None,
+            env: dict[str, str] | None = None,
+            output_limit: int | None = None,
+        ) -> str:
             raise FileNotFoundError("Command not found")
 
         env.process_manager.start_process = failing_start
@@ -435,7 +442,7 @@ class TestProcessLifecycle:
         original_get_info = env.process_manager.get_process_info
         call_count = 0
 
-        async def failing_get_info(process_id: str):
+        async def failing_get_info(process_id: str) -> dict[str, Any]:
             nonlocal call_count
             call_count += 1
             if call_count > 1:
