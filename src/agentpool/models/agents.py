@@ -80,7 +80,7 @@ class NativeAgentConfig(BaseAgentConfig):
     Docs: https://phil65.github.io/agentpool/YAML%20Configuration/model_configuration/
     """
 
-    tools: list[AnyToolConfig | str] = Field(
+    tools: Sequence[AnyToolConfig | str] = Field(
         default_factory=list,
         examples=[
             ["webbrowser:open", "builtins:print"],

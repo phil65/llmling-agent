@@ -114,7 +114,7 @@ class NodeConfig(Schema):
     )
     """Targets to forward results to."""
 
-    mcp_servers: list[str | MCPServerConfig] = Field(
+    mcp_servers: Sequence[str | MCPServerConfig] = Field(
         default_factory=list,
         title="MCP servers",
         examples=[

@@ -178,11 +178,7 @@ class ToolCallTestHarness:
         """
         tool_names = list(tool_calls.keys())
         model_config = TestModelConfig(call_tools=tool_names, tool_args=tool_calls)
-        agent_config = NativeAgentConfig(
-            name="harness_test_agent",
-            model=model_config,
-            tools=tools,
-        )
+        agent_config = NativeAgentConfig(name="harness_test_agent", model=model_config, tools=tools)
         manifest = AgentsManifest(agents={"harness_test_agent": agent_config})
         async with AgentPool(manifest) as pool:
             harness_agent = pool.all_agents["harness_test_agent"]
