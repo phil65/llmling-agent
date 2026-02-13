@@ -26,9 +26,7 @@ from agentpool import Agent, AgentPool  # noqa: TC001
 from agentpool.agents.acp_agent import ACPAgent
 from agentpool.agents.modes import ConfigOptionChanged, ModeInfo
 from agentpool.log import get_logger
-from agentpool_commands import get_commands
 from agentpool_commands.base import NodeCommand
-from agentpool_server.acp_server.commands import get_commands as get_acp_commands
 from agentpool_server.acp_server.converters import (
     convert_acp_mcp_server_to_config,
     from_acp_content,
@@ -86,15 +84,20 @@ In addition to `file://` URLs, these `zed://` URLs work in the agent context:
 Query params must be URL-encoded (spaces → `%20`). Paths must be absolute.
 """
 
-CMDS = [
-    *get_commands(
-        enable_set_model=False,
-        enable_list_resources=False,
-        enable_add_resource=False,
-        enable_show_resource=False,
-    ),
-    *get_acp_commands(),
-]
+
+def get_all_commands():
+    from agentpool_commands import get_commands
+    from agentpool_server.acp_server.commands import get_commands as get_acp_commands
+
+    return [
+        *get_commands(
+            enable_set_model=False,
+            enable_list_resources=False,
+            enable_add_resource=False,
+            enable_show_resource=False,
+        ),
+        *get_acp_commands(),
+    ]
 
 
 def _is_slash_command(text: str) -> bool:
@@ -198,7 +201,7 @@ class ACPSession:
         self._cancelled = False
         self._current_converter: ACPEventConverter | None = None
         self.fs = ACPFileSystem(self.client, session_id=self.session_id)
-        self.command_store = CommandStore(commands=CMDS)
+        self.command_store = CommandStore(commands=get_all_commands())
         self.command_store._initialize_sync()
         self._update_callbacks: list[Callable[[], None]] = []
         self._remote_commands: list[AvailableCommand] = []  # Commands from nested ACP agents

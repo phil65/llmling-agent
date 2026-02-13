@@ -17,7 +17,7 @@ import tempfile
 from typing import TYPE_CHECKING, Any
 
 from exxec.models import ExecutionResult
-from exxec_config import BaseExecutionEnvironmentConfig, MockExecutionEnvironmentConfig
+from exxec_config import MockExecutionEnvironmentConfig
 import pytest
 from syrupy.extensions.json import JSONSnapshotExtension
 import yaml
@@ -143,11 +143,11 @@ class ACPViaACPHarness:
         for tool in tools:
             if hasattr(tool, "environment") and (env := tool.environment):  # pyright: ignore[reportAttributeAccessIssue]
                 mock_env = env
-                assert isinstance(mock_env, BaseExecutionEnvironmentConfig)
                 break
         if not mock_env:
             # Default mock env with deterministic IDs
             mock_env = MockExecutionEnvironmentConfig(deterministic_ids=True)
+        assert isinstance(mock_env, MockExecutionEnvironmentConfig)
 
         # Create client config (ACP agent with tools that will be bridged)
         client_config_path = create_client_config_file(

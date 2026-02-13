@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
 
 
 # Root paths
@@ -21,7 +25,7 @@ def extract_page_metadata(python_file: Path) -> dict[str, dict[str, Any]]:
     content = python_file.read_text()
     tree = ast.parse(content)
 
-    metadata: dict[str, dict[str, Any]] = {}
+    metadata: dict[str, dict[Hashable, Any]] = {}
 
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
@@ -42,7 +46,7 @@ def extract_page_metadata(python_file: Path) -> dict[str, dict[str, Any]]:
                         is_page_decorator = True
 
                     if is_page_decorator:
-                        page_metadata: dict[str, Any] = {}
+                        page_metadata: dict[Hashable, Any] = {}
 
                         # Extract positional args (page title)
                         if decorator.args and isinstance(decorator.args[0], ast.Constant):

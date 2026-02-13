@@ -22,7 +22,6 @@ Example usage:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass, field
 import tempfile
 from typing import TYPE_CHECKING, Any
@@ -38,12 +37,14 @@ from agentpool import AgentsManifest
 from agentpool.delegation import AgentPool
 from agentpool.models.agents import NativeAgentConfig
 from agentpool.utils.tasks import TaskManager
-from agentpool_config import AnyToolConfig
 from agentpool_server.acp_server.session import ACPSession
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from acp.schema import SessionNotification
+    from agentpool_config import AnyToolConfig
     from agentpool_config.mcp_server import MCPServerConfig
 
 

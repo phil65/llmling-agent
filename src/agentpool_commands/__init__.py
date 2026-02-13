@@ -55,10 +55,10 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from slashed import BaseCommand, SlashedCommand
+    from slashed import BaseCommand
 
 
-def get_agent_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedCommand]]:
+def get_agent_commands(**kwargs: Any) -> Sequence[BaseCommand]:
     """Get commands that operate primarily on a single agent."""
     command_map = {
         "enable_clear": ClearCommand,
@@ -91,10 +91,10 @@ def get_agent_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComm
         "enable_search_history": SearchHistoryCommand,
         "enable_get_logs": GetLogsCommand,
     }
-    return [command for flag, command in command_map.items() if kwargs.get(flag, True)]
+    return [command() for flag, command in command_map.items() if kwargs.get(flag, True)]
 
 
-def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedCommand]]:
+def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand]:
     """Get commands that operate on multiple agents or the pool itself."""
     command_map = {
         "enable_create_agent": CreateAgentCommand,
@@ -105,7 +105,7 @@ def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand | type[SlashedComma
         "enable_list_pools": ListPoolsCommand,
         "enable_spawn": SpawnCommand,
     }
-    return [command for flag, command in command_map.items() if kwargs.get(flag, True)]
+    return [command() for flag, command in command_map.items() if kwargs.get(flag, True)]
 
 
 def get_commands(
@@ -146,7 +146,7 @@ def get_commands(
     enable_edit_agent_file: bool = True,
     enable_list_pools: bool = True,
     enable_spawn: bool = True,
-) -> list[BaseCommand | type[SlashedCommand]]:
+) -> list[BaseCommand]:
     """Get all built-in commands."""
     agent_kwargs = {
         "enable_clear": enable_clear,
@@ -189,7 +189,4 @@ def get_commands(
         "enable_spawn": enable_spawn,
     }
 
-    return [
-        *get_agent_commands(**agent_kwargs),
-        *get_pool_commands(**pool_kwargs),
-    ]
+    return [*get_agent_commands(**agent_kwargs), *get_pool_commands(**pool_kwargs)]
