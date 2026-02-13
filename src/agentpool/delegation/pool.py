@@ -6,7 +6,7 @@ import asyncio
 from asyncio import Lock
 from contextlib import AsyncExitStack, asynccontextmanager, suppress
 import os
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Self, assert_never, overload
 
 from anyenv import ProcessManager
 import anyio
@@ -358,7 +358,7 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         from agentpool.agents.base_agent import BaseAgent
 
         filter_type = agent_type or BaseAgent
-        return {i.name: i for i in self._items.values() if isinstance(i, filter_type)}
+        return {i.name: i for i in self._items.values() if isinstance(i, filter_type)}  # ty: ignore[invalid-return-type]
 
     @property
     def all_agents(self) -> dict[str, BaseAgent[Any, Any]]:
@@ -494,7 +494,13 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         """
         from agentpool.agents.base_agent import BaseAgent
 
-        base = agent if isinstance(agent, BaseAgent) else self.get_agents()[agent]
+        match agent:
+            case BaseAgent():
+                base = agent
+            case str():
+                base = self.get_agents()[agent]
+            case _ as unreachable:
+                assert_never(unreachable)  # ty: ignore[type-assertion-failure]
         # Use custom deps if provided, otherwise use shared deps
         # base.context.data = deps if deps is not None else self.shared_deps
         base.deps_type = deps_type

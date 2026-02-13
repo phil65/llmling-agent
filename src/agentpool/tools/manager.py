@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Literal, assert_never
 
@@ -251,8 +251,15 @@ class ToolManager:
         Yields:
             List of registered tool infos
         """
-        # Normalize inputs to lists
-        tools_list: list[ToolType] = [tools] if not isinstance(tools, Sequence) else list(tools)
+        from agentpool.tools.base import Tool
+
+        match tools:
+            case str() | Callable() | Tool():
+                tools_list = [tools]
+            case Sequence():
+                tools_list = list(tools)
+            case _ as unreachable:
+                assert_never(unreachable)  # ty: ignore[type-assertion-failure]
         # Store original tool states if exclusive
         tools = await self.get_tools()
         original_states: dict[str, bool] = {}
