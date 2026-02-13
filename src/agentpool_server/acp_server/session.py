@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
     from pydantic_ai import UserContent
+    from slashed import BaseCommand
 
     from acp import Client, RequestPermissionRequest, RequestPermissionResponse
     from acp.schema import (
@@ -85,7 +86,7 @@ Query params must be URL-encoded (spaces → `%20`). Paths must be absolute.
 """
 
 
-def get_all_commands():
+def get_all_commands() -> Sequence[BaseCommand]:
     from agentpool_commands import get_commands
     from agentpool_server.acp_server.commands import get_commands as get_acp_commands
 

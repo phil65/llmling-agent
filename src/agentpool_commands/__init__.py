@@ -61,51 +61,51 @@ if TYPE_CHECKING:
 def get_agent_commands(**kwargs: Any) -> Sequence[BaseCommand]:
     """Get commands that operate primarily on a single agent."""
     command_map = {
-        "enable_clear": ClearCommand,
-        "enable_reset": ResetCommand,
-        "enable_copy_clipboard": CopyClipboardCommand,
-        "enable_share_history": ShareHistoryCommand,
-        "enable_set_model": SetModelCommand,
-        "enable_list_tools": ListToolsCommand,
-        "enable_show_tool": ShowToolCommand,
-        "enable_enable_tool": EnableToolCommand,
-        "enable_disable_tool": DisableToolCommand,
-        "enable_register_tool": RegisterToolCommand,
-        "enable_register_code_tool": RegisterCodeToolCommand,
-        "enable_list_resources": ListResourcesCommand,
-        "enable_show_resource": ShowResourceCommand,
-        "enable_add_resource": AddResourceCommand,
-        "enable_list_prompts": ListPromptsCommand,
-        "enable_show_prompt": ShowPromptCommand,
-        "enable_add_worker": AddWorkerCommand,
-        "enable_remove_worker": RemoveWorkerCommand,
-        "enable_list_workers": ListWorkersCommand,
-        "enable_connect": ConnectCommand,
-        "enable_disconnect": DisconnectCommand,
-        "enable_list_connections": ListConnectionsCommand,
-        "enable_disconnect_all": DisconnectAllCommand,
-        "enable_read": ReadCommand,
-        "enable_add_mcp_server": AddMCPServerCommand,
-        "enable_add_remote_mcp_server": AddRemoteMCPServerCommand,
-        "enable_list_mcp_servers": ListMCPServersCommand,
-        "enable_search_history": SearchHistoryCommand,
-        "enable_get_logs": GetLogsCommand,
+        "enable_clear": ClearCommand(),
+        "enable_reset": ResetCommand(),
+        "enable_copy_clipboard": CopyClipboardCommand(),
+        "enable_share_history": ShareHistoryCommand(),
+        "enable_set_model": SetModelCommand(),
+        "enable_list_tools": ListToolsCommand(),
+        "enable_show_tool": ShowToolCommand(),
+        "enable_enable_tool": EnableToolCommand(),
+        "enable_disable_tool": DisableToolCommand(),
+        "enable_register_tool": RegisterToolCommand(),
+        "enable_register_code_tool": RegisterCodeToolCommand(),
+        "enable_list_resources": ListResourcesCommand(),
+        "enable_show_resource": ShowResourceCommand(),
+        "enable_add_resource": AddResourceCommand(),
+        "enable_list_prompts": ListPromptsCommand(),
+        "enable_show_prompt": ShowPromptCommand(),
+        "enable_add_worker": AddWorkerCommand(),
+        "enable_remove_worker": RemoveWorkerCommand(),
+        "enable_list_workers": ListWorkersCommand(),
+        "enable_connect": ConnectCommand(),
+        "enable_disconnect": DisconnectCommand(),
+        "enable_list_connections": ListConnectionsCommand(),
+        "enable_disconnect_all": DisconnectAllCommand(),
+        "enable_read": ReadCommand(),
+        "enable_add_mcp_server": AddMCPServerCommand(),
+        "enable_add_remote_mcp_server": AddRemoteMCPServerCommand(),
+        "enable_list_mcp_servers": ListMCPServersCommand(),
+        "enable_search_history": SearchHistoryCommand(),
+        "enable_get_logs": GetLogsCommand(),
     }
-    return [command() for flag, command in command_map.items() if kwargs.get(flag, True)]
+    return [command for flag, command in command_map.items() if kwargs.get(flag, True)]
 
 
 def get_pool_commands(**kwargs: Any) -> Sequence[BaseCommand]:
     """Get commands that operate on multiple agents or the pool itself."""
     command_map = {
-        "enable_create_agent": CreateAgentCommand,
-        "enable_create_team": CreateTeamCommand,
-        "enable_list_agents": ListAgentsCommand,
-        "enable_show_agent": ShowAgentCommand,
-        "enable_edit_agent_file": EditAgentFileCommand,
-        "enable_list_pools": ListPoolsCommand,
-        "enable_spawn": SpawnCommand,
+        "enable_create_agent": CreateAgentCommand(),
+        "enable_create_team": CreateTeamCommand(),
+        "enable_list_agents": ListAgentsCommand(),
+        "enable_show_agent": ShowAgentCommand(),
+        "enable_edit_agent_file": EditAgentFileCommand(),
+        "enable_list_pools": ListPoolsCommand(),
+        "enable_spawn": SpawnCommand(),
     }
-    return [command() for flag, command in command_map.items() if kwargs.get(flag, True)]
+    return [command for flag, command in command_map.items() if kwargs.get(flag, True)]
 
 
 def get_commands(

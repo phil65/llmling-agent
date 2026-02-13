@@ -13,6 +13,7 @@ claude_code_agent.py's module docstring.
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
 from dataclasses import dataclass, field
 import shutil
 from typing import TYPE_CHECKING, Any
@@ -93,7 +94,7 @@ async def test_tool_call_event_ordering():
     trace = EventTrace()
     input_provider = DenyingInputProvider(trace)
     # Track events per tool_call_id
-    tool_call_events: dict[str, list[str]] = {}
+    tool_call_events = defaultdict[str, list[str]](list)
 
     async with ClaudeCodeAgent(
         name="test-agent",
@@ -116,8 +117,7 @@ async def test_tool_call_event_ordering():
                 tool_call_id = event.part.tool_call_id
 
             if tool_call_id:
-                if tool_call_id not in tool_call_events:
-                    tool_call_events[tool_call_id] = []
+                assert isinstance(tool_call_id, str)
                 tool_call_events[tool_call_id].append(event_type)
 
         # Verify event ordering for each tool call

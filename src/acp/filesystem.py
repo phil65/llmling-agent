@@ -168,7 +168,13 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
     put_file = sync_wrapper(_put_file)
 
-    async def _pipe_file(self, path: str, data: bytes, **kwargs: Any) -> None:
+    async def _pipe_file(
+        self,
+        path: str,
+        value: bytes,
+        mode: str = "overwrite",
+        **kwargs: Any,
+    ) -> None:
         """Write bytes directly to a file path.
 
         This is the fsspec standard method for writing data to a file.
@@ -176,10 +182,15 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
         Args:
             path: File path to write
-            data: Bytes to write
+            value: Bytes to write
+            mode: Write mode, either 'overwrite' or 'append'
             **kwargs: Additional options
         """
-        await self._put_file(path, data, **kwargs)
+        val = value.decode() if isinstance(value, bytes) else value
+        try:
+            await self.requests.write_text_file(path, val)
+        except Exception as e:
+            raise OSError(f"Could not write file {path}: {e}") from e
 
     pipe_file = sync_wrapper(_pipe_file)
 
@@ -394,12 +405,19 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
     cp_file = sync_wrapper(_cp_file)
 
-    async def _rm(self, path: str, recursive: bool = False, **kwargs: Any) -> None:
+    async def _rm(
+        self,
+        path: str,
+        recursive: bool = False,
+        batch_size: int | None = None,
+        **kwargs: Any,
+    ) -> None:
         """Remove file or directory via rm command.
 
         Args:
             path: Path to remove
             recursive: Remove directories recursively
+            batch_size: Batch size when removing directories (recursively)
             **kwargs: Additional options
         """
         remove_cmd = self.command_provider.get_command("remove_path")
@@ -508,12 +526,23 @@ class ACPFileSystem(BaseAsyncFileSystem[ACPPath, AcpInfo]):
 
     find = sync_wrapper(_find)  # pyright: ignore[reportAssignmentType]
 
-    def open(self, path: str, mode: str = "rb", **kwargs: Any) -> ACPFile:
+    def open(
+        self,
+        path: str,
+        mode: str = "rb",
+        block_size: int | None = None,
+        cache_options: dict[str, Any] | None = None,
+        compression: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> ACPFile:
         """Open file for reading or writing.
 
         Args:
             path: File path to open
             mode: File mode ('rb', 'wb', 'ab', 'xb')
+            block_size: Block size for reading/writing
+            cache_options: Cache options for reading/writing
+            compression: Compression options for reading/writing
             **kwargs: Additional options
 
         Returns:

@@ -2,20 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 
 from acp.schema.base import AnnotatedObject
 from acp.schema.session_updates import SessionUpdate
 
 
 TSessionUpdate_co = TypeVar(
-    "TSessionUpdate_co",
-    covariant=True,
-    bound=SessionUpdate,
+    "TSessionUpdate_co", covariant=True, bound=SessionUpdate, default=SessionUpdate
 )
 
 
-class SessionNotification[TSessionUpdate_co: SessionUpdate = SessionUpdate](AnnotatedObject):
+class SessionNotification(AnnotatedObject, Generic[TSessionUpdate_co]):
     """Notification containing a session update from the agent.
 
     Used to stream real-time progress and results during prompt processing.
