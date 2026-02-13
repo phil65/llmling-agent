@@ -63,7 +63,7 @@ async def get_agent_capabilities(agent_class: type[BaseACPAgentConfig]) -> dict[
 
     command = instance.get_command()
     try:
-        args = await instance.get_args(prompt_manager=None)
+        args = instance.get_args()
     except Exception:  # noqa: BLE001
         args = []
 
