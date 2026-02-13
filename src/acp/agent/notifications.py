@@ -576,7 +576,7 @@ class ACPNotifications:
                                         case _ as unreachable:
                                             assert_never(unreachable)  # ty: ignore[type-assertion-failure]
                                 case _ as unreachable:
-                                    assert_never(unreachable)  # ty: ignore[type-assertion-failure]
+                                    assert_never(unreachable)
 
                 case ToolReturnPart(
                     content=content, tool_name=tool_name, tool_call_id=tool_call_id

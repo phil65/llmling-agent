@@ -100,10 +100,10 @@ class AgentPool[TPoolDeps = None](BaseRegistry[NodeName, MessageNode[Any, Any]])
         match manifest:
             case None:
                 self.manifest = AgentsManifest()
-            case str() | os.PathLike() | UPath():
-                self.manifest = AgentsManifest.from_file(manifest)
             case AgentsManifest():
                 self.manifest = manifest
+            case str() | os.PathLike() | UPath():
+                self.manifest = AgentsManifest.from_file(manifest)
             case _:
                 raise ValueError(f"Invalid config type: {type(manifest)}")
         registry.configure_observability(self.manifest.observability)
