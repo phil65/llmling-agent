@@ -25,21 +25,14 @@ class BaseWorkerConfig(Schema):
 
 
 class TeamWorkerConfig(BaseWorkerConfig):
-    """Configuration for team workers.
-
-    Team workers allow using entire teams as tools for other nodes.
-    """
+    """Team workers."""
 
     type: Literal["team"] = Field("team", init=False)
     """Team worker configuration."""
 
 
 class AgentWorkerConfig(BaseWorkerConfig):
-    """Configuration for agent workers.
-
-    Agent workers provide advanced features like history management and
-    context sharing between agents.
-    """
+    """Agent workers."""
 
     type: Literal["agent"] = Field("agent", init=False)
     """Agent worker configuration."""
@@ -58,23 +51,14 @@ class AgentWorkerConfig(BaseWorkerConfig):
 
 
 class ACPAgentWorkerConfig(BaseWorkerConfig):
-    """Configuration for ACP agent workers.
-
-    ACP agent workers allow using external ACP-compatible agents as tools.
-    Unlike regular agents, ACP agents manage their own history server-side,
-    so history options are not available.
-    """
+    """ACP agent workers."""
 
     type: Literal["acp_agent"] = Field("acp_agent", init=False)
     """ACP agent worker configuration."""
 
 
 class AGUIAgentWorkerConfig(BaseWorkerConfig):
-    """Configuration for AG-UI agent workers.
-
-    AG-UI agent workers allow using remote AG-UI protocol servers as tools.
-    Like ACP agents, they manage their own state server-side.
-    """
+    """AG-UI agent workers."""
 
     type: Literal["agui_agent"] = Field("agui_agent", init=False)
     """AG-UI agent worker configuration."""
